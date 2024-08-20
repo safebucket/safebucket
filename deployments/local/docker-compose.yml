@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   bucket:
     container_name: bucket
@@ -8,7 +8,7 @@ services:
       - "9001:9001"
       - "35300:35300"
     volumes:
-      - 'minio_data:/data'
+      - "minio_data:/data"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -26,6 +26,8 @@ services:
     image: bitnami/postgresql:16.4.0
     ports:
       - "5432:5432"
+    volumes:
+      - "postgresql_data:/bitnami/postgresql"
     restart: unless-stopped
     shm_size: 128mb
     environment:
@@ -40,3 +42,4 @@ services:
 
 volumes:
   minio_data:
+  postgresql_data:
