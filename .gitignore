@@ -24,3 +24,5 @@ go.work.sum
 # env file
 .env
 !/deployments/local/.env
+
+.idea/
