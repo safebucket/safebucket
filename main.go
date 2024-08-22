@@ -4,27 +4,24 @@ import (
 	"api/internal/configuration"
 	"api/internal/database"
 	"api/internal/models"
+	"api/internal/repositories"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 	"net/http"
 	"time"
 )
 
-var db *gorm.DB
-
 func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 	config := configuration.Read()
-	db = database.InitDB(config.Database)
+	db := database.InitDB(config.Database)
 
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.Bucket{})
 	db.AutoMigrate(&models.File{})
 
-	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 	r := chi.NewRouter()
 
 	// A good base middleware stack
@@ -35,6 +32,8 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/", homePage)
+
+	r.Mount("/users", repositories.UserRepo{DB: db}.Routes())
 
 	zap.L().Info("App started")
 
