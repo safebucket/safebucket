@@ -1,6 +1,7 @@
 package main
 
 import (
+	"api/internal/api"
 	"api/internal/configuration"
 	"api/internal/database"
 	"api/internal/models"
@@ -8,17 +9,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 	"net/http"
 	"time"
 )
 
-var db *gorm.DB
-
 func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 	config := configuration.Read()
-	db = database.InitDB(config.Database)
+	db := database.InitDB(config.Database)
 
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.Bucket{})
@@ -35,6 +33,8 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/", homePage)
+
+	r.Mount("/users", api.UserRepo{DB: db}.Routes())
 
 	zap.L().Info("App started")
 
