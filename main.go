@@ -1,6 +1,7 @@
 package main
 
 import (
+	"api/internal/configuration"
 	"api/internal/database"
 	"api/internal/models"
 	"fmt"
@@ -15,8 +16,9 @@ import (
 var db *gorm.DB
 
 func main() {
-	// TODO: Parse config and pass it as a param
-	db = database.InitDB()
+	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
+	config := configuration.Read()
+	db = database.InitDB(config.Database)
 
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.Bucket{})

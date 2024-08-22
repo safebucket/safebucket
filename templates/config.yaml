@@ -1,0 +1,7 @@
+database:
+  host: db
+  port: 5432
+  password: root
+  name: transferspace
+  user: root
+  ssl: false
