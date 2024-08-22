@@ -1,4 +1,4 @@
-package api
+package repositories
 
 import (
 	c "api/internal/common"
@@ -8,6 +8,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type UserRepo struct {
+	DB *gorm.DB
+}
+
 func (ur UserRepo) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", c.GetListHandler[models.User](ur))
@@ -15,13 +19,10 @@ func (ur UserRepo) Routes() chi.Router {
 
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", c.GetOneHandler[models.User](ur))
+		r.With(c.Validate[models.UserUpdateBody]).Patch("/", c.UpdateHandler[models.User](ur))
 		r.Delete("/", c.DeleteHandler[models.User](ur))
 	})
 	return r
-}
-
-type UserRepo struct {
-	DB *gorm.DB
 }
 
 func (ur UserRepo) Create(body models.User) (models.User, error) {
@@ -50,9 +51,14 @@ func (ur UserRepo) GetOne(id uint) (models.User, error) {
 	}
 }
 
-func (ur UserRepo) Update(u uint, body models.User) (models.User, error) {
-	//TODO implement me
-	panic("implement me")
+func (ur UserRepo) Update(id uint, body models.User) (models.User, error) {
+	user := models.User{ID: id}
+	result := ur.DB.Model(&user).Updates(body)
+	if result.RowsAffected == 0 {
+		return user, errors.New("user not found")
+	} else {
+		return user, nil
+	}
 }
 
 func (ur UserRepo) Delete(id uint) error {

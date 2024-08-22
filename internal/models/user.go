@@ -15,3 +15,9 @@ type User struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+type UserUpdateBody struct {
+	FirstName string `json:"first_name" validate:"omitempty"`
+	LastName  string `json:"last_name" validate:"omitempty"`
+	Email     string `json:"email" validate:"omitempty,email"`
+}

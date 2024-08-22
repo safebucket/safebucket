@@ -41,6 +41,32 @@ func CreateHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
 	}
 }
 
+func UpdateHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		// FIXME(YLB): Converting the body struct (used by validation) to JSON
+		// FIXME(YLB): Then converting back to the actual DB struct to perform DB operations
+		body := r.Context().Value("body")
+		jsonString, _ := json.Marshal(body)
+		record := new(T)
+		json.Unmarshal(jsonString, &record)
+
+		_, err = repo.Update(uint(id), *record)
+		if err != nil {
+			strErrors := []string{err.Error()}
+			RespondWithError(w, http.StatusNotFound, strErrors)
+		} else {
+			RespondWithJSON(w, http.StatusNoContent, nil)
+		}
+	}
+}
+
 func GetListHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		records := repo.GetList()

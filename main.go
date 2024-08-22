@@ -1,10 +1,10 @@
 package main
 
 import (
-	"api/internal/api"
 	"api/internal/configuration"
 	"api/internal/database"
 	"api/internal/models"
+	"api/internal/repositories"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -22,7 +22,6 @@ func main() {
 	db.AutoMigrate(&models.Bucket{})
 	db.AutoMigrate(&models.File{})
 
-	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 	r := chi.NewRouter()
 
 	// A good base middleware stack
@@ -34,7 +33,7 @@ func main() {
 
 	r.Get("/", homePage)
 
-	r.Mount("/users", api.UserRepo{DB: db}.Routes())
+	r.Mount("/users", repositories.UserRepo{DB: db}.Routes())
 
 	zap.L().Info("App started")
 
