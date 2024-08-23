@@ -2,7 +2,7 @@ version: "3"
 services:
   bucket:
     container_name: bucket
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2024-08-17T01-24-54Z
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -40,6 +40,22 @@ services:
       timeout: 5s
       retries: 20
 
+  mailpit:
+    image: axllent/mailpit:v1.20.2
+    container_name: mailpit
+    restart: unless-stopped
+    volumes:
+      - "mail_data:/data"
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
 volumes:
   minio_data:
   postgresql_data:
+  mail_data:
