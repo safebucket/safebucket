@@ -8,3 +8,5 @@ jobs:
     steps:
     - name: Golangci-lint
       uses: golangci/golangci-lint-action@v6.1.0
+      with:
+        working-directory: internal
