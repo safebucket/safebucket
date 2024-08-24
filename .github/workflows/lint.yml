@@ -8,7 +8,10 @@ jobs:
     steps:
 
     - name: ls dir
-      run : ls -lah ${{ github.workspace }}
+      run : ls -lah .
+
+    - name: ls dir
+      run : ls -lah ../
 
     - name: Golangci-lint
       uses: golangci/golangci-lint-action@v6.1.0
