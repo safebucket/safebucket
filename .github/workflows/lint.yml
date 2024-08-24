@@ -6,7 +6,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+
+    - name: ls dir
+      run : ls -lah ${{ github.workspace }}
+
     - name: Golangci-lint
       uses: golangci/golangci-lint-action@v6.1.0
       with:
-        working-directory: ./internal
+        working-directory: ${{ github.workspace }}
