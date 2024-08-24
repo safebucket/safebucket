@@ -10,12 +10,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: ls dir
-      run : ls -lah .
-
-    - name: ls dir
-      run : ls -lah ../
-
     - name: Golangci-lint
       uses: golangci/golangci-lint-action@v6.1.0
       with:
