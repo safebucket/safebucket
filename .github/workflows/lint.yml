@@ -1,0 +1,10 @@
+name: Test Quality
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Golangci-lint
+      uses: golangci/golangci-lint-action@v6.1.0
