@@ -42,7 +42,7 @@ export default function RootLayout(
     return (
         <html lang="en">
         <body className={inter.className}>
-        <div className="h-screen mx-auto px-4 py-8 flex">
+        <div className="w-full flex h-svh max-h-svh">
             <ThemeProvider
                 attribute="class"
                 defaultTheme="system"
@@ -50,13 +50,7 @@ export default function RootLayout(
                 disableTransitionOnChange
             >
                 <SideMenu buckets={buckets}/>
-                <main>
-                    <div className="flex-1 ml-6">
-                        <div className="grid grid-cols-1 gap-8">
-                            {children}
-                        </div>
-                    </div>
-                </main>
+                {children}
             </ThemeProvider>
         </div>
         </body>

@@ -1,16 +1,14 @@
 "use client"
 
 import {Button} from "@/components/ui/button"
-import {usePathname, useRouter} from "next/navigation";
+import {usePathname} from "next/navigation";
 import Link from "next/link";
 
 export function SideMenu({buckets}: any) {
-    const router = useRouter()
     const pathname = usePathname()
-    console.log(pathname)
 
     return (
-        <div className="w-64 border-r pr-6">
+        <div className="h-screen px-4 py-8 w-64 border-r pr-6">
             <div className="space-y-4">
                 <div>
                     <h3 className="text-lg font-medium mb-2">Private</h3>

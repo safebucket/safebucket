@@ -21,50 +21,48 @@ export function BucketHeader({bucketName}: any) {
     }
 
     return (
-        <>
-            <div className="flex-1">
-                <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold">{bucketName}</h1>
-                    <div className="flex items-center gap-4">
-                        <Select value={filterType} onValueChange={handleFilter}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filter by type"/>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All</SelectItem>
-                                <SelectItem value="pdf">PDF</SelectItem>
-                                <SelectItem value="pptx">PowerPoint</SelectItem>
-                                <SelectItem value="jpg">Image</SelectItem>
-                                <SelectItem value="xlsx">Excel</SelectItem>
-                                <SelectItem value="mp4">Video</SelectItem>
-                                <SelectItem value="mp3">Audio</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Button
-                            variant="outline"
-                            onClick={() => handleSort("name")}
-                            className={sortBy === "name" ? "font-medium" : ""}
-                        >
-                            Name {sortBy === "name" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => handleSort("size")}
-                            className={sortBy === "size" ? "font-medium" : ""}
-                        >
-                            Size {sortBy === "size" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => handleSort("modified")}
-                            className={sortBy === "modified" ? "font-medium" : ""}
-                        >
-                            Modified {sortBy === "modified" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
-                        </Button>
-                        <ShareFileDialog/>
-                    </div>
+        <div className="flex-1">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">{bucketName}</h1>
+                <div className="flex items-center gap-4">
+                    <Select value={filterType} onValueChange={handleFilter}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Filter by type"/>
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="pdf">PDF</SelectItem>
+                            <SelectItem value="pptx">PowerPoint</SelectItem>
+                            <SelectItem value="jpg">Image</SelectItem>
+                            <SelectItem value="xlsx">Excel</SelectItem>
+                            <SelectItem value="mp4">Video</SelectItem>
+                            <SelectItem value="mp3">Audio</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button
+                        variant="outline"
+                        onClick={() => handleSort("name")}
+                        className={sortBy === "name" ? "font-medium" : ""}
+                    >
+                        Name {sortBy === "name" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => handleSort("size")}
+                        className={sortBy === "size" ? "font-medium" : ""}
+                    >
+                        Size {sortBy === "size" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => handleSort("modified")}
+                        className={sortBy === "modified" ? "font-medium" : ""}
+                    >
+                        Modified {sortBy === "modified" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
+                    </Button>
+                    <ShareFileDialog/>
                 </div>
             </div>
-        </>
+        </div>
     )
 }

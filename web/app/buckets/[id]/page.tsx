@@ -74,9 +74,11 @@ const files = [
 export default function Bucket() {
     const {id} = useParams()
     return (
-        <div className="">
-            <BucketHeader bucketName="Bucket"/>
-            <BucketContent files={files}/>
+        <div className="flex-1 m-6">
+            <div className="grid grid-cols-1 gap-8">
+                <BucketHeader bucketName="Bucket"/>
+                <BucketContent files={files}/>
+            </div>
         </div>
     )
 }
