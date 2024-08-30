@@ -9,15 +9,16 @@ export default function Login() {
     return (
         <div className="flex-1 m-6">
             <div className="grid grid-cols-1 gap-8">
-                <div className="items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-                    <div className="mx-auto max-w-md space-y-4">
+                <div
+                    className="items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+                    <div className="mx-auto w-full max-w-md space-y-4">
                         <div className="text-center">
-                            <h1 className="text-3xl font-bold tracking-tight text-foreground">Sign in to your
-                                account</h1>
+                            <h1 className="text-3xl font-bold tracking-tight text-foreground">Create an account</h1>
                             <p className="mt-2 text-muted-foreground">
-                                Don&apos;t have an account?{" "}
-                                <Link href="/register" className="font-medium text-primary hover:underline" prefetch={false}>
-                                    Register
+                                Already have an account?{" "}
+                                <Link href="/login" className="font-medium text-primary hover:underline"
+                                      prefetch={false}>
+                                    Sign in
                                 </Link>
                             </p>
                         </div>
@@ -43,23 +44,29 @@ export default function Login() {
                                     </div>
                                 </div>
                                 <div className="grid gap-2">
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input id="name" type="text" placeholder="John Doe" required/>
+                                </div>
+                                <div className="grid gap-2">
                                     <Label htmlFor="email">Email</Label>
                                     <Input id="email" type="email" placeholder="name@example.com" required/>
                                 </div>
                                 <div className="grid gap-2">
                                     <div className="flex items-center justify-between">
                                         <Label htmlFor="password">Password</Label>
-                                        <Link href="#" className="text-sm font-medium text-primary hover:underline"
-                                              prefetch={false}>
-                                            Forgot password?
-                                        </Link>
                                     </div>
                                     <Input id="password" type="password" required/>
+                                </div>
+                                <div className="grid gap-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="confirm-password">Confirm Password</Label>
+                                    </div>
+                                    <Input id="confirm-password" type="password" required/>
                                 </div>
                             </CardContent>
                             <CardFooter>
                                 <Button type="submit" className="w-full">
-                                    Sign in
+                                    Register
                                 </Button>
                             </CardFooter>
                         </Card>
