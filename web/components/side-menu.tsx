@@ -3,9 +3,13 @@
 import {Button} from "@/components/ui/button"
 import {usePathname} from "next/navigation";
 import Link from "next/link";
+import {useBucketsData} from "@/app/buckets/hooks/useBucketsData";
+import {Skeleton} from "@/components/ui/skeleton";
+import React from "react";
 
-export function SideMenu({buckets}: any) {
+export function SideMenu() {
     const pathname = usePathname()
+    const {buckets, error, isLoading} = useBucketsData()
 
     return (
         <div className="h-screen px-4 py-8 w-64 border-r pr-6">
@@ -30,7 +34,8 @@ export function SideMenu({buckets}: any) {
                         </Button>
                     </div>
                     <nav className="space-y-1">
-                        {buckets.map((bucket: any) =>
+                        {isLoading && <Skeleton className="h-10"/>}
+                        {!isLoading && buckets.map((bucket: any) =>
                             <Link key={bucket.id} href={`/buckets/${bucket.id}`}
                                   className={`block py-2 px-3 rounded-md hover:bg-muted ${pathname == `/buckets/${bucket.id}` ? "bg-muted text-primary" : ""}`}>
                                 {bucket.name}

@@ -14,33 +14,10 @@ export const metadata: Metadata = {
 export default function RootLayout(
     {
         children,
-    }: Readonly<{ children: React.ReactNode }>) {
-
-    const buckets = [
-        {
-            id: 1,
-            name: "Oomnitza bucket",
-            files: [
-                {
-                    "id": 1,
-                    "name": "stocks.xls"
-                }
-            ]
-        },
-        {
-            id: 2,
-            name: "HR bucket",
-            files: [
-                {
-                    "id": 1,
-                    "name": "contrat.pdf"
-                }
-            ]
-        }
-    ];
-
+    }: Readonly<{ children: React.ReactNode }>
+) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
         <div className="w-full flex h-svh max-h-svh">
             <ThemeProvider
@@ -49,7 +26,7 @@ export default function RootLayout(
                 enableSystem
                 disableTransitionOnChange
             >
-                <SideMenu buckets={buckets}/>
+                <SideMenu/>
                 {children}
             </ThemeProvider>
         </div>
