@@ -1,3 +1,134 @@
 {
-  "extends": ["next/core-web-vitals"]
+  "env": {
+    "browser": true,
+    "commonjs": true,
+    "es6": true,
+    "node": true
+  },
+  "extends": [
+    "next/core-web-vitals",
+    "eslint:recommended",
+    "plugin:import/recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react/recommended",
+    "prettier"
+  ],
+  "globals": {
+    "Atomics": "readonly",
+    "SharedArrayBuffer": "readonly"
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaFeatures": {
+      "jsx": true
+    },
+    "ecmaVersion": 11,
+    "sourceType": "module"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "plugins": ["react", "react-hooks", "import", "@typescript-eslint"],
+  "rules": {
+    "import/dynamic-import-chunkname": "error",
+    "import/first": "error",
+    "import/newline-after-import": "warn",
+    // Ignoring 3rd-party dependencies, otherwise it more than doubles eslint's run time
+    "import/no-cycle": [
+      "error",
+      {
+        "ignoreExternal": true
+      }
+    ],
+    "import/no-deprecated": "warn",
+    "import/no-unresolved": "error",
+    "import/no-unused-modules": "error",
+    "dot-notation": [
+      "error",
+      {
+        "allowKeywords": true
+      }
+    ],
+    //Smaller functions
+    "max-depth": [
+      "warn",
+      {
+        "max": 3
+      }
+    ],
+    // "max-statements": ["error", 10],
+    "max-nested-callbacks": ["warn", 3],
+    "max-params": ["warn", 5],
+    "complexity": ["warn", 3],
+    "no-case-declarations": "warn",
+    "no-constant-condition": "warn",
+    "no-dupe-class-members": "error",
+    "no-dupe-keys": "error",
+    "no-else-return": "warn",
+    "no-empty": "error",
+    "no-empty-pattern": "warn",
+    "no-extra-boolean-cast": "warn",
+    "no-extra-label": "error",
+    "no-fallthrough": "warn",
+    "no-inner-declarations": "warn",
+    "no-prototype-builtins": "warn",
+    "no-undef": "error",
+    "no-unsafe-optional-chaining": "warn",
+    "no-useless-escape": "warn",
+    "no-useless-return": "error",
+    "no-var": "warn",
+    "no-warning-comments": [
+      "warn",
+      {
+        "terms": ["todo", "fixme"]
+      }
+    ],
+    "prefer-const": "error",
+    "prefer-spread": "warn",
+    "quotes": [
+      "warn",
+      "double",
+      {
+        "avoidEscape": true
+      }
+    ],
+    "react/display-name": "warn",
+    "react/no-find-dom-node": "error",
+    "react/no-unescaped-entities": "error",
+    "react/no-unknown-property": "error",
+    "react/jsx-filename-extension": [
+      "error",
+      {
+        "extensions": [".tsx", ".jsx"]
+      }
+    ],
+    // FIXME too many instances of that warning to be useful
+    "react/prop-types": "off",
+    "react-hooks/exhaustive-deps": "warn",
+    // Checks effect dependencies
+    "react-hooks/rules-of-hooks": "error",
+    // Checks rules of Hooks
+    "@typescript-eslint/ban-ts-comment": "warn",
+    "@typescript-eslint/ban-types": "warn",
+    "@typescript-eslint/prefer-as-const": "error",
+    "@typescript-eslint/no-duplicate-enum-values": "warn",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-loss-of-precision": "warn",
+    "@typescript-eslint/no-this-alias": "error",
+    "@typescript-eslint/no-unnecessary-type-constraint": "error",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "vars": "all",
+        "args": "after-used",
+        "argsIgnorePattern": "^_.*",
+        "varsIgnorePattern": "^_.*",
+        "ignoreRestSiblings": true
+      }
+    ],
+    "@typescript-eslint/no-var-requires": "error",
+    "yoda": "error"
+  }
 }
