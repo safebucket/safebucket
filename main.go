@@ -34,6 +34,7 @@ func main() {
 	r.Get("/", homePage)
 
 	r.Mount("/users", repositories.UserRepo{DB: db}.Routes())
+	r.Mount("/buckets", repositories.BucketRepo{DB: db}.Routes())
 
 	zap.L().Info("App started")
 
