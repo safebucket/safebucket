@@ -1,7 +1,9 @@
-import React from "react";
+import React, { FC } from "react";
 
 import { cn } from "@/lib/utils";
 import { FileTypeIcon } from "lucide-react";
+
+import { IFile } from "@/app/buckets/helpers/types";
 
 import { Card } from "@/components/ui/card";
 import {
@@ -12,7 +14,11 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
-export function FileView({ file }) {
+interface IFileViewProps {
+  file: IFile;
+}
+
+export const FileView: FC<IFileViewProps> = ({ file }: IFileViewProps) => {
   return (
     <div className={cn("space-y-3")}>
       <ContextMenu>
@@ -60,4 +66,4 @@ export function FileView({ file }) {
       </ContextMenu>
     </div>
   );
-}
+};

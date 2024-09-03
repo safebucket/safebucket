@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { FC, useState } from "react";
+
+import { Bucket } from "@/app/buckets/helpers/types";
 
 import ShareFileDialog from "@/components/sharefile";
 import { Button } from "@/components/ui/button";
@@ -9,13 +11,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export function BucketHeader({ bucketName }) {
+interface IBucketHeaderProps {
+  bucket: Bucket;
+  isLoading: boolean;
+}
+
+export const BucketHeader: FC<IBucketHeaderProps> = ({
+  bucket,
+  isLoading,
+}: IBucketHeaderProps) => {
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
   const [filterType, setFilterType] = useState("all");
 
-  const handleSort = (field) => {
+  const handleSort = (field: string) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -23,14 +34,16 @@ export function BucketHeader({ bucketName }) {
       setSortOrder("asc");
     }
   };
-  const handleFilter = (type) => {
+  const handleFilter = (type: string) => {
     setFilterType(type);
   };
 
   return (
     <div className="flex-1">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{bucketName}</h1>
+        <h1 className="text-2xl font-bold">
+          {isLoading ? <Skeleton className="h-10 w-[250px]" /> : bucket.name}
+        </h1>
         <div className="flex items-center gap-4">
           <Select value={filterType} onValueChange={handleFilter}>
             <SelectTrigger>
@@ -76,4 +89,4 @@ export function BucketHeader({ bucketName }) {
       </div>
     </div>
   );
-}
+};

@@ -4,6 +4,8 @@ import React from "react";
 
 import { useParams } from "next/navigation";
 
+import { useBucketData } from "@/app/buckets/hooks/useBucketData";
+
 import { BucketContent } from "@/components/bucket/bucket-content";
 import { BucketHeader } from "@/components/bucket/bucket-header";
 
@@ -75,12 +77,17 @@ const files = [
 ];
 
 export default function Bucket() {
-  const { _ } = useParams();
+  const { id } = useParams<{ id: string }>();
+  const { bucket, isLoading } = useBucketData(id);
+
+  // FIXME: Remove when endpoint returns files
+  if (!isLoading) bucket.files = files;
+
   return (
     <div className="m-6 flex-1">
       <div className="grid grid-cols-1 gap-8">
-        <BucketHeader bucketName="Bucket" />
-        <BucketContent files={files} />
+        <BucketHeader bucket={bucket} isLoading={isLoading} />
+        <BucketContent bucket={bucket} isLoading={isLoading} />
       </div>
     </div>
   );

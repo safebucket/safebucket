@@ -23,7 +23,7 @@ const activities = [
     modified: "2023-03-28",
   },
   {
-    id: 2,
+    id: 3,
     user: "Sarah L.",
     file: "Image.jpg",
     action: "uploaded",
@@ -31,7 +31,7 @@ const activities = [
     modified: "2024-08-19",
   },
   {
-    id: 2,
+    id: 4,
     user: "Spreadsheet.xlsx",
     file: "Presentation.pptx",
     action: "uploaded",
