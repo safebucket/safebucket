@@ -112,3 +112,86 @@ func DeleteHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
 		}
 	}
 }
+
+type CreateTargetFunc[In any] func(In) error
+type ListTargetFunc[Out any] func() []Out
+type GetOneTargetFunc[Out any] func(id uint) (Out, error)
+type UpdateTargetFunc[In any, Out any] func(id uint, body In) (Out, error)
+type DeleteTargetFunc func(id uint) error
+
+func CreateHandlerV2[In any](f CreateTargetFunc[In]) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := f(r.Context().Value("body").(In))
+		if err != nil {
+			strErrors := []string{err.Error()}
+			RespondWithError(w, http.StatusBadRequest, strErrors)
+		} else {
+			RespondWithJSON(w, http.StatusCreated, nil)
+		}
+	}
+}
+
+func GetListHandlerV2[Out any](f ListTargetFunc[Out]) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		records := f()
+		page := Page[Out]{Data: records}
+		RespondWithJSON(w, http.StatusOK, page)
+	}
+}
+
+func GetOneHandlerV2[Out any](f GetOneTargetFunc[Out]) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		record, err := f(uint(id))
+		if err != nil {
+			strErrors := []string{err.Error()}
+			RespondWithError(w, http.StatusNotFound, strErrors)
+		} else {
+			RespondWithJSON(w, http.StatusOK, record)
+		}
+	}
+}
+
+func UpdateHandlerV2[In any, Out any](f UpdateTargetFunc[In, Out]) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		_, err = f(uint(id), r.Context().Value("body").(In))
+		if err != nil {
+			strErrors := []string{err.Error()}
+			RespondWithError(w, http.StatusNotFound, strErrors)
+		} else {
+			RespondWithJSON(w, http.StatusNoContent, nil)
+		}
+	}
+}
+
+func DeleteHandlerV2(f DeleteTargetFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		err = f(uint(id))
+		if err != nil {
+			strErrors := []string{err.Error()}
+			RespondWithError(w, http.StatusNotFound, strErrors)
+		} else {
+			RespondWithJSON(w, http.StatusNoContent, nil)
+		}
+	}
+}

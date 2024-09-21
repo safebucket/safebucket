@@ -16,6 +16,12 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
+type UserCreateBody struct {
+	FirstName string `json:"first_name" validate:"omitempty"`
+	LastName  string `json:"last_name" validate:"omitempty"`
+	Email     string `json:"email" validate:"omitempty,email"`
+}
+
 type UserUpdateBody struct {
 	FirstName string `json:"first_name" validate:"omitempty"`
 	LastName  string `json:"last_name" validate:"omitempty"`
