@@ -12,15 +12,15 @@ type UserService struct {
 	DB *gorm.DB
 }
 
-func (s UserService) RoutesV2() chi.Router {
+func (s UserService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", c.GetListHandlerV2(s.GetUserList))
-	r.With(c.Validate[models.UserCreateBody]).Post("/", c.CreateHandlerV2(s.CreateUser))
+	r.Get("/", c.GetListHandler(s.GetUserList))
+	r.With(c.Validate[models.UserCreateBody]).Post("/", c.CreateHandler(s.CreateUser))
 
 	r.Route("/{id}", func(r chi.Router) {
-		r.Get("/", c.GetOneHandlerV2(s.GetUser))
-		r.With(c.Validate[models.UserUpdateBody]).Patch("/", c.UpdateHandlerV2(s.UpdateUser))
-		r.Delete("/", c.DeleteHandlerV2(s.DeleteUser))
+		r.Get("/", c.GetOneHandler(s.GetUser))
+		r.With(c.Validate[models.UserUpdateBody]).Patch("/", c.UpdateHandler(s.UpdateUser))
+		r.Delete("/", c.DeleteHandler(s.DeleteUser))
 	})
 	return r
 }

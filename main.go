@@ -4,7 +4,6 @@ import (
 	"api/internal/configuration"
 	"api/internal/database"
 	"api/internal/models"
-	"api/internal/repositories"
 	"api/internal/services"
 	"fmt"
 	"github.com/go-chi/chi/v5"
@@ -34,9 +33,8 @@ func main() {
 
 	r.Get("/", homePage)
 
-	//r.Mount("/users", repositories.UserRepo{DB: db}.Routes())
-	r.Mount("/users", services.UserService{DB: db}.RoutesV2())
-	r.Mount("/buckets", repositories.BucketRepo{DB: db}.Routes())
+	r.Mount("/users", services.UserService{DB: db}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db}.Routes())
 
 	zap.L().Info("App started")
 
