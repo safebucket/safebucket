@@ -31,13 +31,13 @@ func RespondWithError(w http.ResponseWriter, code int, msg []string) {
 
 type CreateTargetFunc[In any] func(In) error
 type ListTargetFunc[Out any] func() []Out
-type GetOneTargetFunc[Out any] func(id uint) (Out, error)
-type UpdateTargetFunc[In any, Out any] func(id uint, body In) (Out, error)
-type DeleteTargetFunc func(id uint) error
+type GetOneTargetFunc[Out any] func(uint) (Out, error)
+type UpdateTargetFunc[In any, Out any] func(uint, In) (Out, error)
+type DeleteTargetFunc func(uint) error
 
-func CreateHandler[In any](f CreateTargetFunc[In]) http.HandlerFunc {
+func CreateHandler[In any](create CreateTargetFunc[In]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := f(r.Context().Value("body").(In))
+		err := create(r.Context().Value("body").(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusBadRequest, strErrors)
@@ -47,15 +47,15 @@ func CreateHandler[In any](f CreateTargetFunc[In]) http.HandlerFunc {
 	}
 }
 
-func GetListHandler[Out any](f ListTargetFunc[Out]) http.HandlerFunc {
+func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		records := f()
+		records := getList()
 		page := Page[Out]{Data: records}
 		RespondWithJSON(w, http.StatusOK, page)
 	}
 }
 
-func GetOneHandler[Out any](f GetOneTargetFunc[Out]) http.HandlerFunc {
+func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
@@ -64,7 +64,7 @@ func GetOneHandler[Out any](f GetOneTargetFunc[Out]) http.HandlerFunc {
 			return
 		}
 
-		record, err := f(uint(id))
+		record, err := getOne(uint(id))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusNotFound, strErrors)
@@ -74,7 +74,7 @@ func GetOneHandler[Out any](f GetOneTargetFunc[Out]) http.HandlerFunc {
 	}
 }
 
-func UpdateHandler[In any, Out any](f UpdateTargetFunc[In, Out]) http.HandlerFunc {
+func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
@@ -83,7 +83,7 @@ func UpdateHandler[In any, Out any](f UpdateTargetFunc[In, Out]) http.HandlerFun
 			return
 		}
 
-		_, err = f(uint(id), r.Context().Value("body").(In))
+		_, err = update(uint(id), r.Context().Value("body").(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusNotFound, strErrors)
@@ -93,7 +93,7 @@ func UpdateHandler[In any, Out any](f UpdateTargetFunc[In, Out]) http.HandlerFun
 	}
 }
 
-func DeleteHandler(f DeleteTargetFunc) http.HandlerFunc {
+func DeleteHandler(delete DeleteTargetFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
@@ -102,7 +102,7 @@ func DeleteHandler(f DeleteTargetFunc) http.HandlerFunc {
 			return
 		}
 
-		err = f(uint(id))
+		err = delete(uint(id))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusNotFound, strErrors)
