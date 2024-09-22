@@ -29,9 +29,15 @@ func RespondWithError(w http.ResponseWriter, code int, msg []string) {
 	RespondWithJSON(w, code, Error{Status: code, Error: msg})
 }
 
-func CreateHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
+type CreateTargetFunc[In any] func(In) error
+type ListTargetFunc[Out any] func() []Out
+type GetOneTargetFunc[Out any] func(uint) (Out, error)
+type UpdateTargetFunc[In any, Out any] func(uint, In) (Out, error)
+type DeleteTargetFunc func(uint) error
+
+func CreateHandler[In any](create CreateTargetFunc[In]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := repo.Create(r.Context().Value("body").(T))
+		err := create(r.Context().Value("body").(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusBadRequest, strErrors)
@@ -41,41 +47,15 @@ func CreateHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
 	}
 }
 
-func UpdateHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
+func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			http.Error(w, "invalid ID", http.StatusBadRequest)
-			return
-		}
-
-		// FIXME(YLB): Converting the body struct (used by validation) to JSON
-		// FIXME(YLB): Then converting back to the actual DB struct to perform DB operations
-		body := r.Context().Value("body")
-		jsonString, _ := json.Marshal(body)
-		record := new(T)
-		json.Unmarshal(jsonString, &record)
-
-		_, err = repo.Update(uint(id), *record)
-		if err != nil {
-			strErrors := []string{err.Error()}
-			RespondWithError(w, http.StatusNotFound, strErrors)
-		} else {
-			RespondWithJSON(w, http.StatusNoContent, nil)
-		}
-	}
-}
-
-func GetListHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		records := repo.GetList()
-		page := Page[T]{Data: records}
+		records := getList()
+		page := Page[Out]{Data: records}
 		RespondWithJSON(w, http.StatusOK, page)
 	}
 }
 
-func GetOneHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
+func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
@@ -84,7 +64,7 @@ func GetOneHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
 			return
 		}
 
-		record, err := repo.GetOne(uint(id))
+		record, err := getOne(uint(id))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusNotFound, strErrors)
@@ -94,7 +74,7 @@ func GetOneHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
 	}
 }
 
-func DeleteHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
+func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
@@ -103,7 +83,26 @@ func DeleteHandler[T any](repo GenericRepo[T]) http.HandlerFunc {
 			return
 		}
 
-		err = repo.Delete(uint(id))
+		_, err = update(uint(id), r.Context().Value("body").(In))
+		if err != nil {
+			strErrors := []string{err.Error()}
+			RespondWithError(w, http.StatusNotFound, strErrors)
+		} else {
+			RespondWithJSON(w, http.StatusNoContent, nil)
+		}
+	}
+}
+
+func DeleteHandler(delete DeleteTargetFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		err = delete(uint(id))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusNotFound, strErrors)
