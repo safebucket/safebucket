@@ -3,8 +3,7 @@ import React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
-import { SideMenu } from "@/components/side-menu";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Providers } from "@/app/providers";
 
 import "./globals.css";
 
@@ -22,15 +21,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <div className="flex h-svh max-h-svh w-full">
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <SideMenu />
-            {children}
-          </ThemeProvider>
+          <Providers>{children}</Providers>
         </div>
       </body>
     </html>
