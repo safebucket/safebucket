@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 
-import { Chrome, Github } from "lucide-react";
+import { signIn } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -32,13 +35,25 @@ export default function Login() {
             <Card>
               <CardContent className="space-y-4">
                 <div className="mt-4 grid grid-cols-2 gap-4">
-                  <Button variant="outline">
-                    <Chrome className="mr-2 h-4 w-4" />
-                    Google
+                  <Button variant="outline" onClick={() => signIn("google")}>
+                    <Image
+                      width={15}
+                      height={15}
+                      alt="Google logo"
+                      src="/google.svg"
+                      className="mr-2 h-4 w-4"
+                    />
+                    Sign in with Google
                   </Button>
-                  <Button variant="outline">
-                    <Github className="mr-2 h-4 w-4" />
-                    Github
+                  <Button variant="outline" onClick={() => signIn("apple")}>
+                    <Image
+                      width={25}
+                      height={25}
+                      alt="Apple logo"
+                      src="/apple.svg"
+                      className="mr-2"
+                    />
+                    Sign in with Apple
                   </Button>
                 </div>
                 <div className="relative">

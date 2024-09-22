@@ -2,6 +2,8 @@
 
 import React from "react";
 
+import { House, LogOut, ShieldCheck } from "lucide-react";
+import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -18,27 +20,29 @@ export function SideMenu() {
   return (
     <div className="h-screen w-64 border-r px-4 py-8 pr-6">
       <div className="space-y-4">
+        <div className="flex items-center justify-center gap-2 text-xl font-semibold text-primary">
+          <ShieldCheck className="h-6 w-6" />
+          <span>Safebucket</span>
+        </div>
         <div>
-          <h3 className="mb-2 text-lg font-medium">Private</h3>
           <nav className="space-y-1">
             <Link
               href="/"
-              className={`block rounded-md px-3 py-2 hover:bg-muted ${pathname == "/" ? "bg-muted text-primary" : ""}`}
+              className={`flex items-center rounded-md px-3 py-2 hover:bg-muted ${pathname == "/" ? "bg-muted text-primary" : ""}`}
             >
+              <House className="mr-2 h-5 w-5" />
               Home
-            </Link>
-            <Link
-              href="/"
-              className="block rounded-md px-3 py-2 hover:bg-muted"
-            >
-              Personal bucket
             </Link>
           </nav>
         </div>
         <div>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-lg font-medium">Shared buckets</h3>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hover:bg-muted hover:text-primary"
+            >
               New
             </Button>
           </div>
@@ -81,6 +85,15 @@ export function SideMenu() {
               Security
             </Link>
           </nav>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4 w-full hover:bg-muted hover:text-primary"
+            onClick={() => signOut()}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </div>
     </div>
