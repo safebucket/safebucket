@@ -6,8 +6,8 @@ import { useParams } from "next/navigation";
 
 import { useBucketData } from "@/app/buckets/hooks/useBucketData";
 
-import { BucketContent } from "@/components/bucket/bucket-content";
-import { BucketHeader } from "@/components/bucket/bucket-header";
+import { BucketContent } from "@/app/buckets/bucket/bucket-content";
+import { BucketHeader } from "@/app/buckets/bucket/bucket-header";
 
 const files = [
   {
