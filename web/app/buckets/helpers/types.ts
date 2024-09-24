@@ -1,3 +1,9 @@
+import {
+  SubmitHandler,
+  UseFormHandleSubmit,
+  UseFormRegister,
+} from "react-hook-form";
+
 export interface IFile {
   id: number;
   name: string;
@@ -17,13 +23,22 @@ export interface Bucket {
 }
 
 export interface IBucketsData {
-  buckets: Bucket[];
+  buckets: Bucket[] | undefined;
+  error: string;
+  isLoading: boolean;
+  createBucket: SubmitHandler<IBucketForm>;
+  register: UseFormRegister<IBucketForm>;
+  handleSubmit: UseFormHandleSubmit<IBucketForm>;
+  isDialogOpen: boolean;
+  setIsDialogOpen: (isOpen: boolean) => void;
+}
+
+export interface IBucketData {
+  bucket: Bucket | undefined;
   error: string;
   isLoading: boolean;
 }
 
-export interface IBucketData {
-  bucket: Bucket;
-  error: string;
-  isLoading: boolean;
-}
+export type IBucketForm = {
+  name: string;
+};

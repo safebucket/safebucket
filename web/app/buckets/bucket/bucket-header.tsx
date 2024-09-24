@@ -1,9 +1,14 @@
 import React, { FC, useState } from "react";
 
+import { PlusCircle } from "lucide-react";
+
 import { Bucket } from "@/app/buckets/helpers/types";
 
-import ShareFileDialog from "@/components/sharefile";
+import { CustomDialog } from "@/components/custom-dialog";
+import { DatePickerDemo } from "@/components/datepicker";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -12,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 
 interface IBucketHeaderProps {
   bucket: Bucket;
@@ -25,6 +31,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
   const [filterType, setFilterType] = useState("all");
+  const [expiresAt, setExpiresAt] = useState(false);
 
   const handleSort = (field: string) => {
     if (sortBy === field) {
@@ -84,7 +91,71 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
             {sortBy === "modified" &&
               (sortOrder === "asc" ? "\u2191" : "\u2193")}
           </Button>
-          <ShareFileDialog />
+          <CustomDialog
+            title="Share a file"
+            description="Upload a file and share it safely"
+            trigger={
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Share a file
+              </Button>
+            }
+            submitName="Share"
+          >
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="file" className="">
+                File
+              </Label>
+              <Input id="file" type="file" className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="username" className="">
+                Password
+              </Label>
+              <Input
+                id="username"
+                defaultValue="0UymxETG$wc)7k8"
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="max-downloads" className="">
+                Max downloads
+              </Label>
+              <Select>
+                <SelectTrigger id="max-downloads" className="col-span-3">
+                  <SelectValue
+                    placeholder="Unlimited"
+                    defaultValue="unlimited"
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unlimited">Unlimited</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                  <SelectItem value="5">5</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="expires-at" className="">
+                Expires at
+              </Label>
+              <Switch
+                id="expires-at"
+                checked={expiresAt}
+                onCheckedChange={setExpiresAt}
+              />
+            </div>
+            {expiresAt && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="expires-at-date" className="">
+                  Date
+                </Label>
+                <DatePickerDemo />
+              </div>
+            )}
+          </CustomDialog>
         </div>
       </div>
     </div>
