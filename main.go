@@ -35,6 +35,7 @@ func main() {
 
 	r.Mount("/users", services.UserService{DB: db}.Routes())
 	r.Mount("/buckets", services.BucketService{DB: db}.Routes())
+	r.Mount("/auth", services.AuthService{DB: db, JWTConf: config.JWT}.Routes())
 
 	zap.L().Info("App started")
 

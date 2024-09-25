@@ -4,8 +4,11 @@ import (
 	c "api/internal/common"
 	"api/internal/models"
 	"errors"
+	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"
+	"go/types"
 	"gorm.io/gorm"
+	"runtime"
 )
 
 type UserService struct {
@@ -25,7 +28,7 @@ func (s UserService) Routes() chi.Router {
 	return r
 }
 
-func (s UserService) CreateUser(body models.UserCreateBody) error {
+func (s UserService) CreateUser(body models.UserCreateBody) (types.Nil, error) {
 	newUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
@@ -33,12 +36,27 @@ func (s UserService) CreateUser(body models.UserCreateBody) error {
 	}
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
+		// TODO: Moove to constants.go ?
+		argonParams := argon2id.Params{
+			Memory:      64 * 1024,
+			Iterations:  3,
+			Parallelism: uint8(runtime.NumCPU()),
+			SaltLength:  32,
+			KeyLength:   32,
+		}
+		hash, err := argon2id.CreateHash(body.Password, &argonParams)
+		if err != nil {
+			return types.Nil{}, errors.New("can not create hash password")
+		}
+		newUser.HashedPassword = hash
 		s.DB.Create(&newUser)
-		return nil
+		return types.Nil{}, nil
 	} else {
-		return errors.New("user already exists")
+		return types.Nil{}, errors.New("user already exists, try to reset your password")
 	}
 }
+
+// Todo: add User and - in json to obfuscate hashed_password
 
 func (s UserService) GetUserList() []models.User {
 	var users []models.User

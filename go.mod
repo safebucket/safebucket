@@ -3,9 +3,11 @@ module api
 go 1.23.0
 
 require (
+	github.com/alexedwards/argon2id v1.0.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.22.0
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/spf13/viper v1.19.0
 	go.uber.org/zap v1.27.0
 	gorm.io/driver/postgres v1.5.9
