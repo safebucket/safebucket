@@ -19,6 +19,7 @@ type AuthService struct {
 func (s AuthService) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.With(c.Validate[models.AuthLogin]).Post("/login", c.CreateHandler(s.Login))
+	// TODO: MFA / ResetPassword / ResetTokens / IsAdmin (:= aud ?)?
 	r.With(c.Validate[models.AuthVerify]).Post("/verify", c.CreateHandler(s.Verify))
 	r.With(c.Validate[models.AuthVerify]).Post("/refresh", c.CreateHandler(s.Refresh))
 	return r
@@ -35,26 +36,27 @@ func (s AuthService) Login(body models.AuthLogin) (models.AuthLoginResponse, err
 			return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 		}
 
-		token, err := s.NewAccessToken(&searchUser)
+		accessToken, err := s.NewAccessToken(&searchUser)
+		refreshToken, err := s.NewRefreshToken(&searchUser)
 
 		if err != nil {
 			return models.AuthLoginResponse{}, errors.New("failed to generate new access token")
 		}
 
-		return models.AuthLoginResponse{Token: token}, nil
+		return models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 	}
 	return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 }
 
 func (s AuthService) Verify(body models.AuthVerify) (any, error) {
-	data, err := s.ParseAccessToken(body.Token)
+	data, err := s.ParseAccessToken(body.AccessToken)
 	return data, err
 }
 
 func (s AuthService) NewAccessToken(user *models.User) (string, error) {
 	claims := models.UserClaims{
 		Email:  user.Email,
-		Aud:    "app:*",
+		Aud:    "app:*", // Todo: make it a list
 		Issuer: "SafeBucket",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
@@ -65,14 +67,14 @@ func (s AuthService) NewAccessToken(user *models.User) (string, error) {
 	return accessToken.SignedString([]byte(s.JWTConf.Secret))
 }
 
-func (s AuthService) ParseAccessToken(accessToken string) (models.UserClaims, error) {
+func (s AuthService) ParseAccessToken(accessToken string) (*models.UserClaims, error) {
 	parsedAccessToken, err := jwt.ParseWithClaims(accessToken, &models.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.JWTConf.Secret), nil
 	})
-	if parsedAccessToken.Claims.(models.UserClaims).Aud != "app:*" {
-		return models.UserClaims{}, errors.New("invalid access token")
+	if parsedAccessToken.Claims.(*models.UserClaims).Aud != "app:*" {
+		return &models.UserClaims{}, errors.New("invalid access token")
 	}
-	return parsedAccessToken.Claims.(models.UserClaims), err
+	return parsedAccessToken.Claims.(*models.UserClaims), err
 }
 
 func (s AuthService) NewRefreshToken(user *models.User) (string, error) {

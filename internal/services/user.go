@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"
-	"go/types"
 	"gorm.io/gorm"
 	"runtime"
 )
@@ -28,7 +27,7 @@ func (s UserService) Routes() chi.Router {
 	return r
 }
 
-func (s UserService) CreateUser(body models.UserCreateBody) (types.Nil, error) {
+func (s UserService) CreateUser(body models.UserCreateBody) (models.User, error) {
 	newUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
@@ -46,13 +45,14 @@ func (s UserService) CreateUser(body models.UserCreateBody) (types.Nil, error) {
 		}
 		hash, err := argon2id.CreateHash(body.Password, &argonParams)
 		if err != nil {
-			return types.Nil{}, errors.New("can not create hash password")
+			return models.User{}, errors.New("can not create hash password")
 		}
 		newUser.HashedPassword = hash
 		s.DB.Create(&newUser)
-		return types.Nil{}, nil
+
+		return newUser, nil
 	} else {
-		return types.Nil{}, errors.New("user already exists, try to reset your password")
+		return models.User{}, errors.New("user already exists, try to reset your password")
 	}
 }
 

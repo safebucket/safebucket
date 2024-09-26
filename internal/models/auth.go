@@ -6,11 +6,12 @@ type AuthLogin struct {
 }
 
 type AuthLoginResponse struct {
-	Token string `json:"token" validate:"required"`
+	AccessToken  string `json:"access_token" validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 type AuthVerify struct {
-	Token string `json:"token" validate:"required"`
+	AccessToken string `json:"access_token" validate:"required"`
 }
 
 type AuthVerifyResponse struct {

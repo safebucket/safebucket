@@ -11,7 +11,9 @@ type User struct {
 	LastName  string `gorm:"default:null" json:"last_name"`
 	Email     string `gorm:"unique;not null;default:null" json:"email" validate:"required,email"`
 
-	HashedPassword string `gorm:"not null;default:null" validate:"required"`
+	HashedPassword string `gorm:"not null;default:null" validate:"required" json:"-"`
+
+	IsExternal bool `gorm:"default:false" json:"is_external"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
