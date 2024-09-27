@@ -2,12 +2,11 @@ package services
 
 import (
 	c "api/internal/common"
+	h "api/internal/helpers"
 	"api/internal/models"
 	"errors"
-	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
-	"runtime"
 )
 
 type UserService struct {
@@ -35,15 +34,8 @@ func (s UserService) CreateUser(body models.UserCreateBody) (models.User, error)
 	}
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
-		// TODO: Moove to constants.go ? (helpers/tokens.go)
-		argonParams := argon2id.Params{
-			Memory:      64 * 1024,
-			Iterations:  3,
-			Parallelism: uint8(runtime.NumCPU()),
-			SaltLength:  32,
-			KeyLength:   32,
-		}
-		hash, err := argon2id.CreateHash(body.Password, &argonParams)
+
+		hash, err := h.CreateHash(body.Password)
 		if err != nil {
 			return models.User{}, errors.New("can not create hash password")
 		}
