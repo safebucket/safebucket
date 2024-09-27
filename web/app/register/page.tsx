@@ -2,7 +2,6 @@
 
 import React from "react";
 
-import { signIn } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -35,7 +34,7 @@ export default function Login() {
             <Card>
               <CardContent className="space-y-4">
                 <div className="mt-4 grid grid-cols-2 gap-4">
-                  <Button variant="outline" onClick={() => signIn("google")}>
+                  <Button variant="outline">
                     <Image
                       width={15}
                       height={15}
@@ -45,7 +44,7 @@ export default function Login() {
                     />
                     Continue with Google
                   </Button>
-                  <Button variant="outline" onClick={() => signIn("apple")}>
+                  <Button variant="outline">
                     <Image
                       width={25}
                       height={25}

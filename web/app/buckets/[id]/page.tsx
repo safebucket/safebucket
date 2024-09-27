@@ -81,7 +81,7 @@ export default function Bucket() {
   const { bucket, isLoading } = useBucketData(id);
 
   // FIXME: Remove when endpoint returns files
-  if (!isLoading) bucket.files = files;
+  if (!isLoading) bucket!.files = files;
 
   return (
     <div className="m-6 flex-1">

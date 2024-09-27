@@ -23,7 +23,7 @@ export interface Bucket {
 }
 
 export interface IBucketsData {
-  buckets: Bucket[] | undefined;
+  buckets: Bucket[];
   error: string;
   isLoading: boolean;
   createBucket: SubmitHandler<IBucketForm>;

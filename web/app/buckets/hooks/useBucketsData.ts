@@ -8,7 +8,7 @@ import useSWR from "swr";
 import { Bucket, IBucketForm, IBucketsData } from "@/app/buckets/helpers/types";
 
 export type IListBuckets = {
-  data: Bucket[] | undefined;
+  data: Bucket[];
 };
 
 export const useBucketsData = (): IBucketsData => {
@@ -39,7 +39,7 @@ export const useBucketsData = (): IBucketsData => {
   };
 
   return {
-    buckets: data?.data,
+    buckets: data ? data.data : [],
     error,
     isLoading,
     isDialogOpen,

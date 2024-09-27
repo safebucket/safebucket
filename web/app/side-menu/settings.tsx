@@ -1,7 +1,6 @@
 import React, { FC } from "react";
 
 import { LogOut } from "lucide-react";
-import { signOut } from "next-auth/react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,6 @@ export const Settings: FC = () => {
         variant="outline"
         size="sm"
         className="mt-4 w-full hover:bg-muted hover:text-primary"
-        onClick={() => signOut()}
       >
         <LogOut className="mr-2 h-4 w-4" />
         Logout

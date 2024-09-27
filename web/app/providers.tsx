@@ -2,7 +2,6 @@
 
 import React from "react";
 
-import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 
 import { Main } from "@/app/main";
@@ -15,9 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <SessionProvider>
-        <Main>{children}</Main>
-      </SessionProvider>
+      <Main>{children}</Main>
     </ThemeProvider>
   );
 }

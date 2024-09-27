@@ -59,7 +59,7 @@ export const SharedBuckets: FC = () => {
       <nav className="space-y-1">
         {isLoading && <Skeleton className="h-10" />}
         {!isLoading &&
-          buckets?.map((bucket: Bucket) => (
+          buckets.map((bucket: Bucket) => (
             <Link
               key={bucket.id}
               href={`/buckets/${bucket.id}`}
