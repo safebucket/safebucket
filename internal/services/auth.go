@@ -19,7 +19,7 @@ type AuthService struct {
 func (s AuthService) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.With(c.Validate[models.AuthLogin]).Post("/login", c.CreateHandler(s.Login))
-	// TODO: MFA / ResetPassword / ResetTokens / IsAdmin (:= aud ?)?
+	// TODO: MFA / ResetPassword / ResetTokens / IsAdmin (:= get user)
 	r.With(c.Validate[models.AuthVerify]).Post("/verify", c.CreateHandler(s.Verify))
 	r.With(c.Validate[models.AuthVerify]).Post("/refresh", c.CreateHandler(s.Refresh))
 	return r
@@ -56,7 +56,7 @@ func (s AuthService) Verify(body models.AuthVerify) (any, error) {
 func (s AuthService) NewAccessToken(user *models.User) (string, error) {
 	claims := models.UserClaims{
 		Email:  user.Email,
-		Aud:    "app:*", // Todo: make it a list
+		Aud:    "app:*", // Todo: make it a list ==> delete aud
 		Issuer: "SafeBucket",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
@@ -84,7 +84,7 @@ func (s AuthService) NewRefreshToken(user *models.User) (string, error) {
 		Issuer: "SafeBucket",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour * 10)}, // TODO: make it configurable
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour * 10)},
 		},
 	}
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

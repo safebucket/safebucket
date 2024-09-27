@@ -5,7 +5,6 @@ import (
 	"api/internal/models"
 	"errors"
 	"github.com/go-chi/chi/v5"
-	"go/types"
 	"gorm.io/gorm"
 )
 
@@ -26,9 +25,9 @@ func (s BucketService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketService) CreateBucket(body models.Bucket) (types.Nil, error) {
+func (s BucketService) CreateBucket(body models.Bucket) (models.Bucket, error) {
 	s.DB.Create(&body)
-	return types.Nil{}, nil
+	return body, nil
 }
 
 func (s BucketService) GetBucketList() []models.Bucket {

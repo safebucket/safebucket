@@ -35,7 +35,7 @@ func (s UserService) CreateUser(body models.UserCreateBody) (models.User, error)
 	}
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
-		// TODO: Moove to constants.go ?
+		// TODO: Moove to constants.go ? (helpers/tokens.go)
 		argonParams := argon2id.Params{
 			Memory:      64 * 1024,
 			Iterations:  3,
@@ -55,8 +55,6 @@ func (s UserService) CreateUser(body models.UserCreateBody) (models.User, error)
 		return models.User{}, errors.New("user already exists, try to reset your password")
 	}
 }
-
-// Todo: add User and - in json to obfuscate hashed_password
 
 func (s UserService) GetUserList() []models.User {
 	var users []models.User
