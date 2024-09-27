@@ -7,9 +7,13 @@ import (
 
 type User struct {
 	ID        uint   `gorm:"primarykey" json:"id"`
-	FirstName string `gorm:"not null;default:null" json:"first_name" validate:"required"`
-	LastName  string `gorm:"not null;default:null" json:"last_name" validate:"required"`
+	FirstName string `gorm:"default:null" json:"first_name"`
+	LastName  string `gorm:"default:null" json:"last_name"`
 	Email     string `gorm:"unique;not null;default:null" json:"email" validate:"required,email"`
+
+	HashedPassword string `gorm:"not null;default:null" validate:"required" json:"-"`
+
+	IsExternal bool `gorm:"default:false" json:"is_external"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -19,7 +23,8 @@ type User struct {
 type UserCreateBody struct {
 	FirstName string `json:"first_name" validate:"omitempty"`
 	LastName  string `json:"last_name" validate:"omitempty"`
-	Email     string `json:"email" validate:"omitempty,email"`
+	Email     string `json:"email" validate:"required,omitempty,email"`
+	Password  string `json:"password" validate:"required,min=8"`
 }
 
 type UserUpdateBody struct {

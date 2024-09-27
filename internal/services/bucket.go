@@ -25,9 +25,9 @@ func (s BucketService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketService) CreateBucket(body models.Bucket) error {
+func (s BucketService) CreateBucket(body models.Bucket) (models.Bucket, error) {
 	s.DB.Create(&body)
-	return nil
+	return body, nil
 }
 
 func (s BucketService) GetBucketList() []models.Bucket {

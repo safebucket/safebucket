@@ -2,6 +2,7 @@ package models
 
 type Configuration struct {
 	Database DatabaseConfiguration `mapstructure:"database" validate:"required,dive"`
+	JWT      JWTConfiguration      `json:"jwt"validate:"required,dive"`
 }
 
 type DatabaseConfiguration struct {
@@ -11,4 +12,8 @@ type DatabaseConfiguration struct {
 	Password string `mapstructure:"password" validate:"required"`
 	Name     string `mapstructure:"name" validate:"required"`
 	SSLMode  string `mapstructure:"sslmode"`
+}
+
+type JWTConfiguration struct {
+	Secret string `mapstructure:"secret" validate:"required"`
 }

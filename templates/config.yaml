@@ -5,3 +5,6 @@ database:
   name: transferspace
   user: root
   ssl: false
+
+jwt:
+  secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA

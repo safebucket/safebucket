@@ -29,20 +29,20 @@ func RespondWithError(w http.ResponseWriter, code int, msg []string) {
 	RespondWithJSON(w, code, Error{Status: code, Error: msg})
 }
 
-type CreateTargetFunc[In any] func(In) error
+type CreateTargetFunc[In any, Out any] func(In) (Out, error)
 type ListTargetFunc[Out any] func() []Out
 type GetOneTargetFunc[Out any] func(uint) (Out, error)
 type UpdateTargetFunc[In any, Out any] func(uint, In) (Out, error)
 type DeleteTargetFunc func(uint) error
 
-func CreateHandler[In any](create CreateTargetFunc[In]) http.HandlerFunc {
+func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := create(r.Context().Value("body").(In))
+		resp, err := create(r.Context().Value("body").(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusBadRequest, strErrors)
 		} else {
-			RespondWithJSON(w, http.StatusCreated, nil)
+			RespondWithJSON(w, http.StatusCreated, resp)
 		}
 	}
 }

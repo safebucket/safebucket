@@ -2,6 +2,7 @@ package services
 
 import (
 	c "api/internal/common"
+	h "api/internal/helpers"
 	"api/internal/models"
 	"errors"
 	"github.com/go-chi/chi/v5"
@@ -25,7 +26,7 @@ func (s UserService) Routes() chi.Router {
 	return r
 }
 
-func (s UserService) CreateUser(body models.UserCreateBody) error {
+func (s UserService) CreateUser(body models.UserCreateBody) (models.User, error) {
 	newUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
@@ -33,10 +34,17 @@ func (s UserService) CreateUser(body models.UserCreateBody) error {
 	}
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
+
+		hash, err := h.CreateHash(body.Password)
+		if err != nil {
+			return models.User{}, errors.New("can not create hash password")
+		}
+		newUser.HashedPassword = hash
 		s.DB.Create(&newUser)
-		return nil
+
+		return newUser, nil
 	} else {
-		return errors.New("user already exists")
+		return models.User{}, errors.New("user already exists, try to reset your password")
 	}
 }
 
