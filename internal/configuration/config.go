@@ -20,7 +20,8 @@ func readEnvVars(v *viper.Viper) {
 	v.BindEnv("database.password", "DATABASE_PASSWORD")
 	v.BindEnv("database.sslmode", "DATABASE_SSLMODE")
 
-	v.BindEnv("jwt.secret, JWT_SECRET")
+	v.BindEnv("jwt.secret", "JWT_SECRET")
+	v.BindEnv("cors.allowed_origins", "CORS_ALLOWED_ORIGINS")
 }
 
 func readFileConfig(v *viper.Viper) {

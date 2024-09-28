@@ -36,7 +36,7 @@ func main() {
 		AllowedOrigins:   config.Cors.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
+		ExposedHeaders:   []string{},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
