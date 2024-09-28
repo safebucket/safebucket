@@ -5,7 +5,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 	"net/http"
-	"strconv"
 )
 
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
@@ -31,9 +30,9 @@ func RespondWithError(w http.ResponseWriter, code int, msg []string) {
 
 type CreateTargetFunc[In any, Out any] func(In) (Out, error)
 type ListTargetFunc[Out any] func() []Out
-type GetOneTargetFunc[Out any] func(uint) (Out, error)
-type UpdateTargetFunc[In any, Out any] func(uint, In) (Out, error)
-type DeleteTargetFunc func(uint) error
+type GetOneTargetFunc[Out any] func(string) (Out, error)
+type UpdateTargetFunc[In any, Out any] func(string, In) (Out, error)
+type DeleteTargetFunc func(string) error
 
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -57,14 +56,8 @@ func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 
 func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			http.Error(w, "invalid ID", http.StatusBadRequest)
-			return
-		}
-
-		record, err := getOne(uint(id))
+		id := chi.URLParam(r, "id")
+		record, err := getOne(id)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusNotFound, strErrors)
@@ -76,14 +69,8 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 
 func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			http.Error(w, "invalid ID", http.StatusBadRequest)
-			return
-		}
-
-		_, err = update(uint(id), r.Context().Value("body").(In))
+		id := chi.URLParam(r, "id")
+		_, err := update(id, r.Context().Value("body").(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusNotFound, strErrors)
@@ -95,14 +82,8 @@ func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.Handl
 
 func DeleteHandler(delete DeleteTargetFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			http.Error(w, "invalid ID", http.StatusBadRequest)
-			return
-		}
-
-		err = delete(uint(id))
+		id := chi.URLParam(r, "id")
+		err := delete(id)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			RespondWithError(w, http.StatusNotFound, strErrors)

@@ -5,6 +5,7 @@ import (
 	"api/internal/models"
 	"errors"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -36,8 +37,12 @@ func (s BucketService) GetBucketList() []models.Bucket {
 	return buckets
 }
 
-func (s BucketService) GetBucket(id uint) (models.Bucket, error) {
+func (s BucketService) GetBucket(id string) (models.Bucket, error) {
 	var bucket models.Bucket
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return models.Bucket{}, errors.New("invalid ID")
+	}
 	result := s.DB.Where("id = ?", id).First(&bucket)
 	if result.RowsAffected == 0 {
 		return bucket, errors.New("bucket not found")
@@ -46,8 +51,12 @@ func (s BucketService) GetBucket(id uint) (models.Bucket, error) {
 	}
 }
 
-func (s BucketService) UpdateBucket(id uint, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) UpdateBucket(id string, body models.Bucket) (models.Bucket, error) {
 	bucket := models.Bucket{ID: id}
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return models.Bucket{}, errors.New("invalid ID")
+	}
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {
 		return bucket, errors.New("bucket not found")
@@ -56,8 +65,12 @@ func (s BucketService) UpdateBucket(id uint, body models.Bucket) (models.Bucket,
 	}
 }
 
-func (s BucketService) DeleteBucket(id uint) error {
+func (s BucketService) DeleteBucket(id string) error {
 	result := s.DB.Where("id = ?", id).Delete(&models.Bucket{})
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return errors.New("invalid ID")
+	}
 	if result.RowsAffected == 0 {
 		return errors.New("bucket not found")
 	} else {

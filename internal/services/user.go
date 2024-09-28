@@ -6,6 +6,7 @@ import (
 	"api/internal/models"
 	"errors"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -17,7 +18,6 @@ func (s UserService) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", c.GetListHandler(s.GetUserList))
 	r.With(c.Validate[models.UserCreateBody]).Post("/", c.CreateHandler(s.CreateUser))
-
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", c.GetOneHandler(s.GetUser))
 		r.With(c.Validate[models.UserUpdateBody]).Patch("/", c.UpdateHandler(s.UpdateUser))
@@ -54,8 +54,14 @@ func (s UserService) GetUserList() []models.User {
 	return users
 }
 
-func (s UserService) GetUser(id uint) (models.User, error) {
+func (s UserService) GetUser(id string) (models.User, error) {
 	var user models.User
+
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return models.User{}, errors.New("invalid ID")
+	}
+
 	result := s.DB.Where("id = ?", id).First(&user)
 	if result.RowsAffected == 0 {
 		return user, errors.New("user not found")
@@ -64,8 +70,12 @@ func (s UserService) GetUser(id uint) (models.User, error) {
 	}
 }
 
-func (s UserService) UpdateUser(id uint, body models.UserUpdateBody) (models.User, error) {
+func (s UserService) UpdateUser(id string, body models.UserUpdateBody) (models.User, error) {
 	user := models.User{ID: id}
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return models.User{}, errors.New("invalid ID")
+	}
 	result := s.DB.Model(&user).Updates(body)
 	if result.RowsAffected == 0 {
 		return user, errors.New("user not found")
@@ -74,8 +84,12 @@ func (s UserService) UpdateUser(id uint, body models.UserUpdateBody) (models.Use
 	}
 }
 
-func (s UserService) DeleteUser(id uint) error {
+func (s UserService) DeleteUser(id string) error {
 	result := s.DB.Where("id = ?", id).Delete(&models.User{})
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return errors.New("invalid ID")
+	}
 	if result.RowsAffected == 0 {
 		return errors.New("user not found")
 	} else {

@@ -6,7 +6,7 @@ import (
 )
 
 type Bucket struct {
-	ID   uint   `gorm:"primarykey" json:"id"`
+	ID   string `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
 	Name string `gorm:"not null;default:null" json:"name" validate:"required"`
 
 	CreatedAt time.Time      `json:"created_at"`
