@@ -5,6 +5,7 @@ import (
 	"api/internal/models"
 	"errors"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -36,7 +37,7 @@ func (s BucketService) GetBucketList() []models.Bucket {
 	return buckets
 }
 
-func (s BucketService) GetBucket(id uint) (models.Bucket, error) {
+func (s BucketService) GetBucket(id uuid.UUID) (models.Bucket, error) {
 	var bucket models.Bucket
 	result := s.DB.Where("id = ?", id).First(&bucket)
 	if result.RowsAffected == 0 {
@@ -46,7 +47,7 @@ func (s BucketService) GetBucket(id uint) (models.Bucket, error) {
 	}
 }
 
-func (s BucketService) UpdateBucket(id uint, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) UpdateBucket(id uuid.UUID, body models.Bucket) (models.Bucket, error) {
 	bucket := models.Bucket{ID: id}
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {
@@ -56,7 +57,7 @@ func (s BucketService) UpdateBucket(id uint, body models.Bucket) (models.Bucket,
 	}
 }
 
-func (s BucketService) DeleteBucket(id uint) error {
+func (s BucketService) DeleteBucket(id uuid.UUID) error {
 	result := s.DB.Where("id = ?", id).Delete(&models.Bucket{})
 	if result.RowsAffected == 0 {
 		return errors.New("bucket not found")

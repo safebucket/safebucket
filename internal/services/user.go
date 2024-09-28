@@ -6,6 +6,7 @@ import (
 	"api/internal/models"
 	"errors"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -17,7 +18,6 @@ func (s UserService) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", c.GetListHandler(s.GetUserList))
 	r.With(c.Validate[models.UserCreateBody]).Post("/", c.CreateHandler(s.CreateUser))
-
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", c.GetOneHandler(s.GetUser))
 		r.With(c.Validate[models.UserUpdateBody]).Patch("/", c.UpdateHandler(s.UpdateUser))
@@ -54,7 +54,7 @@ func (s UserService) GetUserList() []models.User {
 	return users
 }
 
-func (s UserService) GetUser(id uint) (models.User, error) {
+func (s UserService) GetUser(id uuid.UUID) (models.User, error) {
 	var user models.User
 	result := s.DB.Where("id = ?", id).First(&user)
 	if result.RowsAffected == 0 {
@@ -64,7 +64,7 @@ func (s UserService) GetUser(id uint) (models.User, error) {
 	}
 }
 
-func (s UserService) UpdateUser(id uint, body models.UserUpdateBody) (models.User, error) {
+func (s UserService) UpdateUser(id uuid.UUID, body models.UserUpdateBody) (models.User, error) {
 	user := models.User{ID: id}
 	result := s.DB.Model(&user).Updates(body)
 	if result.RowsAffected == 0 {
@@ -74,7 +74,7 @@ func (s UserService) UpdateUser(id uint, body models.UserUpdateBody) (models.Use
 	}
 }
 
-func (s UserService) DeleteUser(id uint) error {
+func (s UserService) DeleteUser(id uuid.UUID) error {
 	result := s.DB.Where("id = ?", id).Delete(&models.User{})
 	if result.RowsAffected == 0 {
 		return errors.New("user not found")
