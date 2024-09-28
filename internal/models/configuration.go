@@ -2,7 +2,8 @@ package models
 
 type Configuration struct {
 	Database DatabaseConfiguration `mapstructure:"database" validate:"required,dive"`
-	JWT      JWTConfiguration      `json:"jwt"validate:"required,dive"`
+	JWT      JWTConfiguration      `json:"jwt" validate:"required,dive"`
+	Cors     CorsConfiguration     `json:"cors" validate:"required,dive"`
 }
 
 type DatabaseConfiguration struct {
@@ -16,4 +17,8 @@ type DatabaseConfiguration struct {
 
 type JWTConfiguration struct {
 	Secret string `mapstructure:"secret" validate:"required"`
+}
+
+type CorsConfiguration struct {
+	AllowedOrigins []string `mapstructure:"allowed_origins" validate:"required"`
 }
