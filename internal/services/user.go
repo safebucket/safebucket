@@ -54,14 +54,8 @@ func (s UserService) GetUserList() []models.User {
 	return users
 }
 
-func (s UserService) GetUser(id string) (models.User, error) {
+func (s UserService) GetUser(id uuid.UUID) (models.User, error) {
 	var user models.User
-
-	_, err := uuid.Parse(id)
-	if err != nil {
-		return models.User{}, errors.New("invalid ID")
-	}
-
 	result := s.DB.Where("id = ?", id).First(&user)
 	if result.RowsAffected == 0 {
 		return user, errors.New("user not found")
@@ -70,12 +64,8 @@ func (s UserService) GetUser(id string) (models.User, error) {
 	}
 }
 
-func (s UserService) UpdateUser(id string, body models.UserUpdateBody) (models.User, error) {
+func (s UserService) UpdateUser(id uuid.UUID, body models.UserUpdateBody) (models.User, error) {
 	user := models.User{ID: id}
-	_, err := uuid.Parse(id)
-	if err != nil {
-		return models.User{}, errors.New("invalid ID")
-	}
 	result := s.DB.Model(&user).Updates(body)
 	if result.RowsAffected == 0 {
 		return user, errors.New("user not found")
@@ -84,12 +74,8 @@ func (s UserService) UpdateUser(id string, body models.UserUpdateBody) (models.U
 	}
 }
 
-func (s UserService) DeleteUser(id string) error {
+func (s UserService) DeleteUser(id uuid.UUID) error {
 	result := s.DB.Where("id = ?", id).Delete(&models.User{})
-	_, err := uuid.Parse(id)
-	if err != nil {
-		return errors.New("invalid ID")
-	}
 	if result.RowsAffected == 0 {
 		return errors.New("user not found")
 	} else {

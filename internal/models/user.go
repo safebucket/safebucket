@@ -1,15 +1,16 @@
 package models
 
 import (
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"time"
 )
 
 type User struct {
-	ID        string `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
-	FirstName string `gorm:"default:null" json:"first_name"`
-	LastName  string `gorm:"default:null" json:"last_name"`
-	Email     string `gorm:"unique;not null;default:null" json:"email" validate:"required,email"`
+	ID        uuid.UUID `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
+	FirstName string    `gorm:"default:null" json:"first_name"`
+	LastName  string    `gorm:"default:null" json:"last_name"`
+	Email     string    `gorm:"unique;not null;default:null" json:"email" validate:"required,email"`
 
 	HashedPassword string `gorm:"not null;default:null" validate:"required" json:"-"`
 
