@@ -2,6 +2,7 @@ package services
 
 import (
 	c "api/internal/common"
+	h "api/internal/helpers"
 	"api/internal/models"
 	"crypto/rand"
 	"encoding/base64"
@@ -67,8 +68,8 @@ func (s AuthService) Login(body models.AuthLogin) (models.AuthLoginResponse, err
 			return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 		}
 
-		accessToken, err := c.NewAccessToken(s.JWTConf.Secret, &searchUser)
-		refreshToken, err := c.NewRefreshToken(s.JWTConf.Secret, &searchUser)
+		accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser)
+		refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser)
 
 		if err != nil {
 			return models.AuthLoginResponse{}, errors.New("failed to generate new access token")
@@ -80,16 +81,16 @@ func (s AuthService) Login(body models.AuthLogin) (models.AuthLoginResponse, err
 }
 
 func (s AuthService) Verify(body models.AuthVerify) (any, error) {
-	data, err := c.ParseAccessToken(s.JWTConf.Secret, body.AccessToken)
+	data, err := h.ParseAccessToken(s.JWTConf.Secret, body.AccessToken)
 	return data, err
 }
 
 func (s AuthService) Refresh(body models.AuthRefresh) (models.AuthRefreshResponse, error) {
-	RefreshToken, err := c.ParseRefreshToken(s.JWTConf.Secret, body.RefreshToken)
+	RefreshToken, err := h.ParseRefreshToken(s.JWTConf.Secret, body.RefreshToken)
 	if err != nil {
 		return models.AuthRefreshResponse{}, err
 	}
-	accessToken, err := c.NewAccessToken(s.JWTConf.Secret, &models.User{Email: RefreshToken.Email})
+	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &models.User{Email: RefreshToken.Email})
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
 
