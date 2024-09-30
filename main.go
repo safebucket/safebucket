@@ -5,11 +5,15 @@ import (
 	"api/internal/database"
 	"api/internal/models"
 	"api/internal/services"
+	"context"
 	"fmt"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
+	"log"
 	"net/http"
 	"time"
 )
@@ -41,15 +45,40 @@ func main() {
 		MaxAge:           300,
 	}))
 
+	// TODO: Make this configurable (list of providers)
+	ctx := context.Background()
+	provider, err := oidc.NewProvider(ctx, "https://accounts.google.com")
+	if err != nil {
+		log.Fatal(err)
+	}
+	oidcConfig := &oidc.Config{
+		ClientID: config.AuthProviders.GoogleClientId,
+	}
+	verifier := provider.Verifier(oidcConfig)
+
+	oauthConfig := oauth2.Config{
+		ClientID:     config.AuthProviders.GoogleClientId,
+		ClientSecret: config.AuthProviders.GoogleClientSecret,
+		Endpoint:     provider.Endpoint(),
+		RedirectURL:  "http://localhost:1323/auth/google/callback",
+		Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+	}
+
 	r.Get("/", homePage)
 
 	r.Mount("/users", services.UserService{DB: db}.Routes())
 	r.Mount("/buckets", services.BucketService{DB: db}.Routes())
-	r.Mount("/auth", services.AuthService{DB: db, JWTConf: config.JWT}.Routes())
+	r.Mount("/auth", services.AuthService{
+		DB:       db,
+		JWTConf:  config.JWT,
+		Config:   oauthConfig,
+		Verifier: verifier,
+		Provider: provider,
+	}.Routes())
 
 	zap.L().Info("App started")
 
-	err := http.ListenAndServe(":1323", r)
+	err = http.ListenAndServe(":1323", r)
 	if err != nil {
 		zap.L().Error("Failed to start the app")
 	}

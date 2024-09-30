@@ -5,6 +5,7 @@ import React from "react";
 import { ThemeProvider } from "next-themes";
 
 import { Main } from "@/app/main";
+import { SessionProvider } from "@/app/auth/hooks/useSession";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -14,7 +15,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <Main>{children}</Main>
+      <SessionProvider>
+        <Main>{children}</Main>
+      </SessionProvider>
     </ThemeProvider>
   );
 }

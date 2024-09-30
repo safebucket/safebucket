@@ -14,20 +14,20 @@ export default function Login() {
   return (
     <div className="m-6 flex-1">
       <div className="grid grid-cols-1 gap-8">
-        <div className="items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-md space-y-4">
+        <div className="items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-md space-y-4">
             <div className="text-center">
               <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                Sign in to your account
+                Create an account
               </h1>
               <p className="mt-2 text-muted-foreground">
-                Don&apos;t have an account?{" "}
+                Already have an account?{" "}
                 <Link
-                  href="/register"
+                  href="/auth/login"
                   className="font-medium text-primary hover:underline"
                   prefetch={false}
                 >
-                  Register
+                  Sign in
                 </Link>
               </p>
             </div>
@@ -42,7 +42,7 @@ export default function Login() {
                       src="/google.svg"
                       className="mr-2 h-4 w-4"
                     />
-                    Sign in with Google
+                    Continue with Google
                   </Button>
                   <Button variant="outline">
                     <Image
@@ -52,7 +52,7 @@ export default function Login() {
                       src="/apple.svg"
                       className="mr-2"
                     />
-                    Sign in with Apple
+                    Continue with Apple
                   </Button>
                 </div>
                 <div className="relative">
@@ -66,6 +66,15 @@ export default function Login() {
                   </div>
                 </div>
                 <div className="grid gap-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
@@ -77,20 +86,19 @@ export default function Login() {
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
-                    <Link
-                      href="#"
-                      className="text-sm font-medium text-primary hover:underline"
-                      prefetch={false}
-                    >
-                      Forgot password?
-                    </Link>
                   </div>
                   <Input id="password" type="password" required />
+                </div>
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                  </div>
+                  <Input id="confirm-password" type="password" required />
                 </div>
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full">
-                  Sign in
+                  Register
                 </Button>
               </CardFooter>
             </Card>

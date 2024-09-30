@@ -2,15 +2,19 @@
 
 import React from "react";
 
-import { ShieldCheck } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useSession } from "@/app/auth/hooks/useSession";
 import { Settings } from "@/app/side-menu/settings";
 import { SharedBuckets } from "@/app/side-menu/shared-buckets";
 
+import { Button } from "@/components/ui/button";
+
 export function SideMenu() {
   const pathname = usePathname();
+  const { logout } = useSession();
 
   return (
     <div className="h-screen w-64 border-r px-4 py-8 pr-6">
@@ -32,6 +36,15 @@ export function SideMenu() {
         </div>
         <SharedBuckets />
         <Settings />
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4 w-full hover:bg-muted hover:text-primary"
+          onClick={logout}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </Button>
       </div>
     </div>
   );

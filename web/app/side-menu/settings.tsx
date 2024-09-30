@@ -32,14 +32,6 @@ export const Settings: FC = () => {
           Security
         </Link>
       </nav>
-      <Button
-        variant="outline"
-        size="sm"
-        className="mt-4 w-full hover:bg-muted hover:text-primary"
-      >
-        <LogOut className="mr-2 h-4 w-4" />
-        Logout
-      </Button>
     </div>
   );
 };

@@ -1,9 +1,10 @@
 package models
 
 type Configuration struct {
-	Database DatabaseConfiguration `mapstructure:"database" validate:"required,dive"`
-	JWT      JWTConfiguration      `json:"jwt" validate:"required,dive"`
-	Cors     CorsConfiguration     `json:"cors" validate:"required,dive"`
+	Database      DatabaseConfiguration      `mapstructure:"database" validate:"required,dive"`
+	JWT           JWTConfiguration           `json:"jwt" validate:"required,dive"`
+	Cors          CorsConfiguration          `json:"cors" validate:"required,dive"`
+	AuthProviders AuthProvidersConfiguration `mapstructure:"auth_providers" validate:"required,dive"`
 }
 
 type DatabaseConfiguration struct {
@@ -21,4 +22,9 @@ type JWTConfiguration struct {
 
 type CorsConfiguration struct {
 	AllowedOrigins []string `mapstructure:"allowed_origins" validate:"required"`
+}
+
+type AuthProvidersConfiguration struct {
+	GoogleClientId     string `mapstructure:"google_client_id" validate:"required"`
+	GoogleClientSecret string `mapstructure:"google_client_secret" validate:"required"`
 }

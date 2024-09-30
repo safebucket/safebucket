@@ -22,6 +22,9 @@ func readEnvVars(v *viper.Viper) {
 
 	v.BindEnv("jwt.secret", "JWT_SECRET")
 	v.BindEnv("cors.allowed_origins", "CORS_ALLOWED_ORIGINS")
+
+	v.BindEnv("auth_providers.google_client_id", "GOOGLE_CLIENT_ID")
+	v.BindEnv("auth_providers.google_client_secret", "GOOGLE_CLIENT_SECRET")
 }
 
 func readFileConfig(v *viper.Viper) {
