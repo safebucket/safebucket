@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 
 interface IBucketHeaderProps {
-  bucket: Bucket;
+  bucket: Bucket|undefined;
   isLoading: boolean;
 }
 
@@ -49,7 +49,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
     <div className="flex-1">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">
-          {isLoading ? <Skeleton className="h-10 w-[250px]" /> : bucket.name}
+          {isLoading ? <Skeleton className="h-10 w-[250px]" /> : bucket!.name}
         </h1>
         <div className="flex items-center gap-4">
           <Select value={filterType} onValueChange={handleFilter}>

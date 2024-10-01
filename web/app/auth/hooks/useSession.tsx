@@ -3,22 +3,9 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 
-type Status = "authenticated" | "loading" | "unauthenticated";
+import { ISessionContext, Session, Status } from "@/app/auth/types/session";
 
-type Session = {
-  accessToken: string;
-  refreshToken?: string;
-  authProvider: string;
-};
-
-type SessionContext = {
-  login?: (provider: string) => void;
-  logout?: () => void;
-  session?: Session | null;
-  status?: string;
-};
-
-const SessionContext = createContext<SessionContext>({});
+const SessionContext = createContext<ISessionContext>({} as ISessionContext);
 
 export const SessionProvider = ({
   children,
