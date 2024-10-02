@@ -41,7 +41,7 @@ export const SessionProvider = ({
 
   const login = async (provider: string) => {
     setStatus("loading");
-    router.push(`${process.env.NEXT_PUBLIC_API_URL}/auth/${provider}/begin`);
+    router.push(`${process.env.NEXT_PUBLIC_API_URL}/auth/providers/${provider}/begin`);
   };
 
   const logout = async () => {

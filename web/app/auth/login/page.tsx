@@ -48,7 +48,7 @@ export default function Login() {
                     />
                     Sign in with Google
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={() => login("authelia")}>
                     <Image
                       width={25}
                       height={25}

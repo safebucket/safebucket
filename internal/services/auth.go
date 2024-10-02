@@ -2,6 +2,7 @@ package services
 
 import (
 	c "api/internal/common"
+	"api/internal/configuration"
 	h "api/internal/helpers"
 	"api/internal/models"
 	"crypto/rand"
@@ -10,7 +11,6 @@ import (
 	"github.com/alexedwards/argon2id"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
-	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 	"io"
@@ -19,11 +19,9 @@ import (
 )
 
 type AuthService struct {
-	DB       *gorm.DB
-	JWTConf  models.JWTConfiguration
-	Config   oauth2.Config
-	Verifier *oidc.IDTokenVerifier
-	Provider *oidc.Provider
+	DB        *gorm.DB
+	JWTConf   models.JWTConfiguration
+	Providers configuration.Providers
 }
 
 func randString(nByte int) (string, error) {
@@ -52,9 +50,12 @@ func (s AuthService) Routes() chi.Router {
 	r.With(c.Validate[models.AuthVerify]).Post("/verify", c.CreateHandler(s.Verify))
 	r.With(c.Validate[models.AuthVerify]).Post("/refresh", c.CreateHandler(s.Refresh))
 
-	r.Route("/{provider}", func(r chi.Router) {
-		r.Get("/begin", s.OAuthBegin)
-		r.Get("/callback", s.OAuthCallback)
+	r.Route("/providers", func(r chi.Router) {
+		r.Get("/", c.GetListHandler(s.GetProviderList))
+		r.Route("/{provider}", func(r chi.Router) {
+			r.Get("/begin", s.OAuthBegin)
+			r.Get("/callback", s.OAuthCallback)
+		})
 	})
 	return r
 }
@@ -94,24 +95,38 @@ func (s AuthService) Refresh(body models.AuthRefresh) (models.AuthRefreshRespons
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
 
+func (s AuthService) GetProviderList() []string {
+	var providers []string
+	for key := range s.Providers {
+		providers = append(providers, key)
+	}
+	return providers
+}
+
 func (s AuthService) OAuthBegin(w http.ResponseWriter, r *http.Request) {
-	provider := chi.URLParam(r, "provider")
-	zap.L().Info(
-		"Provider",
-		zap.String("provider", provider),
-	)
+	providerName := chi.URLParam(r, "provider")
+	provider, ok := s.Providers[providerName]
+	if !ok {
+		c.RespondWithError(w, http.StatusNotFound, []string{"provider not found"})
+		return
+	}
 
 	state, _ := randString(16)
 	nonce, _ := randString(16)
 	setCallbackCookie(w, r, "state", state)
 	setCallbackCookie(w, r, "nonce", nonce)
 
-	url := s.Config.AuthCodeURL(state, oidc.Nonce(nonce), oauth2.AccessTypeOffline)
+	url := provider.OauthConfig.AuthCodeURL(state, oidc.Nonce(nonce), oauth2.AccessTypeOffline)
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
 func (s AuthService) OAuthCallback(w http.ResponseWriter, r *http.Request) {
-	provider := chi.URLParam(r, "provider")
+	providerName := chi.URLParam(r, "provider")
+	provider, ok := s.Providers[providerName]
+	if !ok {
+		c.RespondWithError(w, http.StatusNotFound, []string{"provider not found"})
+		return
+	}
 
 	state, err := r.Cookie("state")
 	if err != nil {
@@ -123,7 +138,7 @@ func (s AuthService) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oauth2Token, err := s.Config.Exchange(r.Context(), r.URL.Query().Get("code"))
+	oauth2Token, err := provider.OauthConfig.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
 		strErrors := []string{"Failed to exchange token", err.Error()}
 		c.RespondWithError(w, http.StatusInternalServerError, strErrors)
@@ -136,13 +151,13 @@ func (s AuthService) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idToken, err := s.Verifier.Verify(r.Context(), rawIDToken)
+	idToken, err := provider.Verifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		c.RespondWithError(w, http.StatusInternalServerError, []string{"failed to verify ID token", err.Error()})
 		return
 	}
 
-	userInfo, err := s.Provider.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
+	userInfo, err := provider.Provider.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
 		c.RespondWithError(w, http.StatusInternalServerError, []string{"failed to get user info", err.Error()})
 		return
@@ -175,7 +190,7 @@ func (s AuthService) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 
 	providerCookie := http.Cookie{
 		Name:    "safebucket_auth_provider",
-		Value:   provider,
+		Value:   providerName,
 		Expires: expiration,
 		Path:    "/",
 	}

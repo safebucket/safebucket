@@ -14,6 +14,13 @@ database:
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
 
-auth_providers:
-  google_client_id: <CHANGE_ME>
-  google_client_secret: <CHANGE_ME>
+auth:
+  providers:
+    - google:
+        client_id: <CHANGE_ME>
+        client_secret: <CHANGE_ME>
+        issuer: https://accounts.google.com
+#    - provider:
+#        client_id: <CHANGE_ME>
+#        client_secret: <CHANGE_ME>
+#        issuer: <CHANGE_ME>

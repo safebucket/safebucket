@@ -5,6 +5,7 @@ type Configuration struct {
 	JWT           JWTConfiguration           `json:"jwt" validate:"required,dive"`
 	Cors          CorsConfiguration          `json:"cors" validate:"required,dive"`
 	AuthProviders AuthProvidersConfiguration `mapstructure:"auth_providers" validate:"required,dive"`
+	Auth          AuthConfiguration          `mapstructure:"auth" validate:"required,dive"`
 }
 
 type DatabaseConfiguration struct {
@@ -27,4 +28,14 @@ type CorsConfiguration struct {
 type AuthProvidersConfiguration struct {
 	GoogleClientId     string `mapstructure:"google_client_id" validate:"required"`
 	GoogleClientSecret string `mapstructure:"google_client_secret" validate:"required"`
+}
+
+type AuthConfiguration struct {
+	Providers map[string]ProviderConfiguration `mapstructure:"providers" validate:"required"`
+}
+
+type ProviderConfiguration struct {
+	ClientId     string `mapstructure:"client_id" validate:"required"`
+	ClientSecret string `mapstructure:"client_secret" validate:"required"`
+	Issuer       string `mapstructure:"issuer" validate:"required"`
 }
