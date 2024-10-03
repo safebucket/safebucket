@@ -1,7 +1,8 @@
 package services
 
 import (
-	c "api/internal/common"
+	"api/internal/handlers"
+	h "api/internal/helpers"
 	"api/internal/models"
 	"errors"
 	"github.com/go-chi/chi/v5"
@@ -15,13 +16,13 @@ type BucketService struct {
 
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", c.GetListHandler(s.GetBucketList))
-	r.With(c.Validate[models.Bucket]).Post("/", c.CreateHandler(s.CreateBucket))
+	r.Get("/", handlers.GetListHandler(s.GetBucketList))
+	r.With(h.Validate[models.Bucket]).Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id}", func(r chi.Router) {
-		r.Get("/", c.GetOneHandler(s.GetBucket))
-		r.With(c.Validate[models.Bucket]).Patch("/", c.UpdateHandler(s.UpdateBucket))
-		r.Delete("/", c.DeleteHandler(s.DeleteBucket))
+		r.Get("/", handlers.GetOneHandler(s.GetBucket))
+		r.With(h.Validate[models.Bucket]).Patch("/", handlers.UpdateHandler(s.UpdateBucket))
+		r.Delete("/", handlers.DeleteHandler(s.DeleteBucket))
 	})
 	return r
 }

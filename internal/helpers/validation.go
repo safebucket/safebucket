@@ -1,4 +1,4 @@
-package common
+package helpers
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"net/http"
 )
+
+type BodyKey struct{}
 
 func Validate[T any](next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +25,7 @@ func Validate[T any](next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "body", *data)
+		ctx := context.WithValue(r.Context(), BodyKey{}, *data)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

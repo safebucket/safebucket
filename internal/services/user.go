@@ -1,7 +1,7 @@
 package services
 
 import (
-	c "api/internal/common"
+	"api/internal/handlers"
 	h "api/internal/helpers"
 	"api/internal/models"
 	"errors"
@@ -16,12 +16,12 @@ type UserService struct {
 
 func (s UserService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", c.GetListHandler(s.GetUserList))
-	r.With(c.Validate[models.UserCreateBody]).Post("/", c.CreateHandler(s.CreateUser))
+	r.Get("/", handlers.GetListHandler(s.GetUserList))
+	r.With(h.Validate[models.UserCreateBody]).Post("/", handlers.CreateHandler(s.CreateUser))
 	r.Route("/{id}", func(r chi.Router) {
-		r.Get("/", c.GetOneHandler(s.GetUser))
-		r.With(c.Validate[models.UserUpdateBody]).Patch("/", c.UpdateHandler(s.UpdateUser))
-		r.Delete("/", c.DeleteHandler(s.DeleteUser))
+		r.Get("/", handlers.GetOneHandler(s.GetUser))
+		r.With(h.Validate[models.UserUpdateBody]).Patch("/", handlers.UpdateHandler(s.UpdateUser))
+		r.Delete("/", handlers.DeleteHandler(s.DeleteUser))
 	})
 	return r
 }

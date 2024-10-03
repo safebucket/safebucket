@@ -1,7 +1,6 @@
 package services
 
 import (
-	c "api/internal/common"
 	"api/internal/configuration"
 	"api/internal/handlers"
 	h "api/internal/helpers"
@@ -24,13 +23,13 @@ type AuthService struct {
 
 func (s AuthService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.With(c.Validate[models.AuthLogin]).Post("/login", c.CreateHandler(s.Login))
+	r.With(h.Validate[models.AuthLogin]).Post("/login", handlers.CreateHandler(s.Login))
 	// TODO: MFA / ResetPassword / ResetTokens / IsAdmin (:= get user)
-	r.With(c.Validate[models.AuthVerify]).Post("/verify", c.CreateHandler(s.Verify))
-	r.With(c.Validate[models.AuthVerify]).Post("/refresh", c.CreateHandler(s.Refresh))
+	r.With(h.Validate[models.AuthVerify]).Post("/verify", handlers.CreateHandler(s.Verify))
+	r.With(h.Validate[models.AuthVerify]).Post("/refresh", handlers.CreateHandler(s.Refresh))
 
 	r.Route("/providers", func(r chi.Router) {
-		r.Get("/", c.GetListHandler(s.GetProviderList))
+		r.Get("/", handlers.GetListHandler(s.GetProviderList))
 		r.Route("/{provider}", func(r chi.Router) {
 			r.Get("/begin", handlers.OpenIDBeginHandler(s.OpenIDBegin))
 			r.Get("/callback", handlers.OpenIDCallbackHandler(s.OpenIDCallback))
@@ -44,15 +43,18 @@ func (s AuthService) Login(body models.AuthLogin) (models.AuthLoginResponse, err
 	result := s.DB.Where("email = ?", searchUser.Email).First(&searchUser)
 	if result.RowsAffected == 1 {
 		match, err := argon2id.ComparePasswordAndHash(body.Password, searchUser.HashedPassword)
-		if err != nil || match == false {
+		if err != nil || !match {
 			return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 		}
 
 		accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser)
-		refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser)
-
 		if err != nil {
 			return models.AuthLoginResponse{}, errors.New("failed to generate new access token")
+		}
+
+		refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser)
+		if err != nil {
+			return models.AuthLoginResponse{}, errors.New("failed to generate new refresh token")
 		}
 
 		return models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil

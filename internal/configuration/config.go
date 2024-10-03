@@ -13,18 +13,22 @@ import (
 func readEnvVars(v *viper.Viper) {
 	zap.L().Info("Load environment variables")
 	v.AutomaticEnv()
-	v.BindEnv("database.host", "DATABASE_HOST")
-	v.BindEnv("database.port", "DATABASE_PORT")
-	v.BindEnv("database.name", "DATABASE_NAME")
-	v.BindEnv("database.user", "DATABASE_USER")
-	v.BindEnv("database.password", "DATABASE_PASSWORD")
-	v.BindEnv("database.sslmode", "DATABASE_SSLMODE")
+	err := v.BindEnv("database.host", "DATABASE_HOST")
+	err = v.BindEnv("database.port", "DATABASE_PORT")
+	err = v.BindEnv("database.name", "DATABASE_NAME")
+	err = v.BindEnv("database.user", "DATABASE_USER")
+	err = v.BindEnv("database.password", "DATABASE_PASSWORD")
+	err = v.BindEnv("database.sslmode", "DATABASE_SSLMODE")
 
-	v.BindEnv("jwt.secret", "JWT_SECRET")
-	v.BindEnv("cors.allowed_origins", "CORS_ALLOWED_ORIGINS")
+	err = v.BindEnv("jwt.secret", "JWT_SECRET")
+	err = v.BindEnv("cors.allowed_origins", "CORS_ALLOWED_ORIGINS")
 
-	v.BindEnv("auth_providers.google_client_id", "GOOGLE_CLIENT_ID")
-	v.BindEnv("auth_providers.google_client_secret", "GOOGLE_CLIENT_SECRET")
+	err = v.BindEnv("auth_providers.google_client_id", "GOOGLE_CLIENT_ID")
+	err = v.BindEnv("auth_providers.google_client_secret", "GOOGLE_CLIENT_SECRET")
+
+	if err != nil {
+		zap.L().Error("Failed to bind environment variables", zap.Error(err))
+	}
 }
 
 func readFileConfig(v *viper.Viper) {

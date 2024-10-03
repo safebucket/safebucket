@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"api/internal/common"
+	h "api/internal/helpers"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -43,7 +43,7 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 
 		url, err := openidBegin(providerName, state, nonce)
 		if err != nil {
-			common.RespondWithError(w, http.StatusNotFound, []string{err.Error()})
+			h.RespondWithError(w, http.StatusNotFound, []string{err.Error()})
 			return
 		}
 
@@ -61,17 +61,17 @@ func OpenIDCallbackHandler(openidCallback OpenIDCallbackFunc) http.HandlerFunc {
 
 		state, err := r.Cookie("state")
 		if err != nil {
-			common.RespondWithError(w, http.StatusBadRequest, []string{"state not found"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{"state not found"})
 			return
 		}
 		if r.URL.Query().Get("state") != state.Value {
-			common.RespondWithError(w, http.StatusBadRequest, []string{"state does not match"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{"state does not match"})
 			return
 		}
 
 		nonce, err := r.Cookie("nonce")
 		if err != nil {
-			common.RespondWithError(w, http.StatusInternalServerError, []string{"nonce not found"})
+			h.RespondWithError(w, http.StatusInternalServerError, []string{"nonce not found"})
 			return
 		}
 
@@ -84,7 +84,7 @@ func OpenIDCallbackHandler(openidCallback OpenIDCallbackFunc) http.HandlerFunc {
 
 		if err != nil {
 			zap.L().Error("Error in OpenIDCallback", zap.Error(err))
-			common.RespondWithError(w, http.StatusInternalServerError, []string{err.Error()})
+			h.RespondWithError(w, http.StatusInternalServerError, []string{err.Error()})
 			return
 		}
 
