@@ -19,12 +19,9 @@ func main() {
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
 
-	err := db.AutoMigrate(&models.User{})
-	err = db.AutoMigrate(&models.Bucket{})
-	err = db.AutoMigrate(&models.File{})
-
+	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{})
 	if err != nil {
-		zap.L().Error("failed to migrate db", zap.Error(err))
+		zap.L().Error("failed to migrate db models", zap.Error(err))
 	}
 
 	r := chi.NewRouter()
