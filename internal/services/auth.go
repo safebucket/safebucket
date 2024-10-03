@@ -3,44 +3,23 @@ package services
 import (
 	c "api/internal/common"
 	"api/internal/configuration"
+	"api/internal/handlers"
 	h "api/internal/helpers"
 	"api/internal/models"
-	"crypto/rand"
-	"encoding/base64"
+	"context"
 	"errors"
+	"fmt"
 	"github.com/alexedwards/argon2id"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
-	"io"
-	"net/http"
-	"time"
 )
 
 type AuthService struct {
 	DB        *gorm.DB
 	JWTConf   models.JWTConfiguration
 	Providers configuration.Providers
-}
-
-func randString(nByte int) (string, error) {
-	b := make([]byte, nByte)
-	if _, err := io.ReadFull(rand.Reader, b); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
-}
-
-func setCallbackCookie(w http.ResponseWriter, r *http.Request, name, value string) {
-	cookie := &http.Cookie{
-		Name:     name,
-		Value:    value,
-		MaxAge:   int(time.Hour.Seconds()),
-		Secure:   r.TLS != nil,
-		HttpOnly: true,
-	}
-	http.SetCookie(w, cookie)
 }
 
 func (s AuthService) Routes() chi.Router {
@@ -53,8 +32,8 @@ func (s AuthService) Routes() chi.Router {
 	r.Route("/providers", func(r chi.Router) {
 		r.Get("/", c.GetListHandler(s.GetProviderList))
 		r.Route("/{provider}", func(r chi.Router) {
-			r.Get("/begin", s.OAuthBegin)
-			r.Get("/callback", s.OAuthCallback)
+			r.Get("/begin", handlers.OpenIDBeginHandler(s.OpenIDBegin))
+			r.Get("/callback", handlers.OpenIDCallbackHandler(s.OpenIDCallback))
 		})
 	})
 	return r
@@ -103,74 +82,46 @@ func (s AuthService) GetProviderList() []string {
 	return providers
 }
 
-func (s AuthService) OAuthBegin(w http.ResponseWriter, r *http.Request) {
-	providerName := chi.URLParam(r, "provider")
+func (s AuthService) OpenIDBegin(providerName string, state string, nonce string) (string, error) {
 	provider, ok := s.Providers[providerName]
 	if !ok {
-		c.RespondWithError(w, http.StatusNotFound, []string{"provider not found"})
-		return
+		return "", fmt.Errorf("provider not found")
 	}
-
-	state, _ := randString(16)
-	nonce, _ := randString(16)
-	setCallbackCookie(w, r, "state", state)
-	setCallbackCookie(w, r, "nonce", nonce)
 
 	url := provider.OauthConfig.AuthCodeURL(state, oidc.Nonce(nonce), oauth2.AccessTypeOffline)
-	http.Redirect(w, r, url, http.StatusFound)
+	return url, nil
 }
 
-func (s AuthService) OAuthCallback(w http.ResponseWriter, r *http.Request) {
-	providerName := chi.URLParam(r, "provider")
+func (s AuthService) OpenIDCallback(
+	ctx context.Context, providerName string, code string, nonce string,
+) (string, string, error) {
 	provider, ok := s.Providers[providerName]
 	if !ok {
-		c.RespondWithError(w, http.StatusNotFound, []string{"provider not found"})
-		return
+		return "", "", fmt.Errorf("provider not found")
 	}
 
-	state, err := r.Cookie("state")
+	oauth2Token, err := provider.OauthConfig.Exchange(ctx, code)
 	if err != nil {
-		c.RespondWithError(w, http.StatusBadRequest, []string{"state not found"})
-		return
-	}
-	if r.URL.Query().Get("state") != state.Value {
-		c.RespondWithError(w, http.StatusBadRequest, []string{"state does not match"})
-		return
-	}
-
-	oauth2Token, err := provider.OauthConfig.Exchange(r.Context(), r.URL.Query().Get("code"))
-	if err != nil {
-		strErrors := []string{"Failed to exchange token", err.Error()}
-		c.RespondWithError(w, http.StatusInternalServerError, strErrors)
-		return
+		return "", "", fmt.Errorf("failed to exchange token %s", err.Error())
 	}
 
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
-		c.RespondWithError(w, http.StatusInternalServerError, []string{"no id_token field in oauth2 token"})
-		return
+		return "", "", fmt.Errorf("no id_token field in oauth2 token")
 	}
 
-	idToken, err := provider.Verifier.Verify(r.Context(), rawIDToken)
+	idToken, err := provider.Verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		c.RespondWithError(w, http.StatusInternalServerError, []string{"failed to verify ID token", err.Error()})
-		return
+		return "", "", fmt.Errorf("failed to verify ID token %s", err.Error())
 	}
 
-	userInfo, err := provider.Provider.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
-	if err != nil {
-		c.RespondWithError(w, http.StatusInternalServerError, []string{"failed to get user info", err.Error()})
-		return
+	if idToken.Nonce != nonce {
+		return "", "", fmt.Errorf("nonce does not match")
 	}
 
-	nonce, err := r.Cookie("nonce")
+	userInfo, err := provider.Provider.UserInfo(ctx, oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
-		c.RespondWithError(w, http.StatusInternalServerError, []string{"nonce not found"})
-		return
-	}
-	if idToken.Nonce != nonce.Value {
-		c.RespondWithError(w, http.StatusInternalServerError, []string{"nonce does not match"})
-		return
+		return "", "", fmt.Errorf("failed to get user info %s", err.Error())
 	}
 
 	searchUser := models.User{Email: userInfo.Email, IsExternal: true}
@@ -179,31 +130,5 @@ func (s AuthService) OAuthCallback(w http.ResponseWriter, r *http.Request) {
 		s.DB.Create(&searchUser)
 	}
 
-	expiration := time.Now().Add(365 * 24 * time.Hour)
-	cookie := http.Cookie{
-		Name:    "safebucket_access_token",
-		Value:   rawIDToken,
-		Expires: expiration,
-		Path:    "/",
-	}
-	http.SetCookie(w, &cookie)
-
-	providerCookie := http.Cookie{
-		Name:    "safebucket_auth_provider",
-		Value:   providerName,
-		Expires: expiration,
-		Path:    "/",
-	}
-	http.SetCookie(w, &providerCookie)
-
-	if oauth2Token.RefreshToken != "" {
-		refreshTokenCookie := http.Cookie{
-			Name:    "safebucket_refresh_token",
-			Value:   oauth2Token.RefreshToken,
-			Expires: expiration,
-			Path:    "/",
-		}
-		http.SetCookie(w, &refreshTokenCookie)
-	}
-	http.Redirect(w, r, "http://localhost:3001/auth/complete", http.StatusFound)
+	return rawIDToken, oauth2Token.RefreshToken, nil
 }
