@@ -1,4 +1,4 @@
-package common
+package models
 
 type Page[T any] struct {
 	Data []T `json:"data"`

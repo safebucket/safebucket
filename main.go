@@ -6,7 +6,6 @@ import (
 	"api/internal/models"
 	"api/internal/services"
 	"context"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -20,9 +19,10 @@ func main() {
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
 
-	db.AutoMigrate(&models.User{})
-	db.AutoMigrate(&models.Bucket{})
-	db.AutoMigrate(&models.File{})
+	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{})
+	if err != nil {
+		zap.L().Error("failed to migrate db models", zap.Error(err))
+	}
 
 	r := chi.NewRouter()
 
@@ -45,8 +45,6 @@ func main() {
 	ctx := context.Background()
 	providers := configuration.LoadProviders(ctx, config.Auth.Providers)
 
-	r.Get("/", homePage)
-
 	r.Mount("/users", services.UserService{DB: db}.Routes())
 	r.Mount("/buckets", services.BucketService{DB: db}.Routes())
 	r.Mount("/auth", services.AuthService{
@@ -57,15 +55,8 @@ func main() {
 
 	zap.L().Info("App started")
 
-	err := http.ListenAndServe(":1323", r)
+	err = http.ListenAndServe(":1323", r)
 	if err != nil {
 		zap.L().Error("Failed to start the app")
-	}
-}
-
-func homePage(w http.ResponseWriter, r *http.Request) {
-	_, err := fmt.Fprintf(w, "Welcome !")
-	if err != nil {
-		zap.L().Error("Failed to print Welcome")
 	}
 }
