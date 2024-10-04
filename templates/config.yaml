@@ -17,6 +17,7 @@ jwt:
 auth:
   providers:
     - google:
+        name: Google
         client_id: <CHANGE_ME>
         client_secret: <CHANGE_ME>
         issuer: https://accounts.google.com

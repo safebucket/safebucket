@@ -25,3 +25,8 @@ type AuthRefresh struct {
 type AuthRefreshResponse struct {
 	AccessToken string `json:"access_token" validate:"required"`
 }
+
+type ProviderResponse struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
