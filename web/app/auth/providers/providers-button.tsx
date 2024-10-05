@@ -8,11 +8,7 @@ import { useProvidersData } from "@/app/auth/hooks/useProvidersData";
 import Image from "next/image";
 
 
-interface IProvidersButton {
-  message: string;
-}
-
-export const ProvidersButton: FC<IProvidersButton> = ({ message }: IProvidersButton) => {
+export const ProvidersButton: FC = () => {
   const { login } = useSession();
   const { providers } = useProvidersData();
 
@@ -31,7 +27,7 @@ export const ProvidersButton: FC<IProvidersButton> = ({ message }: IProvidersBut
             }}
             className="mr-2 h-4 w-4"
           />
-          {message} with {provider.name}
+          Continue with {provider.name}
         </Button>
       ))}
     </div>

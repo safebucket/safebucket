@@ -3,7 +3,15 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 
-import { ISessionContext, Session, Status } from "@/app/auth/types/session";
+import {
+  ILoginForm,
+  ILoginResponse,
+  ISessionContext,
+  Session,
+  Status,
+} from "@/app/auth/types/session";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { api } from "@/lib/api";
 
 const SessionContext = createContext<ISessionContext>({} as ISessionContext);
 
@@ -13,15 +21,17 @@ export const SessionProvider = ({
   children: React.ReactNode;
 }) => {
   const router = useRouter();
-  const [accessToken, setAccessToken] = useState(
-    Cookies.get("safebucket_access_token"),
-  );
-  const [refreshToken, _] = useState(Cookies.get("safebucket_refresh_token"));
-  const [authProvider, setAuthProvider] = useState(
-    Cookies.get("safebucket_auth_provider"),
-  );
+  const [accessToken, setAccessToken] = useState(Cookies.get("safebucket_access_token"));
+  const [refreshToken, setRefreshToken] = useState(Cookies.get("safebucket_refresh_token"));
+  const [authProvider, setAuthProvider] = useState(Cookies.get("safebucket_auth_provider"));
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<Status>("unauthenticated");
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ILoginForm>();
 
   useEffect(() => {
     setStatus("loading");
@@ -44,6 +54,19 @@ export const SessionProvider = ({
     router.push(`${process.env.NEXT_PUBLIC_API_URL}/auth/providers/${provider}/begin`);
   };
 
+  const localLogin: SubmitHandler<ILoginForm> = async (body) => {
+    setStatus("loading");
+    await api.post<ILoginResponse>("/auth/login", body).then((res) => {
+      Cookies.set("safebucket_access_token", res.access_token);
+      setAccessToken(res.access_token);
+      Cookies.set("safebucket_refresh_token", res.refresh_token);
+      setRefreshToken(res.refresh_token);
+      Cookies.set("safebucket_auth_provider", "local");
+      setAuthProvider("local");
+      router.push("/auth/complete");
+    });
+  };
+
   const logout = async () => {
     Cookies.remove("safebucket_access_token");
     setAccessToken(undefined);
@@ -52,7 +75,16 @@ export const SessionProvider = ({
   };
 
   return (
-    <SessionContext.Provider value={{ login, logout, session, status }}>
+    <SessionContext.Provider
+      value={{
+        login,
+        localLogin,
+        register,
+        handleSubmit,
+        logout,
+        session,
+        status,
+      }}>
       {children}
     </SessionContext.Provider>
   );
