@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
+	"sort"
 )
 
 type AuthService struct {
@@ -76,10 +77,21 @@ func (s AuthService) Refresh(body models.AuthRefresh) (models.AuthRefreshRespons
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
 
-func (s AuthService) GetProviderList() []string {
-	var providers []string
+func (s AuthService) GetProviderList() []models.ProviderResponse {
+	// Sort the keys to always return the same order
+	keys := make([]string, 0, len(s.Providers))
 	for key := range s.Providers {
-		providers = append(providers, key)
+		keys = append(keys, key)
+	}
+
+	sort.Strings(keys)
+
+	var providers []models.ProviderResponse
+	for _, key := range keys {
+		providers = append(providers, models.ProviderResponse{
+			Id:   key,
+			Name: s.Providers[key].Name,
+		})
 	}
 	return providers
 }

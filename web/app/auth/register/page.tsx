@@ -1,14 +1,13 @@
 "use client";
 
 import React from "react";
-
-import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ProvidersButton } from "@/app/auth/providers/providers-button";
 
 export default function Login() {
   return (
@@ -33,28 +32,7 @@ export default function Login() {
             </div>
             <Card>
               <CardContent className="space-y-4">
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <Button variant="outline">
-                    <Image
-                      width={15}
-                      height={15}
-                      alt="Google logo"
-                      src="/google.svg"
-                      className="mr-2 h-4 w-4"
-                    />
-                    Continue with Google
-                  </Button>
-                  <Button variant="outline">
-                    <Image
-                      width={25}
-                      height={25}
-                      alt="Apple logo"
-                      src="/apple.svg"
-                      className="mr-2"
-                    />
-                    Continue with Apple
-                  </Button>
-                </div>
+                <ProvidersButton message="Continue" />
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />

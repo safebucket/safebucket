@@ -10,6 +10,7 @@ import (
 )
 
 type Provider struct {
+	Name        string
 	Provider    *oidc.Provider
 	Verifier    *oidc.IDTokenVerifier
 	OauthConfig oauth2.Config
@@ -43,6 +44,7 @@ func LoadProviders(ctx context.Context, providersCfg ProvidersConfiguration) Pro
 		}
 
 		providers[name] = Provider{
+			Name:        providerCfg.Name,
 			Provider:    provider,
 			Verifier:    verifier,
 			OauthConfig: oauthConfig,

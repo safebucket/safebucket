@@ -1,20 +1,15 @@
 "use client";
 
 import React from "react";
-
-import Image from "next/image";
 import Link from "next/link";
-
-import { useSession } from "@/app/auth/hooks/useSession";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ProvidersButton } from "@/app/auth/providers/providers-button";
 
 export default function Login() {
-  const { login } = useSession();
-
   return (
     <div className="m-6 flex-1">
       <div className="grid grid-cols-1 gap-8">
@@ -37,28 +32,7 @@ export default function Login() {
             </div>
             <Card>
               <CardContent className="space-y-4">
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <Button variant="outline" onClick={() => login("google")}>
-                    <Image
-                      width={15}
-                      height={15}
-                      alt="Google logo"
-                      src="/google.svg"
-                      className="mr-2 h-4 w-4"
-                    />
-                    Sign in with Google
-                  </Button>
-                  <Button variant="outline" onClick={() => login("authelia")}>
-                    <Image
-                      width={25}
-                      height={25}
-                      alt="Apple logo"
-                      src="/apple.svg"
-                      className="mr-2"
-                    />
-                    Sign in with Apple
-                  </Button>
-                </div>
+                <ProvidersButton message="Sign in" />
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />
