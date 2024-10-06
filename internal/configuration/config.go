@@ -24,18 +24,23 @@ func readEnvVars(v *viper.Viper) {
 	_ = v.BindEnv("jwt.secret", "JWT_SECRET")
 	_ = v.BindEnv("cors.allowed_origins", "CORS_ALLOWED_ORIGINS")
 
-	keys := []string{"name", "client_id", "client_secret", "issuer"}
-	providers := v.GetStringSlice("AUTH_PROVIDERS")
-	for _, provider := range providers {
-		providerUpper := strings.ToUpper(provider)
-		for _, key := range keys {
-			keyUpper := strings.ToUpper(key)
-			_ = v.BindEnv(
-				fmt.Sprintf("auth.providers.%s.%s", provider, key),
-				fmt.Sprintf("AUTH_PROVIDERS_%s_%s", providerUpper, keyUpper),
-			)
-		}
-	}
+	//	keys := []string{"name", "client_id", "client_secret", "issuer"}
+
+	_ = v.BindEnv("auth.providers.authelia.client_id", "AUTH_PROVIDER_AUTHELIA_CLIENT_ID")
+	_ = v.BindEnv("auth.providers.authelia.client_secret", "AUTH_PROVIDER_AUTHELIA_CLIENT_SECRET")
+	_ = v.BindEnv("auth.providers.authelia.issuer", "AUTH_PROVIDER_AUTHELIA_ISSUER")
+
+	//zap.L().Warn(fmt.Sprintf(%v, providers))
+	//	for _, provider := range providers {
+	//		providerUpper := strings.ToUpper(provider)
+	//		for _, key := range keys {
+	//			keyUpper := strings.ToUpper(key)
+	//			_ = v.BindEnv(
+	//				fmt.Sprintf("auth.providers.%s.%s", provider, key),
+	//				fmt.Sprintf("AUTH_PROVIDERS_%s_%s", providerUpper, keyUpper),
+	//			)
+	//		}
+	//	}
 }
 
 func readFileConfig(v *viper.Viper) {
@@ -74,6 +79,8 @@ func Read() models.Configuration {
 
 	var config models.Configuration
 	err := v.Unmarshal(&config)
+
+	zap.L().Info("config", zap.Any("config auth", config.Auth.Providers)) //todo: delete
 
 	if err != nil {
 		zap.L().Error("Unable to decode into struct: ", zap.Error(err))

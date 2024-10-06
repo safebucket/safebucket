@@ -16,11 +16,11 @@ jwt:
 
 auth:
   providers:
-    - google:
-        name: Google
-        client_id: <CHANGE_ME>
-        client_secret: <CHANGE_ME>
-        issuer: https://accounts.google.com
+    google:
+      name: Google
+      client_id: <CHANGE_ME>
+      client_secret: <CHANGE_ME>
+      issuer: https://accounts.google.com
 #    - provider:
 #        name: Provider
 #        client_id: <CHANGE_ME>
