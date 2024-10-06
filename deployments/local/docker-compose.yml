@@ -40,6 +40,19 @@ services:
       timeout: 5s
       retries: 20
 
+  redis:
+    container_name: redis
+    image: docker.io/bitnami/redis:7.4
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      - ALLOW_EMPTY_PASSWORD=false
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - "redis_data:/bitnami/redis/data"
+
   mailpit:
     image: axllent/mailpit:v1.20.2
     container_name: mailpit
@@ -59,3 +72,4 @@ volumes:
   minio_data:
   postgresql_data:
   mail_data:
+  redis_data:

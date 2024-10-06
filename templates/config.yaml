@@ -11,6 +11,12 @@ database:
   user: root
   ssl: false
 
+redis:
+  host:
+    - localhost:6379
+  port: 6379
+  password: root
+
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
 

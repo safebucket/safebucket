@@ -5,6 +5,7 @@ type Configuration struct {
 	JWT      JWTConfiguration      `json:"jwt" validate:"required,dive"`
 	Cors     CorsConfiguration     `json:"cors" validate:"required,dive"`
 	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required,dive"`
+	Redis    RedisConfiguration    `json:"redis" validate:"required,dive"`
 }
 
 type DatabaseConfiguration struct {
@@ -33,4 +34,10 @@ type ProviderConfiguration struct {
 	ClientId     string `mapstructure:"client_id" validate:"required"`
 	ClientSecret string `mapstructure:"client_secret" validate:"required"`
 	Issuer       string `mapstructure:"issuer" validate:"required"`
+}
+
+type RedisConfiguration struct {
+	Host     []string `mapstructure:"host" validate:"required"`
+	Port     int32    `mapstructure:"port" validate:"gte=80,lte=65535"`
+	Password string   `mapstructure:"password" validate:"required"`
 }
