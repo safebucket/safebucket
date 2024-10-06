@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"os"
+	"strings"
 )
 
 func readEnvVars(v *viper.Viper) {
@@ -23,8 +24,18 @@ func readEnvVars(v *viper.Viper) {
 	_ = v.BindEnv("jwt.secret", "JWT_SECRET")
 	_ = v.BindEnv("cors.allowed_origins", "CORS_ALLOWED_ORIGINS")
 
-	_ = v.BindEnv("auth_providers.google_client_id", "GOOGLE_CLIENT_ID")
-	_ = v.BindEnv("auth_providers.google_client_secret", "GOOGLE_CLIENT_SECRET")
+	keys := []string{"name", "client_id", "client_secret", "issuer"}
+	providers := v.GetStringSlice("AUTH_PROVIDERS")
+	for _, provider := range providers {
+		providerUpper := strings.ToUpper(provider)
+		for _, key := range keys {
+			keyUpper := strings.ToUpper(key)
+			_ = v.BindEnv(
+				fmt.Sprintf("auth.providers.%s.%s", provider, key),
+				fmt.Sprintf("AUTH_PROVIDERS_%s_%s", providerUpper, keyUpper),
+			)
+		}
+	}
 }
 
 func readFileConfig(v *viper.Viper) {
@@ -55,12 +66,16 @@ func setDefault(v *viper.Viper) {
 
 func Read() models.Configuration {
 	v := viper.New()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(`.`, `_`))
+
 	readEnvVars(v)
 	readFileConfig(v)
 	setDefault(v)
 
 	var config models.Configuration
 	err := v.Unmarshal(&config)
+
+	zap.L().Info("config", zap.Any("config", config))
 
 	if err != nil {
 		zap.L().Error("Unable to decode into struct: ", zap.Error(err))

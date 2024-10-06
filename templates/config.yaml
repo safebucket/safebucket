@@ -22,6 +22,7 @@ auth:
         client_secret: <CHANGE_ME>
         issuer: https://accounts.google.com
 #    - provider:
+#        name: Provider
 #        client_id: <CHANGE_ME>
 #        client_secret: <CHANGE_ME>
 #        issuer: <CHANGE_ME>
