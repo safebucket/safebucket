@@ -75,8 +75,6 @@ func Read() models.Configuration {
 	var config models.Configuration
 	err := v.Unmarshal(&config)
 
-	zap.L().Info("config", zap.Any("config", config))
-
 	if err != nil {
 		zap.L().Error("Unable to decode into struct: ", zap.Error(err))
 	}
