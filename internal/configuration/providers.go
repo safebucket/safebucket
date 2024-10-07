@@ -14,6 +14,7 @@ type Provider struct {
 	Provider    *oidc.Provider
 	Verifier    *oidc.IDTokenVerifier
 	OauthConfig oauth2.Config
+	Order       int
 }
 
 type Providers map[string]Provider
@@ -22,6 +23,8 @@ type ProvidersConfiguration map[string]models.ProviderConfiguration
 
 func LoadProviders(ctx context.Context, providersCfg ProvidersConfiguration) Providers {
 	var providers = Providers{}
+	idx := 0
+
 	for name, providerCfg := range providersCfg {
 		provider, err := oidc.NewProvider(ctx, providerCfg.Issuer)
 		if err != nil {
@@ -48,7 +51,10 @@ func LoadProviders(ctx context.Context, providersCfg ProvidersConfiguration) Pro
 			Provider:    provider,
 			Verifier:    verifier,
 			OauthConfig: oauthConfig,
+			Order:       idx,
 		}
+
+		idx++
 
 		zap.L().Info(
 			"Loaded auth provider",
