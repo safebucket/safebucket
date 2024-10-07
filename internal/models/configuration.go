@@ -25,7 +25,7 @@ type CorsConfiguration struct {
 }
 
 type AuthConfiguration struct {
-	Providers map[string]ProviderConfiguration `mapstructure:"providers" validate:"required"`
+	Providers map[string]ProviderConfiguration `mapstructure:"providers" validate:"dive"`
 }
 
 type ProviderConfiguration struct {
