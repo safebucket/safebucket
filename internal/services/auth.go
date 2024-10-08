@@ -19,6 +19,7 @@ type AuthService struct {
 	DB        *gorm.DB
 	JWTConf   models.JWTConfiguration
 	Providers configuration.Providers
+	WebUrl    string
 }
 
 func (s AuthService) Routes() chi.Router {
@@ -32,7 +33,7 @@ func (s AuthService) Routes() chi.Router {
 		r.Get("/", handlers.GetListHandler(s.GetProviderList))
 		r.Route("/{provider}", func(r chi.Router) {
 			r.Get("/begin", handlers.OpenIDBeginHandler(s.OpenIDBegin))
-			r.Get("/callback", handlers.OpenIDCallbackHandler(s.OpenIDCallback))
+			r.Get("/callback", handlers.OpenIDCallbackHandler(s.WebUrl, s.OpenIDCallback))
 		})
 	})
 	return r

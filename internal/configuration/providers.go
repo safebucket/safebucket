@@ -21,7 +21,7 @@ type Providers map[string]Provider
 
 type ProvidersConfiguration map[string]models.ProviderConfiguration
 
-func LoadProviders(ctx context.Context, providersCfg ProvidersConfiguration) Providers {
+func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersConfiguration) Providers {
 	var providers = Providers{}
 	idx := 0
 
@@ -42,7 +42,7 @@ func LoadProviders(ctx context.Context, providersCfg ProvidersConfiguration) Pro
 			ClientID:     providerCfg.ClientId,
 			ClientSecret: providerCfg.ClientSecret,
 			Endpoint:     provider.Endpoint(),
-			RedirectURL:  fmt.Sprintf("http://localhost:1323/auth/providers/%s/callback", name),
+			RedirectURL:  fmt.Sprintf("%s/auth/providers/%s/callback", apiUrl, name),
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		}
 

@@ -43,7 +43,7 @@ func main() {
 	}))
 
 	ctx := context.Background()
-	providers := configuration.LoadProviders(ctx, config.Auth.Providers)
+	providers := configuration.LoadProviders(ctx, config.Platform.ApiUrl, config.Auth.Providers)
 
 	r.Mount("/users", services.UserService{DB: db}.Routes())
 	r.Mount("/buckets", services.BucketService{DB: db}.Routes())
@@ -51,6 +51,7 @@ func main() {
 		DB:        db,
 		JWTConf:   config.JWT,
 		Providers: providers,
+		WebUrl:    config.Platform.WebUrl,
 	}.Routes())
 
 	zap.L().Info("App started")

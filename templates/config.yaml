@@ -1,3 +1,7 @@
+platform:
+  api_url: http://localhost:1323
+  web_url: http://localhost:3001
+
 cors:
   allowed_origins:
     - http://127.0.0.1:3001

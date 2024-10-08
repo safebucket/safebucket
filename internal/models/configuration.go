@@ -1,10 +1,16 @@
 package models
 
 type Configuration struct {
+	Platform PlatformConfiguration `mapstructure:"platform" validate:"required,dive"`
 	Database DatabaseConfiguration `mapstructure:"database" validate:"required,dive"`
 	JWT      JWTConfiguration      `json:"jwt" validate:"required,dive"`
 	Cors     CorsConfiguration     `json:"cors" validate:"required,dive"`
 	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required,dive"`
+}
+
+type PlatformConfiguration struct {
+	ApiUrl string `mapstructure:"api_url" validate:"required"`
+	WebUrl string `mapstructure:"web_url" validate:"required"`
 }
 
 type DatabaseConfiguration struct {

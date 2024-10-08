@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 	"io"
@@ -55,7 +56,7 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 	}
 }
 
-func OpenIDCallbackHandler(openidCallback OpenIDCallbackFunc) http.HandlerFunc {
+func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providerName := chi.URLParam(r, "provider")
 
@@ -113,6 +114,6 @@ func OpenIDCallbackHandler(openidCallback OpenIDCallbackFunc) http.HandlerFunc {
 			})
 		}
 
-		http.Redirect(w, r, "http://localhost:3001/auth/complete", http.StatusFound)
+		http.Redirect(w, r, fmt.Sprintf("%s/auth/complete", webUrl), http.StatusFound)
 	}
 }
