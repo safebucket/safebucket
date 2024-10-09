@@ -25,13 +25,19 @@ func DeleteInactivePlatform(client rueidis.Client) error {
 }
 
 func StartIdentityTicker(id string, client rueidis.Client) error {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			RegisterPlatform(id, client)
-			DeleteInactivePlatform(client)
+			err := RegisterPlatform(id, client)
+			if err != nil {
+				return err
+			}
+			err = DeleteInactivePlatform(client)
+			if err != nil {
+				return err
+			}
 		}
 	}
 }

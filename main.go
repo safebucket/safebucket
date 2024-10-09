@@ -30,15 +30,12 @@ func main() {
 
 	appIdentity := uuid.New().String()
 
-	go helpers.StartIdentityTicker(appIdentity, cache)
-
-	if err != nil {
-		log.Fatalf("Failed to add value to sorted set: %v\n", err)
-	}
-
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		err := helpers.StartIdentityTicker(appIdentity, cache)
+		if err != nil {
+			log.Fatalf("Platform identity ticker crashed: %v\n", err)
+		}
+	}()
 
 	r := chi.NewRouter()
 
