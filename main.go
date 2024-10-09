@@ -1,9 +1,9 @@
 package main
 
 import (
+	c "api/internal/cache"
 	"api/internal/configuration"
 	"api/internal/database"
-	"api/internal/helpers"
 	"api/internal/models"
 	"api/internal/services"
 	"context"
@@ -21,7 +21,7 @@ func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
-	cache := database.InitCache(config.Redis)
+	cache := c.InitCache(config.Redis)
 
 	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{})
 	if err != nil {
@@ -31,7 +31,7 @@ func main() {
 	appIdentity := uuid.New().String()
 
 	go func() {
-		err := helpers.StartIdentityTicker(appIdentity, cache)
+		err := cache.StartIdentityTicker(appIdentity)
 		if err != nil {
 			log.Fatalf("Platform identity ticker crashed: %v\n", err)
 		}

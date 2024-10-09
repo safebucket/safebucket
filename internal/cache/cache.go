@@ -1,4 +1,4 @@
-package database
+package cache
 
 import (
 	"api/internal/models"
@@ -6,7 +6,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func InitCache(config models.RedisConfiguration) rueidis.Client {
+type Cache struct {
+	c rueidis.Client
+}
+
+func InitCache(config models.RedisConfiguration) Cache {
 	client, err := rueidis.NewClient(rueidis.ClientOption{
 		InitAddress: config.Host,
 		Password:    config.Password,
@@ -14,5 +18,5 @@ func InitCache(config models.RedisConfiguration) rueidis.Client {
 	if err != nil {
 		zap.L().Error("Failed to connect to redis", zap.Error(err))
 	}
-	return client
+	return Cache{c: client}
 }

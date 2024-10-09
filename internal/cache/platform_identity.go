@@ -1,0 +1,42 @@
+package cache
+
+import (
+	"context"
+	"fmt"
+	"time"
+)
+
+func (cache Cache) RegisterPlatform(id string) error {
+	ctx := context.Background()
+	sortedSetKey := "platform:identity"
+	currentTime := float64(time.Now().Unix())
+	err := cache.c.Do(ctx, cache.c.B().Zadd().Key(sortedSetKey).ScoreMember().ScoreMember(currentTime, id).Build()).Error()
+	return err
+}
+
+func (cache Cache) DeleteInactivePlatform() error {
+	ctx := context.Background()
+	sortedSetKey := "platform:identity"
+	currentTime := float64(time.Now().Unix())
+	maxLifetime := float64(60 * 2) // 2 mn
+	err := cache.c.Do(ctx, cache.c.B().Zremrangebyscore().Key(sortedSetKey).Min("-inf").Max(fmt.Sprintf("%f", currentTime-maxLifetime)).Build()).Error()
+	return err
+}
+
+func (cache Cache) StartIdentityTicker(id string) error {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			err := cache.RegisterPlatform(id)
+			if err != nil {
+				return err
+			}
+			err = cache.DeleteInactivePlatform()
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
