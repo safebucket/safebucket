@@ -27,17 +27,15 @@ func (cache Cache) DeleteInactivePlatform() error {
 func (cache Cache) StartIdentityTicker(id string) error {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			err := cache.RegisterPlatform(id)
-			if err != nil {
-				return err
-			}
-			err = cache.DeleteInactivePlatform()
-			if err != nil {
-				return err
-			}
+	for range ticker.C {
+		err := cache.RegisterPlatform(id)
+		if err != nil {
+			return err
+		}
+		err = cache.DeleteInactivePlatform()
+		if err != nil {
+			return err
 		}
 	}
+	return nil
 }
