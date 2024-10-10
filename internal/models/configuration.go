@@ -37,7 +37,7 @@ type ProviderConfiguration struct {
 }
 
 type RedisConfiguration struct {
-	Host     []string `mapstructure:"host" validate:"required"`
+	Hosts    []string `mapstructure:"hosts" validate:"required"`
 	Port     int32    `mapstructure:"port" validate:"gte=80,lte=65535"`
 	Password string   `mapstructure:"password" validate:"required"`
 }

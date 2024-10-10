@@ -12,7 +12,7 @@ database:
   ssl: false
 
 redis:
-  host:
+  hosts:
     - localhost:6379
   port: 6379
   password: root
