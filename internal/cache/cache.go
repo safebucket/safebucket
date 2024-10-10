@@ -12,7 +12,7 @@ type Cache struct {
 
 func InitCache(config models.RedisConfiguration) Cache {
 	client, err := rueidis.NewClient(rueidis.ClientOption{
-		InitAddress: config.Host,
+		InitAddress: config.Hosts,
 		Password:    config.Password,
 	})
 	if err != nil {
