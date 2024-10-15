@@ -1,17 +1,17 @@
 import {
-  ADD_TRANSFER,
+  ADD_UPLOAD,
   UPDATE_PROGRESS,
   UPDATE_STATUS,
 } from "@/components/upload/helpers/constants";
 import { UploadStatus } from "@/components/upload/helpers/types";
-import { TransferAction } from "@/components/upload/store/index";
+import { UploadAction } from "@/components/upload/store/index";
 
-function createAction(type: any, payload: any): TransferAction {
+const createAction = (type: any, payload: any): UploadAction => {
   return { type, payload };
-}
+};
 
-export const addTransfer = (id: string, name: string) =>
-  createAction(ADD_TRANSFER, { id, name });
+export const addUpload = (id: string, name: string) =>
+  createAction(ADD_UPLOAD, { id, name });
 
 export const updateProgress = (id: string, progress: number) =>
   createAction(UPDATE_PROGRESS, { id, progress });

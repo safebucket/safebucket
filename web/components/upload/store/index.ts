@@ -1,1 +1,1 @@
-export type TransferAction = { type: string; payload: any };
+export type UploadAction = { type: string; payload: any };

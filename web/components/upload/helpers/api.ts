@@ -6,17 +6,17 @@ import { ICreateFile } from "@/components/upload/helpers/types";
 export const api_createFile = (name: string, bucket_id?: string) =>
   api.post<ICreateFile>("/files", { name, bucket_id });
 
-export default async function uploadToStorage(
+export const uploadToStorage = async (
   url: string,
   file: File,
-  transferId: string,
-  setProgress: (transferId: string, progress: number) => void,
-): Promise<boolean> {
+  uploadId: string,
+  setProgress: (uploadId: string, progress: number) => void,
+): Promise<boolean> => {
   const xhr = new XMLHttpRequest();
   return await new Promise((resolve) => {
     xhr.upload.addEventListener("progress", (event) => {
       if (event.lengthComputable) {
-        setProgress(transferId, Math.round((event.loaded / event.total) * 100));
+        setProgress(uploadId, Math.round((event.loaded / event.total) * 100));
       }
     });
 
@@ -34,4 +34,4 @@ export default async function uploadToStorage(
       description: `Upload started for ${file.name}`,
     });
   });
-}
+};

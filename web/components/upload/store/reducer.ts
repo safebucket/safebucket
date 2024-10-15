@@ -1,17 +1,14 @@
 import {
-  ADD_TRANSFER,
+  ADD_UPLOAD,
   UPDATE_PROGRESS,
   UPDATE_STATUS,
 } from "@/components/upload/helpers/constants";
 import { IUpload, UploadStatus } from "@/components/upload/helpers/types";
-import { TransferAction } from "@/components/upload/store/index";
+import { UploadAction } from "@/components/upload/store/index";
 
-export const transfersReducer = (
-  transfers: IUpload[],
-  action: TransferAction,
-) => {
+export const uploadsReducer = (uploads: IUpload[], action: UploadAction) => {
   switch (action.type) {
-    case ADD_TRANSFER: {
+    case ADD_UPLOAD: {
       const upload: IUpload = {
         id: action.payload.id,
         name: action.payload.name,
@@ -19,26 +16,26 @@ export const transfersReducer = (
         status: UploadStatus.uploading,
       };
 
-      return [...transfers, upload];
+      return [...uploads, upload];
     }
     case UPDATE_PROGRESS: {
-      return transfers.map((transfer: IUpload) => {
-        if (transfer.id === action.payload.id) {
-          return { ...transfer, progress: action.payload.progress };
+      return uploads.map((upload: IUpload) => {
+        if (upload.id === action.payload.id) {
+          return { ...upload, progress: action.payload.progress };
         }
-        return transfer;
+        return upload;
       });
     }
     case UPDATE_STATUS: {
-      return transfers.map((transfer: IUpload) => {
-        if (transfer.id === action.payload.id) {
-          return { ...transfer, status: action.payload.status };
+      return uploads.map((upload: IUpload) => {
+        if (upload.id === action.payload.id) {
+          return { ...upload, status: action.payload.status };
         }
-        return transfer;
+        return upload;
       });
     }
     default: {
-      return transfers;
+      return uploads;
     }
   }
 };

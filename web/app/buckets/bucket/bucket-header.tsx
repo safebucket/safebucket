@@ -45,7 +45,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   const [filterType, setFilterType] = useState("all");
   const [expiresAt, setExpiresAt] = useState(false);
 
-  const { transfers, startUpload } = useUploadContext();
+  const { uploads, startUpload } = useUploadContext();
 
   const { register, handleSubmit } = useForm<IStartUploadData>();
 
@@ -79,22 +79,22 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
               </Button>
             </PopoverTrigger>
             <PopoverContent>
-              {!transfers.length && <p>No uploads in progress.</p>}
-              {transfers.map((transfer) => (
+              {!uploads.length && <p>No uploads in progress.</p>}
+              {uploads.map((upload) => (
                 <div
-                  key={transfer.id}
+                  key={upload.id}
                   className="flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
                     <FileIcon className="h-5 w-5 text-muted-foreground" />
-                    <div className="text-sm font-medium">{transfer.name}</div>
+                    <div className="text-sm font-medium">{upload.name}</div>
                   </div>
-                  <Progress value={transfer.progress} className="w-24" />
+                  <Progress value={upload.progress} className="w-24" />
 
-                  {transfer.progress == 100 ? (
+                  {upload.progress == 100 ? (
                     <CircleCheck className="text-primary"/>
                   ) : (
-                    <p>{transfer.progress}%</p>
+                    <p>{upload.progress}%</p>
                   )}
                 </div>
               ))}

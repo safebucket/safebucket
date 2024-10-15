@@ -7,8 +7,8 @@ export interface IStartUploadData {
   files: File[];
 }
 
-export interface IFileTransferContext {
-  transfers: IUpload[];
+export interface IUploadContext {
+  uploads: IUpload[];
 
   startUpload(data: IStartUploadData, bucketId?: string): void;
 }

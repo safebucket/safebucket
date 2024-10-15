@@ -1,47 +1,48 @@
 import React, { useReducer } from "react";
 
-import uploadToStorage, {
+import {
   api_createFile,
+  uploadToStorage,
 } from "@/components/upload/helpers/api";
 import {
   IStartUploadData,
   UploadStatus,
 } from "@/components/upload/helpers/types";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
-import { transfersReducer } from "@/components/upload/store/reducer";
+import { uploadsReducer } from "@/components/upload/store/reducer";
 
 import * as actions from "./store/actions";
 
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
-  const [transfers, dispatch] = useReducer(transfersReducer, []);
+  const [uploads, dispatch] = useReducer(uploadsReducer, []);
 
-  const addTransfer = (transferId: string, filename: string) =>
-    dispatch(actions.addTransfer(transferId, filename));
+  const addUpload = (uploadId: string, filename: string) =>
+    dispatch(actions.addUpload(uploadId, filename));
 
-  const updateProgress = (transferId: string, progress: number) =>
-    dispatch(actions.updateProgress(transferId, progress));
+  const updateProgress = (uploadId: string, progress: number) =>
+    dispatch(actions.updateProgress(uploadId, progress));
 
-  const updateStatus = (transferId: string, status: UploadStatus) =>
-    dispatch(actions.updateStatus(transferId, status));
+  const updateStatus = (uploadId: string, status: UploadStatus) =>
+    dispatch(actions.updateStatus(uploadId, status));
 
   const startUpload = async (data: IStartUploadData, bucketId?: string) => {
     const file = data.files[0];
-    const transferId = crypto.randomUUID();
+    const uploadId = crypto.randomUUID();
 
-    addTransfer(transferId, file.name);
+    addUpload(uploadId, file.name);
 
     api_createFile(file.name, bucketId).then(async (res) => {
-      uploadToStorage(res.url, file, transferId, updateProgress).then(
+      uploadToStorage(res.url, file, uploadId, updateProgress).then(
         (success: boolean) => {
           const status = success ? UploadStatus.success : UploadStatus.failed;
-          updateStatus(transferId, status);
+          updateStatus(uploadId, status);
         },
       );
     });
   };
 
   return (
-    <UploadContext.Provider value={{ transfers, startUpload }}>
+    <UploadContext.Provider value={{ uploads, startUpload }}>
       {children}
     </UploadContext.Provider>
   );
