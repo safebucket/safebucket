@@ -78,8 +78,12 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
                 <ChevronDownIcon className="ml-2 h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent>
-              {!uploads.length && <p>No uploads in progress.</p>}
+            <PopoverContent className="w-80">
+              {!uploads.length && (
+                <p className="flex items-center justify-center">
+                  No uploads in progress.
+                </p>
+              )}
               {uploads.map((upload) => (
                 <div
                   key={upload.id}
