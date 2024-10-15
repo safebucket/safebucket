@@ -4,8 +4,10 @@ import React from "react";
 
 import { ThemeProvider } from "next-themes";
 
-import { Main } from "@/app/main";
 import { SessionProvider } from "@/app/auth/hooks/useSession";
+import { Main } from "@/app/main";
+
+import { UploadProvider } from "@/components/upload/UploadProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -16,7 +18,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <SessionProvider>
-        <Main>{children}</Main>
+        <UploadProvider>
+          <Main>{children}</Main>
+        </UploadProvider>
       </SessionProvider>
     </ThemeProvider>
   );

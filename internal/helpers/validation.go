@@ -6,9 +6,15 @@ import (
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 	"net/http"
+	"regexp"
 )
 
 type BodyKey struct{}
+
+func validateFilename(fl validator.FieldLevel) bool {
+	regex := regexp.MustCompile(`^[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]+$`)
+	return regex.MatchString(fl.Field().String())
+}
 
 func Validate[T any](next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -21,6 +27,7 @@ func Validate[T any](next http.Handler) http.Handler {
 		}
 
 		validate := validator.New()
+		_ = validate.RegisterValidation("filename", validateFilename)
 
 		err = validate.Struct(data)
 		if err != nil {

@@ -1,0 +1,3 @@
+export const ADD_TRANSFER = "ADD_TRANSFER";
+export const UPDATE_PROGRESS = "UPDATE_PROGRESS";
+export const UPDATE_STATUS = "UPDATE_STATUS";

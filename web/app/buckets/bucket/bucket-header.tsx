@@ -1,6 +1,12 @@
 import React, { FC, useState } from "react";
 
-import { PlusCircle } from "lucide-react";
+import {
+  ChevronDownIcon,
+  CircleCheck,
+  FileIcon,
+  PlusCircle,
+} from "lucide-react";
+import { useForm } from "react-hook-form";
 
 import { Bucket } from "@/app/buckets/helpers/types";
 
@@ -10,6 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,9 +30,11 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { IStartUploadData } from "@/components/upload/helpers/types";
+import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 
 interface IBucketHeaderProps {
-  bucket: Bucket|undefined;
+  bucket: Bucket | undefined;
   isLoading: boolean;
 }
 
@@ -28,22 +42,12 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   bucket,
   isLoading,
 }: IBucketHeaderProps) => {
-  const [sortBy, setSortBy] = useState("name");
-  const [sortOrder, setSortOrder] = useState("asc");
   const [filterType, setFilterType] = useState("all");
   const [expiresAt, setExpiresAt] = useState(false);
 
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortOrder("asc");
-    }
-  };
-  const handleFilter = (type: string) => {
-    setFilterType(type);
-  };
+  const { transfers, startUpload } = useUploadContext();
+
+  const { register, handleSubmit } = useForm<IStartUploadData>();
 
   return (
     <div className="flex-1">
@@ -52,7 +56,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
           {isLoading ? <Skeleton className="h-10 w-[250px]" /> : bucket!.name}
         </h1>
         <div className="flex items-center gap-4">
-          <Select value={filterType} onValueChange={handleFilter}>
+          <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by type" />
             </SelectTrigger>
@@ -66,31 +70,37 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
               <SelectItem value="mp3">Audio</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            onClick={() => handleSort("name")}
-            className={sortBy === "name" ? "font-medium" : ""}
-          >
-            Name{" "}
-            {sortBy === "name" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handleSort("size")}
-            className={sortBy === "size" ? "font-medium" : ""}
-          >
-            Size{" "}
-            {sortBy === "size" && (sortOrder === "asc" ? "\u2191" : "\u2193")}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handleSort("modified")}
-            className={sortBy === "modified" ? "font-medium" : ""}
-          >
-            Modified{" "}
-            {sortBy === "modified" &&
-              (sortOrder === "asc" ? "\u2191" : "\u2193")}
-          </Button>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline">
+                Uploads
+                <ChevronDownIcon className="ml-2 h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              {!transfers.length && <p>No uploads in progress.</p>}
+              {transfers.map((transfer) => (
+                <div
+                  key={transfer.id}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <FileIcon className="h-5 w-5 text-muted-foreground" />
+                    <div className="text-sm font-medium">{transfer.name}</div>
+                  </div>
+                  <Progress value={transfer.progress} className="w-24" />
+
+                  {transfer.progress == 100 ? (
+                    <CircleCheck className="text-primary"/>
+                  ) : (
+                    <p>{transfer.progress}%</p>
+                  )}
+                </div>
+              ))}
+            </PopoverContent>
+          </Popover>
+
           <CustomDialog
             title="Share a file"
             description="Upload a file and share it safely"
@@ -101,12 +111,18 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
               </Button>
             }
             submitName="Share"
+            onSubmit={handleSubmit((data) => startUpload(data, bucket?.id))}
           >
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="file" className="">
                 File
               </Label>
-              <Input id="file" type="file" className="col-span-3" />
+              <Input
+                id="files"
+                type="file"
+                className="col-span-3"
+                {...register("files", { required: true })}
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="username" className="">
