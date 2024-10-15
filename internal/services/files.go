@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -26,13 +27,18 @@ func (s FileService) Routes() chi.Router {
 	r.With(h.Validate[models.FileTransferBody]).Post("/", handlers.CreateHandler(s.UploadFile))
 
 	r.Route("/{id}", func(r chi.Router) {
-		r.With(h.Validate[models.FileTransferBody]).Post("/download", handlers.CreateHandler(s.DownloadFile))
+		r.Get("/download", handlers.GetOneHandler(s.DownloadFile))
 	})
 	return r
 }
 
 func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransferResponse, error) {
-	bucket, err := sql.GetById[models.Bucket](s.DB, body.BucketId)
+	bucketId, err := uuid.Parse(body.BucketId)
+	if err != nil {
+		return models.FileTransferResponse{}, errors.New("INVALID_BUCKET_ID")
+	}
+
+	bucket, err := sql.GetById[models.Bucket](s.DB, bucketId)
 	if err != nil {
 		return models.FileTransferResponse{}, errors.New("BUCKET_NOT_FOUND")
 	}
@@ -67,13 +73,8 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 	}, nil
 }
 
-func (s FileService) DownloadFile(body models.FileTransferBody) (models.FileTransferResponse, error) {
-	bucket, err := sql.GetById[models.Bucket](s.DB, body.BucketId)
-	if err != nil {
-		return models.FileTransferResponse{}, errors.New("BUCKET_NOT_FOUND")
-	}
-
-	file, err := sql.GetById[models.File](s.DB, body.BucketId)
+func (s FileService) DownloadFile(id uuid.UUID) (models.FileTransferResponse, error) {
+	file, err := sql.GetById[models.File](s.DB, id)
 	if err != nil {
 		return models.FileTransferResponse{}, errors.New("FILE_NOT_FOUND")
 	}
@@ -81,7 +82,7 @@ func (s FileService) DownloadFile(body models.FileTransferBody) (models.FileTran
 	url, err := s.S3.PresignedGetObject(
 		context.Background(),
 		"safebucket",
-		fmt.Sprintf("buckets/%s/%s", bucket.ID, file.Name),
+		fmt.Sprintf("buckets/%s/%s", file.BucketId, file.Name),
 		time.Minute*15,
 		nil,
 	)

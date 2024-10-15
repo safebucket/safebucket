@@ -23,8 +23,8 @@ redis:
 
 storage:
   endpoint: localhost:9000
-  client_id: TUUiYYrleK7cXCYo9izM
-  client_secret: nTPxMhP9ngyJ1zsGnm1nq8zTgBjiDEYp20KRiLlD
+  client_id: minio
+  client_secret: minioSuperSecretDoNotShare
 
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
