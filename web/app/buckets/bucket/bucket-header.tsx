@@ -1,11 +1,6 @@
 import React, { FC, useState } from "react";
 
-import {
-  ChevronDownIcon,
-  CircleCheck,
-  FileIcon,
-  PlusCircle,
-} from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { Bucket } from "@/app/buckets/helpers/types";
@@ -16,12 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Progress } from "@/components/ui/progress";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -30,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { UploadPopover } from "@/components/upload/components/UploadPopover";
 import { IStartUploadData } from "@/components/upload/helpers/types";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 
@@ -44,8 +34,9 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
 }: IBucketHeaderProps) => {
   const [filterType, setFilterType] = useState("all");
   const [expiresAt, setExpiresAt] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { uploads, startUpload } = useUploadContext();
+  const { startUpload } = useUploadContext();
 
   const { register, handleSubmit } = useForm<IStartUploadData>();
 
@@ -71,39 +62,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
             </SelectContent>
           </Select>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline">
-                Uploads
-                <ChevronDownIcon className="ml-2 h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              {!uploads.length && (
-                <p className="flex items-center justify-center">
-                  No uploads in progress.
-                </p>
-              )}
-              {uploads.map((upload) => (
-                <div
-                  key={upload.id}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <FileIcon className="h-5 w-5 text-muted-foreground" />
-                    <div className="text-sm font-medium">{upload.name}</div>
-                  </div>
-                  <Progress value={upload.progress} className="w-24" />
-
-                  {upload.progress == 100 ? (
-                    <CircleCheck className="text-primary"/>
-                  ) : (
-                    <p>{upload.progress}%</p>
-                  )}
-                </div>
-              ))}
-            </PopoverContent>
-          </Popover>
+          <UploadPopover />
 
           <CustomDialog
             title="Share a file"
@@ -115,7 +74,12 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
               </Button>
             }
             submitName="Share"
-            onSubmit={handleSubmit((data) => startUpload(data, bucket?.id))}
+            onSubmit={handleSubmit((data) => {
+              setIsDialogOpen(false)
+              startUpload(data, bucket?.id)
+            })}
+            isOpen={isDialogOpen}
+            setIsOpen={setIsDialogOpen}
           >
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="file" className="">

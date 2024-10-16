@@ -11,7 +11,7 @@ import {
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
 import { uploadsReducer } from "@/components/upload/store/reducer";
 
-import * as actions from "./store/actions";
+import * as actions from "../store/actions";
 
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const [uploads, dispatch] = useReducer(uploadsReducer, []);

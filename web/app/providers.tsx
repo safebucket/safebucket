@@ -7,7 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "@/app/auth/hooks/useSession";
 import { Main } from "@/app/main";
 
-import { UploadProvider } from "@/components/upload/UploadProvider";
+import { UploadProvider } from "@/components/upload/context/UploadProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
