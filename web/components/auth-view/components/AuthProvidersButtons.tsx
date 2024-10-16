@@ -2,20 +2,24 @@
 
 import React, { FC } from "react";
 
-import { Button } from "@/components/ui/button";
-import { useSession } from "@/app/auth/hooks/useSession";
-import { useProvidersData } from "@/app/auth/hooks/useProvidersData";
 import Image from "next/image";
 
+import { useProvidersData } from "@/components/auth-view/hooks/useProvidersData";
+import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { Button } from "@/components/ui/button";
 
-export const ProvidersButton: FC = () => {
-  const { login } = useSession();
+export const AuthProvidersButtons: FC = () => {
+  const { login } = useSessionContext();
   const { providers } = useProvidersData();
 
   return (
     <div className="mt-4 grid grid-cols-2 gap-4">
       {providers.map((provider) => (
-        <Button key={provider.id} variant="outline" onClick={() => login(provider.id)}>
+        <Button
+          key={provider.id}
+          variant="outline"
+          onClick={() => login(provider.id)}
+        >
           <Image
             width={15}
             height={15}

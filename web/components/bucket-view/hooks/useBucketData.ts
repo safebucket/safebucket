@@ -1,12 +1,12 @@
 import { fetchApi } from "@/lib/api";
 import useSWR from "swr";
 
-import { Bucket, IBucketData } from "@/app/buckets/helpers/types";
+import { IBucket, IBucketData } from "@/components/bucket-view/helpers/types";
 
 export const useBucketData = (id: string): IBucketData => {
   const { data, error, isLoading } = useSWR(
     `/buckets/${id}`,
-    fetchApi<Bucket>,
+    fetchApi<IBucket>,
   );
 
   return {

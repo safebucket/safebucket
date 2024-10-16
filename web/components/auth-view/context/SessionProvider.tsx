@@ -1,19 +1,17 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
+import { api } from "@/lib/api";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
+import { SubmitHandler, useForm } from "react-hook-form";
 
+import { SessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import {
   ILoginForm,
   ILoginResponse,
-  ISessionContext,
   Session,
   Status,
-} from "@/app/auth/types/session";
-import { SubmitHandler, useForm } from "react-hook-form";
-import { api } from "@/lib/api";
-
-const SessionContext = createContext<ISessionContext>({} as ISessionContext);
+} from "@/components/auth-view/types/session";
 
 export const SessionProvider = ({
   children,
@@ -21,17 +19,19 @@ export const SessionProvider = ({
   children: React.ReactNode;
 }) => {
   const router = useRouter();
-  const [accessToken, setAccessToken] = useState(Cookies.get("safebucket_access_token"));
-  const [refreshToken, setRefreshToken] = useState(Cookies.get("safebucket_refresh_token"));
-  const [authProvider, setAuthProvider] = useState(Cookies.get("safebucket_auth_provider"));
+  const [accessToken, setAccessToken] = useState(
+    Cookies.get("safebucket_access_token"),
+  );
+  const [refreshToken, setRefreshToken] = useState(
+    Cookies.get("safebucket_refresh_token"),
+  );
+  const [authProvider, setAuthProvider] = useState(
+    Cookies.get("safebucket_auth_provider"),
+  );
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<Status>("unauthenticated");
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ILoginForm>();
+  const { register, handleSubmit } = useForm<ILoginForm>();
 
   useEffect(() => {
     setStatus("loading");
@@ -51,7 +51,9 @@ export const SessionProvider = ({
 
   const login = async (provider: string) => {
     setStatus("loading");
-    router.push(`${process.env.NEXT_PUBLIC_API_URL}/auth/providers/${provider}/begin`);
+    router.push(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/providers/${provider}/begin`,
+    );
   };
 
   const localLogin: SubmitHandler<ILoginForm> = async (body) => {
@@ -84,12 +86,9 @@ export const SessionProvider = ({
         logout,
         session,
         status,
-      }}>
+      }}
+    >
       {children}
     </SessionContext.Provider>
   );
-};
-
-export const useSession = () => {
-  return useContext(SessionContext);
 };

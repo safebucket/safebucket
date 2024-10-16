@@ -3,7 +3,7 @@ import React, { FC } from "react";
 import { cn } from "@/lib/utils";
 import { FileTypeIcon } from "lucide-react";
 
-import { IFile } from "@/app/buckets/helpers/types";
+import { IFile } from "@/components/bucket-view/helpers/types";
 
 import { Card } from "@/components/ui/card";
 import {
@@ -18,7 +18,7 @@ interface IFileViewProps {
   file: IFile;
 }
 
-export const FileView: FC<IFileViewProps> = ({ file }: IFileViewProps) => {
+export const FileItemView: FC<IFileViewProps> = ({ file }: IFileViewProps) => {
   return (
     <div className={cn("space-y-3")}>
       <ContextMenu>

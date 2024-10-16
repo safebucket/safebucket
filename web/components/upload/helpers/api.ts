@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 
-import { toast } from "@/components/hooks/use-toast";
+import { toast } from "@/components/common/hooks/use-toast";
 import { ICreateFile } from "@/components/upload/helpers/types";
 
 export const api_createFile = (name: string, bucket_id?: string) =>

@@ -1,9 +1,6 @@
 import React, { FC } from "react";
 
-import { LogOut } from "lucide-react";
 import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
 
 export const Settings: FC = () => {
   return (

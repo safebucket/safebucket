@@ -1,6 +1,6 @@
 import useSWR from "swr";
 import { fetchApi } from "@/lib/api";
-import { IProvidersData, IProvidersResponse } from "@/app/auth/types/providers";
+import { IProvidersData, IProvidersResponse } from "@/components/auth-view/types/providers";
 
 export const useProvidersData = (): IProvidersData => {
   const { data, error, isLoading } = useSWR("/auth/providers", fetchApi<IProvidersResponse>);

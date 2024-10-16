@@ -3,7 +3,7 @@ import React from "react";
 import { FileUp } from "lucide-react";
 import Link from "next/link";
 
-import { FileView } from "@/components/fileview";
+import { FileItemView } from "@/components/common/components/FileItemView";
 
 const activities = [
   {
@@ -108,7 +108,7 @@ export default function Homepage() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
             {files.map((file) => (
-              <FileView key={file.id} file={file} />
+              <FileItemView key={file.id} file={file} />
             ))}
           </div>
         </div>

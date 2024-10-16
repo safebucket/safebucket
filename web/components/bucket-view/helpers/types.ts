@@ -13,7 +13,7 @@ export interface IFile {
   selected: boolean;
 }
 
-export interface Bucket {
+export interface IBucket {
   id: string;
   name: string;
   files: IFile[];
@@ -23,7 +23,7 @@ export interface Bucket {
 }
 
 export interface IBucketsData {
-  buckets: Bucket[];
+  buckets: IBucket[];
   error: string;
   isLoading: boolean;
   createBucket: SubmitHandler<IBucketForm>;
@@ -34,11 +34,15 @@ export interface IBucketsData {
 }
 
 export interface IBucketData {
-  bucket: Bucket | undefined;
+  bucket: IBucket | undefined;
   error: string;
   isLoading: boolean;
 }
 
 export type IBucketForm = {
   name: string;
+};
+
+export type IListBuckets = {
+  data: IBucket[];
 };

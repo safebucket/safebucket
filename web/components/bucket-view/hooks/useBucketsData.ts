@@ -1,25 +1,22 @@
 import { useState } from "react";
 
-import { useToast } from "@/components/hooks/use-toast";
-import { api, fetchApi } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
 import { SubmitHandler, useForm } from "react-hook-form";
 import useSWR from "swr";
 
-import { Bucket, IBucketForm, IBucketsData } from "@/app/buckets/helpers/types";
-
-export type IListBuckets = {
-  data: Bucket[];
-};
+import { api_createBucket } from "@/components/bucket-view/helpers/api";
+import {
+  IBucketForm,
+  IBucketsData,
+  IListBuckets,
+} from "@/components/bucket-view/helpers/types";
+import { useToast } from "@/components/common/hooks/use-toast";
 
 export const useBucketsData = (): IBucketsData => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<IBucketForm>();
+  const { register, handleSubmit } = useForm<IBucketForm>();
 
   const { data, error, isLoading, mutate } = useSWR(
     "/buckets",
@@ -27,7 +24,7 @@ export const useBucketsData = (): IBucketsData => {
   );
 
   const createBucket: SubmitHandler<IBucketForm> = async (body) => {
-    await api.post("/buckets", body).then(() => {
+    api_createBucket(body).then(() => {
       mutate();
       setIsDialogOpen(false);
       toast({

@@ -4,7 +4,7 @@ import React from "react";
 
 import { ThemeProvider } from "next-themes";
 
-import { SessionProvider } from "@/app/auth/hooks/useSession";
+import { SessionProvider } from "@/components/auth-view/context/SessionProvider";
 import { Main } from "@/app/main";
 
 import { UploadProvider } from "@/components/upload/context/UploadProvider";

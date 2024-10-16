@@ -3,10 +3,10 @@ import React, { FC } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { Bucket } from "@/app/buckets/helpers/types";
-import { useBucketsData } from "@/app/buckets/hooks/useBucketsData";
+import { IBucket } from "@/components/bucket-view/helpers/types";
+import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
 
-import { CustomDialog } from "@/components/custom-dialog";
+import { CustomDialog } from "@/components/common/components/CustomDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,7 +59,7 @@ export const SharedBuckets: FC = () => {
       <nav className="space-y-1">
         {isLoading && <Skeleton className="h-10" />}
         {!isLoading &&
-          buckets.map((bucket: Bucket) => (
+          buckets.map((bucket: IBucket) => (
             <Link
               key={bucket.id}
               href={`/buckets/${bucket.id}`}

@@ -3,10 +3,9 @@ import React, { FC, useState } from "react";
 import { PlusCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { Bucket } from "@/app/buckets/helpers/types";
-
-import { CustomDialog } from "@/components/custom-dialog";
-import { DatePickerDemo } from "@/components/datepicker";
+import { IBucket } from "@/components/bucket-view/helpers/types";
+import { CustomDialog } from "@/components/common/components/CustomDialog";
+import { Datepicker } from "@/components/common/components/Datepicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +23,7 @@ import { IStartUploadData } from "@/components/upload/helpers/types";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 
 interface IBucketHeaderProps {
-  bucket: Bucket | undefined;
+  bucket: IBucket | undefined;
   isLoading: boolean;
 }
 
@@ -75,8 +74,8 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
             }
             submitName="Share"
             onSubmit={handleSubmit((data) => {
-              setIsDialogOpen(false)
-              startUpload(data, bucket?.id)
+              setIsDialogOpen(false);
+              startUpload(data, bucket?.id);
             })}
             isOpen={isDialogOpen}
             setIsOpen={setIsDialogOpen}
@@ -136,7 +135,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
                 <Label htmlFor="expires-at-date" className="">
                   Date
                 </Label>
-                <DatePickerDemo />
+                <Datepicker />
               </div>
             )}
           </CustomDialog>

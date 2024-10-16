@@ -4,10 +4,9 @@ import React from "react";
 
 import { useParams } from "next/navigation";
 
-import { useBucketData } from "@/app/buckets/hooks/useBucketData";
-
-import { BucketContent } from "@/app/buckets/bucket/bucket-content";
-import { BucketHeader } from "@/app/buckets/bucket/bucket-header";
+import { BucketContent } from "@/components/bucket-view/components/BucketContent";
+import { BucketHeader } from "@/components/bucket-view/components/BucketHeader";
+import { useBucketData } from "@/components/bucket-view/hooks/useBucketData";
 
 const files = [
   {

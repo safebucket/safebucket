@@ -1,20 +1,19 @@
 "use client";
 
-import React from "react";
+import React, { FC } from "react";
 
 import { LogOut, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { useSession } from "@/app/auth/hooks/useSession";
-import { Settings } from "@/app/side-menu/settings";
-import { SharedBuckets } from "@/app/side-menu/shared-buckets";
-
+import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { Settings } from "@/components/side-menu/components/Settings";
+import { SharedBuckets } from "@/components/side-menu/components/SharedBuckets";
 import { Button } from "@/components/ui/button";
 
-export function SideMenu() {
+export const SideMenu: FC = () => {
   const pathname = usePathname();
-  const { logout } = useSession();
+  const { logout } = useSessionContext();
 
   return (
     <div className="h-screen w-64 border-r px-4 py-8 pr-6">
@@ -48,4 +47,4 @@ export function SideMenu() {
       </div>
     </div>
   );
-}
+};
