@@ -7,6 +7,7 @@ type Configuration struct {
 	Cors     CorsConfiguration     `json:"cors" validate:"required,dive"`
 	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required,dive"`
 	Redis    RedisConfiguration    `json:"redis" validate:"required,dive"`
+	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required,dive"`
 }
 
 type PlatformConfiguration struct {
@@ -46,4 +47,10 @@ type RedisConfiguration struct {
 	Hosts    []string `mapstructure:"hosts" validate:"required"`
 	Port     int32    `mapstructure:"port" validate:"gte=80,lte=65535"`
 	Password string   `mapstructure:"password" validate:"required"`
+}
+
+type StorageConfiguration struct {
+	Endpoint     string `mapstructure:"endpoint" validate:"required"`
+	ClientId     string `mapstructure:"client_id" validate:"required"`
+	ClientSecret string `mapstructure:"client_secret" validate:"required"`
 }

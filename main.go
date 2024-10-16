@@ -4,8 +4,8 @@ import (
 	c "api/internal/cache"
 	"api/internal/configuration"
 	"api/internal/database"
-	"api/internal/models"
 	"api/internal/services"
+	"api/internal/storage"
 	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -23,10 +23,7 @@ func main() {
 	db := database.InitDB(config.Database)
 	cache := c.InitCache(config.Redis)
 
-	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{})
-	if err != nil {
-		zap.L().Error("failed to migrate db models", zap.Error(err))
-	}
+	s3 := storage.InitStorage(config.Storage)
 
 	appIdentity := uuid.New().String()
 
@@ -38,7 +35,6 @@ func main() {
 	}()
 
 	r := chi.NewRouter()
-
 	// A good base middleware stack
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(middleware.RequestID)
@@ -60,6 +56,12 @@ func main() {
 
 	r.Mount("/users", services.UserService{DB: db}.Routes())
 	r.Mount("/buckets", services.BucketService{DB: db}.Routes())
+
+	r.Mount("/files", services.FileService{
+		DB: db,
+		S3: s3,
+	}.Routes())
+
 	r.Mount("/auth", services.AuthService{
 		DB:        db,
 		JWTConf:   config.JWT,
@@ -69,7 +71,7 @@ func main() {
 
 	zap.L().Info("App started")
 
-	err = http.ListenAndServe(":1323", r)
+	err := http.ListenAndServe(":1323", r)
 	if err != nil {
 		zap.L().Error("Failed to start the app")
 	}

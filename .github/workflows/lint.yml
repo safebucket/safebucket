@@ -6,11 +6,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Golangci-lint
-      uses: golangci/golangci-lint-action@v6.1.0
-      with:
-        working-directory: ${{ github.workspace }}
+      - name: Golangci-lint
+        uses: golangci/golangci-lint-action@v6.1.0
+        with:
+          args: --timeout=2m
+          working-directory: ${{ github.workspace }}

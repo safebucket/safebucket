@@ -21,6 +21,11 @@ redis:
   port: 6379
   password: root
 
+storage:
+  endpoint: localhost:9000
+  client_id: minio
+  client_secret: minioSuperSecretDoNotShare
+
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
 

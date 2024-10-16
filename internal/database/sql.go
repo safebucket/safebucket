@@ -16,5 +16,15 @@ func InitDB(config models.DatabaseConfiguration) *gorm.DB {
 	if err != nil {
 		zap.L().Error("Failed to connect to database", zap.Error(err))
 	}
+
+	runMigrations(db)
+
 	return db
+}
+
+func runMigrations(db *gorm.DB) {
+	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{})
+	if err != nil {
+		zap.L().Error("failed to migrate db models", zap.Error(err))
+	}
 }
