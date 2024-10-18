@@ -1,10 +1,9 @@
 import React, { FC } from "react";
 
 import { cn } from "@/lib/utils";
-import { FileTypeIcon } from "lucide-react";
 
+import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { IFile } from "@/components/bucket-view/helpers/types";
-
 import { Card } from "@/components/ui/card";
 import {
   ContextMenu,
@@ -33,7 +32,7 @@ export const FileItemView: FC<IFileViewProps> = ({ file }: IFileViewProps) => {
                   file.selected ? "bg-primary-foreground text-primary" : ""
                 }`}
               >
-                <FileTypeIcon className="h-6 w-6" />
+                <FileIconView extension={file.type} className="h-6 w-6" />
               </div>
               <div className="flex-1">
                 <h3

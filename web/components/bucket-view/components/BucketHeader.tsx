@@ -3,7 +3,11 @@ import React, { FC, useState } from "react";
 import { PlusCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { IBucket } from "@/components/bucket-view/helpers/types";
+import { BucketViewOptions } from "@/components/bucket-view/components/BucketViewOptions";
+import {
+  BucketViewMode,
+  IBucket,
+} from "@/components/bucket-view/helpers/types";
 import { CustomDialog } from "@/components/common/components/CustomDialog";
 import { Datepicker } from "@/components/common/components/Datepicker";
 import { Button } from "@/components/ui/button";
@@ -16,20 +20,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { UploadPopover } from "@/components/upload/components/UploadPopover";
 import { IStartUploadData } from "@/components/upload/helpers/types";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 
 interface IBucketHeaderProps {
-  bucket: IBucket | undefined;
-  isLoading: boolean;
+  view: string;
+  setView: (view: BucketViewMode) => void;
+  bucket: IBucket;
 }
 
 export const BucketHeader: FC<IBucketHeaderProps> = ({
+  view,
+  setView,
   bucket,
-  isLoading,
 }: IBucketHeaderProps) => {
   const [filterType, setFilterType] = useState("all");
   const [expiresAt, setExpiresAt] = useState(false);
@@ -42,10 +47,10 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   return (
     <div className="flex-1">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
-          {isLoading ? <Skeleton className="h-10 w-[250px]" /> : bucket!.name}
-        </h1>
+        <h1 className="text-2xl font-bold">{bucket.name}</h1>
         <div className="flex items-center gap-4">
+          <BucketViewOptions currentView={view} setCurrentView={setView} />
+
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by type" />
@@ -75,7 +80,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
             submitName="Share"
             onSubmit={handleSubmit((data) => {
               setIsDialogOpen(false);
-              startUpload(data, bucket?.id);
+              startUpload(data, bucket.id);
             })}
             isOpen={isDialogOpen}
             setIsOpen={setIsDialogOpen}
