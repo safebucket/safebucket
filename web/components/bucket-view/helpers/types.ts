@@ -46,3 +46,8 @@ export type IBucketForm = {
 export type IListBuckets = {
   data: IBucket[];
 };
+
+export enum BucketViewMode {
+  List = "list",
+  Grid = "grid",
+}

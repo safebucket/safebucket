@@ -4,8 +4,8 @@ import React from "react";
 
 import { useParams } from "next/navigation";
 
-import { BucketContent } from "@/components/bucket-view/components/BucketContent";
-import { BucketHeader } from "@/components/bucket-view/components/BucketHeader";
+import { BucketView } from "@/components/bucket-view/BucketView";
+import { BucketSkeleton } from "@/components/bucket-view/components/BucketSkeleton";
 import { useBucketData } from "@/components/bucket-view/hooks/useBucketData";
 
 const files = [
@@ -83,10 +83,9 @@ export default function Bucket() {
   if (!isLoading) bucket!.files = files;
 
   return (
-    <div className="m-6 flex-1">
-      <div className="grid grid-cols-1 gap-8">
-        <BucketHeader bucket={bucket} isLoading={isLoading} />
-        <BucketContent bucket={bucket} isLoading={isLoading} />
+    <div className="flex-1 bg-gray-50">
+      <div className="m-6 grid grid-cols-1 gap-8">
+        {isLoading ? <BucketSkeleton /> : <BucketView bucket={bucket!} />}
       </div>
     </div>
   );
