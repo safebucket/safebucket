@@ -2,6 +2,7 @@ import React, { FC } from "react";
 
 import { ChevronDownIcon, CircleCheck, FileIcon } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -17,8 +18,13 @@ export const UploadPopover: FC = () => {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="relative">
           Uploads
+          {uploads.length > 0 && (
+            <Badge className="absolute -right-2 -top-2 h-6 w-6 justify-center">
+              {uploads.length}
+            </Badge>
+          )}
           <ChevronDownIcon className="ml-2 h-4 w-4" />
         </Button>
       </PopoverTrigger>
