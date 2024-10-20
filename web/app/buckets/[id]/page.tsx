@@ -83,8 +83,8 @@ export default function Bucket() {
   if (!isLoading) bucket!.files = files;
 
   return (
-    <div className="flex-1 bg-gray-50">
-      <div className="m-6 grid grid-cols-1 gap-8">
+    <div className="flex-1">
+      <div className="mt-0 m-6 grid grid-cols-1 gap-8">
         {isLoading ? <BucketSkeleton /> : <BucketView bucket={bucket!} />}
       </div>
     </div>
