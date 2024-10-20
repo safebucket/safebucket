@@ -93,7 +93,7 @@ const files = [
 
 export default function Homepage() {
   return (
-    <div className="m-6 flex-1">
+    <div className="mt-0 m-6 flex-1">
       <div className="grid grid-cols-1 gap-8">
         <div className="mb-6">
           <div className="mb-6 flex items-center justify-between">
