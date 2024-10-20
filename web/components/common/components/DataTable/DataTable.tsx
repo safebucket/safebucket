@@ -66,12 +66,12 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-4 bg-white">
+    <div className="space-y-4 bg-background">
       <div className="rounded-md border shadow-sm">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow key={headerGroup.id} className="bg-muted/50">
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id} colSpan={header.colSpan}>

@@ -8,11 +8,7 @@ import {
   ChevronsUpDown,
   CreditCard,
   FolderSync,
-  Home,
-  LifeBuoy,
   LogOut,
-  Send,
-  Settings2,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
@@ -20,6 +16,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { CreateBucketDialog } from "@/components/app-sidebar/components/CreateBucketDialog";
+import { nav } from "@/components/app-sidebar/helpers/nav";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -50,58 +47,6 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 
-const data = {
-  user: {
-    name: "milou",
-    email: "milou@safebucket.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
-    {
-      title: "Home",
-      url: "/",
-      icon: Home,
-    },
-  ],
-  navSettings: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navHelp: [
-    {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
-    },
-  ],
-};
-
 export const AppSidebar: FC = () => {
   const pathname = usePathname();
   const { logout } = useSessionContext();
@@ -113,7 +58,7 @@ export const AppSidebar: FC = () => {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center justify-center gap-2 text-xl font-semibold text-primary">
+            <div className="mt-2 flex items-center justify-center gap-2 text-xl font-semibold text-primary">
               <ShieldCheck className="h-6 w-6" />
               <span>Safebucket</span>
             </div>
@@ -124,29 +69,25 @@ export const AppSidebar: FC = () => {
       <SidebarContent>
         <SidebarMenu>
           <SidebarGroup>
-            <SidebarMenuItem key="shared_buckets">
-              <SidebarMenuButton asChild tooltip="Shared Buckets">
-                <p>
-                  <Home />
-                  <span>Personal</span>
-                </p>
-              </SidebarMenuButton>
-              <SidebarMenuSub>
-                {data.navMain.map((item) => (
-                  <SidebarMenuSubItem key={item.title}>
-                    <SidebarMenuSubButton
-                      asChild
-                      isActive={pathname == item.url}
-                    >
-                      <Link href={item.url}>
-                        {/*<item.icon className="h-4 w-4" />*/}
-                        {item.title}
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                ))}
-              </SidebarMenuSub>
-            </SidebarMenuItem>
+            {nav.main.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton asChild tooltip={item.title}>
+                  <div>
+                    <item.icon />
+                    {item.title}
+                  </div>
+                </SidebarMenuButton>
+                <SidebarMenuSub>
+                  {item.items?.map((subItem) => (
+                    <SidebarMenuSubItem key={subItem.title}>
+                      <SidebarMenuSubButton asChild isActive={pathname == subItem.url}>
+                        <Link href={subItem.url}>{subItem.title}</Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
+              </SidebarMenuItem>
+            ))}
           </SidebarGroup>
           <SidebarGroup>
             <SidebarMenuItem key="shared_buckets">
@@ -174,7 +115,7 @@ export const AppSidebar: FC = () => {
             </SidebarMenuItem>
           </SidebarGroup>
           <SidebarGroup>
-            {data.navSettings.map((item) => (
+            {nav.settings.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title}>
                   <div>
@@ -199,7 +140,7 @@ export const AppSidebar: FC = () => {
           <SidebarGroupLabel>Help</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {data.navHelp.map((item) => (
+              {nav.help.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild size="sm">
                     <Link href={item.url}>
@@ -223,14 +164,14 @@ export const AppSidebar: FC = () => {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={data.user.avatar} alt={data.user.name} />
+                    <AvatarImage src={nav.user.avatar} alt={nav.user.name} />
                     <AvatarFallback className="rounded-lg">M</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {data.user.name}
+                      {nav.user.name}
                     </span>
-                    <span className="truncate text-xs">{data.user.email}</span>
+                    <span className="truncate text-xs">{nav.user.email}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -244,19 +185,14 @@ export const AppSidebar: FC = () => {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage
-                        src={data.user.avatar}
-                        alt={data.user.name}
-                      />
+                      <AvatarImage src={nav.user.avatar} alt={nav.user.name} />
                       <AvatarFallback className="rounded-lg">M</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {data.user.name}
+                        {nav.user.name}
                       </span>
-                      <span className="truncate text-xs">
-                        {data.user.email}
-                      </span>
+                      <span className="truncate text-xs">{nav.user.email}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
