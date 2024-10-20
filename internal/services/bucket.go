@@ -8,17 +8,18 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"net/http"
 )
 
 type BucketService struct {
-	DB *gorm.DB
+	DB      *gorm.DB
+	JWTConf models.JWTConfiguration
 }
 
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", handlers.GetListHandler(s.GetBucketList))
-	r.With(h.Validate[models.Bucket]).Post("/", handlers.CreateHandler(s.CreateBucket))
-
+	r.With(h.Validate[models.Bucket]).With(h.Authorize(s.JWTConf, s.AuthZCreateBucket)).Post("/", handlers.CreateHandler(s.CreateBucket))
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", handlers.GetOneHandler(s.GetBucket))
 		r.With(h.Validate[models.Bucket]).Patch("/", handlers.UpdateHandler(s.UpdateBucket))
@@ -30,6 +31,10 @@ func (s BucketService) Routes() chi.Router {
 func (s BucketService) CreateBucket(body models.Bucket) (models.Bucket, error) {
 	s.DB.Create(&body)
 	return body, nil
+}
+
+func (s BucketService) AuthZCreateBucket(r *http.Request, token *models.UserClaims) error {
+	return nil
 }
 
 func (s BucketService) GetBucketList() []models.Bucket {
