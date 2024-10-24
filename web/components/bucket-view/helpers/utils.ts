@@ -1,3 +1,7 @@
+import { notFound } from "next/navigation";
+
+import { IFile } from "@/components/bucket-view/helpers/types";
+
 export const getFileType = (extension: string): string => {
   switch (extension.toLowerCase()) {
     // Text files
@@ -60,7 +64,26 @@ export const getFileType = (extension: string): string => {
     case "jar":
       return "executable";
 
+    case "folder":
+      return "folder";
+
     default:
       return "unknown";
   }
+};
+
+export const findFilesInDirectories = (files: IFile[], path: string[]) => {
+  let current = files;
+
+  for (const key of path) {
+    const found = current.find((item) => item.name === key);
+
+    if (!found) {
+      return notFound();
+    } else if (found && found.files) {
+      current = found.files;
+    }
+  }
+
+  return current;
 };

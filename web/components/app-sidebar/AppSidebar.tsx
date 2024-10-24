@@ -105,7 +105,7 @@ export const AppSidebar: FC = () => {
                   <SidebarMenuSubItem key={bucket.id}>
                     <SidebarMenuSubButton
                       asChild
-                      isActive={pathname == `/buckets/${bucket.id}`}
+                      isActive={pathname.startsWith(`/buckets/${bucket.id}`)}
                     >
                       <Link href={`/buckets/${bucket.id}`}>{bucket.name}</Link>
                     </SidebarMenuSubButton>

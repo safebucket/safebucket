@@ -3,8 +3,9 @@ import React, { FC } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
-import { IBucket, IFile } from "@/components/bucket-view/helpers/types";
+import { IFile } from "@/components/bucket-view/helpers/types";
 import { getFileType } from "@/components/bucket-view/helpers/utils";
+import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { DataTableColumnHeader } from "@/components/common/components/DataTable/DataColumnHeader";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { DataTableRowActions } from "@/components/common/components/DataTable/DataTableRowActions";
@@ -67,11 +68,21 @@ export const columns: ColumnDef<IFile>[] = [
 ];
 
 interface IBucketListViewProps {
-  bucket: IBucket;
+  files: IFile[];
 }
 
 export const BucketListView: FC<IBucketListViewProps> = ({
-  bucket,
+  files,
 }: IBucketListViewProps) => {
-  return <DataTable columns={columns} data={bucket.files} />;
+  const { selected, setSelected, openFolder } = useBucketViewContext();
+
+  return (
+    <DataTable
+      columns={columns}
+      data={files}
+      selected={selected}
+      onRowClick={setSelected}
+      onRowDoubleClick={openFolder}
+    />
+  );
 };

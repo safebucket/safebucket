@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 
 import { FileUp } from "lucide-react";
@@ -93,7 +95,7 @@ const files = [
 
 export default function Homepage() {
   return (
-    <div className="mt-0 m-6 flex-1">
+    <div className="m-6 mt-0 flex-1">
       <div className="grid grid-cols-1 gap-8">
         <div className="mb-6">
           <div className="mb-6 flex items-center justify-between">
@@ -108,7 +110,13 @@ export default function Homepage() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
             {files.map((file) => (
-              <FileItemView key={file.id} file={file} />
+              <FileItemView
+                key={file.id}
+                file={file}
+                selected={null}
+                setSelected={() => false}
+                onDoubleClick={() => false}
+              />
             ))}
           </div>
         </div>

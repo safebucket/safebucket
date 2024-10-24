@@ -4,10 +4,7 @@ import { PlusCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { BucketViewOptions } from "@/components/bucket-view/components/BucketViewOptions";
-import {
-  BucketViewMode,
-  IBucket,
-} from "@/components/bucket-view/helpers/types";
+import { IBucket } from "@/components/bucket-view/helpers/types";
 import { CustomDialog } from "@/components/common/components/CustomDialog";
 import { Datepicker } from "@/components/common/components/Datepicker";
 import { Button } from "@/components/ui/button";
@@ -26,14 +23,10 @@ import { IStartUploadData } from "@/components/upload/helpers/types";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 
 interface IBucketHeaderProps {
-  view: string;
-  setView: (view: BucketViewMode) => void;
   bucket: IBucket;
 }
 
 export const BucketHeader: FC<IBucketHeaderProps> = ({
-  view,
-  setView,
   bucket,
 }: IBucketHeaderProps) => {
   const [filterType, setFilterType] = useState("all");
@@ -49,7 +42,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{bucket.name}</h1>
         <div className="flex items-center gap-4">
-          <BucketViewOptions currentView={view} setCurrentView={setView} />
+          <BucketViewOptions />
 
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger>

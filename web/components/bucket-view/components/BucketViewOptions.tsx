@@ -4,12 +4,8 @@ import { FC } from "react";
 import { LayoutGrid, LayoutList } from "lucide-react";
 
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
+import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { ButtonGroup } from "@/components/common/components/ButtonGroup";
-
-interface IBucketViewOptionsProps {
-  currentView: string;
-  setCurrentView: (view: BucketViewMode) => void;
-}
 
 const options = [
   {
@@ -22,15 +18,14 @@ const options = [
   },
 ];
 
-export const BucketViewOptions: FC<IBucketViewOptionsProps> = ({
-  currentView,
-  setCurrentView,
-}: IBucketViewOptionsProps) => {
+export const BucketViewOptions: FC = () => {
+  const { view, setView } = useBucketViewContext();
+
   return (
     <ButtonGroup
       options={options}
-      currentOption={currentView}
-      setCurrentOption={setCurrentView}
+      currentOption={view}
+      setCurrentOption={setView}
     />
   );
 };

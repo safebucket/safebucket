@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 
 import {
@@ -25,17 +23,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { IFile } from "@/components/bucket-view/helpers/types";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  selected: TData | null;
+  onRowClick: (row: TData) => void;
+  onRowDoubleClick: (row: TData) => void;
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends IFile, TValue>({
   columns,
   data,
+  selected,
+  onRowClick,
+  onRowDoubleClick,
 }: DataTableProps<TData, TValue>) {
-  const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -49,11 +53,9 @@ export function DataTable<TData, TValue>({
     state: {
       sorting,
       columnVisibility,
-      rowSelection,
       columnFilters,
     },
     enableRowSelection: true,
-    onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -66,8 +68,8 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-4 bg-background">
-      <div className="rounded-md border shadow-sm">
+    <div className="space-y-4">
+      <div className="cursor rounded-md border bg-background shadow-sm">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -92,10 +94,15 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
+                  data-state={
+                    selected && selected?.id === row.original.id && "selected"
+                  }
+                  className="cursor-pointer"
+                  onClick={() => onRowClick(row.original)}
+                  onDoubleClick={() => onRowDoubleClick(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="select-none">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
@@ -110,7 +117,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  Folder is empty.
                 </TableCell>
               </TableRow>
             )}

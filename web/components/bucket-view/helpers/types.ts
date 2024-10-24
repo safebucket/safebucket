@@ -10,7 +10,7 @@ export interface IFile {
   size: string;
   modified: string;
   type: string;
-  selected: boolean;
+  files?: IFile[];
 }
 
 export interface IBucket {

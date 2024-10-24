@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { Main } from "@/app/main";
 
 import { SessionProvider } from "@/components/auth-view/context/SessionProvider";
+import { BucketViewProvider } from "@/components/bucket-view/context/BucketViewProvider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { UploadProvider } from "@/components/upload/context/UploadProvider";
 
@@ -21,7 +22,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <SessionProvider>
         <SidebarProvider>
           <UploadProvider>
-            <Main>{children}</Main>
+            <BucketViewProvider>
+              <Main>{children}</Main>
+            </BucketViewProvider>
           </UploadProvider>
         </SidebarProvider>
       </SessionProvider>

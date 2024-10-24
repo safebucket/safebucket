@@ -10,6 +10,7 @@ import {
   FileTerminal,
   FileText,
   FileVideo,
+  FolderClosed,
 } from "lucide-react";
 
 interface IFileIconViewProps {
@@ -71,6 +72,9 @@ export const FileIconView: FC<IFileIconViewProps> = ({
     case "bat":
     case "jar":
       return <FileTerminal className={className} />;
+
+    case "folder":
+      return <FolderClosed className={className} />;
 
     default:
       return <FileIcon className={className} />;
