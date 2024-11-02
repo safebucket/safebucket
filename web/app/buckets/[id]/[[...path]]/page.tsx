@@ -3,7 +3,9 @@
 import React from "react";
 
 import { BucketView } from "@/components/bucket-view/BucketView";
-import { BucketSkeleton } from "@/components/bucket-view/components/BucketSkeleton";
+import {
+  BucketSkeleton,
+} from "@/components/bucket-view/components/BucketSkeleton";
 import { useBucketData } from "@/components/bucket-view/hooks/useBucketData";
 
 const files = [
@@ -98,14 +100,16 @@ const files = [
 ];
 
 interface IBucketProps {
-  params: { id: string; path: string[] };
+  params: { id: string; path?: string[] };
 }
 
 export default function Bucket({ params }: IBucketProps) {
   const { bucket, isLoading } = useBucketData(params.id);
 
+  const path = params.path ? `/${params.path.join("/")}` : "/"
+
   // FIXME: Remove when endpoint returns files
-  if (!isLoading) bucket!.files = files;
+  // if (!isLoading) bucket!.files = files;
 
   return (
     <div className="flex-1">
@@ -113,7 +117,7 @@ export default function Bucket({ params }: IBucketProps) {
         {isLoading ? (
           <BucketSkeleton />
         ) : (
-          <BucketView bucket={bucket!} path={params.path || []} />
+          <BucketView bucket={bucket!} path={path} />
         )}
       </div>
     </div>

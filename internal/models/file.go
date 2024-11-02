@@ -9,10 +9,12 @@ import (
 type File struct {
 	ID        uuid.UUID `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
 	Name      string    `gorm:"not null;default:null" json:"name"`
-	Extension string    `gorm:"not null;default:null" json:"extension"`
+	Extension string    `gorm:"default:null" json:"extension"`
 	Uploaded  bool      `gorm:"not null;default:false" json:"uploaded"`
 	BucketId  uuid.UUID `gorm:"type:uuid;" json:"bucket_id"`
-	Bucket    Bucket
+	Bucket    Bucket    `json:"-"`
+	Path      string    `gorm:"not null;default:/" json:"path"`
+	Type      string    `gorm:"not null;default:document" json:"type"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`

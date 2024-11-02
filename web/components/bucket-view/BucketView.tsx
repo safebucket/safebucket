@@ -7,12 +7,12 @@ import {
   BucketViewMode,
   IBucket,
 } from "@/components/bucket-view/helpers/types";
-import { findFilesInDirectories } from "@/components/bucket-view/helpers/utils";
+import { filesToShow } from "@/components/bucket-view/helpers/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 
 interface IBucketViewProps {
   bucket: IBucket;
-  path: string[];
+  path: string;
 }
 
 export const BucketView: FC<IBucketViewProps> = ({
@@ -20,7 +20,7 @@ export const BucketView: FC<IBucketViewProps> = ({
   path,
 }: IBucketViewProps) => {
   const { view } = useBucketViewContext();
-  const [files] = useState(findFilesInDirectories(bucket.files, path));
+  const [files] = useState(filesToShow(bucket.files, path));
 
   return (
     <>
