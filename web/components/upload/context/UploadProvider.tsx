@@ -25,13 +25,17 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const updateStatus = (uploadId: string, status: UploadStatus) =>
     dispatch(actions.updateStatus(uploadId, status));
 
-  const startUpload = async (data: IStartUploadData, bucketId?: string) => {
+  const startUpload = async (
+    data: IStartUploadData,
+    path: string,
+    bucketId?: string,
+  ) => {
     const file = data.files[0];
     const uploadId = crypto.randomUUID();
 
     addUpload(uploadId, file.name);
 
-    api_createFile(file.name, bucketId).then(async (res) => {
+    api_createFile(file.name, path, bucketId).then(async (res) => {
       uploadToStorage(res.url, file, uploadId, updateProgress).then(
         (success: boolean) => {
           const status = success ? UploadStatus.success : UploadStatus.failed;

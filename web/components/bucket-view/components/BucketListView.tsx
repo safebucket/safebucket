@@ -4,7 +4,6 @@ import { ColumnDef } from "@tanstack/react-table";
 
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { IFile } from "@/components/bucket-view/helpers/types";
-import { getFileType } from "@/components/bucket-view/helpers/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { DataTableColumnHeader } from "@/components/common/components/DataTable/DataColumnHeader";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
@@ -44,7 +43,7 @@ export const columns: ColumnDef<IFile>[] = [
     ),
     cell: ({ row }) => (
       <div className="">
-        <Badge variant="secondary">{getFileType(row.getValue("type"))}</Badge>
+        <Badge variant="secondary">{row.getValue("type")}</Badge>
       </div>
     ),
     filterFn: (row, id, value) => {
@@ -52,11 +51,11 @@ export const columns: ColumnDef<IFile>[] = [
     },
   },
   {
-    accessorKey: "modified",
+    accessorKey: "created_at",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Uploaded At" />
     ),
-    cell: ({ row }) => <div className="">{row.getValue("modified")}</div>,
+    cell: ({ row }) => <div className="">{row.getValue("created_at")}</div>,
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },

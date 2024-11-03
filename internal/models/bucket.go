@@ -7,8 +7,9 @@ import (
 )
 
 type Bucket struct {
-	ID   uuid.UUID `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
-	Name string    `gorm:"not null;default:null" json:"name" validate:"required"`
+	ID    uuid.UUID `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
+	Name  string    `gorm:"not null;default:null" json:"name" validate:"required"`
+	Files []File    `json:"files"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	CreatedBy time.Time      `json:"created_by"`

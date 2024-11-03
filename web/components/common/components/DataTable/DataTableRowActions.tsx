@@ -11,7 +11,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -35,26 +34,9 @@ export function DataTableRowActions<TData>({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[160px]">
         <DropdownMenuItem>Download</DropdownMenuItem>
-        <DropdownMenuItem>Make a copy</DropdownMenuItem>
-        <DropdownMenuItem>Favorite</DropdownMenuItem>
+        <DropdownMenuItem>Share</DropdownMenuItem>
         <DropdownMenuSeparator />
-        {/*<DropdownMenuSub>*/}
-        {/*  <DropdownMenuSubTrigger>Labels</DropdownMenuSubTrigger>*/}
-        {/*  <DropdownMenuSubContent>*/}
-        {/*    <DropdownMenuRadioGroup value={task.label}>*/}
-        {/*      {labels.map((label) => (*/}
-        {/*        <DropdownMenuRadioItem key={label.value} value={label.value}>*/}
-        {/*          {label.label}*/}
-        {/*        </DropdownMenuRadioItem>*/}
-        {/*      ))}*/}
-        {/*    </DropdownMenuRadioGroup>*/}
-        {/*  </DropdownMenuSubContent>*/}
-        {/*</DropdownMenuSub>*/}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          Delete
-          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
-        </DropdownMenuItem>
+        <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

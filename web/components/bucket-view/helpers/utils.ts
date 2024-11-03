@@ -1,5 +1,3 @@
-import { notFound } from "next/navigation";
-
 import { IFile } from "@/components/bucket-view/helpers/types";
 
 export const getFileType = (extension: string): string => {
@@ -72,18 +70,17 @@ export const getFileType = (extension: string): string => {
   }
 };
 
-export const findFilesInDirectories = (files: IFile[], path: string[]) => {
-  let current = files;
+const buildFileStructure = (files: IFile[]) => {
+  const map: Record<string, IFile[]> = {};
 
-  for (const key of path) {
-    const found = current.find((item) => item.name === key);
+  files.forEach((file) => {
+    (map[file.path] ??= []).push(file);
+  });
 
-    if (!found) {
-      return notFound();
-    } else if (found && found.files) {
-      current = found.files;
-    }
-  }
+  return map;
+};
 
-  return current;
+export const filesToShow = (files: IFile[], path: string) => {
+  const fileStructure = buildFileStructure(files);
+  return fileStructure[path] || [];
 };
