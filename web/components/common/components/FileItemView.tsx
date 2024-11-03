@@ -62,15 +62,15 @@ export const FileItemView: FC<IFileViewProps> = ({
             <div
               className={`text-sm ${selected?.id === file.id ? "text-primary-foreground" : "text-muted-foreground"}`}
             >
-              Modified: {file.modified}
+              Uploaded: {file.created_at}
             </div>
           </Card>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-40">
           <ContextMenuItem>Download</ContextMenuItem>
-          <ContextMenuItem>Delete</ContextMenuItem>
-          <ContextMenuSeparator />
           <ContextMenuItem>Share</ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem className="text-red-600">Delete</ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
     </div>

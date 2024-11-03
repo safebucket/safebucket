@@ -51,11 +51,11 @@ export const columns: ColumnDef<IFile>[] = [
     },
   },
   {
-    accessorKey: "modified",
+    accessorKey: "created_at",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Uploaded At" />
     ),
-    cell: ({ row }) => <div className="">{row.getValue("modified")}</div>,
+    cell: ({ row }) => <div className="">{row.getValue("created_at")}</div>,
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },

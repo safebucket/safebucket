@@ -15,6 +15,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
+import { IFile } from "@/components/bucket-view/helpers/types";
 import {
   Table,
   TableBody,
@@ -23,7 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { IFile } from "@/components/bucket-view/helpers/types";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];

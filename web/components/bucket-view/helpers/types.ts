@@ -8,10 +8,10 @@ export interface IFile {
   id: number;
   name: string;
   size: string;
-  modified: string;
   type: string;
   path: string;
   files: IFile[];
+  created_at: string;
 }
 
 export interface IBucket {
