@@ -1,5 +1,6 @@
 export interface ICreateFile {
   id: string;
+  path: string;
   url: string;
 }
 
@@ -10,7 +11,7 @@ export interface IStartUploadData {
 export interface IUploadContext {
   uploads: IUpload[];
 
-  startUpload(data: IStartUploadData, bucketId?: string): void;
+  startUpload(data: IStartUploadData, path: string, bucketId?: string): void;
 }
 
 export enum UploadStatus {

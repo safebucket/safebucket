@@ -3,8 +3,8 @@ import { api } from "@/lib/api";
 import { toast } from "@/components/common/hooks/use-toast";
 import { ICreateFile } from "@/components/upload/helpers/types";
 
-export const api_createFile = (name: string, bucket_id?: string) =>
-  api.post<ICreateFile>("/files", { name, bucket_id });
+export const api_createFile = (name: string, path:string, bucket_id?: string) =>
+  api.post<ICreateFile>("/files", { name, path, bucket_id });
 
 export const uploadToStorage = async (
   url: string,

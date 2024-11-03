@@ -24,7 +24,7 @@ export const BucketView: FC<IBucketViewProps> = ({
 
   return (
     <>
-      <BucketHeader bucket={bucket} />
+      <BucketHeader bucket={bucket} path={path} />
 
       {view == BucketViewMode.List ? (
         <BucketListView files={files} />

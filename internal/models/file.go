@@ -24,6 +24,7 @@ type File struct {
 type FileTransferBody struct {
 	Name     string `json:"name" validate:"required,filename"`
 	BucketId string `json:"bucket_id" validate:"required"`
+	Path     string `json:"path" validate:"required"`
 }
 
 type FileTransferResponse struct {

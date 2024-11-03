@@ -13,6 +13,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"path"
 	"path/filepath"
 	"time"
 )
@@ -48,6 +49,7 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 		Name:      body.Name,
 		Extension: extension,
 		BucketId:  bucket.ID,
+		Path:      body.Path,
 	}
 
 	err = sql.Create[*models.File](s.DB, file)
@@ -58,7 +60,7 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 	url, err := s.S3.PresignedPutObject(
 		context.Background(),
 		"safebucket",
-		fmt.Sprintf("buckets/%s/%s", bucket.ID, file.Name),
+		path.Join("buckets", body.BucketId, file.Path, file.Name),
 		time.Minute*15,
 	)
 

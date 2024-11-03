@@ -24,10 +24,12 @@ import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 
 interface IBucketHeaderProps {
   bucket: IBucket;
+  path: string;
 }
 
 export const BucketHeader: FC<IBucketHeaderProps> = ({
   bucket,
+  path,
 }: IBucketHeaderProps) => {
   const [filterType, setFilterType] = useState("all");
   const [expiresAt, setExpiresAt] = useState(false);
@@ -73,7 +75,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
             submitName="Share"
             onSubmit={handleSubmit((data) => {
               setIsDialogOpen(false);
-              startUpload(data, bucket.id);
+              startUpload(data, path, bucket.id);
             })}
             isOpen={isDialogOpen}
             setIsOpen={setIsDialogOpen}
