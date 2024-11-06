@@ -5,6 +5,8 @@ import React from "react";
 import { Row } from "@tanstack/react-table";
 import { Ellipsis } from "lucide-react";
 
+import { IFile } from "@/components/bucket-view/helpers/types";
+import { useFileActions } from "@/components/FileActions/hooks/useFileActions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,9 +20,11 @@ interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
 }
 
-export function DataTableRowActions<TData>({
+export function DataTableRowActions<TData extends IFile>({
   row,
 }: DataTableRowActionsProps<TData>) {
+  const { deleteFile } = useFileActions();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -36,7 +40,12 @@ export function DataTableRowActions<TData>({
         <DropdownMenuItem>Download</DropdownMenuItem>
         <DropdownMenuItem>Share</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+        <DropdownMenuItem
+          className="text-red-600"
+          onClick={() => deleteFile(row.original.id, row.original.name)}
+        >
+          Delete
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

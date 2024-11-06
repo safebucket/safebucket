@@ -10,7 +10,7 @@ export const useBucketData = (id: string): IBucketData => {
   );
 
   return {
-    bucket: data,
+    bucket: data ?? undefined,
     error,
     isLoading,
   };

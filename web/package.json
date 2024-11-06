@@ -10,6 +10,7 @@
     "prettier": "prettier --config ./.prettierrc.json \"./**/*{.ts,.js,.tsx,.jsx,.json,.css,.scss}\" --check"
   },
   "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-collapsible": "^1.1.1",
     "@radix-ui/react-context-menu": "^2.2.1",

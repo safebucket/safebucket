@@ -28,6 +28,7 @@ func (s FileService) Routes() chi.Router {
 	r.With(h.Validate[models.FileTransferBody]).Post("/", handlers.CreateHandler(s.UploadFile))
 
 	r.Route("/{id}", func(r chi.Router) {
+		r.Delete("/", handlers.DeleteHandler(s.DeleteFile))
 		r.Get("/download", handlers.GetOneHandler(s.DownloadFile))
 	})
 	return r
@@ -73,6 +74,30 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 		ID:  file.ID.String(),
 		Url: url.String(),
 	}, nil
+}
+
+func (s FileService) DeleteFile(id uuid.UUID) error {
+	file, err := sql.GetById[models.File](s.DB, id)
+	if err != nil {
+		return errors.New("FILE_NOT_FOUND")
+	}
+
+	err = s.S3.RemoveObject(
+		context.Background(),
+		"safebucket",
+		path.Join("buckets", id.String(), file.Path, file.Name),
+		minio.RemoveObjectOptions{},
+	)
+	if err != nil {
+		zap.L().Warn("File does not exist in storage", zap.Error(err))
+	}
+
+	result := s.DB.Delete(&file)
+	if result.Error != nil {
+		zap.L().Error("Failed to delete file", zap.Error(result.Error))
+		return errors.New("FILE_DELETION_FAILED")
+	}
+	return nil
 }
 
 func (s FileService) DownloadFile(id uuid.UUID) (models.FileTransferResponse, error) {

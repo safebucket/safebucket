@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 import { BucketViewMode, IFile } from "@/components/bucket-view/helpers/types";
 
 export interface IBucketViewContext {
+  bucketId: string;
   view: BucketViewMode;
   setView: (view: BucketViewMode) => void;
   selected: IFile | null;

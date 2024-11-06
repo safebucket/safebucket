@@ -5,7 +5,7 @@ import {
 } from "react-hook-form";
 
 export interface IFile {
-  id: number;
+  id: string;
   name: string;
   size: string;
   type: string;
@@ -38,6 +38,10 @@ export interface IBucketData {
   bucket: IBucket | undefined;
   error: string;
   isLoading: boolean;
+}
+
+export interface IFileActions {
+  deleteFile: (fileId: string, filename: string) => void;
 }
 
 export type IBucketForm = {

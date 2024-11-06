@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 
 import { BucketViewMode, IFile } from "@/components/bucket-view/helpers/types";
 import { BucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -12,6 +12,7 @@ export const BucketViewProvider = ({
 }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const params = useParams<{ id: string }>();
 
   const [view, setView] = useState<BucketViewMode>(BucketViewMode.List);
   const [selected, setSelected] = useState<IFile | null>(null);
@@ -25,6 +26,7 @@ export const BucketViewProvider = ({
   return (
     <BucketViewContext.Provider
       value={{
+        bucketId: params.id,
         view,
         setView,
         selected,

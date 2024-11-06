@@ -70,23 +70,38 @@ export async function fetchApi<T>(
   //   throw new Error(message);
   // }
 
+  if (
+    response.status === 204 ||
+    response.headers.get("Content-Length") === "0"
+  ) {
+    return null as T;
+  }
+
   return response.json();
 }
 
 export const api = {
-  get<T>(url: string, options?: RequestOptions): Promise<T> {
+  get<T>(url: string, options?: RequestOptions): Promise<T | null> {
     return fetchApi<T>(url, { ...options, method: "GET" });
   },
   post<T>(url: string, body?: object, options?: RequestOptions): Promise<T> {
     return fetchApi<T>(url, { ...options, method: "POST", body });
   },
-  put<T>(url: string, body?: object, options?: RequestOptions): Promise<T> {
+  put<T>(
+    url: string,
+    body?: object,
+    options?: RequestOptions,
+  ): Promise<T | null> {
     return fetchApi<T>(url, { ...options, method: "PUT", body });
   },
-  patch<T>(url: string, body?: object, options?: RequestOptions): Promise<T> {
+  patch<T>(
+    url: string,
+    body?: object,
+    options?: RequestOptions,
+  ): Promise<T | null> {
     return fetchApi<T>(url, { ...options, method: "PATCH", body });
   },
-  delete<T>(url: string, options?: RequestOptions): Promise<T> {
-    return fetchApi<T>(url, { ...options, method: "DELETE" });
+  delete(url: string, options?: RequestOptions): Promise<null> {
+    return fetchApi(url, { ...options, method: "DELETE" });
   },
 };

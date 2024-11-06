@@ -1,4 +1,4 @@
-import React, { FC, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
 
 import { BucketGridView } from "@/components/bucket-view/components/BucketGridView";
 import { BucketHeader } from "@/components/bucket-view/components/BucketHeader";
@@ -20,7 +20,11 @@ export const BucketView: FC<IBucketViewProps> = ({
   path,
 }: IBucketViewProps) => {
   const { view } = useBucketViewContext();
-  const [files] = useState(filesToShow(bucket.files, path));
+  const [files, setFiles] = useState(filesToShow(bucket.files, path));
+
+  useEffect(() => {
+    setFiles(filesToShow(bucket.files, path));
+  }, [bucket, path]);
 
   return (
     <>

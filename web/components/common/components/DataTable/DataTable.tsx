@@ -15,6 +15,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
+import { FileActions } from "@/components/FileActions/FileActions";
 import { IFile } from "@/components/bucket-view/helpers/types";
 import {
   Table,
@@ -92,24 +93,27 @@ export function DataTable<TData extends IFile, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={
-                    selected && selected?.id === row.original.id && "selected"
-                  }
-                  className="cursor-pointer"
-                  onClick={() => onRowClick(row.original)}
-                  onDoubleClick={() => onRowDoubleClick(row.original)}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="select-none">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <FileActions key={row.id} file={row.original}>
+                  <TableRow
+                    key={row.id}
+                    data-state={
+                      selected && selected?.id === row.original.id && "selected"
+                    }
+                    className="cursor-pointer"
+                    onClick={() => onRowClick(row.original)}
+                    onDoubleClick={() => onRowDoubleClick(row.original)}
+                    onContextMenu={() => onRowClick(row.original)}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="select-none">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </FileActions>
               ))
             ) : (
               <TableRow>
