@@ -38,7 +38,7 @@ export const FileActions: FC<IFileActionsProps> = ({
   file,
   type,
 }: IFileActionsProps) => {
-  const { deleteFile } = useFileActions();
+  const { downloadFile, deleteFile } = useFileActions();
 
   const Menu = type === "context" ? ContextMenu : DropdownMenu;
   const MenuTrigger =
@@ -52,7 +52,9 @@ export const FileActions: FC<IFileActionsProps> = ({
       <Menu>
         <MenuTrigger asChild>{children}</MenuTrigger>
         <MenuContent className="w-40">
-          <MenuItem>Download</MenuItem>
+          <MenuItem onClick={() => downloadFile(file.id, file.name)}>
+            Download
+          </MenuItem>
           <MenuItem>Share</MenuItem>
           <ContextMenuSeparator />
           <AlertDialogTrigger asChild>
