@@ -81,7 +81,7 @@ export async function fetchApi<T>(
 }
 
 export const api = {
-  get<T>(url: string, options?: RequestOptions): Promise<T | null> {
+  get<T>(url: string, options?: RequestOptions): Promise<T> {
     return fetchApi<T>(url, { ...options, method: "GET" });
   },
   post<T>(url: string, body?: object, options?: RequestOptions): Promise<T> {

@@ -42,6 +42,7 @@ export interface IBucketData {
 
 export interface IFileActions {
   deleteFile: (fileId: string, filename: string) => void;
+  downloadFile: (fileId: string, filename: string) => void;
 }
 
 export type IBucketForm = {
@@ -56,3 +57,7 @@ export enum BucketViewMode {
   List = "list",
   Grid = "grid",
 }
+
+export type IDownloadFileResponse = {
+  url: string;
+};

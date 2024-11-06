@@ -7,7 +7,6 @@ import (
 	"api/internal/sql"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
@@ -109,7 +108,7 @@ func (s FileService) DownloadFile(id uuid.UUID) (models.FileTransferResponse, er
 	url, err := s.S3.PresignedGetObject(
 		context.Background(),
 		"safebucket",
-		fmt.Sprintf("buckets/%s/%s", file.BucketId, file.Name),
+		path.Join("buckets", file.BucketId.String(), file.Path, file.Name),
 		time.Minute*15,
 		nil,
 	)
