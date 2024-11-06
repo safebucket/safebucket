@@ -20,40 +20,55 @@ export const FileItemView: FC<IFileViewProps> = ({
   setSelected,
   onDoubleClick,
 }: IFileViewProps) => {
+  const isSelected = selected?.id === file.id;
+
   return (
-    <div className={cn("space-y-3")}>
+    <div className="space-y-3">
       <FileActions file={file} type="context">
         <Card
           key={file.id}
-          className={`flex cursor-pointer flex-col gap-4 p-4 ${selected?.id === file.id ? "bg-primary text-primary-foreground" : ""}`}
+          className={cn(
+            "flex cursor-pointer flex-col gap-4 p-4",
+            isSelected && "bg-primary text-primary-foreground",
+          )}
           onClick={() => setSelected(file)}
           onDoubleClick={() => onDoubleClick(file)}
         >
           <div className="flex items-center gap-4">
             <div
-              className={`flex aspect-square w-12 items-center justify-center rounded-md bg-muted ${
-                selected?.id === file.id
-                  ? "bg-primary-foreground text-primary"
-                  : ""
-              }`}
+              className={cn(
+                "flex aspect-square w-12 items-center justify-center rounded-md bg-muted",
+                isSelected && "bg-primary-foreground text-primary",
+              )}
             >
               <FileIconView extension={file.type} className="h-6 w-6" />
             </div>
             <div className="flex-1">
               <h3
-                className={`truncate font-medium ${selected?.id === file.id ? "text-primary-foreground" : ""}`}
+                className={cn(
+                  "truncate font-medium",
+                  isSelected && "text-primary-foreground",
+                )}
               >
                 {file.name}
               </h3>
               <p
-                className={`text-sm ${selected?.id === file.id ? "text-primary-foreground" : "text-muted-foreground"}`}
+                className={cn(
+                  "text-sm",
+                  isSelected
+                    ? "text-primary-foreground"
+                    : "text-muted-foreground",
+                )}
               >
                 {file.size}
               </p>
             </div>
           </div>
           <div
-            className={`text-sm ${selected?.id === file.id ? "text-primary-foreground" : "text-muted-foreground"}`}
+            className={cn(
+              "text-sm",
+              isSelected ? "text-primary-foreground" : "text-muted-foreground",
+            )}
           >
             Uploaded: {file.created_at}
           </div>
