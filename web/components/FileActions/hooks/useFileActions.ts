@@ -1,6 +1,6 @@
 import { mutate } from "swr";
 
-import { api_deleteFile } from "@/components/bucket-view/helpers/api";
+import { api_deleteFile } from "@/components/FileActions/helpers/api";
 import { IFileActions } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { toast } from "@/components/common/hooks/use-toast";

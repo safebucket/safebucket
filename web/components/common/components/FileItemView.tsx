@@ -22,7 +22,7 @@ export const FileItemView: FC<IFileViewProps> = ({
 }: IFileViewProps) => {
   return (
     <div className={cn("space-y-3")}>
-      <FileActions file={file}>
+      <FileActions file={file} type="context">
         <Card
           key={file.id}
           className={`flex cursor-pointer flex-col gap-4 p-4 ${selected?.id === file.id ? "bg-primary text-primary-foreground" : ""}`}

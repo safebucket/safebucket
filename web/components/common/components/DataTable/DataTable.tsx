@@ -93,7 +93,7 @@ export function DataTable<TData extends IFile, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <FileActions key={row.id} file={row.original}>
+                <FileActions key={row.id} file={row.original} type="context">
                   <TableRow
                     key={row.id}
                     data-state={

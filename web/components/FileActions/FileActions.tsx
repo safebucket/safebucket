@@ -20,31 +20,46 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface IFileActionsProps {
   children: React.ReactNode;
   file: IFile;
+  type: "context" | "dropdown";
 }
 
 export const FileActions: FC<IFileActionsProps> = ({
   children,
   file,
+  type,
 }: IFileActionsProps) => {
   const { deleteFile } = useFileActions();
 
+  const Menu = type === "context" ? ContextMenu : DropdownMenu;
+  const MenuTrigger =
+    type === "context" ? ContextMenuTrigger : DropdownMenuTrigger;
+  const MenuContent =
+    type === "context" ? ContextMenuContent : DropdownMenuContent;
+  const MenuItem = type === "context" ? ContextMenuItem : DropdownMenuItem;
+
   return (
     <AlertDialog>
-      <ContextMenu>
-        <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-        <ContextMenuContent className="w-40">
-          <ContextMenuItem>Download</ContextMenuItem>
-          <ContextMenuItem>Share</ContextMenuItem>
+      <Menu>
+        <MenuTrigger asChild>{children}</MenuTrigger>
+        <MenuContent className="w-40">
+          <MenuItem>Download</MenuItem>
+          <MenuItem>Share</MenuItem>
           <ContextMenuSeparator />
           <AlertDialogTrigger asChild>
-            <ContextMenuItem className="text-red-600">Delete</ContextMenuItem>
+            <MenuItem className="text-red-600">Delete</MenuItem>
           </AlertDialogTrigger>
-        </ContextMenuContent>
-      </ContextMenu>
+        </MenuContent>
+      </Menu>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete {file.name}?</AlertDialogTitle>
