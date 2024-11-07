@@ -7,11 +7,17 @@ import {
 export interface IFile {
   id: string;
   name: string;
-  size: string;
-  type: string;
+  size: number;
+  type: FileType;
+  extension: string;
   path: string;
   files: IFile[];
   created_at: string;
+}
+
+export enum FileType {
+  file = "file",
+  folder = "folder",
 }
 
 export interface IBucket {

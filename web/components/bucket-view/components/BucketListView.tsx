@@ -1,9 +1,10 @@
 import React, { FC } from "react";
 
+import { formatDate, formatFileSize } from "@/lib/utils";
 import { ColumnDef } from "@tanstack/react-table";
 
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
-import { IFile } from "@/components/bucket-view/helpers/types";
+import { FileType, IFile } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { DataTableColumnHeader } from "@/components/common/components/DataTable/DataColumnHeader";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
@@ -19,8 +20,9 @@ export const columns: ColumnDef<IFile>[] = [
     cell: ({ row }) => (
       <div className="flex w-[350px] items-center space-x-2">
         <FileIconView
-          extension={row.getValue("type")}
           className="h-5 w-5 text-primary"
+          type={row.getValue("type")}
+          extension={row.original.extension}
         />
         <p>{row.getValue("name")}</p>
       </div>
@@ -31,7 +33,10 @@ export const columns: ColumnDef<IFile>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Size" />
     ),
-    cell: ({ row }) => <div className="">{row.getValue("size")}</div>,
+    cell: ({ row }) =>
+      row.getValue("type") === FileType.folder
+        ? "-"
+        : formatFileSize(row.getValue("size")),
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },
@@ -42,9 +47,7 @@ export const columns: ColumnDef<IFile>[] = [
       <DataTableColumnHeader column={column} title="Type" />
     ),
     cell: ({ row }) => (
-      <div className="">
-        <Badge variant="secondary">{row.getValue("type")}</Badge>
-      </div>
+      <Badge variant="secondary">{row.getValue("type")}</Badge>
     ),
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
@@ -55,7 +58,7 @@ export const columns: ColumnDef<IFile>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Uploaded At" />
     ),
-    cell: ({ row }) => <div className="">{row.getValue("created_at")}</div>,
+    cell: ({ row }) => formatDate(row.getValue("created_at")),
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },

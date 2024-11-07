@@ -45,11 +45,17 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 	}
 
 	extension := filepath.Ext(body.Name)
+	if len(extension) > 0 {
+		extension = extension[1:]
+	}
+
 	file := &models.File{
 		Name:      body.Name,
 		Extension: extension,
 		BucketId:  bucket.ID,
 		Path:      body.Path,
+		Type:      body.Type,
+		Size:      body.Size,
 	}
 
 	err = sql.Create[*models.File](s.DB, file)

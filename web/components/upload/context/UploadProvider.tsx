@@ -2,6 +2,7 @@ import React, { useReducer } from "react";
 
 import { mutate } from "swr";
 
+import { FileType } from "@/components/bucket-view/helpers/types";
 import {
   api_createFile,
   uploadToStorage,
@@ -37,15 +38,17 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
 
     addUpload(uploadId, file.name);
 
-    api_createFile(file.name, path, bucketId).then(async (res) => {
-      await mutate(`/buckets/${bucketId}`);
-      uploadToStorage(res.url, file, uploadId, updateProgress).then(
-        (success: boolean) => {
-          const status = success ? UploadStatus.success : UploadStatus.failed;
-          updateStatus(uploadId, status);
-        },
-      );
-    });
+    api_createFile(file.name, FileType.file, file.size, path, bucketId).then(
+      async (res) => {
+        await mutate(`/buckets/${bucketId}`);
+        uploadToStorage(res.url, file, uploadId, updateProgress).then(
+          (success: boolean) => {
+            const status = success ? UploadStatus.success : UploadStatus.failed;
+            updateStatus(uploadId, status);
+          },
+        );
+      },
+    );
   };
 
   return (

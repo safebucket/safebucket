@@ -13,15 +13,23 @@ import {
   FolderClosed,
 } from "lucide-react";
 
+import { FileType } from "@/components/bucket-view/helpers/types";
+
 interface IFileIconViewProps {
-  extension: string;
   className: string;
+  extension: string;
+  type: string;
 }
 
 export const FileIconView: FC<IFileIconViewProps> = ({
-  extension,
   className,
+  extension,
+  type,
 }: IFileIconViewProps) => {
+  if (type === FileType.folder) {
+    return <FolderClosed className={className} />;
+  }
+
   switch (extension) {
     case "txt":
     case "md":
@@ -72,9 +80,6 @@ export const FileIconView: FC<IFileIconViewProps> = ({
     case "bat":
     case "jar":
       return <FileTerminal className={className} />;
-
-    case "folder":
-      return <FolderClosed className={className} />;
 
     default:
       return <FileIcon className={className} />;

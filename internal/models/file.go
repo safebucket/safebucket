@@ -14,7 +14,8 @@ type File struct {
 	BucketId  uuid.UUID `gorm:"type:uuid;" json:"bucket_id"`
 	Bucket    Bucket    `json:"-"`
 	Path      string    `gorm:"not null;default:/" json:"path"`
-	Type      string    `gorm:"not null;default:document" json:"type"`
+	Type      string    `gorm:"not null;default:null" json:"type"`
+	Size      int       `gorm:"default:null" json:"size"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
@@ -25,6 +26,8 @@ type FileTransferBody struct {
 	Name     string `json:"name" validate:"required,filename"`
 	BucketId string `json:"bucket_id" validate:"required"`
 	Path     string `json:"path" validate:"required"`
+	Type     string `json:"type" validate:"required,oneof=file folder"`
+	Size     int    `json:"size" validate:"required"`
 }
 
 type FileTransferResponse struct {

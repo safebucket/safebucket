@@ -1,6 +1,6 @@
 import React, { FC } from "react";
 
-import { cn } from "@/lib/utils";
+import { cn, formatDate, formatFileSize } from "@/lib/utils";
 
 import { FileActions } from "@/components/FileActions/FileActions";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
@@ -41,7 +41,11 @@ export const FileItemView: FC<IFileViewProps> = ({
                 isSelected && "bg-primary-foreground text-primary",
               )}
             >
-              <FileIconView extension={file.type} className="h-6 w-6" />
+              <FileIconView
+                className="h-6 w-6"
+                type={file.type}
+                extension={file.extension}
+              />
             </div>
             <div className="flex-1">
               <h3
@@ -60,7 +64,7 @@ export const FileItemView: FC<IFileViewProps> = ({
                     : "text-muted-foreground",
                 )}
               >
-                {file.size}
+                {formatFileSize(file.size)}
               </p>
             </div>
           </div>
@@ -70,7 +74,7 @@ export const FileItemView: FC<IFileViewProps> = ({
               isSelected ? "text-primary-foreground" : "text-muted-foreground",
             )}
           >
-            Uploaded: {file.created_at}
+            Uploaded: {formatDate(file.created_at)}
           </div>
         </Card>
       </FileActions>
