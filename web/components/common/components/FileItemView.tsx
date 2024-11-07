@@ -4,7 +4,7 @@ import { cn, formatDate, formatFileSize } from "@/lib/utils";
 
 import { FileActions } from "@/components/FileActions/FileActions";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
-import { IFile } from "@/components/bucket-view/helpers/types";
+import { FileType, IFile } from "@/components/bucket-view/helpers/types";
 import { Card } from "@/components/ui/card";
 
 interface IFileViewProps {
@@ -64,7 +64,7 @@ export const FileItemView: FC<IFileViewProps> = ({
                     : "text-muted-foreground",
                 )}
               >
-                {formatFileSize(file.size)}
+                {file.type === FileType.folder ? "-" : formatFileSize(file.size)}
               </p>
             </div>
           </div>
