@@ -3,7 +3,6 @@ package handlers
 import (
 	h "api/internal/helpers"
 	"api/internal/models"
-	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"net/http"
 )
@@ -36,12 +35,11 @@ func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 
 func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := uuid.Parse(idStr)
-		if err != nil {
-			http.Error(w, "invalid ID", http.StatusBadRequest)
+		id, ok := h.ParseUUID(w, r)
+		if !ok {
 			return
 		}
+
 		record, err := getOne(id)
 		if err != nil {
 			strErrors := []string{err.Error()}
@@ -54,13 +52,12 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 
 func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := uuid.Parse(idStr)
-		if err != nil {
-			http.Error(w, "invalid ID", http.StatusBadRequest)
+		id, ok := h.ParseUUID(w, r)
+		if !ok {
 			return
 		}
-		_, err = update(id, r.Context().Value(h.BodyKey{}).(In))
+
+		_, err := update(id, r.Context().Value(h.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)
@@ -72,13 +69,12 @@ func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.Handl
 
 func DeleteHandler(delete DeleteTargetFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, "id")
-		id, err := uuid.Parse(idStr)
-		if err != nil {
-			http.Error(w, "invalid ID", http.StatusBadRequest)
+		id, ok := h.ParseUUID(w, r)
+		if !ok {
 			return
 		}
-		err = delete(id)
+
+		err := delete(id)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)

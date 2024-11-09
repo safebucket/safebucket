@@ -3,12 +3,9 @@ package handlers
 import (
 	h "api/internal/helpers"
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
-	"io"
 	"net/http"
 	"time"
 )
@@ -16,31 +13,12 @@ import (
 type OpenIDBeginFunc func(string, string, string) (string, error)
 type OpenIDCallbackFunc func(context.Context, string, string, string) (string, string, error)
 
-func randString(nByte int) (string, error) {
-	b := make([]byte, nByte)
-	if _, err := io.ReadFull(rand.Reader, b); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
-}
-
-func setCallbackCookie(w http.ResponseWriter, r *http.Request, name, value string) {
-	cookie := &http.Cookie{
-		Name:     name,
-		Value:    value,
-		MaxAge:   int(time.Hour.Seconds()),
-		Secure:   r.TLS != nil,
-		HttpOnly: true,
-	}
-	http.SetCookie(w, cookie)
-}
-
 func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providerName := chi.URLParam(r, "provider")
 
-		state, _ := randString(16)
-		nonce, _ := randString(16)
+		state, _ := h.RandString(16)
+		nonce, _ := h.RandString(16)
 
 		url, err := openidBegin(providerName, state, nonce)
 		if err != nil {
@@ -48,8 +26,8 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 			return
 		}
 
-		setCallbackCookie(w, r, "state", state)
-		setCallbackCookie(w, r, "nonce", nonce)
+		h.SetCallbackCookie(w, r, "state", state)
+		h.SetCallbackCookie(w, r, "nonce", nonce)
 
 		// Redirect to the OAuth provider URL
 		http.Redirect(w, r, url, http.StatusFound)
