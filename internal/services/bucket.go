@@ -40,10 +40,19 @@ func (s BucketService) GetBucketList() []models.Bucket {
 
 func (s BucketService) GetBucket(id uuid.UUID) (models.Bucket, error) {
 	var bucket models.Bucket
+	bucket.Files = []models.File{}
+
 	result := s.DB.Where("id = ?", id).First(&bucket)
 	if result.RowsAffected == 0 {
 		return bucket, errors.New("bucket not found")
 	} else {
+		var files []models.File
+		result = s.DB.Where("bucket_id = ?", id).Find(&files)
+
+		if result.RowsAffected > 0 {
+			bucket.Files = files
+		}
+
 		return bucket, nil
 	}
 }

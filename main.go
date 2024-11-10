@@ -7,6 +7,7 @@ import (
 	"api/internal/database"
 	"api/internal/models"
 	"api/internal/services"
+	"api/internal/storage"
 	"context"
 	"fmt"
 	"github.com/casbin/casbin/v2"
@@ -26,6 +27,8 @@ func main() {
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
 	cache := c.InitCache(config.Redis)
+
+	s3 := storage.InitStorage(config.Storage)
 
 	// Casbin
 	model := authorization.GetModel()
@@ -81,6 +84,12 @@ func main() {
 
 	r.Mount("/users", services.UserService{DB: db}.Routes())
 	r.Mount("/buckets", services.BucketService{DB: db}.Routes())
+
+	r.Mount("/files", services.FileService{
+		DB: db,
+		S3: s3,
+	}.Routes())
+
 	r.Mount("/auth", services.AuthService{
 		DB:        db,
 		JWTConf:   config.JWT,

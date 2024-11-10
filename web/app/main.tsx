@@ -2,23 +2,23 @@
 
 import React from "react";
 
-import { useSession } from "@/app/auth/hooks/useSession";
-import { SideMenu } from "@/app/side-menu/side-menu";
-
-import { Loading } from "@/components/loading";
+import { AppSidebar } from "@/components/app-sidebar/AppSidebar";
+import { AppSidebarInset } from "@/components/app-sidebar/components/AppSidebarInset";
+import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { LoadingView } from "@/components/common/components/LoadingView";
 import { Toaster } from "@/components/ui/toaster";
 
 export function Main({ children }: { children: React.ReactNode }) {
-  const { session, status } = useSession();
+  const { session, status } = useSessionContext();
 
   if (status === "loading") {
-    return <Loading />;
+    return <LoadingView />;
   }
 
   return (
     <>
-      {session && <SideMenu />}
-      {children}
+      {session && <AppSidebar />}
+      <AppSidebarInset>{children}</AppSidebarInset>
       <Toaster />
     </>
   );

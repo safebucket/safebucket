@@ -4,13 +4,12 @@ import React, { useEffect } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { useSession } from "@/app/auth/hooks/useSession";
-
-import { Loading } from "@/components/loading";
+import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { LoadingView } from "@/components/common/components/LoadingView";
 
 export default function Login() {
   const router = useRouter();
-  const { status } = useSession();
+  const { status } = useSessionContext();
 
   useEffect(() => {
     if (status == "authenticated") {
@@ -18,5 +17,5 @@ export default function Login() {
     }
   }, [router, status]);
 
-  return <Loading />;
+  return <LoadingView />;
 }
