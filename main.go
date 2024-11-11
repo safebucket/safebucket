@@ -9,7 +9,6 @@ import (
 	"api/internal/services"
 	"api/internal/storage"
 	"context"
-	"fmt"
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/go-chi/chi/v5"
@@ -32,19 +31,18 @@ func main() {
 
 	// Casbin
 	model := authorization.GetModel()
-	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policies{}, configuration.PolicyTableName)
+	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
 	e, _ := casbin.NewEnforcer(model, a)
-	e.AddPolicy("d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0b", "1", "d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0a", "read")
-	data, _ := e.Enforce("d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0b", "1", "d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0a", "read")
+	//e.AddPolicy("d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0b", "1", "d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0a", "read")
+	//data, _ := e.Enforce("d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0b", "1", "d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0a", "read")
+	//data2, _ := e.GetFilteredPolicy(0, "d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0b", "2", "delete")
 
-	data2, _ := e.GetFilteredPolicy(0, "d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0b", "2", "delete")
-	fmt.Printf("%v", data2)
-	//zap.L().Info(data2)
-	if data {
-		zap.L().Info("OK")
-	} else {
-		zap.L().Info("KO")
-	}
+	//if data {
+	//	zap.L().Info("OK")
+	//} else {
+	//	zap.L().Info("KO")
+	//}
+
 	// End
 
 	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{})
@@ -83,7 +81,7 @@ func main() {
 	providers := configuration.LoadProviders(ctx, config.Platform.ApiUrl, config.Auth.Providers)
 
 	r.Mount("/users", services.UserService{DB: db}.Routes())
-	r.Mount("/buckets", services.BucketService{DB: db}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db, JWTConf: config.JWT, E: e}.Routes())
 
 	r.Mount("/files", services.FileService{
 		DB: db,

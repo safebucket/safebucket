@@ -5,6 +5,7 @@ import (
 	h "api/internal/helpers"
 	"api/internal/models"
 	"errors"
+	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -13,11 +14,18 @@ import (
 type BucketService struct {
 	DB      *gorm.DB
 	JWTConf models.JWTConfiguration
+	E       *casbin.Enforcer
 }
 
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", handlers.GetListHandler(s.GetBucketList))
+
+	object := "bucket"
+	objectID := ""
+	operation := "list"
+
+	r.With(h.Authorize(s.JWTConf, s.DB, s.E, object, objectID, operation)).Get("/", handlers.GetListHandler(s.GetBucketList))
+
 	r.With(h.Validate[models.Bucket]).With().Post("/", handlers.CreateHandler(s.CreateBucket))
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", handlers.GetOneHandler(s.GetBucket))

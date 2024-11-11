@@ -40,6 +40,9 @@ func Validate[T any](next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), BodyKey{}, *data)
+
+		//accessToken := r.Header.Get("Authorization")
+		//ctx = context.WithValue(ctx, "accessToken", accessToken)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

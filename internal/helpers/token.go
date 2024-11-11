@@ -30,7 +30,7 @@ func NewAccessToken(jwtSecret string, user *models.User) (string, error) {
 		Issuer: "SafeBucket",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * 10)}, // TODO: make it configurable
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * 120)}, // TODO: make it configurable
 		},
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
