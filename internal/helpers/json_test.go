@@ -4,6 +4,7 @@ import (
 	"api/internal/models"
 	"api/internal/tests"
 	"context"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ import (
 func TestParseUUID(t *testing.T) {
 	t.Run("Valid UUID", func(t *testing.T) {
 		expectedUUID := uuid.New()
-		req := httptest.NewRequest(http.MethodGet, "/test/"+expectedUUID.String(), nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/test/%s", expectedUUID.String()), nil)
 		recorder := httptest.NewRecorder()
 
 		rctx := chi.NewRouteContext()
@@ -32,7 +33,7 @@ func TestParseUUID(t *testing.T) {
 
 	t.Run("Invalid UUID", func(t *testing.T) {
 		invalidUUID := "not-a-uuid"
-		req := httptest.NewRequest(http.MethodGet, "/test/"+invalidUUID, nil)
+		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/test/%s", invalidUUID), nil)
 		recorder := httptest.NewRecorder()
 
 		rctx := chi.NewRouteContext()
