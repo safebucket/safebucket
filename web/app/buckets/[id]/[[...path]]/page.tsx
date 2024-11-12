@@ -1,16 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { use } from "react";
 
 import { BucketView } from "@/components/bucket-view/BucketView";
 import { BucketSkeleton } from "@/components/bucket-view/components/BucketSkeleton";
 import { useBucketData } from "@/components/bucket-view/hooks/useBucketData";
 
 interface IBucketProps {
-  params: { id: string; path?: string[] };
+  params: Promise<{ id: string; path?: string[] }>;
 }
 
-export default function Bucket({ params }: IBucketProps) {
+export default function Bucket(props: IBucketProps) {
+  const params = use(props.params);
   const { bucket, isLoading } = useBucketData(params.id);
 
   const path = params.path ? `/${params.path.join("/")}` : "/";
