@@ -31,6 +31,7 @@ type FileTransferBody struct {
 }
 
 type FileTransferResponse struct {
-	ID  string `json:"id"`
-	Url string `json:"url"`
+	ID   string            `json:"id"`
+	Url  string            `json:"url"`
+	Body map[string]string `json:"body"`
 }

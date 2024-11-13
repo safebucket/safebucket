@@ -39,9 +39,9 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     addUpload(uploadId, file.name);
 
     api_createFile(file.name, FileType.file, file.size, path, bucketId).then(
-      async (res) => {
+      async (presignedUpload) => {
         await mutate(`/buckets/${bucketId}`);
-        uploadToStorage(res.url, file, uploadId, updateProgress).then(
+        uploadToStorage(presignedUpload, file, uploadId, updateProgress).then(
           (success: boolean) => {
             const status = success ? UploadStatus.success : UploadStatus.failed;
             updateStatus(uploadId, status);
