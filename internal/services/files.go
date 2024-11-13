@@ -64,10 +64,10 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 	}
 
 	policy := minio.NewPostPolicy()
-	err = policy.SetBucket("safebucket")
-	err = policy.SetKey(path.Join("/buckets", body.BucketId, file.Path, file.Name))
-	err = policy.SetContentLengthRange(int64(body.Size), int64(body.Size))
-	err = policy.SetExpires(time.Now().UTC().Add(15 * time.Minute))
+	_ = policy.SetBucket("safebucket")
+	_ = policy.SetKey(path.Join("/buckets", body.BucketId, file.Path, file.Name))
+	_ = policy.SetContentLengthRange(int64(body.Size), int64(body.Size))
+	_ = policy.SetExpires(time.Now().UTC().Add(15 * time.Minute))
 	url, formData, err := s.S3.PresignedPostPolicy(context.Background(), policy)
 
 	if err != nil {
