@@ -3,8 +3,10 @@ import React, { useReducer } from "react";
 import { mutate } from "swr";
 
 import { FileType } from "@/components/bucket-view/helpers/types";
+import { toast } from "@/components/common/hooks/use-toast";
 import {
   api_createFile,
+  api_updateFile,
   uploadToStorage,
 } from "@/components/upload/helpers/api";
 import { UploadStatus } from "@/components/upload/helpers/types";
@@ -39,9 +41,22 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
       async (presignedUpload) => {
         await mutate(`/buckets/${bucketId}`);
         uploadToStorage(presignedUpload, file, uploadId, updateProgress).then(
-          (success: boolean) => {
+          async (success: boolean) => {
             const status = success ? UploadStatus.success : UploadStatus.failed;
             updateStatus(uploadId, status);
+
+            console.log("success", success);
+
+            if (success) {
+              await api_updateFile(presignedUpload.id, { uploaded: true }).then(
+                () =>
+                  toast({
+                    variant: "success",
+                    title: "Completed",
+                    description: `Upload completed for ${file.name}`,
+                  }),
+              );
+            }
           },
         );
       },

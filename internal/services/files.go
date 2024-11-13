@@ -27,6 +27,7 @@ func (s FileService) Routes() chi.Router {
 	r.With(h.Validate[models.FileTransferBody]).Post("/", handlers.CreateHandler(s.UploadFile))
 
 	r.Route("/{id}", func(r chi.Router) {
+		r.With(h.Validate[models.UpdateFileBody]).Patch("/", handlers.UpdateHandler(s.UpdateFile))
 		r.Delete("/", handlers.DeleteHandler(s.DeleteFile))
 		r.Get("/download", handlers.GetOneHandler(s.DownloadFile))
 	})
@@ -80,6 +81,31 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 		Url:  url.String(),
 		Body: formData,
 	}, nil
+}
+
+func (s FileService) UpdateFile(id uuid.UUID, body models.UpdateFileBody) (models.File, error) {
+	file, err := sql.GetById[models.File](s.DB, id)
+	if err != nil {
+		return models.File{}, err
+	}
+
+	if *body.Uploaded {
+		_, err := s.S3.StatObject(
+			context.Background(),
+			"safebucket",
+			path.Join("buckets", file.BucketId.String(), file.Path, file.Name),
+			minio.StatObjectOptions{},
+		)
+
+		if err != nil {
+			return models.File{}, errors.New("FILE_NOT_UPLOADED")
+		}
+
+		s.DB.Model(&file).Updates(body)
+		return file, nil
+	}
+
+	return file, nil
 }
 
 func (s FileService) DeleteFile(id uuid.UUID) error {

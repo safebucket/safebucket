@@ -15,6 +15,10 @@ export interface ICreateFile {
   body: ICreateFileBody;
 }
 
+export interface IUpdateFile {
+  uploaded?: boolean;
+}
+
 export interface IUploadContext {
   uploads: IUpload[];
   startUpload: (files: FileList, path: string, bucketId?: string) => void;

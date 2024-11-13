@@ -60,7 +60,7 @@ func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.Handl
 		_, err := update(id, r.Context().Value(h.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
-			h.RespondWithError(w, http.StatusNotFound, strErrors)
+			h.RespondWithError(w, http.StatusBadRequest, strErrors)
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 		}

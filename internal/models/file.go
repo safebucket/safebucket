@@ -35,3 +35,7 @@ type FileTransferResponse struct {
 	Url  string            `json:"url"`
 	Body map[string]string `json:"body"`
 }
+
+type UpdateFileBody struct {
+	Uploaded *bool `json:"uploaded" validate:"omitempty,required_with=Uploaded,eq=true"`
+}

@@ -94,12 +94,8 @@ export const api = {
   ): Promise<T | null> {
     return fetchApi<T>(url, { ...options, method: "PUT", body });
   },
-  patch<T>(
-    url: string,
-    body?: object,
-    options?: RequestOptions,
-  ): Promise<T | null> {
-    return fetchApi<T>(url, { ...options, method: "PATCH", body });
+  patch(url: string, body?: object, options?: RequestOptions): Promise<null> {
+    return fetchApi(url, { ...options, method: "PATCH", body });
   },
   delete(url: string, options?: RequestOptions): Promise<null> {
     return fetchApi(url, { ...options, method: "DELETE" });
