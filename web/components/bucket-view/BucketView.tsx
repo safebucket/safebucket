@@ -12,14 +12,12 @@ import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketVi
 
 interface IBucketViewProps {
   bucket: IBucket;
-  path: string;
 }
 
 export const BucketView: FC<IBucketViewProps> = ({
   bucket,
-  path,
 }: IBucketViewProps) => {
-  const { view } = useBucketViewContext();
+  const { path, view } = useBucketViewContext();
   const [files, setFiles] = useState(filesToShow(bucket.files, path));
 
   useEffect(() => {
@@ -28,7 +26,7 @@ export const BucketView: FC<IBucketViewProps> = ({
 
   return (
     <>
-      <BucketHeader bucket={bucket} path={path} />
+      <BucketHeader bucket={bucket} />
 
       {view == BucketViewMode.List ? (
         <BucketListView files={files} />

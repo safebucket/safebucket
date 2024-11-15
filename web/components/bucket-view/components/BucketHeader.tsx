@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 
 import { BucketViewOptions } from "@/components/bucket-view/components/BucketViewOptions";
 import { IBucket } from "@/components/bucket-view/helpers/types";
+import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { CustomDialog } from "@/components/common/components/CustomDialog";
 import { Datepicker } from "@/components/common/components/Datepicker";
 import { Button } from "@/components/ui/button";
@@ -24,17 +25,16 @@ import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 
 interface IBucketHeaderProps {
   bucket: IBucket;
-  path: string;
 }
 
 export const BucketHeader: FC<IBucketHeaderProps> = ({
   bucket,
-  path,
 }: IBucketHeaderProps) => {
   const [filterType, setFilterType] = useState("all");
   const [expiresAt, setExpiresAt] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const { path } = useBucketViewContext();
   const { startUpload } = useUploadContext();
 
   const { register, handleSubmit } = useForm<IStartUploadData>();

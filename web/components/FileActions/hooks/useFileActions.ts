@@ -5,12 +5,26 @@ import {
   api_downloadFile,
   downloadFromStorage,
 } from "@/components/FileActions/helpers/api";
-import { IFileActions } from "@/components/bucket-view/helpers/types";
+import { IFileActions } from "@/components/FileActions/helpers/types";
+import { FileType } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { toast } from "@/components/common/hooks/use-toast";
+import { api_createFile } from "@/components/upload/helpers/api";
 
 export const useFileActions = (): IFileActions => {
-  const { bucketId } = useBucketViewContext();
+  const { bucketId, path } = useBucketViewContext();
+
+  const createFolder = (name: string) => {
+    api_createFile(name, FileType.folder, path, bucketId).then(async (_) => {
+      mutate(`/buckets/${bucketId}`).then(() =>
+        toast({
+          variant: "success",
+          title: "Success",
+          description: `Folder ${name} has been created.`,
+        }),
+      );
+    });
+  };
 
   const downloadFile = (fileId: string, filename: string) => {
     api_downloadFile(fileId).then((res) =>
@@ -31,6 +45,7 @@ export const useFileActions = (): IFileActions => {
   };
 
   return {
+    createFolder,
     deleteFile,
     downloadFile,
   };

@@ -38,7 +38,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
 
     addUpload(uploadId, file.name);
 
-    api_createFile(file.name, FileType.file, file.size, path, bucketId).then(
+    api_createFile(file.name, FileType.file, path, bucketId, file.size).then(
       async (presignedUpload) => {
         await mutate(`/buckets/${bucketId}`);
         uploadToStorage(presignedUpload, file, uploadId, updateProgress).then(

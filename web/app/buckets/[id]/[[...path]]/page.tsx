@@ -4,6 +4,7 @@ import React, { use } from "react";
 
 import { BucketView } from "@/components/bucket-view/BucketView";
 import { BucketSkeleton } from "@/components/bucket-view/components/BucketSkeleton";
+import { BucketViewProvider } from "@/components/bucket-view/context/BucketViewProvider";
 import { useBucketData } from "@/components/bucket-view/hooks/useBucketData";
 
 interface IBucketProps {
@@ -17,14 +18,16 @@ export default function Bucket(props: IBucketProps) {
   const path = params.path ? `/${params.path.join("/")}` : "/";
 
   return (
-    <div className="flex-1">
-      <div className="m-6 mt-0 grid grid-cols-1 gap-8">
-        {isLoading ? (
-          <BucketSkeleton />
-        ) : (
-          <BucketView bucket={bucket!} path={path} />
-        )}
+    <BucketViewProvider path={path}>
+      <div className="flex-1">
+        <div className="m-6 mt-0 grid grid-cols-1 gap-8">
+          {isLoading ? (
+            <BucketSkeleton />
+          ) : (
+            <BucketView bucket={bucket!} />
+          )}
+        </div>
       </div>
-    </div>
+    </BucketViewProvider>
   );
 }

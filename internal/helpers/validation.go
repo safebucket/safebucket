@@ -12,8 +12,12 @@ import (
 type BodyKey struct{}
 
 func validateFilename(fl validator.FieldLevel) bool {
-	regex := regexp.MustCompile(`^[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]+$`)
-	return regex.MatchString(fl.Field().String())
+	fileType := fl.Parent().FieldByName("Type").String()
+	if fileType == "file" {
+		regex := regexp.MustCompile(`^[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]+$`)
+		return regex.MatchString(fl.Field().String())
+	}
+	return true
 }
 
 func Validate[T any](next http.Handler) http.Handler {

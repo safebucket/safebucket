@@ -7,10 +7,10 @@ import { ICreateFile } from "@/components/upload/helpers/types";
 export const api_createFile = (
   name: string,
   type: FileType,
-  size: number,
   path: string,
   bucket_id?: string,
-) => api.post<ICreateFile>("/files", { name, type, size, path, bucket_id });
+  size?: number,
+) => api.post<ICreateFile>("/files", { name, type, path, bucket_id, size });
 
 export const uploadToStorage = async (
   presignedUpload: ICreateFile,

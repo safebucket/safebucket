@@ -27,7 +27,7 @@ type FileTransferBody struct {
 	BucketId string `json:"bucket_id" validate:"required"`
 	Path     string `json:"path" validate:"required"`
 	Type     string `json:"type" validate:"required,oneof=file folder"`
-	Size     int    `json:"size" validate:"required"`
+	Size     int    `json:"size" validate:"required_if=Type file"`
 }
 
 type FileTransferResponse struct {

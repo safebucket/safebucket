@@ -7,8 +7,10 @@ import { BucketViewContext } from "@/components/bucket-view/hooks/useBucketViewC
 
 export const BucketViewProvider = ({
   children,
+  path,
 }: {
   children: React.ReactNode;
+  path: string;
 }) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -27,6 +29,7 @@ export const BucketViewProvider = ({
     <BucketViewContext.Provider
       value={{
         bucketId: params.id,
+        path,
         view,
         setView,
         selected,

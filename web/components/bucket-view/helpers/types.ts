@@ -46,11 +46,6 @@ export interface IBucketData {
   isLoading: boolean;
 }
 
-export interface IFileActions {
-  deleteFile: (fileId: string, filename: string) => void;
-  downloadFile: (fileId: string, filename: string) => void;
-}
-
 export type IBucketForm = {
   name: string;
 };
