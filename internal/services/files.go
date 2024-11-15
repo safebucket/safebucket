@@ -63,12 +63,12 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 		return models.FileTransferResponse{}, err
 	}
 
-	url, err := s.S3.PresignedPutObject(
-		context.Background(),
-		"safebucket",
-		path.Join("buckets", body.BucketId, file.Path, file.Name),
-		time.Minute*15,
-	)
+	policy := minio.NewPostPolicy()
+	_ = policy.SetBucket("safebucket")
+	_ = policy.SetKey(path.Join("/buckets", body.BucketId, file.Path, file.Name))
+	_ = policy.SetContentLengthRange(int64(body.Size), int64(body.Size))
+	_ = policy.SetExpires(time.Now().UTC().Add(15 * time.Minute))
+	url, formData, err := s.S3.PresignedPostPolicy(context.Background(), policy)
 
 	if err != nil {
 		zap.L().Error("Generate presigned URL failed", zap.Error(err))
@@ -76,8 +76,9 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 	}
 
 	return models.FileTransferResponse{
-		ID:  file.ID.String(),
-		Url: url.String(),
+		ID:   file.ID.String(),
+		Url:  url.String(),
+		Body: formData,
 	}, nil
 }
 

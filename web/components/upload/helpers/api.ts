@@ -13,7 +13,7 @@ export const api_createFile = (
 ) => api.post<ICreateFile>("/files", { name, type, size, path, bucket_id });
 
 export const uploadToStorage = async (
-  url: string,
+  presignedUpload: ICreateFile,
   file: File,
   uploadId: string,
   setProgress: (uploadId: string, progress: number) => void,
@@ -30,9 +30,14 @@ export const uploadToStorage = async (
       resolve(xhr.readyState === 4 && xhr.status === 200);
     });
 
-    xhr.open("PUT", url, true);
-    // xhr.setRequestHeader("Content-Type", "application/octet-stream");
-    xhr.send(file);
+    xhr.open("POST", presignedUpload.url, true);
+    const formData = new FormData();
+    Object.entries(presignedUpload.body).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    formData.append("file", file);
+
+    xhr.send(formData);
 
     toast({
       variant: "success",
