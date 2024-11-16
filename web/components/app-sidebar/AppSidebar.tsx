@@ -9,16 +9,18 @@ import {
   CreditCard,
   FolderSync,
   LogOut,
+  Plus,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { CreateBucketDialog } from "@/components/app-sidebar/components/CreateBucketDialog";
 import { nav } from "@/components/app-sidebar/helpers/nav";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
+import { FormDialog } from "@/components/dialogs/components/FormDialog";
+import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -50,8 +52,8 @@ import {
 export const AppSidebar: FC = () => {
   const pathname = usePathname();
   const { logout } = useSessionContext();
-
-  const { buckets } = useBucketsData();
+  const createBucketDialog = useDialog();
+  const { buckets, createBucket } = useBucketsData();
 
   return (
     <Sidebar variant="inset">
@@ -80,7 +82,10 @@ export const AppSidebar: FC = () => {
                 <SidebarMenuSub>
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild isActive={pathname == subItem.url}>
+                      <SidebarMenuSubButton
+                        asChild
+                        isActive={pathname == subItem.url}
+                      >
                         <Link href={subItem.url}>{subItem.title}</Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
@@ -98,7 +103,17 @@ export const AppSidebar: FC = () => {
                 </div>
               </SidebarMenuButton>
               <SidebarMenuAction>
-                <CreateBucketDialog />
+                <Plus onClick={createBucketDialog.trigger} />
+                <FormDialog
+                  {...createBucketDialog.props}
+                  title="New bucket"
+                  description="Create a bucket to share files safely"
+                  fields={[
+                    { id: "name", label: "Name", type: "text", required: true },
+                  ]}
+                  onSubmit={(data) => createBucket(data.name)}
+                  confirmLabel="Create"
+                />
               </SidebarMenuAction>
               <SidebarMenuSub>
                 {buckets.map((bucket) => (

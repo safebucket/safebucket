@@ -5,7 +5,7 @@ import { Download, ExternalLink, FolderPlus, Trash2 } from "lucide-react";
 import { useFileActions } from "@/components/FileActions/hooks/useFileActions";
 import { IFile } from "@/components/bucket-view/helpers/types";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
-import FormDialog from "@/components/dialogs/components/FormDialog";
+import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import {
   ContextMenu,
