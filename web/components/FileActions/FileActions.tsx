@@ -72,9 +72,7 @@ export const FileActions: FC<IFileActionsProps> = ({
         {...newFolderDialog.props}
         title="New folder"
         fields={[{ id: "name", label: "Name", type: "text", required: true }]}
-        onSubmit={(data) => {
-          createFolder(data.name);
-        }}
+        onSubmit={(data) => createFolder(data.name)}
         confirmLabel="Create"
       />
       <CustomAlertDialog

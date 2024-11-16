@@ -2,6 +2,8 @@ import React, { FC } from "react";
 
 import { FieldValues, useForm } from "react-hook-form";
 
+import { FormField } from "@/components/dialogs/components/FormField";
+import { IFormField } from "@/components/dialogs/helpers/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,20 +13,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-interface FormField {
-  id: string;
-  label: string;
-  type: string;
-  required?: boolean;
-}
 
 interface IFormDialogProps {
   title: string;
   description?: string;
-  fields: FormField[];
+  fields: IFormField[];
   onSubmit: (data: FieldValues) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,11 +33,14 @@ export const FormDialog: FC<IFormDialogProps> = ({
   onOpenChange,
   confirmLabel,
 }: IFormDialogProps) => {
-  const { register, handleSubmit, reset } = useForm();
+  const { register, control, handleSubmit, watch, reset } = useForm();
+
+  const values = watch();
 
   const onSubmitWrapper = (data: FieldValues) => {
     onSubmit(data);
-    reset();
+    const fieldsToReset = fields.filter((field) => field.type !== "file");
+    reset(fieldsToReset);
     onOpenChange(false);
   };
 
@@ -57,20 +53,18 @@ export const FormDialog: FC<IFormDialogProps> = ({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmitWrapper)}>
           <div className="grid gap-4 py-4">
-            {fields.map((field) => (
-              <div
-                key={field.id}
-                className="grid grid-cols-4 items-center gap-4"
-              >
-                <Label htmlFor={field.id}>{field.label}</Label>
-                <Input
-                  id={field.id}
-                  type={field.type}
-                  {...register(field.id, { required: field.required })}
-                  className="col-span-3"
-                />
-              </div>
-            ))}
+            {fields.map(
+              (field) =>
+                (!field.condition ||
+                  (field.condition && field.condition(values))) && (
+                  <FormField
+                    key={field.id}
+                    field={field}
+                    register={register}
+                    control={control}
+                  />
+                ),
+            )}
           </div>
           <DialogFooter>
             <Button type="submit">{confirmLabel}</Button>
