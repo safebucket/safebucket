@@ -16,6 +16,7 @@ type TestValidate struct {
 	Name     string `json:"name" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
 	Filename string `json:"filename" validate:"filename"`
+	Type     string `json:"type" validate:"omitempty,oneof=file folder"`
 }
 
 func mockNextHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +38,11 @@ func TestValidateMiddleware(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
+			name:           "No filename validation for folders",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "folder", "filename": "folder1"}`,
+			expectedStatus: http.StatusOK,
+		},
+		{
 			name:           "Invalid JSON body",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "filename": "file.txt"`,
 			expectedStatus: http.StatusBadRequest,
@@ -53,7 +59,7 @@ func TestValidateMiddleware(t *testing.T) {
 		},
 		{
 			name:           "Invalid email format",
-			inputBody:      `{"name": "John Doe", "email": "invalid-email", "filename": "file.txt"}`,
+			inputBody:      `{"name": "John Doe", "email": "invalid-email", "type": "file", "filename": "file.txt"}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedErrors: []string{
 				"Key: 'TestValidate.Email' Error:Field validation for 'Email' failed on the 'email' tag",
@@ -61,7 +67,7 @@ func TestValidateMiddleware(t *testing.T) {
 		},
 		{
 			name:           "Invalid filename format",
-			inputBody:      `{"name": "John Doe", "email": "john@example.com", "filename": "file with space.txt"}`,
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "file with space.txt"}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedErrors: []string{
 				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
