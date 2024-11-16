@@ -15,14 +15,9 @@ export interface ICreateFile {
   body: ICreateFileBody;
 }
 
-export interface IStartUploadData {
-  files: File[];
-}
-
 export interface IUploadContext {
   uploads: IUpload[];
-
-  startUpload(data: IStartUploadData, path: string, bucketId?: string): void;
+  startUpload: (files: FileList, path: string, bucketId?: string) => void;
 }
 
 export enum UploadStatus {

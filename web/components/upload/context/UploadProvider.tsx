@@ -7,10 +7,7 @@ import {
   api_createFile,
   uploadToStorage,
 } from "@/components/upload/helpers/api";
-import {
-  IStartUploadData,
-  UploadStatus,
-} from "@/components/upload/helpers/types";
+import { UploadStatus } from "@/components/upload/helpers/types";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
 import { uploadsReducer } from "@/components/upload/store/reducer";
 
@@ -29,11 +26,11 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     dispatch(actions.updateStatus(uploadId, status));
 
   const startUpload = async (
-    data: IStartUploadData,
+    files: FileList,
     path: string,
     bucketId?: string,
   ) => {
-    const file = data.files[0];
+    const file = files[0];
     const uploadId = crypto.randomUUID();
 
     addUpload(uploadId, file.name);
