@@ -1,4 +1,4 @@
-import React from "react";
+import React, { FC } from "react";
 
 import { FieldValues, useForm } from "react-hook-form";
 
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -22,6 +23,7 @@ interface FormField {
 
 interface IFormDialogProps {
   title: string;
+  description?: string;
   fields: FormField[];
   onSubmit: (data: FieldValues) => void;
   open: boolean;
@@ -29,14 +31,15 @@ interface IFormDialogProps {
   confirmLabel: string;
 }
 
-export default function FormDialog({
+export const FormDialog: FC<IFormDialogProps> = ({
   title,
+  description,
   fields,
   onSubmit,
   open,
   onOpenChange,
   confirmLabel,
-}: IFormDialogProps) {
+}: IFormDialogProps) => {
   const { register, handleSubmit, reset } = useForm();
 
   const onSubmitWrapper = (data: FieldValues) => {
@@ -50,6 +53,7 @@ export default function FormDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmitWrapper)}>
           <div className="grid gap-4 py-4">
@@ -75,4 +79,4 @@ export default function FormDialog({
       </DialogContent>
     </Dialog>
   );
-}
+};
