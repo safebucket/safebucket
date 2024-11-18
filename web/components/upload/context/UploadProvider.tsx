@@ -45,8 +45,6 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
             const status = success ? UploadStatus.success : UploadStatus.failed;
             updateStatus(uploadId, status);
 
-            console.log("success", success);
-
             if (success) {
               await api_updateFile(presignedUpload.id, { uploaded: true }).then(
                 () =>
