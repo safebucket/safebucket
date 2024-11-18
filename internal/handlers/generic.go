@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	customErr "api/internal/errors"
 	h "api/internal/helpers"
 	"api/internal/models"
+	"errors"
 	"github.com/google/uuid"
 	"net/http"
 )
@@ -60,7 +62,13 @@ func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.Handl
 		_, err := update(id, r.Context().Value(h.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
-			h.RespondWithError(w, http.StatusNotFound, strErrors)
+
+			var apiErr *customErr.APIError
+			if errors.As(err, &apiErr) {
+				h.RespondWithError(w, apiErr.Code, strErrors)
+			} else {
+				h.RespondWithError(w, http.StatusBadRequest, strErrors)
+			}
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 		}

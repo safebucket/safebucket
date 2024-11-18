@@ -2,7 +2,7 @@ import { api } from "@/lib/api";
 
 import { FileType } from "@/components/bucket-view/helpers/types";
 import { toast } from "@/components/common/hooks/use-toast";
-import { ICreateFile } from "@/components/upload/helpers/types";
+import { ICreateFile, IUpdateFile } from "@/components/upload/helpers/types";
 
 export const api_createFile = (
   name: string,
@@ -11,6 +11,9 @@ export const api_createFile = (
   bucket_id?: string,
   size?: number,
 ) => api.post<ICreateFile>("/files", { name, type, path, bucket_id, size });
+
+export const api_updateFile = (fileId: string, body: IUpdateFile) =>
+  api.patch(`/files/${fileId}`, body);
 
 export const uploadToStorage = async (
   presignedUpload: ICreateFile,
@@ -26,10 +29,6 @@ export const uploadToStorage = async (
       }
     });
 
-    xhr.addEventListener("loadend", () => {
-      resolve(xhr.readyState === 4 && xhr.status === 200);
-    });
-
     xhr.open("POST", presignedUpload.url, true);
     const formData = new FormData();
     Object.entries(presignedUpload.body).forEach(([key, value]) => {
@@ -43,6 +42,10 @@ export const uploadToStorage = async (
       variant: "success",
       title: "Uploading",
       description: `Upload started for ${file.name}`,
+    });
+
+    xhr.addEventListener("loadend", () => {
+      resolve(xhr.readyState === 4 && xhr.status === 204);
     });
   });
 };

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	customErr "api/internal/errors"
 	h "api/internal/helpers"
 	"api/internal/models"
 	"api/internal/tests"
@@ -194,7 +195,7 @@ func TestUpdateHandler_NotFound(t *testing.T) {
 	mockInput := models.Bucket{Name: "Updated Name"}
 
 	mockUpdate := new(tests.MockUpdateFunc[models.Bucket, models.Bucket])
-	mockUpdate.On("Update", testUUID, mockInput).Return(models.Bucket{}, errors.New("RECORD_NOT_FOUND"))
+	mockUpdate.On("Update", testUUID, mockInput).Return(models.Bucket{}, customErr.NewAPIError(404, "NOT_FOUND"))
 
 	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()
@@ -208,7 +209,7 @@ func TestUpdateHandler_NotFound(t *testing.T) {
 	handler(recorder, req)
 
 	mockUpdate.AssertExpectations(t)
-	expected := models.Error{Status: http.StatusNotFound, Error: []string{"RECORD_NOT_FOUND"}}
+	expected := models.Error{Status: http.StatusNotFound, Error: []string{"NOT_FOUND"}}
 	tests.AssertJSONResponse(t, recorder, http.StatusNotFound, expected)
 }
 
