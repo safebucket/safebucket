@@ -2,156 +2,75 @@
 
 import React from "react";
 
-import { FileUp } from "lucide-react";
-import Link from "next/link";
+import { CheckCircle } from "lucide-react";
 
-import { FileItemView } from "@/components/common/components/FileItemView";
-
-const activities = [
-  {
-    id: 1,
-    user: "John F.",
-    file: "Document.pdf",
-    action: "downloaded",
-    bucket: "HR bucket",
-    modified: "2023-04-15",
-  },
-  {
-    id: 2,
-    user: "Pierre R.",
-    file: "Presentation.pptx",
-    action: "uploaded",
-    bucket: "Finance bucket",
-    modified: "2023-03-28",
-  },
-  {
-    id: 3,
-    user: "Sarah L.",
-    file: "Image.jpg",
-    action: "uploaded",
-    bucket: "Design bucket",
-    modified: "2024-08-19",
-  },
-  {
-    id: 4,
-    user: "Spreadsheet.xlsx",
-    file: "Presentation.pptx",
-    action: "uploaded",
-    bucket: "Finance bucket",
-    modified: "2023-04-15",
-  },
-];
-
-const files = [
-  {
-    id: 1,
-    name: "Document.pdf",
-    size: "2.3 MB",
-    modified: "2023-04-15",
-    type: "pdf",
-    selected: false,
-  },
-  {
-    id: 2,
-    name: "Presentation.pptx",
-    size: "5.1 MB",
-    modified: "2023-03-28",
-    type: "pptx",
-    selected: false,
-  },
-  {
-    id: 3,
-    name: "Image.jpg",
-    size: "1.7 MB",
-    modified: "2023-05-02",
-    type: "jpg",
-    selected: false,
-  },
-  {
-    id: 4,
-    name: "Spreadsheet.xlsx",
-    size: "3.9 MB",
-    modified: "2023-02-10",
-    type: "xlsx",
-    selected: false,
-  },
-  {
-    id: 5,
-    name: "Image.jpg",
-    size: "1.7 MB",
-    modified: "2023-05-02",
-    type: "jpg",
-    selected: false,
-  },
-  {
-    id: 6,
-    name: "Spreadsheet.xlsx",
-    size: "3.9 MB",
-    modified: "2023-02-10",
-    type: "xlsx",
-    selected: false,
-  },
-];
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Homepage() {
   return (
-    <div className="m-6 mt-0 flex-1">
-      <div className="grid grid-cols-1 gap-8">
-        <div className="mb-6">
-          <div className="mb-6 flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Recent Files</h1>
-            <Link
-              href="#"
-              className="text-primary hover:underline"
-              prefetch={false}
-            >
-              View all
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            {files.map((file) => (
-              <FileItemView
-                key={file.id}
-                file={file}
-                selected={null}
-                setSelected={() => false}
-                onDoubleClick={() => false}
-              />
-            ))}
+    <div className="mb-6">
+      <section className="w-full py-12">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center space-y-4 text-center">
+            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
+              Welcome to safebucket
+            </h1>
+            <p className="mx-auto max-w-[700px] text-gray-500 dark:text-gray-400 md:text-xl">
+              Share your files easily and safely.
+            </p>
+            <Button size="lg">Get Started</Button>
           </div>
         </div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Latest Activity</h1>
-          <Link
-            href="#"
-            className="text-primary hover:underline"
-            prefetch={false}
-          >
-            View all
-          </Link>
-        </div>
-        <div className="space-y-4">
-          {activities.map((activity) => (
-            <div
-              key={activity.id}
-              className="flex items-center gap-4 rounded-md"
-            >
-              <div className="flex aspect-square w-12 items-center justify-center rounded-md bg-muted">
-                <FileUp className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <p className={"truncate font-medium"}>
-                  {activity.user} {activity.action} a file in the{" "}
-                  {activity.bucket}
+      </section>
+      <section className="w-full py-12">
+        <div className="container px-4 md:px-6">
+          <h2 className="mb-8 text-center text-2xl font-bold tracking-tighter sm:text-3xl">
+            Upcoming Features
+          </h2>
+          <div className="grid gap-6 md:grid-cols-3 md:gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  Logging capabilities
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Coming next month
                 </p>
-                <p className={"text-sm"}>
-                  {activity.file} - {activity.modified}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  Share with guests
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Coming Q1 2025
                 </p>
-              </div>
-            </div>
-          ))}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  Drag and drop
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Coming Q3 2025
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
