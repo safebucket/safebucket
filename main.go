@@ -1,11 +1,12 @@
 package main
 
 import (
-	"api/internal/authorization"
 	c "api/internal/cache"
 	"api/internal/configuration"
 	"api/internal/database"
 	"api/internal/models"
+	"api/internal/rbac"
+	"api/internal/rbac/roles"
 	"api/internal/services"
 	"api/internal/storage"
 	"context"
@@ -29,29 +30,24 @@ func main() {
 
 	s3 := storage.InitStorage(config.Storage)
 
-	// Casbin
-	model := authorization.GetModel()
+	model := rbac.GetModel()
 	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
 	e, _ := casbin.NewEnforcer(model, a)
-	//e.AddPolicy("d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0b", "1", "d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0a", "read")
-	//data, _ := e.Enforce("d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0b", "1", "d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0a", "read")
-	//data2, _ := e.GetFilteredPolicy(0, "d4f06f25-7fa5-44f7-9211-ae8b1bbe9c0b", "2", "delete")
-
-	//if data {
-	//	zap.L().Info("OK")
-	//} else {
-	//	zap.L().Info("KO")
-	//}
-
-	// End
-
 	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{})
 	if err != nil {
 		zap.L().Error("failed to migrate db models", zap.Error(err))
 	}
 
-	appIdentity := uuid.New().String()
+	err = roles.InsertRoleGuest(e)
+	if err != nil {
+		return
+	}
+	err = roles.InsertRoleUser(e)
+	if err != nil {
+		return
+	}
 
+	appIdentity := uuid.New().String()
 	go func() {
 		err := cache.StartIdentityTicker(appIdentity)
 		if err != nil {
@@ -82,7 +78,6 @@ func main() {
 
 	r.Mount("/users", services.UserService{DB: db}.Routes())
 	r.Mount("/buckets", services.BucketService{DB: db, JWTConf: config.JWT, E: e}.Routes())
-
 	r.Mount("/files", services.FileService{
 		DB: db,
 		S3: s3,

@@ -33,7 +33,7 @@ func (s FileService) Routes() chi.Router {
 	return r
 }
 
-func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransferResponse, error) {
+func (s FileService) UploadFile(u *models.UserClaims, body models.FileTransferBody) (models.FileTransferResponse, error) {
 	bucketId, err := uuid.Parse(body.BucketId)
 	if err != nil {
 		return models.FileTransferResponse{}, errors.New("INVALID_BUCKET_ID")
@@ -81,7 +81,7 @@ func (s FileService) UploadFile(body models.FileTransferBody) (models.FileTransf
 	}, nil
 }
 
-func (s FileService) DeleteFile(id uuid.UUID) error {
+func (s FileService) DeleteFile(u *models.UserClaims, id uuid.UUID) error {
 	file, err := sql.GetById[models.File](s.DB, id)
 	if err != nil {
 		return errors.New("FILE_NOT_FOUND")
@@ -105,7 +105,7 @@ func (s FileService) DeleteFile(id uuid.UUID) error {
 	return nil
 }
 
-func (s FileService) DownloadFile(id uuid.UUID) (models.FileTransferResponse, error) {
+func (s FileService) DownloadFile(u *models.UserClaims, id uuid.UUID) (models.FileTransferResponse, error) {
 	file, err := sql.GetById[models.File](s.DB, id)
 	if err != nil {
 		return models.FileTransferResponse{}, errors.New("FILE_NOT_FOUND")

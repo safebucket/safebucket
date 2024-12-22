@@ -39,7 +39,7 @@ func (s AuthService) Routes() chi.Router {
 	return r
 }
 
-func (s AuthService) Login(body models.AuthLogin) (models.AuthLoginResponse, error) {
+func (s AuthService) Login(u *models.UserClaims, body models.AuthLogin) (models.AuthLoginResponse, error) {
 	searchUser := models.User{Email: body.Email, IsExternal: false}
 	result := s.DB.Where("email = ?", searchUser.Email).First(&searchUser)
 	if result.RowsAffected == 1 {
@@ -63,12 +63,12 @@ func (s AuthService) Login(body models.AuthLogin) (models.AuthLoginResponse, err
 	return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 }
 
-func (s AuthService) Verify(body models.AuthVerify) (any, error) {
+func (s AuthService) Verify(u *models.UserClaims, body models.AuthVerify) (any, error) {
 	data, err := h.ParseAccessToken(s.JWTConf.Secret, body.AccessToken)
 	return data, err
 }
 
-func (s AuthService) Refresh(body models.AuthRefresh) (models.AuthRefreshResponse, error) {
+func (s AuthService) Refresh(u *models.UserClaims, body models.AuthRefresh) (models.AuthRefreshResponse, error) {
 	RefreshToken, err := h.ParseRefreshToken(s.JWTConf.Secret, body.RefreshToken)
 	if err != nil {
 		return models.AuthRefreshResponse{}, err
@@ -77,7 +77,7 @@ func (s AuthService) Refresh(body models.AuthRefresh) (models.AuthRefreshRespons
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
 
-func (s AuthService) GetProviderList() []models.ProviderResponse {
+func (s AuthService) GetProviderList(u *models.UserClaims) []models.ProviderResponse {
 	var providers = make([]models.ProviderResponse, len(s.Providers))
 	for id, provider := range s.Providers {
 		providers[provider.Order] = models.ProviderResponse{

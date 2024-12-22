@@ -1,4 +1,4 @@
-package authorization
+package rbac
 
 import (
 	"github.com/casbin/casbin/v2/model"
@@ -10,19 +10,19 @@ func GetModel() model.Model {
 	data :=
 		`
 [request_definition]
-r = sub, obj_type, obj, act
+r = dom, sub, obj_type, obj, act
 
 [policy_definition]
-p = sub, obj_type, obj, act
+p = dom, sub, obj_type, obj, act
 
 [role_definition]
-g = _, _
+g = _, _, _
 
 [policy_effect]
 e = some(where (p.eft == allow))
 
 [matchers]
-m = (r.sub == p.sub && r.obj_type == p.obj_type && r.obj == p.obj && keyMatch(r.act, p.act)) || ((g(r.sub, p.sub) && r.sub != p.sub) && r.obj_type == p.obj_type && keyMatch(r.act, p.act))
+m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && r.obj_type == p.obj_type && r.obj == p.obj && keyMatch(r.act, p.act)
 `
 	m, err := model.NewModelFromString(data)
 	if err != nil {
