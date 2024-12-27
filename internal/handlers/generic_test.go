@@ -21,7 +21,7 @@ func TestCreateHandler(t *testing.T) {
 	mockOutput := models.Bucket{ID: uuid.New(), Name: "John Doe"}
 
 	mockCreate := new(tests.MockCreateFunc[models.Bucket, models.Bucket])
-	mockCreate.On("Create", mockInput).Return(mockOutput, nil)
+	mockCreate.On("Create", uuid.UUIDs(nil), mockInput).Return(mockOutput, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/buckets", nil)
 	recorder := httptest.NewRecorder()
@@ -39,7 +39,11 @@ func TestCreateHandler_BadRequest(t *testing.T) {
 	mockInput := models.Bucket{Name: "Bucket1"}
 
 	mockCreate := new(tests.MockCreateFunc[models.Bucket, models.Bucket])
-	mockCreate.On("Create", mockInput).Return(models.Bucket{}, errors.New("INVALID_DATA"))
+	mockCreate.On(
+		"Create",
+		uuid.UUIDs(nil),
+		mockInput,
+	).Return(models.Bucket{}, errors.New("INVALID_DATA"))
 
 	req := httptest.NewRequest(http.MethodPost, "/buckets", nil)
 	recorder := httptest.NewRecorder()
@@ -92,13 +96,13 @@ func TestGetOneHandler(t *testing.T) {
 	}
 
 	mockGetOne := new(tests.MockGetOneFunc[models.Bucket])
-	mockGetOne.On("GetOne", testUUID).Return(expectedRecord, nil)
+	mockGetOne.On("GetOne", uuid.UUIDs{testUUID}).Return(expectedRecord, nil)
 
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()
 
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", testUUID.String())
+	rctx.URLParams.Add("id0", testUUID.String())
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	handler := GetOneHandler(mockGetOne.GetOne)
@@ -112,13 +116,13 @@ func TestGetOneHandler_NotFound(t *testing.T) {
 	testUUID := uuid.New()
 
 	mockGetOne := new(tests.MockGetOneFunc[models.Bucket])
-	mockGetOne.On("GetOne", testUUID).Return(models.Bucket{}, errors.New("RECORD_NOT_FOUND"))
+	mockGetOne.On("GetOne", uuid.UUIDs{testUUID}).Return(models.Bucket{}, errors.New("RECORD_NOT_FOUND"))
 
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()
 
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", testUUID.String())
+	rctx.URLParams.Add("id0", testUUID.String())
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	handler := GetOneHandler(mockGetOne.GetOne)
@@ -137,7 +141,7 @@ func TestGetOneHandler_InvalidUUID(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", invalidUUID)
+	rctx.URLParams.Add("id0", invalidUUID)
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	handler := GetOneHandler(mockGetOne.GetOne)
@@ -154,13 +158,13 @@ func TestUpdateHandler(t *testing.T) {
 	mockOutput := models.Bucket{ID: testUUID, Name: "New Name"}
 
 	mockUpdate := new(tests.MockUpdateFunc[models.Bucket, models.Bucket])
-	mockUpdate.On("Update", testUUID, mockInput).Return(mockOutput, nil)
+	mockUpdate.On("Update", uuid.UUIDs{testUUID}, mockInput).Return(mockOutput, nil)
 
 	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()
 
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", testUUID.String())
+	rctx.URLParams.Add("id0", testUUID.String())
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 	req = req.WithContext(context.WithValue(req.Context(), h.BodyKey{}, mockInput))
 
@@ -179,7 +183,7 @@ func TestUpdateHandler_InvalidUUID(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", invalidUUID)
+	rctx.URLParams.Add("id0", invalidUUID)
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	handler := UpdateHandler(mockUpdate.Update)
@@ -195,13 +199,17 @@ func TestUpdateHandler_NotFound(t *testing.T) {
 	mockInput := models.Bucket{Name: "Updated Name"}
 
 	mockUpdate := new(tests.MockUpdateFunc[models.Bucket, models.Bucket])
-	mockUpdate.On("Update", testUUID, mockInput).Return(models.Bucket{}, customErr.NewAPIError(404, "NOT_FOUND"))
+	mockUpdate.On(
+		"Update",
+		uuid.UUIDs{testUUID},
+		mockInput,
+	).Return(models.Bucket{}, customErr.NewAPIError(404, "NOT_FOUND"))
 
 	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()
 
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", testUUID.String())
+	rctx.URLParams.Add("id0", testUUID.String())
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 	req = req.WithContext(context.WithValue(req.Context(), h.BodyKey{}, mockInput))
 
@@ -217,13 +225,13 @@ func TestDeleteHandler(t *testing.T) {
 	testUUID := uuid.New()
 
 	mockDelete := new(tests.MockDeleteFunc)
-	mockDelete.On("Delete", testUUID).Return(nil)
+	mockDelete.On("Delete", uuid.UUIDs{testUUID}).Return(nil)
 
 	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()
 
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", testUUID.String())
+	rctx.URLParams.Add("id0", testUUID.String())
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	handler := DeleteHandler(mockDelete.Delete)
@@ -237,13 +245,13 @@ func TestDeleteHandler_NotFound(t *testing.T) {
 	testUUID := uuid.New()
 
 	mockDelete := new(tests.MockDeleteFunc)
-	mockDelete.On("Delete", testUUID).Return(errors.New("RECORD_NOT_FOUND"))
+	mockDelete.On("Delete", uuid.UUIDs{testUUID}).Return(errors.New("RECORD_NOT_FOUND"))
 
 	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()
 
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", testUUID.String())
+	rctx.URLParams.Add("id0", testUUID.String())
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	handler := DeleteHandler(mockDelete.Delete)
@@ -263,7 +271,7 @@ func TestDeleteHandler_InvalidUUID(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	rctx := chi.NewRouteContext()
-	rctx.URLParams.Add("id", invalidUUID)
+	rctx.URLParams.Add("id0", invalidUUID)
 	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 	handler := DeleteHandler(mockDelete.Delete)

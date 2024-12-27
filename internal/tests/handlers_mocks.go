@@ -33,8 +33,8 @@ type MockCreateFunc[In any, Out any] struct {
 	mock.Mock
 }
 
-func (m *MockCreateFunc[In, Out]) Create(input In) (Out, error) {
-	args := m.Called(input)
+func (m *MockCreateFunc[In, Out]) Create(ids uuid.UUIDs, input In) (Out, error) {
+	args := m.Called(ids, input)
 	return args.Get(0).(Out), args.Error(1)
 }
 
@@ -51,8 +51,8 @@ type MockGetOneFunc[Out any] struct {
 	mock.Mock
 }
 
-func (m *MockGetOneFunc[Out]) GetOne(id uuid.UUID) (Out, error) {
-	args := m.Called(id)
+func (m *MockGetOneFunc[Out]) GetOne(ids uuid.UUIDs) (Out, error) {
+	args := m.Called(ids)
 	return args.Get(0).(Out), args.Error(1)
 }
 
@@ -60,8 +60,8 @@ type MockUpdateFunc[In any, Out any] struct {
 	mock.Mock
 }
 
-func (m *MockUpdateFunc[In, Out]) Update(id uuid.UUID, input In) (Out, error) {
-	args := m.Called(id, input)
+func (m *MockUpdateFunc[In, Out]) Update(ids uuid.UUIDs, input In) (Out, error) {
+	args := m.Called(ids, input)
 	return args.Get(0).(Out), args.Error(1)
 }
 
@@ -69,7 +69,7 @@ type MockDeleteFunc struct {
 	mock.Mock
 }
 
-func (m *MockDeleteFunc) Delete(id uuid.UUID) error {
-	args := m.Called(id)
+func (m *MockDeleteFunc) Delete(ids uuid.UUIDs) error {
+	args := m.Called(ids)
 	return args.Error(0)
 }

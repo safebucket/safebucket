@@ -14,7 +14,7 @@ const maxUuids = 2
 
 func ParseUUIDs(w http.ResponseWriter, r *http.Request) (uuid.UUIDs, bool) {
 	// Hard limit for maximum UUIDs in the URL to avoid unexpected behaviours
-	ids := make([]uuid.UUID, maxUuids)
+	var ids uuid.UUIDs
 
 	for i := range maxUuids {
 		idStr := chi.URLParam(r, fmt.Sprintf("id%d", i))
@@ -29,7 +29,7 @@ func ParseUUIDs(w http.ResponseWriter, r *http.Request) (uuid.UUIDs, bool) {
 			return ids, false
 		}
 
-		ids[i] = id
+		ids = append(ids, id)
 	}
 
 	return ids, true
