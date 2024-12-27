@@ -8,12 +8,21 @@ export const api_createFile = (
   name: string,
   type: FileType,
   path: string,
-  bucket_id?: string,
+  bucketId: string,
   size?: number,
-) => api.post<ICreateFile>("/files", { name, type, path, bucket_id, size });
+) =>
+  api.post<ICreateFile>(`/buckets/${bucketId}/files`, {
+    name,
+    type,
+    path,
+    size,
+  });
 
-export const api_updateFile = (fileId: string, body: IUpdateFile) =>
-  api.patch(`/files/${fileId}`, body);
+export const api_updateFile = (
+  bucketId: string,
+  fileId: string,
+  body: IUpdateFile,
+) => api.patch(`/buckets/${bucketId}/files/${fileId}`, body);
 
 export const uploadToStorage = async (
   presignedUpload: ICreateFile,

@@ -3,21 +3,36 @@ package helpers
 import (
 	"api/internal/models"
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-func ParseUUID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
-	idStr := chi.URLParam(r, "id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		strErrors := []string{"INVALID_UUID"}
-		RespondWithError(w, http.StatusBadRequest, strErrors)
-		return uuid.Nil, false
+const maxUuids = 2
+
+func ParseUUIDs(w http.ResponseWriter, r *http.Request) (uuid.UUIDs, bool) {
+	// Hard limit for maximum UUIDs in the URL to avoid unexpected behaviours
+	ids := make([]uuid.UUID, maxUuids)
+
+	for i := range maxUuids {
+		idStr := chi.URLParam(r, fmt.Sprintf("id%d", i))
+		if idStr == "" {
+			return ids, true
+		}
+
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			strErrors := []string{"INVALID_UUID"}
+			RespondWithError(w, http.StatusBadRequest, strErrors)
+			return ids, false
+		}
+
+		ids[i] = id
 	}
-	return id, true
+
+	return ids, true
 }
 
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {

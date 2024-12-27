@@ -30,7 +30,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const startUpload = async (
     files: FileList,
     path: string,
-    bucketId?: string,
+    bucketId: string,
   ) => {
     const file = files[0];
     const uploadId = crypto.randomUUID();
@@ -46,7 +46,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
             updateStatus(uploadId, status);
 
             if (success) {
-              await api_updateFile(presignedUpload.id, { uploaded: true }).then(
+              await api_updateFile(bucketId, presignedUpload.id, { uploaded: true }).then(
                 () =>
                   toast({
                     variant: "success",

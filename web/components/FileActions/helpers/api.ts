@@ -3,11 +3,13 @@ import { api } from "@/lib/api";
 import { IDownloadFileResponse } from "@/components/bucket-view/helpers/types";
 import { toast } from "@/components/common/hooks/use-toast";
 
-export const api_deleteFile = (fileId: string) =>
-  api.delete(`/files/${fileId}`);
+export const api_deleteFile = (bucketId: string, fileId: string) =>
+  api.delete(`/buckets/${bucketId}/files/${fileId}`);
 
-export const api_downloadFile = (fileId: string) =>
-  api.get<IDownloadFileResponse>(`/files/${fileId}/download`);
+export const api_downloadFile = (bucketId: string, fileId: string) =>
+  api.get<IDownloadFileResponse>(
+    `/buckets/${bucketId}/files/${fileId}/download`,
+  );
 
 export const downloadFromStorage = (url: string, filename: string) => {
   const xhr = new XMLHttpRequest();

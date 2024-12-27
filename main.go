@@ -55,12 +55,7 @@ func main() {
 	providers := configuration.LoadProviders(ctx, config.Platform.ApiUrl, config.Auth.Providers)
 
 	r.Mount("/users", services.UserService{DB: db}.Routes())
-	r.Mount("/buckets", services.BucketService{DB: db}.Routes())
-
-	r.Mount("/files", services.FileService{
-		DB: db,
-		S3: s3,
-	}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db, S3: s3}.Routes())
 
 	r.Mount("/auth", services.AuthService{
 		DB:        db,

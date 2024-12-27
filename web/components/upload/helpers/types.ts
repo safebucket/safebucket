@@ -21,7 +21,7 @@ export interface IUpdateFile {
 
 export interface IUploadContext {
   uploads: IUpload[];
-  startUpload: (files: FileList, path: string, bucketId?: string) => void;
+  startUpload: (files: FileList, path: string, bucketId: string) => void;
 }
 
 export enum UploadStatus {

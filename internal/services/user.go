@@ -18,7 +18,7 @@ func (s UserService) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", handlers.GetListHandler(s.GetUserList))
 	r.With(h.Validate[models.UserCreateBody]).Post("/", handlers.CreateHandler(s.CreateUser))
-	r.Route("/{id}", func(r chi.Router) {
+	r.Route("/{id0}", func(r chi.Router) {
 		r.Get("/", handlers.GetOneHandler(s.GetUser))
 		r.With(h.Validate[models.UserUpdateBody]).Patch("/", handlers.UpdateHandler(s.UpdateUser))
 		r.Delete("/", handlers.DeleteHandler(s.DeleteUser))
@@ -26,7 +26,7 @@ func (s UserService) Routes() chi.Router {
 	return r
 }
 
-func (s UserService) CreateUser(body models.UserCreateBody) (models.User, error) {
+func (s UserService) CreateUser(_ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
 	newUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
@@ -34,7 +34,6 @@ func (s UserService) CreateUser(body models.UserCreateBody) (models.User, error)
 	}
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
-
 		hash, err := h.CreateHash(body.Password)
 		if err != nil {
 			return models.User{}, errors.New("can not create hash password")
@@ -54,9 +53,9 @@ func (s UserService) GetUserList() []models.User {
 	return users
 }
 
-func (s UserService) GetUser(id uuid.UUID) (models.User, error) {
+func (s UserService) GetUser(ids uuid.UUIDs) (models.User, error) {
 	var user models.User
-	result := s.DB.Where("id = ?", id).First(&user)
+	result := s.DB.Where("id = ?", ids[0]).First(&user)
 	if result.RowsAffected == 0 {
 		return user, errors.New("user not found")
 	} else {
@@ -64,8 +63,8 @@ func (s UserService) GetUser(id uuid.UUID) (models.User, error) {
 	}
 }
 
-func (s UserService) UpdateUser(id uuid.UUID, body models.UserUpdateBody) (models.User, error) {
-	user := models.User{ID: id}
+func (s UserService) UpdateUser(ids uuid.UUIDs, body models.UserUpdateBody) (models.User, error) {
+	user := models.User{ID: ids[0]}
 	result := s.DB.Model(&user).Updates(body)
 	if result.RowsAffected == 0 {
 		return user, errors.New("user not found")
@@ -74,8 +73,8 @@ func (s UserService) UpdateUser(id uuid.UUID, body models.UserUpdateBody) (model
 	}
 }
 
-func (s UserService) DeleteUser(id uuid.UUID) error {
-	result := s.DB.Where("id = ?", id).Delete(&models.User{})
+func (s UserService) DeleteUser(ids uuid.UUIDs) error {
+	result := s.DB.Where("id = ?", ids[0]).Delete(&models.User{})
 	if result.RowsAffected == 0 {
 		return errors.New("user not found")
 	} else {

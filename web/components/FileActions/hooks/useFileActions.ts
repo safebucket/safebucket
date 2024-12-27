@@ -27,13 +27,13 @@ export const useFileActions = (): IFileActions => {
   };
 
   const downloadFile = (fileId: string, filename: string) => {
-    api_downloadFile(fileId).then((res) =>
+    api_downloadFile(bucketId, fileId).then((res) =>
       downloadFromStorage(res.url, filename),
     );
   };
 
   const deleteFile = (fileId: string, filename: string) => {
-    api_deleteFile(fileId).then(async () => {
+    api_deleteFile(bucketId, fileId).then(async () => {
       mutate(`/buckets/${bucketId}`).then(() =>
         toast({
           variant: "success",

@@ -9,15 +9,20 @@ import (
 	"net/http"
 )
 
-type CreateTargetFunc[In any, Out any] func(In) (Out, error)
+type CreateTargetFunc[In any, Out any] func(uuid.UUIDs, In) (Out, error)
 type ListTargetFunc[Out any] func() []Out
-type GetOneTargetFunc[Out any] func(uuid.UUID) (Out, error)
-type UpdateTargetFunc[In any, Out any] func(uuid.UUID, In) (Out, error)
-type DeleteTargetFunc func(uuid.UUID) error
+type GetOneTargetFunc[Out any] func(uuid.UUIDs) (Out, error)
+type UpdateTargetFunc[In any, Out any] func(uuid.UUIDs, In) (Out, error)
+type DeleteTargetFunc func(uuid.UUIDs) error
 
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resp, err := create(r.Context().Value(h.BodyKey{}).(In))
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+
+		resp, err := create(ids, r.Context().Value(h.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusBadRequest, strErrors)
@@ -37,12 +42,12 @@ func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 
 func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, ok := h.ParseUUID(w, r)
+		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
 		}
 
-		record, err := getOne(id)
+		record, err := getOne(ids)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)
@@ -54,12 +59,12 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 
 func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, ok := h.ParseUUID(w, r)
+		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
 		}
 
-		_, err := update(id, r.Context().Value(h.BodyKey{}).(In))
+		_, err := update(ids, r.Context().Value(h.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 
@@ -77,12 +82,12 @@ func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.Handl
 
 func DeleteHandler(delete DeleteTargetFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, ok := h.ParseUUID(w, r)
+		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
 		}
 
-		err := delete(id)
+		err := delete(ids)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)

@@ -11,6 +11,7 @@ import (
 	"github.com/alexedwards/argon2id"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 )
@@ -39,7 +40,7 @@ func (s AuthService) Routes() chi.Router {
 	return r
 }
 
-func (s AuthService) Login(body models.AuthLogin) (models.AuthLoginResponse, error) {
+func (s AuthService) Login(_ uuid.UUIDs, body models.AuthLogin) (models.AuthLoginResponse, error) {
 	searchUser := models.User{Email: body.Email, IsExternal: false}
 	result := s.DB.Where("email = ?", searchUser.Email).First(&searchUser)
 	if result.RowsAffected == 1 {
@@ -63,12 +64,12 @@ func (s AuthService) Login(body models.AuthLogin) (models.AuthLoginResponse, err
 	return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 }
 
-func (s AuthService) Verify(body models.AuthVerify) (any, error) {
+func (s AuthService) Verify(_ uuid.UUIDs, body models.AuthVerify) (any, error) {
 	data, err := h.ParseAccessToken(s.JWTConf.Secret, body.AccessToken)
 	return data, err
 }
 
-func (s AuthService) Refresh(body models.AuthRefresh) (models.AuthRefreshResponse, error) {
+func (s AuthService) Refresh(_ uuid.UUIDs, body models.AuthRefresh) (models.AuthRefreshResponse, error) {
 	RefreshToken, err := h.ParseRefreshToken(s.JWTConf.Secret, body.RefreshToken)
 	if err != nil {
 		return models.AuthRefreshResponse{}, err
