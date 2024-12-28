@@ -276,16 +276,6 @@ export const AppSidebar: FC = () => {
                     </div>
                   ))}
                 </FormDialog>
-                {/*<CreateBucketDialog*/}
-                {/*  {...createBucketDialog.props}*/}
-                {/*  title="New bucket"*/}
-                {/*  description="Create a bucket to share files safely"*/}
-                {/*  fields={[*/}
-                {/*    { id: "name", label: "Name", type: "text", required: true },*/}
-                {/*  ]}*/}
-                {/*  onSubmit={createBucket}*/}
-                {/*  confirmLabel="Create"*/}
-                {/*/>*/}
               </SidebarMenuAction>
               <SidebarMenuSub>
                 {buckets.map((bucket) => (
