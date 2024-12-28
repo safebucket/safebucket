@@ -1,7 +1,7 @@
 import { api } from "@/lib/api";
 
 import { FileType } from "@/components/bucket-view/helpers/types";
-import { toast } from "@/components/common/hooks/use-toast";
+import { toast } from "@/components/ui/hooks/use-toast";
 import { ICreateFile, IUpdateFile } from "@/components/upload/helpers/types";
 
 export const api_createFile = (

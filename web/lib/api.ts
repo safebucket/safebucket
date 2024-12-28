@@ -57,20 +57,10 @@ export async function fetchApi<T>(
     // next,
   });
 
-  // TODO(YLB): Hook for notifications
-  // if (!response.ok) {
-  //   const message = (await response.json()).message || response.statusText;
-  //   if (typeof window !== "undefined") {
-  //     useNotifications.getState().addNotification({
-  //       type: "error",
-  //       title: "Error",
-  //       message,
-  //     });
-  //   }
-  //   throw new Error(message);
-  // }
-
-  if (
+  if (!response.ok) {
+    const res = await response.json();
+    throw new Error(res.error[0]);
+  } else if (
     response.status === 204 ||
     response.headers.get("Content-Length") === "0"
   ) {
