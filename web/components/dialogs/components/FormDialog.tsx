@@ -33,7 +33,14 @@ export const FormDialog: FC<IFormDialogProps> = ({
   onOpenChange,
   confirmLabel,
 }: IFormDialogProps) => {
-  const { register, control, handleSubmit, watch, reset } = useForm();
+  const {
+    register,
+    control,
+    formState: { errors },
+    handleSubmit,
+    watch,
+    reset,
+  } = useForm();
 
   const values = watch();
 
@@ -62,6 +69,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
                     field={field}
                     register={register}
                     control={control}
+                    errors={errors}
                   />
                 ),
             )}
