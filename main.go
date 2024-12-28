@@ -4,6 +4,7 @@ import (
 	c "api/internal/cache"
 	"api/internal/configuration"
 	"api/internal/database"
+	m "api/internal/middlewares"
 	"api/internal/services"
 	"api/internal/storage"
 	"context"
@@ -41,6 +42,8 @@ func main() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	r.Use(m.Authenticate(config.JWT))
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   config.Cors.AllowedOrigins,
