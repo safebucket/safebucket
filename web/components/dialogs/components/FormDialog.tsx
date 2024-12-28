@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useEffect } from "react";
 
 import { FieldValues, useForm } from "react-hook-form";
 
@@ -40,7 +40,13 @@ export const FormDialog: FC<IFormDialogProps> = ({
     handleSubmit,
     watch,
     reset,
+    clearErrors,
   } = useForm();
+
+  useEffect(() => {
+    reset();
+    clearErrors();
+  }, [open, onOpenChange, reset, clearErrors]);
 
   const values = watch();
 
