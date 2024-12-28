@@ -1,10 +1,14 @@
 package helpers
 
 import (
+	"api/internal/configuration"
 	"api/internal/models"
+	"context"
 	"errors"
+	"fmt"
 	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"
+	"strings"
 	"time"
 )
 
@@ -26,8 +30,9 @@ func CreateHash(password string) (string, error) {
 func NewAccessToken(jwtSecret string, user *models.User) (string, error) {
 	claims := models.UserClaims{
 		Email:  user.Email,
+		UserID: user.ID,
 		Aud:    "app:*", // Todo: make it a list ==> delete aud
-		Issuer: "SafeBucket",
+		Issuer: "safebucket",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * 10)}, // TODO: make it configurable
@@ -38,6 +43,10 @@ func NewAccessToken(jwtSecret string, user *models.User) (string, error) {
 }
 
 func ParseAccessToken(jwtSecret string, accessToken string) (*models.UserClaims, error) {
+	if !strings.HasPrefix(accessToken, "Bearer ") {
+		return &models.UserClaims{}, errors.New("invalid access token 1")
+	}
+	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
 	parsedAccessToken, err := jwt.ParseWithClaims(
 		accessToken,
 		&models.UserClaims{},
@@ -54,6 +63,7 @@ func ParseAccessToken(jwtSecret string, accessToken string) (*models.UserClaims,
 func NewRefreshToken(jwtSecret string, user *models.User) (string, error) {
 	claims := models.UserClaims{
 		Email:  user.Email,
+		UserID: user.ID,
 		Aud:    "auth:refresh",
 		Issuer: "SafeBucket",
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -77,4 +87,18 @@ func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims
 		return models.UserClaims{}, errors.New("invalid refresh token")
 	}
 	return parsedAccessToken.Claims.(models.UserClaims), err
+}
+
+func GetUserClaims(c context.Context) (*models.UserClaims, error) {
+	// Retrieve the value from the context
+	value := c.Value(configuration.ContextUserClaimKey)
+	if value == nil {
+		return nil, fmt.Errorf("no userClaims in context")
+	}
+	// Perform type assertion
+	userClaims, ok := value.(*models.UserClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid type for userClaims in context")
+	}
+	return userClaims, nil
 }

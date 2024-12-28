@@ -1,12 +1,18 @@
 package services
 
 import (
+	c "api/internal/configuration"
 	"api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
+	m "api/internal/middlewares"
 	"api/internal/models"
+	"api/internal/rbac"
+	"api/internal/rbac/groups"
 	"api/internal/sql"
 	"context"
+	"fmt"
+	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
@@ -20,12 +26,16 @@ import (
 type BucketService struct {
 	DB *gorm.DB
 	S3 *minio.Client
+	E  *casbin.Enforcer
 }
 
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
+
 	r.Get("/", handlers.GetListHandler(s.GetBucketList))
-	r.With(h.Validate[models.Bucket]).Post("/", handlers.CreateHandler(s.CreateBucket))
+
+	r.With(m.Authorize(models.Operation{Object: rbac.ResourceBucket, ObjectID: c.NilUUID, Action: rbac.ActionCreate}, s.E)).
+		With(h.Validate[models.Bucket]).Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id0}", func(r chi.Router) {
 		r.Get("/", handlers.GetOneHandler(s.GetBucket))
@@ -42,18 +52,53 @@ func (s BucketService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketService) CreateBucket(_ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) CreateBucket(u *models.UserClaims, _ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+	//TODO: Migrate to SQL transaction
 	s.DB.Create(&body)
+	err := groups.InsertGroupBucketViewer(s.E, body)
+	if err != nil {
+		return models.Bucket{}, err
+	}
+	err = groups.InsertGroupBucketContributor(s.E, body)
+	if err != nil {
+		return models.Bucket{}, err
+	}
+	err = groups.InsertGroupBucketOwner(s.E, body)
+	if err != nil {
+		return models.Bucket{}, err
+	}
+
+	err = groups.AddUserToOwners(s.E, body, u)
+	if err != nil {
+		return models.Bucket{}, err
+	}
 	return body, nil
 }
 
-func (s BucketService) GetBucketList() []models.Bucket {
+func (s BucketService) GetBucketList(u *models.UserClaims) []models.Bucket {
 	var buckets []models.Bucket
-	s.DB.Find(&buckets)
+	if !u.Valid() {
+		zap.L().Warn(fmt.Sprintf("Invalid user claims %v", u.UserID.String()))
+		return []models.Bucket{}
+	}
+	roles, err := s.E.GetImplicitRolesForUser(u.UserID.String(), c.DefaultDomain)
+	if err != nil {
+		zap.L().Warn(fmt.Sprintf("Error retrieving roles %v", u.UserID.String()))
+		return []models.Bucket{}
+	}
+
+	var bucketIDs []string
+	for _, role := range roles {
+		policies, _ := s.E.GetFilteredPolicy(0, c.DefaultDomain, role, rbac.ResourceBucket, "", rbac.ActionRead)
+		for _, policy := range policies {
+			bucketIDs = append(bucketIDs, policy[3])
+		}
+	}
+	_ = s.DB.Model(&models.Bucket{}).Where("id IN ?", bucketIDs).Find(&buckets)
 	return buckets
 }
 
-func (s BucketService) GetBucket(ids uuid.UUIDs) (models.Bucket, error) {
+func (s BucketService) GetBucket(_ *models.UserClaims, ids uuid.UUIDs) (models.Bucket, error) {
 	bucketId := ids[0]
 	var bucket models.Bucket
 	bucket.Files = []models.File{}
@@ -68,7 +113,6 @@ func (s BucketService) GetBucket(ids uuid.UUIDs) (models.Bucket, error) {
 		if result.RowsAffected > 0 {
 			bucket.Files = files
 		}
-
 		return bucket, nil
 	}
 }
@@ -92,7 +136,7 @@ func (s BucketService) DeleteBucket(ids uuid.UUIDs) error {
 	}
 }
 
-func (s BucketService) UploadFile(ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
+func (s BucketService) UploadFile(_ *models.UserClaims, ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
 	bucket, err := sql.GetById[models.Bucket](s.DB, ids[0])
 	if err != nil {
 		return models.FileTransferResponse{}, err
@@ -189,7 +233,7 @@ func (s BucketService) DeleteFile(ids uuid.UUIDs) error {
 	return nil
 }
 
-func (s BucketService) DownloadFile(ids uuid.UUIDs) (models.FileTransferResponse, error) {
+func (s BucketService) DownloadFile(_ *models.UserClaims, ids uuid.UUIDs) (models.FileTransferResponse, error) {
 	bucketId, fileId := ids[0], ids[1]
 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)

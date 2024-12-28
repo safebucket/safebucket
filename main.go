@@ -5,9 +5,14 @@ import (
 	"api/internal/configuration"
 	"api/internal/database"
 	m "api/internal/middlewares"
+	"api/internal/models"
+	"api/internal/rbac"
+	"api/internal/rbac/groups"
 	"api/internal/services"
 	"api/internal/storage"
 	"context"
+	"github.com/casbin/casbin/v2"
+	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -25,6 +30,13 @@ func main() {
 	cache := c.InitCache(config.Redis)
 
 	s3 := storage.InitStorage(config.Storage)
+
+	model := rbac.GetModel()
+	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
+	e, _ := casbin.NewEnforcer(model, a)
+
+	_ = groups.InsertRoleGuest(e)
+	_ = groups.InsertRoleUser(e)
 
 	appIdentity := uuid.New().String()
 
@@ -57,8 +69,8 @@ func main() {
 	ctx := context.Background()
 	providers := configuration.LoadProviders(ctx, config.Platform.ApiUrl, config.Auth.Providers)
 
-	r.Mount("/users", services.UserService{DB: db}.Routes())
-	r.Mount("/buckets", services.BucketService{DB: db, S3: s3}.Routes())
+	r.Mount("/users", services.UserService{DB: db, E: e}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, E: e}.Routes())
 
 	r.Mount("/auth", services.AuthService{
 		DB:        db,

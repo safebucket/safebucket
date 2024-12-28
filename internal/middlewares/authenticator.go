@@ -21,12 +21,10 @@ func Authenticate(jwtConf models.JWTConfiguration) func(next http.Handler) http.
 					helpers.RespondWithError(w, 403, []string{err.Error()})
 					return
 				}
-				key := "userclaims"
-				ctx := context.WithValue(r.Context(), key, userClaims)
+				ctx := context.WithValue(r.Context(), configuration.ContextUserClaimKey, userClaims)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			}
 		}
-
 		return http.HandlerFunc(fn)
 	}
 }
