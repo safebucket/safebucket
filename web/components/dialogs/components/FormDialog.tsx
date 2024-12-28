@@ -22,6 +22,7 @@ interface IFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   confirmLabel: string;
+  children?: React.ReactNode;
 }
 
 export const FormDialog: FC<IFormDialogProps> = ({
@@ -32,6 +33,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
   open,
   onOpenChange,
   confirmLabel,
+  children,
 }: IFormDialogProps) => {
   const {
     register,
@@ -59,7 +61,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -80,6 +82,9 @@ export const FormDialog: FC<IFormDialogProps> = ({
                 ),
             )}
           </div>
+
+          {children}
+
           <DialogFooter>
             <Button type="submit">{confirmLabel}</Button>
           </DialogFooter>

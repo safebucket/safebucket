@@ -7,6 +7,7 @@ import { api_createBucket } from "@/components/bucket-view/helpers/api";
 import {
   IBucketsData,
   IListBuckets,
+  IShareWith,
 } from "@/components/bucket-view/helpers/types";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 
@@ -18,8 +19,8 @@ export const useBucketsData = (): IBucketsData => {
     fetchApi<IListBuckets>,
   );
 
-  const createBucket = async (name: string) => {
-    api_createBucket(name)
+  const createBucket = async (name: string, shareWith: IShareWith[]) => {
+    api_createBucket(name, shareWith)
       .then(() => {
         mutate();
         setIsDialogOpen(false);

@@ -14,6 +14,11 @@ export enum FileType {
   folder = "folder",
 }
 
+export interface IShareWith {
+  email: string;
+  role: string;
+}
+
 export interface IBucket {
   id: string;
   name: string;
@@ -27,7 +32,7 @@ export interface IBucketsData {
   buckets: IBucket[];
   error: string;
   isLoading: boolean;
-  createBucket: (name: string) => void;
+  createBucket: (name: string, shareWith: IShareWith[]) => void;
   isDialogOpen: boolean;
   setIsDialogOpen: (isOpen: boolean) => void;
 }
