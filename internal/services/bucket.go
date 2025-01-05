@@ -1,12 +1,14 @@
 package services
 
 import (
+	"api/internal/core"
 	"api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	"api/internal/models"
 	"api/internal/sql"
 	"context"
+	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
@@ -18,8 +20,9 @@ import (
 )
 
 type BucketService struct {
-	DB *gorm.DB
-	S3 *minio.Client
+	DB        *gorm.DB
+	S3        *minio.Client
+	Publisher *nats.Publisher
 }
 
 func (s BucketService) Routes() chi.Router {
@@ -44,6 +47,11 @@ func (s BucketService) Routes() chi.Router {
 
 func (s BucketService) CreateBucket(_ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
 	s.DB.Create(&body)
+	event := models.Event{
+		Type:    "CREATE_BUCKET",
+		Payload: body,
+	}
+	core.PublishEvent(s.Publisher, event)
 	return body, nil
 }
 

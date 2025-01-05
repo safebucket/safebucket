@@ -3,10 +3,14 @@ package main
 import (
 	c "api/internal/cache"
 	"api/internal/configuration"
+	"api/internal/core"
 	"api/internal/database"
+	"api/internal/models"
 	"api/internal/services"
 	"api/internal/storage"
 	"context"
+	"encoding/json"
+	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -22,11 +26,18 @@ func main() {
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
 	cache := c.InitCache(config.Redis)
-
 	s3 := storage.InitStorage(config.Storage)
+	subscriber := core.InitSubscriber()
+	publisher := core.InitPublisher()
+
+	messages, err := subscriber.Subscribe(context.Background(), "safebucket")
+	if err != nil {
+		panic(err)
+	}
+
+	go handleEvents(messages)
 
 	appIdentity := uuid.New().String()
-
 	go func() {
 		err := cache.StartIdentityTicker(appIdentity)
 		if err != nil {
@@ -35,7 +46,7 @@ func main() {
 	}()
 
 	r := chi.NewRouter()
-	// A good base middleware stack
+
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -51,11 +62,10 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	ctx := context.Background()
-	providers := configuration.LoadProviders(ctx, config.Platform.ApiUrl, config.Auth.Providers)
+	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 
 	r.Mount("/users", services.UserService{DB: db}.Routes())
-	r.Mount("/buckets", services.BucketService{DB: db, S3: s3}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Publisher: publisher}.Routes())
 
 	r.Mount("/auth", services.AuthService{
 		DB:        db,
@@ -66,8 +76,41 @@ func main() {
 
 	zap.L().Info("App started")
 
-	err := http.ListenAndServe(":1323", r)
+	err = http.ListenAndServe(":1323", r)
 	if err != nil {
 		zap.L().Error("Failed to start the app")
 	}
+}
+
+func handleEvents(messages <-chan *message.Message) {
+	//type EventHandler func(payload interface{})
+	//var eventHandlers = map[string]EventHandler{
+	//	"CREATE_BUCKET": handleCreateBucket,
+	//}
+
+	for msg := range messages {
+		var event models.Event
+
+		err := json.Unmarshal(msg.Payload, &event)
+		if err != nil {
+			zap.L().Error("Failed to unmarshal message", zap.Error(err))
+			msg.Nack()
+			continue
+		}
+
+		zap.L().Info("message received", zap.Any("event", event))
+
+		msg.Ack()
+
+		//zap.L().Info("message received", zap.String("msg", string(msg.Payload)))
+		//if handler, exists := eventHandlers[eventType]; exists {
+		//	handler(msg.Payload)
+		//} else {
+		//	fmt.Printf("No handler for event type: %s\n", eventType)
+		//}
+	}
+}
+
+func handleCreateBucket(payload interface{}) {
+	zap.L().Info("Handling create bucket event")
 }

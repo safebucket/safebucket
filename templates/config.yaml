@@ -1,9 +1,11 @@
 platform:
   api_url: http://localhost:1323
-  web_url: http://localhost:3001
+  web_url: http://localhost:3000
 
 cors:
   allowed_origins:
+    - http://127.0.0.1:3000
+    - http://localhost:3000
     - http://127.0.0.1:3001
     - http://localhost:3001
 
@@ -23,8 +25,8 @@ redis:
 
 storage:
   endpoint: localhost:9000
-  client_id: minio
-  client_secret: minioSuperSecretDoNotShare
+  client_id: root
+  client_secret: rootroot
 
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
