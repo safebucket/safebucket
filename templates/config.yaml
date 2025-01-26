@@ -23,8 +23,8 @@ redis:
 
 storage:
   endpoint: localhost:9000
-  client_id: root
-  client_secret: rootroot
+  client_id: minio
+  client_secret: minioSuperSecretDoNotShare
 
 events:
   type: jetstream
