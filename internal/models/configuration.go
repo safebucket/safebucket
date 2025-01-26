@@ -8,6 +8,7 @@ type Configuration struct {
 	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required,dive"`
 	Redis    RedisConfiguration    `json:"redis" validate:"required,dive"`
 	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required,dive"`
+	Events   EventsConfiguration   `mapstructure:"events" validate:"required,dive"`
 }
 
 type PlatformConfiguration struct {
@@ -53,4 +54,10 @@ type StorageConfiguration struct {
 	Endpoint     string `mapstructure:"endpoint" validate:"required"`
 	ClientId     string `mapstructure:"client_id" validate:"required"`
 	ClientSecret string `mapstructure:"client_secret" validate:"required"`
+}
+
+type EventsConfiguration struct {
+	Type string `mapstructure:"type" validate:"required"`
+	Host string `mapstructure:"host" validate:"required"`
+	Port string `mapstructure:"port" validate:"required"`
 }

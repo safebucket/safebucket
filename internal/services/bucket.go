@@ -1,14 +1,14 @@
 package services
 
 import (
-	"api/internal/core"
 	"api/internal/errors"
+	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
+	"api/internal/messaging"
 	"api/internal/models"
 	"api/internal/sql"
 	"context"
-	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/nats"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
@@ -22,7 +22,7 @@ import (
 type BucketService struct {
 	DB        *gorm.DB
 	S3        *minio.Client
-	Publisher *nats.Publisher
+	Publisher *messaging.IPublisher
 }
 
 func (s BucketService) Routes() chi.Router {
@@ -47,11 +47,9 @@ func (s BucketService) Routes() chi.Router {
 
 func (s BucketService) CreateBucket(_ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
 	s.DB.Create(&body)
-	event := models.Event{
-		Type:    "CREATE_BUCKET",
-		Payload: body,
-	}
-	core.PublishEvent(s.Publisher, event)
+	// TODO: Create the event with real emails
+	event := events.NewBucketSharedWith(*s.Publisher, []string{"milou@safebucket.com"})
+	event.Trigger()
 	return body, nil
 }
 
