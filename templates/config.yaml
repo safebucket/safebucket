@@ -31,11 +31,6 @@ events:
   host: localhost
   port: 4222
 
-events:
-  type: jetstream
-  host: localhost
-  port: 4222
-
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
 
