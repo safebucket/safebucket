@@ -27,9 +27,9 @@ func main() {
 	s3 := storage.InitStorage(config.Storage)
 	publisher := core.NewPublisher(config.Events)
 	subscriber := core.NewSubscriber(config.Events)
-	messages := subscriber.Subscribe(context.Background(), "safebucket-notifications")
+	messages := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)
 
-	go events.HandleInternalEvents(messages)
+	go events.HandleNotifications(messages)
 
 	appIdentity := uuid.New().String()
 	go func() {

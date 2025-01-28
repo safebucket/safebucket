@@ -1,6 +1,7 @@
 package events
 
 import (
+	"api/internal/configuration"
 	"api/internal/messaging"
 	"encoding/json"
 	"github.com/ThreeDotsLabs/watermill"
@@ -32,10 +33,15 @@ func NewBucketSharedWith(publisher messaging.IPublisher, emails []string) Bucket
 }
 
 func (e *BucketSharedWith) Trigger() {
-	payload, _ := json.Marshal(e.Payload)
+	payload, err := json.Marshal(e.Payload)
+	if err != nil {
+		zap.L().Error("Error marshalling event payload", zap.Error(err))
+		return
+	}
+
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
-	err := e.Publisher.Publish("safebucket-notifications", msg)
+	err = e.Publisher.Publish(configuration.EventsNotificationsTopicName, msg)
 
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))

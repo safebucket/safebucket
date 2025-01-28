@@ -47,9 +47,9 @@ func getEventFromMessage(eventType string, msg *message.Message) (Event, error) 
 	return event, nil
 }
 
-func HandleInternalEvents(messages <-chan *message.Message) {
+func HandleNotifications(messages <-chan *message.Message) {
 	for msg := range messages {
-		zap.L().Info("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
+		zap.L().Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
 
 		eventType := msg.Metadata.Get("type")
 		event, err := getEventFromMessage(eventType, msg)
