@@ -25,7 +25,7 @@ func main() {
 	db := database.InitDB(config.Database)
 	cache := c.InitCache(config.Redis)
 	s3 := storage.InitStorage(config.Storage)
-	publisher := core.NewPublisher(config.Events)
+	publisher := core.NewPublisher(config.Events, configuration.EventsNotificationsTopicName)
 	subscriber := core.NewSubscriber(config.Events)
 	messages := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)
 

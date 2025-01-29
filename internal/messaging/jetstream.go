@@ -17,10 +17,9 @@ type JetStreamPublisher struct {
 	publisher *jetstream.Publisher
 }
 
-func NewJetStreamPublisher(config models.EventsConfiguration) IPublisher {
+func NewJetStreamPublisher(config models.EventsConfiguration, topic string) IPublisher {
 	nc, _ := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, config.Port))
 	js, _ := natsJs.New(nc)
-	topic := "safebucket-notifications"
 
 	s, _ := js.CreateStream(context.Background(), natsJs.StreamConfig{
 		Name:      topic,
