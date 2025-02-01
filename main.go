@@ -25,11 +25,12 @@ func main() {
 	db := database.InitDB(config.Database)
 	cache := c.InitCache(config.Redis)
 	s3 := storage.InitStorage(config.Storage)
+	mailer := core.NewMailer(config.Mailer)
 	publisher := core.NewPublisher(config.Events, configuration.EventsNotificationsTopicName)
 	subscriber := core.NewSubscriber(config.Events)
 	messages := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)
 
-	go events.HandleNotifications(messages)
+	go events.HandleNotifications(config.Platform.WebUrl, mailer, messages)
 
 	appIdentity := uuid.New().String()
 	go func() {

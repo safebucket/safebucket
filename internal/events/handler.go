@@ -1,6 +1,7 @@
 package events
 
 import (
+	"api/internal/core"
 	"encoding/json"
 	"fmt"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -9,7 +10,7 @@ import (
 )
 
 type Event interface {
-	callback()
+	callback(webUrl string, mailer *core.Mailer)
 }
 
 func getEventFromMessage(eventType string, msg *message.Message) (Event, error) {
@@ -47,7 +48,7 @@ func getEventFromMessage(eventType string, msg *message.Message) (Event, error) 
 	return event, nil
 }
 
-func HandleNotifications(messages <-chan *message.Message) {
+func HandleNotifications(webUrl string, mailer *core.Mailer, messages <-chan *message.Message) {
 	for msg := range messages {
 		zap.L().Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
 
@@ -60,7 +61,7 @@ func HandleNotifications(messages <-chan *message.Message) {
 			continue
 		}
 
-		event.callback()
+		event.callback(webUrl, mailer)
 		msg.Ack()
 	}
 }

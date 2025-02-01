@@ -47,9 +47,17 @@ func (s BucketService) Routes() chi.Router {
 
 func (s BucketService) CreateBucket(_ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
 	s.DB.Create(&body)
-	// TODO: Create the event with real emails
-	event := events.NewBucketSharedWith(*s.Publisher, []string{"milou@safebucket.com"})
-	event.Trigger()
+	// TODO: Create events with real values
+	for _, email := range []string{"milou@safebucket.com", "remi@safebucket.com"} {
+		event := events.NewBucketSharedWith(
+			*s.Publisher,
+			body,
+			"Yohan",
+			email,
+		)
+		event.Trigger()
+	}
+
 	return body, nil
 }
 

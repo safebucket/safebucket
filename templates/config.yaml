@@ -31,6 +31,12 @@ events:
   host: localhost
   port: 4222
 
+mailer:
+  host: localhost
+  port: 1025
+  username: root
+  password: root
+
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
 

@@ -9,6 +9,7 @@ type Configuration struct {
 	Redis    RedisConfiguration    `json:"redis" validate:"required,dive"`
 	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required,dive"`
 	Events   EventsConfiguration   `mapstructure:"events" validate:"required,dive"`
+	Mailer   MailerConfiguration   `mapstructure:"mailer" validate:"required,dive"`
 }
 
 type PlatformConfiguration struct {
@@ -60,4 +61,11 @@ type EventsConfiguration struct {
 	Type string `mapstructure:"type" validate:"required"`
 	Host string `mapstructure:"host" validate:"required"`
 	Port string `mapstructure:"port" validate:"required"`
+}
+
+type MailerConfiguration struct {
+	Host     string `mapstructure:"host" validate:"required"`
+	Port     int    `mapstructure:"port" validate:"required"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
 }

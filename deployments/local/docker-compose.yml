@@ -65,8 +65,8 @@ services:
     environment:
       MP_MAX_MESSAGES: 500
       MP_DATABASE: /data/mailpit.db
-      MP_SMTP_AUTH_ACCEPT_ANY: 1
-      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: true
+      MP_SMTP_AUTH: root:root
 
   nats:
     image: nats:2.10-alpine
