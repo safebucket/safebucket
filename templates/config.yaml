@@ -36,6 +36,7 @@ mailer:
   port: 1025
   username: root
   password: root
+  sender: notifications@safebucket.io
 
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA

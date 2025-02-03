@@ -11,6 +11,7 @@ import (
 
 type Mailer struct {
 	dialer *gomail.Dialer
+	sender string
 }
 
 // NewMailer initializes the mailer and checks the connection
@@ -24,7 +25,7 @@ func NewMailer(config models.MailerConfiguration) *Mailer {
 
 	_ = connection.Close()
 
-	return &Mailer{dialer: dialer}
+	return &Mailer{dialer: dialer, sender: config.Sender}
 }
 
 // NotifyFromTemplate sends an email using a given template and data
@@ -40,7 +41,7 @@ func (m *Mailer) NotifyFromTemplate(to string, subject string, templateName stri
 	}
 
 	msg := gomail.NewMessage()
-	msg.SetHeader("From", "notifications@safebucket.io")
+	msg.SetHeader("From", m.sender)
 	msg.SetHeader("To", to)
 	msg.SetHeader("Subject", subject)
 	msg.SetBody("text/html", body.String())

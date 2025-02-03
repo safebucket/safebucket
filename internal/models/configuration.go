@@ -68,4 +68,5 @@ type MailerConfiguration struct {
 	Port     int    `mapstructure:"port" validate:"required"`
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
+	Sender   string `mapstructure:"sender" validate:"required"`
 }
