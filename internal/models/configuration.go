@@ -8,6 +8,7 @@ type Configuration struct {
 	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required,dive"`
 	Redis    RedisConfiguration    `json:"redis" validate:"required,dive"`
 	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required,dive"`
+	Admin    AdminConfiguration    `mapstructure:"admin" validate:"required,dive"`
 }
 
 type PlatformConfiguration struct {
@@ -56,6 +57,6 @@ type StorageConfiguration struct {
 }
 
 type AdminConfiguration struct {
-	username string `mapstructure:"username" validate:"required"`
-	password string `mapstructure:"password" validate:"required"`
+	Username string `mapstructure:"username" validate:"required"`
+	Password string `mapstructure:"password" validate:"required"`
 }

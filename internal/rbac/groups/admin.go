@@ -14,7 +14,7 @@ func getDefaultAdminPolicies() [][]string {
 }
 
 func InsertRoleAdmin(e *casbin.Enforcer) error {
-	_, err := e.AddPolicies(getDefaultUserPolicies())
+	_, err := e.AddPolicies(getDefaultAdminPolicies())
 	if err != nil {
 		return err
 	}
@@ -22,9 +22,17 @@ func InsertRoleAdmin(e *casbin.Enforcer) error {
 }
 
 func AddUserToRoleAdmin(e *casbin.Enforcer, user models.User) error {
-	_, err := e.AddGroupingPolicy(user.ID.String(), rbac.RoleUser, c.DefaultDomain)
+	_, err := e.AddGroupingPolicy(
+		user.ID.String(), rbac.RoleAdmin.String(), c.DefaultDomain)
 	if err != nil {
 		return err
 	}
+
+	_, err = e.AddGroupingPolicy(
+		user.ID.String(), rbac.RoleUser.String(), c.DefaultDomain)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

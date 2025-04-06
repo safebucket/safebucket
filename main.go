@@ -4,6 +4,7 @@ import (
 	c "api/internal/cache"
 	"api/internal/configuration"
 	"api/internal/database"
+	h "api/internal/helpers"
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
@@ -39,8 +40,17 @@ func main() {
 	_ = groups.InsertRoleUser(e)
 	_ = groups.InsertRoleAdmin(e)
 
-	// TODO: Create admin user
+	// TODO: Create a dedicated fct
 
+	adminUser := models.User{
+		FirstName: "admin",
+		LastName:  "admin",
+		Email:     config.Admin.Username,
+	}
+	hash, _ := h.CreateHash(config.Admin.Password)
+	adminUser.HashedPassword = hash
+	db.Create(&adminUser)
+	_ = groups.AddUserToRoleAdmin(e, adminUser)
 	//
 
 	appIdentity := uuid.New().String()
@@ -76,7 +86,6 @@ func main() {
 
 	r.Mount("/users", services.UserService{DB: db, E: e}.Routes())
 	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e}.Routes())
-
 	r.Mount("/auth", services.AuthService{
 		DB:        db,
 		JWTConf:   config.JWT,
