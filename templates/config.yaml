@@ -29,5 +29,9 @@ storage:
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
 
+admin:
+  username: admin@safebucket.io
+  password: ChangeMePlease
+
 auth:
   providers:

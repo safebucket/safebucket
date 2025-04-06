@@ -30,7 +30,7 @@ func Authenticate(jwtConf models.JWTConfiguration) func(next http.Handler) http.
 }
 
 func isExcluded(path string) bool {
-	excludedPaths := configuration.GetExcludedAuthPaths()
+	excludedPaths := configuration.ExcludedAuthPaths
 	for _, value := range excludedPaths {
 		if strings.HasPrefix(path, value) {
 			return true

@@ -9,8 +9,8 @@ import (
 
 func getDefaultUserPolicies() [][]string {
 	return [][]string{
-		{c.DefaultDomain, rbac.RoleUser, rbac.ResourceBucket, c.NilUUID, rbac.ActionList},
-		{c.DefaultDomain, rbac.RoleUser, rbac.ResourceBucket, c.NilUUID, rbac.ActionCreate},
+		{c.DefaultDomain, rbac.RoleUser.String(), rbac.ResourceBucket.String(), c.NilUUID, rbac.ActionList.String()},
+		{c.DefaultDomain, rbac.RoleUser.String(), rbac.ResourceBucket.String(), c.NilUUID, rbac.ActionCreate.String()},
 	}
 }
 

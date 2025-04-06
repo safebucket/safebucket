@@ -24,9 +24,9 @@ import (
 )
 
 type BucketService struct {
-	DB *gorm.DB
-	S3 *minio.Client
-	E  *casbin.Enforcer
+	DB       *gorm.DB
+	S3       *minio.Client
+	Enforcer *casbin.Enforcer
 }
 
 func (s BucketService) Routes() chi.Router {
@@ -34,16 +34,29 @@ func (s BucketService) Routes() chi.Router {
 
 	r.Get("/", handlers.GetListHandler(s.GetBucketList))
 
-	r.With(m.Authorize(models.Operation{Object: rbac.ResourceBucket, ObjectID: c.NilUUID, Action: rbac.ActionCreate}, s.E)).
-		With(h.Validate[models.Bucket]).Post("/", handlers.CreateHandler(s.CreateBucket))
+	r.With(m.Authorize(models.Operation{
+		Object:   rbac.ResourceBucket.String(),
+		ObjectID: c.NilUUID,
+		Action:   rbac.ActionCreate.String()}, s.Enforcer)).
+		With(h.Validate[models.Bucket]).
+		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id0}", func(r chi.Router) {
-		r.Get("/", handlers.GetOneHandler(s.GetBucket))
+
+		r.Use()
+
+		r.With(m.Authorize(models.Operation{
+			Object:   rbac.ResourceBucket.String(),
+			ObjectID: c.NilUUID, //TODO: get ID
+			Action:   rbac.ActionRead.String()}, s.Enforcer)).
+			Get("/", handlers.GetOneHandler(s.GetBucket))
+
 		r.With(h.Validate[models.Bucket]).Patch("/", handlers.UpdateHandler(s.UpdateBucket))
 		r.Delete("/", handlers.DeleteHandler(s.DeleteBucket))
 
 		r.With(h.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
 		r.Route("/files/{id1}", func(r chi.Router) {
+
 			r.With(h.Validate[models.UpdateFileBody]).Patch("/", handlers.UpdateHandler(s.UpdateFile))
 			r.Delete("/", handlers.DeleteHandler(s.DeleteFile))
 			r.Get("/download", handlers.GetOneHandler(s.DownloadFile))
@@ -52,44 +65,50 @@ func (s BucketService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketService) CreateBucket(u *models.UserClaims, _ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) CreateBucket(user *models.UserClaims, _ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
 	//TODO: Migrate to SQL transaction
 	s.DB.Create(&body)
-	err := groups.InsertGroupBucketViewer(s.E, body)
+	err := groups.InsertGroupBucketViewer(s.Enforcer, body)
 	if err != nil {
 		return models.Bucket{}, err
 	}
-	err = groups.InsertGroupBucketContributor(s.E, body)
+	err = groups.InsertGroupBucketContributor(s.Enforcer, body)
 	if err != nil {
 		return models.Bucket{}, err
 	}
-	err = groups.InsertGroupBucketOwner(s.E, body)
+	err = groups.InsertGroupBucketOwner(s.Enforcer, body)
 	if err != nil {
 		return models.Bucket{}, err
 	}
 
-	err = groups.AddUserToOwners(s.E, body, u)
+	err = groups.AddUserToOwners(s.Enforcer, body, user)
 	if err != nil {
 		return models.Bucket{}, err
 	}
 	return body, nil
 }
 
-func (s BucketService) GetBucketList(u *models.UserClaims) []models.Bucket {
+func (s BucketService) GetBucketList(user *models.UserClaims) []models.Bucket {
 	var buckets []models.Bucket
-	if !u.Valid() {
-		zap.L().Warn(fmt.Sprintf("Invalid user claims %v", u.UserID.String()))
+	if !user.Valid() {
+		zap.L().Warn(fmt.Sprintf("Invalid user claims %v", user.UserID.String()))
 		return []models.Bucket{}
 	}
-	roles, err := s.E.GetImplicitRolesForUser(u.UserID.String(), c.DefaultDomain)
+	roles, err := s.Enforcer.GetImplicitRolesForUser(user.UserID.String(), c.DefaultDomain)
 	if err != nil {
-		zap.L().Warn(fmt.Sprintf("Error retrieving roles %v", u.UserID.String()))
+		zap.L().Warn(fmt.Sprintf("Error retrieving roles %v", user.UserID.String()))
 		return []models.Bucket{}
 	}
 
 	var bucketIDs []string
 	for _, role := range roles {
-		policies, _ := s.E.GetFilteredPolicy(0, c.DefaultDomain, role, rbac.ResourceBucket, "", rbac.ActionRead)
+
+		policies, _ := s.Enforcer.GetFilteredPolicy(0, c.DefaultDomain,
+			role,
+			rbac.ResourceBucket.String(),
+			"",
+			rbac.ActionRead.String())
+
 		for _, policy := range policies {
 			bucketIDs = append(bucketIDs, policy[3])
 		}

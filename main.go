@@ -37,6 +37,11 @@ func main() {
 
 	_ = groups.InsertRoleGuest(e)
 	_ = groups.InsertRoleUser(e)
+	_ = groups.InsertRoleAdmin(e)
+
+	// TODO: Create admin user
+
+	//
 
 	appIdentity := uuid.New().String()
 
@@ -70,7 +75,7 @@ func main() {
 	providers := configuration.LoadProviders(ctx, config.Platform.ApiUrl, config.Auth.Providers)
 
 	r.Mount("/users", services.UserService{DB: db, E: e}.Routes())
-	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, E: e}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e}.Routes())
 
 	r.Mount("/auth", services.AuthService{
 		DB:        db,

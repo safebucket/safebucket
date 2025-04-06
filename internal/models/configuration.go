@@ -54,3 +54,8 @@ type StorageConfiguration struct {
 	ClientId     string `mapstructure:"client_id" validate:"required"`
 	ClientSecret string `mapstructure:"client_secret" validate:"required"`
 }
+
+type AdminConfiguration struct {
+	username string `mapstructure:"username" validate:"required"`
+	password string `mapstructure:"password" validate:"required"`
+}

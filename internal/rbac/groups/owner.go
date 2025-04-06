@@ -16,8 +16,8 @@ func GetBucketOwnerGroup(bucket models.Bucket) string {
 func GetDefaultOwnerBucketPolicies(bucket models.Bucket) [][]string {
 	groupName := GetBucketOwnerGroup(bucket)
 	return [][]string{
-		{c.DefaultDomain, groupName, rbac.ResourceBucket, bucket.ID.String(), rbac.ActionDelete},
-		{c.DefaultDomain, groupName, rbac.ResourceBucket, bucket.ID.String(), rbac.ActionUpdate},
+		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionDelete.String()},
+		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionUpdate.String()},
 	}
 }
 

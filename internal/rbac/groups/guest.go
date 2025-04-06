@@ -9,7 +9,7 @@ import (
 
 func getDefaultGuestPolicies() [][]string {
 	return [][]string{
-		{c.DefaultDomain, rbac.RoleGuest, rbac.ResourceBucket, c.NilUUID, rbac.ActionList},
+		{c.DefaultDomain, rbac.RoleGuest.String(), rbac.ResourceBucket.String(), c.NilUUID, rbac.ActionList.String()},
 	}
 }
 

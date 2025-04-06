@@ -1,40 +1,71 @@
 package rbac
 
 // const action variables
+
+type Action string
+
+func (a Action) String() string {
+	return string(a)
+}
+
 const (
-	ActionAll    = "*" // action match any other actions
-	ActionCreate = "create"
-	ActionRead   = "read"
-	ActionUpdate = "update"
-	ActionDelete = "delete"
-	ActionList   = "list"
+	ActionAll    = Action("*") // action match any other actions
+	ActionCreate = Action("create")
+	ActionRead   = Action("read")
+	ActionUpdate = Action("update")
+	ActionDelete = Action("delete")
+	ActionList   = Action("list")
 )
+
+type Resource string
+
+func (r Resource) String() string {
+	return string(r)
+}
 
 // const resource variables
 const (
-	ResourceAll    = "*" // resource match any other resources
-	ResourceBucket = "bucket"
-	ResourceUser   = "user"
-	ResourceFile   = "file"
-	ResourceGuest  = "log"
+	ResourceAll    = Resource("*") // resource match any other resources
+	ResourceBucket = Resource("bucket")
+	ResourceUser   = Resource("user")
+	ResourceFile   = Resource("file")
+	ResourceGuest  = Resource("log")
 )
+
+type Role string
+
+func (r Role) String() string {
+	return string(r)
+}
 
 // const role variables
 const (
-	RoleAdmin = "role::admin"
-	RoleUser  = "role::user"
-	RoleGuest = "role::guest"
+	RoleAdmin = Role("role::admin")
+	RoleUser  = Role("role::user")
+	RoleGuest = Role("role::guest")
 )
+
+type Group string
+
+func (g Group) String() string {
+	return string(g)
+}
 
 // const group variables
 const (
-	GroupOwner       = "group::owner"
-	GroupContributor = "group::contributor"
-	GroupViewer      = "group::viewer"
+	GroupOwner       = Group("group::owner")
+	GroupContributor = Group("group::contributor")
+	GroupViewer      = Group("group::viewer")
 )
+
+type Scope string
+
+func (s Scope) String() string {
+	return string(s)
+}
 
 // const scope variables
 const (
-	ScopeSystem  = "System"
-	ScopeProject = "App"
+	ScopeSystem  = Scope("System")
+	ScopeProject = Scope("App")
 )

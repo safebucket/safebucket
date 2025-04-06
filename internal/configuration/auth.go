@@ -1,8 +1,5 @@
 package configuration
 
-// TODO: "users", CHANGE IT
-var excludedAuthPaths = [2]string{"/auth", "/users"}
+// TODO: "users", CHANGE IT before release
 
-func GetExcludedAuthPaths() [2]string {
-	return excludedAuthPaths
-}
+var ExcludedAuthPaths = [2]string{"/auth", "/users"}
