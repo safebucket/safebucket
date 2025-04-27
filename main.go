@@ -71,7 +71,15 @@ func main() {
 
 	zap.L().Info("App started")
 
-	err := http.ListenAndServe(":1323", r)
+	server := &http.Server{
+		Addr:         ":1234",
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	err := server.ListenAndServe()
 	if err != nil {
 		zap.L().Error("Failed to start the app")
 	}
