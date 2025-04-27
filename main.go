@@ -72,7 +72,7 @@ func main() {
 	zap.L().Info("App started")
 
 	server := &http.Server{
-		Addr:         ":1234",
+		Addr:         ":1323",
 		Handler:      r,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
