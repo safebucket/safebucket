@@ -9,12 +9,15 @@ func (a Action) String() string {
 }
 
 const (
-	ActionAll    = Action("*") // action match any other actions
-	ActionCreate = Action("create")
-	ActionRead   = Action("read")
-	ActionUpdate = Action("update")
-	ActionDelete = Action("delete")
-	ActionList   = Action("list")
+	ActionAll      = Action("*") // action match any other actions
+	ActionCreate   = Action("create")
+	ActionDelete   = Action("delete")
+	ActionErase    = Action("erase")
+	ActionRead     = Action("read")
+	ActionUpdate   = Action("update")
+	ActionUpload   = Action("upload")
+	ActionDownload = Action("download")
+	ActionList     = Action("list")
 )
 
 type Resource string
@@ -29,7 +32,7 @@ const (
 	ResourceBucket = Resource("bucket")
 	ResourceUser   = Resource("user")
 	ResourceFile   = Resource("file")
-	ResourceGuest  = Resource("log")
+	ResourceLog    = Resource("log")
 )
 
 type Role string

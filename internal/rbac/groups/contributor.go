@@ -15,7 +15,8 @@ func GetBucketContributorGroup(bucket models.Bucket) string {
 func GetDefaultContributorBucketPolicies(bucket models.Bucket) [][]string {
 	groupName := GetBucketContributorGroup(bucket)
 	return [][]string{
-		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionCreate.String()},
+		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionUpload.String()},
+		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionDownload.String()},
 	}
 }
 

@@ -47,10 +47,12 @@ func main() {
 		LastName:  "admin",
 		Email:     config.Admin.Username,
 	}
+
 	hash, _ := h.CreateHash(config.Admin.Password)
 	adminUser.HashedPassword = hash
 	db.Create(&adminUser)
 	_ = groups.AddUserToRoleAdmin(e, adminUser)
+
 	//
 
 	appIdentity := uuid.New().String()

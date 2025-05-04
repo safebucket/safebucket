@@ -34,32 +34,61 @@ func (s BucketService) Routes() chi.Router {
 
 	r.Get("/", handlers.GetListHandler(s.GetBucketList))
 
-	r.With(m.Authorize(models.Operation{
-		Object:   rbac.ResourceBucket.String(),
-		ObjectID: c.NilUUID,
-		Action:   rbac.ActionCreate.String()}, s.Enforcer)).
+	r.With(m.Authorize(models.AuthzParameters{
+		ObjectType:    rbac.ResourceBucket,
+		Action:        rbac.ActionCreate,
+		ObjectIdIndex: -1,
+	}, s.Enforcer)).
 		With(h.Validate[models.Bucket]).
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id0}", func(r chi.Router) {
 
-		r.Use()
-
-		r.With(m.Authorize(models.Operation{
-			Object:   rbac.ResourceBucket.String(),
-			ObjectID: c.NilUUID, //TODO: get ID
-			Action:   rbac.ActionRead.String()}, s.Enforcer)).
+		r.With(m.Authorize(models.AuthzParameters{
+			ObjectType:    rbac.ResourceBucket,
+			Action:        rbac.ActionRead,
+			ObjectIdIndex: 0,
+		}, s.Enforcer)).
 			Get("/", handlers.GetOneHandler(s.GetBucket))
 
-		r.With(h.Validate[models.Bucket]).Patch("/", handlers.UpdateHandler(s.UpdateBucket))
-		r.Delete("/", handlers.DeleteHandler(s.DeleteBucket))
+		r.With(m.Authorize(models.AuthzParameters{
+			ObjectType:    rbac.ResourceBucket,
+			Action:        rbac.ActionUpdate,
+			ObjectIdIndex: 0,
+		}, s.Enforcer)).With(h.Validate[models.Bucket]).Patch("/", handlers.UpdateHandler(s.UpdateBucket))
 
-		r.With(h.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+		r.With(m.Authorize(models.AuthzParameters{
+			ObjectType:    rbac.ResourceBucket,
+			Action:        rbac.ActionDelete,
+			ObjectIdIndex: 0,
+		}, s.Enforcer)).Delete("/", handlers.DeleteHandler(s.DeleteBucket))
+
+		r.With(m.Authorize(models.AuthzParameters{
+			ObjectType:    rbac.ResourceBucket,
+			Action:        rbac.ActionUpload,
+			ObjectIdIndex: 0,
+		}, s.Enforcer)).With(h.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+
 		r.Route("/files/{id1}", func(r chi.Router) {
 
-			r.With(h.Validate[models.UpdateFileBody]).Patch("/", handlers.UpdateHandler(s.UpdateFile))
-			r.Delete("/", handlers.DeleteHandler(s.DeleteFile))
-			r.Get("/download", handlers.GetOneHandler(s.DownloadFile))
+			r.With(m.Authorize(models.AuthzParameters{
+				ObjectType:    rbac.ResourceBucket,
+				Action:        rbac.ActionUpload, // Todo: Same do replace = Upload ?
+				ObjectIdIndex: 0,
+			}, s.Enforcer)).With(h.Validate[models.UpdateFileBody]).Patch("/", handlers.UpdateHandler(s.UpdateFile))
+
+			r.With(m.Authorize(models.AuthzParameters{
+				ObjectType:    rbac.ResourceBucket,
+				Action:        rbac.ActionErase,
+				ObjectIdIndex: 0,
+			}, s.Enforcer)).Delete("/", handlers.DeleteHandler(s.DeleteFile))
+
+			r.With(m.Authorize(models.AuthzParameters{
+				ObjectType:    rbac.ResourceBucket,
+				Action:        rbac.ActionDownload,
+				ObjectIdIndex: 0,
+			}, s.Enforcer)).Get("/download", handlers.GetOneHandler(s.DownloadFile))
+
 		})
 	})
 	return r
@@ -101,6 +130,7 @@ func (s BucketService) GetBucketList(user *models.UserClaims) []models.Bucket {
 	}
 
 	var bucketIDs []string
+
 	for _, role := range roles {
 
 		policies, _ := s.Enforcer.GetFilteredPolicy(0, c.DefaultDomain,
@@ -113,7 +143,7 @@ func (s BucketService) GetBucketList(user *models.UserClaims) []models.Bucket {
 			bucketIDs = append(bucketIDs, policy[3])
 		}
 	}
-	_ = s.DB.Model(&models.Bucket{}).Where("id IN ?", bucketIDs).Find(&buckets)
+	_ = s.DB.Model(&models.Bucket{}).Where("id IN ?", bucketIDs).Find(&buckets) // todo: cache result
 	return buckets
 }
 

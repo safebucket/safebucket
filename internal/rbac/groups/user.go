@@ -23,7 +23,7 @@ func InsertRoleUser(e *casbin.Enforcer) error {
 }
 
 func AddUserToRoleUser(e *casbin.Enforcer, user models.User) error {
-	_, err := e.AddGroupingPolicy(user.ID.String(), rbac.RoleUser, c.DefaultDomain)
+	_, err := e.AddGroupingPolicy(user.ID.String(), rbac.RoleUser.String(), c.DefaultDomain)
 	if err != nil {
 		return err
 	}
