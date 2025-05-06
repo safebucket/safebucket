@@ -1,7 +1,5 @@
 package models
 
-import "api/internal/rbac"
-
 type AuthLogin struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
@@ -31,10 +29,4 @@ type AuthRefreshResponse struct {
 type ProviderResponse struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
-}
-
-type AuthzParameters struct {
-	ObjectIdIndex int
-	ObjectType    rbac.Resource
-	Action        rbac.Action
 }
