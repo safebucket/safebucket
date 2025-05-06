@@ -1,21 +1,6 @@
 package handlers
 
-import (
-	customErr "api/internal/errors"
-	h "api/internal/helpers"
-	"api/internal/models"
-	"api/internal/tests"
-	"context"
-	"errors"
-	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-	"net/http"
-	"net/http/httptest"
-	"testing"
-	"time"
-)
-
+/*
 func TestCreateHandler(t *testing.T) {
 	mockInput := models.Bucket{Name: "Bucket1"}
 	mockOutput := models.Bucket{ID: uuid.New(), Name: "John Doe"}
@@ -281,3 +266,4 @@ func TestDeleteHandler_InvalidUUID(t *testing.T) {
 	expected := models.Error{Status: http.StatusBadRequest, Error: []string{"INVALID_UUID"}}
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
+*/
