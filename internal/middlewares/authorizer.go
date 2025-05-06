@@ -4,11 +4,12 @@ import (
 	"api/internal/configuration"
 	h "api/internal/helpers"
 	"api/internal/models"
+	"api/internal/rbac"
 	"github.com/casbin/casbin/v2"
 	"net/http"
 )
 
-func Authorize(authzParameters models.AuthzParameters, e *casbin.Enforcer) func(next http.Handler) http.Handler {
+func Authorize(e *casbin.Enforcer, resource rbac.Resource, action rbac.Action, objectIdIndex int) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -16,7 +17,7 @@ func Authorize(authzParameters models.AuthzParameters, e *casbin.Enforcer) func(
 
 			var id string
 
-			if authzParameters.ObjectIdIndex == -1 {
+			if objectIdIndex == -1 {
 				id = configuration.NilUUID
 			} else {
 				ids, ok := h.ParseUUIDs(w, r)
@@ -24,20 +25,14 @@ func Authorize(authzParameters models.AuthzParameters, e *casbin.Enforcer) func(
 					h.RespondWithError(w, 401, []string{"Not Authorized"})
 					return
 				}
-				id = ids[authzParameters.ObjectIdIndex].String()
-			}
-
-			op := models.Operation{
-				Object:   authzParameters.ObjectType.String(),
-				ObjectID: id,
-				Action:   authzParameters.Action.String(),
+				id = ids[objectIdIndex].String()
 			}
 
 			authorized, err := e.Enforce(domain,
 				r.Context().Value(configuration.ContextUserClaimKey).(*models.UserClaims).UserID.String(),
-				op.Object,
-				op.ObjectID,
-				op.Action)
+				resource.String(),
+				id,
+				action.String())
 
 			if err != nil {
 				h.RespondWithError(w, 401, []string{err.Error()})

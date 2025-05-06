@@ -12,12 +12,12 @@ const (
 	ActionAll      = Action("*") // action match any other actions
 	ActionCreate   = Action("create")
 	ActionDelete   = Action("delete")
+	ActionDownload = Action("download")
 	ActionErase    = Action("erase")
+	ActionList     = Action("list")
 	ActionRead     = Action("read")
 	ActionUpdate   = Action("update")
 	ActionUpload   = Action("upload")
-	ActionDownload = Action("download")
-	ActionList     = Action("list")
 )
 
 type Resource string
