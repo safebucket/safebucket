@@ -1,4 +1,4 @@
-package groups
+package roles
 
 import (
 	c "api/internal/configuration"

@@ -120,7 +120,7 @@ func (s BucketService) GetBucketList(user *models.UserClaims) []models.Bucket {
 			bucketIDs = append(bucketIDs, policy[3])
 		}
 	}
-	_ = s.DB.Model(&models.Bucket{}).Where("id IN ?", bucketIDs).Find(&buckets) // todo: cache result
+	_ = s.DB.Model(&models.Bucket{}).Where("id IN ?", bucketIDs).Find(&buckets) // Todo: cache result
 	return buckets
 }
 

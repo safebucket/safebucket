@@ -17,6 +17,7 @@ func GetDefaultViewerBucketPolicies(bucket models.Bucket) [][]string {
 	groupName := GetBucketViewerGroup(bucket)
 	return [][]string{
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionRead.String()},
+		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionDownload.String()},
 	}
 }
 

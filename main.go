@@ -8,7 +8,7 @@ import (
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
-	"api/internal/rbac/groups"
+	"api/internal/rbac/roles"
 	"api/internal/services"
 	"api/internal/storage"
 	"context"
@@ -36,9 +36,9 @@ func main() {
 	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
 	e, _ := casbin.NewEnforcer(model, a)
 
-	_ = groups.InsertRoleGuest(e)
-	_ = groups.InsertRoleUser(e)
-	_ = groups.InsertRoleAdmin(e)
+	_ = roles.InsertRoleGuest(e)
+	_ = roles.InsertRoleUser(e)
+	_ = roles.InsertRoleAdmin(e)
 
 	// TODO: Create a dedicated fct
 
@@ -51,7 +51,7 @@ func main() {
 	hash, _ := h.CreateHash(config.Admin.Password)
 	adminUser.HashedPassword = hash
 	db.Create(&adminUser)
-	_ = groups.AddUserToRoleAdmin(e, adminUser)
+	_ = roles.AddUserToRoleAdmin(e, adminUser)
 
 	//
 

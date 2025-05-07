@@ -36,7 +36,6 @@ func InsertGroupBucketOwner(e *casbin.Enforcer, bucket models.Bucket) error {
 		return err
 	}
 	_, err = e.AddGroupingPolicy(GetBucketOwnerGroup(bucket), GetBucketContributorGroup(bucket), c.DefaultDomain)
-
 	if err != nil {
 		return err
 	}

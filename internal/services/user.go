@@ -4,7 +4,7 @@ import (
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	"api/internal/models"
-	"api/internal/rbac/groups"
+	"api/internal/rbac/roles"
 	"errors"
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
@@ -45,7 +45,7 @@ func (s UserService) CreateUser(_ *models.UserClaims, _ uuid.UUIDs, body models.
 		}
 		newUser.HashedPassword = hash
 		s.DB.Create(&newUser)
-		err = groups.AddUserToRoleUser(s.E, newUser)
+		err = roles.AddUserToRoleUser(s.E, newUser)
 		if err != nil {
 			zap.L().Error("can not add user to role user", zap.Error(err))
 			return models.User{}, err
