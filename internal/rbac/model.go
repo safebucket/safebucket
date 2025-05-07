@@ -1,11 +1,23 @@
+// Package rbac provides role-based access control (RBAC) definitions and helper
+// functions for initializing Casbin models, and managing actions, resources, roles,
+// groups, and scopes.
+
 package rbac
 
 import (
 	"github.com/casbin/casbin/v2/model"
 )
 
-// Initialize the model from a string.
-
+// GetModel initializes and returns a Casbin model.Model configured for multi-tenant
+// (domain) RBAC, with request, policy definitions, role hierarchy, effect, and matcher.
+// It loads the model configuration from a hard-coded string and panics if parsing fails.
+// Groups should be used to give access to specific resources (ex: bucket contributor)
+// Roles should be used to give platform access (user / guest / admin)
+// r: request = domain, subject, object type, object ID, action
+// p: policy = domain, subject (role/group), object type, object ID, action
+// g: grouping = user/group, role/group, domain
+// e: effect = allow if any matching policy allows
+// m: matcher checks role membership, domain, object type, object ID, and action
 func GetModel() model.Model {
 	data :=
 		`

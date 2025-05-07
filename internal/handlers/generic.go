@@ -9,9 +9,9 @@ import (
 	"net/http"
 )
 
-type CreateTargetFunc[In any, Out any] func(*models.UserClaims, uuid.UUIDs, In) (Out, error)
-type ListTargetFunc[Out any] func(*models.UserClaims) []Out
-type GetOneTargetFunc[Out any] func(*models.UserClaims, uuid.UUIDs) (Out, error)
+type CreateTargetFunc[In any, Out any] func(models.UserClaims, uuid.UUIDs, In) (Out, error)
+type ListTargetFunc[Out any] func(models.UserClaims) []Out
+type GetOneTargetFunc[Out any] func(models.UserClaims, uuid.UUIDs) (Out, error)
 type UpdateTargetFunc[In any, Out any] func(uuid.UUIDs, In) (Out, error)
 type DeleteTargetFunc func(uuid.UUIDs) error
 

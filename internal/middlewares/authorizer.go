@@ -29,7 +29,7 @@ func Authorize(e *casbin.Enforcer, resource rbac.Resource, action rbac.Action, o
 			}
 
 			authorized, err := e.Enforce(domain,
-				r.Context().Value(configuration.ContextUserClaimKey).(*models.UserClaims).UserID.String(),
+				r.Context().Value(models.UserClaimKey{}).(models.UserClaims).UserID.String(),
 				resource.String(),
 				id,
 				action.String())

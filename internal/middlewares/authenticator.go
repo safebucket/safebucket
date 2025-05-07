@@ -5,6 +5,7 @@ import (
 	"api/internal/helpers"
 	"api/internal/models"
 	"context"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 )
@@ -16,12 +17,15 @@ func Authenticate(jwtConf models.JWTConfiguration) func(next http.Handler) http.
 				next.ServeHTTP(w, r)
 			} else {
 				accessToken := r.Header.Get("Authorization")
+
 				userClaims, err := helpers.ParseAccessToken(jwtConf.Secret, accessToken)
+
 				if err != nil {
+					zap.L().Info("error", zap.Error(err))
 					helpers.RespondWithError(w, 403, []string{err.Error()})
 					return
 				}
-				ctx := context.WithValue(r.Context(), configuration.ContextUserClaimKey, userClaims)
+				ctx := context.WithValue(r.Context(), models.UserClaimKey{}, userClaims)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			}
 		}

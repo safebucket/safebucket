@@ -1,11 +1,9 @@
 package helpers
 
 import (
-	"api/internal/configuration"
 	"api/internal/models"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"
 	"strings"
@@ -42,22 +40,31 @@ func NewAccessToken(jwtSecret string, user *models.User) (string, error) {
 	return accessToken.SignedString([]byte(jwtSecret))
 }
 
-func ParseAccessToken(jwtSecret string, accessToken string) (*models.UserClaims, error) {
+func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, error) {
 	if !strings.HasPrefix(accessToken, "Bearer ") {
-		return &models.UserClaims{}, errors.New("invalid access token 1")
+		return models.UserClaims{}, errors.New("invalid access token")
 	}
 	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
-	parsedAccessToken, err := jwt.ParseWithClaims(
+
+	claims := &models.UserClaims{}
+
+	_, err := jwt.ParseWithClaims(
 		accessToken,
-		&models.UserClaims{},
+		claims,
 		func(token *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
 		},
 	)
-	if parsedAccessToken.Claims.(*models.UserClaims).Aud != "app:*" {
-		return &models.UserClaims{}, errors.New("invalid access token")
+
+	if err != nil {
+		return models.UserClaims{}, errors.New("invalid access token")
 	}
-	return parsedAccessToken.Claims.(*models.UserClaims), err
+
+	if claims.Aud != "app:*" {
+		return models.UserClaims{}, errors.New("invalid scope for this access token")
+	}
+
+	return *claims, err
 }
 
 func NewRefreshToken(jwtSecret string, user *models.User) (string, error) {
@@ -89,16 +96,12 @@ func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims
 	return parsedAccessToken.Claims.(models.UserClaims), err
 }
 
-func GetUserClaims(c context.Context) (*models.UserClaims, error) {
-	// Retrieve the value from the context
-	value := c.Value(configuration.ContextUserClaimKey)
-	if value == nil {
-		return nil, fmt.Errorf("no userClaims in context")
-	}
-	// Perform type assertion
-	userClaims, ok := value.(*models.UserClaims)
+func GetUserClaims(c context.Context) (models.UserClaims, error) {
+	value, ok := c.Value(models.UserClaimKey{}).(*models.UserClaims)
+
 	if !ok {
-		return nil, fmt.Errorf("invalid type for userClaims in context")
+		return models.UserClaims{}, errors.New("invalid user claims")
 	}
-	return userClaims, nil
+
+	return *value, nil
 }

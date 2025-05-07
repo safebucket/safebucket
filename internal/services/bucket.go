@@ -32,7 +32,7 @@ type BucketService struct {
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/", handlers.GetListHandler(s.GetBucketList))
+	r.Get("/", handlers.GetListHandler(s.GetBucketList)) // TODO: check authoriz on LIST
 
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionCreate, -1)).
 		With(h.Validate[models.Bucket]).
@@ -71,8 +71,9 @@ func (s BucketService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketService) CreateBucket(user *models.UserClaims, _ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
 	//TODO: Migrate to SQL transaction
+
 	s.DB.Create(&body)
 	err := groups.InsertGroupBucketViewer(s.Enforcer, body)
 	if err != nil {
@@ -94,7 +95,7 @@ func (s BucketService) CreateBucket(user *models.UserClaims, _ uuid.UUIDs, body 
 	return body, nil
 }
 
-func (s BucketService) GetBucketList(user *models.UserClaims) []models.Bucket {
+func (s BucketService) GetBucketList(user models.UserClaims) []models.Bucket {
 	var buckets []models.Bucket
 	if !user.Valid() {
 		zap.L().Warn(fmt.Sprintf("Invalid user claims %v", user.UserID.String()))
@@ -124,7 +125,7 @@ func (s BucketService) GetBucketList(user *models.UserClaims) []models.Bucket {
 	return buckets
 }
 
-func (s BucketService) GetBucket(_ *models.UserClaims, ids uuid.UUIDs) (models.Bucket, error) {
+func (s BucketService) GetBucket(_ models.UserClaims, ids uuid.UUIDs) (models.Bucket, error) {
 	bucketId := ids[0]
 	var bucket models.Bucket
 	bucket.Files = []models.File{}
@@ -162,7 +163,7 @@ func (s BucketService) DeleteBucket(ids uuid.UUIDs) error {
 	}
 }
 
-func (s BucketService) UploadFile(_ *models.UserClaims, ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
+func (s BucketService) UploadFile(_ models.UserClaims, ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
 	bucket, err := sql.GetById[models.Bucket](s.DB, ids[0])
 	if err != nil {
 		return models.FileTransferResponse{}, err
@@ -259,7 +260,7 @@ func (s BucketService) DeleteFile(ids uuid.UUIDs) error {
 	return nil
 }
 
-func (s BucketService) DownloadFile(_ *models.UserClaims, ids uuid.UUIDs) (models.FileTransferResponse, error) {
+func (s BucketService) DownloadFile(_ models.UserClaims, ids uuid.UUIDs) (models.FileTransferResponse, error) {
 	bucketId, fileId := ids[0], ids[1]
 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)

@@ -16,3 +16,5 @@ type UserClaims struct {
 func (u *UserClaims) Valid() bool {
 	return u.UserID.String() != ""
 }
+
+type UserClaimKey struct{}

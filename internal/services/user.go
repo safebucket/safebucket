@@ -30,8 +30,8 @@ func (s UserService) Routes() chi.Router {
 	return r
 }
 
-func (s UserService) CreateUser(_ *models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
-	//TODO: Transform to SQL transaction
+func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
+	// TODO: Transform to SQL transaction
 	newUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
@@ -56,13 +56,13 @@ func (s UserService) CreateUser(_ *models.UserClaims, _ uuid.UUIDs, body models.
 	}
 }
 
-func (s UserService) GetUserList(_ *models.UserClaims) []models.User {
+func (s UserService) GetUserList(_ models.UserClaims) []models.User {
 	var users []models.User
 	s.DB.Find(&users)
 	return users
 }
 
-func (s UserService) GetUser(_ *models.UserClaims, ids uuid.UUIDs) (models.User, error) {
+func (s UserService) GetUser(_ models.UserClaims, ids uuid.UUIDs) (models.User, error) {
 	var user models.User
 	result := s.DB.Where("id = ?", ids[0]).First(&user)
 	if result.RowsAffected == 0 {
