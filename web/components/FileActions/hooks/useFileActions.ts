@@ -8,22 +8,20 @@ import {
 import { IFileActions } from "@/components/FileActions/helpers/types";
 import { FileType } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import { toast } from "@/components/common/hooks/use-toast";
+import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import { api_createFile } from "@/components/upload/helpers/api";
 
 export const useFileActions = (): IFileActions => {
   const { bucketId, path } = useBucketViewContext();
 
   const createFolder = (name: string) => {
-    api_createFile(name, FileType.folder, path, bucketId).then(async (_) => {
-      mutate(`/buckets/${bucketId}`).then(() =>
-        toast({
-          variant: "success",
-          title: "Success",
-          description: `Folder ${name} has been created.`,
-        }),
-      );
-    });
+    api_createFile(name, FileType.folder, path, bucketId)
+      .then(async (_) => {
+        mutate(`/buckets/${bucketId}`).then(() =>
+          successToast(`Folder ${name} has been created.`),
+        );
+      })
+      .catch(errorToast);
   };
 
   const downloadFile = (fileId: string, filename: string) => {
@@ -33,15 +31,13 @@ export const useFileActions = (): IFileActions => {
   };
 
   const deleteFile = (fileId: string, filename: string) => {
-    api_deleteFile(bucketId, fileId).then(async () => {
-      mutate(`/buckets/${bucketId}`).then(() =>
-        toast({
-          variant: "success",
-          title: "Success",
-          description: `File ${filename} has been deleted.`,
-        }),
-      );
-    });
+    api_deleteFile(bucketId, fileId)
+      .then(async () => {
+        mutate(`/buckets/${bucketId}`).then(() =>
+          successToast(`File ${filename} has been deleted.`),
+        );
+      })
+      .catch(errorToast);
   };
 
   return {

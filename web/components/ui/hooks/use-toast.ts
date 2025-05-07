@@ -191,4 +191,20 @@ function useToast() {
   }
 }
 
-export { useToast, toast }
+function successToast(message: string) {
+  toast({
+    variant: "success",
+    title: "Success",
+    description: message,
+  });
+}
+
+function errorToast(error: Error) {
+  toast({
+    variant: "destructive",
+    title: "Error",
+    description: error.message,
+  });
+}
+
+export { useToast, toast, successToast, errorToast }

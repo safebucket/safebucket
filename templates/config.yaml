@@ -1,11 +1,11 @@
 platform:
   api_url: http://localhost:1323
-  web_url: http://localhost:3001
+  web_url: http://localhost:3000
 
 cors:
   allowed_origins:
-    - http://127.0.0.1:3001
-    - http://localhost:3001
+    - http://127.0.0.1:3000
+    - http://localhost:3000
 
 database:
   host: localhost
@@ -25,6 +25,18 @@ storage:
   endpoint: localhost:9000
   client_id: minio-root-user
   client_secret: minio-root-password
+
+events:
+  type: jetstream
+  host: localhost
+  port: 4222
+
+mailer:
+  host: localhost
+  port: 1025
+  username: root
+  password: root
+  sender: notifications@safebucket.io
 
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA

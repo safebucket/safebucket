@@ -2,6 +2,7 @@ package services
 
 import (
 	"api/internal/configuration"
+	customerrors "api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	"api/internal/models"
@@ -51,12 +52,12 @@ func (s AuthService) Login(_ models.UserClaims, _ uuid.UUIDs, body models.AuthLo
 
 		accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser)
 		if err != nil {
-			return models.AuthLoginResponse{}, errors.New("failed to generate new access token")
+			return models.AuthLoginResponse{}, customerrors.GenerateAccessTokenFailed
 		}
 
 		refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser)
 		if err != nil {
-			return models.AuthLoginResponse{}, errors.New("failed to generate new refresh token")
+			return models.AuthLoginResponse{}, customerrors.GenerateRefreshTokenFailed
 		}
 
 		return models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
@@ -137,5 +138,15 @@ func (s AuthService) OpenIDCallback(
 		s.DB.Create(&searchUser)
 	}
 
-	return rawIDToken, oauth2Token.RefreshToken, nil
+	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser)
+	if err != nil {
+		return "", "", customerrors.GenerateAccessTokenFailed
+	}
+
+	refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser)
+	if err != nil {
+		return "", "", customerrors.GenerateRefreshTokenFailed
+	}
+
+	return accessToken, refreshToken, nil
 }

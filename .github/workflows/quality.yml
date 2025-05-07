@@ -9,11 +9,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Golangci-lint
+      - name: Run linter
         uses: golangci/golangci-lint-action@v6.1.0
         with:
           args: --timeout=2m
           working-directory: ${{ github.workspace }}
+
+      - name: Run security scanner
+        uses: securego/gosec@master
+        with:
+          args: ./...
 
       - name: Set up Go
         uses: actions/setup-go@v4

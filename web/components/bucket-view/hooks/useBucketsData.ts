@@ -8,11 +8,10 @@ import {
   IBucketsData,
   IListBuckets,
 } from "@/components/bucket-view/helpers/types";
-import { useToast } from "@/components/common/hooks/use-toast";
+import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 
 export const useBucketsData = (): IBucketsData => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
 
   const { data, error, isLoading, mutate } = useSWR(
     "/buckets",
@@ -20,15 +19,13 @@ export const useBucketsData = (): IBucketsData => {
   );
 
   const createBucket = async (name: string) => {
-    api_createBucket(name).then(() => {
-      mutate();
-      setIsDialogOpen(false);
-      toast({
-        variant: "success",
-        title: "Success",
-        description: "The bucket has been created",
-      });
-    });
+    api_createBucket(name)
+      .then(() => {
+        mutate();
+        setIsDialogOpen(false);
+        successToast("The bucket has been created");
+      })
+      .catch(errorToast);
   };
 
   return {

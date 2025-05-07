@@ -3,12 +3,14 @@ package main
 import (
 	c "api/internal/cache"
 	"api/internal/configuration"
+	"api/internal/core"
 	"api/internal/database"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
 	"api/internal/rbac/roles"
+	"api/internal/events"
 	"api/internal/services"
 	"api/internal/storage"
 	"context"
@@ -29,8 +31,11 @@ func main() {
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
 	cache := c.InitCache(config.Redis)
-
 	s3 := storage.InitStorage(config.Storage)
+	mailer := core.NewMailer(config.Mailer)
+	publisher := core.NewPublisher(config.Events, configuration.EventsNotificationsTopicName)
+	subscriber := core.NewSubscriber(config.Events)
+	messages := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)
 
 	model := rbac.GetModel()
 	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
@@ -57,6 +62,10 @@ func main() {
 
 	appIdentity := uuid.New().String()
 
+	go events.HandleNotifications(config.Platform.WebUrl, mailer, messages)
+
+
+	appIdentity := uuid.New().String()
 	go func() {
 		err := cache.StartIdentityTicker(appIdentity)
 		if err != nil {
@@ -65,7 +74,7 @@ func main() {
 	}()
 
 	r := chi.NewRouter()
-	// A good base middleware stack
+
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -83,11 +92,11 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	ctx := context.Background()
-	providers := configuration.LoadProviders(ctx, config.Platform.ApiUrl, config.Auth.Providers)
+	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 
 	r.Mount("/users", services.UserService{DB: db, E: e}.Routes())
-	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e,Publisher: &publisher}.Routes())
+
 	r.Mount("/auth", services.AuthService{
 		DB:        db,
 		JWTConf:   config.JWT,
@@ -97,7 +106,15 @@ func main() {
 
 	zap.L().Info("App started")
 
-	err := http.ListenAndServe(":1323", r)
+	server := &http.Server{
+		Addr:         ":1323",
+		Handler:      r,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  5 * time.Second,
+	}
+
+	err := server.ListenAndServe()
 	if err != nil {
 		zap.L().Error("Failed to start the app")
 	}

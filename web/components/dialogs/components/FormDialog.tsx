@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useEffect } from "react";
 
 import { FieldValues, useForm } from "react-hook-form";
 
@@ -33,7 +33,20 @@ export const FormDialog: FC<IFormDialogProps> = ({
   onOpenChange,
   confirmLabel,
 }: IFormDialogProps) => {
-  const { register, control, handleSubmit, watch, reset } = useForm();
+  const {
+    register,
+    control,
+    formState: { errors },
+    handleSubmit,
+    watch,
+    reset,
+    clearErrors,
+  } = useForm();
+
+  useEffect(() => {
+    reset();
+    clearErrors();
+  }, [open, onOpenChange, reset, clearErrors]);
 
   const values = watch();
 
@@ -62,6 +75,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
                     field={field}
                     register={register}
                     control={control}
+                    errors={errors}
                   />
                 ),
             )}

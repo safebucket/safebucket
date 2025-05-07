@@ -3,9 +3,11 @@ package services
 import (
 	c "api/internal/configuration"
 	"api/internal/errors"
+	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
+	"api/internal/messaging"
 	"api/internal/models"
 	"api/internal/rbac"
 	"api/internal/rbac/groups"
@@ -27,6 +29,7 @@ type BucketService struct {
 	DB       *gorm.DB
 	S3       *minio.Client
 	Enforcer *casbin.Enforcer
+	Publisher *messaging.IPublisher
 }
 
 func (s BucketService) Routes() chi.Router {
@@ -75,6 +78,7 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 	//TODO: Migrate to SQL transaction
 
 	s.DB.Create(&body)
+
 	err := groups.InsertGroupBucketViewer(s.Enforcer, body)
 	if err != nil {
 		return models.Bucket{}, err
@@ -92,6 +96,18 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 	if err != nil {
 		return models.Bucket{}, err
 	}
+
+	// TODO: Create events with real values
+	for _, email := range []string{"milou@safebucket.com", "remi@safebucket.com"} {
+		event := events.NewBucketSharedWith(
+			*s.Publisher,
+			body,
+			"Yohan",
+			email,
+		)
+		event.Trigger()
+	}
+
 	return body, nil
 }
 

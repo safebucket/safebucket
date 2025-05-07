@@ -3,6 +3,7 @@ import React, { FC } from "react";
 import {
   Control,
   Controller,
+  FieldErrors,
   FieldValues,
   UseFormRegister,
 } from "react-hook-form";
@@ -24,12 +25,14 @@ interface IFormFieldProps {
   field: IFormField;
   register: UseFormRegister<FieldValues>;
   control: Control;
+  errors: FieldErrors;
 }
 
 export const FormField: FC<IFormFieldProps> = ({
   field,
   register,
   control,
+  errors,
 }: IFormFieldProps) => {
   switch (field.type) {
     case "select":
@@ -79,9 +82,7 @@ export const FormField: FC<IFormFieldProps> = ({
     case "datepicker":
       return (
         <div key={field.id} className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor={field.id}>
-            {field.label}
-          </Label>
+          <Label htmlFor={field.id}>{field.label}</Label>
           <Controller
             name={field.id}
             control={control}
@@ -93,13 +94,20 @@ export const FormField: FC<IFormFieldProps> = ({
       return (
         <div key={field.id} className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor={field.id}>{field.label}</Label>
-          <Input
-            id={field.id}
-            type={field.type}
-            defaultValue={field.defaultValue as string}
-            className="col-span-3"
-            {...register(field.id, { required: field.required })}
-          />
+          <div className="col-span-3">
+            <Input
+              id={field.id}
+              type={field.type}
+              defaultValue={field.defaultValue as string}
+              {...register(field.id, { required: field.required })}
+            />
+            {errors[field.id] && (
+              <div className="mt-2 text-xs text-destructive">
+                {errors[field.id]?.message?.toString() ||
+                  `${field.label} is required`}
+              </div>
+            )}
+          </div>
         </div>
       );
   }

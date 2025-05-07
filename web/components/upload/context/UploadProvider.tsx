@@ -3,7 +3,7 @@ import React, { useReducer } from "react";
 import { mutate } from "swr";
 
 import { FileType } from "@/components/bucket-view/helpers/types";
-import { toast } from "@/components/common/hooks/use-toast";
+import { successToast } from "@/components/ui/hooks/use-toast";
 import {
   api_createFile,
   api_updateFile,
@@ -46,14 +46,9 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
             updateStatus(uploadId, status);
 
             if (success) {
-              await api_updateFile(bucketId, presignedUpload.id, { uploaded: true }).then(
-                () =>
-                  toast({
-                    variant: "success",
-                    title: "Completed",
-                    description: `Upload completed for ${file.name}`,
-                  }),
-              );
+              await api_updateFile(bucketId, presignedUpload.id, {
+                uploaded: true,
+              }).then(() => successToast(`Upload completed for ${file.name}`));
             }
           },
         );
