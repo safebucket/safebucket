@@ -73,13 +73,11 @@ func main() {
 
 	r := chi.NewRouter()
 
-	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(middleware.Timeout(5 * time.Second))
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-
-	r.Use(m.Authenticate(config.JWT))
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   config.Cors.AllowedOrigins,
@@ -89,6 +87,8 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	r.Use(m.Authenticate(config.JWT))
 
 	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 
