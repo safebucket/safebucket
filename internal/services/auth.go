@@ -5,6 +5,7 @@ import (
 	customerrors "api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
+	"api/internal/middlewares"
 	"api/internal/models"
 	"context"
 	"errors"
@@ -26,10 +27,10 @@ type AuthService struct {
 
 func (s AuthService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.With(h.Validate[models.AuthLogin]).Post("/login", handlers.CreateHandler(s.Login))
+	r.With(middlewares.Validate[models.AuthLogin]).Post("/login", handlers.CreateHandler(s.Login))
 	// TODO: MFA / ResetPassword / ResetTokens / IsAdmin (:= get user)
-	r.With(h.Validate[models.AuthVerify]).Post("/verify", handlers.CreateHandler(s.Verify))
-	r.With(h.Validate[models.AuthVerify]).Post("/refresh", handlers.CreateHandler(s.Refresh))
+	r.With(middlewares.Validate[models.AuthVerify]).Post("/verify", handlers.CreateHandler(s.Verify))
+	r.With(middlewares.Validate[models.AuthVerify]).Post("/refresh", handlers.CreateHandler(s.Refresh))
 
 	r.Route("/providers", func(r chi.Router) {
 		r.Get("/", handlers.GetListHandler(s.GetProviderList))

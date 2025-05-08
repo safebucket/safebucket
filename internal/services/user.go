@@ -27,7 +27,7 @@ func (s UserService) Routes() chi.Router {
 		Get("/", handlers.GetListHandler(s.GetUserList))
 
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionCreate, -1)).
-		With(h.Validate[models.UserCreateBody]).Post("/", handlers.CreateHandler(s.CreateUser))
+		With(m.Validate[models.UserCreateBody]).Post("/", handlers.CreateHandler(s.CreateUser))
 
 	r.Route("/{id0}", func(r chi.Router) {
 
@@ -35,7 +35,7 @@ func (s UserService) Routes() chi.Router {
 			Get("/", handlers.GetOneHandler(s.GetUser))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionUpdate, 0)).
-			With(h.Validate[models.UserUpdateBody]).Patch("/", handlers.UpdateHandler(s.UpdateUser))
+			With(m.Validate[models.UserUpdateBody]).Patch("/", handlers.UpdateHandler(s.UpdateUser))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionDelete, 0)).
 			Delete("/", handlers.DeleteHandler(s.DeleteUser))

@@ -1,4 +1,4 @@
-package helpers
+package middlewares
 
 import (
 	"api/internal/models"

@@ -5,7 +5,6 @@ import (
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
-	h "api/internal/helpers"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
@@ -39,7 +38,7 @@ func (s BucketService) Routes() chi.Router {
 		Get("/", handlers.GetListHandler(s.GetBucketList))
 
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionCreate, -1)).
-		With(h.Validate[models.Bucket]).
+		With(m.Validate[models.Bucket]).
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id0}", func(r chi.Router) {
@@ -47,22 +46,22 @@ func (s BucketService) Routes() chi.Router {
 			Get("/", handlers.GetOneHandler(s.GetBucket))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpdate, 0)).
-			With(h.Validate[models.Bucket]).
+			With(m.Validate[models.Bucket]).
 			Patch("/", handlers.UpdateHandler(s.UpdateBucket))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDelete, 0)).
 			Delete("/", handlers.DeleteHandler(s.DeleteBucket))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDelete, 0)).
-			With(h.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+			With(m.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
-			With(h.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+			With(m.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
 
 		r.Route("/files/{id1}", func(r chi.Router) {
 
 			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
-				With(h.Validate[models.UpdateFileBody]).
+				With(m.Validate[models.UpdateFileBody]).
 				Patch("/", handlers.UpdateHandler(s.UpdateFile))
 
 			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionErase, 0)).
