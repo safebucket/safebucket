@@ -33,7 +33,7 @@ func NewAccessToken(jwtSecret string, user *models.User) (string, error) {
 		Issuer: "safebucket",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * 10)}, // TODO: make it configurable
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * 60)}, // TODO: make it configurable
 		},
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -90,6 +90,7 @@ func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims
 			return []byte(jwtSecret), nil
 		},
 	)
+
 	if parsedAccessToken.Claims.(models.UserClaims).Aud != "auth:refresh" {
 		return models.UserClaims{}, errors.New("invalid refresh token")
 	}
@@ -97,11 +98,9 @@ func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims
 }
 
 func GetUserClaims(c context.Context) (models.UserClaims, error) {
-	value, ok := c.Value(models.UserClaimKey{}).(*models.UserClaims)
-
+	value, ok := c.Value(models.UserClaimKey{}).(models.UserClaims)
 	if !ok {
 		return models.UserClaims{}, errors.New("invalid user claims")
 	}
-
-	return *value, nil
+	return value, nil
 }

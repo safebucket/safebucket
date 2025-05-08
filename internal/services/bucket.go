@@ -127,7 +127,6 @@ func (s BucketService) GetBucketList(user models.UserClaims) []models.Bucket {
 	var bucketIDs []string
 
 	for _, role := range roles {
-
 		policies, _ := s.Enforcer.GetFilteredPolicy(0, c.DefaultDomain,
 			role,
 			rbac.ResourceBucket.String(),

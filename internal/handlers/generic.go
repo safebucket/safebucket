@@ -34,7 +34,7 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 
 func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		claims, _ := h.GetUserClaims(r.Context())
+		claims, _ := h.GetUserClaims(r.Context()) // todo: check error
 		records := getList(claims)
 		page := models.Page[Out]{Data: records}
 		h.RespondWithJSON(w, http.StatusOK, page)
