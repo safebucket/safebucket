@@ -6,8 +6,8 @@ import (
 	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
-	m "api/internal/middlewares"
 	"api/internal/messaging"
+	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
 	"api/internal/rbac/groups"
@@ -26,16 +26,17 @@ import (
 )
 
 type BucketService struct {
-	DB       *gorm.DB
-	S3       *minio.Client
-	Enforcer *casbin.Enforcer
+	DB        *gorm.DB
+	S3        *minio.Client
+	Enforcer  *casbin.Enforcer
 	Publisher *messaging.IPublisher
 }
 
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/", handlers.GetListHandler(s.GetBucketList)) // TODO: check authoriz on LIST
+	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionList, 0)).
+		Get("/", handlers.GetListHandler(s.GetBucketList))
 
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionCreate, -1)).
 		With(h.Validate[models.Bucket]).
