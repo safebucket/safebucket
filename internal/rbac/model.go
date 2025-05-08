@@ -34,7 +34,7 @@ g = _, _, _
 e = some(where (p.eft == allow))
 
 [matchers]
-m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && r.obj_type == p.obj_type && r.obj == p.obj && keyMatch(r.act, p.act)
+m = g(r.sub, p.sub, r.dom) && r.dom == p.dom && keyMatch(r.obj_type, p.obj_type) && r.obj == p.obj && keyMatch(r.act, p.act)
 `
 	m, err := model.NewModelFromString(data)
 	if err != nil {

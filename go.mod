@@ -6,14 +6,14 @@ require (
 	github.com/ThreeDotsLabs/watermill v1.4.1
 	github.com/ThreeDotsLabs/watermill-nats/v2 v2.1.2
 	github.com/alexedwards/argon2id v1.0.0
-	github.com/casbin/casbin/v2 v2.103.0
+	github.com/casbin/casbin/v2 v2.105.0
 	github.com/casbin/gorm-adapter/v3 v3.32.0
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-chi/cors v1.2.1
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.22.0
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/minio/minio-go/v7 v7.0.78
 	github.com/nats-io/nats.go v1.37.0
@@ -22,6 +22,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/oauth2 v0.21.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gorm.io/driver/postgres v1.5.9
 	gorm.io/gorm v1.25.12
 )
@@ -84,7 +85,6 @@ require (
 	golang.org/x/text v0.19.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
-	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/mysql v1.5.7 // indirect
