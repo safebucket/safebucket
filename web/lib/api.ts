@@ -1,3 +1,5 @@
+import Cookies from "js-cookie";
+
 type RequestOptions = {
   method?: string;
   headers?: Record<string, string>;
@@ -43,13 +45,15 @@ export async function fetchApi<T>(
     params,
   );
 
+  const token = Cookies.get("safebucket_access_token");
+
   const response = await fetch(fullUrl, {
     method,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
       ...headers,
-      // ...(cookie ? { Cookie: cookie } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
     // credentials: "include",
