@@ -35,7 +35,7 @@ type BucketService struct {
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionList, 0)).
+	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionList, -1)).
 		Get("/", handlers.GetListHandler(s.GetBucketList))
 
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionCreate, -1)).
