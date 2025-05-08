@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"api/internal/helpers"
+	h "api/internal/helpers"
 	"context"
 	"encoding/json"
 	"github.com/go-playground/validator/v10"
@@ -27,7 +27,7 @@ func Validate[T any](next http.Handler) http.Handler {
 		err := json.NewDecoder(r.Body).Decode(&data)
 		if err != nil {
 			zap.L().Error("failed to decode body", zap.Error(err))
-			helpers.RespondWithError(w, 400, []string{"failed to decode body"})
+			h.RespondWithError(w, 400, []string{"failed to decode body"})
 			return
 		}
 
@@ -40,7 +40,7 @@ func Validate[T any](next http.Handler) http.Handler {
 			for _, err := range err.(validator.ValidationErrors) {
 				strErrors = append(strErrors, err.Error())
 			}
-			helpers.RespondWithError(w, 400, strErrors)
+			h.RespondWithError(w, 400, strErrors)
 			return
 		}
 

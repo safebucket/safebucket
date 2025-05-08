@@ -3,7 +3,7 @@ package handlers
 import (
 	customErr "api/internal/errors"
 	h "api/internal/helpers"
-	"api/internal/middlewares"
+	m "api/internal/middlewares"
 	"api/internal/models"
 	"errors"
 	"github.com/google/uuid"
@@ -23,7 +23,7 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 			return
 		}
 		claims, _ := h.GetUserClaims(r.Context())
-		resp, err := create(claims, ids, r.Context().Value(middlewares.BodyKey{}).(In))
+		resp, err := create(claims, ids, r.Context().Value(m.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusBadRequest, strErrors)
@@ -67,7 +67,7 @@ func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.Handl
 			return
 		}
 
-		_, err := update(ids, r.Context().Value(middlewares.BodyKey{}).(In))
+		_, err := update(ids, r.Context().Value(m.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 
