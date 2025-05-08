@@ -206,7 +206,7 @@ func (s BucketService) UploadFile(_ models.UserClaims, ids uuid.UUIDs, body mode
 	}
 
 	policy := minio.NewPostPolicy()
-	_ = policy.SetBucket("safebucket")
+	_ = policy.SetBucket("safebucket") //TODO: set var
 	_ = policy.SetKey(path.Join("/buckets", bucket.ID.String(), file.Path, file.Name))
 	_ = policy.SetContentLengthRange(int64(body.Size), int64(body.Size))
 	_ = policy.SetExpires(time.Now().UTC().Add(15 * time.Minute))

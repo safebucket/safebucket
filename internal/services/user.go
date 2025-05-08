@@ -3,7 +3,9 @@ package services
 import (
 	"api/internal/handlers"
 	h "api/internal/helpers"
+	m "api/internal/middlewares"
 	"api/internal/models"
+	"api/internal/rbac"
 	"api/internal/rbac/roles"
 	"errors"
 	"github.com/casbin/casbin/v2"
@@ -14,24 +16,36 @@ import (
 )
 
 type UserService struct {
-	DB *gorm.DB
-	E  *casbin.Enforcer
+	DB       *gorm.DB
+	Enforcer *casbin.Enforcer
 }
 
 func (s UserService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", handlers.GetListHandler(s.GetUserList))
-	r.With(h.Validate[models.UserCreateBody]).Post("/", handlers.CreateHandler(s.CreateUser))
+
+	r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionList, -1)).
+		Get("/", handlers.GetListHandler(s.GetUserList))
+
+	r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionCreate, -1)).
+		With(h.Validate[models.UserCreateBody]).Post("/", handlers.CreateHandler(s.CreateUser))
+
 	r.Route("/{id0}", func(r chi.Router) {
-		r.Get("/", handlers.GetOneHandler(s.GetUser))
-		r.With(h.Validate[models.UserUpdateBody]).Patch("/", handlers.UpdateHandler(s.UpdateUser))
-		r.Delete("/", handlers.DeleteHandler(s.DeleteUser))
+
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionRead, 0)).
+			Get("/", handlers.GetOneHandler(s.GetUser))
+
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionUpdate, 0)).
+			With(h.Validate[models.UserUpdateBody]).Patch("/", handlers.UpdateHandler(s.UpdateUser))
+
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionDelete, 0)).
+			Delete("/", handlers.DeleteHandler(s.DeleteUser))
 	})
 	return r
 }
 
 func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
 	// TODO: Transform to SQL transaction
+
 	newUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
@@ -45,15 +59,23 @@ func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.U
 		}
 		newUser.HashedPassword = hash
 		s.DB.Create(&newUser)
-		err = roles.AddUserToRoleUser(s.E, newUser)
+		err = roles.AddUserToRoleUser(s.Enforcer, newUser)
 		if err != nil {
 			zap.L().Error("can not add user to role user", zap.Error(err))
 			return models.User{}, err
 		}
+
+		err = roles.AllowUserToSelfModify(s.Enforcer, newUser)
+
+		if err != nil {
+			return models.User{}, err
+		}
+
 		return newUser, nil
 	} else {
 		return models.User{}, errors.New("user already exists, try to reset your password")
 	}
+
 }
 
 func (s UserService) GetUserList(_ models.UserClaims) []models.User {
