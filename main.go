@@ -5,12 +5,12 @@ import (
 	"api/internal/configuration"
 	"api/internal/core"
 	"api/internal/database"
+	"api/internal/events"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
 	"api/internal/rbac/roles"
-	"api/internal/events"
 	"api/internal/services"
 	"api/internal/storage"
 	"context"
@@ -64,8 +64,6 @@ func main() {
 
 	go events.HandleNotifications(config.Platform.WebUrl, mailer, messages)
 
-
-	appIdentity := uuid.New().String()
 	go func() {
 		err := cache.StartIdentityTicker(appIdentity)
 		if err != nil {
@@ -95,7 +93,7 @@ func main() {
 	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 
 	r.Mount("/users", services.UserService{DB: db, E: e}.Routes())
-	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e,Publisher: &publisher}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e, Publisher: &publisher}.Routes())
 
 	r.Mount("/auth", services.AuthService{
 		DB:        db,
