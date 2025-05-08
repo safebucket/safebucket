@@ -5,10 +5,17 @@ import (
 	"api/internal/configuration"
 	"api/internal/core"
 	"api/internal/database"
+	h "api/internal/helpers"
+	m "api/internal/middlewares"
+	"api/internal/models"
+	"api/internal/rbac"
+	"api/internal/rbac/roles"
 	"api/internal/events"
 	"api/internal/services"
 	"api/internal/storage"
 	"context"
+	"github.com/casbin/casbin/v2"
+	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -30,7 +37,33 @@ func main() {
 	subscriber := core.NewSubscriber(config.Events)
 	messages := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)
 
+	model := rbac.GetModel()
+	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
+	e, _ := casbin.NewEnforcer(model, a)
+
+	_ = roles.InsertRoleGuest(e)
+	_ = roles.InsertRoleUser(e)
+	_ = roles.InsertRoleAdmin(e)
+
+	// TODO: Create a dedicated fct
+
+	adminUser := models.User{
+		FirstName: "admin",
+		LastName:  "admin",
+		Email:     config.Admin.Username,
+	}
+
+	hash, _ := h.CreateHash(config.Admin.Password)
+	adminUser.HashedPassword = hash
+	db.Create(&adminUser)
+	_ = roles.AddUserToRoleAdmin(e, adminUser)
+
+	//
+
+	appIdentity := uuid.New().String()
+
 	go events.HandleNotifications(config.Platform.WebUrl, mailer, messages)
+
 
 	appIdentity := uuid.New().String()
 	go func() {
@@ -48,6 +81,8 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	r.Use(m.Authenticate(config.JWT))
+
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   config.Cors.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE"},
@@ -59,8 +94,8 @@ func main() {
 
 	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 
-	r.Mount("/users", services.UserService{DB: db}.Routes())
-	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Publisher: &publisher}.Routes())
+	r.Mount("/users", services.UserService{DB: db, E: e}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e,Publisher: &publisher}.Routes())
 
 	r.Mount("/auth", services.AuthService{
 		DB:        db,

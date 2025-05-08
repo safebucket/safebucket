@@ -8,8 +8,10 @@ type Configuration struct {
 	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required,dive"`
 	Redis    RedisConfiguration    `json:"redis" validate:"required,dive"`
 	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required,dive"`
+	Admin    AdminConfiguration    `mapstructure:"admin" validate:"required,dive"`
 	Events   EventsConfiguration   `mapstructure:"events" validate:"required,dive"`
 	Mailer   MailerConfiguration   `mapstructure:"mailer" validate:"required,dive"`
+
 }
 
 type PlatformConfiguration struct {
@@ -57,6 +59,10 @@ type StorageConfiguration struct {
 	ClientSecret string `mapstructure:"client_secret" validate:"required"`
 }
 
+type AdminConfiguration struct {
+	Username string `mapstructure:"username" validate:"required"`
+	Password string `mapstructure:"password" validate:"required"`
+
 type EventsConfiguration struct {
 	Type string `mapstructure:"type" validate:"required"`
 	Host string `mapstructure:"host" validate:"required"`
@@ -69,4 +75,5 @@ type MailerConfiguration struct {
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
 	Sender   string `mapstructure:"sender" validate:"required"`
+
 }

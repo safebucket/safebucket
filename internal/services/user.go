@@ -4,14 +4,18 @@ import (
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	"api/internal/models"
+	"api/internal/rbac/roles"
 	"errors"
+	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type UserService struct {
 	DB *gorm.DB
+	E  *casbin.Enforcer
 }
 
 func (s UserService) Routes() chi.Router {
@@ -26,7 +30,8 @@ func (s UserService) Routes() chi.Router {
 	return r
 }
 
-func (s UserService) CreateUser(_ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
+func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
+	// TODO: Transform to SQL transaction
 	newUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
@@ -40,20 +45,24 @@ func (s UserService) CreateUser(_ uuid.UUIDs, body models.UserCreateBody) (model
 		}
 		newUser.HashedPassword = hash
 		s.DB.Create(&newUser)
-
+		err = roles.AddUserToRoleUser(s.E, newUser)
+		if err != nil {
+			zap.L().Error("can not add user to role user", zap.Error(err))
+			return models.User{}, err
+		}
 		return newUser, nil
 	} else {
 		return models.User{}, errors.New("user already exists, try to reset your password")
 	}
 }
 
-func (s UserService) GetUserList() []models.User {
+func (s UserService) GetUserList(_ models.UserClaims) []models.User {
 	var users []models.User
 	s.DB.Find(&users)
 	return users
 }
 
-func (s UserService) GetUser(ids uuid.UUIDs) (models.User, error) {
+func (s UserService) GetUser(_ models.UserClaims, ids uuid.UUIDs) (models.User, error) {
 	var user models.User
 	result := s.DB.Where("id = ?", ids[0]).First(&user)
 	if result.RowsAffected == 0 {

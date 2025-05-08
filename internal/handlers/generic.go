@@ -9,9 +9,9 @@ import (
 	"net/http"
 )
 
-type CreateTargetFunc[In any, Out any] func(uuid.UUIDs, In) (Out, error)
-type ListTargetFunc[Out any] func() []Out
-type GetOneTargetFunc[Out any] func(uuid.UUIDs) (Out, error)
+type CreateTargetFunc[In any, Out any] func(models.UserClaims, uuid.UUIDs, In) (Out, error)
+type ListTargetFunc[Out any] func(models.UserClaims) []Out
+type GetOneTargetFunc[Out any] func(models.UserClaims, uuid.UUIDs) (Out, error)
 type UpdateTargetFunc[In any, Out any] func(uuid.UUIDs, In) (Out, error)
 type DeleteTargetFunc func(uuid.UUIDs) error
 
@@ -21,8 +21,8 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 		if !ok {
 			return
 		}
-
-		resp, err := create(ids, r.Context().Value(h.BodyKey{}).(In))
+		claims, _ := h.GetUserClaims(r.Context())
+		resp, err := create(claims, ids, r.Context().Value(h.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusBadRequest, strErrors)
@@ -34,7 +34,8 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 
 func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		records := getList()
+		claims, _ := h.GetUserClaims(r.Context())
+		records := getList(claims)
 		page := models.Page[Out]{Data: records}
 		h.RespondWithJSON(w, http.StatusOK, page)
 	}
@@ -47,7 +48,8 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 			return
 		}
 
-		record, err := getOne(ids)
+		claims, _ := h.GetUserClaims(r.Context())
+		record, err := getOne(claims, ids)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)

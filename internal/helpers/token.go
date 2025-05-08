@@ -2,9 +2,11 @@ package helpers
 
 import (
 	"api/internal/models"
+	"context"
 	"errors"
 	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"
+	"strings"
 	"time"
 )
 
@@ -26,8 +28,9 @@ func CreateHash(password string) (string, error) {
 func NewAccessToken(jwtSecret string, user *models.User) (string, error) {
 	claims := models.UserClaims{
 		Email:  user.Email,
+		UserID: user.ID,
 		Aud:    "app:*", // Todo: make it a list ==> delete aud
-		Issuer: "SafeBucket",
+		Issuer: "safebucket",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * 10)}, // TODO: make it configurable
@@ -37,23 +40,37 @@ func NewAccessToken(jwtSecret string, user *models.User) (string, error) {
 	return accessToken.SignedString([]byte(jwtSecret))
 }
 
-func ParseAccessToken(jwtSecret string, accessToken string) (*models.UserClaims, error) {
-	parsedAccessToken, err := jwt.ParseWithClaims(
+func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, error) {
+	if !strings.HasPrefix(accessToken, "Bearer ") {
+		return models.UserClaims{}, errors.New("invalid access token")
+	}
+	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
+
+	claims := &models.UserClaims{}
+
+	_, err := jwt.ParseWithClaims(
 		accessToken,
-		&models.UserClaims{},
+		claims,
 		func(token *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
 		},
 	)
-	if parsedAccessToken.Claims.(*models.UserClaims).Aud != "app:*" {
-		return &models.UserClaims{}, errors.New("invalid access token")
+
+	if err != nil {
+		return models.UserClaims{}, errors.New("invalid access token")
 	}
-	return parsedAccessToken.Claims.(*models.UserClaims), err
+
+	if claims.Aud != "app:*" {
+		return models.UserClaims{}, errors.New("invalid scope for this access token")
+	}
+
+	return *claims, err
 }
 
 func NewRefreshToken(jwtSecret string, user *models.User) (string, error) {
 	claims := models.UserClaims{
 		Email:  user.Email,
+		UserID: user.ID,
 		Aud:    "auth:refresh",
 		Issuer: "SafeBucket",
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -77,4 +94,14 @@ func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims
 		return models.UserClaims{}, errors.New("invalid refresh token")
 	}
 	return parsedAccessToken.Claims.(models.UserClaims), err
+}
+
+func GetUserClaims(c context.Context) (models.UserClaims, error) {
+	value, ok := c.Value(models.UserClaimKey{}).(*models.UserClaims)
+
+	if !ok {
+		return models.UserClaims{}, errors.New("invalid user claims")
+	}
+
+	return *value, nil
 }

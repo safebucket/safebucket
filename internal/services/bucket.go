@@ -1,14 +1,20 @@
 package services
 
 import (
+	c "api/internal/configuration"
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
+	m "api/internal/middlewares"
 	"api/internal/messaging"
 	"api/internal/models"
+	"api/internal/rbac"
+	"api/internal/rbac/groups"
 	"api/internal/sql"
 	"context"
+	"fmt"
+	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
@@ -20,33 +26,77 @@ import (
 )
 
 type BucketService struct {
-	DB        *gorm.DB
-	S3        *minio.Client
+	DB       *gorm.DB
+	S3       *minio.Client
+	Enforcer *casbin.Enforcer
 	Publisher *messaging.IPublisher
 }
 
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.Get("/", handlers.GetListHandler(s.GetBucketList))
-	r.With(h.Validate[models.Bucket]).Post("/", handlers.CreateHandler(s.CreateBucket))
+
+	r.Get("/", handlers.GetListHandler(s.GetBucketList)) // TODO: check authoriz on LIST
+
+	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionCreate, -1)).
+		With(h.Validate[models.Bucket]).
+		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id0}", func(r chi.Router) {
-		r.Get("/", handlers.GetOneHandler(s.GetBucket))
-		r.With(h.Validate[models.Bucket]).Patch("/", handlers.UpdateHandler(s.UpdateBucket))
-		r.Delete("/", handlers.DeleteHandler(s.DeleteBucket))
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+			Get("/", handlers.GetOneHandler(s.GetBucket))
 
-		r.With(h.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpdate, 0)).
+			With(h.Validate[models.Bucket]).
+			Patch("/", handlers.UpdateHandler(s.UpdateBucket))
+
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDelete, 0)).
+			Delete("/", handlers.DeleteHandler(s.DeleteBucket))
+
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDelete, 0)).
+			With(h.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
+			With(h.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+
 		r.Route("/files/{id1}", func(r chi.Router) {
-			r.With(h.Validate[models.UpdateFileBody]).Patch("/", handlers.UpdateHandler(s.UpdateFile))
-			r.Delete("/", handlers.DeleteHandler(s.DeleteFile))
-			r.Get("/download", handlers.GetOneHandler(s.DownloadFile))
+
+			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
+				With(h.Validate[models.UpdateFileBody]).
+				Patch("/", handlers.UpdateHandler(s.UpdateFile))
+
+			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionErase, 0)).
+				Delete("/", handlers.DeleteHandler(s.DeleteFile))
+
+			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDownload, 0)).
+				Get("/download", handlers.GetOneHandler(s.DownloadFile))
 		})
 	})
 	return r
 }
 
-func (s BucketService) CreateBucket(_ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+	//TODO: Migrate to SQL transaction
+
 	s.DB.Create(&body)
+
+	err := groups.InsertGroupBucketViewer(s.Enforcer, body)
+	if err != nil {
+		return models.Bucket{}, err
+	}
+	err = groups.InsertGroupBucketContributor(s.Enforcer, body)
+	if err != nil {
+		return models.Bucket{}, err
+	}
+	err = groups.InsertGroupBucketOwner(s.Enforcer, body)
+	if err != nil {
+		return models.Bucket{}, err
+	}
+
+	err = groups.AddUserToOwners(s.Enforcer, body, user)
+	if err != nil {
+		return models.Bucket{}, err
+	}
+
 	// TODO: Create events with real values
 	for _, email := range []string{"milou@safebucket.com", "remi@safebucket.com"} {
 		event := events.NewBucketSharedWith(
@@ -61,13 +111,37 @@ func (s BucketService) CreateBucket(_ uuid.UUIDs, body models.Bucket) (models.Bu
 	return body, nil
 }
 
-func (s BucketService) GetBucketList() []models.Bucket {
+func (s BucketService) GetBucketList(user models.UserClaims) []models.Bucket {
 	var buckets []models.Bucket
-	s.DB.Find(&buckets)
+	if !user.Valid() {
+		zap.L().Warn(fmt.Sprintf("Invalid user claims %v", user.UserID.String()))
+		return []models.Bucket{}
+	}
+	roles, err := s.Enforcer.GetImplicitRolesForUser(user.UserID.String(), c.DefaultDomain)
+	if err != nil {
+		zap.L().Warn(fmt.Sprintf("Error retrieving roles %v", user.UserID.String()))
+		return []models.Bucket{}
+	}
+
+	var bucketIDs []string
+
+	for _, role := range roles {
+
+		policies, _ := s.Enforcer.GetFilteredPolicy(0, c.DefaultDomain,
+			role,
+			rbac.ResourceBucket.String(),
+			"",
+			rbac.ActionRead.String())
+
+		for _, policy := range policies {
+			bucketIDs = append(bucketIDs, policy[3])
+		}
+	}
+	_ = s.DB.Model(&models.Bucket{}).Where("id IN ?", bucketIDs).Find(&buckets) // Todo: cache result
 	return buckets
 }
 
-func (s BucketService) GetBucket(ids uuid.UUIDs) (models.Bucket, error) {
+func (s BucketService) GetBucket(_ models.UserClaims, ids uuid.UUIDs) (models.Bucket, error) {
 	bucketId := ids[0]
 	var bucket models.Bucket
 	bucket.Files = []models.File{}
@@ -82,7 +156,6 @@ func (s BucketService) GetBucket(ids uuid.UUIDs) (models.Bucket, error) {
 		if result.RowsAffected > 0 {
 			bucket.Files = files
 		}
-
 		return bucket, nil
 	}
 }
@@ -106,7 +179,7 @@ func (s BucketService) DeleteBucket(ids uuid.UUIDs) error {
 	}
 }
 
-func (s BucketService) UploadFile(ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
+func (s BucketService) UploadFile(_ models.UserClaims, ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
 	bucket, err := sql.GetById[models.Bucket](s.DB, ids[0])
 	if err != nil {
 		return models.FileTransferResponse{}, err
@@ -203,7 +276,7 @@ func (s BucketService) DeleteFile(ids uuid.UUIDs) error {
 	return nil
 }
 
-func (s BucketService) DownloadFile(ids uuid.UUIDs) (models.FileTransferResponse, error) {
+func (s BucketService) DownloadFile(_ models.UserClaims, ids uuid.UUIDs) (models.FileTransferResponse, error) {
 	bucketId, fileId := ids[0], ids[1]
 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)
