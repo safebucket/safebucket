@@ -92,7 +92,7 @@ func main() {
 
 	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 
-	r.Mount("/users", services.UserService{DB: db, E: e}.Routes())
+	r.Mount("/users", services.UserService{DB: db, Enforcer: e}.Routes())
 	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e, Publisher: &publisher}.Routes())
 
 	r.Mount("/auth", services.AuthService{
