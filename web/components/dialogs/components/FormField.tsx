@@ -1,12 +1,24 @@
 import React, { FC } from "react";
 
-import { Control, Controller, FieldValues, UseFormRegister } from "react-hook-form";
+import {
+  Control,
+  Controller,
+  FieldErrors,
+  FieldValues,
+  UseFormRegister,
+} from "react-hook-form";
 
 import { Datepicker } from "@/components/common/components/Datepicker";
 import { IFormField } from "@/components/dialogs/helpers/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
 interface IFormFieldProps {
@@ -17,11 +29,11 @@ interface IFormFieldProps {
 }
 
 export const FormField: FC<IFormFieldProps> = ({
-                                                 field,
-                                                 register,
-                                                 control,
-                                               }: IFormFieldProps) => {
+  field,
+  register,
+  control,
   errors,
+}: IFormFieldProps) => {
   switch (field.type) {
     case "select":
       return (
