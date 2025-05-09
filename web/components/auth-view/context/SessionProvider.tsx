@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
+import { api, fetchApi } from "@/lib/api";
 import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
 import { SubmitHandler, useForm } from "react-hook-form";
 
 import { SessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import {
+  IJWTPayload,
   ILoginForm,
   ILoginResponse,
+  IUser,
   Session,
   Status,
 } from "@/components/auth-view/types/session";
@@ -19,6 +22,7 @@ export const SessionProvider = ({
   children: React.ReactNode;
 }) => {
   const router = useRouter();
+
   const [accessToken, setAccessToken] = useState(
     Cookies.get("safebucket_access_token"),
   );
@@ -36,11 +40,17 @@ export const SessionProvider = ({
   useEffect(() => {
     setStatus("loading");
     if (accessToken && authProvider) {
-      setSession({
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        authProvider: authProvider,
-      });
+      const decoded = jwtDecode<IJWTPayload>(accessToken);
+
+      fetchApi<IUser>(`/users/${decoded.user_id}`).then((res) =>
+        setSession({
+          loggedUser: res,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+          authProvider: authProvider,
+        }),
+      );
+
       setStatus("authenticated");
     } else {
       setSession(null);
