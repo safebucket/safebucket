@@ -102,13 +102,12 @@ export const FormField: FC<IFormFieldProps> = ({
           <Label htmlFor={field.id} className="col-span-2">
             {field.label}
           </Label>
-          <div className="col-span-3">
+          <div className="col-span-10">
             <Input
               id={field.id}
               type={field.type}
               placeholder={field.placeholder}
               defaultValue={field.defaultValue as string}
-              className="col-span-10"
               {...register(field.id, { required: field.required })}
             />
             {errors[field.id] && (

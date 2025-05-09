@@ -38,7 +38,7 @@ func (s BucketService) Routes() chi.Router {
 		Get("/", handlers.GetListHandler(s.GetBucketList))
 
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionCreate, -1)).
-		With(m.Validate[models.Bucket]).
+		With(m.Validate[models.BucketCreateBody]).
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id0}", func(r chi.Router) {
@@ -74,41 +74,55 @@ func (s BucketService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateBody) (models.Bucket, error) {
 	//TODO: Migrate to SQL transaction
+	newBucket := models.Bucket{Name: body.Name}
+	s.DB.Create(&newBucket)
 
-	s.DB.Create(&body)
-
-	err := groups.InsertGroupBucketViewer(s.Enforcer, body)
+	err := groups.InsertGroupBucketViewer(s.Enforcer, newBucket)
 	if err != nil {
 		return models.Bucket{}, err
 	}
-	err = groups.InsertGroupBucketContributor(s.Enforcer, body)
+	err = groups.InsertGroupBucketContributor(s.Enforcer, newBucket)
 	if err != nil {
 		return models.Bucket{}, err
 	}
-	err = groups.InsertGroupBucketOwner(s.Enforcer, body)
-	if err != nil {
-		return models.Bucket{}, err
-	}
-
-	err = groups.AddUserToOwners(s.Enforcer, body, user)
+	err = groups.InsertGroupBucketOwner(s.Enforcer, newBucket)
 	if err != nil {
 		return models.Bucket{}, err
 	}
 
-	// TODO: Create events with real values
-	for _, email := range []string{"milou@safebucket.com", "remi@safebucket.com"} {
-		event := events.NewBucketSharedWith(
-			*s.Publisher,
-			body,
-			"Yohan",
-			email,
-		)
-		event.Trigger()
+	err = groups.AddUserToOwners(s.Enforcer, newBucket, user.UserID.String())
+	if err != nil {
+		return models.Bucket{}, err
 	}
 
-	return body, nil
+	for _, shareWith := range body.ShareWith {
+		var shareWithUser models.User
+
+		result := s.DB.Where("email = ?", shareWith.Email).First(&shareWithUser)
+
+		if result.RowsAffected > 0 {
+			switch shareWith.Group {
+			case "viewer":
+				err = groups.AddUserToViewers(s.Enforcer, newBucket, shareWithUser.ID.String())
+			case "contributor":
+				err = groups.AddUserToContributors(s.Enforcer, newBucket, shareWithUser.ID.String())
+			case "owner":
+				err = groups.AddUserToOwners(s.Enforcer, newBucket, shareWithUser.ID.String())
+			}
+
+			event := events.NewBucketSharedWith(
+				*s.Publisher,
+				newBucket,
+				user.Email,
+				shareWith.Email,
+			)
+			event.Trigger()
+		}
+	}
+
+	return newBucket, nil
 }
 
 func (s BucketService) GetBucketList(user models.UserClaims) []models.Bucket {

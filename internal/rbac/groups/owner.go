@@ -21,8 +21,8 @@ func GetDefaultOwnerBucketPolicies(bucket models.Bucket) [][]string {
 	}
 }
 
-func AddUserToOwners(e *casbin.Enforcer, bucket models.Bucket, claims models.UserClaims) error {
-	_, err := e.AddGroupingPolicy(claims.UserID.String(), GetBucketOwnerGroup(bucket), c.DefaultDomain)
+func AddUserToOwners(e *casbin.Enforcer, bucket models.Bucket, userId string) error {
+	_, err := e.AddGroupingPolicy(userId, GetBucketOwnerGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		zap.L().Error("Failed to add user to owners", zap.Error(err))
 		return err

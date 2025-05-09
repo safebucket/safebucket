@@ -62,7 +62,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 
-const roles = [
+const bucketGroups = [
   { id: "viewer", name: "Viewer", description: "Can view and download files" },
   {
     id: "contributor",
@@ -89,14 +89,14 @@ export const AppSidebar: FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (emailRegex.test(email) && !shareWith.find((e) => e.email === email)) {
-      setShareWith([...shareWith, { email: email, role: "viewer" }]);
+      setShareWith([...shareWith, { email: email, group: "viewer" }]);
       setEmail("");
     }
   };
 
-  const setRole = (email: string, roleId: string) => {
+  const setGroup = (email: string, groupId: string) => {
     const updated = shareWith.map((obj) =>
-      obj.email === email ? { ...obj, role: roleId } : obj,
+      obj.email === email ? { ...obj, group: groupId } : obj,
     );
     setShareWith(updated);
   };
@@ -163,7 +163,7 @@ export const AppSidebar: FC = () => {
                   ]}
                   onSubmit={(data) => {
                     createBucket(data.name, shareWith);
-                    setEmail("")
+                    setEmail("");
                     setShareWith([]);
                   }}
                   confirmLabel="Create"
@@ -246,16 +246,16 @@ export const AppSidebar: FC = () => {
 
                       <div className="col-span-3 mr-1 flex">
                         <Select
-                          value={user.role}
-                          onValueChange={(val) => setRole(user.email, val)}
+                          value={user.group}
+                          onValueChange={(val) => setGroup(user.email, val)}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {roles.map((role) => (
-                              <SelectItem key={role.id} value={role.id}>
-                                {role.name}
+                            {bucketGroups.map((group) => (
+                              <SelectItem key={group.id} value={group.id}>
+                                {group.name}
                               </SelectItem>
                             ))}
                           </SelectContent>

@@ -5,6 +5,7 @@ import (
 	"api/internal/models"
 	"api/internal/rbac"
 	"fmt"
+	"go.uber.org/zap"
 
 	"github.com/casbin/casbin/v2"
 )
@@ -19,6 +20,15 @@ func GetDefaultViewerBucketPolicies(bucket models.Bucket) [][]string {
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionRead.String()},
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionDownload.String()},
 	}
+}
+
+func AddUserToViewers(e *casbin.Enforcer, bucket models.Bucket, userId string) error {
+	_, err := e.AddGroupingPolicy(userId, GetBucketViewerGroup(bucket), c.DefaultDomain)
+	if err != nil {
+		zap.L().Error("Failed to add user to viewers", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func InsertGroupBucketViewer(e *casbin.Enforcer, bucket models.Bucket) error {

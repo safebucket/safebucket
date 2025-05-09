@@ -6,6 +6,7 @@ import (
 	"api/internal/rbac"
 	"fmt"
 	"github.com/casbin/casbin/v2"
+	"go.uber.org/zap"
 )
 
 func GetBucketContributorGroup(bucket models.Bucket) string {
@@ -18,6 +19,15 @@ func GetDefaultContributorBucketPolicies(bucket models.Bucket) [][]string {
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionUpload.String()},
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionErase.String()},
 	}
+}
+
+func AddUserToContributors(e *casbin.Enforcer, bucket models.Bucket, userId string) error {
+	_, err := e.AddGroupingPolicy(userId, GetBucketContributorGroup(bucket), c.DefaultDomain)
+	if err != nil {
+		zap.L().Error("Failed to add user to contributors", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func InsertGroupBucketContributor(e *casbin.Enforcer, bucket models.Bucket) error {

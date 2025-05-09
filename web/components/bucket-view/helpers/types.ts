@@ -16,7 +16,7 @@ export enum FileType {
 
 export interface IShareWith {
   email: string;
-  role: string;
+  group: string;
 }
 
 export interface IBucket {

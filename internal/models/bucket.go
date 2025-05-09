@@ -16,3 +16,13 @@ type Bucket struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+type ShareWith struct {
+	Email string `json:"email" validate:"required,email"`
+	Group string `json:"group" validate:"required,oneof=owner contributor viewer"`
+}
+
+type BucketCreateBody struct {
+	Name      string      `json:"name" validate:"required"`
+	ShareWith []ShareWith `json:"share_with" validate:"omitempty"`
+}
