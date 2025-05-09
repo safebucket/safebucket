@@ -7,17 +7,37 @@ import {
 export type Status = "authenticated" | "loading" | "unauthenticated";
 
 export type Session = {
+  loggedUser: IUser | null;
   accessToken: string;
   refreshToken?: string;
   authProvider: string;
 };
 
+export interface IJWTPayload {
+  aud: string;
+  email: string;
+  exp: number;
+  iat: number;
+  iss: string;
+  user_id: string;
+}
+
+export interface IUser {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
 export interface ISessionContext {
   register: UseFormRegister<ILoginForm>;
   localLogin: SubmitHandler<ILoginForm>;
   handleSubmit: UseFormHandleSubmit<ILoginForm>;
+
   login(provider: string): void;
+
   logout(): void;
+
   session: Session | null;
   status: string;
 }

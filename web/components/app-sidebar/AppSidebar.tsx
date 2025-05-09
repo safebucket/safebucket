@@ -51,7 +51,7 @@ import {
 
 export const AppSidebar: FC = () => {
   const pathname = usePathname();
-  const { logout } = useSessionContext();
+  const { session, logout } = useSessionContext();
   const createBucketDialog = useDialog();
   const { buckets, createBucket } = useBucketsData();
 
@@ -180,13 +180,17 @@ export const AppSidebar: FC = () => {
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage src={nav.user.avatar} alt={nav.user.name} />
-                    <AvatarFallback className="rounded-lg">M</AvatarFallback>
+                    <AvatarFallback className="rounded-lg">
+                      {session?.loggedUser?.email.charAt(0)}
+                    </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {nav.user.name}
+                      {`${session?.loggedUser?.first_name} ${session?.loggedUser?.last_name}`}
                     </span>
-                    <span className="truncate text-xs">{nav.user.email}</span>
+                    <span className="truncate text-xs">
+                      {session?.loggedUser?.email}
+                    </span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -201,13 +205,17 @@ export const AppSidebar: FC = () => {
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage src={nav.user.avatar} alt={nav.user.name} />
-                      <AvatarFallback className="rounded-lg">M</AvatarFallback>
+                      <AvatarFallback className="rounded-lg">
+                        {session?.loggedUser?.email.charAt(0)}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {nav.user.name}
+                        {`${session?.loggedUser?.first_name} ${session?.loggedUser?.last_name}`}
                       </span>
-                      <span className="truncate text-xs">{nav.user.email}</span>
+                      <span className="truncate text-xs">
+                        {session?.loggedUser?.email}
+                      </span>
                     </div>
                   </div>
                 </DropdownMenuLabel>

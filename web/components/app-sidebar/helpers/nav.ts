@@ -2,9 +2,7 @@ import { Home, LifeBuoy, Send, Settings2 } from "lucide-react";
 
 export const nav = {
   user: {
-    name: "milou",
-    email: "milou@safebucket.com",
-    avatar: "/avatars/shadcn.jpg",
+    avatar: "/avatars/safebucket.jpg",
   },
   main: [
     {
