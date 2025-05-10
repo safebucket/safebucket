@@ -112,6 +112,10 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 				err = groups.AddUserToOwners(s.Enforcer, newBucket, shareWithUser.ID.String())
 			}
 
+			if err != nil {
+				return models.Bucket{}, err
+			}
+
 			event := events.NewBucketSharedWith(
 				*s.Publisher,
 				newBucket,
