@@ -28,12 +28,14 @@ import (
 
 func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
+
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
 	cache := c.InitCache(config.Redis)
 	s3 := storage.InitStorage(config.Storage)
 	mailer := core.NewMailer(config.Mailer)
 	publisher := core.NewPublisher(config.Events, configuration.EventsNotificationsTopicName)
+	logger := core.NewLogPublisher(config.Logs)
 	subscriber := core.NewSubscriber(config.Events)
 	messages := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)
 
@@ -93,7 +95,7 @@ func main() {
 	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 
 	r.Mount("/users", services.UserService{DB: db, Enforcer: e}.Routes())
-	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e, Publisher: &publisher}.Routes())
+	r.Mount("/buckets", services.BucketService{DB: db, S3: s3, Enforcer: e, Publisher: &publisher, Logger: logger}.Routes())
 
 	r.Mount("/auth", services.AuthService{
 		DB:        db,

@@ -47,3 +47,8 @@ admin:
 
 auth:
   providers:
+
+logs:
+  type: loki
+  loki:
+    endpoint: "http://localhost:3100"
