@@ -132,10 +132,11 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 	logMessage := models.LogMessage{
 		Message: "New Bucket Created", // TODO/create one file to store all messages ?
 		Filter: h.NewSearchCriteria(map[string]string{
+			"action":      rbac.ActionCreate.String(),
+			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceBucket.String(),
 			"user_id":     user.UserID.String(),
-			"action":      rbac.ActionCreate.String(),
-		},
+		}),
 	}
 
 	err = s.Logger.Send(logMessage)
@@ -154,6 +155,7 @@ func (s BucketService) GetBucketList(user models.UserClaims) []models.Bucket {
 		return []models.Bucket{}
 	}
 	roles, err := s.Enforcer.GetImplicitRolesForUser(user.UserID.String(), c.DefaultDomain)
+
 	if err != nil {
 		zap.L().Warn(fmt.Sprintf("Error retrieving roles %v", user.UserID.String()))
 		return []models.Bucket{}
@@ -195,17 +197,18 @@ func (s BucketService) GetBucket(_ models.UserClaims, ids uuid.UUIDs) (models.Bu
 	}
 }
 
-func (s BucketService) UpdateBucket(ids uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) UpdateBucket(_ models.UserClaims, ids uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
 	bucket := models.Bucket{ID: ids[0]}
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {
 		return bucket, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	} else {
+
 		return bucket, nil
 	}
 }
 
-func (s BucketService) DeleteBucket(ids uuid.UUIDs) error {
+func (s BucketService) DeleteBucket(_ models.UserClaims, ids uuid.UUIDs) error {
 	result := s.DB.Where("id = ?", ids[0]).Delete(&models.Bucket{})
 	if result.RowsAffected == 0 {
 		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
@@ -214,7 +217,7 @@ func (s BucketService) DeleteBucket(ids uuid.UUIDs) error {
 	}
 }
 
-func (s BucketService) UploadFile(_ models.UserClaims, ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
+func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
 	bucket, err := sql.GetById[models.Bucket](s.DB, ids[0])
 	if err != nil {
 		return models.FileTransferResponse{}, err
@@ -251,6 +254,18 @@ func (s BucketService) UploadFile(_ models.UserClaims, ids uuid.UUIDs, body mode
 		return models.FileTransferResponse{}, err
 	}
 
+	logMessage := models.LogMessage{
+		Message: "New file uploaded", // TODO/create one file to store all messages ?
+		Filter: h.NewSearchCriteria(map[string]string{
+			"action":      rbac.ActionUpload.String(),
+			"bucket_id":   bucket.ID.String(),
+			"domain":      c.DefaultDomain,
+			"object_type": rbac.ResourceFile.String(),
+			"user_id":     user.UserID.String(),
+		}),
+	}
+	err = s.Logger.Send(logMessage)
+
 	return models.FileTransferResponse{
 		ID:   file.ID.String(),
 		Url:  url.String(),
@@ -258,7 +273,7 @@ func (s BucketService) UploadFile(_ models.UserClaims, ids uuid.UUIDs, body mode
 	}, nil
 }
 
-func (s BucketService) UpdateFile(ids uuid.UUIDs, body models.UpdateFileBody) (models.File, error) {
+func (s BucketService) UpdateFile(user models.UserClaims, ids uuid.UUIDs, body models.UpdateFileBody) (models.File, error) {
 	bucketId, fileId := ids[0], ids[1]
 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)
@@ -279,13 +294,25 @@ func (s BucketService) UpdateFile(ids uuid.UUIDs, body models.UpdateFileBody) (m
 		}
 
 		s.DB.Model(&file).Updates(body)
+
+		logMessage := models.LogMessage{
+			Message: "File updated", // TODO: create one file to store all messages ?
+			Filter: h.NewSearchCriteria(map[string]string{
+				"action":      rbac.ActionUpdate.String(),
+				"bucket_id":   bucketId.String(),
+				"domain":      c.DefaultDomain,
+				"object_type": rbac.ResourceFile.String(),
+				"user_id":     user.UserID.String(),
+			}),
+		}
+		err = s.Logger.Send(logMessage)
 		return file, nil
 	}
 
 	return file, nil
 }
 
-func (s BucketService) DeleteFile(ids uuid.UUIDs) error {
+func (s BucketService) DeleteFile(user models.UserClaims, ids uuid.UUIDs) error {
 	bucketId, fileId := ids[0], ids[1]
 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)
@@ -308,10 +335,23 @@ func (s BucketService) DeleteFile(ids uuid.UUIDs) error {
 		zap.L().Error("Failed to delete file", zap.Error(result.Error))
 		return errors.NewAPIError(500, "FILE_DELETION_FAILED")
 	}
+
+	logMessage := models.LogMessage{
+		Message: "File Deleted", // TODO: create one file to store all messages ?
+		Filter: h.NewSearchCriteria(map[string]string{
+			"action":      rbac.ActionDelete.String(),
+			"bucket_id":   bucketId.String(),
+			"domain":      c.DefaultDomain,
+			"object_type": rbac.ResourceFile.String(),
+			"user_id":     user.UserID.String(),
+		}),
+	}
+	err = s.Logger.Send(logMessage)
+
 	return nil
 }
 
-func (s BucketService) DownloadFile(_ models.UserClaims, ids uuid.UUIDs) (models.FileTransferResponse, error) {
+func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (models.FileTransferResponse, error) {
 	bucketId, fileId := ids[0], ids[1]
 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)
@@ -331,6 +371,18 @@ func (s BucketService) DownloadFile(_ models.UserClaims, ids uuid.UUIDs) (models
 		zap.L().Error("Generate presigned URL failed", zap.Error(err))
 		return models.FileTransferResponse{}, err
 	}
+
+	logMessage := models.LogMessage{
+		Message: "File Downloaded", // TODO: create one file to store all messages ?
+		Filter: h.NewSearchCriteria(map[string]string{
+			"action":      rbac.ActionDownload.String(),
+			"bucket_id":   bucketId.String(),
+			"domain":      c.DefaultDomain,
+			"object_type": rbac.ResourceFile.String(),
+			"user_id":     user.UserID.String(),
+		}),
+	}
+	err = s.Logger.Send(logMessage)
 
 	return models.FileTransferResponse{
 		ID:  file.ID.String(),

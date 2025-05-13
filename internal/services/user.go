@@ -94,7 +94,7 @@ func (s UserService) GetUser(_ models.UserClaims, ids uuid.UUIDs) (models.User, 
 	}
 }
 
-func (s UserService) UpdateUser(ids uuid.UUIDs, body models.UserUpdateBody) (models.User, error) {
+func (s UserService) UpdateUser(_ models.UserClaims, ids uuid.UUIDs, body models.UserUpdateBody) (models.User, error) {
 	user := models.User{ID: ids[0]}
 	result := s.DB.Model(&user).Updates(body)
 	if result.RowsAffected == 0 {
@@ -104,7 +104,7 @@ func (s UserService) UpdateUser(ids uuid.UUIDs, body models.UserUpdateBody) (mod
 	}
 }
 
-func (s UserService) DeleteUser(ids uuid.UUIDs) error {
+func (s UserService) DeleteUser(_ models.UserClaims, ids uuid.UUIDs) error {
 	result := s.DB.Where("id = ?", ids[0]).Delete(&models.User{})
 	if result.RowsAffected == 0 {
 		return errors.New("user not found")

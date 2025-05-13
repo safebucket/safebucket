@@ -13,8 +13,8 @@ import (
 type CreateTargetFunc[In any, Out any] func(models.UserClaims, uuid.UUIDs, In) (Out, error)
 type ListTargetFunc[Out any] func(models.UserClaims) []Out
 type GetOneTargetFunc[Out any] func(models.UserClaims, uuid.UUIDs) (Out, error)
-type UpdateTargetFunc[In any, Out any] func(uuid.UUIDs, In) (Out, error)
-type DeleteTargetFunc func(uuid.UUIDs) error
+type UpdateTargetFunc[In any, Out any] func(models.UserClaims, uuid.UUIDs, In) (Out, error)
+type DeleteTargetFunc func(models.UserClaims, uuid.UUIDs) error
 
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +67,8 @@ func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.Handl
 			return
 		}
 
-		_, err := update(ids, r.Context().Value(m.BodyKey{}).(In))
+		claims, _ := h.GetUserClaims(r.Context())
+		_, err := update(claims, ids, r.Context().Value(m.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 
@@ -90,7 +91,8 @@ func DeleteHandler(delete DeleteTargetFunc) http.HandlerFunc {
 			return
 		}
 
-		err := delete(ids)
+		claims, _ := h.GetUserClaims(r.Context())
+		err := delete(claims, ids)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)

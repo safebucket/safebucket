@@ -107,7 +107,7 @@ func isAuthorized(label string) bool {
 }
 
 // splitMetadata separates a map into labels and metadata based on specific authorization criteria.
-// Returns two maps: labels containing authorized keys, and metadata containing unauthorized keys.
+// Returns two maps: labels containing authorized keys and metadata containing unauthorized keys.
 func splitMetadata(structuredMetadata map[string]string) (map[string]string, map[string]string) {
 	labels := make(map[string]string)
 	metadata := make(map[string]string)
