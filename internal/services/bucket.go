@@ -5,6 +5,7 @@ import (
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
+	h "api/internal/helpers"
 	"api/internal/logs"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
@@ -30,7 +31,7 @@ type BucketService struct {
 	S3        *minio.Client
 	Enforcer  *casbin.Enforcer
 	Publisher *messaging.IPublisher
-	Logger    logs.IClient
+	Logger    logs.ILogClient
 }
 
 func (s BucketService) Routes() chi.Router {
@@ -129,8 +130,8 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 	}
 
 	logMessage := models.LogMessage{
-		Message: "New Bucket Created", // TODO/ create one file to store all messages ?
-		SearchCriteria: map[string]string{
+		Message: "New Bucket Created", // TODO/create one file to store all messages ?
+		Filter: h.NewSearchCriteria(map[string]string{
 			"object_type": rbac.ResourceBucket.String(),
 			"user_id":     user.UserID.String(),
 			"action":      rbac.ActionCreate.String(),
