@@ -74,6 +74,9 @@ func (s BucketService) Routes() chi.Router {
 				Get("/download", handlers.GetOneHandler(s.DownloadFile))
 		})
 	})
+
+	r.Get("/history", handlers.GetListHandler(s.GetHistory))
+
 	return r
 }
 
@@ -135,6 +138,7 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 			"action":      rbac.ActionCreate.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceBucket.String(),
+			"bucket_id":   body.ID.String(),
 			"user_id":     user.UserID.String(),
 		}),
 	}
@@ -388,4 +392,28 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 		ID:  file.ID.String(),
 		Url: url.String(),
 	}, nil
+}
+
+func (s BucketService) GetHistory(user models.UserClaims) []models.History {
+	buckets := s.GetBucketList(user)
+
+	var bucketIds []string
+	for _, bucket := range buckets {
+		bucketIds = append(bucketIds, bucket.ID.String())
+	}
+
+	searchCriteria := map[string][]string{
+		"domain":      {c.DefaultDomain},
+		"object_type": {rbac.ResourceBucket.String()},
+		"bucket_id":   bucketIds,
+	}
+
+	history, err := s.Logger.Search(searchCriteria)
+
+	if err != nil {
+		zap.L().Error("Search history failed", zap.Error(err))
+		return []models.History{}
+	}
+
+	return history
 }

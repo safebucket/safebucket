@@ -4,6 +4,6 @@ import "api/internal/models"
 
 // ILogClient defines a common interface for all logs
 type ILogClient interface {
-	Search(keys map[string]string) error
+	Search(searchCriteria map[string][]string) ([]models.History, error)
 	Send(message models.LogMessage) error
 }
