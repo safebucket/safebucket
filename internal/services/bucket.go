@@ -138,7 +138,7 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 			"action":      rbac.ActionCreate.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceBucket.String(),
-			"bucket_id":   body.ID.String(),
+			"bucket_id":   newBucket.ID.String(),
 			"user_id":     user.UserID.String(),
 		}),
 	}
