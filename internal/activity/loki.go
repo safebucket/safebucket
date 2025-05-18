@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -39,10 +40,7 @@ type LokiClient struct {
 }
 
 func (s *LokiClient) Send(activity models.Activity) error {
-	lokiBody, err := createLokiBody(activity)
-	if err != nil {
-		return err
-	}
+	lokiBody := createLokiBody(activity)
 
 	client := resty.New()
 	client.SetRetryCount(5).
@@ -120,9 +118,9 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]models.Histor
 
 	query := generateSearchQuery(searchCriteria)
 
-	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Format(time.RFC3339)
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Unix()
 	resp, err := client.R().
-		SetQueryParams(map[string]string{"start": thirtyDaysAgo, "limit": "100", "query": query}).
+		SetQueryParams(map[string]string{"start": strconv.FormatInt(thirtyDaysAgo, 10), "limit": "100", "query": query}).
 		SetHeader("Accept", "application/json").
 		Get(s.searchURL)
 
@@ -235,15 +233,15 @@ func generateSearchQuery(searchCriteria map[string][]string) string {
 // createLokiBody transforms a LogMessage into a LokiBody structure, separating metadata into labels and additional fields.
 // It constructs a Loki-compatible log entry stream with the message and associated metadata.
 // Returns the generated LokiBody and any error encountered during its creation.
-func createLokiBody(activity models.Activity) (LokiBody, error) {
+func createLokiBody(activity models.Activity) LokiBody {
 	labels, metadata := splitMetadata(activity.Filter.Fields)
 	entry := RawLogValue{activity.Filter.Timestamp, activity.Message, metadata}
 	stream := StreamEntry{
 		Stream: labels,
 		Values: []RawLogValue{entry},
 	}
-	body := LokiBody{
+
+	return LokiBody{
 		Streams: []StreamEntry{stream},
 	}
-	return body, nil
 }

@@ -62,7 +62,6 @@ func (s BucketService) Routes() chi.Router {
 			With(m.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
 
 		r.Route("/files/{id1}", func(r chi.Router) {
-
 			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
 				With(m.Validate[models.UpdateFileBody]).
 				Patch("/", handlers.UpdateHandler(s.UpdateFile))
@@ -421,7 +420,7 @@ func (s BucketService) GetHistory(user models.UserClaims) []models.History {
 
 	searchCriteria := map[string][]string{
 		"domain":      {c.DefaultDomain},
-		"object_type": {rbac.ResourceBucket.String()},
+		"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String()},
 		"bucket_id":   bucketIds,
 	}
 
@@ -429,6 +428,10 @@ func (s BucketService) GetHistory(user models.UserClaims) []models.History {
 
 	if err != nil {
 		zap.L().Error("Search history failed", zap.Error(err))
+		return []models.History{}
+	}
+
+	if len(history) == 0 {
 		return []models.History{}
 	}
 
