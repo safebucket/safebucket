@@ -211,23 +211,24 @@ func splitSearchCriteria(searchCriteria map[string][]string) (map[string][]strin
 func generateSearchQuery(searchCriteria map[string][]string) string {
 	labels, metadata := splitSearchCriteria(searchCriteria)
 
-	var formattedLabels []string
-	for key, value := range labels {
-		joinedValue := strings.Join(value, ",")
-		formattedLabels = append(formattedLabels, fmt.Sprintf("%s=~\"%s\"", key, joinedValue))
-	}
-
-	var formattedMetadata []string
-	for key, value := range metadata {
-		joinedValue := strings.Join(value, "|")
-		formattedMetadata = append(formattedMetadata, fmt.Sprintf("%s=~\"%s\"", key, joinedValue))
-	}
+	formattedLabels := generateORCriteria(labels)
+	formattedMetadata := generateORCriteria(metadata)
 
 	return fmt.Sprintf(
 		"{%s} | %s",
 		strings.Join(formattedLabels, ", "),
 		strings.Join(formattedMetadata, " | "),
 	)
+}
+
+func generateORCriteria(criteria map[string][]string) []string {
+	var formattedCriteria []string
+	for key, value := range criteria {
+		joinedValue := strings.Join(value, "|")
+		formattedCriteria = append(formattedCriteria, fmt.Sprintf("%s=~\"%s\"", key, joinedValue))
+	}
+
+	return formattedCriteria
 }
 
 // createLokiBody transforms a LogMessage into a LokiBody structure, separating metadata into labels and additional fields.
