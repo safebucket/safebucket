@@ -132,9 +132,9 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 		}
 	}
 
-	logMessage := models.LogMessage{
-		Message: "New Bucket Created", // TODO/create one file to store all messages ?
-		Filter: h.NewSearchCriteria(map[string]string{
+	action := models.Activity{
+		Message: activity.BucketCreated,
+		Filter: h.NewLogFilter(map[string]string{
 			"action":      rbac.ActionCreate.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceBucket.String(),
@@ -143,7 +143,7 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 		}),
 	}
 
-	err = s.ActivityLogger.Send(logMessage)
+	err = s.ActivityLogger.Send(action)
 
 	if err != nil {
 		return newBucket, err
@@ -258,9 +258,9 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 		return models.FileTransferResponse{}, err
 	}
 
-	logMessage := models.LogMessage{
-		Message: "New file uploaded", // TODO/create one file to store all messages ?
-		Filter: h.NewSearchCriteria(map[string]string{
+	action := models.Activity{
+		Message: activity.FileUploaded,
+		Filter: h.NewLogFilter(map[string]string{
 			"action":      rbac.ActionUpload.String(),
 			"bucket_id":   bucket.ID.String(),
 			"domain":      c.DefaultDomain,
@@ -268,7 +268,11 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 			"user_id":     user.UserID.String(),
 		}),
 	}
-	err = s.ActivityLogger.Send(logMessage)
+	err = s.ActivityLogger.Send(action)
+
+	if err != nil {
+		return models.FileTransferResponse{}, err
+	}
 
 	return models.FileTransferResponse{
 		ID:   file.ID.String(),
@@ -299,9 +303,9 @@ func (s BucketService) UpdateFile(user models.UserClaims, ids uuid.UUIDs, body m
 
 		s.DB.Model(&file).Updates(body)
 
-		logMessage := models.LogMessage{
-			Message: "File updated", // TODO: create one file to store all messages ?
-			Filter: h.NewSearchCriteria(map[string]string{
+		action := models.Activity{
+			Message: activity.FileUpdated,
+			Filter: h.NewLogFilter(map[string]string{
 				"action":      rbac.ActionUpdate.String(),
 				"bucket_id":   bucketId.String(),
 				"domain":      c.DefaultDomain,
@@ -309,7 +313,12 @@ func (s BucketService) UpdateFile(user models.UserClaims, ids uuid.UUIDs, body m
 				"user_id":     user.UserID.String(),
 			}),
 		}
-		err = s.ActivityLogger.Send(logMessage)
+		err = s.ActivityLogger.Send(action)
+
+		if err != nil {
+			return models.File{}, err
+		}
+
 		return file, nil
 	}
 
@@ -340,9 +349,9 @@ func (s BucketService) DeleteFile(user models.UserClaims, ids uuid.UUIDs) error 
 		return errors.NewAPIError(500, "FILE_DELETION_FAILED")
 	}
 
-	logMessage := models.LogMessage{
-		Message: "File Deleted", // TODO: create one file to store all messages ?
-		Filter: h.NewSearchCriteria(map[string]string{
+	action := models.Activity{
+		Message: activity.FileDeleted,
+		Filter: h.NewLogFilter(map[string]string{
 			"action":      rbac.ActionDelete.String(),
 			"bucket_id":   bucketId.String(),
 			"domain":      c.DefaultDomain,
@@ -350,7 +359,11 @@ func (s BucketService) DeleteFile(user models.UserClaims, ids uuid.UUIDs) error 
 			"user_id":     user.UserID.String(),
 		}),
 	}
-	err = s.ActivityLogger.Send(logMessage)
+	err = s.ActivityLogger.Send(action)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -376,9 +389,9 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 		return models.FileTransferResponse{}, err
 	}
 
-	logMessage := models.LogMessage{
-		Message: "File Downloaded", // TODO: create one file to store all messages ?
-		Filter: h.NewSearchCriteria(map[string]string{
+	action := models.Activity{
+		Message: activity.FileDownloaded,
+		Filter: h.NewLogFilter(map[string]string{
 			"action":      rbac.ActionDownload.String(),
 			"bucket_id":   bucketId.String(),
 			"domain":      c.DefaultDomain,
@@ -386,7 +399,11 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 			"user_id":     user.UserID.String(),
 		}),
 	}
-	err = s.ActivityLogger.Send(logMessage)
+	err = s.ActivityLogger.Send(action)
+
+	if err != nil {
+		return models.FileTransferResponse{}, err
+	}
 
 	return models.FileTransferResponse{
 		ID:  file.ID.String(),

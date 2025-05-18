@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-// NewSearchCriteria creates a LogFilter object with the specified criterias and the current timestamp in nanoseconds.
-func NewSearchCriteria(criterias map[string]string) models.LogFilter {
+// NewLogFilter creates a LogFilter object with the specified criteria and the current timestamp in nanoseconds.
+func NewLogFilter(criteria map[string]string) models.LogFilter {
 	return models.LogFilter{
-		Fields:    criterias,
+		Fields:    criteria,
 		Timestamp: fmt.Sprintf("%d", time.Now().UnixNano()),
 	}
 }

@@ -38,9 +38,8 @@ type LokiClient struct {
 	searchURL string
 }
 
-func (s *LokiClient) Send(log models.LogMessage) error {
-
-	lokiBody, err := createLokiBody(log)
+func (s *LokiClient) Send(activity models.Activity) error {
+	lokiBody, err := createLokiBody(activity)
 	if err != nil {
 		return err
 	}
@@ -162,6 +161,15 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]models.Histor
 	return activity, nil
 }
 
+// NewLokiClient initializes and returns a new LokiClient instance based on the provided log configuration.
+func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
+	return &LokiClient{
+		Endpoint:  config.Endpoint,
+		pushURL:   fmt.Sprintf("%s%s", config.Endpoint, lokiPushURI),
+		searchURL: fmt.Sprintf("%s%s", config.Endpoint, lokiSearchURI),
+	}
+}
+
 // isAuthorized checks if the given label is part of the predefined authorizedLabels array and returns true if matched.
 func isAuthorized(label string) bool {
 	for _, auth := range authorizedLabels {
@@ -227,9 +235,9 @@ func generateSearchQuery(searchCriteria map[string][]string) string {
 // createLokiBody transforms a LogMessage into a LokiBody structure, separating metadata into labels and additional fields.
 // It constructs a Loki-compatible log entry stream with the message and associated metadata.
 // Returns the generated LokiBody and any error encountered during its creation.
-func createLokiBody(log models.LogMessage) (LokiBody, error) {
-	labels, metadata := splitMetadata(log.Filter.Fields)
-	entry := RawLogValue{log.Filter.Timestamp, log.Message, metadata}
+func createLokiBody(activity models.Activity) (LokiBody, error) {
+	labels, metadata := splitMetadata(activity.Filter.Fields)
+	entry := RawLogValue{activity.Filter.Timestamp, activity.Message, metadata}
 	stream := StreamEntry{
 		Stream: labels,
 		Values: []RawLogValue{entry},
@@ -238,13 +246,4 @@ func createLokiBody(log models.LogMessage) (LokiBody, error) {
 		Streams: []StreamEntry{stream},
 	}
 	return body, nil
-}
-
-// NewLokiClient initializes and returns a new LokiClient instance based on the provided log configuration.
-func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
-	return &LokiClient{
-		Endpoint:  config.Endpoint,
-		pushURL:   fmt.Sprintf("%s%s", config.Endpoint, lokiPushURI),
-		searchURL: fmt.Sprintf("%s%s", config.Endpoint, lokiSearchURI),
-	}
 }

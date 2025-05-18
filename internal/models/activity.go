@@ -1,6 +1,6 @@
 package models
 
-type LogMessage struct {
+type Activity struct {
 	Message string
 	Filter  LogFilter
 }
