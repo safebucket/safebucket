@@ -65,7 +65,7 @@ type AdminConfiguration struct {
 }
 
 type EventsConfiguration struct {
-	Type string `mapstructure:"type" validate:"required"`
+	Type string `mapstructure:"type" validate:"required,oneof=jetstream"`
 	Host string `mapstructure:"host" validate:"required"`
 	Port string `mapstructure:"port" validate:"required"`
 }
@@ -80,6 +80,6 @@ type MailerConfiguration struct {
 
 type ActivityConfiguration struct {
 	Level    string `mapstructure:"level"`
-	Type     string `mapstructure:"type" validate:"required" validate:"loki"`
+	Type     string `mapstructure:"type" validate:"required,oneof=loki"`
 	Endpoint string `mapstructure:"endpoint" validate:"required"`
 }
