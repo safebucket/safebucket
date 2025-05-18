@@ -11,7 +11,7 @@ type Configuration struct {
 	Admin    AdminConfiguration    `mapstructure:"admin" validate:"required,dive"`
 	Events   EventsConfiguration   `mapstructure:"events" validate:"required,dive"`
 	Mailer   MailerConfiguration   `mapstructure:"mailer" validate:"required,dive"`
-	Logs     LogConfiguration      `mapstructure:"logs" validate:"required,dive"`
+	Activity ActivityConfiguration `mapstructure:"activity" validate:"required,dive"`
 }
 
 type PlatformConfiguration struct {
@@ -78,12 +78,8 @@ type MailerConfiguration struct {
 	Sender   string `mapstructure:"sender" validate:"required"`
 }
 
-type LogConfiguration struct {
-	Level string            `mapstructure:"level"`
-	Type  string            `mapstructure:"type" validate:"required" validate:"loki"`
-	Loki  LokiConfiguration `mapstructure:"loki" validate:"dive"`
-}
-
-type LokiConfiguration struct {
-	Endpoint string `mapstructure:"endpoint" validate:"required" validate:"http_url"`
+type ActivityConfiguration struct {
+	Level    string `mapstructure:"level"`
+	Type     string `mapstructure:"type" validate:"required" validate:"loki"`
+	Endpoint string `mapstructure:"endpoint" validate:"required"`
 }

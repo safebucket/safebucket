@@ -1,12 +1,12 @@
 package services
 
 import (
+	"api/internal/activity"
 	c "api/internal/configuration"
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
-	"api/internal/logs"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
@@ -27,11 +27,11 @@ import (
 )
 
 type BucketService struct {
-	DB        *gorm.DB
-	S3        *minio.Client
-	Enforcer  *casbin.Enforcer
-	Publisher *messaging.IPublisher
-	Logger    logs.ILogClient
+	DB             *gorm.DB
+	S3             *minio.Client
+	Enforcer       *casbin.Enforcer
+	Publisher      *messaging.IPublisher
+	ActivityLogger activity.IActivityLogger
 }
 
 func (s BucketService) Routes() chi.Router {
@@ -143,7 +143,7 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 		}),
 	}
 
-	err = s.Logger.Send(logMessage)
+	err = s.ActivityLogger.Send(logMessage)
 
 	if err != nil {
 		return newBucket, err
@@ -268,7 +268,7 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 			"user_id":     user.UserID.String(),
 		}),
 	}
-	err = s.Logger.Send(logMessage)
+	err = s.ActivityLogger.Send(logMessage)
 
 	return models.FileTransferResponse{
 		ID:   file.ID.String(),
@@ -309,7 +309,7 @@ func (s BucketService) UpdateFile(user models.UserClaims, ids uuid.UUIDs, body m
 				"user_id":     user.UserID.String(),
 			}),
 		}
-		err = s.Logger.Send(logMessage)
+		err = s.ActivityLogger.Send(logMessage)
 		return file, nil
 	}
 
@@ -350,7 +350,7 @@ func (s BucketService) DeleteFile(user models.UserClaims, ids uuid.UUIDs) error 
 			"user_id":     user.UserID.String(),
 		}),
 	}
-	err = s.Logger.Send(logMessage)
+	err = s.ActivityLogger.Send(logMessage)
 
 	return nil
 }
@@ -386,7 +386,7 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 			"user_id":     user.UserID.String(),
 		}),
 	}
-	err = s.Logger.Send(logMessage)
+	err = s.ActivityLogger.Send(logMessage)
 
 	return models.FileTransferResponse{
 		ID:  file.ID.String(),
@@ -408,7 +408,7 @@ func (s BucketService) GetHistory(user models.UserClaims) []models.History {
 		"bucket_id":   bucketIds,
 	}
 
-	history, err := s.Logger.Search(searchCriteria)
+	history, err := s.ActivityLogger.Search(searchCriteria)
 
 	if err != nil {
 		zap.L().Error("Search history failed", zap.Error(err))

@@ -48,7 +48,6 @@ admin:
 auth:
   providers:
 
-logs:
+activity:
   type: loki
-  loki:
-    endpoint: "http://localhost:3100"
+  endpoint: http://localhost:3100

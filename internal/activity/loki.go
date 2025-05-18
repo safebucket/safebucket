@@ -1,4 +1,4 @@
-package logs
+package activity
 
 import (
 	"api/internal/models"
@@ -144,9 +144,9 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]models.Histor
 		return []models.History{}, err
 	}
 
-	var logs []models.History
+	var activity []models.History
 	for _, log := range parsedResp.Data.Result {
-		var returnLog = models.History{
+		var history = models.History{
 			Action:     log.Stream["action"],
 			BucketId:   log.Stream["bucket_id"],
 			Domain:     log.Stream["domain"],
@@ -156,10 +156,10 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]models.Histor
 			Message:    log.Values[0][1],
 		}
 
-		logs = append(logs, returnLog)
+		activity = append(activity, history)
 	}
 
-	return logs, nil
+	return activity, nil
 }
 
 // isAuthorized checks if the given label is part of the predefined authorizedLabels array and returns true if matched.
@@ -241,10 +241,10 @@ func createLokiBody(log models.LogMessage) (LokiBody, error) {
 }
 
 // NewLokiClient initializes and returns a new LokiClient instance based on the provided log configuration.
-func NewLokiClient(config models.LogConfiguration) ILogClient {
+func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 	return &LokiClient{
-		Endpoint:  config.Loki.Endpoint,
-		pushURL:   fmt.Sprintf("%s%s", config.Loki.Endpoint, lokiPushURI),
-		searchURL: fmt.Sprintf("%s%s", config.Loki.Endpoint, lokiSearchURI),
+		Endpoint:  config.Endpoint,
+		pushURL:   fmt.Sprintf("%s%s", config.Endpoint, lokiPushURI),
+		searchURL: fmt.Sprintf("%s%s", config.Endpoint, lokiSearchURI),
 	}
 }
