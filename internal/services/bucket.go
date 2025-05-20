@@ -23,6 +23,7 @@ import (
 	"gorm.io/gorm"
 	"path"
 	"path/filepath"
+	"reflect"
 	"time"
 )
 
@@ -410,7 +411,7 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 	}, nil
 }
 
-func (s BucketService) GetHistory(user models.UserClaims) []models.History {
+func (s BucketService) GetHistory(user models.UserClaims) []map[string]interface{} {
 	buckets := s.GetBucketList(user)
 
 	var bucketIds []string
@@ -428,11 +429,24 @@ func (s BucketService) GetHistory(user models.UserClaims) []models.History {
 
 	if err != nil {
 		zap.L().Error("Search history failed", zap.Error(err))
-		return []models.History{}
+		return []map[string]interface{}{}
 	}
 
 	if len(history) == 0 {
-		return []models.History{}
+		return []map[string]interface{}{}
+	}
+
+	for _, log := range history {
+		for fieldName, enrichedField := range activity.ToEnrich {
+			if log[fieldName] != "" {
+				object := reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
+
+				s.DB.Where("id = ?", log[fieldName]).First(object)
+				log[enrichedField.Name] = object
+
+				delete(log, fieldName)
+			}
+		}
 	}
 
 	return history

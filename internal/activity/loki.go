@@ -91,7 +91,7 @@ func (s *LokiClient) Send(activity models.Activity) error {
 	return nil
 }
 
-func (s *LokiClient) Search(searchCriteria map[string][]string) ([]models.History, error) {
+func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]interface{}, error) {
 	client := resty.New()
 	client.SetRetryCount(5).
 		SetRetryWaitTime(3 * time.Second).
@@ -126,34 +126,33 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]models.Histor
 
 	if err != nil {
 		zap.L().Error("Failed to query Loki", zap.Any("error", err))
-		return []models.History{}, err
+		return []map[string]interface{}{}, err
 	}
 
 	if resp.StatusCode() != 200 {
 		zap.L().Error("Query to Loki failed", zap.Int("status_code", resp.StatusCode()), zap.String("body", resp.String()))
-		return []models.History{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+		return []map[string]interface{}{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
 	}
 
 	var parsedResp models.LokiQueryResponse
-
 	if err := json.Unmarshal(resp.Body(), &parsedResp); err != nil {
 		zap.L().Error("Failed to parse Loki response", zap.Error(err))
-		return []models.History{}, err
+		return []map[string]interface{}{}, err
 	}
 
-	var activity []models.History
+	var activity []map[string]interface{}
 	for _, log := range parsedResp.Data.Result {
-		var history = models.History{
-			Action:     log.Stream["action"],
-			BucketId:   log.Stream["bucket_id"],
-			Domain:     log.Stream["domain"],
-			ObjectType: log.Stream["object_type"],
-			UserId:     log.Stream["user_id"],
-			Timestamp:  log.Values[0][0],
-			Message:    log.Values[0][1],
+		var entry = map[string]interface{}{
+			"domain":      log.Stream["domain"],
+			"user_id":     log.Stream["user_id"],
+			"action":      log.Stream["action"],
+			"object_type": log.Stream["object_type"],
+			"bucket_id":   log.Stream["bucket_id"],
+			"timestamp":   log.Values[0][0],
+			"message":     log.Values[0][1],
 		}
 
-		activity = append(activity, history)
+		activity = append(activity, entry)
 	}
 
 	return activity, nil
