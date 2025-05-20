@@ -99,6 +99,7 @@ services:
 
   grafana:
     container_name: grafana
+    profiles: [debug]
     image: docker.io/grafana/grafana:latest
     environment:
       - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
