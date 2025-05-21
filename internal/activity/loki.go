@@ -29,12 +29,23 @@ type StreamEntry struct {
 	Values []RawLogValue     `json:"values"` // each entry is a [timestamp, message]
 }
 
+type LokiQueryResponse struct {
+	Data struct {
+		Result []LokiResult `json:"result"`
+	} `json:"data"`
+}
+
+type LokiResult struct {
+	Stream map[string]string `json:"stream"` // dynamic label key-value pairs
+	Values [][2]string       `json:"values"` // each value is a [timestamp, logLine]
+}
+
 // RawLogValue is a fixed-size array of 3 interface{} elements, typically representing [timestamp, message, metadata].
 type RawLogValue [3]interface{}
 
 // LokiClient provides methods to interact with a Loki logging endpoint, including sending logs and searching for logs.
 type LokiClient struct {
-	Endpoint  string
+	Client    *resty.Client
 	pushURL   string
 	searchURL string
 }
@@ -42,6 +53,69 @@ type LokiClient struct {
 func (s *LokiClient) Send(activity models.Activity) error {
 	lokiBody := createLokiBody(activity)
 
+	resp, err := s.Client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(lokiBody).
+		Post(s.pushURL)
+
+	if err != nil {
+		zap.L().Error("Failed to send data to loki ", zap.Any("error", err))
+		return err
+	}
+
+	if resp.StatusCode() != 204 {
+		zap.L().Error("Failed to send data to loki ", zap.Any("status_code", resp.StatusCode()))
+		return err
+	}
+
+	return nil
+}
+
+func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]interface{}, error) {
+	query := generateSearchQuery(searchCriteria)
+
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Unix()
+	resp, err := s.Client.R().
+		SetQueryParams(map[string]string{"start": strconv.FormatInt(thirtyDaysAgo, 10), "limit": "100", "query": query}).
+		SetHeader("Accept", "application/json").
+		Get(s.searchURL)
+
+	if err != nil {
+		zap.L().Error("Failed to query Loki", zap.Any("error", err))
+		return []map[string]interface{}{}, err
+	}
+
+	if resp.StatusCode() != 200 {
+		zap.L().Error("Query to Loki failed", zap.Int("status_code", resp.StatusCode()), zap.String("body", resp.String()))
+		return []map[string]interface{}{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	}
+
+	var parsedResp LokiQueryResponse
+	if err := json.Unmarshal(resp.Body(), &parsedResp); err != nil {
+		zap.L().Error("Failed to parse Loki response", zap.Error(err))
+		return []map[string]interface{}{}, err
+	}
+
+	var activity []map[string]interface{}
+	for _, log := range parsedResp.Data.Result {
+		var entry = map[string]interface{}{
+			"domain":      log.Stream["domain"],
+			"user_id":     log.Stream["user_id"],
+			"action":      log.Stream["action"],
+			"object_type": log.Stream["object_type"],
+			"bucket_id":   log.Stream["bucket_id"],
+			"timestamp":   log.Values[0][0],
+			"message":     log.Values[0][1],
+		}
+
+		activity = append(activity, entry)
+	}
+
+	return activity, nil
+}
+
+// NewLokiClient initializes and returns a new LokiClient instance based on the provided log configuration.
+func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 	client := resty.New()
 	client.SetRetryCount(5).
 		SetRetryWaitTime(3 * time.Second).
@@ -73,95 +147,8 @@ func (s *LokiClient) Send(activity models.Activity) error {
 			return false
 		})
 
-	resp, err := client.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(lokiBody).
-		Post(s.pushURL)
-
-	if err != nil {
-		zap.L().Error("Failed to send data to loki ", zap.Any("error", err))
-		return err
-	}
-
-	if resp.StatusCode() != 204 {
-		zap.L().Error("Failed to send data to loki ", zap.Any("status_code", resp.StatusCode()))
-		return err
-	}
-
-	return nil
-}
-
-func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]interface{}, error) {
-	client := resty.New()
-	client.SetRetryCount(5).
-		SetRetryWaitTime(3 * time.Second).
-		SetRetryMaxWaitTime(20 * time.Second).
-		AddRetryCondition(func(r *resty.Response, err error) bool {
-			if err != nil {
-				zap.L().Debug("Retrying due to network error", zap.Error(err))
-				return true
-			}
-			if r.StatusCode() >= 500 {
-				zap.L().Debug("Retrying due to server error",
-					zap.Int("statusCode", r.StatusCode()),
-					zap.String("status", r.Status()))
-				return true
-			}
-			if r.StatusCode() == 429 || r.StatusCode() == 408 {
-				zap.L().Debug("Retrying due to rate limiting or timeout",
-					zap.Int("statusCode", r.StatusCode()),
-					zap.String("status", r.Status()))
-				return true
-			}
-			return false
-		})
-
-	query := generateSearchQuery(searchCriteria)
-
-	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Unix()
-	resp, err := client.R().
-		SetQueryParams(map[string]string{"start": strconv.FormatInt(thirtyDaysAgo, 10), "limit": "100", "query": query}).
-		SetHeader("Accept", "application/json").
-		Get(s.searchURL)
-
-	if err != nil {
-		zap.L().Error("Failed to query Loki", zap.Any("error", err))
-		return []map[string]interface{}{}, err
-	}
-
-	if resp.StatusCode() != 200 {
-		zap.L().Error("Query to Loki failed", zap.Int("status_code", resp.StatusCode()), zap.String("body", resp.String()))
-		return []map[string]interface{}{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
-	}
-
-	var parsedResp models.LokiQueryResponse
-	if err := json.Unmarshal(resp.Body(), &parsedResp); err != nil {
-		zap.L().Error("Failed to parse Loki response", zap.Error(err))
-		return []map[string]interface{}{}, err
-	}
-
-	var activity []map[string]interface{}
-	for _, log := range parsedResp.Data.Result {
-		var entry = map[string]interface{}{
-			"domain":      log.Stream["domain"],
-			"user_id":     log.Stream["user_id"],
-			"action":      log.Stream["action"],
-			"object_type": log.Stream["object_type"],
-			"bucket_id":   log.Stream["bucket_id"],
-			"timestamp":   log.Values[0][0],
-			"message":     log.Values[0][1],
-		}
-
-		activity = append(activity, entry)
-	}
-
-	return activity, nil
-}
-
-// NewLokiClient initializes and returns a new LokiClient instance based on the provided log configuration.
-func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 	return &LokiClient{
-		Endpoint:  config.Endpoint,
+		Client:    client,
 		pushURL:   fmt.Sprintf("%s%s", config.Endpoint, lokiPushURI),
 		searchURL: fmt.Sprintf("%s%s", config.Endpoint, lokiSearchURI),
 	}
@@ -179,9 +166,9 @@ func isAuthorized(label string) bool {
 
 // splitMetadata separates a map into labels and metadata based on specific authorization criteria.
 // Returns two maps: labels containing authorized keys and metadata containing unauthorized keys.
-func splitMetadata(structuredMetadata map[string]string) (map[string]string, map[string]string) {
-	labels := make(map[string]string)
-	metadata := make(map[string]string)
+func splitMetadata[T interface{}](structuredMetadata map[string]T) (map[string]T, map[string]T) {
+	labels := make(map[string]T)
+	metadata := make(map[string]T)
 
 	for key, value := range structuredMetadata {
 		if isAuthorized(key) {
@@ -193,22 +180,8 @@ func splitMetadata(structuredMetadata map[string]string) (map[string]string, map
 	return labels, metadata
 }
 
-func splitSearchCriteria(searchCriteria map[string][]string) (map[string][]string, map[string][]string) {
-	labels := make(map[string][]string)
-	metadata := make(map[string][]string)
-
-	for key, value := range searchCriteria {
-		if isAuthorized(key) {
-			labels[key] = value
-		} else {
-			metadata[key] = value
-		}
-	}
-	return labels, metadata
-}
-
 func generateSearchQuery(searchCriteria map[string][]string) string {
-	labels, metadata := splitSearchCriteria(searchCriteria)
+	labels, metadata := splitMetadata(searchCriteria)
 
 	formattedLabels := generateORCriteria(labels)
 	formattedMetadata := generateORCriteria(metadata)
