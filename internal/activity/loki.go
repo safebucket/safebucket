@@ -64,7 +64,7 @@ func (s *LokiClient) Send(activity models.Activity) error {
 	}
 
 	if resp.StatusCode() != 204 {
-		zap.L().Error("Failed to send data to loki ", zap.Any("status_code", resp.StatusCode()))
+		zap.L().Error("Failed to send data to loki ", zap.Int("status_code", resp.StatusCode()))
 		return err
 	}
 
@@ -86,7 +86,7 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	}
 
 	if resp.StatusCode() != 200 {
-		zap.L().Error("Query to Loki failed", zap.Int("status_code", resp.StatusCode()), zap.String("body", resp.String()))
+		zap.L().Error("Failed to query data from loki ", zap.Int("status_code", resp.StatusCode()))
 		return []map[string]interface{}{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
 	}
 
