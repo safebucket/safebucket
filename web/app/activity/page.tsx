@@ -18,7 +18,7 @@ export default function ActivityFeed() {
         </div>
 
         <Card>
-          <CardContent>
+          <CardContent className="pb-0">
             {isLoading ? (
               <ActivityViewSkeleton />
             ) : (
