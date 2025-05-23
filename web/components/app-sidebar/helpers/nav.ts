@@ -14,6 +14,10 @@ export const nav = {
           title: "Home",
           url: "/",
         },
+        {
+          title: "Activity",
+          url: "/activity",
+        },
       ],
     },
   ],
