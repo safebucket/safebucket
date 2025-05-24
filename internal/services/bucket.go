@@ -82,7 +82,9 @@ func (s BucketService) Routes() chi.Router {
 
 func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateBody) (models.Bucket, error) {
 	//TODO: Migrate to SQL transaction
+
 	newBucket := models.Bucket{Name: body.Name}
+	newBucket.CreatedBy = user.UserID
 	s.DB.Create(&newBucket)
 
 	err := groups.InsertGroupBucketViewer(s.Enforcer, newBucket)
