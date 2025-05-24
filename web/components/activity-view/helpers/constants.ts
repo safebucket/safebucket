@@ -28,7 +28,7 @@ export const messageMap = {
     iconBg: "bg-amber-100",
   },
   FILE_DELETED: {
-    message: "Deleted a file '%%USERNAME%%' on the bucket '%%BUCKET_NAME%%'.",
+    message: "Deleted a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
     icon: FileMinus,
     iconColor: "text-red-500",
     iconBg: "bg-red-100",
