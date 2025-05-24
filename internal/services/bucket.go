@@ -6,7 +6,6 @@ import (
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
-	h "api/internal/helpers"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
@@ -23,7 +22,6 @@ import (
 	"gorm.io/gorm"
 	"path"
 	"path/filepath"
-	"reflect"
 	"time"
 )
 
@@ -61,6 +59,8 @@ func (s BucketService) Routes() chi.Router {
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
 			With(m.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+
+		r.Get("/history", handlers.GetOneHandler(s.GetBucketHistory))
 
 		r.Route("/files/{id1}", func(r chi.Router) {
 			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
@@ -136,7 +136,7 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 
 	action := models.Activity{
 		Message: activity.BucketCreated,
-		Filter: h.NewLogFilter(map[string]string{
+		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionCreate.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceBucket.String(),
@@ -262,7 +262,7 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 
 	action := models.Activity{
 		Message: activity.FileUploaded,
-		Filter: h.NewLogFilter(map[string]string{
+		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionUpload.String(),
 			"bucket_id":   bucket.ID.String(),
 			"domain":      c.DefaultDomain,
@@ -307,7 +307,7 @@ func (s BucketService) UpdateFile(user models.UserClaims, ids uuid.UUIDs, body m
 
 		action := models.Activity{
 			Message: activity.FileUpdated,
-			Filter: h.NewLogFilter(map[string]string{
+			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionUpdate.String(),
 				"bucket_id":   bucketId.String(),
 				"domain":      c.DefaultDomain,
@@ -353,7 +353,7 @@ func (s BucketService) DeleteFile(user models.UserClaims, ids uuid.UUIDs) error 
 
 	action := models.Activity{
 		Message: activity.FileDeleted,
-		Filter: h.NewLogFilter(map[string]string{
+		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionDelete.String(),
 			"bucket_id":   bucketId.String(),
 			"domain":      c.DefaultDomain,
@@ -393,7 +393,7 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 
 	action := models.Activity{
 		Message: activity.FileDownloaded,
-		Filter: h.NewLogFilter(map[string]string{
+		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionDownload.String(),
 			"bucket_id":   bucketId.String(),
 			"domain":      c.DefaultDomain,
@@ -438,18 +438,34 @@ func (s BucketService) GetHistory(user models.UserClaims) []map[string]interface
 		return []map[string]interface{}{}
 	}
 
-	for _, log := range history {
-		for fieldName, enrichedField := range activity.ToEnrich {
-			if log[fieldName] != "" {
-				object := reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
+	return activity.EnrichActivity(s.DB, history)
+}
 
-				s.DB.Where("id = ?", log[fieldName]).First(object)
-				log[enrichedField.Name] = object
+func (s BucketService) GetBucketHistory(user models.UserClaims, ids uuid.UUIDs) (models.Page[map[string]interface{}], error) {
+	bucket, err := s.GetBucket(user, ids)
 
-				delete(log, fieldName)
-			}
-		}
+	if err != nil {
+		return models.Page[map[string]interface{}]{}, err
 	}
 
-	return history
+	searchCriteria := map[string][]string{
+		"domain":      {c.DefaultDomain},
+		"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String()},
+		"bucket_id":   {bucket.ID.String()},
+	}
+
+	history, err := s.ActivityLogger.Search(searchCriteria)
+
+	if err != nil {
+		zap.L().Error("Search history failed", zap.Error(err))
+		return models.Page[map[string]interface{}]{}, err
+	}
+
+	if len(history) == 0 {
+		return models.Page[map[string]interface{}]{}, nil
+	}
+
+	enriched := activity.EnrichActivity(s.DB, history)
+
+	return models.Page[map[string]interface{}]{Data: enriched}, nil
 }

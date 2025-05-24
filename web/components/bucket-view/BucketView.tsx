@@ -1,5 +1,6 @@
 import React, { FC, useEffect, useState } from "react";
 
+import { BucketActivityView } from "@/components/bucket-view/components/BucketActivityView";
 import { BucketGridView } from "@/components/bucket-view/components/BucketGridView";
 import { BucketHeader } from "@/components/bucket-view/components/BucketHeader";
 import { BucketListView } from "@/components/bucket-view/components/BucketListView";
@@ -24,15 +25,17 @@ export const BucketView: FC<IBucketViewProps> = ({
     setFiles(filesToShow(bucket.files, path));
   }, [bucket, path]);
 
+  const viewComponents = {
+    [BucketViewMode.List]: <BucketListView files={files} />,
+    [BucketViewMode.Grid]: <BucketGridView files={files} />,
+    [BucketViewMode.Activity]: <BucketActivityView />,
+  };
+
   return (
     <>
       <BucketHeader bucket={bucket} />
 
-      {view == BucketViewMode.List ? (
-        <BucketListView files={files} />
-      ) : (
-        <BucketGridView files={files} />
-      )}
+      {viewComponents[view] ?? null}
     </>
   );
 };

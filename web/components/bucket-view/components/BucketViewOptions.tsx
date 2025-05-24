@@ -1,7 +1,7 @@
 import * as React from "react";
 import { FC } from "react";
 
-import { LayoutGrid, LayoutList } from "lucide-react";
+import { FolderClock, LayoutGrid, LayoutList } from "lucide-react";
 
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -11,10 +11,17 @@ const options = [
   {
     key: BucketViewMode.List,
     value: <LayoutList />,
+    tooltip: "List view",
   },
   {
     key: BucketViewMode.Grid,
     value: <LayoutGrid />,
+    tooltip: "Grid view",
+  },
+  {
+    key: BucketViewMode.Activity,
+    value: <FolderClock />,
+    tooltip: "Bucket activity",
   },
 ];
 

@@ -1,7 +1,7 @@
 import React, { FC } from "react";
 
-import { IActivity } from "@/components/activity-view/helpers/types";
 import { ActivityItem } from "@/components/activity-view/components/ActivityItem";
+import { IActivity } from "@/components/common/types/activity";
 import { Separator } from "@/components/ui/separator";
 
 interface IActivityViewProps {
@@ -20,7 +20,7 @@ export const ActivityView: FC<IActivityViewProps> = ({
     ))}
 
     {!activity.length && (
-      <p className="flex items-center justify-center h-24 text-center">
+      <p className="flex h-24 items-center justify-center text-center">
         No activity yet.
       </p>
     )}

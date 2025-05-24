@@ -6,9 +6,9 @@ import {
   IListBucketActivity,
 } from "@/components/common/types/activity";
 
-export const useActivityData = (): IActivityData => {
+export const useBucketActivityData = (id: string): IActivityData => {
   const { data, error, isLoading } = useSWR(
-    "/buckets/history",
+    `/buckets/${id}/history`,
     fetchApi<IListBucketActivity>,
   );
 

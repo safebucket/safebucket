@@ -2,6 +2,12 @@ import * as React from "react";
 import { FC } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface IButtonGroupProps {
   options: any[];
@@ -16,18 +22,28 @@ export const ButtonGroup: FC<IButtonGroupProps> = ({
 }: IButtonGroupProps) => {
   return (
     <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted">
-      {options.map((option) => (
-        <Button
-          key={option.key}
-          variant={currentOption == option.key ? "group" : "ghost"}
-          size="icon"
-          className={
-            currentOption !== option.key ? "text-muted-foreground" : ""
-          }
-          onClick={() => setCurrentOption(option.key)}
-        >
-          {option.value}
-        </Button>
+      {options.map((option, i) => (
+        <TooltipProvider key={i}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                key={option.key}
+                variant={currentOption == option.key ? "group" : "ghost"}
+                size="icon"
+                className={
+                  currentOption !== option.key ? "text-muted-foreground" : ""
+                }
+                onClick={() => setCurrentOption(option.key)}
+                name="too"
+              >
+                {option.value}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{option.tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       ))}
     </div>
   );

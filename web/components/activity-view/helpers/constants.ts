@@ -1,10 +1,10 @@
 import { FileDiff, FileDown, FileMinus, FileUp, Share2 } from "lucide-react";
 
-import { ActivityMessage } from "@/components/activity-view/helpers/types";
+import { ActivityMessage } from "@/components/common/types/activity";
 
 export const messageMap = {
   BUCKET_CREATED: {
-    message: "Shared a bucket '%%BUCKET_NAME%%' with you.",
+    message: "Created a bucket '%%BUCKET_NAME%%' and shared it with you.",
     icon: Share2,
     iconColor: "text-green-500",
     iconBg: "bg-green-100",

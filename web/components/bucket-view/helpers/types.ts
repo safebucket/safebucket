@@ -50,6 +50,7 @@ export type IListBuckets = {
 export enum BucketViewMode {
   List = "list",
   Grid = "grid",
+  Activity = "activity",
 }
 
 export type IDownloadFileResponse = {
