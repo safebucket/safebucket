@@ -104,6 +104,7 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 			"action":      log.Stream["action"],
 			"object_type": log.Stream["object_type"],
 			"bucket_id":   log.Stream["bucket_id"],
+			"file_id":     log.Stream["file_id"],
 			"timestamp":   log.Values[0][0],
 			"message":     log.Values[0][1],
 		}

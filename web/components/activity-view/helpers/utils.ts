@@ -1,9 +1,8 @@
 import { messageMap } from "@/components/activity-view/helpers/constants";
 import {
-  ActivityMessage,
-  IActivity,
   IMessageMapping,
 } from "@/components/activity-view/helpers/types";
+import { ActivityMessage, IActivity } from "@/components/common/types/activity";
 
 export function getActivityMapping(
   messageType: ActivityMessage,
@@ -14,7 +13,8 @@ export function getActivityMapping(
 export const formatMessage = (log: IActivity): string => {
   return messageMap[log.message].message
     .replace("%%USERNAME%%", `${log.user.first_name} ${log.user.last_name}`)
-    .replace("%%BUCKET_NAME%%", log.bucket?.name || "");
+    .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
+    .replace("%%FILE_NAME%%", log.file?.name || "");
 };
 
 export const timeAgo = (isoTimestamp: string): string => {

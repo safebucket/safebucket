@@ -1,5 +1,5 @@
 import { IUser } from "@/components/auth-view/types/session";
-import { IBucket } from "@/components/bucket-view/helpers/types";
+import { IBucket, IFile } from "@/components/bucket-view/helpers/types";
 
 export type IListBucketActivity = {
   data: IActivity[];
@@ -19,6 +19,8 @@ export interface IActivity {
   object_type: string;
   bucket_id?: string;
   bucket?: IBucket;
+  file_id?: string;
+  file?: IFile;
   timestamp: string;
   message: ActivityMessage;
 }

@@ -16,6 +16,7 @@ type ToEnrichValue struct {
 var ToEnrich = map[string]ToEnrichValue{
 	"user_id":   {Name: "user", Object: models.User{}},
 	"bucket_id": {Name: "bucket", Object: models.Bucket{}},
+	"file_id":   {Name: "file", Object: models.File{}},
 }
 
 // NewLogFilter creates a LogFilter object with the specified criteria and the current timestamp in nanoseconds.

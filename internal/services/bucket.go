@@ -265,6 +265,7 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionUpload.String(),
 			"bucket_id":   bucket.ID.String(),
+			"file_id":     file.ID.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFile.String(),
 			"user_id":     user.UserID.String(),
@@ -310,6 +311,7 @@ func (s BucketService) UpdateFile(user models.UserClaims, ids uuid.UUIDs, body m
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionUpdate.String(),
 				"bucket_id":   bucketId.String(),
+				"file_id":     fileId.String(),
 				"domain":      c.DefaultDomain,
 				"object_type": rbac.ResourceFile.String(),
 				"user_id":     user.UserID.String(),
@@ -356,6 +358,7 @@ func (s BucketService) DeleteFile(user models.UserClaims, ids uuid.UUIDs) error 
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionDelete.String(),
 			"bucket_id":   bucketId.String(),
+			"file_id":     fileId.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFile.String(),
 			"user_id":     user.UserID.String(),
@@ -396,6 +399,7 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionDownload.String(),
 			"bucket_id":   bucketId.String(),
+			"file_id":     fileId.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFile.String(),
 			"user_id":     user.UserID.String(),
