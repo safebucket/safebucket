@@ -5,7 +5,7 @@ import (
 	"api/internal/models"
 )
 
-func NewPublisher(config models.EventsConfiguration, topic string) messaging.IPublisher {
+func NewPublisher(config models.EventsConfiguration, topic []string) messaging.IPublisher {
 	switch config.Type {
 	case "jetstream":
 		return messaging.NewJetStreamPublisher(config, topic)

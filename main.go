@@ -33,7 +33,10 @@ func main() {
 	cache := c.InitCache(config.Redis)
 	s3 := core.InitStorage(config.Storage)
 	mailer := core.NewMailer(config.Mailer)
-	publisher := core.NewPublisher(config.Events, configuration.EventsNotificationsTopicName)
+	publisher := core.NewPublisher(
+		config.Events,
+		[]string{configuration.EventsNotificationsTopicName, configuration.EventsBucketsTopicName},
+	)
 	activity := core.NewActivityLogger(config.Activity)
 	subscriber := core.NewSubscriber(config.Events)
 	notifications := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)

@@ -1,7 +1,6 @@
 package messaging
 
 import (
-	"api/internal/configuration"
 	"api/internal/models"
 	"context"
 	"fmt"
@@ -18,32 +17,23 @@ type JetStreamPublisher struct {
 	publisher *jetstream.Publisher
 }
 
-func NewJetStreamPublisher(config models.EventsConfiguration, topic string) IPublisher {
+func NewJetStreamPublisher(config models.EventsConfiguration, topics []string) IPublisher {
 	nc, _ := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, config.Port))
 	js, _ := natsJs.New(nc)
 
-	notificationsStream, _ := js.CreateStream(context.Background(), natsJs.StreamConfig{
-		Name:      topic,
-		Subjects:  []string{topic},
-		Retention: natsJs.WorkQueuePolicy,
-	})
+	for _, topic := range topics {
+		stream, _ := js.CreateStream(context.Background(), natsJs.StreamConfig{
+			Name:      topic,
+			Subjects:  []string{topic},
+			Retention: natsJs.WorkQueuePolicy,
+		})
 
-	notificationsConsumer := fmt.Sprintf("watermill__%s", topic)
-	_, _ = notificationsStream.CreateOrUpdateConsumer(context.Background(), natsJs.ConsumerConfig{
-		Name:      notificationsConsumer,
-		AckPolicy: natsJs.AckExplicitPolicy,
-	})
-
-	bucketEventsStream, _ := js.CreateStream(context.Background(), natsJs.StreamConfig{
-		Name:      configuration.EventsBucketsTopicName,
-		Subjects:  []string{configuration.EventsBucketsTopicName},
-		Retention: natsJs.WorkQueuePolicy,
-	})
-	bucketEventsConsumer := fmt.Sprintf("watermill__%s", configuration.EventsBucketsTopicName)
-	_, _ = bucketEventsStream.CreateOrUpdateConsumer(context.Background(), natsJs.ConsumerConfig{
-		Name:      bucketEventsConsumer,
-		AckPolicy: natsJs.AckExplicitPolicy,
-	})
+		consumerName := fmt.Sprintf("watermill__%s", topic)
+		_, _ = stream.CreateOrUpdateConsumer(context.Background(), natsJs.ConsumerConfig{
+			Name:      consumerName,
+			AckPolicy: natsJs.AckExplicitPolicy,
+		})
+	}
 
 	publisher, err := jetstream.NewPublisher(jetstream.PublisherConfig{
 		Conn: nc,
