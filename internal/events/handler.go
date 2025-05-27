@@ -123,7 +123,6 @@ func HandleBucketEvents(db *gorm.DB, activityLogger activity.IActivityLogger, me
 				}
 
 				activityLogger.Send(action)
-
 			} else {
 				zap.L().Warn("event is not supported", zap.Any("event_name", record.EventName))
 				continue

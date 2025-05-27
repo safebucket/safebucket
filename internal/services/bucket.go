@@ -263,19 +263,6 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 		return models.FileTransferResponse{}, err
 	}
 
-	action := models.Activity{
-		Message: activity.FileUploaded,
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionUpload.String(),
-			"bucket_id":   bucket.ID.String(),
-			"file_id":     file.ID.String(),
-			"domain":      c.DefaultDomain,
-			"object_type": rbac.ResourceFile.String(),
-			"user_id":     user.UserID.String(),
-		}),
-	}
-	err = s.ActivityLogger.Send(action)
-
 	if err != nil {
 		return models.FileTransferResponse{}, err
 	}
