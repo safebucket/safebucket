@@ -17,23 +17,8 @@ type JetStreamPublisher struct {
 	publisher *jetstream.Publisher
 }
 
-func NewJetStreamPublisher(config models.EventsConfiguration, topics []string) IPublisher {
+func NewJetStreamPublisher(config models.EventsConfiguration) IPublisher {
 	nc, _ := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, config.Port))
-	js, _ := natsJs.New(nc)
-
-	for _, topic := range topics {
-		stream, _ := js.CreateStream(context.Background(), natsJs.StreamConfig{
-			Name:      topic,
-			Subjects:  []string{topic},
-			Retention: natsJs.WorkQueuePolicy,
-		})
-
-		consumerName := fmt.Sprintf("watermill__%s", topic)
-		_, _ = stream.CreateOrUpdateConsumer(context.Background(), natsJs.ConsumerConfig{
-			Name:      consumerName,
-			AckPolicy: natsJs.AckExplicitPolicy,
-		})
-	}
 
 	publisher, err := jetstream.NewPublisher(jetstream.PublisherConfig{
 		Conn: nc,
@@ -57,8 +42,23 @@ type JetStreamSubscriber struct {
 	subscriber *jetstream.Subscriber
 }
 
-func NewJetStreamSubscriber(config models.EventsConfiguration) ISubscriber {
+func NewJetStreamSubscriber(config models.EventsConfiguration, topics []string) ISubscriber {
 	nc, _ := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, config.Port))
+	js, _ := natsJs.New(nc)
+
+	for _, topic := range topics {
+		stream, _ := js.CreateStream(context.Background(), natsJs.StreamConfig{
+			Name:      topic,
+			Subjects:  []string{topic},
+			Retention: natsJs.WorkQueuePolicy,
+		})
+
+		consumerName := fmt.Sprintf("watermill__%s", topic)
+		_, _ = stream.CreateOrUpdateConsumer(context.Background(), natsJs.ConsumerConfig{
+			Name:      consumerName,
+			AckPolicy: natsJs.AckExplicitPolicy,
+		})
+	}
 
 	var namer jetstream.ConsumerConfigurator
 	subscriber, err := jetstream.NewSubscriber(jetstream.SubscriberConfig{
