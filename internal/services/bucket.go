@@ -253,6 +253,9 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 	_ = policy.SetKey(path.Join("/buckets", bucket.ID.String(), file.Path, file.Name))
 	_ = policy.SetContentLengthRange(int64(body.Size), int64(body.Size))
 	_ = policy.SetExpires(time.Now().UTC().Add(15 * time.Minute))
+	_ = policy.SetUserMetadata("Bucket-Id", bucket.ID.String())
+	_ = policy.SetUserMetadata("File-Id", file.ID.String())
+	_ = policy.SetUserMetadata("User-Id", user.UserID.String())
 	url, formData, err := s.S3.PresignedPostPolicy(context.Background(), policy)
 
 	if err != nil {

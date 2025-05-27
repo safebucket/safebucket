@@ -6,7 +6,6 @@ import { FileType } from "@/components/bucket-view/helpers/types";
 import { successToast } from "@/components/ui/hooks/use-toast";
 import {
   api_createFile,
-  api_updateFile,
   uploadToStorage,
 } from "@/components/upload/helpers/api";
 import { UploadStatus } from "@/components/upload/helpers/types";
@@ -46,9 +45,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
             updateStatus(uploadId, status);
 
             if (success) {
-              await api_updateFile(bucketId, presignedUpload.id, {
-                uploaded: true,
-              }).then(() => successToast(`Upload completed for ${file.name}`));
+              successToast(`Upload completed for ${file.name}`)
             }
           },
         );

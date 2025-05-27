@@ -36,7 +36,8 @@ func main() {
 	publisher := core.NewPublisher(config.Events, configuration.EventsNotificationsTopicName)
 	activity := core.NewActivityLogger(config.Activity)
 	subscriber := core.NewSubscriber(config.Events)
-	messages := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)
+	notifications := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)
+	bucketEvents := subscriber.Subscribe(context.Background(), configuration.EventsBucketsTopicName)
 
 	model := rbac.GetModel()
 	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
@@ -63,7 +64,9 @@ func main() {
 
 	appIdentity := uuid.New().String()
 
-	go events.HandleNotifications(config.Platform.WebUrl, mailer, messages)
+	go events.HandleNotifications(config.Platform.WebUrl, mailer, notifications)
+
+	go events.HandleBucketEvents(db, activity, bucketEvents)
 
 	go func() {
 		err := cache.StartIdentityTicker(appIdentity)

@@ -2,7 +2,7 @@ import { api } from "@/lib/api";
 
 import { FileType } from "@/components/bucket-view/helpers/types";
 import { toast } from "@/components/ui/hooks/use-toast";
-import { ICreateFile, IUpdateFile } from "@/components/upload/helpers/types";
+import { ICreateFile } from "@/components/upload/helpers/types";
 
 export const api_createFile = (
   name: string,
@@ -17,12 +17,6 @@ export const api_createFile = (
     path,
     size,
   });
-
-export const api_updateFile = (
-  bucketId: string,
-  fileId: string,
-  body: IUpdateFile,
-) => api.patch(`/buckets/${bucketId}/files/${fileId}`, body);
 
 export const uploadToStorage = async (
   presignedUpload: ICreateFile,
