@@ -30,7 +30,7 @@ func (s AuthService) Routes() chi.Router {
 	r.With(m.Validate[models.AuthLogin]).Post("/login", handlers.CreateHandler(s.Login))
 	// TODO: MFA / ResetPassword / ResetTokens / IsAdmin (:= get user)
 	r.With(m.Validate[models.AuthVerify]).Post("/verify", handlers.CreateHandler(s.Verify))
-	r.With(m.Validate[models.AuthVerify]).Post("/refresh", handlers.CreateHandler(s.Refresh))
+	r.With(m.Validate[models.AuthRefresh]).Post("/refresh", handlers.CreateHandler(s.Refresh))
 
 	r.Route("/providers", func(r chi.Router) {
 		r.Get("/", handlers.GetListHandler(s.GetProviderList))
@@ -72,11 +72,11 @@ func (s AuthService) Verify(_ models.UserClaims, _ uuid.UUIDs, body models.AuthV
 }
 
 func (s AuthService) Refresh(_ models.UserClaims, _ uuid.UUIDs, body models.AuthRefresh) (models.AuthRefreshResponse, error) {
-	RefreshToken, err := h.ParseRefreshToken(s.JWTConf.Secret, body.RefreshToken)
+	refreshToken, err := h.ParseRefreshToken(s.JWTConf.Secret, body.RefreshToken)
 	if err != nil {
 		return models.AuthRefreshResponse{}, err
 	}
-	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &models.User{Email: RefreshToken.Email})
+	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &models.User{ID: refreshToken.UserID})
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
 

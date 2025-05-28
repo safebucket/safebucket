@@ -83,18 +83,20 @@ func NewRefreshToken(jwtSecret string, user *models.User) (string, error) {
 }
 
 func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims, error) {
-	parsedAccessToken, err := jwt.ParseWithClaims(
+	claims := &models.UserClaims{}
+
+	_, err := jwt.ParseWithClaims(
 		refreshToken,
-		&models.UserClaims{},
+		claims,
 		func(token *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
 		},
 	)
 
-	if parsedAccessToken.Claims.(models.UserClaims).Aud != "auth:refresh" {
+	if claims.Aud != "auth:refresh" {
 		return models.UserClaims{}, errors.New("invalid refresh token")
 	}
-	return parsedAccessToken.Claims.(models.UserClaims), err
+	return *claims, err
 }
 
 func GetUserClaims(c context.Context) (models.UserClaims, error) {

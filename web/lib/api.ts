@@ -30,16 +30,9 @@ function buildUrlWithParams(
 export async function fetchApi<T>(
   url: string,
   options: RequestOptions = {},
+  retry = true,
 ): Promise<T> {
-  const {
-    method = "GET",
-    headers = {},
-    body,
-    params,
-    // cookie,
-    // cache = "no-store",
-    // next,
-  } = options;
+  const { method = "GET", headers = {}, body, params } = options;
   const fullUrl = buildUrlWithParams(
     `${process.env.NEXT_PUBLIC_API_URL}${url}`,
     params,
@@ -56,15 +49,19 @@ export async function fetchApi<T>(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
-    // credentials: "include",
-    // cache,
-    // next,
   });
+
+  if (response.status === 403 && retry) {
+    await refreshToken();
+    return fetchApi<T>(url, options, false);
+  }
 
   if (!response.ok) {
     const res = await response.json();
     throw new Error(res.error[0]);
-  } else if (
+  }
+
+  if (
     response.status === 204 ||
     response.headers.get("Content-Length") === "0"
   ) {
@@ -72,6 +69,40 @@ export async function fetchApi<T>(
   }
 
   return response.json();
+}
+
+async function refreshToken(): Promise<void> {
+  try {
+    const body = JSON.stringify({
+      refresh_token: Cookies.get("safebucket_refresh_token"),
+    });
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+      {
+        method: "POST",
+        body,
+      },
+    );
+
+    if (!response.ok) {
+      Cookies.remove("safebucket_access_token");
+      Cookies.remove("safebucket_refresh_token");
+    }
+
+    const data = await response.json();
+    const newToken = data.access_token;
+
+    if (newToken) {
+      Cookies.set("safebucket_access_token", newToken);
+    } else {
+      Cookies.remove("safebucket_access_token");
+      Cookies.remove("safebucket_refresh_token");
+    }
+  } catch (err) {
+    Cookies.remove("safebucket_access_token");
+    Cookies.remove("safebucket_refresh_token");
+  }
 }
 
 export const api = {
