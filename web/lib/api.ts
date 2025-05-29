@@ -27,6 +27,12 @@ function buildUrlWithParams(
   return `${url}?${queryString}`;
 }
 
+export function logout() {
+  Cookies.remove("safebucket_access_token");
+  Cookies.remove("safebucket_refresh_token");
+  window.location.href = "/auth/login";
+}
+
 export async function fetchApi<T>(
   url: string,
   options: RequestOptions = {},
@@ -86,8 +92,7 @@ async function refreshToken(): Promise<void> {
     );
 
     if (!response.ok) {
-      Cookies.remove("safebucket_access_token");
-      Cookies.remove("safebucket_refresh_token");
+      logout();
     }
 
     const data = await response.json();
@@ -96,12 +101,10 @@ async function refreshToken(): Promise<void> {
     if (newToken) {
       Cookies.set("safebucket_access_token", newToken);
     } else {
-      Cookies.remove("safebucket_access_token");
-      Cookies.remove("safebucket_refresh_token");
+      logout();
     }
   } catch (err) {
-    Cookies.remove("safebucket_access_token");
-    Cookies.remove("safebucket_refresh_token");
+    logout();
   }
 }
 
