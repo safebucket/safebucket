@@ -27,12 +27,6 @@ function buildUrlWithParams(
   return `${url}?${queryString}`;
 }
 
-export function logout() {
-  Cookies.remove("safebucket_access_token");
-  Cookies.remove("safebucket_refresh_token");
-  window.location.href = "/auth/login";
-}
-
 export async function fetchApi<T>(
   url: string,
   options: RequestOptions = {},
@@ -106,6 +100,12 @@ async function refreshToken(): Promise<void> {
   } catch (err) {
     logout();
   }
+}
+
+export function logout() {
+  Cookies.remove("safebucket_access_token");
+  Cookies.remove("safebucket_refresh_token");
+  window.location.href = "/auth/login";
 }
 
 export const api = {
