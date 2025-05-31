@@ -20,6 +20,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm/clause"
 	"log"
 	"net/http"
 	"time"
@@ -56,7 +57,10 @@ func main() {
 
 	hash, _ := h.CreateHash(config.Admin.Password)
 	adminUser.HashedPassword = hash
-	db.Create(&adminUser)
+	db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "email"}},
+		DoUpdates: clause.AssignmentColumns([]string{"hashed_password"}),
+	}).Create(&adminUser)
 	_ = roles.AddUserToRoleAdmin(e, adminUser)
 
 	//
