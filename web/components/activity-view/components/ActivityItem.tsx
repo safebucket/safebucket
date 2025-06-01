@@ -2,13 +2,9 @@ import React, { FC } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { IActivity } from "@/components/activity-view/helpers/types";
-import {
-  formatMessage,
-  getActivityMapping,
-  timeAgo,
-} from "@/components/activity-view/helpers/utils";
+import { formatMessage, getActivityMapping, timeAgo } from "@/components/activity-view/helpers/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { IActivity } from "@/components/common/types/activity";
 
 interface IActivityItemProps {
   item: IActivity;
@@ -43,7 +39,7 @@ export const ActivityItem: FC<IActivityItemProps> = ({
         </div>
         <p className="text-sm text-muted-foreground">{formatMessage(item)}</p>
         <p className="text-xs text-muted-foreground">
-          {timeAgo(item.user.created_at)}
+          {timeAgo(item.timestamp)}
         </p>
       </div>
     </div>

@@ -1,7 +1,5 @@
 import { messageMap } from "@/components/activity-view/helpers/constants";
-import {
-  IMessageMapping,
-} from "@/components/activity-view/helpers/types";
+import { IMessageMapping } from "@/components/activity-view/helpers/types";
 import { ActivityMessage, IActivity } from "@/components/common/types/activity";
 
 export function getActivityMapping(
@@ -17,22 +15,30 @@ export const formatMessage = (log: IActivity): string => {
     .replace("%%FILE_NAME%%", log.file?.name || "");
 };
 
-export const timeAgo = (isoTimestamp: string): string => {
-  const now = new Date();
-  const then = new Date(isoTimestamp);
+export const timeAgo = (nanoTimestamp: string): string => {
+  const nanoseconds = Number(nanoTimestamp);
+  const timestampMs = nanoseconds / 1000000;
 
-  const diffMs = now.getTime() - then.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
+  const now = Date.now();
 
-  if (diffSec < 60) return "just now";
-  if (diffSec < 3600) {
-    const mins = Math.floor(diffSec / 60);
-    return `${mins} minute${mins !== 1 ? "s" : ""} ago`;
-  }
-  if (diffSec < 86400) {
-    const hours = Math.floor(diffSec / 3600);
-    return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
-  }
-  const days = Math.floor(diffSec / 86400);
-  return `${days} day${days !== 1 ? "s" : ""} ago`;
+  const diffMs = now - timestampMs;
+
+  const seconds = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const weeks = Math.floor(days / 7);
+  const months = Math.floor(days / 30);
+  const years = Math.floor(days / 365);
+
+  const format = (count: number, unit: string) =>
+    `${count} ${unit}${count === 1 ? "" : "s"} ago`;
+
+  if (seconds < 60) return format(seconds, "second");
+  if (minutes < 60) return format(minutes, "minute");
+  if (hours < 24) return format(hours, "hour");
+  if (days < 7) return format(days, "day");
+  if (weeks < 4) return format(weeks, "week");
+  if (months < 12) return format(months, "month");
+  return format(years, "year");
 };
