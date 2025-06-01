@@ -60,7 +60,7 @@ func (s BucketService) Routes() chi.Router {
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
 			With(m.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
 
-		r.Get("/history", handlers.GetOneHandler(s.GetBucketHistory))
+		r.Get("/activity", handlers.GetOneHandler(s.GetBucketActivity))
 
 		r.Route("/files/{id1}", func(r chi.Router) {
 			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
@@ -75,7 +75,7 @@ func (s BucketService) Routes() chi.Router {
 		})
 	})
 
-	r.Get("/history", handlers.GetListHandler(s.GetHistory))
+	r.Get("/activity", handlers.GetListHandler(s.GetActivity))
 
 	return r
 }
@@ -417,7 +417,7 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 	}, nil
 }
 
-func (s BucketService) GetHistory(user models.UserClaims) []map[string]interface{} {
+func (s BucketService) GetActivity(user models.UserClaims) []map[string]interface{} {
 	buckets := s.GetBucketList(user)
 
 	var bucketIds []string
@@ -445,7 +445,7 @@ func (s BucketService) GetHistory(user models.UserClaims) []map[string]interface
 	return activity.EnrichActivity(s.DB, history)
 }
 
-func (s BucketService) GetBucketHistory(user models.UserClaims, ids uuid.UUIDs) (models.Page[map[string]interface{}], error) {
+func (s BucketService) GetBucketActivity(user models.UserClaims, ids uuid.UUIDs) (models.Page[map[string]interface{}], error) {
 	bucket, err := s.GetBucket(user, ids)
 
 	if err != nil {

@@ -11,7 +11,7 @@ export default function ActivityFeed() {
   const { activity, isLoading } = useActivityData();
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 w-full overflow-auto">
       <div className="m-6 mt-0 grid grid-cols-1 gap-8">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Activity Feed</h1>

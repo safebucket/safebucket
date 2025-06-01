@@ -8,7 +8,7 @@ import {
 
 export const useBucketActivityData = (id: string): IActivityData => {
   const { data, error, isLoading } = useSWR(
-    `/buckets/${id}/history`,
+    `/buckets/${id}/activity`,
     fetchApi<IListBucketActivity>,
   );
 

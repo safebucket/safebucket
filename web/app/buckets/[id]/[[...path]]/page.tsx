@@ -19,7 +19,7 @@ export default function Bucket(props: IBucketProps) {
 
   return (
     <BucketViewProvider path={path}>
-      <div className="flex-1">
+      <div className="flex-1 w-full overflow-auto">
         <div className="m-6 mt-0 grid grid-cols-1 gap-8">
           {isLoading ? (
             <BucketSkeleton />

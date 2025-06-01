@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"reflect"
+	"sort"
+	"strconv"
 	"time"
 )
 
@@ -28,11 +30,11 @@ func NewLogFilter(criteria map[string]string) models.LogFilter {
 }
 
 // EnrichActivity returns a new slice of logs with specified fields enriched by fetching related objects from the DB.
-// It does not mutate the original `history` slice.
-func EnrichActivity(db *gorm.DB, history []map[string]interface{}) []map[string]interface{} {
-	enrichedHistory := make([]map[string]interface{}, 0, len(history))
+// It does not mutate the original `activity` slice.
+func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string]interface{} {
+	enrichedActivity := make([]map[string]interface{}, 0, len(activity))
 
-	for _, log := range history {
+	for _, log := range activity {
 		newLog := make(map[string]interface{})
 		for k, v := range log {
 			newLog[k] = v
@@ -41,15 +43,22 @@ func EnrichActivity(db *gorm.DB, history []map[string]interface{}) []map[string]
 		for fieldName, enrichedField := range ToEnrich {
 			if val, ok := log[fieldName]; ok && val != "" {
 				object := reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
-				db.Where("id = ?", val).First(object)
+
+				db.Unscoped().Where("id = ?", val).First(object)
 
 				newLog[enrichedField.Name] = object
 				delete(newLog, fieldName)
 			}
 		}
 
-		enrichedHistory = append(enrichedHistory, newLog)
+		enrichedActivity = append(enrichedActivity, newLog)
 	}
 
-	return enrichedHistory
+	sort.Slice(enrichedActivity, func(i, j int) bool {
+		t1, _ := strconv.ParseInt(enrichedActivity[i]["timestamp"].(string), 10, 64)
+		t2, _ := strconv.ParseInt(enrichedActivity[j]["timestamp"].(string), 10, 64)
+		return t1 > t2
+	})
+
+	return enrichedActivity
 }
