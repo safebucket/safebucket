@@ -22,6 +22,7 @@ redis:
   password: root
 
 storage:
+  type: gcp
   endpoint: localhost:9000
   client_id: minio-root-user
   client_secret: minio-root-password
