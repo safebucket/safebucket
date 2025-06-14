@@ -77,8 +77,6 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Unix()
 	params := map[string]string{"start": strconv.FormatInt(thirtyDaysAgo, 10), "limit": "100", "query": query, "direction": "backward"}
 
-	zap.L().Debug("Query params", zap.Any("params", params))
-
 	resp, err := s.Client.R().
 		SetQueryParams(params).
 		SetHeader("Accept", "application/json").
