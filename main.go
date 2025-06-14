@@ -32,7 +32,7 @@ func main() {
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
 	cache := c.InitCache(config.Redis)
-	storage := core.NewStorage(config.Storage)
+	s3 := core.InitStorage(config.Storage)
 	mailer := core.NewMailer(config.Mailer)
 	publisher := core.NewPublisher(config.Events)
 	activity := core.NewActivityLogger(config.Activity)
@@ -106,7 +106,7 @@ func main() {
 	r.Mount("/users", services.UserService{DB: db, Enforcer: e}.Routes())
 	r.Mount("/buckets", services.BucketService{
 		DB:             db,
-		Storage:        storage,
+		S3:             s3,
 		Enforcer:       e,
 		Publisher:      &publisher,
 		ActivityLogger: activity,

@@ -54,7 +54,6 @@ type RedisConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	Type         string `mapstructure:"type" validate:"required,oneof=s3 gcp"`
 	Endpoint     string `mapstructure:"endpoint" validate:"required"`
 	ClientId     string `mapstructure:"client_id" validate:"required"`
 	ClientSecret string `mapstructure:"client_secret" validate:"required"`
