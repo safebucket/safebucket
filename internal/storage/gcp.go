@@ -14,19 +14,19 @@ type GCPStorage struct {
 	storage    *gcs.Client
 }
 
-func NewGCPStorage(_ models.StorageConfiguration) IStorage {
+func NewGCPStorage(config models.StorageConfiguration) IStorage {
 	client, err := gcs.NewClient(context.Background())
 	if err != nil {
 		zap.L().Error("Failed to connect to storage", zap.Error(err))
 	}
 
-	_, err = client.Bucket("safebucket-gcp").Attrs(context.Background())
+	_, err = client.Bucket(config.BucketName).Attrs(context.Background())
 	if err != nil {
-		zap.L().Error("Bucket 'safebucket' does not exist.", zap.Error(err))
+		zap.L().Error("Bucket does not exist.", zap.String("bucketName", config.BucketName))
 	}
 
 	return &GCPStorage{
-		BucketName: "safebucket-gcp",
+		BucketName: config.BucketName,
 		storage:    client,
 	}
 }

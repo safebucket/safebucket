@@ -22,10 +22,15 @@ redis:
   password: root
 
 storage:
-  type: gcp
+  type: s3
+  bucket_name: safebucket
   endpoint: localhost:9000
   client_id: minio-root-user
   client_secret: minio-root-password
+
+#storage:
+#  bucket_name: safebucket-gcp
+#  type: gcp
 
 events:
   type: jetstream

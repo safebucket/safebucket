@@ -24,16 +24,16 @@ func NewS3Storage(config models.StorageConfiguration) IStorage {
 		zap.L().Error("Failed to connect to storage", zap.Error(err))
 	}
 
-	exists, err := minioClient.BucketExists(context.Background(), "safebucket")
+	exists, err := minioClient.BucketExists(context.Background(), config.BucketName)
 	if err != nil {
 		zap.L().Error("Failed to connect to storage", zap.Error(err))
 	}
 
 	if !exists {
-		zap.L().Error("Bucket 'safebucket' does not exist.")
+		zap.L().Error("Bucket does not exist.", zap.String("bucketName", config.BucketName))
 	}
 
-	return S3Storage{BucketName: "safebucket", storage: minioClient}
+	return S3Storage{BucketName: config.BucketName, storage: minioClient}
 }
 
 func (s S3Storage) PresignedGetObject(path string) (string, error) {
@@ -48,7 +48,7 @@ func (s S3Storage) PresignedGetObject(path string) (string, error) {
 
 func (s S3Storage) PresignedPostPolicy(path string, size int, metadata map[string]string) (string, map[string]string, error) {
 	policy := minio.NewPostPolicy()
-	_ = policy.SetBucket("safebucket") //TODO: set var
+	_ = policy.SetBucket(s.BucketName)
 	_ = policy.SetKey(path)
 	_ = policy.SetContentLengthRange(int64(size), int64(size))
 	_ = policy.SetExpires(time.Now().UTC().Add(15 * time.Minute))
