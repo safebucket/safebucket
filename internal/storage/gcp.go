@@ -37,7 +37,7 @@ func (g GCPStorage) PresignedGetObject(path string) (string, error) {
 		Expires: time.Now().Add(15 * time.Minute),
 	}
 
-	url, err := gcs.SignedURL(g.BucketName, path, opts)
+	url, err := g.storage.Bucket(g.BucketName).SignedURL(path, opts)
 
 	if err != nil {
 		return "", err

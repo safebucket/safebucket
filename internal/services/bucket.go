@@ -168,11 +168,9 @@ func (s BucketService) GetBucketList(user models.UserClaims) []models.Bucket {
 	var bucketIDs []string
 
 	for _, role := range roles {
-		policies, _ := s.Enforcer.GetFilteredPolicy(0, c.DefaultDomain,
-			role,
-			rbac.ResourceBucket.String(),
-			"",
-			rbac.ActionRead.String())
+		policies, _ := s.Enforcer.GetFilteredPolicy(
+			0, c.DefaultDomain, role, rbac.ResourceBucket.String(), "", rbac.ActionRead.String(),
+		)
 
 		for _, policy := range policies {
 			bucketIDs = append(bucketIDs, policy[3])
@@ -207,7 +205,6 @@ func (s BucketService) UpdateBucket(_ models.UserClaims, ids uuid.UUIDs, body mo
 	if result.RowsAffected == 0 {
 		return bucket, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	} else {
-
 		return bucket, nil
 	}
 }
@@ -247,7 +244,7 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 	}
 
 	url, formData, err := s.Storage.PresignedPostPolicy(
-		path.Join("/buckets", bucket.ID.String(), file.Path, file.Name),
+		path.Join("buckets", bucket.ID.String(), file.Path, file.Name),
 		body.Size,
 		map[string]string{
 			"bucket_id": bucket.ID.String(),
