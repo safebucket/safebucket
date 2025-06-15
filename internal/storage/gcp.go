@@ -57,7 +57,7 @@ func (g GCPStorage) PresignedPostPolicy(path string, size int, metadata map[stri
 			},
 		},
 		Conditions: []gcs.PostPolicyV4Condition{
-			gcs.ConditionContentLengthRange(uint64(size), uint64(size)),
+			gcs.ConditionContentLengthRange(uint64(size), uint64(size)), // #nosec G115
 		},
 	}
 
