@@ -1,7 +1,6 @@
 package events
 
 import (
-	"api/internal/configuration"
 	"api/internal/core"
 	"api/internal/messaging"
 	"api/internal/models"
@@ -54,7 +53,7 @@ func (e *BucketSharedWith) Trigger() {
 
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(configuration.EventsNotificationsTopicName, msg)
+	err = e.Publisher.Publish(msg)
 
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))

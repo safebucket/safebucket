@@ -14,7 +14,7 @@ type S3Storage struct {
 	storage    *minio.Client
 }
 
-func NewS3Storage(config models.StorageConfiguration) IStorage {
+func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) IStorage {
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.ClientId, config.ClientSecret, ""),
 		Secure: false,
@@ -24,16 +24,16 @@ func NewS3Storage(config models.StorageConfiguration) IStorage {
 		zap.L().Error("Failed to connect to storage", zap.Error(err))
 	}
 
-	exists, err := minioClient.BucketExists(context.Background(), config.BucketName)
+	exists, err := minioClient.BucketExists(context.Background(), bucketName)
 	if err != nil {
 		zap.L().Error("Failed to connect to storage", zap.Error(err))
 	}
 
 	if !exists {
-		zap.L().Error("Bucket does not exist.", zap.String("bucketName", config.BucketName))
+		zap.L().Error("Bucket does not exist.", zap.String("bucketName", bucketName))
 	}
 
-	return S3Storage{BucketName: config.BucketName, storage: minioClient}
+	return S3Storage{BucketName: bucketName, storage: minioClient}
 }
 
 func (s S3Storage) PresignedGetObject(path string) (string, error) {

@@ -7,7 +7,7 @@ import (
 
 // IPublisher defines a common interface for all publishers.
 type IPublisher interface {
-	Publish(topic string, messages ...*message.Message) error
+	Publish(messages ...*message.Message) error
 	Close() error
 }
 

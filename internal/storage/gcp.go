@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"api/internal/models"
 	gcs "cloud.google.com/go/storage"
 	"context"
 	"go.uber.org/zap"
@@ -14,19 +13,19 @@ type GCPStorage struct {
 	storage    *gcs.Client
 }
 
-func NewGCPStorage(config models.StorageConfiguration) IStorage {
+func NewGCPStorage(bucketName string) IStorage {
 	client, err := gcs.NewClient(context.Background())
 	if err != nil {
 		zap.L().Error("Failed to connect to storage", zap.Error(err))
 	}
 
-	_, err = client.Bucket(config.BucketName).Attrs(context.Background())
+	_, err = client.Bucket(bucketName).Attrs(context.Background())
 	if err != nil {
-		zap.L().Error("Bucket does not exist.", zap.String("bucketName", config.BucketName))
+		zap.L().Error("Bucket does not exist.", zap.String("bucketName", bucketName))
 	}
 
 	return &GCPStorage{
-		BucketName: config.BucketName,
+		BucketName: bucketName,
 		storage:    client,
 	}
 }

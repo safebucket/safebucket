@@ -4,7 +4,7 @@ import (
 	"api/internal/models"
 	"errors"
 	"fmt"
-	"github.com/go-playground/validator"
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"os"

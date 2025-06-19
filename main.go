@@ -36,12 +36,12 @@ func main() {
 	mailer := core.NewMailer(config.Mailer)
 	publisher := core.NewPublisher(config.Events)
 	activity := core.NewActivityLogger(config.Activity)
-	subscriber := core.NewSubscriber(
-		config.Events,
-		[]string{configuration.EventsNotificationsTopicName, configuration.EventsBucketsTopicName},
-	)
-	notifications := subscriber.Subscribe(context.Background(), configuration.EventsNotificationsTopicName)
-	bucketEvents := subscriber.Subscribe(context.Background(), configuration.EventsBucketsTopicName)
+
+	subscriber := core.NewSubscriber(config.Events)
+	notifications := subscriber.Subscribe(context.Background(), config.Events.TopicName)
+
+	bucketEventsSubscriber := core.NewBucketEventsSubscriber(config.Storage)
+	bucketEvents := bucketEventsSubscriber.Subscribe(context.Background(), config.Storage.TopicName)
 
 	model := rbac.GetModel()
 	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)

@@ -1,17 +1,17 @@
 package models
 
 type Configuration struct {
-	Platform PlatformConfiguration `mapstructure:"platform" validate:"required,dive"`
-	Database DatabaseConfiguration `mapstructure:"database" validate:"required,dive"`
-	JWT      JWTConfiguration      `json:"jwt" validate:"required,dive"`
-	Cors     CorsConfiguration     `json:"cors" validate:"required,dive"`
-	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required,dive"`
-	Redis    RedisConfiguration    `json:"redis" validate:"required,dive"`
-	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required,dive"`
-	Admin    AdminConfiguration    `mapstructure:"admin" validate:"required,dive"`
-	Events   EventsConfiguration   `mapstructure:"events" validate:"required,dive"`
-	Mailer   MailerConfiguration   `mapstructure:"mailer" validate:"required,dive"`
-	Activity ActivityConfiguration `mapstructure:"activity" validate:"required,dive"`
+	Platform PlatformConfiguration `mapstructure:"platform" validate:"required"`
+	Database DatabaseConfiguration `mapstructure:"database" validate:"required"`
+	JWT      JWTConfiguration      `mapstructure:"jwt" validate:"required"`
+	Cors     CorsConfiguration     `mapstructure:"cors" validate:"required"`
+	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required"`
+	Redis    RedisConfiguration    `mapstructure:"redis" validate:"required"`
+	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required"`
+	Admin    AdminConfiguration    `mapstructure:"admin" validate:"required"`
+	Events   EventsConfiguration   `mapstructure:"events" validate:"required"`
+	Mailer   MailerConfiguration   `mapstructure:"mailer" validate:"required"`
+	Activity ActivityConfiguration `mapstructure:"activity" validate:"required"`
 }
 
 type PlatformConfiguration struct {
@@ -37,7 +37,7 @@ type CorsConfiguration struct {
 }
 
 type AuthConfiguration struct {
-	Providers map[string]ProviderConfiguration `mapstructure:"providers" validate:"dive"`
+	Providers map[string]ProviderConfiguration `mapstructure:"providers"`
 }
 
 type ProviderConfiguration struct {
@@ -54,11 +54,26 @@ type RedisConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	BucketName   string `mapstructure:"bucket_name" default:"safebucket"`
-	Type         string `mapstructure:"type" validate:"required,oneof=s3 gcp"`
+	BucketName string `mapstructure:"bucket_name" default:"safebucket"`
+	TopicName  string `mapstructure:"topic_name" validate:"required"`
+	Type       string `mapstructure:"type" validate:"required,oneof=minio gcp"`
+
+	GCP   *GCPConfiguration          `mapstructure:"gcp" validate:"required_if=Type gcp"`
+	Minio *MinioStorageConfiguration `mapstructure:"minio" validate:"required_if=Type minio"`
+}
+
+type MinioStorageConfiguration struct {
 	Endpoint     string `mapstructure:"endpoint" validate:"required"`
 	ClientId     string `mapstructure:"client_id" validate:"required"`
 	ClientSecret string `mapstructure:"client_secret" validate:"required"`
+
+	Type      string                 `mapstructure:"type" validate:"required,oneof=jetstream"`
+	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream"`
+}
+
+type GCPConfiguration struct {
+	ProjectID        string `mapstructure:"project_id" validate:"required"`
+	SubscriptionName string `mapstructure:"subscription_name" validate:"required"`
 }
 
 type AdminConfiguration struct {
@@ -67,9 +82,16 @@ type AdminConfiguration struct {
 }
 
 type EventsConfiguration struct {
-	Type string `mapstructure:"type" validate:"required,oneof=jetstream"`
-	Host string `mapstructure:"host" validate:"required"`
-	Port string `mapstructure:"port" validate:"required"`
+	Type      string `mapstructure:"type" validate:"required,oneof=jetstream gcp"`
+	TopicName string `mapstructure:"topic_name" validate:"required"`
+
+	GCP       *GCPConfiguration      `mapstructure:"gcp"`
+	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream"`
+}
+
+type JetStreamEventsConfig struct {
+	Host string `mapstructure:"host"`
+	Port string `mapstructure:"port"`
 }
 
 type MailerConfiguration struct {
