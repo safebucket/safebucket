@@ -21,43 +21,19 @@ redis:
   port: 6379
   password: root
 
-# minio storage
-#storage:
-#  bucket_name: safebucket
-#  topic_name: safebucket:notifications
-#  type: minio
-#  minio:
-#    endpoint: localhost:9000
-#    client_id: minio-root-user
-#    client_secret: minio-root-password
-#    type: jetstream
-#    jetstream:
-#      host: localhost
-#      port: 4222
-
-# gcp storage
 storage:
-  bucket_name: safebucket-gcp
-  topic_name: safebucket-notifications
   type: gcp
   gcp:
+    bucket_name: safebucket-gcp
     project_id: atomic-kit-462909-u2
     subscription_name: safebucket-sub
+    topic_name: safebucket-notifications
 
-# jetstream events (minio)
-#events:
-#  topic_name: safebucket:notifications
-#  type: jetstream
-#  jetstream:
-#    host: localhost
-#    port: 4222
-
-# gcp events (pubsub)
 events:
-  topic_name: safebucket-mail-notifs
   type: gcp
   gcp:
     project_id: atomic-kit-462909-u2
+    topic_name: safebucket-mail-notifs
     subscription_name: safebucket-mail-notifs-sub
 
 mailer:

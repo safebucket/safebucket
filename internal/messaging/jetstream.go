@@ -18,7 +18,7 @@ type JetStreamPublisher struct {
 	publisher *jetstream.Publisher
 }
 
-func NewJetStreamPublisher(config *models.JetStreamEventsConfig, topic string) IPublisher {
+func NewJetStreamPublisher(config *models.JetStreamEventsConfig) IPublisher {
 	nc, _ := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, config.Port))
 
 	publisher, err := jetstream.NewPublisher(jetstream.PublisherConfig{
@@ -28,7 +28,7 @@ func NewJetStreamPublisher(config *models.JetStreamEventsConfig, topic string) I
 		zap.L().Fatal("Failed to create JetStream publisher", zap.Error(err))
 	}
 
-	return &JetStreamPublisher{TopicName: topic, publisher: publisher}
+	return &JetStreamPublisher{TopicName: config.TopicName, publisher: publisher}
 }
 
 func (p *JetStreamPublisher) Publish(messages ...*message.Message) error {
@@ -40,20 +40,21 @@ func (p *JetStreamPublisher) Close() error {
 }
 
 type JetStreamSubscriber struct {
+	TopicName  string
 	subscriber *jetstream.Subscriber
 }
 
-func NewJetStreamSubscriber(config *models.JetStreamEventsConfig, topic string) ISubscriber {
+func NewJetStreamSubscriber(config *models.JetStreamEventsConfig) ISubscriber {
 	nc, _ := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, config.Port))
 	js, _ := natsJs.New(nc)
 
 	stream, _ := js.CreateStream(context.Background(), natsJs.StreamConfig{
-		Name:      topic,
-		Subjects:  []string{topic},
+		Name:      config.TopicName,
+		Subjects:  []string{config.TopicName},
 		Retention: natsJs.WorkQueuePolicy,
 	})
 
-	consumerName := fmt.Sprintf("watermill__%s", topic)
+	consumerName := fmt.Sprintf("watermill__%s", config.TopicName)
 	_, _ = stream.CreateOrUpdateConsumer(context.Background(), natsJs.ConsumerConfig{
 		Name:      consumerName,
 		AckPolicy: natsJs.AckExplicitPolicy,
@@ -70,13 +71,13 @@ func NewJetStreamSubscriber(config *models.JetStreamEventsConfig, topic string) 
 		zap.L().Fatal("Failed to create JetStream subscriber", zap.Error(err))
 	}
 
-	return &JetStreamSubscriber{subscriber: subscriber}
+	return &JetStreamSubscriber{TopicName: config.TopicName, subscriber: subscriber}
 }
 
-func (s *JetStreamSubscriber) Subscribe(ctx context.Context, topic string) <-chan *message.Message {
-	sub, err := s.subscriber.Subscribe(ctx, topic)
+func (s *JetStreamSubscriber) Subscribe() <-chan *message.Message {
+	sub, err := s.subscriber.Subscribe(context.Background(), s.TopicName)
 	if err != nil {
-		zap.L().Fatal("Failed to subscribe to topic", zap.String("topic", topic), zap.Error(err))
+		zap.L().Fatal("Failed to subscribe to topic", zap.String("topic", s.TopicName), zap.Error(err))
 	}
 	return sub
 }

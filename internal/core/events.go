@@ -8,9 +8,9 @@ import (
 func NewPublisher(config models.EventsConfiguration) messaging.IPublisher {
 	switch config.Type {
 	case "jetstream":
-		return messaging.NewJetStreamPublisher(config.Jetstream, config.TopicName)
+		return messaging.NewJetStreamPublisher(config.Jetstream)
 	case "gcp":
-		return messaging.NewGCPPublisher(config.GCP, config.TopicName)
+		return messaging.NewGCPPublisher(config.GCP)
 	default:
 		return nil
 	}
@@ -19,7 +19,7 @@ func NewPublisher(config models.EventsConfiguration) messaging.IPublisher {
 func NewSubscriber(config models.EventsConfiguration) messaging.ISubscriber {
 	switch config.Type {
 	case "jetstream":
-		return messaging.NewJetStreamSubscriber(config.Jetstream, config.TopicName)
+		return messaging.NewJetStreamSubscriber(config.Jetstream)
 	case "gcp":
 		return messaging.NewGCPSubscriber(config.GCP)
 	default:
@@ -32,7 +32,7 @@ func NewBucketEventsSubscriber(config models.StorageConfiguration) messaging.ISu
 	case "minio":
 		switch config.Minio.Type {
 		case "jetstream":
-			return messaging.NewJetStreamSubscriber(config.Minio.Jetstream, config.TopicName)
+			return messaging.NewJetStreamSubscriber(config.Minio.Jetstream)
 		default:
 			return nil
 		}

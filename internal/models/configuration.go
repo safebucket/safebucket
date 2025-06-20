@@ -54,15 +54,14 @@ type RedisConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	BucketName string `mapstructure:"bucket_name" default:"safebucket"`
-	TopicName  string `mapstructure:"topic_name" validate:"required"`
-	Type       string `mapstructure:"type" validate:"required,oneof=minio gcp"`
+	Type string `mapstructure:"type" validate:"required,oneof=minio gcp"`
 
 	GCP   *GCPConfiguration          `mapstructure:"gcp" validate:"required_if=Type gcp"`
 	Minio *MinioStorageConfiguration `mapstructure:"minio" validate:"required_if=Type minio"`
 }
 
 type MinioStorageConfiguration struct {
+	BucketName   string `mapstructure:"bucket_name" default:"safebucket"`
 	Endpoint     string `mapstructure:"endpoint" validate:"required"`
 	ClientId     string `mapstructure:"client_id" validate:"required"`
 	ClientSecret string `mapstructure:"client_secret" validate:"required"`
@@ -72,6 +71,8 @@ type MinioStorageConfiguration struct {
 }
 
 type GCPConfiguration struct {
+	BucketName       string `mapstructure:"bucket_name" default:"safebucket"`
+	TopicName        string `mapstructure:"topic_name" validate:"required"`
 	ProjectID        string `mapstructure:"project_id" validate:"required"`
 	SubscriptionName string `mapstructure:"subscription_name" validate:"required"`
 }
@@ -82,16 +83,16 @@ type AdminConfiguration struct {
 }
 
 type EventsConfiguration struct {
-	Type      string `mapstructure:"type" validate:"required,oneof=jetstream gcp"`
-	TopicName string `mapstructure:"topic_name" validate:"required"`
+	Type string `mapstructure:"type" validate:"required,oneof=jetstream gcp"`
 
 	GCP       *GCPConfiguration      `mapstructure:"gcp"`
 	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream"`
 }
 
 type JetStreamEventsConfig struct {
-	Host string `mapstructure:"host"`
-	Port string `mapstructure:"port"`
+	TopicName string `mapstructure:"topic_name" validate:"required"`
+	Host      string `mapstructure:"host" validate:"required"`
+	Port      string `mapstructure:"port" validate:"required"`
 }
 
 type MailerConfiguration struct {

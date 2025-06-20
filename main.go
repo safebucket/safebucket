@@ -37,11 +37,11 @@ func main() {
 	publisher := core.NewPublisher(config.Events)
 	activity := core.NewActivityLogger(config.Activity)
 
-	subscriber := core.NewSubscriber(config.Events)
-	notifications := subscriber.Subscribe(context.Background(), config.Events.TopicName)
+	notificationsSubscriber := core.NewSubscriber(config.Events)
+	notifications := notificationsSubscriber.Subscribe()
 
 	bucketEventsSubscriber := core.NewBucketEventsSubscriber(config.Storage)
-	bucketEvents := bucketEventsSubscriber.Subscribe(context.Background(), config.Storage.TopicName)
+	bucketEvents := bucketEventsSubscriber.Subscribe()
 
 	model := rbac.GetModel()
 	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)

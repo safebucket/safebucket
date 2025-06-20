@@ -1,7 +1,6 @@
 package messaging
 
 import (
-	"context"
 	"github.com/ThreeDotsLabs/watermill/message"
 )
 
@@ -13,6 +12,6 @@ type IPublisher interface {
 
 // ISubscriber defines a common interface for all subscribers.
 type ISubscriber interface {
-	Subscribe(ctx context.Context, topic string) <-chan *message.Message
+	Subscribe() <-chan *message.Message
 	Close() error
 }
