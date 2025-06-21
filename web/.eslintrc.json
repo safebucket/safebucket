@@ -34,6 +34,7 @@
   "rules": {
     "import/dynamic-import-chunkname": "error",
     "import/first": "error",
+    "import/named": "warn",
     "import/newline-after-import": "warn",
     // Ignoring 3rd-party dependencies, otherwise it more than doubles eslint's run time
     "import/no-cycle": [
