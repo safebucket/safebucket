@@ -207,10 +207,10 @@ export const AppSidebar: FC = () => {
                           </Avatar>
                           <div>
                             <p className="text-sm font-medium leading-none">
-                              Milou (you)
+                              {`${session?.loggedUser?.first_name} ${session?.loggedUser?.last_name} (you)`}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              milou@safebucket.com
+                              {session?.loggedUser?.email}
                             </p>
                           </div>
                         </div>
