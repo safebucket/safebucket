@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./web
+        working-directory: web/
     steps:
       - name: Set up Node.js
         uses: actions/setup-node@v4
