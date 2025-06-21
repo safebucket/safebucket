@@ -2,7 +2,7 @@ name: Test Quality
 on:
   push:
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,6 +30,12 @@ jobs:
       - name: Run Go unit tests
         run: go test -v ./...
 
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
+    steps:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -37,12 +43,9 @@ jobs:
 
       - name: Install Next dependencies
         run: npm ci
-        working-directory: ${{ github.workspace }}/web
 
       - name: Run Next linter
         run: npm run lint
-        working-directory: ${{ github.workspace }}/web
 
       - name: Build Next app
         run: npm run build
-        working-directory: ${{ github.workspace }}/web
