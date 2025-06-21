@@ -5,6 +5,7 @@ import (
 	"api/internal/models"
 	"api/internal/rbac"
 	"fmt"
+
 	"github.com/casbin/casbin/v2"
 	"go.uber.org/zap"
 )
@@ -18,6 +19,7 @@ func GetDefaultOwnerBucketPolicies(bucket models.Bucket) [][]string {
 	return [][]string{
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionDelete.String()},
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionUpdate.String()},
+		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionShare.String()},
 	}
 }
 

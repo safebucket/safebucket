@@ -14,13 +14,15 @@ import (
 	"api/internal/sql"
 	"api/internal/storage"
 	"fmt"
+	"path"
+	"path/filepath"
+	"strings"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"path"
-	"path/filepath"
 )
 
 type BucketService struct {
@@ -42,6 +44,11 @@ func (s BucketService) Routes() chi.Router {
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id0}", func(r chi.Router) {
+
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionShare, 0)).
+			With(m.Validate[models.BucketInviteBody]).
+			Post("/invites", handlers.CreateHandler(s.InviteUserToBucket))
+
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
 			Get("/", handlers.GetOneHandler(s.GetBucket))
 
@@ -103,35 +110,6 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 	err = groups.AddUserToOwners(s.Enforcer, newBucket, user.UserID.String())
 	if err != nil {
 		return models.Bucket{}, err
-	}
-
-	for _, shareWith := range body.ShareWith {
-		var shareWithUser models.User
-
-		result := s.DB.Where("email = ?", shareWith.Email).First(&shareWithUser)
-
-		if result.RowsAffected > 0 {
-			switch shareWith.Group {
-			case "viewer":
-				err = groups.AddUserToViewers(s.Enforcer, newBucket, shareWithUser.ID.String())
-			case "contributor":
-				err = groups.AddUserToContributors(s.Enforcer, newBucket, shareWithUser.ID.String())
-			case "owner":
-				err = groups.AddUserToOwners(s.Enforcer, newBucket, shareWithUser.ID.String())
-			}
-
-			if err != nil {
-				return models.Bucket{}, err
-			}
-
-			event := events.NewBucketSharedWith(
-				*s.Publisher,
-				newBucket,
-				user.Email,
-				shareWith.Email,
-			)
-			event.Trigger()
-		}
 	}
 
 	action := models.Activity{
@@ -212,10 +190,14 @@ func (s BucketService) UpdateBucket(_ models.UserClaims, ids uuid.UUIDs, body mo
 }
 
 func (s BucketService) DeleteBucket(_ models.UserClaims, ids uuid.UUIDs) error {
+	// Soft delete the bucket
 	result := s.DB.Where("id = ?", ids[0]).Delete(&models.Bucket{})
 	if result.RowsAffected == 0 {
 		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	} else {
+		// Hard delete all invitations associated with the bucket
+		zap.L().Info("Deleting all invites for bucket", zap.String("bucket_id", ids[0].String()))
+		s.DB.Where("bucket_id = ?", ids[0]).Delete(&models.Invite{})
 		return nil
 	}
 }
@@ -440,4 +422,85 @@ func (s BucketService) GetBucketActivity(user models.UserClaims, ids uuid.UUIDs)
 	enriched := activity.EnrichActivity(s.DB, history)
 
 	return models.Page[map[string]interface{}]{Data: enriched}, nil
+}
+
+// InviteUserToBucket handles inviting a user to a bucket.
+func (s BucketService) InviteUserToBucket(user models.UserClaims, ids uuid.UUIDs, body models.BucketInviteBody) ([]models.BucketInviteResult, error) {
+
+	bucketId := ids[0]
+	var bucket models.Bucket
+
+	// TODO: Validate that if the OPENID configuration for the user is set, the user is allowed to invite others
+
+	result := s.DB.Where("id = ?", bucketId).First(&bucket)
+
+	if result.RowsAffected == 0 {
+		return nil, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+	}
+
+	var results []models.BucketInviteResult
+
+	for _, invite := range body.Invites {
+
+		inviteResult := models.BucketInviteResult{
+			Email: invite.Email,
+			Group: invite.Group,
+		}
+
+		var invitee models.User
+		result = s.DB.Where("email = ?", invite.Email).First(&invitee)
+
+		if result.RowsAffected == 0 {
+
+			invite := models.Invite{
+				Email:     invite.Email,
+				Group:     invite.Group,
+				BucketID:  bucket.ID,
+				CreatedBy: user.UserID,
+			}
+
+			if err := s.DB.Create(&invite).Error; err != nil {
+				if strings.Contains(err.Error(), "duplicate key") {
+					inviteResult.Status = "invite_already_exists"
+					results = append(results, inviteResult)
+					continue
+				}
+				inviteResult.Status = "create_invite_failed"
+				results = append(results, inviteResult)
+				continue
+			}
+		}
+
+		var err error
+		switch invite.Group {
+		case "viewer":
+			err = groups.AddUserToViewers(s.Enforcer, bucket, invitee.ID.String())
+		case "contributor":
+			err = groups.AddUserToContributors(s.Enforcer, bucket, invitee.ID.String())
+		case "owner":
+			err = groups.AddUserToOwners(s.Enforcer, bucket, invitee.ID.String())
+		default:
+			inviteResult.Status = "invalid_group"
+			results = append(results, inviteResult)
+			continue
+		}
+		if err != nil {
+			inviteResult.Status = "add_to_group_failed"
+			results = append(results, inviteResult)
+			continue
+		}
+
+		inviteResult.Status = "success"
+		results = append(results, inviteResult)
+
+		event := events.NewBucketSharedWith(
+			*s.Publisher,
+			bucket,
+			user.Email,
+			invite.Email,
+		)
+		event.Trigger()
+
+	}
+	return results, nil // TODO: Normalize messages ?
 }

@@ -53,7 +53,7 @@ services:
       - "redis_data:/bitnami/redis/data"
 
   mailpit:
-    image: axllent/mailpit:v1.20.2
+    image: axllent/mailpit:v1.26.2
     container_name: mailpit
     restart: unless-stopped
     volumes:
