@@ -26,9 +26,9 @@ storage:
   type: gcp
   gcp:
     bucket_name: safebucket-gcp
-    project_id: atomic-kit-462909-u2
-    subscription_name: safebucket-sub
-    topic_name: safebucket-notifications
+    project_id: project-id
+    subscription_name: safebucket-bucket-events-sub
+    topic_name: safebucket-bucket-events
 ```
 
 ### Events configuration
@@ -50,7 +50,7 @@ events:
 events:
   type: gcp
   gcp:
-    project_id: atomic-kit-462909-u2
-    subscription_name: safebucket-mail-notifs-sub
-    topic_name: safebucket-mail-notifs
+    project_id: project-id
+    subscription_name: safebucket-notifications-sub
+    topic_name: safebucket-notifications
 ```
