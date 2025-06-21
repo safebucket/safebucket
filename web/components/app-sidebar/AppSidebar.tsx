@@ -207,10 +207,10 @@ export const AppSidebar: FC = () => {
                           </Avatar>
                           <div>
                             <p className="text-sm font-medium leading-none">
-                              Milou (you)
+                              {`${session?.loggedUser?.first_name} ${session?.loggedUser?.last_name} (you)`}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              milou@safebucket.com
+                              {session?.loggedUser?.email}
                             </p>
                           </div>
                         </div>
@@ -341,7 +341,7 @@ export const AppSidebar: FC = () => {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src={nav.user.avatar} alt={nav.user.name} />
+                    <AvatarImage src={nav.user.avatar} alt="Image" />
                     <AvatarFallback className="rounded-lg">
                       {session?.loggedUser?.email.charAt(0)}
                     </AvatarFallback>
@@ -366,7 +366,7 @@ export const AppSidebar: FC = () => {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src={nav.user.avatar} alt={nav.user.name} />
+                      <AvatarImage src={nav.user.avatar} alt="Image" />
                       <AvatarFallback className="rounded-lg">
                         {session?.loggedUser?.email.charAt(0)}
                       </AvatarFallback>
