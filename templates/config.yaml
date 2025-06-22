@@ -21,31 +21,25 @@ redis:
   port: 6379
   password: root
 
-#storage:
-#  type: minio
-#  minio:
-#    bucket_name: safebucket
-#    endpoint: localhost:9000
-#    client_id: minio-root-user
-#    client_secret: minio-root-password
-#    type: jetstream
-#    jetstream:
-#      topic_name: safebucket:notifications
-#      host: localhost
-#      port: 4222
-
 storage:
-  type: aws
-  aws:
-    bucket_name: supersafebucket-files
-    sqs_name: s3-event-queue-supersafebucket-files
+  type: minio
+  minio:
+    bucket_name: safebucket
+    endpoint: localhost:9000
+    client_id: minio-root-user
+    client_secret: minio-root-password
+    type: jetstream
+    jetstream:
+      topic_name: safebucket:notifications
+      host: localhost
+      port: 4222
 
 events:
-  type: aws
-  aws:
-    region: eu-west-1
-    account_id: 819351094115
-    sqs_name: general-purpose-queue
+  type: jetstream
+  jetstream:
+    topic_name: safebucket:notifications
+    host: localhost
+    port: 4222
 
 mailer:
   host: localhost

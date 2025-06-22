@@ -16,7 +16,7 @@ type AWSPublisher struct {
 	publisher *sqs.Publisher
 }
 
-func NewAWSPublisher(config *models.AWSConfiguration) IPublisher {
+func NewAWSPublisher(config *models.AWSEventsConfiguration) IPublisher {
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background())
 	if err != nil {
 		zap.L().Fatal("Unable to load SDK config.", zap.Error(err))
@@ -51,7 +51,7 @@ type AWSSubscriber struct {
 	subscriber *sqs.Subscriber
 }
 
-func NewAWSSubscriber(config *models.AWSConfiguration) ISubscriber {
+func NewAWSSubscriber(sqsName string) ISubscriber {
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background())
 	if err != nil {
 		zap.L().Fatal("Unable to load SDK config.", zap.Error(err))
@@ -65,7 +65,7 @@ func NewAWSSubscriber(config *models.AWSConfiguration) ISubscriber {
 		zap.L().Fatal("Failed to create GCP subscriber", zap.Error(err))
 	}
 
-	return &AWSSubscriber{TopicName: config.SQSName, subscriber: subscriber}
+	return &AWSSubscriber{TopicName: sqsName, subscriber: subscriber}
 }
 
 func (s *AWSSubscriber) Subscribe() <-chan *message.Message {

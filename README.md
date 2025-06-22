@@ -42,8 +42,6 @@ storage:
   type: aws
   aws:
     bucket_name: safebucket
-    region: region
-    account_id: account_id
     sqs_name: safebucket-sqs
 ```
 
@@ -77,6 +75,7 @@ events:
     topic_name: safebucket-notifications
 ```
 
+#### AWS
 ```yaml
 events:
   type: aws

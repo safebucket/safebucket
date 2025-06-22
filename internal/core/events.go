@@ -25,7 +25,7 @@ func NewSubscriber(config models.EventsConfiguration) messaging.ISubscriber {
 	case "gcp":
 		return messaging.NewGCPSubscriber(config.GCP)
 	case "aws":
-		return messaging.NewAWSSubscriber(config.AWS)
+		return messaging.NewAWSSubscriber(config.AWS.SQSName)
 	default:
 		return nil
 	}
@@ -43,7 +43,7 @@ func NewBucketEventsSubscriber(config models.StorageConfiguration) messaging.ISu
 	case "gcp":
 		return messaging.NewGCPSubscriber(config.GCP)
 	case "aws":
-		return messaging.NewAWSSubscriber(config.AWS)
+		return messaging.NewAWSSubscriber(config.AWS.SQSName)
 	default:
 		return nil
 	}

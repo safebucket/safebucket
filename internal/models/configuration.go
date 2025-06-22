@@ -54,11 +54,11 @@ type RedisConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	Type string `mapstructure:"type" validate:"required,oneof=aws gcp minio"`
+	Type string `mapstructure:"type" validate:"required,oneof=minio gcp aws"`
 
-	AWS   *AWSConfiguration          `mapstructure:"aws" validate:"required_if=Type aws"`
-	GCP   *GCPConfiguration          `mapstructure:"gcp" validate:"required_if=Type gcp"`
 	Minio *MinioStorageConfiguration `mapstructure:"minio" validate:"required_if=Type minio"`
+	GCP   *GCPConfiguration          `mapstructure:"gcp" validate:"required_if=Type gcp"`
+	AWS   *AWSStorageConfiguration   `mapstructure:"aws" validate:"required_if=Type aws"`
 }
 
 type MinioStorageConfiguration struct {
@@ -78,10 +78,8 @@ type GCPConfiguration struct {
 	SubscriptionName string `mapstructure:"subscription_name" validate:"required"`
 }
 
-type AWSConfiguration struct {
+type AWSStorageConfiguration struct {
 	BucketName string `mapstructure:"bucket_name" default:"safebucket"`
-	Region     string `mapstructure:"region" validate:"required"`
-	AccountID  string `mapstructure:"account_id" validate:"required"`
 	SQSName    string `mapstructure:"sqs_name" validate:"required"`
 }
 
@@ -91,11 +89,17 @@ type AdminConfiguration struct {
 }
 
 type EventsConfiguration struct {
-	Type string `mapstructure:"type" validate:"required,oneof=aws gcp jetstream"`
+	Type string `mapstructure:"type" validate:"required,oneof=jetstream gcp aws"`
 
-	AWS       *AWSConfiguration      `mapstructure:"aws" validate:"required_if=Type aws"`
-	GCP       *GCPConfiguration      `mapstructure:"gcp" validate:"required_if=Type gcp"`
-	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream" validate:"required_if=Type jetstream"`
+	Jetstream *JetStreamEventsConfig  `mapstructure:"jetstream" validate:"required_if=Type jetstream"`
+	GCP       *GCPConfiguration       `mapstructure:"gcp" validate:"required_if=Type gcp"`
+	AWS       *AWSEventsConfiguration `mapstructure:"aws" validate:"required_if=Type aws"`
+}
+
+type AWSEventsConfiguration struct {
+	Region    string `mapstructure:"region" validate:"required"`
+	AccountID string `mapstructure:"account_id" validate:"required"`
+	SQSName   string `mapstructure:"sqs_name" validate:"required"`
 }
 
 type JetStreamEventsConfig struct {
