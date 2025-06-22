@@ -30,7 +30,7 @@ func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) I
 	}
 
 	if !exists {
-		zap.L().Error("Bucket does not exist.", zap.String("bucketName", bucketName))
+		zap.L().Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
 	}
 
 	return S3Storage{BucketName: bucketName, storage: minioClient}

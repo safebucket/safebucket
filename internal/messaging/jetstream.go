@@ -3,6 +3,7 @@ package messaging
 import (
 	"api/internal/models"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/jetstream"
@@ -84,4 +85,32 @@ func (s *JetStreamSubscriber) Subscribe() <-chan *message.Message {
 
 func (s *JetStreamSubscriber) Close() error {
 	return s.subscriber.Close()
+}
+
+func (s *JetStreamSubscriber) ParseBucketUploadEvents(message *message.Message) []BucketUploadEvent {
+	var event MinioEvent
+	if err := json.Unmarshal(message.Payload, &event); err != nil {
+		zap.L().Error("event is unprocessable", zap.Error(err))
+		message.Ack()
+	}
+
+	var uploadEvents []BucketUploadEvent
+	for _, event := range event.Records {
+		if event.EventName == "s3:ObjectCreated:Post" {
+			bucketId := event.S3.Object.UserMetadata["X-Amz-Meta-Bucket-Id"]
+			fileId := event.S3.Object.UserMetadata["X-Amz-Meta-File-Id"]
+			userId := event.S3.Object.UserMetadata["X-Amz-Meta-User-Id"]
+
+			uploadEvents = append(uploadEvents, BucketUploadEvent{
+				BucketId: bucketId,
+				FileId:   fileId,
+				UserId:   userId,
+			})
+		} else {
+			zap.L().Warn("event is not supported", zap.Any("event_name", event.EventName))
+			continue
+		}
+	}
+
+	return uploadEvents
 }

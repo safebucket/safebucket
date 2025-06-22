@@ -68,3 +68,8 @@ func (s *GCPSubscriber) Subscribe() <-chan *message.Message {
 func (s *GCPSubscriber) Close() error {
 	return s.subscriber.Close()
 }
+
+func (s *GCPSubscriber) ParseBucketUploadEvents(message *message.Message) []BucketUploadEvent {
+	var uploadEvents []BucketUploadEvent
+	return uploadEvents
+}

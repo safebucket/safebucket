@@ -1,0 +1,42 @@
+package messaging
+
+type BucketUploadEvent struct {
+	BucketId string `json:"bucket_id"`
+	FileId   string `json:"file_id"`
+	UserId   string `json:"user_id"`
+}
+
+type MinioEvent struct {
+	Records []struct {
+		EventName string `json:"eventName"`
+		S3        struct {
+			Bucket struct {
+				Name string `json:"name"`
+			} `json:"bucket"`
+			Object struct {
+				Key          string            `json:"key"`
+				Size         int64             `json:"size"`
+				ContentType  string            `json:"contentType"`
+				UserMetadata map[string]string `json:"userMetadata"`
+			} `json:"object"`
+		} `json:"s3"`
+	} `json:"Records"`
+}
+
+type GCPEvent struct {
+}
+
+type AWSEvent struct {
+	Records []struct {
+		EventName string `json:"eventName"`
+		S3        struct {
+			Bucket struct {
+				Name string `json:"name"`
+			} `json:"bucket"`
+			Object struct {
+				Key  string `json:"key"`
+				Size int64  `json:"size"`
+			} `json:"object"`
+		} `json:"s3"`
+	} `json:"Records"`
+}

@@ -76,7 +76,7 @@ func (s AuthService) Refresh(_ models.UserClaims, _ uuid.UUIDs, body models.Auth
 	if err != nil {
 		return models.AuthRefreshResponse{}, err
 	}
-	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &models.User{ID: refreshToken.UserID})
+	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &models.User{ID: refreshToken.UserID, Email: refreshToken.Email})
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
 

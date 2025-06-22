@@ -31,6 +31,28 @@ storage:
     topic_name: safebucket-bucket-events
 ```
 
+```
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/gcs.json
+```
+
+#### AWS
+
+```yaml
+storage:
+  type: aws
+  aws:
+    bucket_name: safebucket
+    region: region
+    account_id: account_id
+    sqs_name: safebucket-sqs
+```
+
+```
+export AWS_ACCESS_KEY_ID=access_key
+export AWS_SECRET_ACCESS_KEY=secret_access_key
+export AWS_REGION=region
+```
+
 ### Events configuration
 
 #### Jetstream
@@ -53,4 +75,13 @@ events:
     project_id: project-id
     subscription_name: safebucket-notifications-sub
     topic_name: safebucket-notifications
+```
+
+```yaml
+events:
+  type: aws
+  aws:
+    region: region
+    account_id: account_id
+    sqs_name: safebucket-sqs
 ```

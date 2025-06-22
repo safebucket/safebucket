@@ -21,7 +21,7 @@ func NewGCPStorage(bucketName string) IStorage {
 
 	_, err = client.Bucket(bucketName).Attrs(context.Background())
 	if err != nil {
-		zap.L().Error("Bucket does not exist.", zap.String("bucketName", bucketName))
+		zap.L().Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
 	}
 
 	return &GCPStorage{
