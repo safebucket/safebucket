@@ -4,10 +4,11 @@ import (
 	"api/internal/models"
 	"context"
 	"errors"
-	"github.com/alexedwards/argon2id"
-	"github.com/golang-jwt/jwt/v5"
 	"strings"
 	"time"
+
+	"github.com/alexedwards/argon2id"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func CreateHash(password string) (string, error) {
@@ -25,7 +26,7 @@ func CreateHash(password string) (string, error) {
 	return hash, nil
 }
 
-func NewAccessToken(jwtSecret string, user *models.User) (string, error) {
+func NewAccessToken(jwtSecret string, user *models.User, provider string) (string, error) {
 	claims := models.UserClaims{
 		Email:  user.Email,
 		UserID: user.ID,
@@ -67,12 +68,13 @@ func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, 
 	return *claims, err
 }
 
-func NewRefreshToken(jwtSecret string, user *models.User) (string, error) {
+func NewRefreshToken(jwtSecret string, user *models.User, provider string) (string, error) {
 	claims := models.UserClaims{
-		Email:  user.Email,
-		UserID: user.ID,
-		Aud:    "auth:refresh",
-		Issuer: "SafeBucket",
+		Email:    user.Email,
+		UserID:   user.ID,
+		Aud:      "auth:refresh",
+		Issuer:   "SafeBucket",
+		Provider: provider,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour * 10)},

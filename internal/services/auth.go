@@ -51,12 +51,12 @@ func (s AuthService) Login(_ models.UserClaims, _ uuid.UUIDs, body models.AuthLo
 			return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 		}
 
-		accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser)
+		accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser, configuration.AuthLocalProviderName)
 		if err != nil {
 			return models.AuthLoginResponse{}, customerrors.GenerateAccessTokenFailed
 		}
 
-		refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser)
+		refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser, configuration.AuthLocalProviderName)
 		if err != nil {
 			return models.AuthLoginResponse{}, customerrors.GenerateRefreshTokenFailed
 		}
@@ -76,7 +76,9 @@ func (s AuthService) Refresh(_ models.UserClaims, _ uuid.UUIDs, body models.Auth
 	if err != nil {
 		return models.AuthRefreshResponse{}, err
 	}
-	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &models.User{ID: refreshToken.UserID, Email: refreshToken.Email})
+	accessToken, err := h.NewAccessToken(
+		s.JWTConf.Secret, &models.User{ID: refreshToken.UserID, Email: refreshToken.Email}, refreshToken.Provider,
+	)
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
 
@@ -139,12 +141,12 @@ func (s AuthService) OpenIDCallback(
 		s.DB.Create(&searchUser)
 	}
 
-	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser)
+	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser, providerName)
 	if err != nil {
 		return "", "", customerrors.GenerateAccessTokenFailed
 	}
 
-	refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser)
+	refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser, providerName)
 	if err != nil {
 		return "", "", customerrors.GenerateRefreshTokenFailed
 	}

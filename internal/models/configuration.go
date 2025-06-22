@@ -41,10 +41,16 @@ type AuthConfiguration struct {
 }
 
 type ProviderConfiguration struct {
-	Name         string `mapstructure:"name" validate:"required"`
-	ClientId     string `mapstructure:"client_id" validate:"required"`
-	ClientSecret string `mapstructure:"client_secret" validate:"required"`
-	Issuer       string `mapstructure:"issuer" validate:"required"`
+	Name                 string               `mapstructure:"name" validate:"required"`
+	ClientId             string               `mapstructure:"client_id" validate:"required"`
+	ClientSecret         string               `mapstructure:"client_secret" validate:"required"`
+	Issuer               string               `mapstructure:"issuer" validate:"required"`
+	SharingConfiguration SharingConfiguration `mapstructure:"sharing" validate:"dive"`
+}
+
+type SharingConfiguration struct {
+	Enabled        bool     `mapstructure:"enabled" default:"true"`
+	AllowedDomains []string `mapstructure:"allowed_domains" validate:"dive,hostname_rfc1123"`
 }
 
 type RedisConfiguration struct {

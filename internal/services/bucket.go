@@ -2,6 +2,7 @@ package services
 
 import (
 	"api/internal/activity"
+	"api/internal/configuration"
 	c "api/internal/configuration"
 	"api/internal/errors"
 	"api/internal/events"
@@ -30,6 +31,7 @@ type BucketService struct {
 	Storage        storage.IStorage
 	Enforcer       *casbin.Enforcer
 	Publisher      *messaging.IPublisher
+	Providers      configuration.Providers
 	ActivityLogger activity.IActivityLogger
 }
 
@@ -432,6 +434,15 @@ func (s BucketService) InviteUserToBucket(user models.UserClaims, ids uuid.UUIDs
 
 	// TODO: Validate that if the OPENID configuration for the user is set, the user is allowed to invite others
 
+	providerCfg, ok := s.Providers[user.Provider]
+	if !ok {
+		return nil, errors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
+	}
+
+	if !providerCfg.SharingOptions.Enabled {
+		return nil, errors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
+	}
+
 	result := s.DB.Where("id = ?", bucketId).First(&bucket)
 
 	if result.RowsAffected == 0 {
@@ -445,6 +456,25 @@ func (s BucketService) InviteUserToBucket(user models.UserClaims, ids uuid.UUIDs
 		inviteResult := models.BucketInviteResult{
 			Email: invite.Email,
 			Group: invite.Group,
+		}
+
+		domainParts := strings.Split(inviteResult.Email, "@")
+		if len(domainParts) != 2 {
+			return nil, errors.NewAPIError(400, "INVALID_USER_EMAIL")
+		}
+		emailDomain := domainParts[1]
+
+		allowed := false
+		for _, domain := range providerCfg.SharingOptions.AllowedDomains {
+			if strings.EqualFold(emailDomain, domain) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			inviteResult.Status = "domain_not_allowed"
+			results = append(results, inviteResult)
+			continue
 		}
 
 		var invitee models.User
