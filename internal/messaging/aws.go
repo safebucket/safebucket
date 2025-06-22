@@ -89,7 +89,7 @@ func (s *AWSSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 
 	var uploadEvents []BucketUploadEvent
 	for _, event := range event.Records {
-		if event.EventName == "s3:ObjectCreated:Post" {
+		if event.EventName == "ObjectCreated:Post" {
 			bucketId := "fake"
 			fileId := "fake"
 			userId := "fake"
