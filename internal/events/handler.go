@@ -81,7 +81,7 @@ func HandleBucketEvents(
 	messages <-chan *message.Message,
 ) {
 	for msg := range messages {
-		zap.L().Info("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
+		zap.L().Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
 
 		uploadEvents := subscriber.ParseBucketUploadEvents(msg)
 

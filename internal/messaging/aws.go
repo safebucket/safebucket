@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"api/internal/models"
+	"api/internal/storage"
 	"context"
 	"encoding/json"
 	"github.com/ThreeDotsLabs/watermill"
@@ -16,17 +17,24 @@ type AWSPublisher struct {
 	publisher *sqs.Publisher
 }
 
-func NewAWSPublisher(config *models.AWSEventsConfiguration) IPublisher {
+func NewAWSPublisher(config *models.AWSConfiguration) IPublisher {
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background())
+
 	if err != nil {
 		zap.L().Fatal("Unable to load SDK config.", zap.Error(err))
+	}
+
+	creds, err := awsCfg.Credentials.Retrieve(context.Background())
+
+	if err != nil {
+		zap.L().Error("Unable to retrieve AWS credentials.", zap.Error(err))
 	}
 
 	publisher, err := sqs.NewPublisher(sqs.PublisherConfig{
 		AWSConfig: awsCfg,
 		QueueUrlResolver: sqs.GenerateQueueUrlResolver{
-			AwsRegion:    config.Region,
-			AwsAccountID: config.AccountID,
+			AwsRegion:    awsCfg.Region,
+			AwsAccountID: creds.AccountID,
 		},
 		Marshaler: sqs.DefaultMarshalerUnmarshaler{},
 	}, watermill.NopLogger{})
@@ -49,9 +57,10 @@ func (p *AWSPublisher) Close() error {
 type AWSSubscriber struct {
 	TopicName  string
 	subscriber *sqs.Subscriber
+	storage    storage.IStorage
 }
 
-func NewAWSSubscriber(sqsName string) ISubscriber {
+func NewAWSSubscriber(sqsName string, storage storage.IStorage) ISubscriber {
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background())
 	if err != nil {
 		zap.L().Fatal("Unable to load SDK config.", zap.Error(err))
@@ -65,7 +74,7 @@ func NewAWSSubscriber(sqsName string) ISubscriber {
 		zap.L().Fatal("Failed to create GCP subscriber", zap.Error(err))
 	}
 
-	return &AWSSubscriber{TopicName: sqsName, subscriber: subscriber}
+	return &AWSSubscriber{TopicName: sqsName, subscriber: subscriber, storage: storage}
 }
 
 func (s *AWSSubscriber) Subscribe() <-chan *message.Message {
@@ -90,9 +99,14 @@ func (s *AWSSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 	var uploadEvents []BucketUploadEvent
 	for _, event := range event.Records {
 		if event.EventName == "ObjectCreated:Post" {
-			bucketId := "fake"
-			fileId := "fake"
-			userId := "fake"
+			metadata, err := s.storage.StatObject(event.S3.Object.Key)
+			if err != nil {
+				zap.L().Error("failed to stat object", zap.Error(err))
+			}
+
+			bucketId := metadata["x-amz-bucket-id"]
+			fileId := metadata["x-amz-file-id"]
+			userId := metadata["x-amz-user-id"]
 
 			uploadEvents = append(uploadEvents, BucketUploadEvent{
 				BucketId: bucketId,

@@ -70,9 +70,14 @@ func (g GCPStorage) PresignedPostPolicy(path string, size int, metadata map[stri
 	return postPolicy.URL, postPolicy.Fields, nil
 }
 
-func (g GCPStorage) StatObject(path string) error {
-	_, err := g.storage.Bucket(g.BucketName).Object(path).Attrs(context.Background())
-	return err
+func (g GCPStorage) StatObject(path string) (map[string]string, error) {
+	file, err := g.storage.Bucket(g.BucketName).Object(path).Attrs(context.Background())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return file.Metadata, err
 }
 
 func (g GCPStorage) RemoveObject(path string) error {
