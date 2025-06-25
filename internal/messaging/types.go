@@ -24,6 +24,7 @@ type MinioEvent struct {
 }
 
 type GCPEvent struct {
+	Metadata map[string]string `json:"metadata"`
 }
 
 type AWSEvent struct {

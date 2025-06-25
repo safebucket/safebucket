@@ -3,6 +3,7 @@ package messaging
 import (
 	"api/internal/models"
 	"context"
+	"encoding/json"
 	"github.com/ThreeDotsLabs/watermill-googlecloud/pkg/googlecloud"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"
@@ -71,5 +72,25 @@ func (s *GCPSubscriber) Close() error {
 
 func (s *GCPSubscriber) ParseBucketUploadEvents(message *message.Message) []BucketUploadEvent {
 	var uploadEvents []BucketUploadEvent
+	if message.Metadata["eventType"] == "OBJECT_FINALIZE" {
+		var event GCPEvent
+		if err := json.Unmarshal(message.Payload, &event); err != nil {
+			zap.L().Error("event is unprocessable", zap.Error(err))
+			message.Ack()
+		}
+
+		bucketId := event.Metadata["bucket-id"]
+		fileId := event.Metadata["file-id"]
+		userId := event.Metadata["user-id"]
+
+		uploadEvents = append(uploadEvents, BucketUploadEvent{
+			BucketId: bucketId,
+			FileId:   fileId,
+			UserId:   userId,
+		})
+	} else {
+		zap.L().Warn("event is not supported", zap.Any("event_type", message.Metadata["eventType"]))
+		message.Ack()
+	}
 	return uploadEvents
 }
