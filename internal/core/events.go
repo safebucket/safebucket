@@ -3,6 +3,7 @@ package core
 import (
 	"api/internal/messaging"
 	"api/internal/models"
+	"api/internal/storage"
 )
 
 func NewPublisher(config models.EventsConfiguration) messaging.IPublisher {
@@ -25,13 +26,13 @@ func NewSubscriber(config models.EventsConfiguration) messaging.ISubscriber {
 	case "gcp":
 		return messaging.NewGCPSubscriber(config.GCP)
 	case "aws":
-		return messaging.NewAWSSubscriber(config.AWS.SQSName)
+		return messaging.NewAWSSubscriber(config.AWS.SQSName, nil)
 	default:
 		return nil
 	}
 }
 
-func NewBucketEventsSubscriber(config models.StorageConfiguration) messaging.ISubscriber {
+func NewBucketEventsSubscriber(config models.StorageConfiguration, storage storage.IStorage) messaging.ISubscriber {
 	switch config.Type {
 	case "minio":
 		switch config.Minio.Type {
@@ -43,7 +44,7 @@ func NewBucketEventsSubscriber(config models.StorageConfiguration) messaging.ISu
 	case "gcp":
 		return messaging.NewGCPSubscriber(config.GCP)
 	case "aws":
-		return messaging.NewAWSSubscriber(config.AWS.SQSName)
+		return messaging.NewAWSSubscriber(config.AWS.SQSName, storage)
 	default:
 		return nil
 	}

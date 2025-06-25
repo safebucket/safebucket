@@ -274,7 +274,7 @@ func (s BucketService) UpdateFile(user models.UserClaims, ids uuid.UUIDs, body m
 	}
 
 	if *body.Uploaded {
-		err := s.Storage.StatObject(path.Join("buckets", file.BucketId.String(), file.Path, file.Name))
+		_, err := s.Storage.StatObject(path.Join("buckets", file.BucketId.String(), file.Path, file.Name))
 
 		if err != nil {
 			return models.File{}, errors.NewAPIError(400, "FILE_NOT_UPLOADED")

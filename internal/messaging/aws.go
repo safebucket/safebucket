@@ -104,9 +104,9 @@ func (s *AWSSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 				zap.L().Error("failed to stat object", zap.Error(err))
 			}
 
-			bucketId := metadata["x-amz-bucket-id"]
-			fileId := metadata["x-amz-file-id"]
-			userId := metadata["x-amz-user-id"]
+			bucketId := metadata["bucket_id"]
+			fileId := metadata["file_id"]
+			userId := metadata["user_id"]
 
 			uploadEvents = append(uploadEvents, BucketUploadEvent{
 				BucketId: bucketId,

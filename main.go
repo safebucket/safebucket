@@ -40,7 +40,7 @@ func main() {
 	notificationsSubscriber := core.NewSubscriber(config.Events)
 	notifications := notificationsSubscriber.Subscribe()
 
-	bucketEventsSubscriber := core.NewBucketEventsSubscriber(config.Storage)
+	bucketEventsSubscriber := core.NewBucketEventsSubscriber(config.Storage, storage)
 	bucketEvents := bucketEventsSubscriber.Subscribe()
 
 	model := rbac.GetModel()
