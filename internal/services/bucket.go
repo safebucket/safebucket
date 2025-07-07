@@ -58,7 +58,8 @@ func (s BucketService) Routes() chi.Router {
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
 			With(m.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
 
-		r.Get("/activity", handlers.GetOneHandler(s.GetBucketActivity))
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+			Get("/activity", handlers.GetOneHandler(s.GetBucketActivity))
 
 		r.Route("/files/{id1}", func(r chi.Router) {
 			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
@@ -73,7 +74,8 @@ func (s BucketService) Routes() chi.Router {
 		})
 	})
 
-	r.Get("/activity", handlers.GetListHandler(s.GetActivity))
+	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionList, -1)).
+		Get("/activity", handlers.GetListHandler(s.GetActivity))
 
 	return r
 }
