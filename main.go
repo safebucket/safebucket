@@ -32,7 +32,7 @@ func main() {
 
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
-	cache := c.InitCache(config.Redis)
+	cache := c.InitCache(config.Cache)
 	storage := core.NewStorage(config.Storage)
 	mailer := core.NewMailer(config.Mailer)
 	publisher := core.NewPublisher(config.Events)

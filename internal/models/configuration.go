@@ -6,7 +6,7 @@ type Configuration struct {
 	JWT      JWTConfiguration      `mapstructure:"jwt" validate:"required"`
 	Cors     CorsConfiguration     `mapstructure:"cors" validate:"required"`
 	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required"`
-	Redis    RedisConfiguration    `mapstructure:"redis" validate:"required"`
+	Cache    CacheConfiguration    `mapstructure:"cache" validate:"required"`
 	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required"`
 	Admin    AdminConfiguration    `mapstructure:"admin" validate:"required"`
 	Events   EventsConfiguration   `mapstructure:"events" validate:"required"`
@@ -53,7 +53,7 @@ type SharingConfiguration struct {
 	AllowedDomains []string `mapstructure:"allowed_domains" validate:"dive,hostname_rfc1123"`
 }
 
-type RedisConfiguration struct {
+type CacheConfiguration struct {
 	Hosts    []string `mapstructure:"hosts" validate:"required"`
 	Port     int32    `mapstructure:"port" validate:"gte=80,lte=65535"`
 	Password string   `mapstructure:"password" validate:"required"`

@@ -15,7 +15,7 @@ database:
   user: root
   ssl: false
 
-redis:
+cache:
   hosts:
     - localhost:6379
   port: 6379

@@ -10,7 +10,7 @@ type Cache struct {
 	c rueidis.Client
 }
 
-func InitCache(config models.RedisConfiguration) Cache {
+func InitCache(config models.CacheConfiguration) Cache {
 	client, err := rueidis.NewClient(rueidis.ClientOption{
 		InitAddress: config.Hosts,
 		Password:    config.Password,
