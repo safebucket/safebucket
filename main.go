@@ -1,7 +1,6 @@
 package main
 
 import (
-	c "api/internal/cache"
 	"api/internal/configuration"
 	"api/internal/core"
 	"api/internal/database"
@@ -13,10 +12,6 @@ import (
 	"api/internal/rbac/roles"
 	"api/internal/services"
 	"context"
-	"log"
-	"net/http"
-	"time"
-
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/go-chi/chi/v5"
@@ -25,6 +20,8 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm/clause"
+	"net/http"
+	"time"
 )
 
 func main() {
@@ -32,7 +29,7 @@ func main() {
 
 	config := configuration.Read()
 	db := database.InitDB(config.Database)
-	cache := c.InitCache(config.Cache)
+	cache := core.InitCache(config.Cache)
 	storage := core.NewStorage(config.Storage)
 	mailer := core.NewMailer(config.Mailer)
 	publisher := core.NewPublisher(config.Events)
@@ -76,12 +73,7 @@ func main() {
 
 	go events.HandleBucketEvents(bucketEventsSubscriber, db, activity, bucketEvents)
 
-	go func() {
-		err := cache.StartIdentityTicker(appIdentity)
-		if err != nil {
-			log.Fatalf("Platform identity ticker crashed: %v\n", err)
-		}
-	}()
+	go cache.StartIdentityTicker(appIdentity)
 
 	r := chi.NewRouter()
 
@@ -101,6 +93,8 @@ func main() {
 	}))
 
 	r.Use(m.Authenticate(config.JWT))
+
+	r.Use(m.RateLimit(cache))
 
 	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 
