@@ -94,7 +94,7 @@ func main() {
 
 	r.Use(m.Authenticate(config.JWT))
 
-	r.Use(m.RateLimit(cache))
+	r.Use(m.RateLimit(cache, config.Platform.TrustedProxies))
 
 	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 

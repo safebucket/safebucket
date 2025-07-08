@@ -15,8 +15,9 @@ type Configuration struct {
 }
 
 type PlatformConfiguration struct {
-	ApiUrl string `mapstructure:"api_url" validate:"required"`
-	WebUrl string `mapstructure:"web_url" validate:"required"`
+	ApiUrl         string   `mapstructure:"api_url" validate:"required"`
+	WebUrl         string   `mapstructure:"web_url" validate:"required"`
+	TrustedProxies []string `mapstructure:"trusted_proxies" validate:"required"`
 }
 
 type DatabaseConfiguration struct {
