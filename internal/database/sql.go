@@ -24,7 +24,7 @@ func InitDB(config models.DatabaseConfiguration) *gorm.DB {
 }
 
 func runMigrations(db *gorm.DB) {
-	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{}, &models.Invite{})
+	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{}, &models.Invite{}, &models.Challenge{})
 	if err != nil {
 		zap.L().Error("failed to migrate db models", zap.Error(err))
 	}

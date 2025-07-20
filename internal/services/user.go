@@ -8,6 +8,7 @@ import (
 	"api/internal/rbac"
 	"api/internal/rbac/roles"
 	"errors"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -95,13 +96,28 @@ func (s UserService) GetUser(_ models.UserClaims, ids uuid.UUIDs) (models.User, 
 }
 
 func (s UserService) UpdateUser(_ models.UserClaims, ids uuid.UUIDs, body models.UserUpdateBody) (models.User, error) {
+
 	user := models.User{ID: ids[0]}
-	result := s.DB.Model(&user).Updates(body)
+
+	newUser := models.User{
+		FirstName: body.FirstName,
+		LastName:  body.LastName,
+	}
+
+	if body.Password != "" {
+		hash, err := h.CreateHash(body.Password)
+		if err != nil {
+			return user, errors.New("can not create hash password")
+		}
+		newUser.HashedPassword = hash
+	}
+	result := s.DB.Model(&user).Updates(newUser)
 	if result.RowsAffected == 0 {
 		return user, errors.New("user not found")
 	} else {
 		return user, nil
 	}
+
 }
 
 func (s UserService) DeleteUser(_ models.UserClaims, ids uuid.UUIDs) error {

@@ -6,4 +6,5 @@ const (
 	FileDownloaded string = "FILE_DOWNLOADED"
 	FileUpdated    string = "FILE_UPDATED"
 	FileDeleted    string = "FILE_DELETED"
+	UserInvited    string = "USER_INVITED"
 )

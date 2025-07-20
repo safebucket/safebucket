@@ -121,6 +121,16 @@ func main() {
 		WebUrl:    config.Platform.WebUrl,
 	}.Routes())
 
+	r.Mount("/invites", services.InviteService{
+		DB:             db,
+		JWTConf:        config.JWT,
+		Enforcer:       e,
+		Publisher:      &publisher,
+		ActivityLogger: activity,
+		Providers:      providers,
+		WebUrl:         config.Platform.WebUrl,
+	}.Routes())
+
 	zap.L().Info("App started")
 
 	server := &http.Server{

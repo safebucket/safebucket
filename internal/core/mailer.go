@@ -4,9 +4,10 @@ import (
 	"api/internal/models"
 	"bytes"
 	"fmt"
+	"html/template"
+
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
-	"html/template"
 )
 
 type Mailer struct {

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { api, fetchApi } from "@/lib/api";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { SubmitHandler, useForm } from "react-hook-form";
 
 import { SessionContext } from "@/components/auth-view/hooks/useSessionContext";
@@ -22,6 +22,7 @@ export const SessionProvider = ({
   children: React.ReactNode;
 }) => {
   const router = useRouter();
+  const pathname = usePathname();
 
   const [accessToken, setAccessToken] = useState(
     Cookies.get("safebucket_access_token"),
@@ -55,9 +56,11 @@ export const SessionProvider = ({
     } else {
       setSession(null);
       setStatus("unauthenticated");
-      router.push("/auth/login");
+      if (!pathname.startsWith("/invites/")) {
+        router.push("/auth/login");
+      }
     }
-  }, [router, accessToken, refreshToken, authProvider]);
+  }, [router, pathname, accessToken, refreshToken, authProvider]);
 
   const login = async (provider: string) => {
     setStatus("loading");

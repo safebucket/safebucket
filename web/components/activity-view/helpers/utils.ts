@@ -12,7 +12,8 @@ export const formatMessage = (log: IActivity): string => {
   return messageMap[log.message].message
     .replace("%%USERNAME%%", `${log.user.first_name} ${log.user.last_name}`)
     .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
-    .replace("%%FILE_NAME%%", log.file?.name || "");
+    .replace("%%FILE_NAME%%", log.file?.name || "")
+    .replace("%%USER_INVITED_EMAIL%%", log.invited_email || "");
 };
 
 export const timeAgo = (nanoTimestamp: string): string => {

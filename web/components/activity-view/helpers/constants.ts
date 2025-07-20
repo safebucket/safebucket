@@ -1,4 +1,4 @@
-import { FileDiff, FileDown, FileMinus, FileUp, Share2 } from "lucide-react";
+import { FileDiff, FileDown, FileMinus, FileUp, Share2, UserPlus } from "lucide-react";
 
 import { ActivityMessage } from "@/components/common/types/activity";
 
@@ -32,5 +32,11 @@ export const messageMap = {
     icon: FileMinus,
     iconColor: "text-red-500",
     iconBg: "bg-red-100",
+  },
+  USER_INVITED: {
+    message: "%%USERNAME%% invited %%USER_INVITED_EMAIL%% to the bucket '%%BUCKET_NAME%%'.",
+    icon: UserPlus,
+    iconColor: "text-blue-500",
+    iconBg: "bg-blue-100",
   },
 } satisfies Record<ActivityMessage, object>;

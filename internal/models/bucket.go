@@ -20,18 +20,3 @@ type Bucket struct {
 type BucketCreateBody struct {
 	Name string `json:"name" validate:"required"`
 }
-
-type BucketInvitee struct {
-	Email string `json:"email" validate:"required,email"`
-	Group string `json:"group" validate:"required,oneof=owner contributor viewer"`
-}
-
-type BucketInviteBody struct {
-	Invites []BucketInvitee `json:"invites" validate:"required,dive"`
-}
-
-type BucketInviteResult struct {
-	Email  string `json:"email"`
-	Group  string `json:"group"`
-	Status string `json:"status"`
-}

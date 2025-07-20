@@ -5,15 +5,16 @@ import (
 	"api/internal/helpers"
 	"api/internal/models"
 	"context"
-	"go.uber.org/zap"
 	"net/http"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 func Authenticate(jwtConf models.JWTConfiguration) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if isExcluded(r.URL.Path) {
+			if isExcluded(r.URL.Path, r.Method) {
 				next.ServeHTTP(w, r)
 			} else {
 				accessToken := r.Header.Get("Authorization")
@@ -33,12 +34,25 @@ func Authenticate(jwtConf models.JWTConfiguration) func(next http.Handler) http.
 	}
 }
 
-func isExcluded(path string) bool {
-	excludedPaths := configuration.ExcludedAuthPaths
-	for _, value := range excludedPaths {
-		if strings.HasPrefix(path, value) {
-			return true
+func isExcluded(path, method string) bool {
+
+	// First check prefix matches for exclusions
+	if exactRules, exists := configuration.AuthRuleExactMatchPath[path]; exists {
+		for _, rule := range exactRules {
+			if rule.Method == "*" || rule.Method == method {
+				return !rule.RequireAuth // If RequireAuth is true, don't exclude (return false)
+			}
 		}
 	}
+
+	for _, rule := range configuration.AuthRulePrefixMatchPath {
+		if strings.HasPrefix(path, rule.Path) {
+			if rule.Method == "*" || rule.Method == method {
+				return !rule.RequireAuth // If RequireAuth is true, don't exclude (return false)
+			}
+		}
+	}
+
+	// Default: require authentication (not excluded)
 	return false
 }

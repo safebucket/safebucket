@@ -23,15 +23,17 @@ func CreateHash(password string) (string, error) {
 	if err != nil {
 		return "", errors.New("can not create hash password")
 	}
+
 	return hash, nil
 }
 
 func NewAccessToken(jwtSecret string, user *models.User, provider string) (string, error) {
 	claims := models.UserClaims{
-		Email:  user.Email,
-		UserID: user.ID,
-		Aud:    "app:*", // Todo: make it a list ==> delete aud
-		Issuer: "safebucket",
+		Email:    user.Email,
+		UserID:   user.ID,
+		Aud:      "app:*", // Todo: make it a list ==> delete aud
+		Provider: provider,
+		Issuer:   "safebucket",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * 60)}, // TODO: make it configurable
@@ -46,7 +48,6 @@ func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, 
 		return models.UserClaims{}, errors.New("invalid access token")
 	}
 	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
-
 	claims := &models.UserClaims{}
 
 	_, err := jwt.ParseWithClaims(
@@ -60,11 +61,6 @@ func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, 
 	if err != nil {
 		return models.UserClaims{}, errors.New("invalid access token")
 	}
-
-	if claims.Aud != "app:*" {
-		return models.UserClaims{}, errors.New("invalid scope for this access token")
-	}
-
 	return *claims, err
 }
 
@@ -73,7 +69,7 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string) (stri
 		Email:    user.Email,
 		UserID:   user.ID,
 		Aud:      "auth:refresh",
-		Issuer:   "SafeBucket",
+		Issuer:   "safebucket",
 		Provider: provider,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
