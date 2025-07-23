@@ -6,9 +6,9 @@ import Cookies from "js-cookie";
 
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 interface ChallengeValidationFormData {
   code: string;
@@ -33,19 +33,23 @@ export const ChallengeValidationForm: React.FC<ChallengeValidationFormProps> = (
   const router = useRouter();
   const [isValidated, setIsValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   
   const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { isSubmitting },
   } = useForm<ChallengeValidationFormData>();
 
-  const handleFormSubmit = async (data: ChallengeValidationFormData) => {
+  const handleFormSubmit = async () => {
     setError(null);
+    
+    if (code.length !== 6) {
+      setError("Verification code must be exactly 6 digits");
+      return;
+    }
     
     try {
       const response = await api.post<ChallengeValidationResponse>(`/invites/${invitationId}/challenge/${challengeId}/validate`, { 
-        code: data.code 
+        code: code 
       });
       
       // Set authentication cookies (same pattern as localLogin)
@@ -54,7 +58,7 @@ export const ChallengeValidationForm: React.FC<ChallengeValidationFormProps> = (
       Cookies.set("safebucket_auth_provider", "local");
       
       setIsValidated(true);
-      onSubmit?.(data.code);
+      onSubmit?.(code);
       
       // Redirect to buckets page after successful login
       router.push("/buckets");
@@ -102,7 +106,7 @@ export const ChallengeValidationForm: React.FC<ChallengeValidationFormProps> = (
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+        <div className="space-y-4">
           {error && (
             <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-md">
               <AlertCircle className="h-4 w-4" />
@@ -112,37 +116,36 @@ export const ChallengeValidationForm: React.FC<ChallengeValidationFormProps> = (
           
           <div className="space-y-2">
             <Label htmlFor="code">6-Digit Verification Code</Label>
-            <Input
-              id="code"
-              type="text"
-              placeholder="123456"
-              {...register("code", {
-                required: "Verification code is required",
-                pattern: {
-                  value: /^\d{6}$/,
-                  message: "Verification code must be exactly 6 digits",
-                },
-              })}
-              className={errors.code ? "border-red-500" : ""}
-              maxLength={6}
-            />
-            {errors.code && (
-              <p className="text-sm text-red-500">{errors.code.message}</p>
-            )}
+            <div className="flex justify-center">
+              <InputOTP
+                maxLength={6}
+                value={code}
+                onChange={(value) => setCode(value)}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
           </div>
           
           <Button
-            type="submit"
+            onClick={handleFormSubmit}
             className="w-full"
-            disabled={isSubmitting}
+            disabled={isSubmitting || code.length !== 6}
           >
             {isSubmitting ? "Validating..." : "Validate Code"}
           </Button>
           
           <p className="text-xs text-center text-muted-foreground mt-3">
-            Didn't receive the code? Check your spam folder or go back to request a new one.
+            Didn&apos;t receive the code? Check your spam folder or go back to request a new one.
           </p>
-        </form>
+        </div>
       </CardContent>
     </Card>
   );
