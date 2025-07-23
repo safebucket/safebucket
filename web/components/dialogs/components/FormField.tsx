@@ -11,6 +11,7 @@ import {
 import { Datepicker } from "@/components/common/components/Datepicker";
 import { IFormField } from "@/components/dialogs/helpers/types";
 import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -35,6 +36,51 @@ export const FormField: FC<IFormFieldProps> = ({
   errors,
 }: IFormFieldProps) => {
   switch (field.type) {
+    case "otp":
+      return (
+        <div key={field.id} className="grid grid-cols-12 items-center gap-4">
+          <Label htmlFor={field.id} className="col-span-2">
+            {field.label}
+          </Label>
+          <div className="col-span-10">
+            <Controller
+              name={field.id}
+              control={control}
+              defaultValue=""
+              rules={{
+                required: field.required,
+                validate: (value) => {
+                  if (field.maxLength && value.length !== field.maxLength) {
+                    return `${field.label} must be exactly ${field.maxLength} digits`;
+                  }
+                  return true;
+                }
+              }}
+              render={({ field: { onChange, value } }) => (
+                <div className="flex justify-center">
+                  <InputOTP
+                    maxLength={field.maxLength || 6}
+                    value={value}
+                    onChange={onChange}
+                  >
+                    <InputOTPGroup>
+                      {Array.from({ length: field.maxLength || 6 }, (_, index) => (
+                        <InputOTPSlot key={index} index={index} />
+                      ))}
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+              )}
+            />
+            {errors[field.id] && (
+              <div className="mt-2 text-xs text-destructive text-center">
+                {errors[field.id]?.message?.toString() ||
+                  `${field.label} is required`}
+              </div>
+            )}
+          </div>
+        </div>
+      );
     case "select":
       return (
         <div key={field.id} className="grid grid-cols-12 items-center gap-4">
