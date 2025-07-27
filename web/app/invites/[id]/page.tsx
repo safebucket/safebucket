@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { EmailConfirmationForm } from "@/components/invites/EmailConfirmationForm";
+
+import { EmailConfirmationForm } from "@/components/invites/components/EmailConfirmationForm";
 
 interface InvitePageProps {
   params: Promise<{
@@ -17,11 +18,8 @@ export default function InvitePage({ params }: InvitePageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <EmailConfirmationForm
-        invitationId={id}
-        onSubmit={handleEmailSubmit}
-      />
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <EmailConfirmationForm invitationId={id} onSubmit={handleEmailSubmit} />
     </div>
   );
 }

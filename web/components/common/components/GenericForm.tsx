@@ -1,4 +1,5 @@
 import React, { FC } from "react";
+
 import { FieldValues, useForm } from "react-hook-form";
 
 import { FormField } from "@/components/dialogs/components/FormField";
@@ -37,10 +38,14 @@ export const GenericForm: FC<IGenericFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmitWrapper)} className={`space-y-4 ${className}`}>
+    <form
+      onSubmit={handleSubmit(onSubmitWrapper)}
+      className={`space-y-4 ${className}`}
+    >
       {fields.map(
         (field) =>
-          (!field.condition || (field.condition && field.condition(values))) && (
+          (!field.condition ||
+            (field.condition && field.condition(values))) && (
             <FormField
               key={field.id}
               field={field}

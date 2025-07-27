@@ -1,6 +1,13 @@
 import { api } from "@/lib/api";
 
-import { IBucket, IShareWith } from "@/components/bucket-view/helpers/types";
+import {
+  IBucket,
+  IInviteResponse,
+  IInvites,
+} from "@/components/bucket-view/helpers/types";
 
-export const api_createBucket = (name: string, share_with: IShareWith[]) =>
-  api.post<IBucket>("/buckets", { name, share_with });
+export const api_createBucket = (name: string) =>
+  api.post<IBucket>("/buckets", { name });
+
+export const api_createInvites = (bucket_id: string, invites: IInvites[]) =>
+  api.post<IInviteResponse[]>("/invites", { bucket_id, invites });

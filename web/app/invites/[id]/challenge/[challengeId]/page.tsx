@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChallengeValidationForm } from "@/components/invites/ChallengeValidationForm";
+import { ChallengeValidationForm } from "@/components/invites/components/ChallengeValidationForm";
 
 interface ValidatePageProps {
   params: Promise<{

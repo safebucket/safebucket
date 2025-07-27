@@ -44,22 +44,18 @@ func (s InviteService) Routes() chi.Router {
 	r.With(m.Validate[models.InviteBody]).Post("/", handlers.CreateHandler(s.CreateInvite))
 
 	r.Route("/{id0}", func(r chi.Router) {
-
 		r.Get("/", handlers.GetOneHandler(s.GetInvite)) //Todo: don't return the email :)
 
-		r.With(m.Validate[models.InviteChallengeCreateBody]).Post("/challenge", handlers.CreateHandler(s.CreateInviteChallenge))
+		r.With(m.Validate[models.InviteChallengeCreateBody]).Post("/challenges", handlers.CreateHandler(s.CreateInviteChallenge))
 
-		r.Route("/challenge/{id1}", func(r chi.Router) {
+		r.Route("/challenges/{id1}", func(r chi.Router) {
 			r.With(m.Validate[models.InviteChallengeValidateBody]).Post("/validate", handlers.CreateHandler(s.ValidateInviteChallenge))
 		})
-
 	})
 
 	return r
 }
 
-// func (s BucketService) GetBucket(_ models.UserClaims, ids uuid.UUIDs) (models.Bucket, error)
-// GetInvite handles retrieving a single invite by ID.
 func (s InviteService) GetInvite(_ models.UserClaims, ids uuid.UUIDs) (interface{}, error) {
 	// TODO: Implement the logic to fetch an invite by ID.
 	inviteId := ids[0]
@@ -73,7 +69,6 @@ func (s InviteService) GetInvite(_ models.UserClaims, ids uuid.UUIDs) (interface
 }
 
 func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {
-
 	inviteId := ids[0]
 	var invite models.Invite
 	result := s.DB.Where("id = ?", inviteId).First(&invite)
@@ -83,7 +78,6 @@ func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs
 	} else if invite.Email != body.Email {
 		return invite, errors.NewAPIError(401, "INVITE_EMAIL_MISMATCH") //Todo: In the frontend, "an email has been sent if the email is linked to this invitation".
 	} else {
-
 		// Seed the random number generator
 		var secret string
 
@@ -123,13 +117,10 @@ func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs
 }
 
 func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeValidateBody) (models.AuthLoginResponse, error) {
-
 	inviteId := ids[0]
 	challengeId := ids[1]
 
 	var challenge models.Challenge
-
-	//result := s.DB.Where("id = ? AND invite_id = ?", challengeId, inviteId).First(&challenge)
 
 	result := s.DB.Preload("Invite").Where("id = ? AND invite_id = ?", challengeId, inviteId).First(&challenge)
 
@@ -143,7 +134,6 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 	}
 
 	// If the code matches, we create a new user, create policies for the user, and return the access token.
-
 	newUser := models.User{
 		Email: challenge.Invite.Email,
 	}
@@ -153,7 +143,6 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 	result = s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
 		// Create a new user
-
 		s.DB.Create(&newUser) // No password is set, as this is an invite
 		zap.L().Info("User inserted", zap.Any("user", newUser))
 		err = roles.AddUserToRoleGuest(s.Enforcer, newUser)
@@ -170,7 +159,6 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 		s.DB.Preload("Bucket").Where("email = ?", challenge.Invite.Email).Find(&invites)
 
 		for _, invite := range invites {
-
 			zap.L().Info("User inserted", zap.Any("user", newUser))
 			var err error
 			switch invite.Group {
@@ -207,15 +195,9 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 	} else {
 		return models.AuthLoginResponse{}, errors.NewAPIError(401, "USER_ALREADY_EXISTS")
 	}
-	// s.ActivityLogger.LogInviteChallengeValidated(challenge)
-
 }
 
-// InviteUserToBucket handles inviting a user to a bucket.
 func (s InviteService) CreateInvite(user models.UserClaims, ids uuid.UUIDs, body models.InviteBody) ([]models.InviteResult, error) {
-
-	// Validate the user
-
 	if user.UserID == uuid.Nil {
 		return nil, errors.NewAPIError(401, "INVALID_USER")
 	}
@@ -237,7 +219,6 @@ func (s InviteService) CreateInvite(user models.UserClaims, ids uuid.UUIDs, body
 	}
 
 	// TODO: Validate that if the OPENID configuration for the user is set, the user is allowed to invite others
-
 	var providerCfg configuration.Provider
 	var ok bool
 
@@ -264,7 +245,6 @@ func (s InviteService) CreateInvite(user models.UserClaims, ids uuid.UUIDs, body
 	}
 
 	for _, invite := range body.Invites {
-
 		inviteResult := models.InviteResult{
 			Email: invite.Email,
 			Group: invite.Group,
@@ -302,7 +282,6 @@ func (s InviteService) CreateInvite(user models.UserClaims, ids uuid.UUIDs, body
 
 		if result.RowsAffected == 0 {
 			// User not found in database - create invitation record
-
 			invite := models.Invite{
 				Email:     invite.Email,
 				Group:     invite.Group,
@@ -383,5 +362,6 @@ func (s InviteService) CreateInvite(user models.UserClaims, ids uuid.UUIDs, body
 		}
 
 	}
+
 	return results, nil // TODO: Normalize messages ?
 }
