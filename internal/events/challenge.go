@@ -1,7 +1,6 @@
 package events
 
 import (
-	"api/internal/configuration"
 	"api/internal/core"
 	"api/internal/messaging"
 	"encoding/json"
@@ -37,14 +36,13 @@ func NewChallengeUserInvite(
 	challengeID string,
 	webUrl string,
 ) ChallengeUserInvite {
-	challengeUrl := fmt.Sprintf("%s/invites/%s/challenge/%s", webUrl, inviteID, challengeID)
+	challengeUrl := fmt.Sprintf("%s/invites/%s/challenges/%s", webUrl, inviteID, challengeID)
 	return ChallengeUserInvite{
 		Publisher: publisher,
 		Payload: ChallengeUserInvitePayload{
 			Type:         ChallengeUserInviteName,
 			Secret:       secret,
 			To:           to,
-			From:         "test@gmail.com", //todo: Change
 			WebUrl:       webUrl,
 			ChallengeUrl: challengeUrl,
 		},
@@ -60,7 +58,7 @@ func (e *ChallengeUserInvite) Trigger() {
 
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(configuration.EventsNotificationsTopicName, msg)
+	err = e.Publisher.Publish(msg)
 
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))

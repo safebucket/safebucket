@@ -1,7 +1,6 @@
 package events
 
 import (
-	"api/internal/configuration"
 	"api/internal/core"
 	"api/internal/messaging"
 	"api/internal/models"
@@ -43,7 +42,7 @@ func NewUserInvitation(
 ) UserInvitation {
 	// Generate role descriptions
 	roleDescription := getRoleDescription(role)
-	
+
 	// Create invite URL pointing to the invitation page
 	inviteUrl := fmt.Sprintf("%s/invites/%s", webUrl, inviteId)
 
@@ -84,7 +83,7 @@ func (e *UserInvitation) Trigger() {
 
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(configuration.EventsNotificationsTopicName, msg)
+	err = e.Publisher.Publish(msg)
 
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))

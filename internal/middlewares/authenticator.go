@@ -35,7 +35,6 @@ func Authenticate(jwtConf models.JWTConfiguration) func(next http.Handler) http.
 }
 
 func isExcluded(path, method string) bool {
-
 	// First check prefix matches for exclusions
 	if exactRules, exists := configuration.AuthRuleExactMatchPath[path]; exists {
 		for _, rule := range exactRules {
