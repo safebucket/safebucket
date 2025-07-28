@@ -1,14 +1,12 @@
-export interface ChallengeValidationFormData {
+export interface IChallengeValidationFormData {
   code: string;
 }
 
-export interface ChallengeValidationResponse {
-  access_token: string;
-  refresh_token: string;
+export interface ICreateChallengeResponse {
+  id: string;
 }
 
-export interface ChallengeValidationFormProps {
-  onSubmit?: (code: string) => void;
-  invitationId?: string;
-  challengeId?: string;
+export interface IChallengeValidationResponse {
+  access_token: string;
+  refresh_token: string;
 }

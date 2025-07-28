@@ -1,6 +1,7 @@
 import React, { FC, useState } from "react";
 
-import { AlertCircle, CheckCircle, Mail } from "lucide-react";
+import { AlertCircle, Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 import { api_createChallenge } from "@/components/invites/helpers/api";
@@ -15,58 +16,37 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface EmailConfirmationFormData {
+interface IEmailConfirmationFormData {
   email: string;
 }
 
-interface EmailConfirmationFormProps {
-  onSubmit?: (email: string) => void;
-  invitationId?: string;
+interface IEmailConfirmationFormProps {
+  invitationId: string;
 }
 
-export const EmailConfirmationForm: FC<EmailConfirmationFormProps> = ({
-  onSubmit,
+export const EmailConfirmationForm: FC<IEmailConfirmationFormProps> = ({
   invitationId,
 }) => {
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<EmailConfirmationFormData>();
+  } = useForm<IEmailConfirmationFormData>();
 
-  const handleFormSubmit = async (data: EmailConfirmationFormData) => {
+  const handleFormSubmit = async (data: IEmailConfirmationFormData) => {
     setError(null);
 
-    api_createChallenge(invitationId!, data.email)
-      .then(() => {
-        setIsSubmitted(true);
-        onSubmit?.(data.email);
-      })
+    api_createChallenge(invitationId, data.email)
+      .then((res) =>
+        router.push(`/invites/${invitationId}/challenges/${res.id}`),
+      )
       .catch(() =>
         setError("Failed to send verification code. Please try again."),
       );
   };
-
-  if (isSubmitted) {
-    return (
-      <Card className="mx-auto w-full max-w-md">
-        <CardContent className="pt-6">
-          <div className="space-y-4 text-center">
-            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-            <h3 className="text-lg font-semibold">Verification Code Sent</h3>
-            <p className="text-sm text-muted-foreground">
-              A verification code has been sent to your email address. Please
-              check your inbox and enter the code to complete your account
-              creation.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className="mx-auto w-full max-w-md">

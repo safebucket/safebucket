@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { FC, useState } from "react";
 
-import { api } from "@/lib/api";
 import Cookies from "js-cookie";
 import { AlertCircle, CheckCircle, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
+import { api_validateChallenge } from "@/components/invites/helpers/api";
+import { IChallengeValidationFormData } from "@/components/invites/helpers/types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,15 +22,15 @@ import {
 } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 
-import {
-  ChallengeValidationFormData,
-  ChallengeValidationFormProps,
-  ChallengeValidationResponse,
-} from "../helpers/types";
+export interface IChallengeValidationFormProps {
+  invitationId: string;
+  challengeId: string;
+}
 
-export const ChallengeValidationForm: React.FC<
-  ChallengeValidationFormProps
-> = ({ onSubmit, invitationId, challengeId }) => {
+export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
+  invitationId,
+  challengeId,
+}) => {
   const router = useRouter();
   const [isValidated, setIsValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +38,9 @@ export const ChallengeValidationForm: React.FC<
 
   const {
     formState: { isSubmitting },
-  } = useForm<ChallengeValidationFormData>();
+  } = useForm<IChallengeValidationFormData>();
 
-  const handleFormSubmit = async () => {
+  const handleFormSubmit = () => {
     setError(null);
 
     if (code.length !== 6) {
@@ -47,30 +48,21 @@ export const ChallengeValidationForm: React.FC<
       return;
     }
 
-    try {
-      const response = await api.post<ChallengeValidationResponse>(
-        `/invites/${invitationId}/challenges/${challengeId}/validate`,
-        {
-          code: code,
-        },
+    api_validateChallenge(invitationId, challengeId, code)
+      .then((res) => {
+        Cookies.set("safebucket_access_token", res.access_token);
+        Cookies.set("safebucket_refresh_token", res.refresh_token);
+        Cookies.set("safebucket_auth_provider", "local");
+
+        setIsValidated(true);
+
+        router.push("/");
+      })
+      .catch(() =>
+        setError(
+          "Invalid verification code. Please check your email and try again.",
+        ),
       );
-
-      // Set authentication cookies (same pattern as localLogin)
-      Cookies.set("safebucket_access_token", response.access_token);
-      Cookies.set("safebucket_refresh_token", response.refresh_token);
-      Cookies.set("safebucket_auth_provider", "local");
-
-      setIsValidated(true);
-      onSubmit?.(code);
-
-      // Redirect to buckets page after successful login
-      router.push("/buckets");
-    } catch (err) {
-      console.error("Failed to validate challenge code:", err);
-      setError(
-        "Invalid verification code. Please check your email and try again.",
-      );
-    }
   };
 
   if (isValidated) {
@@ -114,7 +106,9 @@ export const ChallengeValidationForm: React.FC<
           )}
 
           <div className="space-y-2">
-            <Label className="flex justify-center" htmlFor="code">6-digit verification code</Label>
+            <Label className="flex justify-center" htmlFor="code">
+              6-digit verification code
+            </Label>
             <div className="flex justify-center">
               <InputOTP
                 maxLength={6}
@@ -142,7 +136,8 @@ export const ChallengeValidationForm: React.FC<
           </Button>
 
           <p className="mt-3 text-center text-xs text-muted-foreground">
-            Didn&apos;t receive the code? <br/> Check your spam folder or request a new one
+            Didn&apos;t receive the code? <br /> Check your spam folder or
+            request a new one
           </p>
         </div>
       </CardContent>
