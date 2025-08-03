@@ -227,9 +227,9 @@ func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs
 	result := s.DB.Where("id = ?", inviteId).First(&invite)
 
 	if result.RowsAffected == 0 {
-		return invite, errors.NewAPIError(401, "INVITE_NOT_FOUND") // Todo: change return code to 404 and only log errors ?
+		return invite, errors.NewAPIError(404, "INVITE_NOT_FOUND")
 	} else if invite.Email != body.Email {
-		return invite, errors.NewAPIError(401, "INVITE_EMAIL_MISMATCH") //Todo: In the frontend, "an email has been sent if the email is linked to this invitation".
+		return invite, errors.NewAPIError(400, "INVITE_EMAIL_MISMATCH") //Todo: In the frontend, "an email has been sent if the email is linked to this invitation".
 	} else {
 		secret, err := helpers.GenerateSecret(6)
 		if err != nil {
