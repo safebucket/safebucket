@@ -6,7 +6,6 @@ import (
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
-	"api/internal/helpers"
 	h "api/internal/helpers"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
@@ -16,6 +15,7 @@ import (
 	"api/internal/rbac/roles"
 	"api/internal/storage"
 	"strings"
+	"time"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/casbin/casbin/v2"
@@ -231,21 +231,22 @@ func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs
 	} else if invite.Email != body.Email {
 		return invite, errors.NewAPIError(400, "INVITE_EMAIL_MISMATCH") //Todo: In the frontend, "an email has been sent if the email is linked to this invitation".
 	} else {
-		secret, err := helpers.GenerateSecret(6)
+		secret, err := h.GenerateSecret(6)
 		if err != nil {
 			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
 		}
 
-		hashedSecret, err := helpers.CreateHash(secret)
+		hashedSecret, err := h.CreateHash(secret)
 
 		if err != nil {
 			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
 		}
 
-		// Create a new challenge for the invite
+		// Create a new challenge for the invite (expires in 30 minutes)
 		challenge := models.Challenge{
 			InviteID:     invite.ID,
 			HashedSecret: hashedSecret,
+			ExpiresAt:    time.Now().Add(15 * time.Minute),
 		}
 
 		result = s.DB.Create(&challenge)
@@ -278,6 +279,11 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 
 	if result.RowsAffected == 0 {
 		return models.AuthLoginResponse{}, errors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
+	}
+
+	// Check if challenge has expired
+	if time.Now().After(challenge.ExpiresAt) {
+		return models.AuthLoginResponse{}, errors.NewAPIError(401, "CHALLENGE_EXPIRED")
 	}
 
 	match, err := argon2id.ComparePasswordAndHash(body.Code, challenge.HashedSecret)
@@ -342,6 +348,10 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
 		}
+
+		// Delete the challenge after successful validation to prevent reuse
+		s.DB.Delete(&challenge)
+
 		return tokens, err
 
 	} else {

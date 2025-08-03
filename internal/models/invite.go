@@ -26,6 +26,7 @@ type Challenge struct {
 	InviteID     uuid.UUID `gorm:"type:uuid;not null;index:idx_challenge_unique,unique" json:"invite_id"`
 	Invite       Invite    `gorm:"foreignKey:InviteID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"invite"`
 	HashedSecret string    `gorm:"not null;default:null" json:"hashed_secret" validate:"required"`
+	ExpiresAt    time.Time `gorm:"not null" json:"expires_at"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
