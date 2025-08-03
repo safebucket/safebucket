@@ -94,6 +94,38 @@ output "redis_app_user_id" {
   value       = aws_elasticache_user.redis_app_user.user_id
 }
 
+# RDS Outputs
+output "rds_endpoint" {
+  description = "RDS PostgreSQL endpoint"
+  value       = aws_db_instance.postgres.endpoint
+}
+
+output "rds_port" {
+  description = "RDS PostgreSQL port"
+  value       = aws_db_instance.postgres.port
+}
+
+output "rds_database_name" {
+  description = "RDS database name"
+  value       = aws_db_instance.postgres.db_name
+}
+
+output "rds_username" {
+  description = "RDS master username"
+  value       = aws_db_instance.postgres.username
+  sensitive   = true
+}
+
+output "rds_security_group_id" {
+  description = "Security group ID for the RDS instance"
+  value       = aws_security_group.rds.id
+}
+
+output "rds_instance_id" {
+  description = "RDS instance identifier"
+  value       = aws_db_instance.postgres.id
+}
+
 # Configuration Summary
 output "infrastructure_summary" {
   description = "Summary of created infrastructure"
@@ -102,8 +134,8 @@ output "infrastructure_summary" {
     s3_events_queue        = aws_sqs_queue.s3_events.name
     notifications_queue    = aws_sqs_queue.notifications.name
     iam_role              = aws_iam_role.safebucket_app.name
-    redis_endpoint         = aws_elasticache_replication_group.redis.primary_endpoint_address
-    redis_port             = aws_elasticache_replication_group.redis.port
+    redis_endpoint         = aws_elasticache_cluster.redis.cache_nodes[0].address
+    redis_port             = aws_elasticache_cluster.redis.port
     environment           = var.environment
     project_name          = var.project_name
     region                = "eu-west-1"

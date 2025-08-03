@@ -84,3 +84,76 @@ variable "redis_log_retention_days" {
   type        = number
   default     = 7
 }
+
+# RDS Configuration
+variable "rds_instance_class" {
+  description = "The instance class for the RDS PostgreSQL database"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "rds_allocated_storage" {
+  description = "The allocated storage in gigabytes for the RDS instance"
+  type        = number
+  default     = 20
+}
+
+variable "rds_max_allocated_storage" {
+  description = "The upper limit to which Amazon RDS can automatically scale the storage"
+  type        = number
+  default     = 100
+}
+
+variable "rds_database_name" {
+  description = "The name of the database to create"
+  type        = string
+  default     = "safebucket"
+}
+
+variable "rds_username" {
+  description = "Username for the RDS instance"
+  type        = string
+  default     = "safebucket"
+}
+
+variable "rds_password" {
+  description = "Password for the RDS instance"
+  type        = string
+  sensitive   = true
+}
+
+variable "rds_backup_retention_period" {
+  description = "The days to retain backups for"
+  type        = number
+  default     = 7
+}
+
+variable "rds_backup_window" {
+  description = "The daily time range for automated backups (UTC)"
+  type        = string
+  default     = "03:00-04:00"
+}
+
+variable "rds_maintenance_window" {
+  description = "The weekly time range for maintenance (UTC)"
+  type        = string
+  default     = "sun:04:00-sun:05:00"
+}
+
+variable "rds_deletion_protection" {
+  description = "If the DB instance should have deletion protection enabled"
+  type        = bool
+  default     = false
+}
+
+variable "rds_skip_final_snapshot" {
+  description = "Determines whether a final DB snapshot is created before the DB instance is deleted"
+  type        = bool
+  default     = true
+}
+
+variable "rds_storage_encrypted" {
+  description = "Specifies whether the DB instance is encrypted"
+  type        = bool
+  default     = true
+}
