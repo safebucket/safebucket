@@ -375,7 +375,3 @@ Ensure you have backups if needed before destroying infrastructure.
 - Verify IAM permissions for Terraform operations
 - For Terraform-specific issues, see the [terraform/README.md](terraform/README.md)
 - Review the [terraform.tfvars.example](terraform/terraform.tfvars.example) for configuration examples
-
-## Security Note
-
-**⚠️ Important:** The `terraform/env.sh` file contains AWS credentials and should never be committed to version control. Ensure it's in your `.gitignore` and use IAM roles or AWS profiles for authentication instead.
