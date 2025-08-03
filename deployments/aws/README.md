@@ -67,7 +67,7 @@ terraform output s3_bucket_name
 
 ### RDS PostgreSQL Database
 - **Engine**: PostgreSQL 15.4 with automated backups
-- **Storage**: GP2 storage with encryption at rest, auto-scaling enabled
+- **Storage**: GP3 storage with encryption at rest, auto-scaling enabled
 - **Monitoring**: Enhanced monitoring with 60-second intervals, Performance Insights enabled
 - **Security**: Private subnets only, VPC security groups
 - **Parameters**: Optimized configuration with statement logging and pg_stat_statements
@@ -102,6 +102,32 @@ terraform output s3_bucket_name
 | `notification_queue_name` | SQS queue for notifications | `safebucket-notifications-prod` |
 | `redis_auth_token` | Redis authentication password (32+ chars) | `secure-password-here` |
 | `rds_password` | PostgreSQL database password | `secure-db-password` |
+
+### Optional Variables
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `project_name` | string | `safebucket` | Project identifier for resource naming |
+| `environment` | string | `dev` | Environment name (dev, staging, prod) |
+| `s3_cors_allowed_origins` | list(string) | `["http://localhost:3000"]` | CORS allowed origins for S3 |
+| `redis_node_type` | string | `cache.t3.micro` | ElastiCache instance type |
+| `redis_num_cache_nodes` | number | `1` | Number of cache nodes |
+| `redis_auth_token_enabled` | bool | `true` | Enable Redis authentication |
+| `redis_snapshot_retention_limit` | number | `5` | Backup retention days |
+| `redis_snapshot_window` | string | `03:00-05:00` | Daily backup window (UTC) |
+| `redis_maintenance_window` | string | `sun:05:00-sun:07:00` | Weekly maintenance window |
+| `redis_log_retention_days` | number | `7` | CloudWatch log retention days |
+| `rds_instance_class` | string | `db.t3.micro` | RDS instance type |
+| `rds_allocated_storage` | number | `20` | Initial storage size (GB) |
+| `rds_max_allocated_storage` | number | `100` | Maximum auto-scaling storage (GB) |
+| `rds_database_name` | string | `safebucket` | Database name |
+| `rds_username` | string | `safebucket` | Database username |
+| `rds_backup_retention_period` | number | `7` | Backup retention days |
+| `rds_backup_window` | string | `03:00-04:00` | Daily backup window (UTC) |
+| `rds_maintenance_window` | string | `sun:04:00-sun:05:00` | Weekly maintenance window |
+| `rds_deletion_protection` | bool | `false` | Enable deletion protection |
+| `rds_skip_final_snapshot` | bool | `true` | Skip final snapshot on deletion |
+| `rds_storage_encrypted` | bool | `true` | Enable storage encryption |
 
 ### Database Configuration
 

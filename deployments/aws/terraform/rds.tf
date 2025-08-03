@@ -84,48 +84,48 @@ resource "aws_db_parameter_group" "rds" {
 # RDS PostgreSQL Instance
 resource "aws_db_instance" "postgres" {
   identifier = "${var.project_name}-postgres"
-  
+
   # Engine configuration
   engine         = "postgres"
   engine_version = "15.4"
   instance_class = var.rds_instance_class
-  
+
   # Storage configuration
   allocated_storage     = var.rds_allocated_storage
   max_allocated_storage = var.rds_max_allocated_storage
-  storage_type          = "gp2"
+  storage_type          = "gp3"
   storage_encrypted     = var.rds_storage_encrypted
-  
+
   # Database configuration
   db_name  = var.rds_database_name
   username = var.rds_username
   password = var.rds_password
-  
+
   # Network configuration
   db_subnet_group_name   = aws_db_subnet_group.rds.name
   vpc_security_group_ids = [aws_security_group.rds.id]
   publicly_accessible    = false
-  
+
   # Parameter group
   parameter_group_name = aws_db_parameter_group.rds.name
-  
+
   # Backup configuration
   backup_retention_period = var.rds_backup_retention_period
-  backup_window          = var.rds_backup_window
-  maintenance_window     = var.rds_maintenance_window
-  
+  backup_window           = var.rds_backup_window
+  maintenance_window      = var.rds_maintenance_window
+
   # Deletion protection
   deletion_protection = var.rds_deletion_protection
   skip_final_snapshot = var.rds_skip_final_snapshot
-  
+
   # Monitoring
   monitoring_interval = 60
   monitoring_role_arn = aws_iam_role.rds_enhanced_monitoring.arn
-  
+
   # Performance Insights
-  performance_insights_enabled = true
+  performance_insights_enabled          = true
   performance_insights_retention_period = 7
-  
+
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-postgres"
   })
