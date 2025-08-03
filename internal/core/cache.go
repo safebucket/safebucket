@@ -68,7 +68,7 @@ func (c Cache) GetRateLimit(userIdentifier string, requestsPerSecond int) (int, 
 	}
 
 	if count == 1 {
-		err := c.client.Do(ctx, c.client.B().Expire().Key(key).Seconds(int64(1*time.Minute)).Build()).Error()
+		err := c.client.Do(ctx, c.client.B().Expire().Key(key).Seconds(int64(1*time.Minute.Seconds())).Build()).Error()
 		if err != nil {
 			return 0, err
 		}
