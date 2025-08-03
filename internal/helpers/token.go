@@ -3,7 +3,9 @@ package helpers
 import (
 	"api/internal/models"
 	"context"
+	"crypto/rand"
 	"errors"
+	"math/big"
 	"strings"
 	"time"
 
@@ -103,4 +105,16 @@ func GetUserClaims(c context.Context) (models.UserClaims, error) {
 		return models.UserClaims{}, errors.New("invalid user claims")
 	}
 	return value, nil
+}
+
+func GenerateSecret(size int) (string, error) {
+	secret := make([]byte, size)
+	for i := range secret {
+		n, err := rand.Int(rand.Reader, big.NewInt(10))
+		if err != nil {
+			return "", err
+		}
+		secret[i] = byte('0' + n.Int64())
+	}
+	return string(secret), nil
 }

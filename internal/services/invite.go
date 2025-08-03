@@ -15,8 +15,6 @@ import (
 	"api/internal/rbac/groups"
 	"api/internal/rbac/roles"
 	"api/internal/storage"
-	"math/rand"
-	"strconv"
 	"strings"
 
 	"github.com/alexedwards/argon2id"
@@ -233,12 +231,11 @@ func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs
 	} else if invite.Email != body.Email {
 		return invite, errors.NewAPIError(401, "INVITE_EMAIL_MISMATCH") //Todo: In the frontend, "an email has been sent if the email is linked to this invitation".
 	} else {
-		// Seed the random number generator
-		var secret string
-
-		for range 6 {
-			secret += strconv.Itoa(rand.Intn(10)) // Add Chars in this var ?
+		secret, err := helpers.GenerateSecret(6)
+		if err != nil {
+			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
 		}
+
 		hashedSecret, err := helpers.CreateHash(secret)
 
 		if err != nil {
