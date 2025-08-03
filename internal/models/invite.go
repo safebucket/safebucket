@@ -22,12 +22,13 @@ type InviteChallengeCreateBody struct {
 }
 
 type Challenge struct {
-	ID           uuid.UUID `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
-	InviteID     uuid.UUID `gorm:"type:uuid;not null;index:idx_challenge_unique,unique" json:"invite_id"`
-	Invite       Invite    `gorm:"foreignKey:InviteID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"invite"`
-	HashedSecret string    `gorm:"not null;default:null" json:"hashed_secret" validate:"required"`
-	ExpiresAt    time.Time `gorm:"not null" json:"expires_at"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID             uuid.UUID `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
+	InviteID       uuid.UUID `gorm:"type:uuid;not null;index:idx_challenge_unique,unique" json:"invite_id"`
+	Invite         Invite    `gorm:"foreignKey:InviteID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"-"`
+	HashedSecret   string    `gorm:"not null;default:null" json:"-" validate:"required"`
+	FailedAttempts int       `gorm:"not null;default:0" json:"failed_attempts"`
+	ExpiresAt      time.Time `gorm:"not null" json:"expires_at"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type InviteChallengeValidateBody struct {

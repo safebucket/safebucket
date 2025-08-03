@@ -242,7 +242,7 @@ func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs
 			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
 		}
 
-		// Create a new challenge for the invite (expires in 30 minutes)
+		// Create a new challenge for the invite (expires in 15 minutes)
 		challenge := models.Challenge{
 			InviteID:     invite.ID,
 			HashedSecret: hashedSecret,
@@ -288,6 +288,17 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 
 	match, err := argon2id.ComparePasswordAndHash(body.Code, challenge.HashedSecret)
 	if err != nil || !match {
+		// Increment failed attempts
+		challenge.FailedAttempts++
+
+		// Delete challenge if 3 failed attempts reached
+		if challenge.FailedAttempts >= 5 {
+			s.DB.Delete(&challenge)
+			return models.AuthLoginResponse{}, errors.NewAPIError(401, "CHALLENGE_DELETED_TOO_MANY_ATTEMPTS")
+		}
+
+		// Update challenge with incremented failed attempts
+		s.DB.Save(&challenge)
 		return models.AuthLoginResponse{}, errors.NewAPIError(401, "WRONG_CODE")
 	}
 
