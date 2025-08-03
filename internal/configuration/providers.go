@@ -4,17 +4,19 @@ import (
 	"api/internal/models"
 	"context"
 	"fmt"
+
 	"github.com/coreos/go-oidc/v3/oidc"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
 
 type Provider struct {
-	Name        string
-	Provider    *oidc.Provider
-	Verifier    *oidc.IDTokenVerifier
-	OauthConfig oauth2.Config
-	Order       int
+	Name           string
+	Provider       *oidc.Provider
+	Verifier       *oidc.IDTokenVerifier
+	OauthConfig    oauth2.Config
+	Order          int
+	SharingOptions models.SharingConfiguration
 }
 
 type Providers map[string]Provider
@@ -47,11 +49,12 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 		}
 
 		providers[name] = Provider{
-			Name:        providerCfg.Name,
-			Provider:    provider,
-			Verifier:    verifier,
-			OauthConfig: oauthConfig,
-			Order:       idx,
+			Name:           providerCfg.Name,
+			Provider:       provider,
+			Verifier:       verifier,
+			OauthConfig:    oauthConfig,
+			Order:          idx,
+			SharingOptions: providerCfg.SharingConfiguration,
 		}
 
 		idx++

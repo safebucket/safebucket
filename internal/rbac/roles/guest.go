@@ -4,6 +4,7 @@ import (
 	c "api/internal/configuration"
 	"api/internal/models"
 	"api/internal/rbac"
+
 	"github.com/casbin/casbin/v2"
 )
 
@@ -22,7 +23,7 @@ func InsertRoleGuest(e *casbin.Enforcer) error {
 }
 
 func AddUserToRoleGuest(e *casbin.Enforcer, user models.User) error {
-	_, err := e.AddGroupingPolicy(user.ID, rbac.RoleGuest, c.DefaultDomain)
+	_, err := e.AddGroupingPolicy(user.ID.String(), rbac.RoleGuest.String(), c.DefaultDomain)
 	if err != nil {
 		return err
 	}

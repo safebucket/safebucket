@@ -23,6 +23,7 @@ export interface IActivity {
   file?: IFile;
   timestamp: string;
   message: ActivityMessage;
+  invited_email?: string;
 }
 
 export enum ActivityMessage {
@@ -31,4 +32,5 @@ export enum ActivityMessage {
   FILE_DOWNLOADED = "FILE_DOWNLOADED",
   FILE_UPDATED = "FILE_UPDATED",
   FILE_DELETED = "FILE_DELETED",
+  USER_INVITED = "USER_INVITED",
 }

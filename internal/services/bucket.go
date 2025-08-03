@@ -2,9 +2,9 @@ package services
 
 import (
 	"api/internal/activity"
+	"api/internal/configuration"
 	c "api/internal/configuration"
 	"api/internal/errors"
-	"api/internal/events"
 	"api/internal/handlers"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
@@ -14,13 +14,14 @@ import (
 	"api/internal/sql"
 	"api/internal/storage"
 	"fmt"
+	"path"
+	"path/filepath"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"path"
-	"path/filepath"
 )
 
 type BucketService struct {
@@ -28,6 +29,7 @@ type BucketService struct {
 	Storage        storage.IStorage
 	Enforcer       *casbin.Enforcer
 	Publisher      *messaging.IPublisher
+	Providers      configuration.Providers
 	ActivityLogger activity.IActivityLogger
 }
 
@@ -42,6 +44,7 @@ func (s BucketService) Routes() chi.Router {
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id0}", func(r chi.Router) {
+
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
 			Get("/", handlers.GetOneHandler(s.GetBucket))
 
@@ -103,35 +106,6 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 	err = groups.AddUserToOwners(s.Enforcer, newBucket, user.UserID.String())
 	if err != nil {
 		return models.Bucket{}, err
-	}
-
-	for _, shareWith := range body.ShareWith {
-		var shareWithUser models.User
-
-		result := s.DB.Where("email = ?", shareWith.Email).First(&shareWithUser)
-
-		if result.RowsAffected > 0 {
-			switch shareWith.Group {
-			case "viewer":
-				err = groups.AddUserToViewers(s.Enforcer, newBucket, shareWithUser.ID.String())
-			case "contributor":
-				err = groups.AddUserToContributors(s.Enforcer, newBucket, shareWithUser.ID.String())
-			case "owner":
-				err = groups.AddUserToOwners(s.Enforcer, newBucket, shareWithUser.ID.String())
-			}
-
-			if err != nil {
-				return models.Bucket{}, err
-			}
-
-			event := events.NewBucketSharedWith(
-				*s.Publisher,
-				newBucket,
-				user.Email,
-				shareWith.Email,
-			)
-			event.Trigger()
-		}
 	}
 
 	action := models.Activity{
@@ -212,10 +186,14 @@ func (s BucketService) UpdateBucket(_ models.UserClaims, ids uuid.UUIDs, body mo
 }
 
 func (s BucketService) DeleteBucket(_ models.UserClaims, ids uuid.UUIDs) error {
+	// Soft delete the bucket
 	result := s.DB.Where("id = ?", ids[0]).Delete(&models.Bucket{})
 	if result.RowsAffected == 0 {
 		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	} else {
+		// Hard delete all invitations associated with the bucket
+		zap.L().Info("Deleting all invites for bucket", zap.String("bucket_id", ids[0].String()))
+		s.DB.Where("bucket_id = ?", ids[0]).Delete(&models.Invite{})
 		return nil
 	}
 }

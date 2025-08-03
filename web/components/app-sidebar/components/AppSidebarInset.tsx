@@ -44,12 +44,12 @@ export const AppSidebarInset: FC<IAppSidebarInset> = ({
                 return isLast ? (
                   <BreadcrumbPage key={segment}>{segment}</BreadcrumbPage>
                 ) : (
-                  <>
-                    <BreadcrumbLink asChild key={segment}>
+                  <React.Fragment key={segment}>
+                    <BreadcrumbLink asChild>
                       <Link href={`/${link}`}>{segment}</Link>
                     </BreadcrumbLink>
                     <BreadcrumbSeparator className="hidden md:block" />
-                  </>
+                  </React.Fragment>
                 );
               })}
             </BreadcrumbList>

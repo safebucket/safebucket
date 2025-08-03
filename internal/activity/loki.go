@@ -4,11 +4,12 @@ import (
 	"api/internal/models"
 	"encoding/json"
 	"fmt"
-	"github.com/go-resty/resty/v2"
-	"go.uber.org/zap"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"go.uber.org/zap"
 )
 
 var authorizedLabels = [3]string{"domain", "object_type", "action"}
@@ -101,14 +102,15 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	var activity []map[string]interface{}
 	for _, log := range parsedResp.Data.Result {
 		var entry = map[string]interface{}{
-			"domain":      log.Stream["domain"],
-			"user_id":     log.Stream["user_id"],
-			"action":      log.Stream["action"],
-			"object_type": log.Stream["object_type"],
-			"bucket_id":   log.Stream["bucket_id"],
-			"file_id":     log.Stream["file_id"],
-			"timestamp":   log.Values[0][0],
-			"message":     log.Values[0][1],
+			"domain":        log.Stream["domain"],
+			"user_id":       log.Stream["user_id"],
+			"action":        log.Stream["action"],
+			"object_type":   log.Stream["object_type"],
+			"bucket_id":     log.Stream["bucket_id"],
+			"file_id":       log.Stream["file_id"],
+			"invited_email": log.Stream["invited_email"],
+			"timestamp":     log.Values[0][0],
+			"message":       log.Values[0][1],
 		}
 
 		activity = append(activity, entry)

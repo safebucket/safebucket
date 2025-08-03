@@ -3,6 +3,7 @@ package database
 import (
 	"api/internal/models"
 	"fmt"
+
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -23,7 +24,7 @@ func InitDB(config models.DatabaseConfiguration) *gorm.DB {
 }
 
 func runMigrations(db *gorm.DB) {
-	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{})
+	err := db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{}, &models.Invite{}, &models.Challenge{})
 	if err != nil {
 		zap.L().Error("failed to migrate db models", zap.Error(err))
 	}

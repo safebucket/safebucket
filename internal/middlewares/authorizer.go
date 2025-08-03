@@ -5,8 +5,9 @@ import (
 	h "api/internal/helpers"
 	"api/internal/models"
 	"api/internal/rbac"
-	"github.com/casbin/casbin/v2"
 	"net/http"
+
+	"github.com/casbin/casbin/v2"
 )
 
 func Authorize(e *casbin.Enforcer, resource rbac.Resource, action rbac.Action, objectIdIndex int) func(next http.Handler) http.Handler {

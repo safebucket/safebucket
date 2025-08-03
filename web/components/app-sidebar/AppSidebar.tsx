@@ -20,7 +20,7 @@ import { usePathname } from "next/navigation";
 
 import { nav } from "@/components/app-sidebar/helpers/nav";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
-import { IShareWith } from "@/components/bucket-view/helpers/types";
+import { IInvites } from "@/components/bucket-view/helpers/types";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
@@ -80,10 +80,10 @@ export const AppSidebar: FC = () => {
   const pathname = usePathname();
   const { session, logout } = useSessionContext();
   const createBucketDialog = useDialog();
-  const { buckets, createBucket } = useBucketsData();
+  const { buckets, createBucketAndInvites } = useBucketsData();
 
   const [email, setEmail] = useState<string>("");
-  const [shareWith, setShareWith] = useState<IShareWith[]>([]);
+  const [shareWith, setShareWith] = useState<IInvites[]>([]);
 
   const addEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -162,7 +162,7 @@ export const AppSidebar: FC = () => {
                     { id: "name", label: "Name", type: "text", required: true },
                   ]}
                   onSubmit={(data) => {
-                    createBucket(data.name, shareWith);
+                    createBucketAndInvites(data.name, shareWith);
                     setEmail("");
                     setShareWith([]);
                   }}

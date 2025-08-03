@@ -1,9 +1,10 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"time"
 )
 
 type Bucket struct {
@@ -16,12 +17,6 @@ type Bucket struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
-type ShareWith struct {
-	Email string `json:"email" validate:"required,email"`
-	Group string `json:"group" validate:"required,oneof=owner contributor viewer"`
-}
-
 type BucketCreateBody struct {
-	Name      string      `json:"name" validate:"required"`
-	ShareWith []ShareWith `json:"share_with" validate:"omitempty"`
+	Name string `json:"name" validate:"required"`
 }

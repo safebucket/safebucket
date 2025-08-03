@@ -6,6 +6,7 @@ import (
 	"api/internal/models"
 	"encoding/json"
 	"fmt"
+
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"

@@ -13,6 +13,10 @@ import (
 	"api/internal/rbac/roles"
 	"api/internal/services"
 	"context"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/go-chi/chi/v5"
@@ -21,9 +25,6 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm/clause"
-	"log"
-	"net/http"
-	"time"
 )
 
 func main() {
@@ -110,6 +111,7 @@ func main() {
 		Enforcer:       e,
 		Publisher:      &publisher,
 		ActivityLogger: activity,
+		Providers:      providers,
 	}.Routes())
 
 	r.Mount("/auth", services.AuthService{
@@ -117,6 +119,16 @@ func main() {
 		JWTConf:   config.JWT,
 		Providers: providers,
 		WebUrl:    config.Platform.WebUrl,
+	}.Routes())
+
+	r.Mount("/invites", services.InviteService{
+		DB:             db,
+		JWTConf:        config.JWT,
+		Enforcer:       e,
+		Publisher:      &publisher,
+		ActivityLogger: activity,
+		Providers:      providers,
+		WebUrl:         config.Platform.WebUrl,
 	}.Routes())
 
 	zap.L().Info("App started")

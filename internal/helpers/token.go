@@ -3,11 +3,14 @@ package helpers
 import (
 	"api/internal/models"
 	"context"
+	"crypto/rand"
 	"errors"
-	"github.com/alexedwards/argon2id"
-	"github.com/golang-jwt/jwt/v5"
+	"math/big"
 	"strings"
 	"time"
+
+	"github.com/alexedwards/argon2id"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func CreateHash(password string) (string, error) {
@@ -22,15 +25,17 @@ func CreateHash(password string) (string, error) {
 	if err != nil {
 		return "", errors.New("can not create hash password")
 	}
+
 	return hash, nil
 }
 
-func NewAccessToken(jwtSecret string, user *models.User) (string, error) {
+func NewAccessToken(jwtSecret string, user *models.User, provider string) (string, error) {
 	claims := models.UserClaims{
-		Email:  user.Email,
-		UserID: user.ID,
-		Aud:    "app:*", // Todo: make it a list ==> delete aud
-		Issuer: "safebucket",
+		Email:    user.Email,
+		UserID:   user.ID,
+		Aud:      "app:*", // Todo: make it a list ==> delete aud
+		Provider: provider,
+		Issuer:   "safebucket",
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * 60)}, // TODO: make it configurable
@@ -45,7 +50,6 @@ func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, 
 		return models.UserClaims{}, errors.New("invalid access token")
 	}
 	accessToken = strings.TrimPrefix(accessToken, "Bearer ")
-
 	claims := &models.UserClaims{}
 
 	_, err := jwt.ParseWithClaims(
@@ -59,20 +63,16 @@ func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, 
 	if err != nil {
 		return models.UserClaims{}, errors.New("invalid access token")
 	}
-
-	if claims.Aud != "app:*" {
-		return models.UserClaims{}, errors.New("invalid scope for this access token")
-	}
-
 	return *claims, err
 }
 
-func NewRefreshToken(jwtSecret string, user *models.User) (string, error) {
+func NewRefreshToken(jwtSecret string, user *models.User, provider string) (string, error) {
 	claims := models.UserClaims{
-		Email:  user.Email,
-		UserID: user.ID,
-		Aud:    "auth:refresh",
-		Issuer: "SafeBucket",
+		Email:    user.Email,
+		UserID:   user.ID,
+		Aud:      "auth:refresh",
+		Issuer:   "safebucket",
+		Provider: provider,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour * 10)},
@@ -105,4 +105,16 @@ func GetUserClaims(c context.Context) (models.UserClaims, error) {
 		return models.UserClaims{}, errors.New("invalid user claims")
 	}
 	return value, nil
+}
+
+func GenerateSecret(size int) (string, error) {
+	secret := make([]byte, size)
+	for i := range secret {
+		n, err := rand.Int(rand.Reader, big.NewInt(10))
+		if err != nil {
+			return "", err
+		}
+		secret[i] = byte('0' + n.Int64())
+	}
+	return string(secret), nil
 }

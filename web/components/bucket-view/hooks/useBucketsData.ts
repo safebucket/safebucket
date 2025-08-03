@@ -3,11 +3,15 @@ import { useState } from "react";
 import { fetchApi } from "@/lib/api";
 import useSWR from "swr";
 
-import { api_createBucket } from "@/components/bucket-view/helpers/api";
 import {
+  api_createBucket,
+  api_createInvites,
+} from "@/components/bucket-view/helpers/api";
+import {
+  IBucket,
   IBucketsData,
+  IInvites,
   IListBuckets,
-  IShareWith,
 } from "@/components/bucket-view/helpers/types";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 
@@ -19,13 +23,15 @@ export const useBucketsData = (): IBucketsData => {
     fetchApi<IListBuckets>,
   );
 
-  const createBucket = async (name: string, shareWith: IShareWith[]) => {
-    api_createBucket(name, shareWith)
-      .then(() => {
-        mutate();
-        setIsDialogOpen(false);
-        successToast("The bucket has been created");
-      })
+  const createBucketAndInvites = async (name: string, invites: IInvites[]) => {
+    api_createBucket(name)
+      .then((bucket: IBucket) =>
+        api_createInvites(bucket.id, invites).then(() => {
+          mutate();
+          setIsDialogOpen(false);
+          successToast("The bucket has been created");
+        }),
+      )
       .catch(errorToast);
   };
 
@@ -35,6 +41,6 @@ export const useBucketsData = (): IBucketsData => {
     isLoading,
     isDialogOpen,
     setIsDialogOpen,
-    createBucket,
+    createBucketAndInvites,
   };
 };

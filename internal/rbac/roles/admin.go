@@ -4,12 +4,13 @@ import (
 	c "api/internal/configuration"
 	"api/internal/models"
 	"api/internal/rbac"
+
 	"github.com/casbin/casbin/v2"
 )
 
 func getDefaultAdminPolicies() [][]string {
 	return [][]string{
-		{c.DefaultDomain, rbac.RoleUser.String(), rbac.ResourceAll.String(), c.NilUUID, rbac.ActionAll.String()},
+		{c.DefaultDomain, rbac.RoleAdmin.String(), rbac.ResourceAll.String(), rbac.ResourceAll.String(), rbac.ActionAll.String()},
 	}
 }
 
