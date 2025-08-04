@@ -57,10 +57,10 @@ func (c Cache) StartIdentityTicker(id string) {
 	}
 }
 
-func (c Cache) GetRateLimit(userIdentifier string, requestsPerSecond int) (int, error) {
+func (c Cache) GetRateLimit(userIdentifier string, requestsPerMinute int) (int, error) {
 	ctx := context.Background()
 
-	key := fmt.Sprintf("platform:ratelimit:%s", userIdentifier)
+	key := fmt.Sprintf(configuration.CacheAppRateLimitKey, userIdentifier)
 	count, err := c.client.Do(ctx, c.client.B().Incr().Key(key).Build()).AsInt64()
 
 	if err != nil {
@@ -74,7 +74,7 @@ func (c Cache) GetRateLimit(userIdentifier string, requestsPerSecond int) (int, 
 		}
 	}
 
-	if int(count) > requestsPerSecond {
+	if int(count) > requestsPerMinute {
 		retryAfter, err := c.client.Do(ctx, c.client.B().Ttl().Key(key).Build()).AsInt64()
 
 		if err != nil {

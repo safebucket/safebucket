@@ -11,8 +11,8 @@ import (
 	"strings"
 )
 
-const authenticatedRequestsPerSecond = 200
-const unauthenticatedRequestsPerSecond = 20
+const authenticatedRequestsPerMinute = 200
+const unauthenticatedRequestsPerMinute = 20
 
 func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -86,10 +86,10 @@ func RateLimit(cache core.Cache, trustedProxies []string) func(next http.Handler
 					return
 				}
 
-				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerSecond)
+				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerMinute)
 			} else {
 				userId := r.Context().Value(models.UserClaimKey{}).(models.UserClaims).UserID.String()
-				applyRateLimit(next, w, r, cache, userId, authenticatedRequestsPerSecond)
+				applyRateLimit(next, w, r, cache, userId, authenticatedRequestsPerMinute)
 			}
 		}
 		return http.HandlerFunc(fn)
