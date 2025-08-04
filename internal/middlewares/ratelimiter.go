@@ -78,7 +78,7 @@ func applyRateLimit(
 func RateLimit(cache core.Cache, trustedProxies []string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			if isExcluded(r.URL.Path) {
+			if isExcluded(r.URL.Path, r.Method) {
 				ipAddress, err := getClientIP(r, trustedProxies)
 				if err != nil {
 					zap.L().Error("error", zap.Error(err))
