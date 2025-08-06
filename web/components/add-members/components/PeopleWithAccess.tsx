@@ -22,6 +22,7 @@ interface IPeopleWithAccessProps {
   currentUserName?: string;
   showCurrentUser?: boolean;
   existingMembers?: IBucketMember[];
+  onExistingMemberGroupChange: (email: string, groupId: string) => void;
 }
 
 export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
@@ -32,6 +33,7 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
   currentUserName,
   showCurrentUser = true,
   existingMembers = [],
+  onExistingMemberGroupChange,
 }) => {
   // Filter existing members to find current user (if exists)
   const currentUserMember = existingMembers.find(member => member.email === currentUserEmail);
@@ -98,14 +100,21 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
           </div>
 
           <div className="col-span-3 mr-1 flex">
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto"
-              disabled={member.status === "active"}
+            <Select
+              value={member.role}
+              onValueChange={(val) => onExistingMemberGroupChange(member.email, val)}
             >
-              {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-            </Button>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {bucketGroups.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="col-span-1">

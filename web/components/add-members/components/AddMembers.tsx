@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import React, { FC, useEffect, useState } from "react";
 
 import { AddMembersInput } from "@/components/add-members/components/AddMembersInput";
 import { AddMembersSkeleton } from "@/components/add-members/components/AddMembersSkeleton";
@@ -15,6 +15,7 @@ interface IAddMembersProps {
   currentUserName?: string;
   showCurrentUser?: boolean;
   bucketId?: string;
+  onAllMembersChange?: (allMembers: IInvites[]) => void;
 }
 
 export const AddMembers: FC<IAddMembersProps> = ({
@@ -24,15 +25,45 @@ export const AddMembers: FC<IAddMembersProps> = ({
   currentUserName,
   showCurrentUser = true,
   bucketId,
+  onAllMembersChange,
 }) => {
   const { addEmail, setGroup, removeFromList } = useAddMembers(
     shareWith,
     onShareWithChange,
   );
 
-  const { members, isLoading } = useBucketMembersData(
-    bucketId || null,
-  );
+  const { members, isLoading } = useBucketMembersData(bucketId || null);
+
+  const [existingMemberChanges, setExistingMemberChanges] = useState<
+    Record<string, string>
+  >({});
+
+  useEffect(() => {
+    if (!members || !onAllMembersChange) return;
+
+    const existingMembersAsInvites: IInvites[] = members
+      .filter((member) => member.email !== currentUserEmail)
+      .map((member) => ({
+        email: member.email,
+        group: existingMemberChanges[member.email] || member.role,
+      }));
+
+    const allMembers = [...existingMembersAsInvites, ...shareWith];
+    onAllMembersChange(allMembers);
+  }, [
+    members,
+    shareWith,
+    existingMemberChanges,
+    currentUserEmail,
+    onAllMembersChange,
+  ]);
+
+  const handleExistingMemberGroupChange = (email: string, groupId: string) => {
+    setExistingMemberChanges((prev) => ({
+      ...prev,
+      [email]: groupId,
+    }));
+  };
 
   return (
     <>
@@ -51,6 +82,7 @@ export const AddMembers: FC<IAddMembersProps> = ({
           currentUserName={currentUserName}
           showCurrentUser={showCurrentUser}
           existingMembers={members || []}
+          onExistingMemberGroupChange={handleExistingMemberGroupChange}
         />
       )}
     </>

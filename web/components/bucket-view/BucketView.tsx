@@ -4,6 +4,7 @@ import { BucketActivityView } from "@/components/bucket-view/components/BucketAc
 import { BucketGridView } from "@/components/bucket-view/components/BucketGridView";
 import { BucketHeader } from "@/components/bucket-view/components/BucketHeader";
 import { BucketListView } from "@/components/bucket-view/components/BucketListView";
+import { BucketSettings } from "@/components/bucket-view/components/BucketSettings";
 import {
   BucketViewMode,
   IBucket,
@@ -29,6 +30,7 @@ export const BucketView: FC<IBucketViewProps> = ({
     [BucketViewMode.List]: <BucketListView files={files} />,
     [BucketViewMode.Grid]: <BucketGridView files={files} />,
     [BucketViewMode.Activity]: <BucketActivityView />,
+    [BucketViewMode.Settings]: <BucketSettings bucket={bucket} />,
   };
 
   return (

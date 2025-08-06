@@ -51,6 +51,7 @@ export enum BucketViewMode {
   List = "list",
   Grid = "grid",
   Activity = "activity",
+  Settings = "settings",
 }
 
 export type IDownloadFileResponse = {

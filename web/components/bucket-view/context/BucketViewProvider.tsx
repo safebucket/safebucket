@@ -4,8 +4,6 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 
 import { BucketViewMode, IFile } from "@/components/bucket-view/helpers/types";
 import { BucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import { successToast } from "@/components/ui/hooks/use-toast";
-import { api_deleteBucket } from "@/components/upload/helpers/api";
 
 export const BucketViewProvider = ({
   children,
@@ -27,13 +25,6 @@ export const BucketViewProvider = ({
     }
   };
 
-  const addMembers = (bucketId: string) => {};
-
-  const deleteBucket = (bucketId: string) =>
-    api_deleteBucket(bucketId).then(() =>
-      successToast(`Bucket ${bucketId} has been deleted`),
-    );
-
   return (
     <BucketViewContext.Provider
       value={{
@@ -44,8 +35,6 @@ export const BucketViewProvider = ({
         selected,
         setSelected,
         openFolder,
-        addMembers,
-        deleteBucket,
       }}
     >
       {children}
