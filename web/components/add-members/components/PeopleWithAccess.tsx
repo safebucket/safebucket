@@ -45,8 +45,8 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
       <div className="text-sm font-medium">People with access</div>
       <div className="grid gap-2">
         {showCurrentUser && currentUserEmail && (
-          <div className="flex items-center justify-between space-x-4">
-            <div className="flex items-center space-x-4">
+          <div className="mb-2 grid grid-cols-12 items-center">
+            <div className="col-span-9 flex items-center space-x-4">
               <Avatar>
                 <AvatarImage src="/avatars/03.png" />
                 <AvatarFallback>
@@ -62,14 +62,20 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
                 </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-auto"
-              disabled={true}
-            >
-              {currentUserMember ? currentUserMember.role.charAt(0).toUpperCase() + currentUserMember.role.slice(1) : "Owner"}
-            </Button>
+            
+            <div className="col-span-2 mr-1 flex">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={true}
+                className="w-full"
+              >
+                {currentUserMember ? currentUserMember.role.charAt(0).toUpperCase() + currentUserMember.role.slice(1) : "Owner"}
+              </Button>
+            </div>
+
+            <div className="col-span-1">
+            </div>
           </div>
         )}
       </div>
@@ -77,7 +83,7 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
       {/* Display existing members (excluding current user) */}
       {otherExistingMembers.map((member) => (
         <div key={member.email} className="mb-2 grid grid-cols-12 items-center">
-          <div className="col-span-8 flex items-center space-x-4">
+          <div className="col-span-9 flex items-center space-x-4">
             <Avatar>
               <AvatarImage src="/avatars/01.png" alt="User avatar" />
               <AvatarFallback>
@@ -99,12 +105,12 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
             </div>
           </div>
 
-          <div className="col-span-3 mr-1 flex">
+          <div className="col-span-2 mr-1 flex">
             <Select
               value={member.role}
               onValueChange={(val) => onExistingMemberGroupChange(member.email, val)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -139,7 +145,7 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
       {/* Display newly added members (from shareWith) */}
       {shareWith.map((user) => (
         <div key={user.email} className="mb-2 grid grid-cols-12 items-center">
-          <div className="col-span-8 flex items-center space-x-4">
+          <div className="col-span-9 flex items-center space-x-4">
             <Avatar>
               <AvatarImage src="/avatars/01.png" alt="User avatar" />
               <AvatarFallback>
@@ -149,12 +155,12 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
             <div className="text-sm font-medium leading-none">{user.email}</div>
           </div>
 
-          <div className="col-span-3 mr-1 flex">
+          <div className="col-span-2 mr-1 flex">
             <Select
               value={user.group}
               onValueChange={(val) => onGroupChange(user.email, val)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
