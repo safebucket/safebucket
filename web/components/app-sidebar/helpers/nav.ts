@@ -1,4 +1,4 @@
-import { Home, LifeBuoy, Send, Settings2 } from "lucide-react";
+import { Home, LifeBuoy, Send } from "lucide-react";
 
 export const nav = {
   user: {

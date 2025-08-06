@@ -52,7 +52,6 @@ export const AppSidebar: FC = () => {
   const createBucketDialog = useDialog();
   const { buckets, createBucketAndInvites } = useBucketsData();
 
-  const [email, setEmail] = useState<string>("");
   const [shareWith, setShareWith] = useState<IInvites[]>([]);
 
   return (
@@ -114,7 +113,6 @@ export const AppSidebar: FC = () => {
                   ]}
                   onSubmit={(data) => {
                     createBucketAndInvites(data.name, shareWith);
-                    setEmail("");
                     setShareWith([]);
                   }}
                   confirmLabel="Create"
