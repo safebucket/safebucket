@@ -88,6 +88,7 @@ func (s *GCPSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 			FileId:   fileId,
 			UserId:   userId,
 		})
+		message.Ack()
 	} else {
 		zap.L().Warn("event is not supported", zap.Any("event_type", message.Metadata["eventType"]))
 		message.Ack()
