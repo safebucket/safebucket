@@ -108,7 +108,6 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(message *message.Message) 
 			})
 		} else {
 			zap.L().Warn("event is not supported", zap.Any("event_name", event.EventName))
-			message.Ack()
 			continue
 		}
 	}
