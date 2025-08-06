@@ -113,6 +113,7 @@ func (s *AWSSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 				FileId:   fileId,
 				UserId:   userId,
 			})
+
 			message.Ack()
 		} else {
 			zap.L().Warn("event is not supported", zap.Any("event_name", event.EventName))
