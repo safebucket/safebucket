@@ -79,7 +79,7 @@ func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.U
 
 }
 
-func (s UserService) GetUserList(_ models.UserClaims) []models.User {
+func (s UserService) GetUserList(_ models.UserClaims, _ uuid.UUIDs) []models.User {
 	var users []models.User
 	s.DB.Find(&users)
 	return users

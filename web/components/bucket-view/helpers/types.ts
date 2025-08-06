@@ -62,3 +62,12 @@ export type IInviteResponse = {
   group: string
   status: string
 };
+
+export interface IBucketMember {
+  user_id?: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role: string;
+  status: "active" | "invited";
+}

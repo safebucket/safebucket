@@ -10,6 +10,8 @@ export interface IBucketViewContext {
   selected: IFile | null;
   setSelected: (file: IFile) => void;
   openFolder: (file: IFile) => void;
+  addMembers: (bucketId: string) => void;
+  deleteBucket: (bucketId: string) => void;
 }
 
 export const BucketViewContext = createContext<IBucketViewContext>(

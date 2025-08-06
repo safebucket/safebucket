@@ -11,8 +11,9 @@ import (
 )
 
 type CreateTargetFunc[In any, Out any] func(models.UserClaims, uuid.UUIDs, In) (Out, error)
-type ListTargetFunc[Out any] func(models.UserClaims) []Out
+type ListTargetFunc[Out any] func(models.UserClaims, uuid.UUIDs) []Out
 type GetOneTargetFunc[Out any] func(models.UserClaims, uuid.UUIDs) (Out, error)
+type GetOneListTargetFunc[Out any] func(models.UserClaims, uuid.UUIDs) []Out
 type UpdateTargetFunc[In any, Out any] func(models.UserClaims, uuid.UUIDs, In) (Out, error)
 type DeleteTargetFunc func(models.UserClaims, uuid.UUIDs) error
 
@@ -35,8 +36,13 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 
 func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+
 		claims, _ := h.GetUserClaims(r.Context()) // todo: check error
-		records := getList(claims)
+		records := getList(claims, ids)
 		page := models.Page[Out]{Data: records}
 		h.RespondWithJSON(w, http.StatusOK, page)
 	}

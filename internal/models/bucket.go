@@ -20,3 +20,12 @@ type Bucket struct {
 type BucketCreateBody struct {
 	Name string `json:"name" validate:"required"`
 }
+
+type BucketMember struct {
+	UserID    uuid.UUID `json:"user_id,omitempty"`
+	Email     string    `json:"email" validate:"required"`
+	FirstName string    `json:"first_name,omitempty"`
+	LastName  string    `json:"last_name,omitempty"`
+	Role      string    `json:"role" validate:"required,oneof=owner contributor viewer"`
+	Status    string    `json:"status" validate:"required,oneof=active invited"`
+}

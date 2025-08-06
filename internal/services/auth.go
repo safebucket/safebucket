@@ -82,7 +82,7 @@ func (s AuthService) Refresh(_ models.UserClaims, _ uuid.UUIDs, body models.Auth
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
 
-func (s AuthService) GetProviderList(_ models.UserClaims) []models.ProviderResponse {
+func (s AuthService) GetProviderList(_ models.UserClaims, _ uuid.UUIDs) []models.ProviderResponse {
 	var providers = make([]models.ProviderResponse, len(s.Providers))
 	for id, provider := range s.Providers {
 		providers[provider.Order] = models.ProviderResponse{

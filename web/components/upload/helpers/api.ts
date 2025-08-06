@@ -52,3 +52,6 @@ export const uploadToStorage = async (
     });
   });
 };
+
+export const api_deleteBucket = (bucketId: string) =>
+  api.delete(`/buckets/${bucketId}`);

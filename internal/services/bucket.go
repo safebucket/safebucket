@@ -14,14 +14,14 @@ import (
 	"api/internal/sql"
 	"api/internal/storage"
 	"fmt"
-	"path"
-	"path/filepath"
-
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"path"
+	"path/filepath"
+	"strings"
 )
 
 type BucketService struct {
@@ -44,7 +44,6 @@ func (s BucketService) Routes() chi.Router {
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.Route("/{id0}", func(r chi.Router) {
-
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
 			Get("/", handlers.GetOneHandler(s.GetBucket))
 
@@ -56,10 +55,15 @@ func (s BucketService) Routes() chi.Router {
 			Delete("/", handlers.DeleteHandler(s.DeleteBucket))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDelete, 0)).
-			With(m.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+			With(m.Validate[models.FileTransferBody]).
+			Post("/files", handlers.CreateHandler(s.UploadFile))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
-			With(m.Validate[models.FileTransferBody]).Post("/files", handlers.CreateHandler(s.UploadFile))
+			With(m.Validate[models.FileTransferBody]).
+			Post("/files", handlers.CreateHandler(s.UploadFile))
+
+		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+			Get("/members", handlers.GetListHandler(s.GetBucketMembers))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
 			Get("/activity", handlers.GetOneHandler(s.GetBucketActivity))
@@ -128,7 +132,7 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 	return newBucket, nil
 }
 
-func (s BucketService) GetBucketList(user models.UserClaims) []models.Bucket {
+func (s BucketService) GetBucketList(user models.UserClaims, _ uuid.UUIDs) []models.Bucket {
 	var buckets []models.Bucket
 	if !user.Valid() {
 		zap.L().Warn(fmt.Sprintf("Invalid user claims %v", user.UserID.String()))
@@ -363,8 +367,8 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 	}, nil
 }
 
-func (s BucketService) GetActivity(user models.UserClaims) []map[string]interface{} {
-	buckets := s.GetBucketList(user)
+func (s BucketService) GetActivity(user models.UserClaims, ids uuid.UUIDs) []map[string]interface{} {
+	buckets := s.GetBucketList(user, ids)
 
 	var bucketIds []string
 	for _, bucket := range buckets {
@@ -389,6 +393,89 @@ func (s BucketService) GetActivity(user models.UserClaims) []map[string]interfac
 	}
 
 	return activity.EnrichActivity(s.DB, history)
+}
+
+func (s BucketService) GetBucketMembers(user models.UserClaims, ids uuid.UUIDs) []models.BucketMember {
+	bucket, err := s.GetBucket(user, ids)
+	if err != nil {
+		return []models.BucketMember{}
+	}
+
+	var members []models.BucketMember
+	userEmailMap := make(map[string]models.User)
+
+	owners, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketOwnerGroup(bucket), configuration.DefaultDomain)
+	if err != nil {
+		return []models.BucketMember{}
+	}
+
+	contributors, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketContributorGroup(bucket), configuration.DefaultDomain)
+	if err != nil {
+		return []models.BucketMember{}
+	}
+
+	viewers, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketViewerGroup(bucket), configuration.DefaultDomain)
+	if err != nil {
+		return []models.BucketMember{}
+	}
+
+	var allPolicies [][]string
+	allPolicies = append(allPolicies, owners...)
+	allPolicies = append(allPolicies, contributors...)
+	allPolicies = append(allPolicies, viewers...)
+
+	for _, policy := range allPolicies {
+		if !strings.HasPrefix(policy[0], "group") {
+			userId := policy[0]
+			groupName := policy[1]
+
+			var dbUser models.User
+			result := s.DB.Where("id = ?", userId).First(&dbUser)
+			if result.Error != nil {
+				continue
+			}
+
+			var role string
+			if strings.Contains(groupName, rbac.GroupOwner.String()) {
+				role = "owner"
+			} else if strings.Contains(groupName, rbac.GroupContributor.String()) {
+				role = "contributor"
+			} else if strings.Contains(groupName, rbac.GroupViewer.String()) {
+				role = "viewer"
+			}
+
+			userEmailMap[dbUser.Email] = dbUser
+
+			members = append(members, models.BucketMember{
+				UserID:    dbUser.ID,
+				Email:     dbUser.Email,
+				FirstName: dbUser.FirstName,
+				LastName:  dbUser.LastName,
+				Role:      role,
+				Status:    "active",
+			})
+		}
+	}
+
+	var invites []models.Invite
+	result := s.DB.Where("bucket_id = ?", bucket.ID).Find(&invites)
+	if result.Error != nil {
+		zap.L().Error("Failed to fetch invites", zap.Error(result.Error))
+	} else {
+		for _, invite := range invites {
+			if _, exists := userEmailMap[invite.Email]; exists {
+				continue
+			}
+
+			members = append(members, models.BucketMember{
+				Email:  invite.Email,
+				Role:   invite.Group,
+				Status: "invited",
+			})
+		}
+	}
+
+	return members
 }
 
 func (s BucketService) GetBucketActivity(user models.UserClaims, ids uuid.UUIDs) (models.Page[map[string]interface{}], error) {

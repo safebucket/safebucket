@@ -23,6 +23,7 @@ interface IFormDialogProps {
   onOpenChange: (open: boolean) => void;
   confirmLabel: string;
   children?: React.ReactNode;
+  maxWidth?: string;
 }
 
 export const FormDialog: FC<IFormDialogProps> = ({
@@ -34,6 +35,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
   onOpenChange,
   confirmLabel,
   children,
+  maxWidth = "500px",
 }: IFormDialogProps) => {
   const {
     register,
@@ -61,7 +63,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[650px]">
+      <DialogContent className={`sm:max-w-[${maxWidth}]`}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
