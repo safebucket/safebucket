@@ -54,10 +54,6 @@ func (s BucketService) Routes() chi.Router {
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDelete, 0)).
 			Delete("/", handlers.DeleteHandler(s.DeleteBucket))
 
-		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDelete, 0)).
-			With(m.Validate[models.FileTransferBody]).
-			Post("/files", handlers.CreateHandler(s.UploadFile))
-
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
 			With(m.Validate[models.FileTransferBody]).
 			Post("/files", handlers.CreateHandler(s.UploadFile))
