@@ -24,19 +24,14 @@ func NewAWSPublisher(config *models.AWSConfiguration) IPublisher {
 		zap.L().Fatal("Unable to load SDK config.", zap.Error(err))
 	}
 
-	creds, err := awsCfg.Credentials.Retrieve(context.Background())
-
 	if err != nil {
 		zap.L().Error("Unable to retrieve AWS credentials.", zap.Error(err))
 	}
 
 	publisher, err := sqs.NewPublisher(sqs.PublisherConfig{
-		AWSConfig: awsCfg,
-		QueueUrlResolver: sqs.GenerateQueueUrlResolver{
-			AwsRegion:    awsCfg.Region,
-			AwsAccountID: creds.AccountID,
-		},
-		Marshaler: sqs.DefaultMarshalerUnmarshaler{},
+		AWSConfig:                   awsCfg,
+		DoNotCreateQueueIfNotExists: true,
+		Marshaler:                   sqs.DefaultMarshalerUnmarshaler{},
 	}, watermill.NopLogger{})
 
 	if err != nil {
@@ -67,7 +62,8 @@ func NewAWSSubscriber(sqsName string, storage storage.IStorage) ISubscriber {
 	}
 
 	subscriber, err := sqs.NewSubscriber(sqs.SubscriberConfig{
-		AWSConfig: awsCfg,
+		AWSConfig:                   awsCfg,
+		DoNotCreateQueueIfNotExists: true,
 	}, nil)
 
 	if err != nil {

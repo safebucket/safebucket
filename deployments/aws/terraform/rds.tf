@@ -87,7 +87,7 @@ resource "aws_db_instance" "postgres" {
 
   # Engine configuration
   engine         = "postgres"
-  engine_version = "15.4"
+  engine_version = "15.8"
   instance_class = var.rds_instance_class
 
   # Storage configuration

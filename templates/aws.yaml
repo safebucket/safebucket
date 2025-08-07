@@ -1,0 +1,55 @@
+platform:
+  api_url: http://1.1.1.1:1323
+  web_url: http://1.1.1.1:3000
+
+  trusted_proxies:
+
+cors:
+  allowed_origins:
+    - http://1.1.1.1:3000
+
+database:
+  host: safebucket-postgres.c5mguo29ma42.eu-west-1.rds.amazonaws.com
+  port: 5432
+  password: your-secure-database-password-here
+  name: safebucket
+  user: safebucket
+  sslmode: allow
+
+cache:
+  hosts:
+    - safebucket-redis-cluster.zuaugy.0001.euw1.cache.amazonaws.com:6379
+  port: 6379
+  password: ymvUVeOkgHlkeZ+mWwE4Yj36p74a9rqPSc8jVCI47TI=
+
+storage:
+  type: aws
+  aws:
+    bucket_name: safebucket-storage-dev-unique-suffix
+    sqs_name: safebucket-s3-events-dev
+
+events:
+  type: aws
+  aws:
+    sqs_name: safebucket-notifications-dev
+
+mailer:
+  host: localhost
+  port: 1025
+  username: root
+  password: root
+  sender: notifications@safebucket.io
+
+jwt:
+  secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
+
+admin:
+  username: admin@safebucket.io
+  password: ChangeMePlease
+
+auth:
+  providers:
+
+activity:
+  type: loki
+  endpoint: http://localhost:3100
