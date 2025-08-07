@@ -10,12 +10,9 @@ import (
 	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
-	"api/internal/rbac"
 	"api/internal/rbac/groups"
 	"api/internal/rbac/roles"
 	"api/internal/storage"
-	"strings"
-
 	"github.com/alexedwards/argon2id"
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
@@ -38,8 +35,6 @@ type InviteService struct {
 func (s InviteService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.With(m.Validate[models.InviteBody]).Post("/", handlers.CreateHandler(s.CreateInvite))
-
 	r.Route("/{id0}", func(r chi.Router) {
 		r.With(m.Validate[models.InviteChallengeCreateBody]).Post("/challenges", handlers.CreateHandler(s.CreateInviteChallenge))
 
@@ -49,175 +44,6 @@ func (s InviteService) Routes() chi.Router {
 	})
 
 	return r
-}
-
-func (s InviteService) CreateInvite(user models.UserClaims, ids uuid.UUIDs, body models.InviteBody) ([]models.InviteResult, error) {
-	if user.UserID == uuid.Nil {
-		return nil, errors.NewAPIError(401, "INVALID_USER")
-	}
-
-	bucketId := body.BucketID
-
-	// Check if the user is allowed to invite others to this bucket
-	authorized, err := s.Enforcer.Enforce(configuration.DefaultDomain,
-		user.UserID.String(),
-		rbac.ResourceBucket.String(),
-		bucketId.String(),
-		rbac.ActionShare.String())
-
-	if err != nil {
-		return nil, errors.NewAPIError(500, "INTERNAL_ERROR")
-	}
-	if !authorized {
-		return nil, errors.NewAPIError(403, "NOT_AUTHORIZED_TO_INVITE")
-	}
-
-	// TODO: Validate that if the OPENID configuration for the user is set, the user is allowed to invite others
-	var providerCfg configuration.Provider
-	var ok bool
-
-	if user.Provider != configuration.AuthLocalProviderName {
-		providerCfg, ok = s.Providers[user.Provider]
-		if !ok {
-			return nil, errors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
-		}
-
-		if !providerCfg.SharingOptions.Enabled {
-			return nil, errors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
-		}
-
-		//todo: validate if the user is allowed to invite this domain
-	}
-
-	var results []models.InviteResult
-
-	var bucket models.Bucket
-	result := s.DB.Where("id = ?", bucketId).First(&bucket)
-
-	if result.RowsAffected == 0 {
-		return nil, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
-	}
-
-	for _, invite := range body.Invites {
-		inviteResult := models.InviteResult{
-			Email: invite.Email,
-			Group: invite.Group,
-		}
-
-		domainParts := strings.Split(inviteResult.Email, "@")
-		if len(domainParts) != 2 {
-			return nil, errors.NewAPIError(400, "INVALID_USER_EMAIL")
-		}
-
-		emailDomain := domainParts[1]
-
-		allowed := false
-
-		// TODO: migrate local authent to a provider
-		if user.Provider == configuration.AuthLocalProviderName {
-			allowed = true // Local users are allowed to invite anyone
-		} else {
-			for _, domain := range providerCfg.SharingOptions.AllowedDomains {
-				if strings.EqualFold(emailDomain, domain) {
-					allowed = true
-					break
-				}
-			}
-		}
-
-		if !allowed {
-			inviteResult.Status = "domain_not_allowed"
-			results = append(results, inviteResult)
-			continue
-		}
-
-		var invitee models.User
-		result = s.DB.Where("email = ?", invite.Email).First(&invitee)
-
-		if result.RowsAffected == 0 {
-			// User not found in database - create invitation record
-			invite := models.Invite{
-				Email:     invite.Email,
-				Group:     invite.Group,
-				BucketID:  bucket.ID,
-				CreatedBy: user.UserID,
-			}
-
-			if err := s.DB.Create(&invite).Error; err != nil {
-				if strings.Contains(err.Error(), "duplicate key") {
-					inviteResult.Status = "invite_already_exists"
-					results = append(results, inviteResult)
-					continue
-				}
-				inviteResult.Status = "create_invite_failed"
-				results = append(results, inviteResult)
-				continue
-			}
-
-			// Send invitation email to new user
-			invitationEvent := events.NewUserInvitation(
-				*s.Publisher,
-				invite.Email,
-				user.Email,
-				bucket,
-				invite.Group,
-				invite.ID.String(),
-				s.WebUrl,
-			)
-			invitationEvent.Trigger()
-		} else {
-			// User already exists - send bucket shared notification
-			bucketSharedEvent := events.NewBucketSharedWith(
-				*s.Publisher,
-				bucket,
-				user.Email,
-				invite.Email,
-			)
-			bucketSharedEvent.Trigger()
-		}
-
-		switch invite.Group {
-		case "viewer":
-			err = groups.AddUserToViewers(s.Enforcer, bucket, invitee.ID.String())
-		case "contributor":
-			err = groups.AddUserToContributors(s.Enforcer, bucket, invitee.ID.String())
-		case "owner":
-			err = groups.AddUserToOwners(s.Enforcer, bucket, invitee.ID.String())
-		default:
-			inviteResult.Status = "invalid_group"
-			results = append(results, inviteResult)
-			continue
-		}
-		if err != nil {
-			inviteResult.Status = "add_to_group_failed"
-			results = append(results, inviteResult)
-			continue
-		}
-
-		inviteResult.Status = "success"
-		results = append(results, inviteResult)
-
-		// Log user invitation activity
-		action := models.Activity{
-			Message: activity.UserInvited,
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":        rbac.ActionShare.String(),
-				"domain":        configuration.DefaultDomain,
-				"object_type":   rbac.ResourceBucket.String(),
-				"bucket_id":     bucket.ID.String(),
-				"user_id":       user.UserID.String(),
-				"invited_email": invite.Email,
-				"invited_group": invite.Group,
-			}),
-		}
-		err = s.ActivityLogger.Send(action)
-		if err != nil {
-			zap.L().Error("Failed to log user invitation activity", zap.Error(err))
-		}
-
-	}
-
-	return results, nil // TODO: Normalize messages ?
 }
 
 func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {

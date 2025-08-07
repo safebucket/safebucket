@@ -85,7 +85,7 @@ func main() {
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   config.Cors.AllowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE"},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{},
 		AllowCredentials: true,
@@ -106,6 +106,7 @@ func main() {
 		Publisher:      &publisher,
 		ActivityLogger: activity,
 		Providers:      providers,
+		WebUrl:         config.Platform.WebUrl,
 	}.Routes())
 
 	r.Mount("/auth", services.AuthService{
