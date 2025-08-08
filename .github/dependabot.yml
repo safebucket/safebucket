@@ -1,0 +1,89 @@
+version: 2
+updates:
+  # Go modules (backend)
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+    target-branch: "develop"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "renizmy"
+      - "yohanleb"
+    commit-message:
+      prefix: "[deps]"
+      include: "scope"
+
+  # npm dependencies (frontend)
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+    target-branch: "develop"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "renizmy"
+      - "yohanleb"
+    commit-message:
+      prefix: "[deps]"
+      include: "scope"
+    ignore:
+      # Ignore major version updates for React and Next.js to avoid breaking changes
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+
+  # Docker images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+    target-branch: "develop"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "renizmy"
+      - "yohanleb"
+    commit-message:
+      prefix: "[docker]"
+      include: "scope"
+
+  # Docker images in web directory
+  - package-ecosystem: "docker"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+    target-branch: "develop"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "renizmy"
+      - "yohanleb"
+    commit-message:
+      prefix: "[docker]"
+      include: "scope"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+    target-branch: "develop"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "renizmy"
+      - "yohanleb"
+    commit-message:
+      prefix: "[actions]"
+      include: "scope"
