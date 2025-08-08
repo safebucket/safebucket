@@ -1,6 +1,6 @@
 import React, { FC } from "react";
 
-import { ChevronDownIcon, CircleCheck, FileIcon, Upload, AlertCircle, Clock } from "lucide-react";
+import { ChevronDownIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,51 +12,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 import { UploadStatus } from "@/components/upload/helpers/types";
+import { getStatusIcon, getStatusText } from "@/components/upload/helpers/utils";
 
-const getStatusIcon = (status: UploadStatus, progress: number) => {
-  switch (status) {
-    case UploadStatus.success:
-      return <CircleCheck className="h-5 w-5 text-green-500" />;
-    case UploadStatus.failed:
-      return <AlertCircle className="h-5 w-5 text-red-500" />;
-    case UploadStatus.uploading:
-      if (progress === 0) {
-        return <Clock className="h-5 w-5 text-blue-500" />;
-      }
-      return <Upload className="h-5 w-5 text-blue-500" />;
-    default:
-      return <FileIcon className="h-5 w-5 text-muted-foreground" />;
-  }
-};
-
-const getStatusText = (status: UploadStatus, progress: number) => {
-  switch (status) {
-    case UploadStatus.success:
-      return "Completed";
-    case UploadStatus.failed:
-      return "Failed";
-    case UploadStatus.uploading:
-      if (progress === 0) {
-        return "Preparing...";
-      }
-      return `${progress}%`;
-    default:
-      return "Unknown";
-  }
-};
-
-const getProgressColor = (status: UploadStatus) => {
-  switch (status) {
-    case UploadStatus.success:
-      return "bg-green-500";
-    case UploadStatus.failed:
-      return "bg-red-500";
-    case UploadStatus.uploading:
-      return "bg-blue-500";
-    default:
-      return "bg-gray-500";
-  }
-};
 
 export const UploadPopover: FC = () => {
   const { uploads } = useUploadContext();
@@ -87,7 +44,6 @@ export const UploadPopover: FC = () => {
         
         {uploads.length > 0 && (
           <div className="space-y-2">
-            {/* Summary header */}
             {(completedCount > 0 || failedCount > 0) && (
               <div className="flex items-center justify-between p-2 bg-muted/50 rounded text-xs">
                 <span>
@@ -105,15 +61,12 @@ export const UploadPopover: FC = () => {
               </div>
             )}
             
-            {/* Upload items */}
             {uploads.map((upload) => (
               <div key={upload.id} className="flex items-center gap-3 p-2 rounded hover:bg-muted/30">
-                {/* Status icon */}
                 <div className="flex-shrink-0">
                   {getStatusIcon(upload.status, upload.progress)}
                 </div>
                 
-                {/* File info */}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate" title={upload.path}>
                     {upload.name}

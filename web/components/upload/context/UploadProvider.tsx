@@ -35,11 +35,13 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     const uploadId = crypto.randomUUID();
 
     // Create full path display: path + filename
-    const fullPath = path ? `${path}/${file.name}` : file.name;
+    const fullPath = path && path !== "/" ? `${path}/${file.name}` : `/${file.name}`;
 
     addUpload(uploadId, file.name, fullPath);
 
-    api_createFile(file.name, FileType.file, path, bucketId, file.size).then(
+    // Ensure path is never empty - backend requires non-empty path
+    const apiPath = path || "/";
+    api_createFile(file.name, FileType.file, apiPath, bucketId, file.size).then(
       async (presignedUpload) => {
         await mutate(`/buckets/${bucketId}`);
         uploadToStorage(presignedUpload, file, uploadId, updateProgress).then(

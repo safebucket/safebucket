@@ -33,3 +33,22 @@ export interface IUpload {
   progress: number;
   status: UploadStatus;
 }
+
+// File System API type definitions for drag & drop functionality
+export type FileSystemEntry = {
+  isFile: boolean;
+  isDirectory: boolean;
+  name: string;
+};
+
+export type FileSystemFileEntry = FileSystemEntry & {
+  file(callback: (file: File) => void): void;
+};
+
+export type FileSystemDirectoryEntry = FileSystemEntry & {
+  createReader(): FileSystemDirectoryReader;
+};
+
+export type FileSystemDirectoryReader = {
+  readEntries(callback: (entries: FileSystemEntry[]) => void): void;
+};
