@@ -27,8 +27,8 @@ export const BucketView: FC<IBucketViewProps> = ({
   }, [bucket, path]);
 
   const viewComponents = {
-    [BucketViewMode.List]: <BucketListView files={files} />,
-    [BucketViewMode.Grid]: <BucketGridView files={files} />,
+    [BucketViewMode.List]: <BucketListView files={files} bucketId={bucket.id} />,
+    [BucketViewMode.Grid]: <BucketGridView files={files} bucketId={bucket.id} />,
     [BucketViewMode.Activity]: <BucketActivityView />,
     [BucketViewMode.Settings]: <BucketSettings bucket={bucket} />,
   };

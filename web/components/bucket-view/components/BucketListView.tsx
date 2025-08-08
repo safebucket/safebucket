@@ -10,6 +10,7 @@ import { DataTableColumnHeader } from "@/components/common/components/DataTable/
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { DataTableRowActions } from "@/components/common/components/DataTable/DataTableRowActions";
 import { Badge } from "@/components/ui/badge";
+import { DragDropZone } from "@/components/upload/components/DragDropZone";
 
 export const columns: ColumnDef<IFile>[] = [
   {
@@ -71,20 +72,24 @@ export const columns: ColumnDef<IFile>[] = [
 
 interface IBucketListViewProps {
   files: IFile[];
+  bucketId: string;
 }
 
 export const BucketListView: FC<IBucketListViewProps> = ({
   files,
+  bucketId,
 }: IBucketListViewProps) => {
   const { selected, setSelected, openFolder } = useBucketViewContext();
 
   return (
-    <DataTable
-      columns={columns}
-      data={files}
-      selected={selected}
-      onRowClick={setSelected}
-      onRowDoubleClick={openFolder}
-    />
+    <DragDropZone bucketId={bucketId}>
+      <DataTable
+        columns={columns}
+        data={files}
+        selected={selected}
+        onRowClick={setSelected}
+        onRowDoubleClick={openFolder}
+      />
+    </DragDropZone>
   );
 };
