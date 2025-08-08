@@ -32,7 +32,8 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
     
     setDragCounter(prev => prev + 1);
     
-    if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
+    // Show overlay for any drag operation that includes files
+    if (e.dataTransfer?.types && e.dataTransfer.types.includes('Files')) {
       setIsDragOver(true);
     }
   }, []);
@@ -41,17 +42,25 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    setDragCounter(prev => prev - 1);
-    
-    if (dragCounter <= 1) {
-      setIsDragOver(false);
-    }
-  }, [dragCounter]);
+    setDragCounter(prev => {
+      const newCount = prev - 1;
+      if (newCount <= 0) {
+        setIsDragOver(false);
+        return 0;
+      }
+      return newCount;
+    });
+  }, []);
 
   const handleDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-  }, []);
+    
+    // Ensure overlay stays visible during drag over
+    if (e.dataTransfer?.types && e.dataTransfer.types.includes('Files') && !isDragOver) {
+      setIsDragOver(true);
+    }
+  }, [isDragOver]);
 
   const processDirectoryEntry = useCallback(
     async (entry: FileSystemEntry, currentPath: string = ""): Promise<File[]> => {
@@ -164,6 +173,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       setIsDragOver(false);
       setDragCounter(0);
 
+      // Try to use dataTransfer.items first (supports directories)
       const items = e.dataTransfer?.items;
       if (items && items.length > 0) {
         const allFiles: File[] = [];
@@ -183,9 +193,15 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
         if (allFiles.length > 0) {
           await createFoldersAndUploadFiles(allFiles);
         }
+      } else {
+        // Fallback to dataTransfer.files for simple file drops
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+          startUpload(files, path, bucketId);
+        }
       }
     },
-    [processDirectoryEntry, createFoldersAndUploadFiles]
+    [processDirectoryEntry, createFoldersAndUploadFiles, startUpload, path, bucketId]
   );
 
   return (

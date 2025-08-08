@@ -10,8 +10,8 @@ const createAction = (type: any, payload: any): UploadAction => {
   return { type, payload };
 };
 
-export const addUpload = (id: string, name: string) =>
-  createAction(ADD_UPLOAD, { id, name });
+export const addUpload = (id: string, name: string, path: string) =>
+  createAction(ADD_UPLOAD, { id, name, path });
 
 export const updateProgress = (id: string, progress: number) =>
   createAction(UPDATE_PROGRESS, { id, progress });

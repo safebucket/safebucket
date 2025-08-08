@@ -17,8 +17,8 @@ import * as actions from "../store/actions";
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const [uploads, dispatch] = useReducer(uploadsReducer, []);
 
-  const addUpload = (uploadId: string, filename: string) =>
-    dispatch(actions.addUpload(uploadId, filename));
+  const addUpload = (uploadId: string, filename: string, path: string) =>
+    dispatch(actions.addUpload(uploadId, filename, path));
 
   const updateProgress = (uploadId: string, progress: number) =>
     dispatch(actions.updateProgress(uploadId, progress));
@@ -34,7 +34,10 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     const file = files[0];
     const uploadId = crypto.randomUUID();
 
-    addUpload(uploadId, file.name);
+    // Create full path display: path + filename
+    const fullPath = path ? `${path}/${file.name}` : file.name;
+
+    addUpload(uploadId, file.name, fullPath);
 
     api_createFile(file.name, FileType.file, path, bucketId, file.size).then(
       async (presignedUpload) => {

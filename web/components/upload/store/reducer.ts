@@ -12,6 +12,7 @@ export const uploadsReducer = (uploads: IUpload[], action: UploadAction) => {
       const upload: IUpload = {
         id: action.payload.id,
         name: action.payload.name,
+        path: action.payload.path,
         progress: 0,
         status: UploadStatus.uploading,
       };
