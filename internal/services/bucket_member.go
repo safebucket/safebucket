@@ -11,12 +11,13 @@ import (
 	"api/internal/models"
 	"api/internal/rbac"
 	"api/internal/rbac/groups"
+	"strings"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"strings"
 )
 
 type BucketMemberService struct {
@@ -34,7 +35,8 @@ func (s BucketMemberService) Routes() chi.Router {
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
 		Get("/", handlers.GetListHandler(s.GetBucketMembers))
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionShare, 0)).
+	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+		With(m.Validate[models.InviteBody]).
 		Put("/", handlers.UpdateHandler(s.UpdateBucketMembers))
 
 	return r

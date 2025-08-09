@@ -1,10 +1,10 @@
 import React, { FC } from "react";
 
+import { BucketMembers } from "@/components/bucket-members/BucketMembers";
 import { IBucket } from "@/components/bucket-view/helpers/types";
 
 import { BucketDeletion } from "./BucketDeletion";
 import { BucketInformation } from "./BucketInformation";
-import { BucketMembers } from "./BucketMembers";
 
 interface IBucketSettingsProps {
   bucket: IBucket;

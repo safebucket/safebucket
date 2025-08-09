@@ -39,8 +39,7 @@ type BucketInvitee struct {
 }
 
 type InviteBody struct {
-	BucketID uuid.UUID       `json:"bucket_id" validate:"required,uuid"`
-	Invites  []BucketInvitee `json:"invites" validate:"required,dive"`
+	Invites []BucketInvitee `json:"invites" validate:"required,dive"`
 }
 
 type InviteResult struct {
