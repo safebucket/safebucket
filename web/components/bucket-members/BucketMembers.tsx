@@ -78,13 +78,11 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {bucketGroups
-                  .filter((g) => g.id !== "owner")
-                  .map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
+                {bucketGroups.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Button
