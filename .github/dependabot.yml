@@ -9,9 +9,6 @@ updates:
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 5
-    reviewers:
-      - "renizmy"
-      - "yohanleb"
     commit-message:
       prefix: "[deps]"
       include: "scope"
@@ -25,9 +22,6 @@ updates:
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 5
-    reviewers:
-      - "renizmy"
-      - "yohanleb"
     commit-message:
       prefix: "[deps]"
       include: "scope"
@@ -49,9 +43,6 @@ updates:
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 3
-    reviewers:
-      - "renizmy"
-      - "yohanleb"
     commit-message:
       prefix: "[docker]"
       include: "scope"
@@ -65,9 +56,6 @@ updates:
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 3
-    reviewers:
-      - "renizmy"
-      - "yohanleb"
     commit-message:
       prefix: "[docker]"
       include: "scope"
@@ -81,9 +69,6 @@ updates:
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 3
-    reviewers:
-      - "renizmy"
-      - "yohanleb"
     commit-message:
       prefix: "[actions]"
       include: "scope"
