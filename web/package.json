@@ -38,7 +38,7 @@
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.428.0",
     "next": "15.0.3",
-    "next-themes": "^0.3.0",
+    "next-themes": "^0.4.6",
     "nvm": "^0.0.4",
     "react": "^18",
     "react-day-picker": "^8.10.1",
