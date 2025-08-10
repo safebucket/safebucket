@@ -2,7 +2,6 @@ package services
 
 import (
 	"api/internal/activity"
-	"api/internal/configuration"
 	c "api/internal/configuration"
 	"api/internal/errors"
 	"api/internal/handlers"
@@ -14,14 +13,15 @@ import (
 	"api/internal/sql"
 	"api/internal/storage"
 	"fmt"
+	"path"
+	"path/filepath"
+	"strings"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"path"
-	"path/filepath"
-	"strings"
 )
 
 type BucketService struct {
@@ -29,7 +29,7 @@ type BucketService struct {
 	Storage        storage.IStorage
 	Enforcer       *casbin.Enforcer
 	Publisher      *messaging.IPublisher
-	Providers      configuration.Providers
+	Providers      c.Providers
 	ActivityLogger activity.IActivityLogger
 }
 
@@ -400,17 +400,17 @@ func (s BucketService) GetBucketMembers(user models.UserClaims, ids uuid.UUIDs) 
 	var members []models.BucketMember
 	userEmailMap := make(map[string]models.User)
 
-	owners, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketOwnerGroup(bucket), configuration.DefaultDomain)
+	owners, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketOwnerGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		return []models.BucketMember{}
 	}
 
-	contributors, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketContributorGroup(bucket), configuration.DefaultDomain)
+	contributors, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketContributorGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		return []models.BucketMember{}
 	}
 
-	viewers, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketViewerGroup(bucket), configuration.DefaultDomain)
+	viewers, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketViewerGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		return []models.BucketMember{}
 	}

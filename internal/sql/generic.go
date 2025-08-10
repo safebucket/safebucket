@@ -20,7 +20,7 @@ func Create[T any](db *gorm.DB, obj T) error {
 	res := db.Create(&obj)
 
 	if res.Error != nil {
-		return errors.CreateFailed
+		return errors.ErrorCreateFailed
 	}
 
 	return nil

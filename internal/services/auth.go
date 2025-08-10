@@ -53,12 +53,12 @@ func (s AuthService) Login(_ models.UserClaims, _ uuid.UUIDs, body models.AuthLo
 
 		accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser, configuration.AuthLocalProviderName)
 		if err != nil {
-			return models.AuthLoginResponse{}, customerrors.GenerateAccessTokenFailed
+			return models.AuthLoginResponse{}, customerrors.ErrorGenerateAccessTokenFailed
 		}
 
 		refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser, configuration.AuthLocalProviderName)
 		if err != nil {
-			return models.AuthLoginResponse{}, customerrors.GenerateRefreshTokenFailed
+			return models.AuthLoginResponse{}, customerrors.ErrorGenerateRefreshTokenFailed
 		}
 
 		return models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
@@ -143,12 +143,12 @@ func (s AuthService) OpenIDCallback(
 
 	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser, providerName)
 	if err != nil {
-		return "", "", customerrors.GenerateAccessTokenFailed
+		return "", "", customerrors.ErrorGenerateAccessTokenFailed
 	}
 
 	refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser, providerName)
 	if err != nil {
-		return "", "", customerrors.GenerateRefreshTokenFailed
+		return "", "", customerrors.ErrorGenerateRefreshTokenFailed
 	}
 
 	return accessToken, refreshToken, nil
