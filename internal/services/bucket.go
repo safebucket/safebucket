@@ -2,7 +2,6 @@ package services
 
 import (
 	"api/internal/activity"
-	"api/internal/configuration"
 	c "api/internal/configuration"
 	"api/internal/errors"
 	"api/internal/handlers"
@@ -30,7 +29,7 @@ type BucketService struct {
 	Storage        storage.IStorage
 	Enforcer       *casbin.Enforcer
 	Publisher      *messaging.IPublisher
-	Providers      configuration.Providers
+	Providers      c.Providers
 	ActivityLogger activity.IActivityLogger
 }
 
