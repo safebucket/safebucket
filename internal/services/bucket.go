@@ -14,14 +14,15 @@ import (
 	"api/internal/sql"
 	"api/internal/storage"
 	"fmt"
+	"path"
+	"path/filepath"
+	"strings"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"path"
-	"path/filepath"
-	"strings"
 )
 
 type BucketService struct {

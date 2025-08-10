@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	CreateFailed = errors.New("CREATE_FAILED")
+	ErrorCreateFailed = errors.New("CREATE_FAILED")
 )
 
 type APIError struct {

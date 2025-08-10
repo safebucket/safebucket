@@ -6,7 +6,6 @@ import (
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
-	"api/internal/helpers"
 	h "api/internal/helpers"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
@@ -231,12 +230,12 @@ func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs
 	} else if invite.Email != body.Email {
 		return invite, errors.NewAPIError(400, "INVITE_EMAIL_MISMATCH") //Todo: In the frontend, "an email has been sent if the email is linked to this invitation".
 	} else {
-		secret, err := helpers.GenerateSecret(6)
+		secret, err := h.GenerateSecret(6)
 		if err != nil {
 			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
 		}
 
-		hashedSecret, err := helpers.CreateHash(secret)
+		hashedSecret, err := h.CreateHash(secret)
 
 		if err != nil {
 			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
