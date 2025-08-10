@@ -58,7 +58,7 @@ export const messageMap = {
   },
   BUCKET_MEMBER_DELETED: {
     message:
-      "Deleted %%BUCKET_MEMBER_EMAIL%% from the bucket '%%BUCKET_NAME%%'.",
+      "Removed %%BUCKET_MEMBER_EMAIL%% from the bucket '%%BUCKET_NAME%%'.",
     icon: UserMinus,
     iconColor: "text-red-500",
     iconBg: "bg-red-100",
