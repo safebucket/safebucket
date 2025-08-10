@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"

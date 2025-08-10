@@ -258,11 +258,16 @@ func (s BucketMemberService) isDomainAllowed(
 }
 
 func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Bucket, invite models.BucketMemberBody) {
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		zap.L().Error("Failed to start transaction", zap.Error(tx.Error))
+		return
+	}
+
 	var invitee models.User
-	result := s.DB.Where("email = ?", invite.Email).First(&invitee)
+	result := tx.Where("email = ?", invite.Email).First(&invitee)
 
 	if result.RowsAffected == 0 {
-		// User is not found in database - create invitation record
 		invite := models.Invite{
 			Email:     invite.Email,
 			Group:     invite.Group,
@@ -270,7 +275,8 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 			CreatedBy: user.UserID,
 		}
 
-		if err := s.DB.Create(&invite).Error; err != nil {
+		if err := tx.Create(&invite).Error; err != nil {
+			tx.Rollback()
 			if strings.Contains(err.Error(), "duplicate key") {
 				return
 			}
@@ -278,7 +284,6 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 			return
 		}
 
-		// Send invitation email to new user
 		invitationEvent := events.NewUserInvitation(
 			*s.Publisher,
 			invite.Email,
@@ -290,7 +295,6 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 		)
 		invitationEvent.Trigger()
 	} else {
-		// User already exists - send bucket shared notification
 		bucketSharedEvent := events.NewBucketSharedWith(
 			*s.Publisher,
 			bucket,
@@ -313,6 +317,13 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 	}
 
 	if err != nil {
+		tx.Rollback()
+		zap.L().Error("Failed to add user to Casbin group after DB commit", zap.Error(err))
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		zap.L().Error("Failed to commit transaction", zap.Error(err))
 		return
 	}
 
@@ -335,17 +346,25 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 }
 
 func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		zap.L().Error("Failed to start transaction", zap.Error(tx.Error))
+		return
+	}
+
 	if member.Status == "invited" {
-		updateResult := s.DB.Model(&models.Invite{}).
+		updateResult := tx.Model(&models.Invite{}).
 			Where("bucket_id = ? AND email = ?", bucket.ID, member.Email).
 			Update("group", member.Role)
 
 		if updateResult.Error != nil {
+			tx.Rollback()
 			zap.L().Error("Failed to update invite role", zap.Error(updateResult.Error))
 			return
 		}
 
 		if updateResult.RowsAffected == 0 {
+			tx.Rollback()
 			return
 		}
 	} else {
@@ -368,9 +387,15 @@ func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.
 		}
 
 		if err != nil {
+			tx.Rollback()
 			zap.L().Error("Failed to add user to new role", zap.Error(err))
 			return
 		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		zap.L().Error("Failed to commit transaction", zap.Error(err))
+		return
 	}
 
 	action := models.Activity{
@@ -392,21 +417,28 @@ func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.
 }
 
 func (s BucketMemberService) deleteMember(user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		zap.L().Error("Failed to start transaction", zap.Error(tx.Error))
+		return
+	}
+
 	if member.Status == "invited" {
-		deleteResult := s.DB.Where(
+		deleteResult := tx.Where(
 			"bucket_id = ? AND email = ?", bucket.ID, member.Email,
 		).Delete(&models.Invite{})
 
 		if deleteResult.Error != nil {
+			tx.Rollback()
 			zap.L().Error("Failed to delete invite", zap.Error(deleteResult.Error))
 			return
 		}
 
 		if deleteResult.RowsAffected == 0 {
+			tx.Rollback()
 			return
 		}
 	} else {
-		// Delete user from Casbin groups (active user)
 		var err error
 		userIdStr := member.UserID.String()
 
@@ -422,9 +454,15 @@ func (s BucketMemberService) deleteMember(user models.UserClaims, bucket models.
 		}
 
 		if err != nil {
+			tx.Rollback()
 			zap.L().Error("Failed to remove user from role", zap.Error(err))
 			return
 		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		zap.L().Error("Failed to commit transaction", zap.Error(err))
+		return
 	}
 
 	action := models.Activity{
