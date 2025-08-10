@@ -58,12 +58,6 @@ export type IDownloadFileResponse = {
   url: string;
 };
 
-export type IInviteResponse = {
-  email: string,
-  group: string
-  status: string
-};
-
 export interface IBucketMember {
   user_id?: string;
   email: string;

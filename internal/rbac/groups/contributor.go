@@ -5,6 +5,7 @@ import (
 	"api/internal/models"
 	"api/internal/rbac"
 	"fmt"
+
 	"github.com/casbin/casbin/v2"
 	"go.uber.org/zap"
 )
@@ -25,6 +26,15 @@ func AddUserToContributors(e *casbin.Enforcer, bucket models.Bucket, userId stri
 	_, err := e.AddGroupingPolicy(userId, GetBucketContributorGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		zap.L().Error("Failed to add user to contributors", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func RemoveUserFromContributors(e *casbin.Enforcer, bucket models.Bucket, userId string) error {
+	_, err := e.RemoveGroupingPolicy(userId, GetBucketContributorGroup(bucket), c.DefaultDomain)
+	if err != nil {
+		zap.L().Error("Failed to remove user from contributors", zap.Error(err))
 		return err
 	}
 	return nil

@@ -1,9 +1,6 @@
 import { api } from "@/lib/api";
 
-import {
-  IInviteResponse,
-  IInvites,
-} from "@/components/bucket-view/helpers/types";
+import { IInvites } from "@/components/bucket-view/helpers/types";
 
-export const api_updateMembers = (bucketId: string, invites: IInvites[]) =>
-  api.put<IInviteResponse[]>(`/buckets/${bucketId}/members`, { invites });
+export const api_updateMembers = (bucketId: string, members: IInvites[]) =>
+  api.put(`/buckets/${bucketId}/members`, { members });

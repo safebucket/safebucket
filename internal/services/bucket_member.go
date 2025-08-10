@@ -36,7 +36,7 @@ func (s BucketMemberService) Routes() chi.Router {
 		Get("/", handlers.GetListHandler(s.GetBucketMembers))
 
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
-		With(m.Validate[models.InviteBody]).
+		With(m.Validate[models.UpdateMembersBody]).
 		Put("/", handlers.UpdateHandler(s.UpdateBucketMembers))
 
 	return r
@@ -128,7 +128,11 @@ func (s BucketMemberService) GetBucketMembers(_ models.UserClaims, ids uuid.UUID
 	return members
 }
 
-func (s BucketMemberService) UpdateBucketMembers(user models.UserClaims, ids uuid.UUIDs, body models.InviteBody) ([]models.InviteResult, error) {
+func (s BucketMemberService) UpdateBucketMembers(
+	user models.UserClaims,
+	ids uuid.UUIDs,
+	body models.UpdateMembersBody,
+) (interface{}, error) {
 	bucketId := ids[0]
 
 	var providerCfg configuration.Provider
@@ -145,8 +149,6 @@ func (s BucketMemberService) UpdateBucketMembers(user models.UserClaims, ids uui
 		}
 	}
 
-	var results []models.InviteResult
-
 	var bucket models.Bucket
 	result := s.DB.Where("id = ?", bucketId).First(&bucket)
 
@@ -154,20 +156,87 @@ func (s BucketMemberService) UpdateBucketMembers(user models.UserClaims, ids uui
 		return nil, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
-	for _, invite := range body.Invites {
-		result := s.processInvite(user, bucket, invite, providerCfg)
-		results = append(results, result)
+	members := s.GetBucketMembers(user, ids)
+	currentMembers := map[string]models.BucketMember{}
+	for _, member := range members {
+		// This condition ensures there's always at least one owner on a bucket
+		if member.Email != user.Email {
+			currentMembers[member.Email] = member
+		}
 	}
 
-	return results, nil
+	updatedMembers := map[string]models.BucketMemberBody{}
+	for _, member := range body.Members {
+		// This condition ensures there's always at least one owner on a bucket
+		if member.Email != user.Email {
+			updatedMembers[member.Email] = member
+		}
+	}
+
+	changes := s.compareMemberships(currentMembers, updatedMembers)
+
+	for _, member := range changes.ToAdd {
+		if s.isDomainAllowed(user, member.Email, providerCfg) {
+			s.addMember(user, bucket, member)
+		}
+	}
+
+	for _, member := range changes.ToUpdate {
+		if s.isDomainAllowed(user, member.Email, providerCfg) {
+			s.updateMember(user, bucket, member)
+		}
+	}
+
+	for _, member := range changes.ToDelete {
+		if s.isDomainAllowed(user, member.Email, providerCfg) {
+			s.deleteMember(user, bucket, member)
+		}
+	}
+
+	return nil, nil
+}
+
+func (s BucketMemberService) compareMemberships(
+	currentMembers map[string]models.BucketMember,
+	updatedMembers map[string]models.BucketMemberBody,
+) models.MembershipChanges {
+	changes := models.MembershipChanges{
+		ToAdd:    []models.BucketMemberBody{},
+		ToUpdate: []models.BucketMember{},
+		ToDelete: []models.BucketMember{},
+	}
+
+	for email, updatedMember := range updatedMembers {
+		if currentMember, exists := currentMembers[email]; exists {
+			if currentMember.Role != updatedMember.Group {
+				updated := models.BucketMember{
+					UserID: currentMember.UserID,
+					Email:  email,
+					Role:   updatedMember.Group,
+					Status: currentMember.Status,
+				}
+				changes.ToUpdate = append(changes.ToUpdate, updated)
+			}
+		} else {
+			changes.ToAdd = append(changes.ToAdd, updatedMember)
+		}
+	}
+
+	for email := range currentMembers {
+		if _, exists := updatedMembers[email]; !exists {
+			changes.ToDelete = append(changes.ToDelete, currentMembers[email])
+		}
+	}
+
+	return changes
 }
 
 func (s BucketMemberService) isDomainAllowed(
 	user models.UserClaims,
-	invite models.BucketInvitee,
+	email string,
 	providerCfg configuration.Provider,
 ) bool {
-	domainParts := strings.Split(invite.Email, "@")
+	domainParts := strings.Split(email, "@")
 	if len(domainParts) != 2 {
 		return false
 	}
@@ -188,22 +257,7 @@ func (s BucketMemberService) isDomainAllowed(
 	return false
 }
 
-func (s BucketMemberService) processInvite(
-	user models.UserClaims,
-	bucket models.Bucket,
-	invite models.BucketInvitee,
-	providerCfg configuration.Provider,
-) models.InviteResult {
-	inviteResult := models.InviteResult{
-		Email: invite.Email,
-		Group: invite.Group,
-	}
-
-	if !s.isDomainAllowed(user, invite, providerCfg) {
-		inviteResult.Status = "domain_not_allowed"
-		return inviteResult
-	}
-
+func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Bucket, invite models.BucketMemberBody) {
 	var invitee models.User
 	result := s.DB.Where("email = ?", invite.Email).First(&invitee)
 
@@ -218,11 +272,10 @@ func (s BucketMemberService) processInvite(
 
 		if err := s.DB.Create(&invite).Error; err != nil {
 			if strings.Contains(err.Error(), "duplicate key") {
-				inviteResult.Status = "invite_already_exists"
-				return inviteResult
+				return
 			}
-			inviteResult.Status = "create_invite_failed"
-			return inviteResult
+			zap.L().Error("Failed to create invite", zap.String("email", invite.Email), zap.Error(err))
+			return
 		}
 
 		// Send invitation email to new user
@@ -256,27 +309,22 @@ func (s BucketMemberService) processInvite(
 	case "owner":
 		err = groups.AddUserToOwners(s.Enforcer, bucket, invitee.ID.String())
 	default:
-		inviteResult.Status = "invalid_group"
-		return inviteResult
+		return
 	}
 
 	if err != nil {
-		inviteResult.Status = "add_to_group_failed"
-		return inviteResult
+		return
 	}
 
-	inviteResult.Status = "success"
-
 	action := models.Activity{
-		Message: activity.UserInvited,
+		Message: activity.BucketMemberCreated,
 		Filter: activity.NewLogFilter(map[string]string{
-			"action":        rbac.ActionShare.String(),
-			"domain":        configuration.DefaultDomain,
-			"object_type":   rbac.ResourceBucket.String(),
-			"bucket_id":     bucket.ID.String(),
-			"user_id":       user.UserID.String(),
-			"invited_email": invite.Email,
-			"invited_group": invite.Group,
+			"action":              rbac.ActionShare.String(),
+			"domain":              configuration.DefaultDomain,
+			"object_type":         rbac.ResourceBucket.String(),
+			"bucket_id":           bucket.ID.String(),
+			"user_id":             user.UserID.String(),
+			"bucket_member_email": invite.Email,
 		}),
 	}
 
@@ -284,6 +332,115 @@ func (s BucketMemberService) processInvite(
 	if err != nil {
 		zap.L().Error("Failed to log user invitation activity", zap.Error(err))
 	}
+}
 
-	return inviteResult
+func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
+	if member.Status == "invited" {
+		updateResult := s.DB.Model(&models.Invite{}).
+			Where("bucket_id = ? AND email = ?", bucket.ID, member.Email).
+			Update("group", member.Role)
+
+		if updateResult.Error != nil {
+			zap.L().Error("Failed to update invite role", zap.Error(updateResult.Error))
+			return
+		}
+
+		if updateResult.RowsAffected == 0 {
+			return
+		}
+	} else {
+		userId := member.UserID.String()
+
+		_ = groups.RemoveUserFromOwners(s.Enforcer, bucket, userId)
+		_ = groups.RemoveUserFromContributors(s.Enforcer, bucket, userId)
+		_ = groups.RemoveUserFromViewers(s.Enforcer, bucket, userId)
+
+		var err error
+		switch member.Role {
+		case "owner":
+			err = groups.AddUserToOwners(s.Enforcer, bucket, userId)
+		case "contributor":
+			err = groups.AddUserToContributors(s.Enforcer, bucket, userId)
+		case "viewer":
+			err = groups.AddUserToViewers(s.Enforcer, bucket, userId)
+		default:
+			return
+		}
+
+		if err != nil {
+			zap.L().Error("Failed to add user to new role", zap.Error(err))
+			return
+		}
+	}
+
+	action := models.Activity{
+		Message: activity.BucketMemberUpdated,
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":              rbac.ActionShare.String(),
+			"domain":              configuration.DefaultDomain,
+			"object_type":         rbac.ResourceBucket.String(),
+			"bucket_id":           bucket.ID.String(),
+			"user_id":             user.UserID.String(),
+			"bucket_member_email": member.Email,
+		}),
+	}
+
+	err := s.ActivityLogger.Send(action)
+	if err != nil {
+		zap.L().Error("Failed to log user role update activity", zap.Error(err))
+	}
+}
+
+func (s BucketMemberService) deleteMember(user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
+	if member.Status == "invited" {
+		deleteResult := s.DB.Where(
+			"bucket_id = ? AND email = ?", bucket.ID, member.Email,
+		).Delete(&models.Invite{})
+
+		if deleteResult.Error != nil {
+			zap.L().Error("Failed to delete invite", zap.Error(deleteResult.Error))
+			return
+		}
+
+		if deleteResult.RowsAffected == 0 {
+			return
+		}
+	} else {
+		// Delete user from Casbin groups (active user)
+		var err error
+		userIdStr := member.UserID.String()
+
+		switch member.Role {
+		case "owner":
+			err = groups.RemoveUserFromOwners(s.Enforcer, bucket, userIdStr)
+		case "contributor":
+			err = groups.RemoveUserFromContributors(s.Enforcer, bucket, userIdStr)
+		case "viewer":
+			err = groups.RemoveUserFromViewers(s.Enforcer, bucket, userIdStr)
+		default:
+			return
+		}
+
+		if err != nil {
+			zap.L().Error("Failed to remove user from role", zap.Error(err))
+			return
+		}
+	}
+
+	action := models.Activity{
+		Message: activity.BucketMemberDeleted,
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":              rbac.ActionShare.String(),
+			"domain":              configuration.DefaultDomain,
+			"object_type":         rbac.ResourceBucket.String(),
+			"bucket_id":           bucket.ID.String(),
+			"user_id":             user.UserID.String(),
+			"bucket_member_email": member.Email,
+		}),
+	}
+
+	err := s.ActivityLogger.Send(action)
+	if err != nil {
+		zap.L().Error("Failed to log user removal activity", zap.Error(err))
+	}
 }

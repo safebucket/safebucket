@@ -32,18 +32,3 @@ type Challenge struct {
 type InviteChallengeValidateBody struct {
 	Code string `json:"code" validate:"required"` // TODO: validate value
 }
-
-type BucketInvitee struct {
-	Email string `json:"email" validate:"required,email"`
-	Group string `json:"group" validate:"required,oneof=owner contributor viewer"`
-}
-
-type InviteBody struct {
-	Invites []BucketInvitee `json:"invites" validate:"required,dive"`
-}
-
-type InviteResult struct {
-	Email  string `json:"email"`
-	Group  string `json:"group"`
-	Status string `json:"status"`
-}
