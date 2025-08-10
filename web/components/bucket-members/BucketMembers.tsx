@@ -23,6 +23,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -155,9 +156,12 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
                           </SelectItem>
                         ))}
                         {!isCurrentUser && (
-                          <SelectItem value="remove" className="text-red-600">
-                            Remove
-                          </SelectItem>
+                          <>
+                            <SelectSeparator />
+                            <SelectItem value="remove" className="text-red-600">
+                              Remove
+                            </SelectItem>
+                          </>
                         )}
                       </SelectContent>
                     </Select>
