@@ -401,17 +401,17 @@ func (s BucketService) GetBucketMembers(user models.UserClaims, ids uuid.UUIDs) 
 	var members []models.BucketMember
 	userEmailMap := make(map[string]models.User)
 
-	owners, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketOwnerGroup(bucket), configuration.DefaultDomain)
+	owners, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketOwnerGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		return []models.BucketMember{}
 	}
 
-	contributors, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketContributorGroup(bucket), configuration.DefaultDomain)
+	contributors, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketContributorGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		return []models.BucketMember{}
 	}
 
-	viewers, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketViewerGroup(bucket), configuration.DefaultDomain)
+	viewers, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketViewerGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		return []models.BucketMember{}
 	}
