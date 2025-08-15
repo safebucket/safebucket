@@ -47,7 +47,7 @@ services:
     shm_size: 128mb
     environment:
       - ALLOW_EMPTY_PASSWORD=false
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PASSWORD=${CACHE_REDIS_PASSWORD}
     volumes:
       - "redis_data:/bitnami/redis/data"
 
@@ -61,7 +61,7 @@ services:
     shm_size: 128mb
     environment:
       - ALLOW_EMPTY_PASSWORD=false
-      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+      - VALKEY_PASSWORD=${CACHE_VALKEY_PASSWORD}
     volumes:
       - "valkey_data:/bitnami/valkey/data"
 
