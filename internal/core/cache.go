@@ -1,88 +1,33 @@
 package core
 
 import (
-	"api/internal/configuration"
+	"api/internal/cache"
 	"api/internal/models"
-	"context"
-	"fmt"
-	"github.com/redis/rueidis"
 	"go.uber.org/zap"
-	"time"
 )
 
-type Cache struct {
-	client rueidis.Client
-}
-
-func InitCache(config models.CacheConfiguration) Cache {
-	client, err := rueidis.NewClient(rueidis.ClientOption{
-		InitAddress: config.Hosts,
-		Password:    config.Password,
-	})
-	if err != nil {
-		zap.L().Error("Failed to connect to redis", zap.Error(err))
-	}
-	return Cache{client: client}
-}
-
-func (c Cache) RegisterPlatform(id string) error {
-	ctx := context.Background()
-	sortedSetKey := configuration.CacheAppIdentityKey
-	currentTime := float64(time.Now().Unix())
-	err := c.client.Do(ctx, c.client.B().Zadd().Key(sortedSetKey).ScoreMember().ScoreMember(currentTime, id).Build()).Error()
-	return err
-}
-
-func (c Cache) DeleteInactivePlatform() error {
-	ctx := context.Background()
-	sortedSetKey := configuration.CacheAppIdentityKey
-	currentTime := float64(time.Now().Unix())
-	maxLifetime := float64(configuration.CacheMaxAppIdentityLifetime)
-	err := c.client.Do(ctx, c.client.B().Zremrangebyscore().Key(sortedSetKey).Min("-inf").Max(fmt.Sprintf("%f", currentTime-maxLifetime)).Build()).Error()
-	return err
-}
-
-func (c Cache) StartIdentityTicker(id string) {
-	ticker := time.NewTicker(60 * time.Second)
-	defer ticker.Stop()
-	for range ticker.C {
-		err := c.RegisterPlatform(id)
-		if err != nil {
-			zap.L().Fatal("Platform identity ticker crashed", zap.Error(err))
+func NewCache(config models.CacheConfiguration) cache.ICache {
+	switch config.Type {
+	case "redis":
+		if config.Redis == nil {
+			zap.L().Fatal("Redis configuration is required when cache type is redis")
 		}
-		err = c.DeleteInactivePlatform()
+		cacheInstance, err := cache.NewRedisCache(*config.Redis)
 		if err != nil {
-			zap.L().Fatal("Platform identity ticker crashed", zap.Error(err))
+			zap.L().Fatal("Failed to initialize Redis cache", zap.Error(err))
 		}
-	}
-}
-
-func (c Cache) GetRateLimit(userIdentifier string, requestsPerMinute int) (int, error) {
-	ctx := context.Background()
-
-	key := fmt.Sprintf(configuration.CacheAppRateLimitKey, userIdentifier)
-	count, err := c.client.Do(ctx, c.client.B().Incr().Key(key).Build()).AsInt64()
-
-	if err != nil {
-		return 0, err
-	}
-
-	if count == 1 {
-		err := c.client.Do(ctx, c.client.B().Expire().Key(key).Seconds(int64(1*time.Minute.Seconds())).Build()).Error()
+		return cacheInstance
+	case "valkey":
+		if config.Valkey == nil {
+			zap.L().Fatal("Valkey configuration is required when cache type is valkey")
+		}
+		cacheInstance, err := cache.NewValkeyCache(*config.Valkey)
 		if err != nil {
-			return 0, err
+			zap.L().Fatal("Failed to initialize Valkey cache", zap.Error(err))
 		}
+		return cacheInstance
+	default:
+		zap.L().Fatal("Unsupported cache type", zap.String("type", config.Type))
+		return nil
 	}
-
-	if int(count) > requestsPerMinute {
-		retryAfter, err := c.client.Do(ctx, c.client.B().Ttl().Key(key).Build()).AsInt64()
-
-		if err != nil {
-			return 0, err
-		}
-
-		return int(retryAfter), nil
-	}
-
-	return 0, nil
 }

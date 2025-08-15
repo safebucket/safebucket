@@ -55,6 +55,18 @@ type SharingConfiguration struct {
 }
 
 type CacheConfiguration struct {
+	Type   string                    `mapstructure:"type" validate:"required,oneof=redis valkey"`
+	Redis  *RedisCacheConfiguration  `mapstructure:"redis" validate:"required_if=Type redis"`
+	Valkey *ValkeyCacheConfiguration `mapstructure:"valkey" validate:"required_if=Type valkey"`
+}
+
+type RedisCacheConfiguration struct {
+	Hosts    []string `mapstructure:"hosts" validate:"required"`
+	Port     int32    `mapstructure:"port" validate:"gte=80,lte=65535"`
+	Password string   `mapstructure:"password" validate:"required"`
+}
+
+type ValkeyCacheConfiguration struct {
 	Hosts    []string `mapstructure:"hosts" validate:"required"`
 	Port     int32    `mapstructure:"port" validate:"gte=80,lte=65535"`
 	Password string   `mapstructure:"password" validate:"required"`

@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"api/internal/core"
+	"api/internal/cache"
 	"api/internal/helpers"
 	"go.uber.org/zap"
 	"net"
@@ -54,7 +54,7 @@ func applyRateLimit(
 	next http.Handler,
 	w http.ResponseWriter,
 	r *http.Request,
-	cache core.Cache,
+	cache cache.ICache,
 	userIdentifier string,
 	requestsPerMinute int,
 ) {
@@ -74,7 +74,7 @@ func applyRateLimit(
 	next.ServeHTTP(w, r)
 }
 
-func RateLimit(cache core.Cache, trustedProxies []string) func(next http.Handler) http.Handler {
+func RateLimit(cache cache.ICache, trustedProxies []string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			claims, err := helpers.GetUserClaims(r.Context())
@@ -85,7 +85,6 @@ func RateLimit(cache core.Cache, trustedProxies []string) func(next http.Handler
 					helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
 					return
 				}
-
 				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerMinute)
 			} else {
 				userId := claims.UserID.String()

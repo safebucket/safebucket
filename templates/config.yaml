@@ -18,10 +18,17 @@ database:
   ssl: false
 
 cache:
-  hosts:
-    - localhost:6379
-  port: 6379
-  password: root
+  type: redis # or valkey
+  redis:
+    hosts:
+      - localhost:6379
+    port: 6379
+    password: root
+  # valkey:
+  #   hosts:
+  #     - localhost:6380
+  #   port: 6380
+  #   password: root
 
 storage:
   type: minio

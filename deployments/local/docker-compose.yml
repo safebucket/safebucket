@@ -51,6 +51,20 @@ services:
     volumes:
       - "redis_data:/bitnami/redis/data"
 
+  valkey:
+    profiles: [valkey]
+    container_name: valkey
+    image: docker.io/bitnami/valkey:8.1.3
+    ports:
+      - "6380:6379"
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      - ALLOW_EMPTY_PASSWORD=false
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
+    volumes:
+      - "valkey_data:/bitnami/valkey/data"
+
   mailpit:
     image: axllent/mailpit:v1.26.2
     container_name: mailpit
@@ -135,3 +149,4 @@ volumes:
   postgresql_data:
   mail_data:
   redis_data:
+  valkey_data:
