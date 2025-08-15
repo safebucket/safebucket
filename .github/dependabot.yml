@@ -60,6 +60,19 @@ updates:
       prefix: "[docker]"
       include: "scope"
 
+  # Docker images in deployments/local directory
+  - package-ecosystem: "docker"
+    directory: "/deployments/local"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "09:00"
+    target-branch: "develop"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "[docker]"
+      include: "scope"
+
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
