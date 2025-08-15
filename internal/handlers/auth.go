@@ -4,10 +4,11 @@ import (
 	h "api/internal/helpers"
 	"context"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type OpenIDBeginFunc func(string, string, string) (string, error)
@@ -70,25 +71,34 @@ func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) htt
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 
 		http.SetCookie(w, &http.Cookie{
-			Name:    "safebucket_access_token",
-			Value:   accessToken,
-			Expires: expiration,
-			Path:    "/",
+			Name:     "safebucket_access_token",
+			Value:    accessToken,
+			Expires:  expiration,
+			Path:     "/",
+			SameSite: http.SameSiteStrictMode,
+			Secure:   r.TLS != nil,
+			HttpOnly: true,
 		})
 
 		http.SetCookie(w, &http.Cookie{
-			Name:    "safebucket_auth_provider",
-			Value:   providerName,
-			Expires: expiration,
-			Path:    "/",
+			Name:     "safebucket_auth_provider",
+			Value:    providerName,
+			Expires:  expiration,
+			Path:     "/",
+			SameSite: http.SameSiteStrictMode,
+			Secure:   r.TLS != nil,
+			HttpOnly: true,
 		})
 
 		if refreshToken != "" {
 			http.SetCookie(w, &http.Cookie{
-				Name:    "safebucket_refresh_token",
-				Value:   refreshToken,
-				Expires: expiration,
-				Path:    "/",
+				Name:     "safebucket_refresh_token",
+				Value:    refreshToken,
+				Expires:  expiration,
+				Path:     "/",
+				SameSite: http.SameSiteStrictMode,
+				Secure:   r.TLS != nil,
+				HttpOnly: true,
 			})
 		}
 
