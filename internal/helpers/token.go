@@ -56,6 +56,9 @@ func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, 
 		accessToken,
 		claims,
 		func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, errors.New("unexpected signing method")
+			}
 			return []byte(jwtSecret), nil
 		},
 	)
@@ -89,6 +92,9 @@ func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims
 		refreshToken,
 		claims,
 		func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, errors.New("unexpected signing method")
+			}
 			return []byte(jwtSecret), nil
 		},
 	)
