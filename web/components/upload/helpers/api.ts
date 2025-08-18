@@ -1,10 +1,6 @@
 import { api } from "@/lib/api";
 
-import {
-  FileType,
-  IInviteResponse,
-  IInvites,
-} from "@/components/bucket-view/helpers/types";
+import { FileType } from "@/components/bucket-view/helpers/types";
 import { toast } from "@/components/ui/hooks/use-toast";
 import { ICreateFile } from "@/components/upload/helpers/types";
 
@@ -56,9 +52,6 @@ export const uploadToStorage = async (
     });
   });
 };
-
-export const api_updateMembers = (bucket_id: string, invites: IInvites[]) =>
-  api.post<IInviteResponse[]>("/invites", { bucket_id, invites });
 
 export const api_updateBucketName = (bucketId: string, name: string) =>
   api.patch(`/buckets/${bucketId}`, { name });

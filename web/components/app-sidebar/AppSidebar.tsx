@@ -15,7 +15,7 @@ import { usePathname } from "next/navigation";
 import { AddMembers } from "@/components/add-members";
 import { nav } from "@/components/app-sidebar/helpers/nav";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
-import { IInvites } from "@/components/bucket-view/helpers/types";
+import { IMembers } from "@/components/bucket-view/helpers/types";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
@@ -50,9 +50,9 @@ export const AppSidebar: FC = () => {
   const pathname = usePathname();
   const { session, logout } = useSessionContext();
   const createBucketDialog = useDialog();
-  const { buckets, createBucketAndInvites } = useBucketsData();
+  const { buckets, createBucketAndMembers } = useBucketsData();
 
-  const [shareWith, setShareWith] = useState<IInvites[]>([]);
+  const [shareWith, setShareWith] = useState<IMembers[]>([]);
 
   return (
     <Sidebar variant="inset">
@@ -112,7 +112,7 @@ export const AppSidebar: FC = () => {
                     { id: "name", label: "Name", type: "text", required: true },
                   ]}
                   onSubmit={(data) => {
-                    createBucketAndInvites(data.name, shareWith);
+                    createBucketAndMembers(data.name, shareWith);
                     setShareWith([]);
                   }}
                   confirmLabel="Create"

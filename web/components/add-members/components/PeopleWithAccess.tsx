@@ -3,7 +3,7 @@ import React, { FC } from "react";
 import { UserX } from "lucide-react";
 
 import { bucketGroups } from "@/components/add-members/helpers/constants";
-import { IInvites, IBucketMember } from "@/components/bucket-view/helpers/types";
+import { IMembers, IBucketMember } from "@/components/bucket-view/helpers/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 
 interface IPeopleWithAccessProps {
-  shareWith: IInvites[];
+  shareWith: IMembers[];
   onGroupChange: (email: string, groupId: string) => void;
   onRemoveUser: (email: string) => void;
   currentUserEmail?: string;
