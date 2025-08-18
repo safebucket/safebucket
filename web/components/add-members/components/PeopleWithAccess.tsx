@@ -70,7 +70,7 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
                 disabled={true}
                 className="w-full"
               >
-                {currentUserMember ? currentUserMember.role.charAt(0).toUpperCase() + currentUserMember.role.slice(1) : "Owner"}
+                {currentUserMember ? currentUserMember.group.charAt(0).toUpperCase() + currentUserMember.group.slice(1) : "Owner"}
               </Button>
             </div>
 
@@ -107,7 +107,7 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
 
           <div className="col-span-2 mr-1 flex">
             <Select
-              value={member.role}
+              value={member.group}
               onValueChange={(val) => onExistingMemberGroupChange(member.email, val)}
             >
               <SelectTrigger className="w-full">

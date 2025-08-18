@@ -85,13 +85,13 @@ func (s BucketMemberService) GetBucketMembers(_ models.UserClaims, ids uuid.UUID
 				continue
 			}
 
-			var role string
-			if strings.Contains(groupName, rbac.GroupOwner.String()) {
-				role = "owner"
-			} else if strings.Contains(groupName, rbac.GroupContributor.String()) {
-				role = "contributor"
-			} else if strings.Contains(groupName, rbac.GroupViewer.String()) {
-				role = "viewer"
+			var group string
+			if groupName == groups.GetBucketOwnerGroup(bucket) {
+				group = "owner"
+			} else if groupName == groups.GetBucketContributorGroup(bucket) {
+				group = "contributor"
+			} else if groupName == groups.GetBucketViewerGroup(bucket) {
+				group = "viewer"
 			}
 
 			userEmailMap[dbUser.Email] = dbUser
@@ -101,7 +101,7 @@ func (s BucketMemberService) GetBucketMembers(_ models.UserClaims, ids uuid.UUID
 				Email:     dbUser.Email,
 				FirstName: dbUser.FirstName,
 				LastName:  dbUser.LastName,
-				Role:      role,
+				Group:     group,
 				Status:    "active",
 			})
 		}
@@ -119,7 +119,7 @@ func (s BucketMemberService) GetBucketMembers(_ models.UserClaims, ids uuid.UUID
 
 			members = append(members, models.BucketMember{
 				Email:  invite.Email,
-				Role:   invite.Group,
+				Group:  invite.Group,
 				Status: "invited",
 			})
 		}
@@ -202,18 +202,16 @@ func (s BucketMemberService) compareMemberships(
 ) models.MembershipChanges {
 	changes := models.MembershipChanges{
 		ToAdd:    []models.BucketMemberBody{},
-		ToUpdate: []models.BucketMember{},
+		ToUpdate: []models.BucketMemberToUpdate{},
 		ToDelete: []models.BucketMember{},
 	}
 
 	for email, updatedMember := range updatedMembers {
 		if currentMember, exists := currentMembers[email]; exists {
-			if currentMember.Role != updatedMember.Group {
-				updated := models.BucketMember{
-					UserID: currentMember.UserID,
-					Email:  email,
-					Role:   updatedMember.Group,
-					Status: currentMember.Status,
+			if currentMember.Group != updatedMember.Group {
+				updated := models.BucketMemberToUpdate{
+					BucketMember: currentMember,
+					NewGroup:     updatedMember.Group,
 				}
 				changes.ToUpdate = append(changes.ToUpdate, updated)
 			}
@@ -345,7 +343,7 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 	}
 }
 
-func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
+func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.Bucket, member models.BucketMemberToUpdate) {
 	tx := s.DB.Begin()
 	if tx.Error != nil {
 		zap.L().Error("Failed to start transaction", zap.Error(tx.Error))
@@ -355,7 +353,7 @@ func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.
 	if member.Status == "invited" {
 		updateResult := tx.Model(&models.Invite{}).
 			Where("bucket_id = ? AND email = ?", bucket.ID, member.Email).
-			Update("group", member.Role)
+			Update("group", member.NewGroup)
 
 		if updateResult.Error != nil {
 			tx.Rollback()
@@ -370,12 +368,25 @@ func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.
 	} else {
 		userId := member.UserID.String()
 
-		_ = groups.RemoveUserFromOwners(s.Enforcer, bucket, userId)
-		_ = groups.RemoveUserFromContributors(s.Enforcer, bucket, userId)
-		_ = groups.RemoveUserFromViewers(s.Enforcer, bucket, userId)
-
 		var err error
-		switch member.Role {
+		switch member.Group {
+		case "viewer":
+			err = groups.RemoveUserFromViewers(s.Enforcer, bucket, userId)
+		case "contributor":
+			err = groups.RemoveUserFromContributors(s.Enforcer, bucket, userId)
+		case "owner":
+			err = groups.RemoveUserFromOwners(s.Enforcer, bucket, userId)
+		default:
+			return
+		}
+
+		if err != nil {
+			tx.Rollback()
+			zap.L().Error("Failed to remove user from old role", zap.Error(err))
+			return
+		}
+
+		switch member.NewGroup {
 		case "owner":
 			err = groups.AddUserToOwners(s.Enforcer, bucket, userId)
 		case "contributor":
@@ -442,7 +453,7 @@ func (s BucketMemberService) deleteMember(user models.UserClaims, bucket models.
 		var err error
 		userIdStr := member.UserID.String()
 
-		switch member.Role {
+		switch member.Group {
 		case "owner":
 			err = groups.RemoveUserFromOwners(s.Enforcer, bucket, userIdStr)
 		case "contributor":

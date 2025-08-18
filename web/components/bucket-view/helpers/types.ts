@@ -63,6 +63,6 @@ export interface IBucketMember {
   email: string;
   first_name?: string;
   last_name?: string;
-  role: string;
+  group: string;
   status: "active" | "invited";
 }

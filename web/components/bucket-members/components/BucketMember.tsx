@@ -52,7 +52,7 @@ export const BucketMember: FC<IBucketMemberProps> = ({
 
     <div className="flex items-center">
       <Select
-        value={member.role}
+        value={member.group}
         onValueChange={(value) => updateMemberRole(member.email, value)}
         disabled={isCurrentUser}
       >

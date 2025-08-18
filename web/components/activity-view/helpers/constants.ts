@@ -51,7 +51,7 @@ export const messageMap = {
   },
   BUCKET_MEMBER_UPDATED: {
     message:
-      "Updated the role of %%BUCKET_MEMBER_EMAIL%% on the bucket '%%BUCKET_NAME%%'.",
+      "Updated the group of %%BUCKET_MEMBER_EMAIL%% on the bucket '%%BUCKET_NAME%%'.",
     icon: UserPen,
     iconColor: "text-amber-500",
     iconBg: "bg-amber-100",

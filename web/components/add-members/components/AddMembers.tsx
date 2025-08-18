@@ -45,7 +45,7 @@ export const AddMembers: FC<IAddMembersProps> = ({
       .filter((member) => member.email !== currentUserEmail)
       .map((member) => ({
         email: member.email,
-        group: existingMemberChanges[member.email] || member.role,
+        group: existingMemberChanges[member.email] || member.group,
       }));
 
     const allMembers = [...existingMembersAsInvites, ...shareWith];
