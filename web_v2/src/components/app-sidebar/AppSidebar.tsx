@@ -1,6 +1,6 @@
 import React, { FC, useState } from "react";
 
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import {
   ChevronsUpDown,
   FolderSync,
@@ -44,12 +44,12 @@ import {
 } from "@/components/ui/sidebar";
 
 export const AppSidebar: FC = () => {
-  // const pathname = usePathname();
+  const location = useLocation();
   const { session, logout } = useSessionContext();
   const createBucketDialog = useDialog();
   const { buckets, createBucketAndInvites } = useBucketsData();
 
-  const [shareWith, setShareWith] = useState<IInvites[]>([]);
+  const [shareWith, setShareWith] = useState<Array<IInvites>>([]);
 
   return (
     <Sidebar variant="inset">
@@ -76,11 +76,11 @@ export const AppSidebar: FC = () => {
                   </div>
                 </SidebarMenuButton>
                 <SidebarMenuSub>
-                  {item.items?.map((subItem) => (
+                  {item.items.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
                       <SidebarMenuSubButton
                         asChild
-                        // isActive={pathname == subItem.url}
+                        isActive={location.pathname == subItem.url}
                       >
                         <Link to={subItem.url}>{subItem.title}</Link>
                       </SidebarMenuSubButton>
@@ -127,7 +127,9 @@ export const AppSidebar: FC = () => {
                   <SidebarMenuSubItem key={bucket.id}>
                     <SidebarMenuSubButton
                       asChild
-                      // isActive={pathname.startsWith(`/buckets/${bucket.id}`)}
+                      isActive={location.pathname.startsWith(
+                        `/buckets/${bucket.id}`,
+                      )}
                     >
                       <Link to={`/buckets/${bucket.id}`}>{bucket.name}</Link>
                     </SidebarMenuSubButton>
