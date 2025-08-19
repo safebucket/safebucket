@@ -19,7 +19,7 @@ func GetDefaultOwnerBucketPolicies(bucket models.Bucket) [][]string {
 	return [][]string{
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionDelete.String()},
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionUpdate.String()},
-		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionShare.String()},
+		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionGrant.String()},
 	}
 }
 

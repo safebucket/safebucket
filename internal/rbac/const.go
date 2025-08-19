@@ -18,7 +18,7 @@ const (
 	ActionRead     = Action("read")
 	ActionUpdate   = Action("update")
 	ActionUpload   = Action("upload")
-	ActionShare    = Action("share")
+	ActionGrant    = Action("grant")
 )
 
 // Resource represents an object type in the RBAC system.

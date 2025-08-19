@@ -35,7 +35,7 @@ func (s BucketMemberService) Routes() chi.Router {
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
 		Get("/", handlers.GetListHandler(s.GetBucketMembers))
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionGrant, 0)).
 		With(m.Validate[models.UpdateMembersBody]).
 		Put("/", handlers.UpdateHandler(s.UpdateBucketMembers))
 
@@ -328,7 +328,7 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 	action := models.Activity{
 		Message: activity.BucketMemberCreated,
 		Filter: activity.NewLogFilter(map[string]string{
-			"action":              rbac.ActionShare.String(),
+			"action":              rbac.ActionGrant.String(),
 			"domain":              configuration.DefaultDomain,
 			"object_type":         rbac.ResourceBucket.String(),
 			"bucket_id":           bucket.ID.String(),
@@ -412,7 +412,7 @@ func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.
 	action := models.Activity{
 		Message: activity.BucketMemberUpdated,
 		Filter: activity.NewLogFilter(map[string]string{
-			"action":              rbac.ActionShare.String(),
+			"action":              rbac.ActionGrant.String(),
 			"domain":              configuration.DefaultDomain,
 			"object_type":         rbac.ResourceBucket.String(),
 			"bucket_id":           bucket.ID.String(),
@@ -479,7 +479,7 @@ func (s BucketMemberService) deleteMember(user models.UserClaims, bucket models.
 	action := models.Activity{
 		Message: activity.BucketMemberDeleted,
 		Filter: activity.NewLogFilter(map[string]string{
-			"action":              rbac.ActionShare.String(),
+			"action":              rbac.ActionGrant.String(),
 			"domain":              configuration.DefaultDomain,
 			"object_type":         rbac.ResourceBucket.String(),
 			"bucket_id":           bucket.ID.String(),
