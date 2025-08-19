@@ -37,8 +37,8 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
     membersState,
     newMemberEmail,
     setNewMemberEmail,
-    newMemberRole,
-    setNewMemberRole,
+    newMemberGroup,
+    setNewMemberGroup,
     currentUserEmail,
     hasChanges,
     isSubmitting,
@@ -73,7 +73,7 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
               onChange={(e) => setNewMemberEmail(e.target.value)}
               className="flex-1"
             />
-            <Select value={newMemberRole} onValueChange={setNewMemberRole}>
+            <Select value={newMemberGroup} onValueChange={setNewMemberGroup}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
