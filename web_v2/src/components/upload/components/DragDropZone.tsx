@@ -7,7 +7,7 @@ import { mutate } from "swr";
 import { FileType } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { api_createFile } from "@/components/upload/helpers/api";
-import {
+import type {
   FileSystemDirectoryEntry,
   FileSystemEntry,
   FileSystemFileEntry,

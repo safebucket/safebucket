@@ -4,7 +4,8 @@ import { cn, formatDate, formatFileSize } from "@/lib/utils";
 
 import { FileActions } from "@/components/FileActions/FileActions";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
-import { FileType, IFile } from "@/components/bucket-view/helpers/types";
+import type { IFile } from "@/components/bucket-view/helpers/types";
+import { FileType } from "@/components/bucket-view/helpers/types";
 import { Card } from "@/components/ui/card";
 
 interface IFileViewProps {

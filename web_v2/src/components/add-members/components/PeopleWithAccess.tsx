@@ -78,8 +78,8 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
                 className="w-full"
               >
                 {currentUserMember
-                  ? currentUserMember.role.charAt(0).toUpperCase() +
-                    currentUserMember.role.slice(1)
+                  ? currentUserMember.role?.charAt(0).toUpperCase() +
+                    currentUserMember.role?.slice(1)
                   : "Owner"}
               </Button>
             </div>

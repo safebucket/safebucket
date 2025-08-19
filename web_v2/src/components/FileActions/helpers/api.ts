@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 
-import { IDownloadFileResponse } from "@/components/bucket-view/helpers/types";
+import type { IDownloadFileResponse } from "@/components/bucket-view/helpers/types";
 import { toast } from "@/components/ui/hooks/use-toast";
 
 export const api_deleteFile = (bucketId: string, fileId: string) =>

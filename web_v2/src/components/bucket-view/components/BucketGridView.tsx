@@ -2,7 +2,7 @@ import React, { FC } from "react";
 
 import { FolderOpen } from "lucide-react";
 
-import { IFile } from "@/components/bucket-view/helpers/types";
+import type { IFile } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { FileItemView } from "@/components/common/components/FileItemView";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";

@@ -10,18 +10,31 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BucketsIndexRouteImport } from './routes/buckets/index'
 import { Route as ActivityIndexRouteImport } from './routes/activity/index'
+import { Route as BucketsIdIndexRouteImport } from './routes/buckets/$id/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
 import { Route as AuthCompleteIndexRouteImport } from './routes/auth/complete/index'
+import { Route as BucketsIdSplatRouteImport } from './routes/buckets/$id/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BucketsIndexRoute = BucketsIndexRouteImport.update({
+  id: '/buckets/',
+  path: '/buckets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ActivityIndexRoute = ActivityIndexRouteImport.update({
   id: '/activity/',
   path: '/activity/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BucketsIdIndexRoute = BucketsIdIndexRouteImport.update({
+  id: '/buckets/$id/',
+  path: '/buckets/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
@@ -34,39 +47,78 @@ const AuthCompleteIndexRoute = AuthCompleteIndexRouteImport.update({
   path: '/auth/complete/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BucketsIdSplatRoute = BucketsIdSplatRouteImport.update({
+  id: '/buckets/$id/$',
+  path: '/buckets/$id/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityIndexRoute
+  '/buckets': typeof BucketsIndexRoute
+  '/buckets/$id/$': typeof BucketsIdSplatRoute
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
+  '/buckets/$id': typeof BucketsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityIndexRoute
+  '/buckets': typeof BucketsIndexRoute
+  '/buckets/$id/$': typeof BucketsIdSplatRoute
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
+  '/buckets/$id': typeof BucketsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activity/': typeof ActivityIndexRoute
+  '/buckets/': typeof BucketsIndexRoute
+  '/buckets/$id/$': typeof BucketsIdSplatRoute
   '/auth/complete/': typeof AuthCompleteIndexRoute
   '/auth/login/': typeof AuthLoginIndexRoute
+  '/buckets/$id/': typeof BucketsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/activity' | '/auth/complete' | '/auth/login'
+  fullPaths:
+    | '/'
+    | '/activity'
+    | '/buckets'
+    | '/buckets/$id/$'
+    | '/auth/complete'
+    | '/auth/login'
+    | '/buckets/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/activity' | '/auth/complete' | '/auth/login'
-  id: '__root__' | '/' | '/activity/' | '/auth/complete/' | '/auth/login/'
+  to:
+    | '/'
+    | '/activity'
+    | '/buckets'
+    | '/buckets/$id/$'
+    | '/auth/complete'
+    | '/auth/login'
+    | '/buckets/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/activity/'
+    | '/buckets/'
+    | '/buckets/$id/$'
+    | '/auth/complete/'
+    | '/auth/login/'
+    | '/buckets/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityIndexRoute: typeof ActivityIndexRoute
+  BucketsIndexRoute: typeof BucketsIndexRoute
+  BucketsIdSplatRoute: typeof BucketsIdSplatRoute
   AuthCompleteIndexRoute: typeof AuthCompleteIndexRoute
   AuthLoginIndexRoute: typeof AuthLoginIndexRoute
+  BucketsIdIndexRoute: typeof BucketsIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -78,11 +130,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buckets/': {
+      id: '/buckets/'
+      path: '/buckets'
+      fullPath: '/buckets'
+      preLoaderRoute: typeof BucketsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/activity/': {
       id: '/activity/'
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof ActivityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/buckets/$id/': {
+      id: '/buckets/$id/'
+      path: '/buckets/$id'
+      fullPath: '/buckets/$id'
+      preLoaderRoute: typeof BucketsIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/login/': {
@@ -99,14 +165,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCompleteIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buckets/$id/$': {
+      id: '/buckets/$id/$'
+      path: '/buckets/$id/$'
+      fullPath: '/buckets/$id/$'
+      preLoaderRoute: typeof BucketsIdSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityIndexRoute: ActivityIndexRoute,
+  BucketsIndexRoute: BucketsIndexRoute,
+  BucketsIdSplatRoute: BucketsIdSplatRoute,
   AuthCompleteIndexRoute: AuthCompleteIndexRoute,
   AuthLoginIndexRoute: AuthLoginIndexRoute,
+  BucketsIdIndexRoute: BucketsIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

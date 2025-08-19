@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-import { IUploadContext } from "@/components/upload/helpers/types";
+import type { IUploadContext } from "@/components/upload/helpers/types";
 
 export const UploadContext = createContext<IUploadContext>(
   {} as IUploadContext,

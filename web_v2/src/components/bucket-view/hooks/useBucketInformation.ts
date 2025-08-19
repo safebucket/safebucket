@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { mutate } from "swr";
 
-import { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/components/bucket-view/helpers/types";
 import {
   errorToast,
   successToast,

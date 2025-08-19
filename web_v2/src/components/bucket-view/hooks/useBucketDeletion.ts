@@ -1,9 +1,9 @@
 import { useState } from "react";
 
-import { router } from "next/client";
+import { useNavigate } from "@tanstack/react-router";
 import { mutate } from "swr";
 
-import { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/components/bucket-view/helpers/types";
 import {
   errorToast,
   successToast,
@@ -20,6 +20,8 @@ export interface IBucketDeletionData {
 }
 
 export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
+  const navigate = useNavigate();
+
   const [confirmationText, setConfirmationText] = useState("");
 
   const expectedDeleteText = `delete ${bucket.name}`;
@@ -38,7 +40,7 @@ export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
     api_deleteBucket(bucket.id)
       .then(() => {
         mutate("/buckets").then(() => {
-          router.push("/");
+          navigate({ to: "/" });
           successToast(`Bucket ${bucket.name} has been deleted`);
         });
       })

@@ -2,7 +2,7 @@ import React, { FC } from "react";
 
 import { AlertTriangle } from "lucide-react";
 
-import { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/components/bucket-view/helpers/types";
 import { useBucketDeletion } from "@/components/bucket-view/hooks/useBucketDeletion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

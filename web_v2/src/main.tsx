@@ -6,9 +6,9 @@ import ReactDOM from "react-dom/client";
 
 import { SessionProvider } from "@/components/auth-view/context/SessionProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
+import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 
 import reportWebVitals from "./reportWebVitals.ts";
-// Import the generated route tree
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
@@ -50,7 +50,9 @@ if (rootElement && !rootElement.innerHTML) {
       <QueryClientProvider client={queryClient}>
         <SessionProvider>
           <SidebarProvider>
-            <RouterProvider router={router} />
+            <UploadProvider>
+              <RouterProvider router={router} />
+            </UploadProvider>
           </SidebarProvider>
         </SessionProvider>
       </QueryClientProvider>

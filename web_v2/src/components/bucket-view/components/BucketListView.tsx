@@ -1,10 +1,11 @@
 import React, { FC } from "react";
 
 import { formatDate, formatFileSize } from "@/lib/utils";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
-import { FileType, IFile } from "@/components/bucket-view/helpers/types";
+import type { IFile } from "@/components/bucket-view/helpers/types";
+import { FileType } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { DataTableColumnHeader } from "@/components/common/components/DataTable/DataColumnHeader";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";

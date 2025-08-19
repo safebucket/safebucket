@@ -1,4 +1,4 @@
-import { IFile } from "@/components/bucket-view/helpers/types";
+import type { IFile } from "@/components/bucket-view/helpers/types";
 
 export const getFileType = (extension: string): string => {
   switch (extension.toLowerCase()) {

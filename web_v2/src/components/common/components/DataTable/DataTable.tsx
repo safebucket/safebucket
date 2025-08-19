@@ -1,10 +1,13 @@
 import React from "react";
 
-import {
+import type {
   ColumnDef,
   ColumnFiltersState,
   SortingState,
   VisibilityState,
+} from "@tanstack/react-table";
+
+import {
   flexRender,
   getCoreRowModel,
   getFacetedRowModel,
@@ -16,7 +19,7 @@ import {
 } from "@tanstack/react-table";
 
 import { FileActions } from "@/components/FileActions/FileActions";
-import { IFile } from "@/components/bucket-view/helpers/types";
+import type { IFile } from "@/components/bucket-view/helpers/types";
 import {
   Table,
   TableBody,

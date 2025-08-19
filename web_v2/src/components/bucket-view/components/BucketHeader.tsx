@@ -4,7 +4,7 @@ import { PlusCircle } from "lucide-react";
 
 import { BucketViewOptions } from "@/components/bucket-view/components/BucketViewOptions";
 import { shareFileFields } from "@/components/bucket-view/helpers/constants";
-import { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";

@@ -1,7 +1,7 @@
 import { fetchApi } from "@/lib/api";
 import useSWR from "swr";
 
-import {
+import type {
   IActivityData,
   IListBucketActivity,
 } from "@/components/common/types/activity";

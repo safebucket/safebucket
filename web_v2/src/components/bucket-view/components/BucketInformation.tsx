@@ -2,7 +2,7 @@ import React, { FC } from "react";
 
 import { Check, Copy, Edit2, Info, X } from "lucide-react";
 
-import { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/components/bucket-view/helpers/types";
 import { useBucketInformation } from "@/components/bucket-view/hooks/useBucketInformation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

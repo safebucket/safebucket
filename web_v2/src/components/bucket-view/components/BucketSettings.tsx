@@ -1,6 +1,6 @@
 import React, { FC } from "react";
 
-import { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/components/bucket-view/helpers/types";
 
 import { BucketDeletion } from "./BucketDeletion";
 import { BucketInformation } from "./BucketInformation";

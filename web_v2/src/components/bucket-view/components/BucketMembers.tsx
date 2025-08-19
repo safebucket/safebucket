@@ -3,7 +3,7 @@ import React, { FC } from "react";
 import { UserPlus } from "lucide-react";
 
 import { AddMembers } from "@/components/add-members/components/AddMembers";
-import { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/components/bucket-view/helpers/types";
 import { useBucketMembers } from "@/components/bucket-view/hooks/useBucketMembers";
 import { Button } from "@/components/ui/button";
 import {

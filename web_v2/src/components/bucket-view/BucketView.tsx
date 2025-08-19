@@ -5,10 +5,8 @@ import { BucketGridView } from "@/components/bucket-view/components/BucketGridVi
 import { BucketHeader } from "@/components/bucket-view/components/BucketHeader";
 import { BucketListView } from "@/components/bucket-view/components/BucketListView";
 import { BucketSettings } from "@/components/bucket-view/components/BucketSettings";
-import {
-  BucketViewMode,
-  IBucket,
-} from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/components/bucket-view/helpers/types";
+import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { filesToShow } from "@/components/bucket-view/helpers/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 

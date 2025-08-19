@@ -3,8 +3,8 @@ import {
   UPDATE_PROGRESS,
   UPDATE_STATUS,
 } from "@/components/upload/helpers/constants";
-import { IUpload, UploadStatus } from "@/components/upload/helpers/types";
-import { UploadAction } from "@/components/upload/store/index";
+import type { IUpload, UploadStatus } from "@/components/upload/helpers/types";
+import type { UploadAction } from "@/components/upload/store/index";
 
 export const uploadsReducer = (uploads: IUpload[], action: UploadAction) => {
   switch (action.type) {

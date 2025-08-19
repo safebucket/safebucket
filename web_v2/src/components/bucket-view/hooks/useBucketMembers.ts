@@ -4,7 +4,7 @@ import { fetchApi } from "@/lib/api";
 import useSWR from "swr";
 
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
-import {
+import type {
   IBucket,
   IBucketMember,
   IInvites,

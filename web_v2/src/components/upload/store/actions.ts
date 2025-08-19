@@ -3,8 +3,8 @@ import {
   UPDATE_PROGRESS,
   UPDATE_STATUS,
 } from "@/components/upload/helpers/constants";
-import { UploadStatus } from "@/components/upload/helpers/types";
-import { UploadAction } from "@/components/upload/store/index";
+import type { UploadStatus } from "@/components/upload/helpers/types";
+import type { UploadAction } from "@/components/upload/store/index";
 
 const createAction = (type: any, payload: any): UploadAction => {
   return { type, payload };
