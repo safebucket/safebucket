@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 
-import {
+import type {
   IChallengeValidationResponse,
   ICreateChallengeResponse,
 } from "@/components/invites/helpers/types";

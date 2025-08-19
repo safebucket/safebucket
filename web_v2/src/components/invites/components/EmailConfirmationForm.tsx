@@ -1,7 +1,8 @@
-import React, { FC, useState } from "react";
+import { useState } from "react";
+import type { FC } from "react";
 
 import { AlertCircle, Mail } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 
 import { api_createChallenge } from "@/components/invites/helpers/api";
@@ -27,7 +28,7 @@ interface IEmailConfirmationFormProps {
 export const EmailConfirmationForm: FC<IEmailConfirmationFormProps> = ({
   invitationId,
 }) => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -41,7 +42,7 @@ export const EmailConfirmationForm: FC<IEmailConfirmationFormProps> = ({
 
     api_createChallenge(invitationId, data.email)
       .then((res) =>
-        router.push(`/invites/${invitationId}/challenges/${res.id}`),
+        navigate({ to: `/invites/${invitationId}/challenges/${res.id}` }),
       )
       .catch(() =>
         setError("Failed to send verification code. Please try again."),

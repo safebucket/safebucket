@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
-import { AuthProvidersButtons } from "@/components/auth-view/components/AuthProvidersButtons";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { LoadingView } from "@/components/common/components/LoadingView.tsx";
 

@@ -1,4 +1,5 @@
-import React, { FC, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FC } from "react";
 
 import { BucketActivityView } from "@/components/bucket-view/components/BucketActivityView";
 import { BucketGridView } from "@/components/bucket-view/components/BucketGridView";

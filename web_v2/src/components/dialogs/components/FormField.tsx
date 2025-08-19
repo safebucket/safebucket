@@ -1,12 +1,12 @@
-import React, { FC } from "react";
+import type { FC } from "react";
 
 import type {
   Control,
-  Controller,
   FieldErrors,
   FieldValues,
   UseFormRegister,
 } from "react-hook-form";
+import { Controller } from "react-hook-form";
 
 import { Datepicker } from "@/components/common/components/Datepicker";
 import type { IFormField } from "@/components/dialogs/helpers/types";

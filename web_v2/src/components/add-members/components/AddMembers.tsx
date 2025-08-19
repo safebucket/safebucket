@@ -1,4 +1,5 @@
-import React, { FC, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FC } from "react";
 
 import { AddMembersInput } from "@/components/add-members/components/AddMembersInput";
 import { AddMembersSkeleton } from "@/components/add-members/components/AddMembersSkeleton";

@@ -1,4 +1,5 @@
-import React, { FC } from "react";
+import type { FC } from "react";
+import React from "react";
 
 import { Download, ExternalLink, FolderPlus, Trash2 } from "lucide-react";
 

@@ -1,7 +1,8 @@
-import React, { FC, useEffect } from "react";
+import type { FC } from "react";
+import { useEffect } from "react";
 
-import { useForm } from "react-hook-form";
 import type { FieldValues } from "react-hook-form";
+import { useForm } from "react-hook-form";
 
 import { FormField } from "@/components/dialogs/components/FormField";
 import type { IFormField } from "@/components/dialogs/helpers/types";

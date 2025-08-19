@@ -6,7 +6,7 @@ import {
   downloadFromStorage,
 } from "@/components/FileActions/helpers/api";
 import type { IFileActions } from "@/components/FileActions/helpers/types";
-import type { FileType } from "@/components/bucket-view/helpers/types";
+import { FileType } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import { api_createFile } from "@/components/upload/helpers/api";

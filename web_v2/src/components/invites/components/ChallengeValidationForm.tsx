@@ -1,12 +1,13 @@
-import React, { FC, useState } from "react";
+import { useState } from "react";
+import type { FC } from "react";
 
 import Cookies from "js-cookie";
 import { AlertCircle, CheckCircle, Shield } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 
 import { api_validateChallenge } from "@/components/invites/helpers/api";
-import { IChallengeValidationFormData } from "@/components/invites/helpers/types";
+import type { IChallengeValidationFormData } from "@/components/invites/helpers/types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,7 +32,7 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
   invitationId,
   challengeId,
 }) => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [isValidated, setIsValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -56,7 +57,7 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
 
         setIsValidated(true);
 
-        router.push("/");
+        navigate({ to: "/" });
       })
       .catch(() =>
         setError(

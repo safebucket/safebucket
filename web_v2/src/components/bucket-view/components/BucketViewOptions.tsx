@@ -1,5 +1,4 @@
-import * as React from "react";
-import { FC } from "react";
+import type { FC } from "react";
 
 import { FolderClock, LayoutGrid, LayoutList, Settings } from "lucide-react";
 

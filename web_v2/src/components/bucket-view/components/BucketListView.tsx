@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import type { FC } from "react";
 
 import { formatDate, formatFileSize } from "@/lib/utils";
 import type { ColumnDef } from "@tanstack/react-table";

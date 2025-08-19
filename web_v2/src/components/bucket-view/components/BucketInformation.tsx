@@ -1,4 +1,4 @@
-import React, { FC } from "react";
+import type { FC } from "react";
 
 import { Check, Copy, Edit2, Info, X } from "lucide-react";
 

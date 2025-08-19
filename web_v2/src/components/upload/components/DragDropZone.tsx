@@ -1,4 +1,4 @@
-import React, { DragEvent, FC, useCallback, useState } from "react";
+import React, { type DragEvent, type FC, useCallback, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
@@ -31,19 +31,19 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   const { startUpload } = useUploadContext();
   const { path } = useBucketViewContext();
 
-  const handleDragEnter = useCallback((e: DragEvent) => {
+  const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
     setDragCounter((prev) => prev + 1);
 
     // Show overlay for any drag operation that includes files
-    if (e.dataTransfer?.types && e.dataTransfer.types.includes("Files")) {
+    if (e.dataTransfer.types.includes("Files")) {
       setIsDragOver(true);
     }
   }, []);
 
-  const handleDragLeave = useCallback((e: DragEvent) => {
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -58,16 +58,12 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   }, []);
 
   const handleDragOver = useCallback(
-    (e: DragEvent) => {
+    (e: DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
 
       // Ensure overlay stays visible during drag over
-      if (
-        e.dataTransfer?.types &&
-        e.dataTransfer.types.includes("Files") &&
-        !isDragOver
-      ) {
+      if (e.dataTransfer.types.includes("Files") && !isDragOver) {
         setIsDragOver(true);
       }
     },
@@ -75,7 +71,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   );
 
   const processFileEntry = useCallback(
-    (entry: FileSystemFileEntry, currentPath: string): Promise<File[]> => {
+    (entry: FileSystemFileEntry, currentPath: string): Promise<Array<File>> => {
       return new Promise((resolve) => {
         entry.file((file) => {
           const fullPath = currentPath
@@ -93,7 +89,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
     async (
       entry: FileSystemEntry,
       currentPath: string = "",
-    ): Promise<File[]> => {
+    ): Promise<Array<File>> => {
       return new Promise((resolve) => {
         if (entry.isFile) {
           processFileEntry(entry as FileSystemFileEntry, currentPath).then(
@@ -104,10 +100,10 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
 
         if (entry.isDirectory) {
           const dirReader = (entry as FileSystemDirectoryEntry).createReader();
-          const allFiles: File[] = [];
+          const allFiles: Array<File> = [];
 
           const readEntries = () => {
-            dirReader.readEntries(async (entries: FileSystemEntry[]) => {
+            dirReader.readEntries(async (entries: Array<FileSystemEntry>) => {
               if (entries.length === 0) {
                 resolve(allFiles);
                 return;
@@ -136,7 +132,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   );
 
   const extractFolderPaths = useCallback(
-    (files: File[]): Set<string> => {
+    (files: Array<File>): Set<string> => {
       const folderPaths = new Set<string>();
 
       files.forEach((file) => {
@@ -187,7 +183,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   );
 
   const uploadFiles = useCallback(
-    (files: File[]) => {
+    (files: Array<File>) => {
       files.forEach((file) => {
         const fileName = file.name;
         const lastSlashIndex = fileName.lastIndexOf("/");
@@ -221,7 +217,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   );
 
   const createFoldersAndUploadFiles = useCallback(
-    async (files: File[]) => {
+    async (files: Array<File>) => {
       try {
         const folderPaths = extractFolderPaths(files);
         await createFolders(folderPaths);
@@ -234,8 +230,8 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   );
 
   const processDroppedItems = useCallback(
-    async (items: DataTransferItemList): Promise<File[]> => {
-      const allFiles: File[] = [];
+    async (items: DataTransferItemList): Promise<Array<File>> => {
+      const allFiles: Array<File> = [];
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
@@ -254,15 +250,15 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   );
 
   const handleDrop = useCallback(
-    async (e: DragEvent) => {
+    async (e: DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
 
       setIsDragOver(false);
       setDragCounter(0);
 
-      const items = e.dataTransfer?.items;
-      if (items && items.length > 0) {
+      const items = e.dataTransfer.items;
+      if (items.length > 0) {
         const allFiles = await processDroppedItems(items);
         if (allFiles.length > 0) {
           await createFoldersAndUploadFiles(allFiles);
@@ -270,8 +266,8 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
         return;
       }
 
-      const files = e.dataTransfer?.files;
-      if (files && files.length > 0) {
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
         startUpload(files, path, bucketId);
       }
     },

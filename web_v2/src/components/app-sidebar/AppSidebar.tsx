@@ -1,4 +1,5 @@
-import React, { FC, useState } from "react";
+import { useState } from "react";
+import type { FC } from "react";
 
 import { Link, useLocation } from "@tanstack/react-router";
 import {
@@ -131,7 +132,7 @@ export const AppSidebar: FC = () => {
                         `/buckets/${bucket.id}`,
                       )}
                     >
-                      <Link to={`/buckets/${bucket.id}`}>{bucket.name}</Link>
+                      <Link to="/buckets/$id" params={{ id: bucket.id }}>{bucket.name}</Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                 ))}
