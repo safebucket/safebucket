@@ -168,7 +168,8 @@ func (s BucketMemberService) UpdateBucketMembers(
 	updatedMembers := map[string]models.BucketMemberBody{}
 	for _, member := range body.Members {
 		// This condition ensures there's always at least one owner on a bucket
-		if member.Email != user.Email && len(members) > 0 {
+		// Or ensures a fallback for the platform admin
+		if member.Email != user.Email || len(members) == 0 {
 			updatedMembers[member.Email] = member
 		}
 	}
