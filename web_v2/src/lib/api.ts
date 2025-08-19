@@ -1,4 +1,5 @@
 import Cookies from "js-cookie";
+import { getApiUrl } from "./config";
 
 type RequestOptions = {
   method?: string;
@@ -31,8 +32,9 @@ export async function fetchApi<T>(
   retry = true,
 ): Promise<T> {
   const { method = "GET", headers = {}, body, params } = options;
+  const apiUrl = await getApiUrl();
   const fullUrl = buildUrlWithParams(
-    `${import.meta.env.VITE_API_URL}${url}`,
+    `${apiUrl}${url}`,
     params,
   );
 
