@@ -3,7 +3,7 @@ import React, { FC } from "react";
 import { UserX } from "lucide-react";
 
 import { bucketGroups } from "@/components/add-members/helpers/constants";
-import { IInvites, IBucketMember } from "@/components/bucket-view/helpers/types";
+import { IMembers, IBucketMember } from "@/components/bucket-view/helpers/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 
 interface IPeopleWithAccessProps {
-  shareWith: IInvites[];
+  shareWith: IMembers[];
   onGroupChange: (email: string, groupId: string) => void;
   onRemoveUser: (email: string) => void;
   currentUserEmail?: string;
@@ -70,7 +70,7 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
                 disabled={true}
                 className="w-full"
               >
-                {currentUserMember ? currentUserMember.role.charAt(0).toUpperCase() + currentUserMember.role.slice(1) : "Owner"}
+                {currentUserMember ? currentUserMember.group.charAt(0).toUpperCase() + currentUserMember.group.slice(1) : "Owner"}
               </Button>
             </div>
 
@@ -107,7 +107,7 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
 
           <div className="col-span-2 mr-1 flex">
             <Select
-              value={member.role}
+              value={member.group}
               onValueChange={(val) => onExistingMemberGroupChange(member.email, val)}
             >
               <SelectTrigger className="w-full">

@@ -14,7 +14,7 @@ export enum FileType {
   folder = "folder",
 }
 
-export interface IInvites {
+export interface IMembers {
   email: string;
   group: string;
 }
@@ -32,7 +32,7 @@ export interface IBucketsData {
   buckets: IBucket[];
   error: string;
   isLoading: boolean;
-  createBucketAndInvites: (name: string, shareWith: IInvites[]) => void;
+  createBucketAndMembers: (name: string, shareWith: IMembers[]) => void;
   isDialogOpen: boolean;
   setIsDialogOpen: (isOpen: boolean) => void;
 }
@@ -58,17 +58,11 @@ export type IDownloadFileResponse = {
   url: string;
 };
 
-export type IInviteResponse = {
-  email: string,
-  group: string
-  status: string
-};
-
 export interface IBucketMember {
   user_id?: string;
   email: string;
   first_name?: string;
   last_name?: string;
-  role: string;
+  group: string;
   status: "active" | "invited";
 }

@@ -19,7 +19,7 @@ func GetDefaultOwnerBucketPolicies(bucket models.Bucket) [][]string {
 	return [][]string{
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionDelete.String()},
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionUpdate.String()},
-		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionShare.String()},
+		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionGrant.String()},
 	}
 }
 
@@ -27,6 +27,15 @@ func AddUserToOwners(e *casbin.Enforcer, bucket models.Bucket, userId string) er
 	_, err := e.AddGroupingPolicy(userId, GetBucketOwnerGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		zap.L().Error("Failed to add user to owners", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func RemoveUserFromOwners(e *casbin.Enforcer, bucket models.Bucket, userId string) error {
+	_, err := e.RemoveGroupingPolicy(userId, GetBucketOwnerGroup(bucket), c.DefaultDomain)
+	if err != nil {
+		zap.L().Error("Failed to remove user from owners", zap.Error(err))
 		return err
 	}
 	return nil

@@ -1,19 +1,29 @@
+import { AlertCircle } from "lucide-react";
+
 import { messageMap } from "@/components/activity-view/helpers/constants";
 import { IMessageMapping } from "@/components/activity-view/helpers/types";
 import { ActivityMessage, IActivity } from "@/components/common/types/activity";
 
+const DEFAULT_ACTIVITY_MAPPING: IMessageMapping = {
+  message: "%%USERNAME%% performed an action on bucket '%%BUCKET_NAME%%'.",
+  icon: AlertCircle,
+  iconColor: "text-gray-500",
+  iconBg: "bg-gray-100",
+};
+
 export function getActivityMapping(
   messageType: ActivityMessage,
 ): IMessageMapping {
-  return messageMap[messageType];
+  return messageMap[messageType] || DEFAULT_ACTIVITY_MAPPING;
 }
 
 export const formatMessage = (log: IActivity): string => {
-  return messageMap[log.message].message
+  const mapping = messageMap[log.message] || DEFAULT_ACTIVITY_MAPPING;
+  return mapping.message
     .replace("%%USERNAME%%", `${log.user.first_name} ${log.user.last_name}`)
     .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
     .replace("%%FILE_NAME%%", log.file?.name || "")
-    .replace("%%USER_INVITED_EMAIL%%", log.invited_email || "");
+    .replace("%%BUCKET_MEMBER_EMAIL%%", log?.bucket_member_email || "");
 };
 
 export const timeAgo = (nanoTimestamp: string): string => {

@@ -5,6 +5,7 @@ import (
 	"api/internal/models"
 	"api/internal/rbac"
 	"fmt"
+
 	"go.uber.org/zap"
 
 	"github.com/casbin/casbin/v2"
@@ -26,6 +27,15 @@ func AddUserToViewers(e *casbin.Enforcer, bucket models.Bucket, userId string) e
 	_, err := e.AddGroupingPolicy(userId, GetBucketViewerGroup(bucket), c.DefaultDomain)
 	if err != nil {
 		zap.L().Error("Failed to add user to viewers", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func RemoveUserFromViewers(e *casbin.Enforcer, bucket models.Bucket, userId string) error {
+	_, err := e.RemoveGroupingPolicy(userId, GetBucketViewerGroup(bucket), c.DefaultDomain)
+	if err != nil {
+		zap.L().Error("Failed to remove user from viewers", zap.Error(err))
 		return err
 	}
 	return nil

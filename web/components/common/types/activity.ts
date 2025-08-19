@@ -23,7 +23,7 @@ export interface IActivity {
   file?: IFile;
   timestamp: string;
   message: ActivityMessage;
-  invited_email?: string;
+  bucket_member_email?: string;
 }
 
 export enum ActivityMessage {
@@ -32,5 +32,7 @@ export enum ActivityMessage {
   FILE_DOWNLOADED = "FILE_DOWNLOADED",
   FILE_UPDATED = "FILE_UPDATED",
   FILE_DELETED = "FILE_DELETED",
-  USER_INVITED = "USER_INVITED",
+  BUCKET_MEMBER_CREATED = "BUCKET_MEMBER_CREATED",
+  BUCKET_MEMBER_UPDATED = "BUCKET_MEMBER_UPDATED",
+  BUCKET_MEMBER_DELETED = "BUCKET_MEMBER_DELETED",
 }
