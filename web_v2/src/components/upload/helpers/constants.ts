@@ -1,0 +1,3 @@
+export const ADD_UPLOAD = "ADD_UPLOAD";
+export const UPDATE_PROGRESS = "UPDATE_PROGRESS";
+export const UPDATE_STATUS = "UPDATE_STATUS";

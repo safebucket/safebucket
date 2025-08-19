@@ -28,10 +28,11 @@ go.work.sum
 .idea/
 
 # Frontend
-web/node_modules
+node_modules/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+dist/
 
 # testing
 /coverage
