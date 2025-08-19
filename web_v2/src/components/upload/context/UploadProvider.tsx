@@ -1,5 +1,6 @@
 import React, { useReducer } from "react";
 
+import { generateRandomString } from "@/lib/utils";
 import { mutate } from "swr";
 
 import { FileType } from "@/components/bucket-view/helpers/types";
@@ -32,7 +33,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     bucketId: string,
   ) => {
     const file = files[0];
-    const uploadId = crypto.randomUUID();
+    const uploadId = generateRandomString(12);
 
     // Create full path display: path + filename
     const fullPath =
