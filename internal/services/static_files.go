@@ -13,13 +13,12 @@ import (
 
 type StaticFileService struct {
 	staticPath      string
-	discoveredFiles map[string]string // route path -> file system path
+	discoveredFiles map[string]string
 }
 
 func NewStaticFileService(directory string) (*StaticFileService, error) {
 	var staticPath string
 
-	// If directory is relative, make it relative to current working directory
 	if !filepath.IsAbs(directory) {
 		workDir, _ := os.Getwd()
 		staticPath = filepath.Join(workDir, directory)
@@ -67,7 +66,6 @@ func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 		fullPath := filepath.Join(dirPath, entry.Name())
 
 		if entry.IsDir() {
-			// Recursively walk subdirectories
 			subUrlPrefix := filepath.Join(urlPrefix, entry.Name())
 			if err := s.walkDirectory(fullPath, subUrlPrefix); err != nil {
 				zap.L().Warn("failed to walk subdirectory", zap.String("dir", fullPath), zap.Error(err))
@@ -79,7 +77,6 @@ func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 			routePath = "/" + strings.ReplaceAll(routePath, "\\", "/") // Normalize path separators
 
 			if s.isServeableFile(entry.Name()) {
-				// Store relative path instead of absolute path for better memory efficiency
 				relativePath := filepath.Join(urlPrefix, entry.Name())
 				s.discoveredFiles[routePath] = relativePath
 			}
@@ -92,15 +89,10 @@ func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 func (s *StaticFileService) isServeableFile(fileName string) bool {
 	// Serve all common static file types
 	staticExtensions := []string{
-		// Images
 		".ico", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
-		// Documents
 		".json", ".txt", ".xml", ".pdf",
-		// Web assets
 		".html", ".css", ".js", ".map",
-		// Fonts
 		".woff", ".woff2", ".ttf", ".eot",
-		// Other
 		".manifest", ".webmanifest",
 	}
 	for _, ext := range staticExtensions {
@@ -128,14 +120,12 @@ func (s *StaticFileService) Routes() chi.Router {
 
 func (s *StaticFileService) serveFile(w http.ResponseWriter, r *http.Request, requestPath string) {
 	// Check if file was discovered at startup (whitelist approach)
-	zap.L().Debug("serving file", zap.String("path", requestPath))
 	relativePath, exists := s.discoveredFiles[requestPath]
 	if !exists {
 		http.NotFound(w, r)
 		return
 	}
 
-	// Construct full path from base + relative path
 	fullPath := filepath.Join(s.staticPath, relativePath)
 
 	s.secureServeFile(w, r, fullPath)
@@ -150,25 +140,20 @@ func (s *StaticFileService) serveSPAFallback(w http.ResponseWriter, r *http.Requ
 
 func (s *StaticFileService) secureServeFile(w http.ResponseWriter, r *http.Request, filePath string) {
 
-	// Set security headers
 	s.setSecurityHeaders(w, filePath)
 
-	// Serve the file
 	http.ServeFile(w, r, filePath)
 }
 
 func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath string) {
-	// Prevent MIME type sniffing
+
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
-	// Set Content-Security-Policy for HTML files
 	if strings.HasSuffix(filePath, ".html") {
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:")
 	}
 
-	// Prevent embedding in frames (clickjacking protection)
 	w.Header().Set("X-Frame-Options", "DENY")
 
-	// Enable XSS protection
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
 }
