@@ -15,9 +15,11 @@ type Configuration struct {
 }
 
 type PlatformConfiguration struct {
-	ApiUrl         string   `mapstructure:"api_url" validate:"required"`
-	WebUrl         string   `mapstructure:"web_url" validate:"required"`
-	TrustedProxies []string `mapstructure:"trusted_proxies" validate:"required"`
+	ApiUrl         string              `mapstructure:"api_url" validate:"required"`
+	WebUrl         string              `mapstructure:"web_url" validate:"required"`
+	TrustedProxies []string            `mapstructure:"trusted_proxies" validate:"required"`
+	Port           int                 `mapstructure:"port" validate:"gte=80,lte=65535"`
+	StaticFiles    StaticConfiguration `mapstructure:"static_files"`
 }
 
 type DatabaseConfiguration struct {
@@ -133,4 +135,9 @@ type ActivityConfiguration struct {
 	Level    string `mapstructure:"level"`
 	Type     string `mapstructure:"type" validate:"required,oneof=loki"`
 	Endpoint string `mapstructure:"endpoint" validate:"required"`
+}
+
+type StaticConfiguration struct {
+	Enabled   bool   `mapstructure:"enabled"`
+	Directory string `mapstructure:"directory"`
 }

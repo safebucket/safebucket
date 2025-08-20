@@ -12,6 +12,10 @@ import (
 	"api/internal/rbac/roles"
 	"api/internal/services"
 	"context"
+	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/casbin/casbin/v2"
 	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/go-chi/chi/v5"
@@ -20,8 +24,6 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm/clause"
-	"net/http"
-	"time"
 )
 
 func main() {
@@ -92,44 +94,58 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	r.Use(m.Authenticate(config.JWT))
-
-	r.Use(m.RateLimit(cache, config.Platform.TrustedProxies))
-
 	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
 
-	r.Mount("/users", services.UserService{DB: db, Enforcer: e}.Routes())
-	r.Mount("/buckets", services.BucketService{
-		DB:             db,
-		Storage:        storage,
-		Enforcer:       e,
-		Publisher:      &publisher,
-		ActivityLogger: activity,
-		Providers:      providers,
-		WebUrl:         config.Platform.WebUrl,
-	}.Routes())
+	// API routes with auth middleware
+	r.Route("/api", func(apiRouter chi.Router) {
+		apiRouter.Use(m.Authenticate(config.JWT))
+		apiRouter.Use(m.RateLimit(cache, config.Platform.TrustedProxies))
 
-	r.Mount("/auth", services.AuthService{
-		DB:        db,
-		JWTConf:   config.JWT,
-		Providers: providers,
-		WebUrl:    config.Platform.WebUrl,
-	}.Routes())
+		apiRouter.Mount("/v1/users", services.UserService{DB: db, Enforcer: e}.Routes())
+		apiRouter.Mount("/v1/buckets", services.BucketService{
+			DB:             db,
+			Storage:        storage,
+			Enforcer:       e,
+			Publisher:      &publisher,
+			ActivityLogger: activity,
+			Providers:      providers,
+			WebUrl:         config.Platform.WebUrl,
+		}.Routes())
 
-	r.Mount("/invites", services.InviteService{
-		DB:             db,
-		JWTConf:        config.JWT,
-		Enforcer:       e,
-		Publisher:      &publisher,
-		ActivityLogger: activity,
-		Providers:      providers,
-		WebUrl:         config.Platform.WebUrl,
-	}.Routes())
+		apiRouter.Mount("/v1/auth", services.AuthService{
+			DB:        db,
+			JWTConf:   config.JWT,
+			Providers: providers,
+			WebUrl:    config.Platform.WebUrl,
+		}.Routes())
+
+		apiRouter.Mount("/v1/invites", services.InviteService{
+			DB:             db,
+			JWTConf:        config.JWT,
+			Enforcer:       e,
+			Publisher:      &publisher,
+			ActivityLogger: activity,
+			Providers:      providers,
+			WebUrl:         config.Platform.WebUrl,
+		}.Routes())
+	})
+
+	// Initialize and mount static file service (if enabled)
+	if config.Platform.StaticFiles.Enabled {
+		staticFileService, err := services.NewStaticFileService(config.Platform.StaticFiles.Directory)
+		if err != nil {
+			zap.L().Fatal("failed to initialize static file service", zap.Error(err))
+		}
+		r.Mount("/", staticFileService.Routes())
+		zap.L().Info("static file service enabled", zap.String("directory", config.Platform.StaticFiles.Directory))
+	} else {
+		zap.L().Info("static file service disabled")
+	}
 
 	zap.L().Info("App started")
 
 	server := &http.Server{
-		Addr:         ":1323",
+		Addr:         fmt.Sprintf(":%d", config.Platform.Port),
 		Handler:      r,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,

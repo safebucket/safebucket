@@ -77,8 +77,9 @@ async function refreshToken(): Promise<void> {
       refresh_token: Cookies.get("safebucket_refresh_token"),
     });
 
+    const apiUrl = await getApiUrl();
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/auth/refresh`,
+      `${apiUrl}/auth/refresh`,
       {
         method: "POST",
         body,

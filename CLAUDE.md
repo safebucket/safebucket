@@ -17,16 +17,19 @@ SafeBucket is a secure cloud storage management platform with multi-provider sup
 - **Validation**: go-playground/validator with struct tags
 - **Password Hashing**: Argon2id for secure secret storage
 
-### Frontend (Next.js 15/React 18)
-- **Framework**: Next.js 15 with TypeScript, Turbopack for dev
-- **UI**: Tailwind CSS with Radix UI primitives (@radix-ui/*)
+### Frontend (Vite + React 19)
+- **Framework**: Vite 6 with React 19 and TypeScript
+- **Routing**: TanStack Router with file-based routing and type-safe navigation
+- **Build Tool**: Vite with React plugin and Tailwind CSS Vite plugin
+- **UI**: Tailwind CSS 4 with Radix UI primitives (@radix-ui/*)
 - **Component Library**: shadcn/ui with class-variance-authority
-- **State Management**: React Context with reducer patterns + SWR for data fetching
+- **State Management**: React Context with reducer patterns + TanStack Query (React Query) for server state
 - **Authentication**: Custom JWT handling with js-cookie
 - **File Management**: Upload/download with react-hook-form and progress tracking
 - **Data Tables**: TanStack Table (@tanstack/react-table)
-- **Icons**: Lucide React + React Icons
+- **Icons**: Lucide React
 - **Date Handling**: date-fns with react-day-picker
+- **DevTools**: TanStack DevTools for router and query debugging
 
 ## Abstraction Layers
 
@@ -84,7 +87,7 @@ type ListTargetFunc[Out any] func(models.UserClaims) []Out
 - **SessionProvider**: Authentication state management
 
 #### 2. **Custom Hooks Pattern**
-- **Data Fetching**: `useBucketData`, `useActivityData` with SWR
+- **Data Fetching**: `useBucketData`, `useActivityData` with TanStack Query
 - **State Management**: `useBucketViewContext`, `useUploadContext`
 - **Utilities**: `useDialog`, `useMobile`
 
@@ -158,8 +161,9 @@ components/
 #### 4. **State Management**
 - **Local State**: `useState` for component-specific state
 - **Shared State**: Context providers for feature-level state
-- **Server State**: SWR for data fetching with caching
-- **Form State**: react-hook-form for complex forms
+- **Server State**: TanStack Query for data fetching with caching and synchronization
+- **Form State**: react-hook-form with @hookform/resolvers for validation
+- **Routing State**: TanStack Router with type-safe navigation and params
 
 ## Common Tools & Utilities
 
@@ -173,19 +177,20 @@ components/
 - **HTTP Client**: resty for external API calls
 
 ### Frontend Tools
-- **Linting**: ESLint with Prettier integration
-- **Code Formatting**: Prettier with Tailwind plugin
-- **Build**: Next.js with Turbopack for development
+- **Linting**: ESLint with TanStack ESLint config and Prettier integration
+- **Code Formatting**: Prettier with Tailwind plugin and import sorting
+- **Build**: Vite 6 with React plugin and fast HMR for development
+- **Testing**: Vitest for unit testing with jsdom and React Testing Library
 - **Type Checking**: TypeScript with strict mode
-- **CSS**: Tailwind CSS with custom configuration
-- **Icons**: Lucide React (primary) + React Icons (additional)
-- **Forms**: react-hook-form with validation
+- **CSS**: Tailwind CSS 4 with Vite plugin integration
+- **Icons**: Lucide React
+- **Forms**: react-hook-form with @hookform/resolvers for validation
 - **Date/Time**: date-fns for date manipulation
 
 ### Development Workflow
 - **Package Management**: npm (frontend), go modules (backend)
 - **Code Quality**: ESLint + Prettier (frontend), go fmt + go vet (backend)
-- **Testing**: Jest/React Testing Library (frontend), Go testing (backend)
+- **Testing**: Vitest + React Testing Library (frontend), Go testing (backend)
 - **Git Workflow**: Feature branches with PR reviews
 - **Environment**: Docker Compose for local development
 
@@ -197,12 +202,14 @@ go test ./...                  # Run tests
 go mod tidy                    # Clean dependencies
 go fmt ./...                   # Format code
 
-# Frontend
-npm run dev                    # Development server (Turbopack)
-npm run build                  # Production build
+# Frontend (web_v2 directory)
+npm run dev                    # Development server with Vite HMR
+npm run build                  # Production build with Vite + TypeScript
+npm run test                   # Run unit tests with Vitest
 npm run lint                   # ESLint check
-npm run prettier               # Format check
-npm start                      # Production server
+npm run format                 # Prettier format
+npm run serve                  # Serve production build
+npm run check                  # Format + lint fix all at once
 ```
 
 ## Database Schema

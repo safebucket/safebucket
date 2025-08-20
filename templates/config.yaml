@@ -1,8 +1,13 @@
 platform:
   api_url: http://localhost:1323
   web_url: http://localhost:3000
-
+  port: 8080
   trusted_proxies:
+    - 127.0.0.1
+    - ::1
+  static_files:
+    enabled: true
+    directory: "web_v2/dist"
 
 cors:
   allowed_origins:

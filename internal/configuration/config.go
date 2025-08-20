@@ -50,6 +50,11 @@ func readFileConfig(v *viper.Viper) {
 func setDefault(v *viper.Viper) {
 	v.SetDefault("database.sslmode", "disable")
 	v.SetDefault("database.port", 5432)
+
+	// Platform configuration defaults
+	v.SetDefault("platform.port", 8080)
+	v.SetDefault("platform.static_files.enabled", true)
+	v.SetDefault("platform.static_files.directory", "web_v2/dist")
 }
 
 func Read() models.Configuration {

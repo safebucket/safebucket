@@ -19,9 +19,9 @@ export async function loadConfig(): Promise<Config> {
 
     return config;
   } catch (error) {
-    console.error("Failed to load config, using defaults:", error);
+    console.warn("Failed to load config, using defaults:", error);
     config = {
-      apiUrl: "http://localhost:1323",
+      apiUrl: window.location.origin,
       environment: "development",
     };
     return config;
@@ -30,5 +30,5 @@ export async function loadConfig(): Promise<Config> {
 
 export async function getApiUrl(): Promise<string> {
   const cfg = await loadConfig();
-  return cfg.apiUrl;
+  return `${cfg.apiUrl}/api/v1`;
 }
