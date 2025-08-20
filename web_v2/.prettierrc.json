@@ -3,23 +3,5 @@
   "semi": true,
   "singleQuote": false,
   "bracketSpacing": true,
-  "trailingComma": "all",
-  "importOrder": [
-    "^(react|react-dom)$",
-    "<THIRD_PARTY_MODULES>",
-    "^@/app/(.*)$",
-    "^@/components/(.*)$",
-    "^@/helpers/(.*)$",
-    "^@/utils/(.*)$",
-    "^@/test/(.*)$",
-    "^@/constants/(.*)$",
-    "^[./]"
-  ],
-  "importOrderSeparation": true,
-  "importOrderSortSpecifiers": true,
-  "importOrderGroupNamespaceSpecifiers": true,
-  "plugins": [
-    "@trivago/prettier-plugin-sort-imports",
-    "prettier-plugin-tailwindcss"
-  ]
+  "trailingComma": "all"
 }

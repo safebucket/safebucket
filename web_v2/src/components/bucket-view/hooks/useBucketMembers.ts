@@ -7,7 +7,7 @@ import { useSessionContext } from "@/components/auth-view/hooks/useSessionContex
 import type {
   IBucket,
   IBucketMember,
-  IInvites,
+  IMembers,
 } from "@/components/bucket-view/helpers/types";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import { api_updateMembers } from "@/components/upload/helpers/api";
@@ -16,10 +16,10 @@ export interface IBucketMembersData {
   members: IBucketMember[];
   membersError: string;
   isMembersLoading: boolean;
-  shareWith: IInvites[];
-  setShareWith: (invites: IInvites[]) => void;
-  allMembers: IInvites[];
-  setAllMembers: (members: IInvites[]) => void;
+  shareWith: IMembers[];
+  setShareWith: (invites: IMembers[]) => void;
+  allMembers: IMembers[];
+  setAllMembers: (members: IMembers[]) => void;
   hasChanges: boolean;
   currentUserEmail: string | undefined;
   currentUserName: string;
@@ -37,8 +37,8 @@ export const useBucketMembers = (bucket: IBucket): IBucketMembersData => {
     fetchApi<{ data: IBucketMember[] }>,
   );
 
-  const [shareWith, setShareWith] = useState<IInvites[]>([]);
-  const [allMembers, setAllMembers] = useState<IInvites[]>([]);
+  const [shareWith, setShareWith] = useState<IMembers[]>([]);
+  const [allMembers, setAllMembers] = useState<IMembers[]>([]);
 
   const { session } = useSessionContext();
 

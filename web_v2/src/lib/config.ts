@@ -21,7 +21,7 @@ export async function loadConfig(): Promise<Config> {
   } catch (error) {
     console.warn("Failed to load config, using defaults:", error);
     config = {
-      apiUrl: window.location.origin,
+      apiUrl: "http://localhost:8080",
       environment: "development",
     };
     return config;

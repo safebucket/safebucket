@@ -1,11 +1,10 @@
 import type { Activity } from "@/types/activity";
 
+import { ActivityItem } from "@/components/activity-view/ActivityItem.tsx";
 import { Separator } from "@/components/ui/separator";
 
-import { ActivityItem } from "./ActivityItem";
-
 interface ActivityViewProps {
-  activity: Activity[];
+  activity: Array<Activity>;
 }
 
 export function ActivityView({ activity }: ActivityViewProps) {

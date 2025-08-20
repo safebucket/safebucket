@@ -13,7 +13,7 @@ import {
 import { AddMembers } from "@/components/add-members";
 import { nav } from "@/components/app-sidebar/helpers/nav";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
-import type { IInvites } from "@/components/bucket-view/helpers/types";
+import type { IMembers } from "@/components/bucket-view/helpers/types";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
@@ -50,7 +50,7 @@ export const AppSidebar: FC = () => {
   const createBucketDialog = useDialog();
   const { buckets, createBucketAndInvites } = useBucketsData();
 
-  const [shareWith, setShareWith] = useState<Array<IInvites>>([]);
+  const [shareWith, setShareWith] = useState<Array<IMembers>>([]);
 
   return (
     <Sidebar variant="inset">

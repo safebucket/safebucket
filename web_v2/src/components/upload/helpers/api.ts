@@ -3,7 +3,7 @@ import { api } from "@/lib/api";
 import type {
   FileType,
   IInviteResponse,
-  IInvites,
+  IMembers,
 } from "@/components/bucket-view/helpers/types";
 import { toast } from "@/components/ui/hooks/use-toast";
 import type { ICreateFile } from "@/components/upload/helpers/types";
@@ -57,7 +57,7 @@ export const uploadToStorage = async (
   });
 };
 
-export const api_updateMembers = (bucket_id: string, invites: IInvites[]) =>
+export const api_updateMembers = (bucket_id: string, invites: IMembers[]) =>
   api.post<IInviteResponse[]>("/invites", { bucket_id, invites });
 
 export const api_updateBucketName = (bucketId: string, name: string) =>

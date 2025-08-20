@@ -5,18 +5,18 @@ import { AddMembersInput } from "@/components/add-members/components/AddMembersI
 import { AddMembersSkeleton } from "@/components/add-members/components/AddMembersSkeleton";
 import { PeopleWithAccess } from "@/components/add-members/components/PeopleWithAccess";
 import { useAddMembers } from "@/components/add-members/hooks/useAddMembers";
-import type { IInvites } from "@/components/bucket-view/helpers/types";
+import type { IMembers } from "@/components/bucket-view/helpers/types";
 import { useBucketMembersData } from "@/components/bucket-view/hooks/useBucketMembersData";
 import { Separator } from "@/components/ui/separator";
 
 interface IAddMembersProps {
-  shareWith: IInvites[];
-  onShareWithChange: (shareWith: IInvites[]) => void;
+  shareWith: IMembers[];
+  onShareWithChange: (shareWith: IMembers[]) => void;
   currentUserEmail?: string;
   currentUserName?: string;
   showCurrentUser?: boolean;
   bucketId?: string;
-  onAllMembersChange?: (allMembers: IInvites[]) => void;
+  onAllMembersChange?: (allMembers: IMembers[]) => void;
 }
 
 export const AddMembers: FC<IAddMembersProps> = ({
@@ -42,7 +42,7 @@ export const AddMembers: FC<IAddMembersProps> = ({
   useEffect(() => {
     if (!members || !onAllMembersChange) return;
 
-    const existingMembersAsInvites: IInvites[] = members
+    const existingMembersAsInvites: IMembers[] = members
       .filter((member) => member.email !== currentUserEmail)
       .map((member) => ({
         email: member.email,

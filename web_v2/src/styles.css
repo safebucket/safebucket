@@ -46,7 +46,7 @@ code {
     --sidebar-primary: oklch(0.606 0.25 292.717);
     --sidebar-primary-foreground: oklch(0.969 0.016 293.756);
     --sidebar-accent: oklch(0.967 0.001 286.375);
-    --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+    --sidebar-accent-foreground: oklch(0.606 0.25 292.717);
     --sidebar-border: oklch(0.92 0.004 286.32);
     --sidebar-ring: oklch(0.606 0.25 292.717);
 }

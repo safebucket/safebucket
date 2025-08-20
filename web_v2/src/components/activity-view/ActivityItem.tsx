@@ -1,10 +1,11 @@
+import type { Activity } from "@/types/activity";
+
 import {
   formatMessage,
   getActivityMapping,
   timeAgo,
 } from "@/lib/activity-utils";
 import { cn } from "@/lib/utils";
-import type { Activity } from "@/types/activity";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 

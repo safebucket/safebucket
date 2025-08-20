@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { useLocation, useParams, useRouter } from "@tanstack/react-router";
+import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 
 import type { IFile } from "@/components/bucket-view/helpers/types";
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
@@ -13,8 +13,8 @@ export const BucketViewProvider = ({
   children: React.ReactNode;
   path: string;
 }) => {
-  const router = useRouter();
-  const params = useParams({ from: "/buckets/$id/" });
+  const navigate = useNavigate();
+  const params = useParams({ from: "/buckets/$id/{-$path}" });
   const location = useLocation();
 
   const [view, setView] = useState<BucketViewMode>(BucketViewMode.List);
@@ -22,7 +22,7 @@ export const BucketViewProvider = ({
 
   const openFolder = (file: IFile) => {
     if (file.type == "folder") {
-      router.navigate({ to: `${location.pathname}/${file.name}` });
+      navigate({ to: `${location.pathname}/${file.name}` });
     }
   };
 

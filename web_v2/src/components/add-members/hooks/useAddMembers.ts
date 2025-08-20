@@ -1,16 +1,16 @@
 import { useState } from "react";
 
 import { EMAIL_REGEX } from "@/components/add-members/helpers/constants";
-import type { IInvites } from "@/components/bucket-view/helpers/types";
+import type { IMembers } from "@/components/bucket-view/helpers/types";
 
 export const useAddMembers = (
-  initialShareWith: IInvites[] = [],
-  onShareWithChange?: (shareWith: IInvites[]) => void,
+  initialShareWith: IMembers[] = [],
+  onShareWithChange?: (shareWith: IMembers[]) => void,
 ) => {
   const [email, setEmail] = useState<string>("");
-  const [shareWith, setShareWithState] = useState<IInvites[]>(initialShareWith);
+  const [shareWith, setShareWithState] = useState<IMembers[]>(initialShareWith);
 
-  const updateShareWith = (newShareWith: IInvites[]) => {
+  const updateShareWith = (newShareWith: IMembers[]) => {
     setShareWithState(newShareWith);
     onShareWithChange?.(newShareWith);
   };

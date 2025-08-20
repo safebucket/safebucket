@@ -5,7 +5,7 @@ export interface IFile {
   type: FileType;
   extension: string;
   path: string;
-  files: IFile[];
+  files: Array<IFile>;
   created_at: string;
 }
 
@@ -14,7 +14,7 @@ export enum FileType {
   folder = "folder",
 }
 
-export interface IInvites {
+export interface IMembers {
   email: string;
   group: string;
 }
@@ -22,29 +22,23 @@ export interface IInvites {
 export interface IBucket {
   id: string;
   name: string;
-  files: IFile[];
+  files: Array<IFile>;
   created_by: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface IBucketsData {
-  buckets: IBucket[];
+  buckets: Array<IBucket>;
   error: string;
   isLoading: boolean;
-  createBucketAndInvites: (name: string, shareWith: IInvites[]) => void;
+  createBucketAndInvites: (name: string, shareWith: Array<IMembers>) => void;
   isDialogOpen: boolean;
   setIsDialogOpen: (isOpen: boolean) => void;
 }
 
-export interface IBucketData {
-  bucket: IBucket | undefined;
-  error: string;
-  isLoading: boolean;
-}
-
 export type IListBuckets = {
-  data: IBucket[];
+  data: Array<IBucket>;
 };
 
 export enum BucketViewMode {
@@ -69,6 +63,6 @@ export interface IBucketMember {
   email: string;
   first_name?: string;
   last_name?: string;
-  role: string;
+  group: string;
   status: "active" | "invited";
 }

@@ -10,7 +10,7 @@ import {
 import type {
   IBucket,
   IBucketsData,
-  IInvites,
+  IMembers,
   IListBuckets,
 } from "@/components/bucket-view/helpers/types";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
@@ -23,7 +23,7 @@ export const useBucketsData = (): IBucketsData => {
     fetchApi<IListBuckets>,
   );
 
-  const createBucketAndInvites = async (name: string, invites: IInvites[]) => {
+  const createBucketAndInvites = async (name: string, invites: IMembers[]) => {
     api_createBucket(name)
       .then((bucket: IBucket) =>
         api_createInvites(bucket.id, invites).then(() => {
