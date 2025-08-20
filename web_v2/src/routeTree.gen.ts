@@ -10,7 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as BucketsIndexRouteImport } from './routes/buckets/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ActivityIndexRouteImport } from './routes/activity/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
 import { Route as AuthCompleteIndexRouteImport } from './routes/auth/complete/index'
@@ -21,9 +21,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BucketsIndexRoute = BucketsIndexRouteImport.update({
-  id: '/buckets/',
-  path: '/buckets/',
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivityIndexRoute = ActivityIndexRouteImport.update({
@@ -51,7 +51,7 @@ const BucketsIdChar123PathChar125Route =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityIndexRoute
-  '/buckets': typeof BucketsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/buckets/$id/{-$path}': typeof BucketsIdChar123PathChar125Route
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
@@ -59,7 +59,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityIndexRoute
-  '/buckets': typeof BucketsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/buckets/$id/{-$path}': typeof BucketsIdChar123PathChar125Route
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
@@ -68,7 +68,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activity/': typeof ActivityIndexRoute
-  '/buckets/': typeof BucketsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/buckets/$id/{-$path}': typeof BucketsIdChar123PathChar125Route
   '/auth/complete/': typeof AuthCompleteIndexRoute
   '/auth/login/': typeof AuthLoginIndexRoute
@@ -78,7 +78,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/activity'
-    | '/buckets'
+    | '/settings'
     | '/buckets/$id/{-$path}'
     | '/auth/complete'
     | '/auth/login'
@@ -86,7 +86,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/activity'
-    | '/buckets'
+    | '/settings'
     | '/buckets/$id/{-$path}'
     | '/auth/complete'
     | '/auth/login'
@@ -94,7 +94,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/activity/'
-    | '/buckets/'
+    | '/settings/'
     | '/buckets/$id/{-$path}'
     | '/auth/complete/'
     | '/auth/login/'
@@ -103,7 +103,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityIndexRoute: typeof ActivityIndexRoute
-  BucketsIndexRoute: typeof BucketsIndexRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
   BucketsIdChar123PathChar125Route: typeof BucketsIdChar123PathChar125Route
   AuthCompleteIndexRoute: typeof AuthCompleteIndexRoute
   AuthLoginIndexRoute: typeof AuthLoginIndexRoute
@@ -118,11 +118,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/buckets/': {
-      id: '/buckets/'
-      path: '/buckets'
-      fullPath: '/buckets'
-      preLoaderRoute: typeof BucketsIndexRouteImport
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activity/': {
@@ -159,7 +159,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityIndexRoute: ActivityIndexRoute,
-  BucketsIndexRoute: BucketsIndexRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
   BucketsIdChar123PathChar125Route: BucketsIdChar123PathChar125Route,
   AuthCompleteIndexRoute: AuthCompleteIndexRoute,
   AuthLoginIndexRoute: AuthLoginIndexRoute,

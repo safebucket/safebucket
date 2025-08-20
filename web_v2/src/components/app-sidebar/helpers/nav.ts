@@ -1,4 +1,4 @@
-import { Home, LifeBuoy, Send } from "lucide-react";
+import { Home, LifeBuoy, Send, Settings2 } from "lucide-react";
 
 export const nav = {
   user: {
@@ -6,19 +6,26 @@ export const nav = {
   },
   main: [
     {
-      title: "Personal",
+      title: "navigation.personal",
       url: "#",
       icon: Home,
       items: [
         {
-          title: "Home",
+          title: "navigation.home",
           url: "/",
         },
         {
-          title: "Activity",
+          title: "navigation.activity",
           url: "/activity",
         },
       ],
+    },
+  ],
+  settings: [
+    {
+      title: "navigation.settings",
+      url: "/settings",
+      icon: Settings2,
     },
   ],
   help: [

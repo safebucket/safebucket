@@ -10,6 +10,7 @@ import { SessionProvider } from "@/components/auth-view/context/SessionProvider.
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 
+import "./lib/i18n";
 import "./styles.css";
 
 // Create a query client

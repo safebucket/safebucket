@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { useTranslation } from "react-i18next";
 
 import { AlertTriangle } from "lucide-react";
 
@@ -14,6 +15,7 @@ interface IBucketDeletionProps {
 }
 
 export const BucketDeletion: FC<IBucketDeletionProps> = ({ bucket }) => {
+  const { t } = useTranslation();
   const {
     confirmationText,
     setConfirmationText,
@@ -28,21 +30,20 @@ export const BucketDeletion: FC<IBucketDeletionProps> = ({ bucket }) => {
         <div className="space-y-3">
           <div>
             <h3 className="text-sm font-semibold text-red-700">
-              Delete this bucket
+              {t("bucket_settings.deletion.title")}
             </h3>
             <p className="mt-1 text-xs text-red-600">
-              This will permanently delete the bucket and all the associated
-              files. This action cannot be undone.
+              {t("bucket_settings.deletion.description")}
             </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="confirmation" className="text-xs font-medium">
-              Type{" "}
+              {t("bucket_settings.deletion.type_to_confirm")}{" "}
               <span className="rounded bg-red-100 px-1 py-0.5 font-mono text-xs text-red-700">
                 {expectedDeleteText}
               </span>{" "}
-              to confirm
+              {t("bucket_settings.deletion.to_confirm")}
             </Label>
             <div className="flex items-center gap-2">
               <Input
@@ -60,7 +61,7 @@ export const BucketDeletion: FC<IBucketDeletionProps> = ({ bucket }) => {
                 className="flex items-center gap-2"
               >
                 <AlertTriangle className="h-3 w-3" />
-                Delete
+                {t("bucket_settings.deletion.delete")}
               </Button>
             </div>
           </div>

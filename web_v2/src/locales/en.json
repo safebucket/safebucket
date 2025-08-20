@@ -1,0 +1,101 @@
+{
+  "navigation": {
+    "personal": "Personal",
+    "home": "Home",
+    "activity": "Activity",
+    "shared_buckets": "Shared Buckets",
+    "settings": "Settings"
+  },
+  "activity": {
+    "title": "Activity Feed",
+    "messages": {
+      "bucket_created": "Created a bucket '%%BUCKET_NAME%%' and shared it with you.",
+      "file_uploaded": "Uploaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
+      "file_downloaded": "Downloaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
+      "file_updated": "Updated a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
+      "file_deleted": "Deleted a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
+      "bucket_member_created": "Invited %%BUCKET_MEMBER_EMAIL%% to the bucket '%%BUCKET_NAME%%'.",
+      "bucket_member_updated": "Updated the group of %%BUCKET_MEMBER_EMAIL%% on the bucket '%%BUCKET_NAME%%'.",
+      "bucket_member_deleted": "Removed %%BUCKET_MEMBER_EMAIL%% from the bucket '%%BUCKET_NAME%%'.",
+      "default": "%%USERNAME%% performed an action on bucket '%%BUCKET_NAME%%'."
+    },
+    "time": {
+      "second": "second",
+      "seconds": "seconds",
+      "minute": "minute",
+      "minutes": "minutes",
+      "hour": "hour",
+      "hours": "hours",
+      "day": "day",
+      "days": "days",
+      "week": "week",
+      "weeks": "weeks",
+      "month": "month",
+      "months": "months",
+      "year": "year",
+      "years": "years",
+      "ago": "{{value}} {{unit}} ago"
+    }
+  },
+  "bucket_header": {
+    "share_file": "Share a file",
+    "upload_and_share": "Upload a file and share it safely",
+    "share": "Share"
+  },
+  "bucket_list_view": {
+    "name": "Name",
+    "size": "Size",
+    "type": "Type",
+    "uploaded_at": "Uploaded At"
+  },
+  "bucket_settings": {
+    "information": {
+      "title": "Bucket Information",
+      "bucket_url": "Bucket URL",
+      "bucket_name": "Bucket Name",
+      "enter_bucket_name": "Enter bucket name"
+    },
+    "deletion": {
+      "title": "Delete this bucket",
+      "description": "This will permanently delete the bucket and all the associated files. This action cannot be undone.",
+      "type_to_confirm": "Type",
+      "to_confirm": "to confirm",
+      "delete": "Delete"
+    },
+    "members": {
+      "title": "Bucket Members",
+      "description": "Manage who has access to this bucket and their permissions",
+      "add_member": "Add Member",
+      "members": "Members",
+      "enter_email": "Enter email address",
+      "update_members": "Update Members",
+      "updating": "Updating..."
+    }
+  },
+  "upload": {
+    "uploads": "Uploads",
+    "no_uploads_in_progress": "No uploads in progress",
+    "completed": "completed",
+    "failed": "failed",
+    "active": "active",
+    "status": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "preparing": "Preparing...",
+      "unknown": "Unknown"
+    },
+    "drag_drop": {
+      "drop_files": "Drop files or folders to upload",
+      "drop_description": "Files and folders will be uploaded to the current directory"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "language": {
+      "label": "Language",
+      "description": "Select your preferred language",
+      "english": "English",
+      "french": "French"
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "navigation": {
+    "personal": "Personnel",
+    "home": "Accueil",
+    "activity": "Activité",
+    "shared_buckets": "Buckets",
+    "settings": "Paramètres"
+  },
+  "activity": {
+    "title": "Flux d'activité",
+    "messages": {
+      "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
+      "file_uploaded": "A téléchargé un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "file_downloaded": "A téléchargé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
+      "file_updated": "A modifié un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "file_deleted": "A supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
+      "bucket_member_created": "A invité %%BUCKET_MEMBER_EMAIL%% dans le bucket '%%BUCKET_NAME%%'.",
+      "bucket_member_updated": "A modifié le groupe de %%BUCKET_MEMBER_EMAIL%% dans le bucket '%%BUCKET_NAME%%'.",
+      "bucket_member_deleted": "A retiré %%BUCKET_MEMBER_EMAIL%% du bucket '%%BUCKET_NAME%%'.",
+      "default": "%%USERNAME%% a effectué une action sur le bucket '%%BUCKET_NAME%%'."
+    },
+    "time": {
+      "second": "seconde",
+      "seconds": "secondes",
+      "minute": "minute",
+      "minutes": "minutes",
+      "hour": "heure",
+      "hours": "heures",
+      "day": "jour",
+      "days": "jours",
+      "week": "semaine",
+      "weeks": "semaines",
+      "month": "mois",
+      "months": "mois",
+      "year": "année",
+      "years": "années",
+      "ago": "il y a {{value}} {{unit}}"
+    }
+  },
+  "bucket_header": {
+    "share_file": "Partager un fichier",
+    "upload_and_share": "Téléchargez un fichier et partagez-le en toute sécurité",
+    "share": "Partager"
+  },
+  "bucket_list_view": {
+    "name": "Nom",
+    "size": "Taille",
+    "type": "Type",
+    "uploaded_at": "Créé à"
+  },
+  "bucket_settings": {
+    "information": {
+      "title": "Informations du Bucket",
+      "bucket_url": "URL du Bucket",
+      "bucket_name": "Nom du Bucket",
+      "enter_bucket_name": "Saisir le nom du bucket"
+    },
+    "deletion": {
+      "title": "Supprimer ce bucket",
+      "description": "Ceci supprimera définitivement le bucket et tous les fichiers associés. Cette action ne peut pas être annulée.",
+      "type_to_confirm": "Tapez",
+      "to_confirm": "pour confirmer",
+      "delete": "Supprimer"
+    },
+    "members": {
+      "title": "Membres du Bucket",
+      "description": "Gérez qui a accès à ce bucket et leurs permissions",
+      "add_member": "Ajouter un Membre",
+      "members": "Membres",
+      "enter_email": "Saisir l'adresse e-mail",
+      "update_members": "Mettre à jour les membres",
+      "updating": "Mise à jour..."
+    }
+  },
+  "upload": {
+    "uploads": "Téléchargements",
+    "no_uploads_in_progress": "Aucun téléchargement en cours",
+    "completed": "terminé(s)",
+    "failed": "échoué(s)",
+    "active": "actif(s)",
+    "status": {
+      "completed": "Terminé",
+      "failed": "Échec",
+      "preparing": "Préparation...",
+      "unknown": "Inconnu"
+    },
+    "drag_drop": {
+      "drop_files": "Déposez des fichiers ou dossiers à télécharger",
+      "drop_description": "Les fichiers et dossiers seront téléchargés dans le répertoire actuel"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": {
+      "label": "Langue",
+      "description": "Sélectionnez votre langue préférée",
+      "english": "Anglais",
+      "french": "Français"
+    }
+  }
+}

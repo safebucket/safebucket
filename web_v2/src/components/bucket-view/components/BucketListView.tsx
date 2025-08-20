@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { useTranslation } from "react-i18next";
 
 import { formatDate, formatFileSize } from "@/lib/utils";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -13,11 +14,11 @@ import { DataTableRowActions } from "@/components/common/components/DataTable/Da
 import { Badge } from "@/components/ui/badge";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 
-export const columns: ColumnDef<IFile>[] = [
+const createColumns = (t: (key: string) => string): ColumnDef<IFile>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
+      <DataTableColumnHeader column={column} title={t("bucket_list_view.name")} />
     ),
     cell: ({ row }) => (
       <div className="flex w-[350px] items-center space-x-2">
@@ -33,7 +34,7 @@ export const columns: ColumnDef<IFile>[] = [
   {
     accessorKey: "size",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Size" />
+      <DataTableColumnHeader column={column} title={t("bucket_list_view.size")} />
     ),
     cell: ({ row }) =>
       row.getValue("type") === FileType.folder
@@ -46,7 +47,7 @@ export const columns: ColumnDef<IFile>[] = [
   {
     accessorKey: "type",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Type" />
+      <DataTableColumnHeader column={column} title={t("bucket_list_view.type")} />
     ),
     cell: ({ row }) => (
       <Badge variant="secondary">{row.getValue("type")}</Badge>
@@ -58,7 +59,7 @@ export const columns: ColumnDef<IFile>[] = [
   {
     accessorKey: "created_at",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Uploaded At" />
+      <DataTableColumnHeader column={column} title={t("bucket_list_view.uploaded_at")} />
     ),
     cell: ({ row }) => formatDate(row.getValue("created_at")),
     filterFn: (row, id, value) => {
@@ -80,7 +81,9 @@ export const BucketListView: FC<IBucketListViewProps> = ({
   files,
   bucketId,
 }: IBucketListViewProps) => {
+  const { t } = useTranslation();
   const { selected, setSelected, openFolder } = useBucketViewContext();
+  const columns = createColumns(t);
 
   return (
     <DragDropZone bucketId={bucketId}>

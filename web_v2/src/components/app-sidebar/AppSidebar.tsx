@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { FC } from "react";
-
 import { Link, useLocation } from "@tanstack/react-router";
+
+import { useTranslation } from "react-i18next";
 import {
   ChevronsUpDown,
   FolderSync,
@@ -9,11 +9,12 @@ import {
   Plus,
   ShieldCheck,
 } from "lucide-react";
+import type { FC } from "react";
 
+import type { IMembers } from "@/components/bucket-view/helpers/types";
 import { AddMembers } from "@/components/add-members";
 import { nav } from "@/components/app-sidebar/helpers/nav";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
-import type { IMembers } from "@/components/bucket-view/helpers/types";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
@@ -46,6 +47,7 @@ import {
 
 export const AppSidebar: FC = () => {
   const location = useLocation();
+  const { t } = useTranslation();
   const { session, logout } = useSessionContext();
   const createBucketDialog = useDialog();
   const { buckets, createBucketAndInvites } = useBucketsData();
@@ -70,10 +72,10 @@ export const AppSidebar: FC = () => {
           <SidebarGroup>
             {nav.main.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton asChild tooltip={item.title}>
+                <SidebarMenuButton asChild tooltip={t(item.title)}>
                   <div>
                     <item.icon />
-                    {item.title}
+                    {t(item.title)}
                   </div>
                 </SidebarMenuButton>
                 <SidebarMenuSub>
@@ -83,7 +85,7 @@ export const AppSidebar: FC = () => {
                         asChild
                         isActive={location.pathname == subItem.url}
                       >
-                        <Link to={subItem.url}>{subItem.title}</Link>
+                        <Link to={subItem.url}>{t(subItem.title)}</Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                   ))}
@@ -93,10 +95,13 @@ export const AppSidebar: FC = () => {
           </SidebarGroup>
           <SidebarGroup>
             <SidebarMenuItem key="shared_buckets">
-              <SidebarMenuButton asChild tooltip="Shared Buckets">
+              <SidebarMenuButton
+                asChild
+                tooltip={t("navigation.shared_buckets")}
+              >
                 <div>
                   <FolderSync />
-                  Shared Buckets
+                  {t("navigation.shared_buckets")}
                 </div>
               </SidebarMenuButton>
               <SidebarMenuAction>
@@ -132,12 +137,33 @@ export const AppSidebar: FC = () => {
                         `/buckets/${bucket.id}`,
                       )}
                     >
-                      <Link to="/buckets/$id" params={{ id: bucket.id }}>{bucket.name}</Link>
+                      <Link
+                        to="/buckets/$id/{-$path}"
+                        params={{ id: bucket.id }}
+                      >
+                        {bucket.name}
+                      </Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                 ))}
               </SidebarMenuSub>
             </SidebarMenuItem>
+          </SidebarGroup>
+          <SidebarGroup>
+            {nav.settings.map((item) => (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.title}
+                  isActive={location.pathname.startsWith("/settings")}
+                >
+                  <Link to={item.url}>
+                    <item.icon />
+                    {t(item.title)}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
           </SidebarGroup>
         </SidebarMenu>
         <SidebarGroup className="mt-auto">
@@ -149,7 +175,9 @@ export const AppSidebar: FC = () => {
                   <SidebarMenuButton asChild size="sm">
                     <Link to={item.url}>
                       <item.icon />
-                      {item.title}
+                      {item.title === "Settings"
+                        ? t("navigation.settings")
+                        : item.title}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

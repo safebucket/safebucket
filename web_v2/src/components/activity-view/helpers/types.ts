@@ -1,5 +1,5 @@
 export type IMessageMapping = {
-  message: string;
+  messageKey: string;
   icon: any;
   iconColor: string;
   iconBg: string;

@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ChevronDownIcon } from "lucide-react";
 
@@ -18,6 +19,7 @@ import {
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 
 export const UploadPopover: FC = () => {
+  const { t } = useTranslation();
   const { uploads } = useUploadContext();
 
   const activeUploads = uploads.filter(
@@ -34,7 +36,7 @@ export const UploadPopover: FC = () => {
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" className="relative">
-          Uploads
+          {t("upload.uploads")}
           {uploads.length > 0 && (
             <Badge className="absolute -top-2 -right-2 h-6 w-6 justify-center">
               {uploads.length}
@@ -46,7 +48,7 @@ export const UploadPopover: FC = () => {
       <PopoverContent className="max-h-80 w-96 overflow-y-auto">
         {!uploads.length && (
           <p className="text-muted-foreground flex items-center justify-center py-4">
-            No uploads in progress
+            {t("upload.no_uploads_in_progress")}
           </p>
         )}
 
@@ -57,16 +59,16 @@ export const UploadPopover: FC = () => {
                 <span>
                   {completedCount > 0 && (
                     <span className="text-green-600">
-                      {completedCount} completed
+                      {completedCount} {t("upload.completed")}
                     </span>
                   )}
                   {completedCount > 0 && failedCount > 0 && " • "}
                   {failedCount > 0 && (
-                    <span className="text-red-600">{failedCount} failed</span>
+                    <span className="text-red-600">{failedCount} {t("upload.failed")}</span>
                   )}
                 </span>
                 <span className="text-muted-foreground">
-                  {activeUploads.length} active
+                  {activeUploads.length} {t("upload.active")}
                 </span>
               </div>
             )}
@@ -101,7 +103,7 @@ export const UploadPopover: FC = () => {
                       />
                     )}
                     <div className="text-muted-foreground text-xs whitespace-nowrap">
-                      {getStatusText(upload.status, upload.progress)}
+                      {getStatusText(upload.status, upload.progress, t)}
                     </div>
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { IActivity } from "@/types/activity.ts";
 
 import { cn } from "@/lib/utils.ts";
@@ -18,6 +19,7 @@ interface ActivityItemProps {
 }
 
 export function ActivityItem({ item }: ActivityItemProps) {
+  const { t } = useTranslation();
   const { icon: Icon, iconColor, iconBg } = getActivityMapping(item.message);
 
   return (
@@ -42,9 +44,11 @@ export function ActivityItem({ item }: ActivityItemProps) {
             <Icon className={cn("h-3.5 w-3.5", iconColor)} />
           </div>
         </div>
-        <p className="text-muted-foreground text-sm">{formatMessage(item)}</p>
+        <p className="text-muted-foreground text-sm">
+          {formatMessage(item, t)}
+        </p>
         <p className="text-muted-foreground text-xs">
-          {timeAgo(item.timestamp)}
+          {timeAgo(item.timestamp, t)}
         </p>
       </div>
     </div>

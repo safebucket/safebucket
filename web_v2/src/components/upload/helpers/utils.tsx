@@ -29,19 +29,23 @@ export const getStatusIcon = (
   }
 };
 
-export const getStatusText = (status: UploadStatus, progress: number) => {
+export const getStatusText = (
+  status: UploadStatus, 
+  progress: number, 
+  t?: (key: string) => string
+) => {
   switch (status) {
     case UploadStatus.success:
-      return "Completed";
+      return t ? t("upload.status.completed") : "Completed";
     case UploadStatus.failed:
-      return "Failed";
+      return t ? t("upload.status.failed") : "Failed";
     case UploadStatus.uploading:
       if (progress === 0) {
-        return "Preparing...";
+        return t ? t("upload.status.preparing") : "Preparing...";
       }
       return `${progress}%`;
     default:
-      return "Unknown";
+      return t ? t("upload.status.unknown") : "Unknown";
   }
 };
 

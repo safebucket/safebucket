@@ -1,4 +1,5 @@
 import React, { type DragEvent, type FC, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
@@ -25,6 +26,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   children,
   className,
 }) => {
+  const { t } = useTranslation();
   const [isDragOver, setIsDragOver] = useState(false);
   const [_dragCounter, setDragCounter] = useState(0);
 
@@ -300,10 +302,10 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
               </div>
               <div className="text-center">
                 <p className="text-xl font-semibold">
-                  Drop files or folders to upload
+                  {t("upload.drag_drop.drop_files")}
                 </p>
                 <p className="text-primary/80 text-base">
-                  Files and folders will be uploaded to the current directory
+                  {t("upload.drag_drop.drop_description")}
                 </p>
               </div>
             </div>

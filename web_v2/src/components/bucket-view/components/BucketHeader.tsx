@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { useTranslation } from "react-i18next";
 
 import { PlusCircle } from "lucide-react";
 
@@ -19,6 +20,7 @@ interface IBucketHeaderProps {
 export const BucketHeader: FC<IBucketHeaderProps> = ({
   bucket,
 }: IBucketHeaderProps) => {
+  const { t } = useTranslation();
   const shareFileDialog = useDialog();
 
   const { path } = useBucketViewContext();
@@ -35,16 +37,16 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
 
           <Button onClick={shareFileDialog.trigger}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Share a file
+            {t("bucket_header.share_file")}
           </Button>
 
           <FormDialog
             {...shareFileDialog.props}
-            title="Share a file"
-            description="Upload a file and share it safely"
+            title={t("bucket_header.share_file")}
+            description={t("bucket_header.upload_and_share")}
             fields={shareFileFields}
             onSubmit={(data) => startUpload(data.files, path, bucket.id)}
-            confirmLabel="Share"
+            confirmLabel={t("bucket_header.share")}
           />
         </div>
       </div>

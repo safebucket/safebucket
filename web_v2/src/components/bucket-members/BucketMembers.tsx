@@ -1,5 +1,6 @@
 import { UserPlus, Users } from "lucide-react";
 import type { FC } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { IBucket } from "@/components/bucket-view/helpers/types";
 import {
@@ -31,6 +32,7 @@ interface IBucketMembersProps {
 }
 
 export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
+  const { t } = useTranslation();
   const {
     isLoading,
     membersState,
@@ -55,19 +57,19 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Bucket Members
+          {t("bucket_settings.members.title")}
         </CardTitle>
         <CardDescription>
-          Manage who has access to this bucket and their permissions
+          {t("bucket_settings.members.description")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <div className="text-sm font-medium">Add Member</div>
+          <div className="text-sm font-medium">{t("bucket_settings.members.add_member")}</div>
           <div className="flex gap-3">
             <Input
               type="email"
-              placeholder="Enter email address"
+              placeholder={t("bucket_settings.members.enter_email")}
               value={newMemberEmail}
               onChange={(e) => setNewMemberEmail(e.target.value)}
               className="flex-1"
@@ -97,7 +99,7 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
         </div>
 
         <div className="space-y-4">
-          <div className="text-sm font-medium">Members</div>
+          <div className="text-sm font-medium">{t("bucket_settings.members.members")}</div>
           <div className="space-y-3">
             {membersState.map((member) => (
               <BucketMember
@@ -115,7 +117,7 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
             onClick={handleUpdateMembers}
             disabled={!hasChanges || isSubmitting}
           >
-            {isSubmitting ? "Updating..." : "Update Members"}
+            {isSubmitting ? t("bucket_settings.members.updating") : t("bucket_settings.members.update_members")}
           </Button>
         </div>
       </CardContent>
