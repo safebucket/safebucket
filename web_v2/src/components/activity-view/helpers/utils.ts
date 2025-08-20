@@ -1,31 +1,29 @@
-import { messageMap } from "@/lib/activity-constants";
-import { ActivityMessage } from "@/types/activity";
-import type { Activity, MessageMapping } from "@/types/activity";
-import { FileText } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+
+import type { ActivityMessage, IActivity } from "@/types/activity.ts";
+import type { IMessageMapping } from "@/components/activity-view/helpers/types.ts";
+import { messageMap } from "@/components/activity-view/helpers/constants";
+
+const DEFAULT_ACTIVITY_MAPPING: IMessageMapping = {
+  message: "%%USERNAME%% performed an action on bucket '%%BUCKET_NAME%%'.",
+  icon: AlertCircle,
+  iconColor: "text-gray-500",
+  iconBg: "bg-gray-100",
+};
 
 export function getActivityMapping(
   messageType: ActivityMessage,
-): MessageMapping {
-  return (
-    messageMap[messageType] || {
-      message: "Unknown activity",
-      icon: FileText,
-      iconColor: "text-gray-500",
-      iconBg: "bg-gray-100",
-    }
-  );
+): IMessageMapping {
+  return messageMap[messageType] || DEFAULT_ACTIVITY_MAPPING;
 }
 
-export const formatMessage = (log: Activity): string => {
-  const mapping = messageMap[log.message] || {
-    message: `${log.user.first_name} ${log.user.last_name} performed an unknown activity`,
-  };
-
+export const formatMessage = (log: IActivity): string => {
+  const mapping = messageMap[log.message] || DEFAULT_ACTIVITY_MAPPING;
   return mapping.message
     .replace("%%USERNAME%%", `${log.user.first_name} ${log.user.last_name}`)
     .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
     .replace("%%FILE_NAME%%", log.file?.name || "")
-    .replace("%%USER_INVITED_EMAIL%%", log.invited_email || "");
+    .replace("%%BUCKET_MEMBER_EMAIL%%", log.bucket_member_email || "");
 };
 
 export const timeAgo = (nanoTimestamp: string): string => {

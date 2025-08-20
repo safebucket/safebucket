@@ -1,33 +1,33 @@
-export interface User {
+export interface IUser {
   id: string;
   email: string;
   first_name: string;
   last_name: string;
 }
 
-export interface Bucket {
+export interface IBucket {
   id: string;
   name: string;
 }
 
-export interface File {
+export interface IFile {
   id: string;
   name: string;
 }
 
-export interface Activity {
+export interface IActivity {
   domain: string;
   user_id: string;
-  user: User;
+  user: IUser;
   action: string;
   object_type: string;
   bucket_id?: string;
-  bucket?: Bucket;
+  bucket?: IBucket;
   file_id?: string;
-  file?: File;
+  file?: IFile;
   timestamp: string;
   message: ActivityMessage;
-  invited_email?: string;
+  bucket_member_email?: string;
 }
 
 export enum ActivityMessage {
@@ -36,11 +36,13 @@ export enum ActivityMessage {
   FILE_DOWNLOADED = "FILE_DOWNLOADED",
   FILE_UPDATED = "FILE_UPDATED",
   FILE_DELETED = "FILE_DELETED",
-  USER_INVITED = "USER_INVITED",
+  BUCKET_MEMBER_CREATED = "BUCKET_MEMBER_CREATED",
+  BUCKET_MEMBER_UPDATED = "BUCKET_MEMBER_UPDATED",
+  BUCKET_MEMBER_DELETED = "BUCKET_MEMBER_DELETED",
 }
 
 export interface ActivityResponse {
-  data: Activity[];
+  data: Array<IActivity>;
 }
 
 export interface MessageMapping {

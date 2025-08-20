@@ -1,5 +1,5 @@
 import { ActivityView } from "@/components/activity-view/ActivityView";
-import { ActivityViewSkeleton } from "@/components/activity-view/ActivityViewSkeleton";
+import { ActivityViewSkeleton } from "@/components/activity-view/components/ActivityViewSkeleton.tsx";
 import { useBucketActivityData } from "@/components/bucket-view/hooks/useBucketActivityData";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { Card, CardContent } from "@/components/ui/card";

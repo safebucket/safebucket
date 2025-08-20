@@ -4,12 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
+import reportWebVitals from "./reportWebVitals.ts";
+import { routeTree } from "./routeTree.gen";
 import { SessionProvider } from "@/components/auth-view/context/SessionProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 
-import reportWebVitals from "./reportWebVitals.ts";
-import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
 // Create a query client

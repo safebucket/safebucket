@@ -1,16 +1,20 @@
-import type { Activity } from "@/types/activity";
+import type { IActivity } from "@/types/activity.ts";
 
+import { cn } from "@/lib/utils.ts";
+
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar.tsx";
 import {
   formatMessage,
   getActivityMapping,
   timeAgo,
-} from "@/lib/activity-utils";
-import { cn } from "@/lib/utils";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+} from "@/components/activity-view/helpers/utils.ts";
 
 interface ActivityItemProps {
-  item: Activity;
+  item: IActivity;
 }
 
 export function ActivityItem({ item }: ActivityItemProps) {

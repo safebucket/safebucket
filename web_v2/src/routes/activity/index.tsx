@@ -1,9 +1,9 @@
-import { bucketActivityQueryOptions } from "@/queries/bucket.ts";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { bucketActivityQueryOptions } from "@/queries/bucket.ts";
 
 import { ActivityView } from "@/components/activity-view/ActivityView";
-import { ActivityViewSkeleton } from "@/components/activity-view/ActivityViewSkeleton";
+import { ActivityViewSkeleton } from "@/components/activity-view/components/ActivityViewSkeleton.tsx";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const Route = createFileRoute("/activity/")({

@@ -1,12 +1,14 @@
-import { ActivityMessage } from "@/types/activity";
 import {
   FileDiff,
   FileDown,
   FileMinus,
   FileUp,
   Share2,
+  UserMinus,
+  UserPen,
   UserPlus,
 } from "lucide-react";
+import type { ActivityMessage } from "@/types/activity.ts";
 
 export const messageMap = {
   BUCKET_CREATED: {
@@ -40,11 +42,24 @@ export const messageMap = {
     iconColor: "text-red-500",
     iconBg: "bg-red-100",
   },
-  USER_INVITED: {
-    message:
-      "%%USERNAME%% invited %%USER_INVITED_EMAIL%% to the bucket '%%BUCKET_NAME%%'.",
+  BUCKET_MEMBER_CREATED: {
+    message: "Invited %%BUCKET_MEMBER_EMAIL%% to the bucket '%%BUCKET_NAME%%'.",
     icon: UserPlus,
     iconColor: "text-blue-500",
     iconBg: "bg-blue-100",
+  },
+  BUCKET_MEMBER_UPDATED: {
+    message:
+      "Updated the group of %%BUCKET_MEMBER_EMAIL%% on the bucket '%%BUCKET_NAME%%'.",
+    icon: UserPen,
+    iconColor: "text-amber-500",
+    iconBg: "bg-amber-100",
+  },
+  BUCKET_MEMBER_DELETED: {
+    message:
+      "Removed %%BUCKET_MEMBER_EMAIL%% from the bucket '%%BUCKET_NAME%%'.",
+    icon: UserMinus,
+    iconColor: "text-red-500",
+    iconBg: "bg-red-100",
   },
 } satisfies Record<ActivityMessage, object>;
