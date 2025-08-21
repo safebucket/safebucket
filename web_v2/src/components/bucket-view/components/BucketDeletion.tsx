@@ -1,7 +1,7 @@
-import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AlertTriangle } from "lucide-react";
+import type { FC } from "react";
 
 import type { IBucket } from "@/components/bucket-view/helpers/types";
 import { useBucketDeletion } from "@/components/bucket-view/hooks/useBucketDeletion";
@@ -51,7 +51,7 @@ export const BucketDeletion: FC<IBucketDeletionProps> = ({ bucket }) => {
                 value={confirmationText}
                 onChange={(e) => setConfirmationText(e.target.value)}
                 placeholder={expectedDeleteText}
-                className="border-red-200 text-xs focus:border-red-300 focus:ring-red-200"
+                className="border-red-200 text-xs focus:border-red-300 focus:ring-red-200 mt-2"
               />
               <Button
                 variant="destructive"

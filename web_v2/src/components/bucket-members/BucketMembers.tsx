@@ -1,6 +1,6 @@
 import { UserPlus, Users } from "lucide-react";
-import type { FC } from "react";
 import { useTranslation } from "react-i18next";
+import type { FC } from "react";
 
 import type { IBucket } from "@/components/bucket-view/helpers/types";
 import {
@@ -65,7 +65,9 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <div className="text-sm font-medium">{t("bucket.settings.members.add_member")}</div>
+          <div className="text-sm font-medium">
+            {t("bucket.settings.members.add_member")}
+          </div>
           <div className="flex gap-3">
             <Input
               type="email"
@@ -99,7 +101,9 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
         </div>
 
         <div className="space-y-4">
-          <div className="text-sm font-medium">{t("bucket.settings.members.members")}</div>
+          <div className="text-sm font-medium">
+            {t("bucket.settings.members.members")}
+          </div>
           <div className="space-y-3">
             {membersState.map((member) => (
               <BucketMember
@@ -117,7 +121,9 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
             onClick={handleUpdateMembers}
             disabled={!hasChanges || isSubmitting}
           >
-            {isSubmitting ? t("bucket.settings.members.updating") : t("bucket.settings.members.update_members")}
+            {isSubmitting
+              ? t("bucket.settings.members.updating")
+              : t("common.save")}
           </Button>
         </div>
       </CardContent>

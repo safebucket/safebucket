@@ -1,13 +1,30 @@
 {
   "common": {
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "save": "Enregistrer"
+  },
+  "file_actions": {
+    "download": "Télécharger",
+    "share": "Partager",
+    "new_folder": "Nouveau dossier",
+    "delete": "Supprimer",
+    "new_folder_dialog": {
+      "title": "Nouveau dossier",
+      "name_label": "Nom",
+      "create": "Créer"
+    },
+    "delete_dialog": {
+      "title": "Supprimer {{fileName}} ?",
+      "description": "Êtes-vous sûr de vouloir supprimer ce fichier ? Cette action ne peut pas être annulée.",
+      "confirm": "Supprimer"
+    }
   },
   "navigation": {
     "personal": "Personnel",
     "home": "Accueil",
     "activity": "Activité",
     "shared_buckets": "Buckets",
-    "settings": "Paramètres"
+    "settings": "Préférences"
   },
   "activity": {
     "title": "Flux d'activité",
@@ -82,7 +99,6 @@
         "add_member": "Ajouter un Membre",
         "members": "Membres",
         "enter_email": "Saisir l'adresse e-mail",
-        "update_members": "Mettre à jour les membres",
         "updating": "Mise à jour..."
       }
     }

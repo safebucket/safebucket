@@ -28,54 +28,55 @@ function Login() {
               </p>
             </div>
             <Card>
-              <CardContent className="space-y-4">
-                <AuthProvidersButtons />
+              <form onSubmit={handleSubmit(localLogin)}>
+                <CardContent className="space-y-4">
+                  <AuthProvidersButtons />
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background text-muted-foreground px-2">
+                        Or continue with
+                      </span>
+                    </div>
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background text-muted-foreground px-2">
-                      Or continue with
-                    </span>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      {...register("email", { required: true })}
+                    />
                   </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@example.com"
-                    {...register("email", { required: true })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <Link
-                      to="/"
-                      className="text-primary text-sm font-medium hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      <Link
+                        to="/"
+                        className="text-primary text-sm font-medium hover:underline"
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <Input
+                      id="password"
+                      type="password"
+                      {...register("password", { required: true })}
+                    />
                   </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    {...register("password", { required: true })}
-                  />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  onClick={handleSubmit(localLogin)}
-                >
-                  Sign in
-                </Button>
-              </CardFooter>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                  >
+                    Sign in
+                  </Button>
+                </CardFooter>
+              </form>
             </Card>
           </div>
         </div>

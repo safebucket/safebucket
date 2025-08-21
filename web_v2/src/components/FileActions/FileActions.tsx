@@ -1,10 +1,10 @@
-import type { FC } from "react";
-import React from "react";
+import { useTranslation } from "react-i18next";
 
 import { Download, ExternalLink, FolderPlus, Trash2 } from "lucide-react";
+import type { FC, ReactNode } from "react";
 
-import { useFileActions } from "@/components/FileActions/hooks/useFileActions";
 import type { IFile } from "@/components/bucket-view/helpers/types";
+import { useFileActions } from "@/components/FileActions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface IFileActionsProps {
-  children: React.ReactNode;
+  children: ReactNode;
   file: IFile;
   type: "context" | "dropdown";
 }
@@ -33,6 +33,7 @@ export const FileActions: FC<IFileActionsProps> = ({
   file,
   type,
 }: IFileActionsProps) => {
+  const { t } = useTranslation();
   const { createFolder, downloadFile, deleteFile } = useFileActions();
   const newFolderDialog = useDialog();
   const deleteFileDialog = useDialog();
@@ -51,36 +52,43 @@ export const FileActions: FC<IFileActionsProps> = ({
         <MenuContent className="w-40">
           <MenuItem onClick={() => downloadFile(file.id, file.name)}>
             <Download className="mr-2 h-4 w-4" />
-            Download
+            {t("file_actions.download")}
           </MenuItem>
           <MenuItem>
             <ExternalLink className="mr-2 h-4 w-4" />
-            Share
+            {t("file_actions.share")}
           </MenuItem>
           <ContextMenuSeparator />
           <MenuItem onClick={newFolderDialog.trigger}>
             <FolderPlus className="mr-2 h-4 w-4" />
-            New folder
+            {t("file_actions.new_folder")}
           </MenuItem>
           <ContextMenuSeparator />
           <MenuItem className="text-red-600" onClick={deleteFileDialog.trigger}>
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete
+            {t("file_actions.delete")}
           </MenuItem>
         </MenuContent>
       </Menu>
       <FormDialog
         {...newFolderDialog.props}
-        title="New folder"
-        fields={[{ id: "name", label: "Name", type: "text", required: true }]}
+        title={t("file_actions.new_folder_dialog.title")}
+        fields={[
+          {
+            id: "name",
+            label: t("file_actions.new_folder_dialog.name_label"),
+            type: "text",
+            required: true,
+          },
+        ]}
         onSubmit={(data) => createFolder(data.name)}
-        confirmLabel="Create"
+        confirmLabel={t("file_actions.new_folder_dialog.create")}
       />
       <CustomAlertDialog
         {...deleteFileDialog.props}
-        title={`Delete ${file.name}?`}
-        description="Are you sure you want to delete this file? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t("file_actions.delete_dialog.title", { fileName: file.name })}
+        description={t("file_actions.delete_dialog.description")}
+        confirmLabel={t("file_actions.delete_dialog.confirm")}
         onConfirm={() => deleteFile(file.id, file.name)}
       />
     </>
