@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 
 interface IButtonGroupProps {
-  options: any[];
+  options: Array<any>;
   currentOption: string;
   setCurrentOption: (option: any) => void;
 }

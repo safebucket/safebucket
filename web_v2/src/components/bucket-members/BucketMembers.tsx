@@ -57,19 +57,19 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          {t("bucket_settings.members.title")}
+          {t("bucket.settings.members.title")}
         </CardTitle>
         <CardDescription>
-          {t("bucket_settings.members.description")}
+          {t("bucket.settings.members.description")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <div className="text-sm font-medium">{t("bucket_settings.members.add_member")}</div>
+          <div className="text-sm font-medium">{t("bucket.settings.members.add_member")}</div>
           <div className="flex gap-3">
             <Input
               type="email"
-              placeholder={t("bucket_settings.members.enter_email")}
+              placeholder={t("bucket.settings.members.enter_email")}
               value={newMemberEmail}
               onChange={(e) => setNewMemberEmail(e.target.value)}
               className="flex-1"
@@ -99,7 +99,7 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
         </div>
 
         <div className="space-y-4">
-          <div className="text-sm font-medium">{t("bucket_settings.members.members")}</div>
+          <div className="text-sm font-medium">{t("bucket.settings.members.members")}</div>
           <div className="space-y-3">
             {membersState.map((member) => (
               <BucketMember
@@ -117,7 +117,7 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
             onClick={handleUpdateMembers}
             disabled={!hasChanges || isSubmitting}
           >
-            {isSubmitting ? t("bucket_settings.members.updating") : t("bucket_settings.members.update_members")}
+            {isSubmitting ? t("bucket.settings.members.updating") : t("bucket.settings.members.update_members")}
           </Button>
         </div>
       </CardContent>

@@ -1,4 +1,7 @@
 {
+  "common": {
+    "logout": "Déconnexion"
+  },
   "navigation": {
     "personal": "Personnel",
     "home": "Accueil",
@@ -37,39 +40,51 @@
       "ago": "il y a {{value}} {{unit}}"
     }
   },
-  "bucket_header": {
-    "share_file": "Partager un fichier",
-    "upload_and_share": "Téléchargez un fichier et partagez-le en toute sécurité",
-    "share": "Partager"
-  },
-  "bucket_list_view": {
-    "name": "Nom",
-    "size": "Taille",
-    "type": "Type",
-    "uploaded_at": "Créé à"
-  },
-  "bucket_settings": {
-    "information": {
-      "title": "Informations du Bucket",
-      "bucket_url": "URL du Bucket",
-      "bucket_name": "Nom du Bucket",
-      "enter_bucket_name": "Saisir le nom du bucket"
+  "bucket": {
+    "header": {
+      "share_file": "Partager un fichier",
+      "upload_and_share": "Téléchargez un fichier et partagez-le en toute sécurité",
+      "share": "Partager",
+      "list_view": "Vue liste",
+      "grid_view": "Vue grille",
+      "activity": "Activité du bucket",
+      "settings": "Paramètres"
     },
-    "deletion": {
-      "title": "Supprimer ce bucket",
-      "description": "Ceci supprimera définitivement le bucket et tous les fichiers associés. Cette action ne peut pas être annulée.",
-      "type_to_confirm": "Tapez",
-      "to_confirm": "pour confirmer",
-      "delete": "Supprimer"
+    "list_view": {
+      "name": "Nom",
+      "size": "Taille",
+      "type": "Type",
+      "uploaded_at": "Créé à",
+      "empty_folder": "Le dossier est vide"
     },
-    "members": {
-      "title": "Membres du Bucket",
-      "description": "Gérez qui a accès à ce bucket et leurs permissions",
-      "add_member": "Ajouter un Membre",
-      "members": "Membres",
-      "enter_email": "Saisir l'adresse e-mail",
-      "update_members": "Mettre à jour les membres",
-      "updating": "Mise à jour..."
+    "grid_view": {
+      "empty_folder": "Ce dossier est vide",
+      "empty_description": "Téléchargez des fichiers ou créez des dossiers pour commencer à organiser votre contenu.",
+      "drag_drop_hint": "Vous pouvez également glisser-déposer des fichiers ici pour les télécharger."
+    },
+    "settings": {
+      "information": {
+        "title": "Informations du Bucket",
+        "bucket_url": "URL du Bucket",
+        "bucket_name": "Nom du Bucket",
+        "enter_bucket_name": "Saisir le nom du bucket"
+      },
+      "deletion": {
+        "title": "Supprimer ce bucket",
+        "description": "Ceci supprimera définitivement le bucket et tous les fichiers associés. Cette action ne peut pas être annulée.",
+        "type_to_confirm": "Tapez",
+        "to_confirm": "pour confirmer",
+        "delete": "Supprimer"
+      },
+      "members": {
+        "title": "Membres du Bucket",
+        "description": "Gérez les personnes qui ont accès à ce bucket et leurs permissions",
+        "add_member": "Ajouter un Membre",
+        "members": "Membres",
+        "enter_email": "Saisir l'adresse e-mail",
+        "update_members": "Mettre à jour les membres",
+        "updating": "Mise à jour..."
+      }
     }
   },
   "upload": {

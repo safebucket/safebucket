@@ -1,4 +1,7 @@
 {
+  "common": {
+    "logout": "Logout"
+  },
   "navigation": {
     "personal": "Personal",
     "home": "Home",
@@ -37,39 +40,51 @@
       "ago": "{{value}} {{unit}} ago"
     }
   },
-  "bucket_header": {
-    "share_file": "Share a file",
-    "upload_and_share": "Upload a file and share it safely",
-    "share": "Share"
-  },
-  "bucket_list_view": {
-    "name": "Name",
-    "size": "Size",
-    "type": "Type",
-    "uploaded_at": "Uploaded At"
-  },
-  "bucket_settings": {
-    "information": {
-      "title": "Bucket Information",
-      "bucket_url": "Bucket URL",
-      "bucket_name": "Bucket Name",
-      "enter_bucket_name": "Enter bucket name"
+  "bucket": {
+    "header": {
+      "share_file": "Share a file",
+      "upload_and_share": "Upload a file and share it safely",
+      "share": "Share",
+      "list_view": "List view",
+      "grid_view": "Grid view",
+      "activity": "Bucket activity",
+      "settings": "Settings"
     },
-    "deletion": {
-      "title": "Delete this bucket",
-      "description": "This will permanently delete the bucket and all the associated files. This action cannot be undone.",
-      "type_to_confirm": "Type",
-      "to_confirm": "to confirm",
-      "delete": "Delete"
+    "list_view": {
+      "name": "Name",
+      "size": "Size",
+      "type": "Type",
+      "uploaded_at": "Uploaded At",
+      "empty_folder": "Folder is empty"
     },
-    "members": {
-      "title": "Bucket Members",
-      "description": "Manage who has access to this bucket and their permissions",
-      "add_member": "Add Member",
-      "members": "Members",
-      "enter_email": "Enter email address",
-      "update_members": "Update Members",
-      "updating": "Updating..."
+    "grid_view": {
+      "empty_folder": "This folder is empty",
+      "empty_description": "Upload files or create folders to get started organizing your content.",
+      "drag_drop_hint": "You can also drag and drop files here to upload them."
+    },
+    "settings": {
+      "information": {
+        "title": "Bucket Information",
+        "bucket_url": "Bucket URL",
+        "bucket_name": "Bucket Name",
+        "enter_bucket_name": "Enter bucket name"
+      },
+      "deletion": {
+        "title": "Delete this bucket",
+        "description": "This will permanently delete the bucket and all the associated files. This action cannot be undone.",
+        "type_to_confirm": "Type",
+        "to_confirm": "to confirm",
+        "delete": "Delete"
+      },
+      "members": {
+        "title": "Bucket Members",
+        "description": "Manage who has access to this bucket and their permissions",
+        "add_member": "Add Member",
+        "members": "Members",
+        "enter_email": "Enter email address",
+        "update_members": "Update Members",
+        "updating": "Updating..."
+      }
     }
   },
   "upload": {

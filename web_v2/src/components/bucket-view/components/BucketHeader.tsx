@@ -37,16 +37,16 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
 
           <Button onClick={shareFileDialog.trigger}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            {t("bucket_header.share_file")}
+            {t("bucket.header.share_file")}
           </Button>
 
           <FormDialog
             {...shareFileDialog.props}
-            title={t("bucket_header.share_file")}
-            description={t("bucket_header.upload_and_share")}
+            title={t("bucket.header.share_file")}
+            description={t("bucket.header.upload_and_share")}
             fields={shareFileFields}
             onSubmit={(data) => startUpload(data.files, path, bucket.id)}
-            confirmLabel={t("bucket_header.share")}
+            confirmLabel={t("bucket.header.share")}
           />
         </div>
       </div>

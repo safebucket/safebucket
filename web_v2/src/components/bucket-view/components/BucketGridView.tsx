@@ -1,6 +1,6 @@
-import type { FC } from "react";
-
 import { FolderOpen } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import type { FC } from "react";
 
 import type { IFile } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -8,7 +8,7 @@ import { FileItemView } from "@/components/common/components/FileItemView";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 
 interface IBucketGridViewProps {
-  files: IFile[];
+  files: Array<IFile>;
   bucketId: string;
 }
 
@@ -16,6 +16,7 @@ export const BucketGridView: FC<IBucketGridViewProps> = ({
   files,
   bucketId,
 }: IBucketGridViewProps) => {
+  const { t } = useTranslation();
   const { selected, setSelected, openFolder } = useBucketViewContext();
 
   if (files.length === 0) {
@@ -24,14 +25,13 @@ export const BucketGridView: FC<IBucketGridViewProps> = ({
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <FolderOpen className="text-muted-foreground mb-4 h-16 w-16" />
           <h3 className="text-muted-foreground mb-2 text-lg font-semibold">
-            This folder is empty
+            {t("bucket.grid_view.empty_folder")}
           </h3>
           <p className="text-muted-foreground max-w-sm text-sm">
-            Upload files or create folders to get started organizing your
-            content.
+            {t("bucket.grid_view.empty_description")}
           </p>
           <p className="text-muted-foreground mt-2 text-xs">
-            You can also drag and drop files here to upload them.
+            {t("bucket.grid_view.drag_drop_hint")}
           </p>
         </div>
       </DragDropZone>

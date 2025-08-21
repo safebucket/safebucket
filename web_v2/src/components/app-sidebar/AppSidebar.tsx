@@ -238,8 +238,8 @@ export const AppSidebar: FC = () => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
-                  <LogOut />
-                  Log out
+                  <LogOut className="mr-2" />
+                  {t("common.logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

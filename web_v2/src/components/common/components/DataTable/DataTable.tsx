@@ -1,12 +1,5 @@
 import React from "react";
 
-import type {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-} from "@tanstack/react-table";
-
 import {
   flexRender,
   getCoreRowModel,
@@ -17,9 +10,16 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useTranslation } from "react-i18next";
+import type {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  VisibilityState,
+} from "@tanstack/react-table";
 
-import { FileActions } from "@/components/FileActions/FileActions";
 import type { IFile } from "@/components/bucket-view/helpers/types";
+import { FileActions } from "@/components/FileActions/FileActions";
 import {
   Table,
   TableBody,
@@ -30,8 +30,8 @@ import {
 } from "@/components/ui/table";
 
 interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[];
-  data: TData[];
+  columns: Array<ColumnDef<TData, TValue>>;
+  data: Array<TData>;
   selected: TData | null;
   onRowClick: (row: TData) => void;
   onRowDoubleClick: (row: TData) => void;
@@ -71,6 +71,8 @@ export function DataTable<TData extends IFile, TValue>({
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-4">
       <div className="cursor bg-background rounded-md border shadow-sm">
@@ -94,13 +96,13 @@ export function DataTable<TData extends IFile, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <FileActions key={row.id} file={row.original} type="context">
                   <TableRow
                     key={row.id}
                     data-state={
-                      selected && selected?.id === row.original.id && "selected"
+                      selected && selected.id === row.original.id && "selected"
                     }
                     className="cursor-pointer"
                     onClick={() => onRowClick(row.original)}
@@ -124,14 +126,14 @@ export function DataTable<TData extends IFile, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  Folder is empty.
+                  {t("bucket.list_view.empty_folder")}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-      {/*<DataTablePagination table={table} />*/}
+      {/* <DataTablePagination table={table} />*/}
     </div>
   );
 }

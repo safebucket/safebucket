@@ -1,6 +1,6 @@
-import type { FC } from "react";
-
 import { FolderClock, LayoutGrid, LayoutList, Settings } from "lucide-react";
+import { t } from "i18next";
+import type { FC } from "react";
 
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -10,22 +10,22 @@ const options = [
   {
     key: BucketViewMode.List,
     value: <LayoutList />,
-    tooltip: "List view",
+    tooltip: t("bucket.header.list_view"),
   },
   {
     key: BucketViewMode.Grid,
     value: <LayoutGrid />,
-    tooltip: "Grid view",
+    tooltip: t("bucket.header.grid_view"),
   },
   {
     key: BucketViewMode.Activity,
     value: <FolderClock />,
-    tooltip: "Bucket activity",
+    tooltip: t("bucket.header.activity"),
   },
   {
     key: BucketViewMode.Settings,
     value: <Settings />,
-    tooltip: "Bucket settings",
+    tooltip: t("bucket.header.settings"),
   },
 ];
 

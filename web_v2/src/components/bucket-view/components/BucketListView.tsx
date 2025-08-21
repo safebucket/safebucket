@@ -18,7 +18,7 @@ const createColumns = (t: (key: string) => string): ColumnDef<IFile>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t("bucket_list_view.name")} />
+      <DataTableColumnHeader column={column} title={t("bucket.list_view.name")} />
     ),
     cell: ({ row }) => (
       <div className="flex w-[350px] items-center space-x-2">
@@ -34,7 +34,7 @@ const createColumns = (t: (key: string) => string): ColumnDef<IFile>[] => [
   {
     accessorKey: "size",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t("bucket_list_view.size")} />
+      <DataTableColumnHeader column={column} title={t("bucket.list_view.size")} />
     ),
     cell: ({ row }) =>
       row.getValue("type") === FileType.folder
@@ -47,7 +47,7 @@ const createColumns = (t: (key: string) => string): ColumnDef<IFile>[] => [
   {
     accessorKey: "type",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t("bucket_list_view.type")} />
+      <DataTableColumnHeader column={column} title={t("bucket.list_view.type")} />
     ),
     cell: ({ row }) => (
       <Badge variant="secondary">{row.getValue("type")}</Badge>
@@ -59,7 +59,7 @@ const createColumns = (t: (key: string) => string): ColumnDef<IFile>[] => [
   {
     accessorKey: "created_at",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t("bucket_list_view.uploaded_at")} />
+      <DataTableColumnHeader column={column} title={t("bucket.list_view.uploaded_at")} />
     ),
     cell: ({ row }) => formatDate(row.getValue("created_at")),
     filterFn: (row, id, value) => {
