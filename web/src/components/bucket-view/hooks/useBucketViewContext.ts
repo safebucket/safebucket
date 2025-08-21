@@ -1,6 +1,9 @@
 import { createContext, useContext } from "react";
 
-import type { BucketViewMode, IFile } from "@/components/bucket-view/helpers/types";
+import type {
+  BucketViewMode,
+  IFile,
+} from "@/components/bucket-view/helpers/types";
 
 export interface IBucketViewContext {
   bucketId: string;

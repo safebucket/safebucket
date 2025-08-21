@@ -33,10 +33,7 @@ export async function fetchApi<T>(
 ): Promise<T> {
   const { method = "GET", headers = {}, body, params } = options;
   const apiUrl = await getApiUrl();
-  const fullUrl = buildUrlWithParams(
-    `${apiUrl}${url}`,
-    params,
-  );
+  const fullUrl = buildUrlWithParams(`${apiUrl}${url}`, params);
 
   const token = Cookies.get("safebucket_access_token");
 
@@ -78,13 +75,10 @@ async function refreshToken(): Promise<void> {
     });
 
     const apiUrl = await getApiUrl();
-    const response = await fetch(
-      `${apiUrl}/auth/refresh`,
-      {
-        method: "POST",
-        body,
-      },
-    );
+    const response = await fetch(`${apiUrl}/auth/refresh`, {
+      method: "POST",
+      body,
+    });
 
     if (!response.ok) {
       logout();

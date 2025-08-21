@@ -69,10 +69,7 @@ function Login() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                  >
+                  <Button type="submit" className="w-full">
                     Sign in
                   </Button>
                 </CardFooter>

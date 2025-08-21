@@ -30,9 +30,9 @@ export const getStatusIcon = (
 };
 
 export const getStatusText = (
-  status: UploadStatus, 
-  progress: number, 
-  t?: (key: string) => string
+  status: UploadStatus,
+  progress: number,
+  t?: (key: string) => string,
 ) => {
   switch (status) {
     case UploadStatus.success:

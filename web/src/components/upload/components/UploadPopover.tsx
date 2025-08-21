@@ -64,7 +64,9 @@ export const UploadPopover: FC = () => {
                   )}
                   {completedCount > 0 && failedCount > 0 && " • "}
                   {failedCount > 0 && (
-                    <span className="text-red-600">{failedCount} {t("upload.failed")}</span>
+                    <span className="text-red-600">
+                      {failedCount} {t("upload.failed")}
+                    </span>
                   )}
                 </span>
                 <span className="text-muted-foreground">

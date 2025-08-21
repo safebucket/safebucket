@@ -38,7 +38,9 @@ export const BucketInformation: FC<IBucketInformationProps> = ({ bucket }) => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label className="text-sm font-medium">{t("bucket.settings.information.bucket_url")}</Label>
+          <Label className="text-sm font-medium">
+            {t("bucket.settings.information.bucket_url")}
+          </Label>
           <div className="flex items-center gap-2">
             <Input value={bucketUrl} disabled className="font-mono text-xs" />
             <Button
@@ -56,14 +58,18 @@ export const BucketInformation: FC<IBucketInformationProps> = ({ bucket }) => {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium">{t("bucket.settings.information.bucket_name")}</Label>
+          <Label className="text-sm font-medium">
+            {t("bucket.settings.information.bucket_name")}
+          </Label>
           <div className="flex items-center gap-2">
             {isEditingName ? (
               <>
                 <Input
                   value={bucketName}
                   onChange={(e) => setBucketName(e.target.value)}
-                  placeholder={t("bucket.settings.information.enter_bucket_name")}
+                  placeholder={t(
+                    "bucket.settings.information.enter_bucket_name",
+                  )}
                   className="text-sm"
                 />
                 <Button size="sm" onClick={handleSaveName}>
