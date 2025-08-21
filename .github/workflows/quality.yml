@@ -47,8 +47,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run linter
-        run: npm run lint
+      - name: Run prettier
+        run: npm run prettier
 
       - name: Build app
         run: npm run build
