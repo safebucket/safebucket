@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
 import type { FC } from "react";
 
+import type { IMembers } from "@/components/bucket-view/helpers/types";
 import { AddMembersInput } from "@/components/add-members/components/AddMembersInput";
 import { AddMembersSkeleton } from "@/components/add-members/components/AddMembersSkeleton";
 import { PeopleWithAccess } from "@/components/add-members/components/PeopleWithAccess";
 import { useAddMembers } from "@/components/add-members/hooks/useAddMembers";
-import type { IMembers } from "@/components/bucket-view/helpers/types";
 import { useBucketMembersData } from "@/components/bucket-view/hooks/useBucketMembersData";
 import { Separator } from "@/components/ui/separator";
 
 interface IAddMembersProps {
-  shareWith: IMembers[];
-  onShareWithChange: (shareWith: IMembers[]) => void;
+  shareWith: Array<IMembers>;
+  onShareWithChange: (shareWith: Array<IMembers>) => void;
   currentUserEmail?: string;
   currentUserName?: string;
   showCurrentUser?: boolean;
   bucketId?: string;
-  onAllMembersChange?: (allMembers: IMembers[]) => void;
+  onAllMembersChange?: (allMembers: Array<IMembers>) => void;
 }
 
 export const AddMembers: FC<IAddMembersProps> = ({
@@ -42,11 +42,11 @@ export const AddMembers: FC<IAddMembersProps> = ({
   useEffect(() => {
     if (!members || !onAllMembersChange) return;
 
-    const existingMembersAsInvites: IMembers[] = members
+    const existingMembersAsInvites: Array<IMembers> = members
       .filter((member) => member.email !== currentUserEmail)
       .map((member) => ({
         email: member.email,
-        group: existingMemberChanges[member.email] || member.role,
+        group: existingMemberChanges[member.email] || member.group,
       }));
 
     const allMembers = [...existingMembersAsInvites, ...shareWith];
@@ -82,7 +82,7 @@ export const AddMembers: FC<IAddMembersProps> = ({
           currentUserEmail={currentUserEmail}
           currentUserName={currentUserName}
           showCurrentUser={showCurrentUser}
-          existingMembers={members || []}
+          existingMembers={members}
           onExistingMemberGroupChange={handleExistingMemberGroupChange}
         />
       )}

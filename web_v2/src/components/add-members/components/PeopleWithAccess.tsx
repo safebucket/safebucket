@@ -1,12 +1,11 @@
+import { UserX } from "lucide-react";
 import type { FC } from "react";
 
-import { UserX } from "lucide-react";
-
-import { bucketGroups } from "@/components/add-members/helpers/constants";
 import type {
   IBucketMember,
   IMembers,
 } from "@/components/bucket-view/helpers/types";
+import { bucketGroups } from "@/components/add-members/helpers/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,13 +17,13 @@ import {
 } from "@/components/ui/select";
 
 interface IPeopleWithAccessProps {
-  shareWith: IMembers[];
+  shareWith: Array<IMembers>;
   onGroupChange: (email: string, groupId: string) => void;
   onRemoveUser: (email: string) => void;
   currentUserEmail?: string;
   currentUserName?: string;
   showCurrentUser?: boolean;
-  existingMembers?: IBucketMember[];
+  existingMembers?: Array<IBucketMember>;
   onExistingMemberGroupChange: (email: string, groupId: string) => void;
 }
 
@@ -78,8 +77,8 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
                 className="w-full"
               >
                 {currentUserMember
-                  ? currentUserMember.role?.charAt(0).toUpperCase() +
-                    currentUserMember.role?.slice(1)
+                  ? currentUserMember.group.charAt(0).toUpperCase() +
+                    currentUserMember.group.slice(1)
                   : "Owner"}
               </Button>
             </div>
@@ -118,7 +117,7 @@ export const PeopleWithAccess: FC<IPeopleWithAccessProps> = ({
 
           <div className="col-span-2 mr-1 flex">
             <Select
-              value={member.role}
+              value={member.group}
               onValueChange={(val) =>
                 onExistingMemberGroupChange(member.email, val)
               }

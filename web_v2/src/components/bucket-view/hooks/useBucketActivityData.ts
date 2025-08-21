@@ -1,10 +1,7 @@
-import { fetchApi } from "@/lib/api";
 import useSWR from "swr";
 
-import type {
-  IActivityData,
-  IListBucketActivity,
-} from "@/components/common/types/activity";
+import type { IActivityData, IListBucketActivity } from "@/types/activity.ts";
+import { fetchApi } from "@/lib/api";
 
 export const useBucketActivityData = (id: string): IActivityData => {
   const { data, error, isLoading } = useSWR(

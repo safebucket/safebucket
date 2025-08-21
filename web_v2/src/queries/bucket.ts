@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { ActivityResponse } from "@/types/activity";
+import type { IListBucketActivity } from "@/types/activity";
 import type { IBucket } from "@/components/bucket-view/helpers/types.ts";
 import { api } from "@/lib/api";
 
@@ -12,6 +12,6 @@ export const bucketDataQueryOptions = (bucketId: string) =>
 export const bucketActivityQueryOptions = () =>
   queryOptions({
     queryKey: ["buckets", "activity"],
-    queryFn: () => api.get<ActivityResponse>("/buckets/activity"),
+    queryFn: () => api.get<IListBucketActivity>("/buckets/activity"),
     select: (data) => data.data,
   });

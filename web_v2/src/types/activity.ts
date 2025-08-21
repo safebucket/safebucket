@@ -41,7 +41,7 @@ export enum ActivityMessage {
   BUCKET_MEMBER_DELETED = "BUCKET_MEMBER_DELETED",
 }
 
-export interface ActivityResponse {
+export interface IListBucketActivity {
   data: Array<IActivity>;
 }
 
@@ -50,4 +50,10 @@ export interface MessageMapping {
   icon: any;
   iconColor: string;
   iconBg: string;
+}
+
+export interface IActivityData {
+  activity: Array<IActivity>;
+  error: string;
+  isLoading: boolean;
 }
