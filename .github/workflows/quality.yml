@@ -44,11 +44,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Next dependencies
-        run: npm ci
+      - name: Install dependencies
+        run: npm install
 
-      - name: Run Next linter
-        run: npm run lint
+      - name: Run prettier
+        run: npm run prettier
 
-      - name: Build Next app
+      - name: Build app
         run: npm run build
