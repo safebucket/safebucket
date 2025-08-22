@@ -10,7 +10,7 @@
     "test": "vitest run",
     "lint": "eslint",
     "prettier": "prettier --config ./.prettierrc.json \"./**/*{.ts,.js,.tsx,.jsx,.json,.css,.scss}\" --check",
-    "check": "prettier --write ."
+    "fixup": "prettier --write ."
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
