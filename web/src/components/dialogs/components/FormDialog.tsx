@@ -1,11 +1,11 @@
-import type { FC } from "react";
 import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import type { FC } from "react";
 
 import type { FieldValues } from "react-hook-form";
-import { useForm } from "react-hook-form";
 
-import { FormField } from "@/components/dialogs/components/FormField";
 import type { IFormField } from "@/components/dialogs/helpers/types";
+import { FormField } from "@/components/dialogs/components/FormField";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import {
 interface IFormDialogProps {
   title: string;
   description?: string;
-  fields: IFormField[];
+  fields: Array<IFormField>;
   onSubmit: (data: FieldValues) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -65,7 +65,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`sm:max-w-[${maxWidth}]`}>
+      <DialogContent className={`max-w-[${maxWidth}]`}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

@@ -1,18 +1,19 @@
-import React, { type DragEvent, type FC, useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-
-import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
-import { mutate } from "swr";
+import { useQueryClient } from "@tanstack/react-query";
+import type { DragEvent, FC } from "react";
 
-import { FileType } from "@/components/bucket-view/helpers/types";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import { api_createFile } from "@/components/upload/helpers/api";
 import type {
   FileSystemDirectoryEntry,
   FileSystemEntry,
   FileSystemFileEntry,
 } from "@/components/upload/helpers/types";
+import { cn } from "@/lib/utils";
+
+import { FileType } from "@/components/bucket-view/helpers/types";
+import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
+import { api_createFile } from "@/components/upload/helpers/api";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 
 interface IDragDropZoneProps {
@@ -27,6 +28,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   className,
 }) => {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [isDragOver, setIsDragOver] = useState(false);
   const [_dragCounter, setDragCounter] = useState(0);
 
@@ -179,7 +181,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       });
 
       await Promise.all(createFolderPromises);
-      await mutate(`/buckets/${bucketId}`);
+      queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
     },
     [bucketId],
   );

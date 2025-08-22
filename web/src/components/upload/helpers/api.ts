@@ -1,12 +1,8 @@
+import type { FileType } from "@/components/bucket-view/helpers/types";
+import type { ICreateFile } from "@/components/upload/helpers/types";
 import { api } from "@/lib/api";
 
-import type {
-  FileType,
-  IInviteResponse,
-  IMembers,
-} from "@/components/bucket-view/helpers/types";
 import { toast } from "@/components/ui/hooks/use-toast";
-import type { ICreateFile } from "@/components/upload/helpers/types";
 
 export const api_createFile = (
   name: string,
@@ -57,11 +53,26 @@ export const uploadToStorage = async (
   });
 };
 
-export const api_updateMembers = (bucket_id: string, invites: IMembers[]) =>
-  api.post<IInviteResponse[]>("/invites", { bucket_id, invites });
+export const createFolderMutationFn = async (params: {
+  name: string;
+  type: FileType;
+  path: string;
+  bucketId: string;
+}): Promise<ICreateFile> => {
+  const { name, type, path, bucketId } = params;
+  return api.post<ICreateFile>(`/buckets/${bucketId}/files`, {
+    name,
+    type,
+    path,
+  });
+};
 
-export const api_updateBucketName = (bucketId: string, name: string) =>
-  api.patch(`/buckets/${bucketId}`, { name });
-
-export const api_deleteBucket = (bucketId: string) =>
-  api.delete(`/buckets/${bucketId}`);
+export const deleteFileMutationFn = async (params: {
+  bucketId: string;
+  fileId: string;
+  filename?: string;
+}): Promise<{ filename?: string }> => {
+  const { bucketId, fileId, filename } = params;
+  await api.delete(`/buckets/${bucketId}/files/${fileId}`);
+  return { filename };
+};

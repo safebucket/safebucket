@@ -2,13 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 
 import { useTranslation } from "react-i18next";
-import {
-  ChevronsUpDown,
-  FolderSync,
-  LogOut,
-  Plus,
-  ShieldCheck,
-} from "lucide-react";
+import { ChevronsUpDown, FolderSync, LogOut, Plus } from "lucide-react";
 import type { FC } from "react";
 
 import type { IMembers } from "@/components/bucket-view/helpers/types";
@@ -50,7 +44,7 @@ export const AppSidebar: FC = () => {
   const { t } = useTranslation();
   const { session, logout } = useSessionContext();
   const createBucketDialog = useDialog();
-  const { buckets, createBucketAndInvites } = useBucketsData();
+  const { buckets, createBucketMutation } = useBucketsData();
 
   const [shareWith, setShareWith] = useState<Array<IMembers>>([]);
 
@@ -59,11 +53,8 @@ export const AppSidebar: FC = () => {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="text-primary mt-2 flex items-center justify-center gap-2 text-xl font-semibold">
-              <ShieldCheck className="h-6 w-6" />
-              <span>Safebucket</span>
-            </div>
-            <Separator className="mt-4" />
+            <img src="/safebucket_banner.png" alt="SafeBucket Logo" />
+            <Separator className="mt-2" />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -115,7 +106,10 @@ export const AppSidebar: FC = () => {
                     { id: "name", label: "Name", type: "text", required: true },
                   ]}
                   onSubmit={(data) => {
-                    createBucketAndInvites(data.name, shareWith);
+                    createBucketMutation.mutate({
+                      name: data.name,
+                      members: shareWith,
+                    });
                     setShareWith([]);
                   }}
                   confirmLabel="Create"

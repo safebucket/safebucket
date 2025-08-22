@@ -1,7 +1,24 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { IListBucketActivity } from "@/types/activity";
-import type { IBucket } from "@/components/bucket-view/helpers/types.ts";
+import type { IActivity, IListBucketActivity } from "@/types/activity";
+import type {
+  IBucket,
+  IBucketMember,
+} from "@/components/bucket-view/helpers/types.ts";
 import { api } from "@/lib/api";
+
+export const bucketsQueryOptions = () =>
+  queryOptions({
+    queryKey: ["buckets"],
+    queryFn: () => api.get<{ data: Array<IBucket> }>("/buckets"),
+    select: (data) => data.data,
+  });
+
+export const bucketsActivityQueryOptions = () =>
+  queryOptions({
+    queryKey: ["buckets", "activity"],
+    queryFn: () => api.get<IListBucketActivity>("/buckets/activity"),
+    select: (data) => data.data,
+  });
 
 export const bucketDataQueryOptions = (bucketId: string) =>
   queryOptions({
@@ -9,9 +26,18 @@ export const bucketDataQueryOptions = (bucketId: string) =>
     queryFn: () => api.get<IBucket>(`/buckets/${bucketId}`),
   });
 
-export const bucketActivityQueryOptions = () =>
+export const bucketActivityQueryOptions = (bucketId: string) =>
   queryOptions({
-    queryKey: ["buckets", "activity"],
-    queryFn: () => api.get<IListBucketActivity>("/buckets/activity"),
-    select: (data) => data.data,
+    queryKey: ["buckets", bucketId, "activity"],
+    queryFn: () =>
+      api.get<{ data: Array<IActivity> }>(`/buckets/${bucketId}/activity`),
+    select: (response) => response.data,
+  });
+
+export const bucketMembersQueryOptions = (bucketId: string) =>
+  queryOptions({
+    queryKey: ["buckets", bucketId, "members"],
+    queryFn: () =>
+      api.get<{ data: Array<IBucketMember> }>(`/buckets/${bucketId}/members`),
+    select: (response) => response.data,
   });

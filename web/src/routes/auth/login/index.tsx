@@ -1,17 +1,24 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { AuthProvidersButtons } from "@/components/auth-view/components/AuthProvidersButtons";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authProvidersQueryOptions } from "@/queries/auth_providers.ts";
 
 export const Route = createFileRoute("/auth/login/")({
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(authProvidersQueryOptions()),
   component: Login,
 });
 
 function Login() {
+  const providersQuery = useSuspenseQuery(authProvidersQueryOptions());
+  const providers = providersQuery.data;
+
   const { register, handleSubmit, localLogin } = useSessionContext();
 
   return (
@@ -30,7 +37,7 @@ function Login() {
             <Card>
               <form onSubmit={handleSubmit(localLogin)}>
                 <CardContent className="space-y-4">
-                  <AuthProvidersButtons />
+                  <AuthProvidersButtons providers={providers} />
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">

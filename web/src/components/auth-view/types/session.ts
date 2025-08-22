@@ -36,9 +36,8 @@ export interface ISessionContext {
   localLogin: SubmitHandler<ILoginForm>;
   handleSubmit: UseFormHandleSubmit<ILoginForm>;
 
-  login(provider: string): void;
-
-  logout(): void;
+  login: (provider: string) => void;
+  logout: () => void;
 
   session: Session | null;
   status: string;

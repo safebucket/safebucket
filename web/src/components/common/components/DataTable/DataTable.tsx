@@ -82,7 +82,11 @@ export function DataTable<TData extends IFile, TValue>({
               <TableRow key={headerGroup.id} className="bg-muted/50">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} colSpan={header.colSpan}>
+                    <TableHead
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      className="px-4"
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(

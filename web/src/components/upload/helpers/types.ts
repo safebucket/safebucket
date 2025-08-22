@@ -16,7 +16,7 @@ export interface ICreateFile {
 }
 
 export interface IUploadContext {
-  uploads: IUpload[];
+  uploads: Array<IUpload>;
   startUpload: (files: FileList, path: string, bucketId: string) => void;
 }
 
@@ -34,7 +34,6 @@ export interface IUpload {
   status: UploadStatus;
 }
 
-// File System API type definitions for drag & drop functionality
 export type FileSystemEntry = {
   isFile: boolean;
   isDirectory: boolean;
@@ -42,13 +41,13 @@ export type FileSystemEntry = {
 };
 
 export type FileSystemFileEntry = FileSystemEntry & {
-  file(callback: (file: File) => void): void;
+  file: (callback: (file: File) => void) => void;
 };
 
 export type FileSystemDirectoryEntry = FileSystemEntry & {
-  createReader(): FileSystemDirectoryReader;
+  createReader: () => FileSystemDirectoryReader;
 };
 
 export type FileSystemDirectoryReader = {
-  readEntries(callback: (entries: FileSystemEntry[]) => void): void;
+  readEntries: (callback: (entries: Array<FileSystemEntry>) => void) => void;
 };

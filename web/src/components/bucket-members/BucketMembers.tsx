@@ -93,7 +93,6 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
               disabled={
                 !newMemberEmail.trim() || !EMAIL_REGEX.test(newMemberEmail)
               }
-              size="sm"
             >
               <UserPlus className="h-4 w-4" />
             </Button>
@@ -121,9 +120,7 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
             onClick={handleUpdateMembers}
             disabled={!hasChanges || isSubmitting}
           >
-            {isSubmitting
-              ? t("bucket.settings.members.updating")
-              : t("common.save")}
+            {t("common.save")}
           </Button>
         </div>
       </CardContent>

@@ -82,8 +82,8 @@
     "settings": {
       "information": {
         "title": "Informations du Bucket",
-        "bucket_url": "URL du Bucket",
-        "bucket_name": "Nom du Bucket",
+        "bucket_url": "URL du bucket",
+        "bucket_name": "Nom du bucket",
         "enter_bucket_name": "Saisir le nom du bucket"
       },
       "deletion": {
@@ -96,10 +96,9 @@
       "members": {
         "title": "Membres du Bucket",
         "description": "Gérez les personnes qui ont accès à ce bucket et leurs permissions",
-        "add_member": "Ajouter un Membre",
+        "add_member": "Ajouter un membre",
         "members": "Membres",
-        "enter_email": "Saisir l'adresse e-mail",
-        "updating": "Mise à jour..."
+        "enter_email": "Saisir l'adresse e-mail"
       }
     }
   },

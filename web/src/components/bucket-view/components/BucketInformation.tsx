@@ -1,7 +1,7 @@
-import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Check, Copy, Edit2, Info, X } from "lucide-react";
+import type { FC } from "react";
 
 import type { IBucket } from "@/components/bucket-view/helpers/types";
 import { useBucketInformation } from "@/components/bucket-view/hooks/useBucketInformation";
@@ -42,7 +42,7 @@ export const BucketInformation: FC<IBucketInformationProps> = ({ bucket }) => {
             {t("bucket.settings.information.bucket_url")}
           </Label>
           <div className="flex items-center gap-2">
-            <Input value={bucketUrl} disabled className="font-mono text-xs" />
+            <Input value={bucketUrl} disabled />
             <Button
               size="sm"
               variant="outline"

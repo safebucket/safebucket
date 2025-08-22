@@ -83,7 +83,7 @@
       "information": {
         "title": "Bucket Information",
         "bucket_url": "Bucket URL",
-        "bucket_name": "Bucket Name",
+        "bucket_name": "Bucket name",
         "enter_bucket_name": "Enter bucket name"
       },
       "deletion": {
@@ -98,8 +98,7 @@
         "description": "Manage who has access to this bucket and their permissions",
         "add_member": "Add Member",
         "members": "Members",
-        "enter_email": "Enter email address",
-        "updating": "Updating..."
+        "enter_email": "Enter email address"
       }
     }
   },

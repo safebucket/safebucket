@@ -1,12 +1,16 @@
 import type { FC } from "react";
-
-import { useProvidersData } from "@/components/auth-view/hooks/useProvidersData";
+import type { IProvider } from "@/types/auth_providers.ts";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { Button } from "@/components/ui/button";
 
-export const AuthProvidersButtons: FC = () => {
+interface IAuthProvidersButtonsProps {
+  providers: Array<IProvider>;
+}
+
+export const AuthProvidersButtons: FC<IAuthProvidersButtonsProps> = ({
+  providers,
+}) => {
   const { login } = useSessionContext();
-  const { providers } = useProvidersData();
 
   return (
     <div className="mt-4 grid grid-cols-2 gap-4">

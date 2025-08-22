@@ -1,3 +1,5 @@
+import type { UseMutationResult } from "@tanstack/react-query";
+
 export interface IFile {
   id: string;
   name: string;
@@ -30,16 +32,11 @@ export interface IBucket {
 
 export interface IBucketsData {
   buckets: Array<IBucket>;
-  error: string;
   isLoading: boolean;
-  createBucketAndInvites: (name: string, shareWith: Array<IMembers>) => void;
+  createBucketMutation: UseMutationResult<IBucket, Error, any>;
   isDialogOpen: boolean;
   setIsDialogOpen: (isOpen: boolean) => void;
 }
-
-export type IListBuckets = {
-  data: Array<IBucket>;
-};
 
 export enum BucketViewMode {
   List = "list",

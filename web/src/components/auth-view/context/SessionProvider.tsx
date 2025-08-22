@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from "react";
 
-import { api, fetchApi } from "@/lib/api";
-import { router } from "@/main.tsx";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
-import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
 
-import { SessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import type {
   IJWTPayload,
   ILoginForm,
@@ -16,6 +13,9 @@ import type {
   Session,
   Status,
 } from "@/components/auth-view/types/session";
+import { SessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { router } from "@/main.tsx";
+import { api, fetchApi } from "@/lib/api";
 
 export const SessionProvider = ({
   children,
