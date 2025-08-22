@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IBucket } from "@/components/bucket-view/helpers/types";
@@ -29,6 +29,10 @@ export const useBucketInformation = (
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setBucketName(bucket.name);
+  }, [bucket.name]);
 
   const updateNameMutation = useMutation({
     mutationFn: () => api.patch(`/buckets/${bucket.id}`, { name: bucketName }),

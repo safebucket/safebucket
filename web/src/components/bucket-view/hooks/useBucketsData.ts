@@ -29,7 +29,7 @@ export const useBucketsData = (): IBucketsData => {
       const bucket = await api.post<IBucket>("/buckets", { name });
 
       if (members.length > 0) {
-        await api.put(`/${bucket.id}/members`, {
+        await api.put(`/buckets/${bucket.id}/members`, {
           members,
         });
       }

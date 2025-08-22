@@ -26,7 +26,7 @@ export const BucketDeletion: FC<IBucketDeletionProps> = ({ bucket }) => {
 
   return (
     <Card className="border-red-200 bg-red-50/50">
-      <CardContent className="p-4">
+      <CardContent>
         <div className="space-y-3">
           <div>
             <h3 className="text-sm font-semibold text-red-700">

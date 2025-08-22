@@ -82,8 +82,8 @@
     "settings": {
       "information": {
         "title": "Informations du Bucket",
-        "bucket_url": "URL du Bucket",
-        "bucket_name": "Nom du Bucket",
+        "bucket_url": "URL du bucket",
+        "bucket_name": "Nom du bucket",
         "enter_bucket_name": "Saisir le nom du bucket"
       },
       "deletion": {

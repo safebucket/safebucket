@@ -106,7 +106,10 @@ export const AppSidebar: FC = () => {
                     { id: "name", label: "Name", type: "text", required: true },
                   ]}
                   onSubmit={(data) => {
-                    createBucketMutation.mutate({ name: data.name, shareWith });
+                    createBucketMutation.mutate({
+                      name: data.name,
+                      members: shareWith,
+                    });
                     setShareWith([]);
                   }}
                   confirmLabel="Create"

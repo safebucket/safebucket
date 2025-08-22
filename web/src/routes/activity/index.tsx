@@ -27,7 +27,7 @@ function ActivityPage() {
           <h1 className="text-2xl font-bold">{t("activity.title")}</h1>
         </div>
 
-        <Card>
+        <Card className="py-2">
           <CardContent className="pb-0">
             <ActivityView activity={activity} />
           </CardContent>

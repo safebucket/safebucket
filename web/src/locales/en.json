@@ -83,7 +83,7 @@
       "information": {
         "title": "Bucket Information",
         "bucket_url": "Bucket URL",
-        "bucket_name": "Bucket Name",
+        "bucket_name": "Bucket name",
         "enter_bucket_name": "Enter bucket name"
       },
       "deletion": {
