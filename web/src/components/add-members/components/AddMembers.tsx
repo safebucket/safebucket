@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import type { FC } from "react";
 
 import type { IMembers } from "@/components/bucket-view/helpers/types";
@@ -6,8 +7,8 @@ import { AddMembersInput } from "@/components/add-members/components/AddMembersI
 import { AddMembersSkeleton } from "@/components/add-members/components/AddMembersSkeleton";
 import { PeopleWithAccess } from "@/components/add-members/components/PeopleWithAccess";
 import { useAddMembers } from "@/components/add-members/hooks/useAddMembers";
-import { useBucketMembersData } from "@/components/bucket-view/hooks/useBucketMembersData";
 import { Separator } from "@/components/ui/separator";
+import { bucketMembersQueryOptions } from "@/queries/bucket.ts";
 
 interface IAddMembersProps {
   shareWith: Array<IMembers>;
@@ -33,7 +34,10 @@ export const AddMembers: FC<IAddMembersProps> = ({
     onShareWithChange,
   );
 
-  const { members, isLoading } = useBucketMembersData(bucketId || null);
+  const { data: members, isLoading } = useQuery({
+    ...bucketMembersQueryOptions(bucketId!),
+    enabled: !!bucketId,
+  });
 
   const [existingMemberChanges, setExistingMemberChanges] = useState<
     Record<string, string>

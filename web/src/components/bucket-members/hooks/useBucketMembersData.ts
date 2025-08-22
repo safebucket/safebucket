@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import useSWR from "swr";
-import type {
-  IBucket,
-  IBucketMember,
-} from "@/components/bucket-view/helpers/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { IBucket } from "@/components/bucket-view/helpers/types";
+import { bucketMembersQueryOptions } from "@/queries/bucket";
 import { EMAIL_REGEX } from "@/components/add-members/helpers/constants";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { api_updateMembers } from "@/components/bucket-members/helpers/api";
@@ -12,8 +10,6 @@ import {
   successToast,
   toast,
 } from "@/components/ui/hooks/use-toast";
-
-import { fetchApi } from "@/lib/api";
 
 export interface IMemberState {
   email: string;
@@ -25,11 +21,12 @@ export interface IMemberState {
 }
 
 export const useBucketMembersData = (bucket: IBucket) => {
-  const { data, isLoading, mutate } = useSWR(
-    bucket.id ? `/buckets/${bucket.id}/members` : null,
-    fetchApi<{ data: Array<IBucketMember> }>,
-  );
+  const { data, isLoading } = useQuery({
+    ...bucketMembersQueryOptions(bucket.id),
+    enabled: !!bucket.id,
+  });
 
+  const queryClient = useQueryClient();
   const { session } = useSessionContext();
 
   const [membersState, setMembersState] = useState<Array<IMemberState>>([]);
@@ -41,9 +38,9 @@ export const useBucketMembersData = (bucket: IBucket) => {
   const currentUserName = `${session?.loggedUser?.first_name} ${session?.loggedUser?.last_name}`;
 
   useEffect(() => {
-    if (data?.data) {
+    if (data) {
       setMembersState(
-        data.data.map((member) => ({
+        data.map((member) => ({
           email: member.email,
           group: member.group,
           first_name: member.first_name,
@@ -55,7 +52,7 @@ export const useBucketMembersData = (bucket: IBucket) => {
     }
   }, [data]);
 
-  const originalMembersMap = new Map(data?.data.map((m) => [m.email, m.group]));
+  const originalMembersMap = new Map(data?.map((m) => [m.email, m.group]));
 
   const hasChanges =
     membersState.some(
@@ -115,7 +112,9 @@ export const useBucketMembersData = (bucket: IBucket) => {
       .then(() => {
         setNewMemberEmail("");
         setNewMemberGroup("viewer");
-        mutate();
+        queryClient.invalidateQueries({
+          queryKey: ["buckets", bucket.id, "members"],
+        });
         successToast("Bucket members updated successfully");
       })
       .catch(errorToast)

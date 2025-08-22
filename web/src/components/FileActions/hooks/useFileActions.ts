@@ -1,25 +1,25 @@
-import { mutate } from "swr";
-
+import { useQueryClient } from "@tanstack/react-query";
+import type { IFileActions } from "@/components/FileActions/helpers/types";
 import {
   api_deleteFile,
   api_downloadFile,
   downloadFromStorage,
 } from "@/components/FileActions/helpers/api";
-import type { IFileActions } from "@/components/FileActions/helpers/types";
 import { FileType } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import { api_createFile } from "@/components/upload/helpers/api";
 
 export const useFileActions = (): IFileActions => {
+  const queryClient = useQueryClient();
   const { bucketId, path } = useBucketViewContext();
 
   const createFolder = (name: string) => {
     api_createFile(name, FileType.folder, path, bucketId)
-      .then(async (_) => {
-        mutate(`/buckets/${bucketId}`).then(() =>
-          successToast(`Folder ${name} has been created.`),
-        );
+      .then((_) => {
+        queryClient
+          .invalidateQueries({ queryKey: ["buckets", bucketId] })
+          .then(() => successToast(`Folder ${name} has been created.`));
       })
       .catch(errorToast);
   };
@@ -32,10 +32,10 @@ export const useFileActions = (): IFileActions => {
 
   const deleteFile = (fileId: string, filename: string) => {
     api_deleteFile(bucketId, fileId)
-      .then(async () => {
-        mutate(`/buckets/${bucketId}`).then(() =>
-          successToast(`File ${filename} has been deleted.`),
-        );
+      .then(() => {
+        queryClient
+          .invalidateQueries({ queryKey: ["buckets", bucketId] })
+          .then(() => successToast(`File ${filename} has been deleted.`));
       })
       .catch(errorToast);
   };

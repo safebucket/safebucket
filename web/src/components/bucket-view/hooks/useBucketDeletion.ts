@@ -1,8 +1,8 @@
 import { useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
-import { mutate } from "swr";
 
+import { useQueryClient } from "@tanstack/react-query";
 import type { IBucket } from "@/components/bucket-view/helpers/types";
 import {
   errorToast,
@@ -16,18 +16,19 @@ export interface IBucketDeletionData {
   setConfirmationText: (text: string) => void;
   expectedDeleteText: string;
   isConfirmationValid: boolean;
-  handleDeleteBucket: () => Promise<void>;
+  handleDeleteBucket: () => void;
 }
 
 export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [confirmationText, setConfirmationText] = useState("");
 
   const expectedDeleteText = `delete ${bucket.name}`;
   const isConfirmationValid = confirmationText === expectedDeleteText;
 
-  const handleDeleteBucket = async () => {
+  const handleDeleteBucket = () => {
     if (!isConfirmationValid) {
       toast({
         variant: "destructive",
@@ -39,7 +40,7 @@ export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
 
     api_deleteBucket(bucket.id)
       .then(() => {
-        mutate("/buckets").then(() => {
+        queryClient.invalidateQueries({ queryKey: ["buckets"] }).then(() => {
           navigate({ to: "/" });
           successToast(`Bucket ${bucket.name} has been deleted`);
         });

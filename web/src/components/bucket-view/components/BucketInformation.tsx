@@ -1,7 +1,7 @@
-import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Check, Copy, Edit2, Info, X } from "lucide-react";
+import type { FC } from "react";
 
 import type { IBucket } from "@/components/bucket-view/helpers/types";
 import { useBucketInformation } from "@/components/bucket-view/hooks/useBucketInformation";

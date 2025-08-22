@@ -1,5 +1,5 @@
 {
-  "projectName": "web_v2",
+  "projectName": "web",
   "mode": "file-router",
   "typescript": true,
   "tailwind": true,

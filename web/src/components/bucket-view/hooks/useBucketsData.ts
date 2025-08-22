@@ -1,46 +1,54 @@
 import { useState } from "react";
 
-import { fetchApi } from "@/lib/api";
-import useSWR from "swr";
-
-import {
-  api_createBucket,
-  api_createInvites,
-} from "@/components/bucket-view/helpers/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   IBucket,
   IBucketsData,
   IMembers,
-  IListBuckets,
 } from "@/components/bucket-view/helpers/types";
+
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import { bucketsQueryOptions } from "@/queries/bucket.ts";
+import { api } from "@/lib/api.ts";
 
 export const useBucketsData = (): IBucketsData => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { data, error, isLoading, mutate } = useSWR(
-    "/buckets",
-    fetchApi<IListBuckets>,
-  );
+  const { data: buckets, isLoading } = useQuery(bucketsQueryOptions());
 
-  const createBucketAndInvites = async (name: string, invites: IMembers[]) => {
-    api_createBucket(name)
-      .then((bucket: IBucket) =>
-        api_createInvites(bucket.id, invites).then(() => {
-          mutate();
-          setIsDialogOpen(false);
-          successToast("The bucket has been created");
-        }),
-      )
-      .catch(errorToast);
-  };
+  const queryClient = useQueryClient();
+
+  const createBucketMutation = useMutation({
+    mutationFn: async ({
+      name,
+      members,
+    }: {
+      name: string;
+      members: Array<IMembers>;
+    }) => {
+      const bucket = await api.post<IBucket>("/buckets", { name });
+
+      if (members.length > 0) {
+        await api.put(`/${bucket.id}/members`, {
+          members,
+        });
+      }
+
+      return bucket;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["buckets"] });
+      setIsDialogOpen(false);
+      successToast("The bucket has been created");
+    },
+    onError: (error: Error) => errorToast(error),
+  });
 
   return {
-    buckets: data ? data.data : [],
-    error,
+    buckets: buckets ? buckets : [],
     isLoading,
     isDialogOpen,
     setIsDialogOpen,
-    createBucketAndInvites,
+    createBucketMutation,
   };
 };

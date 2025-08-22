@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { bucketActivityQueryOptions } from "@/queries/bucket.ts";
+import { bucketsActivityQueryOptions } from "@/queries/bucket.ts";
 
 import { ActivityView } from "@/components/activity-view/ActivityView";
 import { ActivityViewSkeleton } from "@/components/activity-view/components/ActivityViewSkeleton.tsx";
@@ -9,13 +9,13 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export const Route = createFileRoute("/activity/")({
   loader: ({ context: { queryClient } }) =>
-    queryClient.ensureQueryData(bucketActivityQueryOptions()),
+    queryClient.ensureQueryData(bucketsActivityQueryOptions()),
   pendingComponent: ActivityViewSkeleton,
   component: ActivityPage,
 });
 
 function ActivityPage() {
-  const activityQuery = useSuspenseQuery(bucketActivityQueryOptions());
+  const activityQuery = useSuspenseQuery(bucketsActivityQueryOptions());
   const activity = activityQuery.data;
 
   const { t } = useTranslation();

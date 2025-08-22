@@ -50,7 +50,7 @@ export const AppSidebar: FC = () => {
   const { t } = useTranslation();
   const { session, logout } = useSessionContext();
   const createBucketDialog = useDialog();
-  const { buckets, createBucketAndInvites } = useBucketsData();
+  const { buckets, createBucketMutation } = useBucketsData();
 
   const [shareWith, setShareWith] = useState<Array<IMembers>>([]);
 
@@ -115,7 +115,7 @@ export const AppSidebar: FC = () => {
                     { id: "name", label: "Name", type: "text", required: true },
                   ]}
                   onSubmit={(data) => {
-                    createBucketAndInvites(data.name, shareWith);
+                    createBucketMutation.mutate({ name: data.name, shareWith });
                     setShareWith([]);
                   }}
                   confirmLabel="Create"

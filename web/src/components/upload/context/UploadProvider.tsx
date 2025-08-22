@@ -1,7 +1,8 @@
 import React, { useReducer } from "react";
 
+import { useQueryClient } from "@tanstack/react-query";
+import * as actions from "../store/actions";
 import { generateRandomString } from "@/lib/utils";
-import { mutate } from "swr";
 
 import { FileType } from "@/components/bucket-view/helpers/types";
 import { successToast } from "@/components/ui/hooks/use-toast";
@@ -13,9 +14,8 @@ import { UploadStatus } from "@/components/upload/helpers/types";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
 import { uploadsReducer } from "@/components/upload/store/reducer";
 
-import * as actions from "../store/actions";
-
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = useQueryClient();
   const [uploads, dispatch] = useReducer(uploadsReducer, []);
 
   const addUpload = (uploadId: string, filename: string, path: string) =>
@@ -27,11 +27,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const updateStatus = (uploadId: string, status: UploadStatus) =>
     dispatch(actions.updateStatus(uploadId, status));
 
-  const startUpload = async (
-    files: FileList,
-    path: string,
-    bucketId: string,
-  ) => {
+  const startUpload = (files: FileList, path: string, bucketId: string) => {
     const file = files[0];
     const uploadId = generateRandomString(12);
 
@@ -44,16 +40,16 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     // Ensure path is never empty - backend requires non-empty path
     const apiPath = path || "/";
     api_createFile(file.name, FileType.file, apiPath, bucketId, file.size).then(
-      async (presignedUpload) => {
-        await mutate(`/buckets/${bucketId}`);
+      (presignedUpload) => {
         uploadToStorage(presignedUpload, file, uploadId, updateProgress).then(
-          async (success: boolean) => {
+          (success: boolean) => {
             const status = success ? UploadStatus.success : UploadStatus.failed;
             updateStatus(uploadId, status);
 
             if (success) {
               successToast(`Upload completed for ${file.name}`);
             }
+            queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
           },
         );
       },
