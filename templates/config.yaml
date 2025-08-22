@@ -20,7 +20,7 @@ database:
   host: localhost
   port: 5442
   password: root
-  name: transferspace
+  name: safebucket
   user: root
   ssl: false
 

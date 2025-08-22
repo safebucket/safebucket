@@ -2,14 +2,14 @@ import { useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IBucket } from "@/components/bucket-view/helpers/types";
 import {
   errorToast,
   successToast,
   toast,
 } from "@/components/ui/hooks/use-toast";
-import { api_deleteBucket } from "@/components/upload/helpers/api";
+import { api } from "@/lib/api.ts";
 
 export interface IBucketDeletionData {
   confirmationText: string;
@@ -25,6 +25,16 @@ export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
 
   const [confirmationText, setConfirmationText] = useState("");
 
+  const deleteMutation = useMutation({
+    mutationFn: () => api.delete(`/buckets/${bucket.id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["buckets"] });
+      navigate({ to: "/" });
+      successToast(`Bucket ${bucket.name} has been deleted`);
+    },
+    onError: (error: Error) => errorToast(error),
+  });
+
   const expectedDeleteText = `delete ${bucket.name}`;
   const isConfirmationValid = confirmationText === expectedDeleteText;
 
@@ -38,14 +48,7 @@ export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
       return;
     }
 
-    api_deleteBucket(bucket.id)
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: ["buckets"] }).then(() => {
-          navigate({ to: "/" });
-          successToast(`Bucket ${bucket.name} has been deleted`);
-        });
-      })
-      .catch(errorToast);
+    deleteMutation.mutate();
   };
 
   return {

@@ -96,10 +96,9 @@
       "members": {
         "title": "Membres du Bucket",
         "description": "Gérez les personnes qui ont accès à ce bucket et leurs permissions",
-        "add_member": "Ajouter un Membre",
+        "add_member": "Ajouter un membre",
         "members": "Membres",
-        "enter_email": "Saisir l'adresse e-mail",
-        "updating": "Mise à jour..."
+        "enter_email": "Saisir l'adresse e-mail"
       }
     }
   },

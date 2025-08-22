@@ -1,10 +1,7 @@
+import type { IDownloadFileResponse } from "@/components/bucket-view/helpers/types";
 import { api } from "@/lib/api";
 
-import type { IDownloadFileResponse } from "@/components/bucket-view/helpers/types";
 import { toast } from "@/components/ui/hooks/use-toast";
-
-export const api_deleteFile = (bucketId: string, fileId: string) =>
-  api.delete(`/buckets/${bucketId}/files/${fileId}`);
 
 export const api_downloadFile = (bucketId: string, fileId: string) =>
   api.get<IDownloadFileResponse>(

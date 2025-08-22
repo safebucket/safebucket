@@ -1,27 +1,48 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IFileActions } from "@/components/FileActions/helpers/types";
 import {
-  api_deleteFile,
   api_downloadFile,
   downloadFromStorage,
 } from "@/components/FileActions/helpers/api";
 import { FileType } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
-import { api_createFile } from "@/components/upload/helpers/api";
+import {
+  createFolderMutationFn,
+  deleteFileMutationFn,
+} from "@/components/upload/helpers/api.ts";
 
 export const useFileActions = (): IFileActions => {
   const queryClient = useQueryClient();
   const { bucketId, path } = useBucketViewContext();
 
+  const createFolderMutation = useMutation({
+    mutationFn: createFolderMutationFn,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["buckets"] });
+      successToast(`Folder ${variables.name} has been created.`);
+    },
+    onError: (error: Error) => errorToast(error),
+  });
+
+  const deleteFileMutation = useMutation({
+    mutationFn: deleteFileMutationFn,
+    onSuccess: ({ filename }) => {
+      queryClient.invalidateQueries({ queryKey: ["buckets"] });
+      if (filename) {
+        successToast(`File ${filename} has been deleted.`);
+      }
+    },
+    onError: (error: Error) => errorToast(error),
+  });
+
   const createFolder = (name: string) => {
-    api_createFile(name, FileType.folder, path, bucketId)
-      .then((_) => {
-        queryClient
-          .invalidateQueries({ queryKey: ["buckets", bucketId] })
-          .then(() => successToast(`Folder ${name} has been created.`));
-      })
-      .catch(errorToast);
+    createFolderMutation.mutate({
+      name,
+      type: FileType.folder,
+      path,
+      bucketId,
+    });
   };
 
   const downloadFile = (fileId: string, filename: string) => {
@@ -31,13 +52,7 @@ export const useFileActions = (): IFileActions => {
   };
 
   const deleteFile = (fileId: string, filename: string) => {
-    api_deleteFile(bucketId, fileId)
-      .then(() => {
-        queryClient
-          .invalidateQueries({ queryKey: ["buckets", bucketId] })
-          .then(() => successToast(`File ${filename} has been deleted.`));
-      })
-      .catch(errorToast);
+    deleteFileMutation.mutate({ bucketId, fileId, filename });
   };
 
   return {

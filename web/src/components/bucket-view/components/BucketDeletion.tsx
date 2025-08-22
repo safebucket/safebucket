@@ -45,17 +45,16 @@ export const BucketDeletion: FC<IBucketDeletionProps> = ({ bucket }) => {
               </span>{" "}
               {t("bucket.settings.deletion.to_confirm")}
             </Label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-2">
               <Input
                 id="confirmation"
                 value={confirmationText}
                 onChange={(e) => setConfirmationText(e.target.value)}
                 placeholder={expectedDeleteText}
-                className="border-red-200 text-xs focus:border-red-300 focus:ring-red-200 mt-2"
+                className="border-red-200 text-xs focus:border-red-300 focus:ring-red-200"
               />
               <Button
                 variant="destructive"
-                size="sm"
                 onClick={handleDeleteBucket}
                 disabled={!isConfirmationValid}
                 className="flex items-center gap-2"
