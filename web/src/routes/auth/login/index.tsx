@@ -36,46 +36,52 @@ function Login() {
                 {t("auth.sign_in_subtitle")}
               </p>
             </div>
-            <Card>
+            <Card className="pt-0">
               <form onSubmit={handleSubmit(localLogin)}>
                 <CardContent className="space-y-4">
-                  <AuthProvidersButtons providers={providers} />
+                  <AuthProvidersButtons
+                    providers={providers.filter((p) => p.id != "local")}
+                  />
 
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background text-muted-foreground px-2">
-                        {t("auth.or_continue_with")}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">{t("auth.email")}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder={t("auth.email_placeholder")}
-                      {...register("email", { required: true })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">{t("auth.password")}</Label>
-                      <Link
-                        to="/"
-                        className="text-primary text-sm font-medium hover:underline"
-                      >
-                        {t("auth.forgot_password")}
-                      </Link>
-                    </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      {...register("password", { required: true })}
-                    />
-                  </div>
+                  {providers.find((p) => p.id == "local") && (
+                    <>
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background text-muted-foreground px-2">
+                            {t("auth.or_continue_with")}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="email">{t("auth.email")}</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder={t("auth.email_placeholder")}
+                          {...register("email", { required: true })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="password">{t("auth.password")}</Label>
+                          <Link
+                            to="/"
+                            className="text-primary text-sm font-medium hover:underline"
+                          >
+                            {t("auth.forgot_password")}
+                          </Link>
+                        </div>
+                        <Input
+                          id="password"
+                          type="password"
+                          {...register("password", { required: true })}
+                        />
+                      </div>
+                    </>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button type="submit" className="w-full mt-4">

@@ -28,6 +28,15 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 	idx := 0
 
 	for name, providerCfg := range providersCfg {
+		if name == AuthLocalProviderName {
+			providers[name] = Provider{
+				Name:           providerCfg.Name,
+				Order:          idx,
+				SharingOptions: providerCfg.SharingConfiguration,
+			}
+			continue
+		}
+
 		provider, err := oidc.NewProvider(ctx, providerCfg.Issuer)
 		if err != nil {
 			zap.L().Error(

@@ -67,6 +67,13 @@ notifier:
     enable_ssl: false      # Set to true for production SMTP servers
     skip_verify_ssl: true      # Set to false for production with valid certificates
 
+auth:
+  providers:
+    local:
+      name: local
+      sharing:
+        enabled: true
+
 activity:
   type: loki
   endpoint: http://localhost:3100

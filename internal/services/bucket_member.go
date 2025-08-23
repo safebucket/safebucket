@@ -138,15 +138,12 @@ func (s BucketMemberService) UpdateBucketMembers(
 	var providerCfg configuration.Provider
 	var ok bool
 
-	if user.Provider != configuration.AuthLocalProviderName {
-		providerCfg, ok = s.Providers[user.Provider]
-		if !ok {
-			return nil, errors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
-		}
-
-		if !providerCfg.SharingOptions.Enabled {
-			return nil, errors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
-		}
+	providerCfg, ok = s.Providers[user.Provider]
+	if !ok {
+		return nil, errors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
+	}
+	if !providerCfg.SharingOptions.Enabled {
+		return nil, errors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
 	}
 
 	var bucket models.Bucket
@@ -177,19 +174,19 @@ func (s BucketMemberService) UpdateBucketMembers(
 	changes := s.compareMemberships(currentMembers, updatedMembers)
 
 	for _, member := range changes.ToAdd {
-		if s.isDomainAllowed(user, member.Email, providerCfg) {
+		if s.isDomainAllowed(member.Email, providerCfg) {
 			s.addMember(user, bucket, member)
 		}
 	}
 
 	for _, member := range changes.ToUpdate {
-		if s.isDomainAllowed(user, member.Email, providerCfg) {
+		if s.isDomainAllowed(member.Email, providerCfg) {
 			s.updateMember(user, bucket, member)
 		}
 	}
 
 	for _, member := range changes.ToDelete {
-		if s.isDomainAllowed(user, member.Email, providerCfg) {
+		if s.isDomainAllowed(member.Email, providerCfg) {
 			s.deleteMember(user, bucket, member)
 		}
 	}
@@ -231,7 +228,6 @@ func (s BucketMemberService) compareMemberships(
 }
 
 func (s BucketMemberService) isDomainAllowed(
-	user models.UserClaims,
 	email string,
 	providerCfg configuration.Provider,
 ) bool {
@@ -242,10 +238,7 @@ func (s BucketMemberService) isDomainAllowed(
 
 	emailDomain := domainParts[1]
 
-	// TODO: migrate local authent to a provider
-	if user.Provider == configuration.AuthLocalProviderName {
-		return true // Local users are allowed to invite anyone
-	} else {
+	if len(providerCfg.SharingOptions.AllowedDomains) > 0 {
 		for _, domain := range providerCfg.SharingOptions.AllowedDomains {
 			if strings.EqualFold(emailDomain, domain) {
 				return true
