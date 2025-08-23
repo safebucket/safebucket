@@ -4,12 +4,11 @@ import (
 	"api/internal/models"
 	"errors"
 	"fmt"
-	"os"
-	"strings"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"os"
+	"strings"
 )
 
 func readEnvVars(v *viper.Viper) {

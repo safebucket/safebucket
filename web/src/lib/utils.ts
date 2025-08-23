@@ -1,9 +1,8 @@
-import { clsx } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { format, parseISO } from "date-fns";
 import { twMerge } from "tailwind-merge";
-import type { ClassValue } from "clsx";
 
-export function cn(...inputs: Array<ClassValue>) {
+export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
