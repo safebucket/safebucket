@@ -3,6 +3,54 @@
     "logout": "Logout",
     "save": "Save"
   },
+  "auth": {
+    "sign_in_title": "Sign in to your account",
+    "sign_in_subtitle": "Unable to sign in? Contact your administrator.",
+    "or_continue_with": "Or continue with",
+    "email": "Email",
+    "email_placeholder": "name@example.com",
+    "password": "Password",
+    "forgot_password": "Forgot password?",
+    "sign_in": "Sign in"
+  },
+  "homepage": {
+    "welcome": "Welcome back {{firstName}}!",
+    "subtitle": "Ready to transfer and share your files securely",
+    "recent_activity": {
+      "title": "Recent Activity",
+      "description": "Your latest file transfer activity",
+      "status": {
+        "completed": "Completed",
+        "in_progress": "In Progress"
+      },
+      "time_ago": {
+        "hours_ago": "{{count}} hours ago",
+        "minutes_ago": "{{count}} minutes ago",
+        "day_ago": "{{count}} day ago"
+      }
+    },
+    "quick_start": {
+      "title": "Quick Start",
+      "description": "Get started in 3 easy steps",
+      "steps": {
+        "create_bucket": "Create a bucket",
+        "add_members": "Add members",
+        "share_files": "Share your files safely"
+      },
+      "view_documentation": "View documentation"
+    },
+    "statistics": {
+      "title": "Statistics",
+      "total_files": "Total Files",
+      "sharing_spaces": "Sharing Spaces"
+    },
+    "tutorial": {
+      "title": "Tutorial: How to Transfer Files",
+      "video_title": "Getting started with safebucket",
+      "video_description": "A comprehensive guide to file transfers",
+      "coming_soon": "Coming soon..."
+    }
+  },
   "file_actions": {
     "download": "Download",
     "share": "Share",

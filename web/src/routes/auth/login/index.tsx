@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { AuthProvidersButtons } from "@/components/auth-view/components/AuthProvidersButtons";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/auth/login/")({
 });
 
 function Login() {
+  const { t } = useTranslation();
   const providersQuery = useSuspenseQuery(authProvidersQueryOptions());
   const providers = providersQuery.data;
 
@@ -28,10 +30,10 @@ function Login() {
           <div className="mx-auto max-w-md space-y-4">
             <div className="text-center">
               <h1 className="text-foreground text-3xl font-bold tracking-tight">
-                Sign in to your account
+                {t("auth.sign_in_title")}
               </h1>
               <p className="text-muted-foreground mt-2">
-                Unable to sign in? Contact your administrator.
+                {t("auth.sign_in_subtitle")}
               </p>
             </div>
             <Card>
@@ -45,27 +47,27 @@ function Login() {
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                       <span className="bg-background text-muted-foreground px-2">
-                        Or continue with
+                        {t("auth.or_continue_with")}
                       </span>
                     </div>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">{t("auth.email")}</Label>
                     <Input
                       id="email"
                       type="email"
-                      placeholder="name@example.com"
+                      placeholder={t("auth.email_placeholder")}
                       {...register("email", { required: true })}
                     />
                   </div>
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">{t("auth.password")}</Label>
                       <Link
                         to="/"
                         className="text-primary text-sm font-medium hover:underline"
                       >
-                        Forgot password?
+                        {t("auth.forgot_password")}
                       </Link>
                     </div>
                     <Input
@@ -76,8 +78,8 @@ function Login() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full">
-                    Sign in
+                  <Button type="submit" className="w-full mt-4">
+                    {t("auth.sign_in")}
                   </Button>
                 </CardFooter>
               </form>
