@@ -3,6 +3,54 @@
     "logout": "Déconnexion",
     "save": "Enregistrer"
   },
+  "auth": {
+    "sign_in_title": "Connectez-vous à votre compte",
+    "sign_in_subtitle": "Impossible de vous connecter ? Contactez votre administrateur.",
+    "or_continue_with": "Ou continuez avec",
+    "email": "E-mail",
+    "email_placeholder": "nom@exemple.com",
+    "password": "Mot de passe",
+    "forgot_password": "Mot de passe oublié ?",
+    "sign_in": "Se connecter"
+  },
+  "homepage": {
+    "welcome": "Bienvenue {{firstName}} !",
+    "subtitle": "Prêt à transférer et partager vos fichiers en toute sécurité",
+    "recent_activity": {
+      "title": "Activité récente",
+      "description": "Votre dernière activité de transfert de fichiers",
+      "status": {
+        "completed": "Terminé",
+        "in_progress": "En cours"
+      },
+      "time_ago": {
+        "hours_ago": "il y a {{count}} heures",
+        "minutes_ago": "il y a {{count}} minutes",
+        "day_ago": "il y a {{count}} jour"
+      }
+    },
+    "quick_start": {
+      "title": "Démarrage rapide",
+      "description": "Commencez en 3 étapes simples",
+      "steps": {
+        "create_bucket": "Créer un bucket",
+        "add_members": "Ajouter des membres",
+        "share_files": "Partagez vos fichiers en toute sécurité"
+      },
+      "view_documentation": "Voir la documentation"
+    },
+    "statistics": {
+      "title": "Statistiques",
+      "total_files": "Total des fichiers",
+      "sharing_spaces": "Espaces de partage"
+    },
+    "tutorial": {
+      "title": "Tutoriel : Comment transférer des fichiers",
+      "video_title": "Commencer avec safebucket",
+      "video_description": "Un guide complet pour les transferts de fichiers",
+      "coming_soon": "Bientôt disponible..."
+    }
+  },
   "file_actions": {
     "download": "Télécharger",
     "share": "Partager",
