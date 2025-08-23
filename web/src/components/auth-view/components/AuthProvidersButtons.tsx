@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { IProvider } from "@/types/auth_providers.ts";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
@@ -11,6 +12,7 @@ export const AuthProvidersButtons: FC<IAuthProvidersButtonsProps> = ({
   providers,
 }) => {
   const { login } = useSessionContext();
+  const { t } = useTranslation();
 
   return (
     <div className="mt-4 grid grid-cols-2 gap-4">
@@ -31,7 +33,7 @@ export const AuthProvidersButtons: FC<IAuthProvidersButtonsProps> = ({
             }}
             className="mr-2 h-4 w-4"
           />
-          Continue with {provider.name}
+          {t("auth.continue_with", { name: provider.name })}
         </Button>
       ))}
     </div>

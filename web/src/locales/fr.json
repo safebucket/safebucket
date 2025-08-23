@@ -6,6 +6,7 @@
   "auth": {
     "sign_in_title": "Connectez-vous à votre compte",
     "sign_in_subtitle": "Impossible de vous connecter ? Contactez votre administrateur.",
+    "continue_with": "Continuer avec {{name}}",
     "or_continue_with": "Ou continuez avec",
     "email": "E-mail",
     "email_placeholder": "nom@exemple.com",
