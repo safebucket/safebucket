@@ -1,8 +1,8 @@
 package events
 
 import (
-	"api/internal/core"
 	"api/internal/messaging"
+	"api/internal/notifier"
 	"encoding/json"
 	"fmt"
 
@@ -65,9 +65,9 @@ func (e *ChallengeUserInvite) Trigger() {
 	}
 }
 
-func (e *ChallengeUserInvite) callback(webUrl string, mailer *core.Mailer) {
+func (e *ChallengeUserInvite) callback(webUrl string, notifier notifier.INotifier) {
 	subject := fmt.Sprintf("%s has invited you", "")
-	err := mailer.NotifyFromTemplate(e.Payload.To, subject, "user_invited", e.Payload)
+	err := notifier.NotifyFromTemplate(e.Payload.To, subject, "user_invited", e.Payload)
 	if err != nil {
 		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
 	}
