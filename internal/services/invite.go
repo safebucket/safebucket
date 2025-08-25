@@ -118,8 +118,6 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 		Email: challenge.Invite.Email,
 	}
 
-	zap.L().Info("Creating new user", zap.Any("user", newUser))
-
 	result = s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
 		err = sql.CreateUserWithRole(s.DB, s.Enforcer, &newUser, roles.AddUserToRoleGuest)
@@ -132,7 +130,6 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 		s.DB.Preload("Bucket").Where("email = ?", challenge.Invite.Email).Find(&invites)
 
 		for _, invite := range invites {
-			zap.L().Info("User inserted", zap.Any("user", newUser))
 			var err error
 			switch invite.Group {
 			case "viewer":
