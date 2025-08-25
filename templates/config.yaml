@@ -71,6 +71,7 @@ auth:
   providers:
     local:
       name: local
+      type: local
       sharing:
         enabled: true
 

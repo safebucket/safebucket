@@ -12,6 +12,7 @@ import (
 
 type Provider struct {
 	Name           string
+	Type           string
 	Provider       *oidc.Provider
 	Verifier       *oidc.IDTokenVerifier
 	OauthConfig    oauth2.Config
@@ -28,9 +29,10 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 	idx := 0
 
 	for name, providerCfg := range providersCfg {
-		if name == AuthLocalProviderName {
+		if providerCfg.Type == AuthLocalProviderName {
 			providers[name] = Provider{
 				Name:           providerCfg.Name,
+				Type:           providerCfg.Type,
 				Order:          idx,
 				SharingOptions: providerCfg.SharingConfiguration,
 			}

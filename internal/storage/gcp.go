@@ -1,11 +1,12 @@
 package storage
 
 import (
-	gcs "cloud.google.com/go/storage"
 	"context"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	gcs "cloud.google.com/go/storage"
+	"go.uber.org/zap"
 )
 
 type GCPStorage struct {

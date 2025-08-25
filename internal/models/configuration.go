@@ -38,6 +38,7 @@ type AuthConfiguration struct {
 
 type ProviderConfiguration struct {
 	Name                 string               `mapstructure:"name" validate:"required"`
+	Type                 string               `mapstructure:"type" validate:"required" default:"oidc"`
 	ClientId             string               `mapstructure:"client_id" validate:"required"`
 	ClientSecret         string               `mapstructure:"client_secret" validate:"required"`
 	Issuer               string               `mapstructure:"issuer" validate:"required"`
