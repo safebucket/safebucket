@@ -23,6 +23,7 @@ func NewSMTPNotifier(config models.MailerConfiguration) *SMTPNotifier {
 
 	if config.EnableTLS {
 		dialer.SSL = true
+		// #nosec G402 -- InsecureSkipVerify is configurable for development environments
 		dialer.TLSConfig = &tls.Config{InsecureSkipVerify: config.SkipVerifyTLS}
 	} else {
 		dialer.SSL = false

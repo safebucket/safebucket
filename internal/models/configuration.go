@@ -129,8 +129,8 @@ type MailerConfiguration struct {
 	Username      string `mapstructure:"username"`
 	Password      string `mapstructure:"password"`
 	Sender        string `mapstructure:"sender" validate:"required"`
-	EnableTLS     bool   `mapstructure:"enable_ssl" default:"true"`
-	SkipVerifyTLS bool   `mapstructure:"skip_verify_ssl" default:"false"`
+	EnableTLS     bool   `mapstructure:"enable_tls" default:"true"`
+	SkipVerifyTLS bool   `mapstructure:"skip_verify_tls" default:"false"`
 }
 
 type NotifierConfiguration struct {
