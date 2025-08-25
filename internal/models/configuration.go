@@ -39,10 +39,14 @@ type AuthConfiguration struct {
 type ProviderConfiguration struct {
 	Name                 string               `mapstructure:"name" validate:"required"`
 	Type                 string               `mapstructure:"type" validate:"required" default:"oidc"`
-	ClientId             string               `mapstructure:"client_id" validate:"required"`
-	ClientSecret         string               `mapstructure:"client_secret" validate:"required"`
-	Issuer               string               `mapstructure:"issuer" validate:"required"`
-	SharingConfiguration SharingConfiguration `mapstructure:"sharing"`
+	OIDC                 OIDCConfiguration    `mapstructure:"oidc" validate:"required_if=Type oidc"`
+	SharingConfiguration SharingConfiguration `mapstructure:"sharing" validate:"dive"`
+}
+
+type OIDCConfiguration struct {
+	ClientId     string `mapstructure:"client_id" validate:"required_if=Type oidc"`
+	ClientSecret string `mapstructure:"client_secret" validate:"required_if=Type oidc"`
+	Issuer       string `mapstructure:"issuer" validate:"required_if=Type oidc"`
 }
 
 type SharingConfiguration struct {

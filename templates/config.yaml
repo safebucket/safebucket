@@ -70,8 +70,16 @@ notifier:
 auth:
   providers:
     local:
-      name: local
       type: local
+      sharing:
+        enabled: true
+    google:
+      type: oidc
+      name: Google
+      oidc:
+        client_id:
+        client_secret:
+        issuer:
       sharing:
         enabled: true
 
