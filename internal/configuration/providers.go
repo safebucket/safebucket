@@ -39,7 +39,7 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 			continue
 		}
 
-		provider, err := oidc.NewProvider(ctx, providerCfg.Issuer)
+		provider, err := oidc.NewProvider(ctx, providerCfg.OIDC.Issuer)
 		if err != nil {
 			zap.L().Error(
 				"Failed to load provider",
@@ -49,11 +49,11 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 			continue
 		}
 
-		verifier := provider.Verifier(&oidc.Config{ClientID: providerCfg.ClientId})
+		verifier := provider.Verifier(&oidc.Config{ClientID: providerCfg.OIDC.ClientId})
 
 		oauthConfig := oauth2.Config{
-			ClientID:     providerCfg.ClientId,
-			ClientSecret: providerCfg.ClientSecret,
+			ClientID:     providerCfg.OIDC.ClientId,
+			ClientSecret: providerCfg.OIDC.ClientSecret,
 			Endpoint:     provider.Endpoint(),
 			RedirectURL:  fmt.Sprintf("%s/auth/providers/%s/callback", apiUrl, name),
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
@@ -73,8 +73,8 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 		zap.L().Info(
 			"Loaded auth provider",
 			zap.String("name", name),
-			zap.String("client_id", providerCfg.ClientId),
-			zap.String("issuer", providerCfg.Issuer),
+			zap.String("client_id", providerCfg.OIDC.ClientId),
+			zap.String("issuer", providerCfg.OIDC.Issuer),
 		)
 	}
 	return providers
