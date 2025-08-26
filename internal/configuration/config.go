@@ -2,80 +2,112 @@ package configuration
 
 import (
 	"api/internal/models"
-	"errors"
 	"fmt"
-	"github.com/go-playground/validator/v10"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"os"
 	"strings"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
+	"go.uber.org/zap"
 )
 
-func readEnvVars(v *viper.Viper) {
-	keys := []string{"name", "client_id", "client_secret", "issuer"}
-	providers := strings.Split(v.GetString("AUTH_PROVIDERS_KEYS"), ",")
-	for _, provider := range providers {
-		providerUpper := strings.ToUpper(provider)
-		for _, key := range keys {
-			keyUpper := strings.ToUpper(key)
-			_ = v.BindEnv(
-				fmt.Sprintf("auth.providers.%s.%s", provider, key),
-				fmt.Sprintf("AUTH_PROVIDERS_%s_%s", providerUpper, keyUpper),
-			)
+func parseArrayFields(k *koanf.Koanf) {
+	for _, field := range ArrayConfigFields {
+		if stringVal := k.String(field); stringVal != "" {
+			stringVal = strings.Trim(stringVal, "[]")
+			var items []string
+			if strings.Contains(stringVal, ",") {
+				items = strings.Split(stringVal, ",")
+			} else {
+				items = strings.Fields(stringVal)
+			}
+			for i, item := range items {
+				items[i] = strings.TrimSpace(item)
+			}
+			k.Set(field, items)
 		}
 	}
 }
 
-func readFileConfig(v *viper.Viper) {
-	configFilePath := os.Getenv("CONFIG_FILE_PATH")
-	if configFilePath == "" {
-		v.SetConfigName("config")
-		v.SetConfigType("yaml")
-		v.AddConfigPath(".")
-		v.AddConfigPath("templates/")
-	} else {
-		v.SetConfigFile(configFilePath)
+func parseAuthProviders(k *koanf.Koanf) {
+	providersStr := k.String("auth.providers.keys")
+	if providersStr != "" {
+		providers := strings.Split(providersStr, ",")
+		for _, provider := range providers {
+			providerUpper := strings.ToUpper(provider)
+			for _, key := range AuthProviderKeys {
+				keyUpper := strings.ToUpper(key)
+				envKey := fmt.Sprintf("AUTH__PROVIDERS__%s__%s", providerUpper, keyUpper)
+				if envVal := os.Getenv(envKey); envVal != "" {
+					k.Set(fmt.Sprintf("auth.providers.%s.%s", provider, key), envVal)
+				}
+			}
+		}
+		// Remove the keys entry to avoid conflict with providers map
+		k.Delete("auth.providers.keys")
 	}
-	err := v.ReadInConfig()
+}
+
+func readEnvVars(k *koanf.Koanf) {
+	err := k.Load(env.Provider("", ".", func(s string) string {
+		s = strings.ToLower(s)
+		segments := strings.Split(s, "__")
+		result := strings.Join(segments, ".")
+		return result
+	}), nil)
 	if err != nil {
-		if !errors.As(err, &viper.ConfigFileNotFoundError{}) {
-			panic(fmt.Errorf("fatal error config file: %w", err))
-		} else {
-			zap.L().Warn("No configuration file found")
-		}
+		zap.L().Warn("Error loading environment variables", zap.Error(err))
 	}
-	zap.L().Info("Read configuration from file " + v.ConfigFileUsed())
+
+	parseArrayFields(k)
+	parseAuthProviders(k)
+
 }
 
-func setDefault(v *viper.Viper) {
-	v.SetDefault("database.sslmode", "disable")
-	v.SetDefault("database.port", 5432)
+func readFileConfig(k *koanf.Koanf) {
+	configFilePath := os.Getenv("CONFIG_FILE_PATH")
+	var filePath string
+	if configFilePath == "" {
+		for _, path := range ConfigFileSearchPaths {
+			if _, err := os.Stat(path); err == nil {
+				filePath = path
+				break
+			}
+		}
+	} else {
+		filePath = configFilePath
+	}
 
-	// Platform configuration defaults
-	v.SetDefault("platform.port", 8080)
-	v.SetDefault("platform.static_files.enabled", true)
-	v.SetDefault("platform.static_files.directory", "web_v2/dist")
+	if filePath != "" {
+		err := k.Load(file.Provider(filePath), yaml.Parser())
+		if err != nil {
+			zap.L().Fatal("Fatal error loading config file", zap.String("path", filePath), zap.Error(err))
+		}
+		zap.L().Info("Read configuration from file " + filePath)
+	} else {
+		zap.L().Warn("No configuration file found")
+	}
 }
 
 func Read() models.Configuration {
-	v := viper.New()
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
+	k := koanf.New(".")
 
-	readEnvVars(v)
-	readFileConfig(v)
-	setDefault(v)
+	readFileConfig(k)
+	readEnvVars(k)
 
 	var config models.Configuration
-	err := v.Unmarshal(&config)
+	err := k.UnmarshalWithConf("", &config, koanf.UnmarshalConf{Tag: "mapstructure"})
 
 	if err != nil {
-		zap.L().Error("Unable to decode into struct: ", zap.Error(err))
+		zap.L().Fatal("Unable to decode config into struct: ", zap.Error(err))
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(config); err != nil {
-		zap.L().Error("Invalid configuration: ", zap.Error(err))
+		zap.L().Fatal("Invalid configuration: ", zap.Error(err))
 	}
 
 	return config

@@ -18,13 +18,13 @@ type PlatformConfiguration struct {
 	ApiUrl         string              `mapstructure:"api_url" validate:"required"`
 	WebUrl         string              `mapstructure:"web_url" validate:"required"`
 	TrustedProxies []string            `mapstructure:"trusted_proxies" validate:"required"`
-	Port           int                 `mapstructure:"port" validate:"gte=80,lte=65535"`
+	Port           int                 `mapstructure:"port" validate:"gte=80,lte=65535" default:"8080"`
 	StaticFiles    StaticConfiguration `mapstructure:"static_files"`
 }
 
 type DatabaseConfiguration struct {
 	Host     string `mapstructure:"host" validate:"required"`
-	Port     int32  `mapstructure:"port" validate:"gte=80,lte=65535" `
+	Port     int32  `mapstructure:"port" validate:"gte=80,lte=65535" default:"5432"`
 	User     string `mapstructure:"user" validate:"required"`
 	Password string `mapstructure:"password" validate:"required"`
 	Name     string `mapstructure:"name" validate:"required"`
@@ -40,7 +40,7 @@ type CorsConfiguration struct {
 }
 
 type AuthConfiguration struct {
-	Providers map[string]ProviderConfiguration `mapstructure:"providers"`
+	Providers map[string]ProviderConfiguration `mapstructure:"providers" validate:"omitempty,dive"`
 }
 
 type ProviderConfiguration struct {
@@ -48,7 +48,7 @@ type ProviderConfiguration struct {
 	ClientId             string               `mapstructure:"client_id" validate:"required"`
 	ClientSecret         string               `mapstructure:"client_secret" validate:"required"`
 	Issuer               string               `mapstructure:"issuer" validate:"required"`
-	SharingConfiguration SharingConfiguration `mapstructure:"sharing" validate:"dive"`
+	SharingConfiguration SharingConfiguration `mapstructure:"sharing"`
 }
 
 type SharingConfiguration struct {
@@ -63,44 +63,40 @@ type CacheConfiguration struct {
 }
 
 type RedisCacheConfiguration struct {
-	Hosts    []string `mapstructure:"hosts" validate:"required"`
-	Port     int32    `mapstructure:"port" validate:"gte=80,lte=65535"`
-	Password string   `mapstructure:"password" validate:"required"`
+	Hosts    []string `mapstructure:"hosts"`
+	Password string   `mapstructure:"password"`
 }
 
 type ValkeyCacheConfiguration struct {
-	Hosts    []string `mapstructure:"hosts" validate:"required"`
-	Port     int32    `mapstructure:"port" validate:"gte=80,lte=65535"`
-	Password string   `mapstructure:"password" validate:"required"`
+	Hosts    []string `mapstructure:"hosts"`
+	Password string   `mapstructure:"password"`
 }
 
 type StorageConfiguration struct {
-	Type string `mapstructure:"type" validate:"required,oneof=minio gcp aws"`
-
+	Type  string                     `mapstructure:"type" validate:"required,oneof=minio gcp aws"`
 	Minio *MinioStorageConfiguration `mapstructure:"minio" validate:"required_if=Type minio"`
 	GCP   *GCPConfiguration          `mapstructure:"gcp" validate:"required_if=Type gcp"`
 	AWS   *AWSConfiguration          `mapstructure:"aws" validate:"required_if=Type aws"`
 }
 
 type MinioStorageConfiguration struct {
-	BucketName   string `mapstructure:"bucket_name" default:"safebucket"`
-	Endpoint     string `mapstructure:"endpoint" validate:"required"`
-	ClientId     string `mapstructure:"client_id" validate:"required"`
-	ClientSecret string `mapstructure:"client_secret" validate:"required"`
-
-	Type      string                 `mapstructure:"type" validate:"required,oneof=jetstream"`
-	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream"`
+	BucketName   string                 `mapstructure:"bucket_name" validate:"required"`
+	Endpoint     string                 `mapstructure:"endpoint" validate:"required"`
+	ClientId     string                 `mapstructure:"client_id" validate:"required"`
+	ClientSecret string                 `mapstructure:"client_secret" validate:"required"`
+	Type         string                 `mapstructure:"type" validate:"required,oneof=jetstream"`
+	Jetstream    *JetStreamEventsConfig `mapstructure:"jetstream"`
 }
 
 type GCPConfiguration struct {
-	BucketName       string `mapstructure:"bucket_name" default:"safebucket"`
+	BucketName       string `mapstructure:"bucket_name" validate:"required"`
 	TopicName        string `mapstructure:"topic_name" validate:"required"`
 	ProjectID        string `mapstructure:"project_id" validate:"required"`
 	SubscriptionName string `mapstructure:"subscription_name" validate:"required"`
 }
 
 type AWSConfiguration struct {
-	BucketName string `mapstructure:"bucket_name" default:"safebucket"`
+	BucketName string `mapstructure:"bucket_name" validate:"required"`
 	SQSName    string `mapstructure:"sqs_name" validate:"required"`
 }
 
@@ -138,6 +134,6 @@ type ActivityConfiguration struct {
 }
 
 type StaticConfiguration struct {
-	Enabled   bool   `mapstructure:"enabled"`
-	Directory string `mapstructure:"directory"`
+	Enabled   bool   `mapstructure:"enabled" default:"true"`
+	Directory string `mapstructure:"directory" default:"web/dist"`
 }

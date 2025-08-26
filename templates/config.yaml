@@ -6,7 +6,7 @@ platform:
     - 127.0.0.1
     - ::1
   static_files:
-    enabled: true
+    enabled: false
     directory: "web/dist"
 
 cors:
@@ -70,9 +70,6 @@ jwt:
 admin:
   username: admin@safebucket.io
   password: ChangeMePlease
-
-auth:
-  providers:
 
 activity:
   type: loki
