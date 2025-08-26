@@ -27,7 +27,10 @@ func parseArrayFields(k *koanf.Koanf) {
 			for i, item := range items {
 				items[i] = strings.TrimSpace(item)
 			}
-			k.Set(field, items)
+			err := k.Set(field, items)
+			if err != nil {
+				zap.L().Error("Error parsing array field", zap.String("field", field), zap.Error(err))
+			}
 		}
 	}
 }
@@ -42,7 +45,10 @@ func parseAuthProviders(k *koanf.Koanf) {
 				keyUpper := strings.ToUpper(key)
 				envKey := fmt.Sprintf("AUTH__PROVIDERS__%s__%s", providerUpper, keyUpper)
 				if envVal := os.Getenv(envKey); envVal != "" {
-					k.Set(fmt.Sprintf("auth.providers.%s.%s", provider, key), envVal)
+					err := k.Set(fmt.Sprintf("auth.providers.%s.%s", provider, key), envVal)
+					if err != nil {
+						zap.L().Error("Failed to unmarshal value", zap.Error(err), zap.String("key", key))
+					}
 				}
 			}
 		}
