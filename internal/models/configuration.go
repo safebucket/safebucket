@@ -37,10 +37,10 @@ type AuthConfiguration struct {
 }
 
 type ProviderConfiguration struct {
-	Name                 string               `mapstructure:"name" validate:"required"`
-	Type                 string               `mapstructure:"type" validate:"required" default:"oidc"`
+	Name                 string               `mapstructure:"name" validate:"required_if=Type oidc"`
+	Type                 string               `mapstructure:"type" validate:"required,oneof=local oidc"`
 	OIDC                 OIDCConfiguration    `mapstructure:"oidc" validate:"required_if=Type oidc"`
-	SharingConfiguration SharingConfiguration `mapstructure:"sharing" validate:"dive"`
+	SharingConfiguration SharingConfiguration `mapstructure:"sharing"`
 }
 
 type OIDCConfiguration struct {

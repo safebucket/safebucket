@@ -27,15 +27,20 @@ type ProvidersConfiguration map[string]models.ProviderConfiguration
 func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersConfiguration) Providers {
 	var providers = Providers{}
 	idx := 0
+	countLocalProviders := 0
 
 	for name, providerCfg := range providersCfg {
-		if providerCfg.Type == AuthLocalProviderName {
+		if countLocalProviders == 0 && providerCfg.Type == LocalAuthProviderType {
 			providers[name] = Provider{
 				Name:           providerCfg.Name,
 				Type:           providerCfg.Type,
 				Order:          idx,
 				SharingOptions: providerCfg.SharingConfiguration,
 			}
+			countLocalProviders++
+			continue
+		} else if countLocalProviders > 0 && providerCfg.Type == LocalAuthProviderType {
+			zap.L().Warn("Only one local auth provider can be configured. Skipping...")
 			continue
 		}
 

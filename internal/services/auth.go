@@ -52,12 +52,12 @@ func (s AuthService) Login(_ models.UserClaims, _ uuid.UUIDs, body models.AuthLo
 			return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 		}
 
-		accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, configuration.AuthLocalProviderName)
+		accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, configuration.LocalAuthProviderType)
 		if err != nil {
 			return models.AuthLoginResponse{}, customerrors.ErrorGenerateAccessTokenFailed
 		}
 
-		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, configuration.AuthLocalProviderName)
+		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, configuration.LocalAuthProviderType)
 		if err != nil {
 			return models.AuthLoginResponse{}, customerrors.ErrorGenerateRefreshTokenFailed
 		}

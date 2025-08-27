@@ -23,7 +23,7 @@ database:
   password: root
   name: safebucket
   user: root
-  sslmode: false
+  sslmode: disable
 
 cache:
   type: redis # or valkey
@@ -73,15 +73,15 @@ auth:
       type: local
       sharing:
         enabled: true
-    google:
-      type: oidc
-      name: Google
-      oidc:
-        client_id:
-        client_secret:
-        issuer:
-      sharing:
-        enabled: true
+#    google:
+#      type: oidc
+#      name: Google
+#      oidc:
+#        client_id:
+#        client_secret:
+#        issuer:
+#      sharing:
+#        enabled: true
 
 activity:
   type: loki

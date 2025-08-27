@@ -7,6 +7,10 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 	"go.uber.org/zap"
 )
 
@@ -60,13 +64,13 @@ func readEnvVars(k *koanf.Koanf) {
 		result := strings.Join(segments, ".")
 		return result
 	}), nil)
+
 	if err != nil {
 		zap.L().Warn("Error loading environment variables", zap.Error(err))
 	}
 
 	parseArrayFields(k)
 	parseAuthProviders(k)
-
 }
 
 func readFileConfig(k *koanf.Koanf) {
@@ -104,12 +108,12 @@ func Read() models.Configuration {
 	err := k.UnmarshalWithConf("", &config, koanf.UnmarshalConf{Tag: "mapstructure"})
 
 	if err != nil {
-		zap.L().Fatal("Unable to decode config into struct: ", zap.Error(err))
+		zap.L().Fatal("Unable to decode config into struct", zap.Error(err))
 	}
 
 	validate := validator.New()
 	if err := validate.Struct(config); err != nil {
-		zap.L().Fatal("Invalid configuration: ", zap.Error(err))
+		zap.L().Fatal("Invalid configuration", zap.Error(err))
 	}
 
 	return config

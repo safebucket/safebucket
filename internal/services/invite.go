@@ -156,11 +156,11 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 			s.DB.Delete(&invite)
 		}
 
-		accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, configuration.AuthLocalProviderName)
+		accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, configuration.LocalAuthProviderType)
 		if err != nil {
 			return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_ACCESS_TOKEN_FAILED")
 		}
-		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &newUser, configuration.AuthLocalProviderName)
+		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &newUser, configuration.LocalAuthProviderType)
 		if err != nil {
 			return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_REFRESH_TOKEN_FAILED")
 		}
