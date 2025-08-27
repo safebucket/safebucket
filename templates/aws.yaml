@@ -33,12 +33,16 @@ events:
   aws:
     sqs_name: safebucket-notifications-dev
 
-mailer:
-  host: localhost
-  port: 1025
-  username: root
-  password: root
-  sender: notifications@safebucket.io
+notifier:
+  type: smtp
+  smtp:
+    host: localhost
+    port: 1025
+    username: root
+    password: root
+    sender: notifications@safebucket.io
+    enable_ssl: false        # Enable SSL for production
+    skip_verify_ssl: false      # Verify certificates in production
 
 jwt:
   secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA

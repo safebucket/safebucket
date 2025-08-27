@@ -56,12 +56,16 @@ events:
     host: localhost
     port: 4222
 
-mailer:
-  host: localhost
-  port: 1025
-  username: root
-  password: root
-  sender: notifications@safebucket.io
+notifier:
+  type: smtp
+  smtp:
+    host: localhost
+    port: 1025
+    username: root
+    password: root
+    sender: notifications@safebucket.io
+    enable_ssl: false      # Set to true for production SMTP servers
+    skip_verify_ssl: true      # Set to false for production with valid certificates
 
 activity:
   type: loki

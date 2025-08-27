@@ -33,7 +33,7 @@ func main() {
 	db := database.InitDB(config.Database)
 	cache := core.NewCache(config.Cache)
 	storage := core.NewStorage(config.Storage)
-	mailer := core.NewMailer(config.Mailer)
+	notifier := core.NewNotifier(config.Notifier)
 	publisher := core.NewPublisher(config.Events)
 	activity := core.NewActivityLogger(config.Activity)
 
@@ -70,9 +70,9 @@ func main() {
 	//
 
 	appIdentity := uuid.New().String()
-
-	go events.HandleNotifications(config.App.WebUrl, mailer, notifications)
-
+  
+  go events.HandleNotifications(config.App.WebUrl, notifier, notifications)
+  
 	go events.HandleBucketEvents(bucketEventsSubscriber, db, activity, bucketEvents)
 
 	go cache.StartIdentityTicker(appIdentity)

@@ -114,13 +114,14 @@ func GetUserClaims(c context.Context) (models.UserClaims, error) {
 }
 
 func GenerateSecret(size int) (string, error) {
+	const charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	secret := make([]byte, size)
 	for i := range secret {
-		n, err := rand.Int(rand.Reader, big.NewInt(10))
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		if err != nil {
 			return "", err
 		}
-		secret[i] = byte('0' + n.Int64())
+		secret[i] = charset[n.Int64()]
 	}
 	return string(secret), nil
 }

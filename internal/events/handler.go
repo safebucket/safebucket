@@ -3,9 +3,9 @@ package events
 import (
 	"api/internal/activity"
 	c "api/internal/configuration"
-	"api/internal/core"
 	"api/internal/messaging"
 	"api/internal/models"
+	"api/internal/notifier"
 	"api/internal/rbac"
 	"api/internal/sql"
 	"encoding/json"
@@ -18,7 +18,7 @@ import (
 )
 
 type Event interface {
-	callback(webUrl string, mailer *core.Mailer)
+	callback(webUrl string, notifier notifier.INotifier)
 }
 
 func getEventFromMessage(eventType string, msg *message.Message) (Event, error) {
@@ -56,7 +56,7 @@ func getEventFromMessage(eventType string, msg *message.Message) (Event, error) 
 	return event, nil
 }
 
-func HandleNotifications(webUrl string, mailer *core.Mailer, messages <-chan *message.Message) {
+func HandleNotifications(webUrl string, notifier notifier.INotifier, messages <-chan *message.Message) {
 	for msg := range messages {
 		zap.L().Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
 
@@ -69,7 +69,7 @@ func HandleNotifications(webUrl string, mailer *core.Mailer, messages <-chan *me
 			continue
 		}
 
-		event.callback(webUrl, mailer)
+		event.callback(webUrl, notifier)
 		msg.Ack()
 	}
 }

@@ -106,7 +106,7 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 		return models.AuthLoginResponse{}, errors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
 	}
 
-	match, err := argon2id.ComparePasswordAndHash(body.Code, challenge.HashedSecret)
+	match, err := argon2id.ComparePasswordAndHash(strings.ToUpper(body.Code), challenge.HashedSecret)
 	if err != nil || !match {
 		return models.AuthLoginResponse{}, errors.NewAPIError(401, "WRONG_CODE")
 	}

@@ -7,7 +7,7 @@ type Configuration struct {
 	Cache    CacheConfiguration    `mapstructure:"cache" validate:"required"`
 	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required"`
 	Events   EventsConfiguration   `mapstructure:"events" validate:"required"`
-	Mailer   MailerConfiguration   `mapstructure:"mailer" validate:"required"`
+	Notifier NotifierConfiguration `mapstructure:"notifier" validate:"required"`
 	Activity ActivityConfiguration `mapstructure:"activity" validate:"required"`
 }
 
@@ -108,11 +108,18 @@ type JetStreamEventsConfig struct {
 }
 
 type MailerConfiguration struct {
-	Host     string `mapstructure:"host" validate:"required"`
-	Port     int    `mapstructure:"port" validate:"required"`
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
-	Sender   string `mapstructure:"sender" validate:"required"`
+	Host          string `mapstructure:"host" validate:"required"`
+	Port          int    `mapstructure:"port" validate:"required"`
+	Username      string `mapstructure:"username"`
+	Password      string `mapstructure:"password"`
+	Sender        string `mapstructure:"sender" validate:"required"`
+	EnableTLS     bool   `mapstructure:"enable_tls" default:"true"`
+	SkipVerifyTLS bool   `mapstructure:"skip_verify_tls" default:"false"`
+}
+
+type NotifierConfiguration struct {
+	Type string               `mapstructure:"type" validate:"required,oneof=smtp"`
+	SMTP *MailerConfiguration `mapstructure:"smtp" validate:"required_if=Type smtp"`
 }
 
 type ActivityConfiguration struct {
