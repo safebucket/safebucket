@@ -1,4 +1,4 @@
-platform:
+app:
   api_url: http://localhost:1323
   web_url: http://localhost:3000
   allowed_origins:
