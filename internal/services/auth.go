@@ -21,7 +21,7 @@ import (
 
 type AuthService struct {
 	DB        *gorm.DB
-	JWTConf   models.JWTConfiguration
+	JWTSecret string
 	Providers configuration.Providers
 	WebUrl    string
 }
@@ -52,12 +52,12 @@ func (s AuthService) Login(_ models.UserClaims, _ uuid.UUIDs, body models.AuthLo
 			return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 		}
 
-		accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser, configuration.AuthLocalProviderName)
+		accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, configuration.AuthLocalProviderName)
 		if err != nil {
 			return models.AuthLoginResponse{}, customerrors.ErrorGenerateAccessTokenFailed
 		}
 
-		refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser, configuration.AuthLocalProviderName)
+		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, configuration.AuthLocalProviderName)
 		if err != nil {
 			return models.AuthLoginResponse{}, customerrors.ErrorGenerateRefreshTokenFailed
 		}
@@ -68,17 +68,17 @@ func (s AuthService) Login(_ models.UserClaims, _ uuid.UUIDs, body models.AuthLo
 }
 
 func (s AuthService) Verify(_ models.UserClaims, _ uuid.UUIDs, body models.AuthVerify) (any, error) {
-	data, err := h.ParseAccessToken(s.JWTConf.Secret, body.AccessToken)
+	data, err := h.ParseAccessToken(s.JWTSecret, body.AccessToken)
 	return data, err
 }
 
 func (s AuthService) Refresh(_ models.UserClaims, _ uuid.UUIDs, body models.AuthRefresh) (models.AuthRefreshResponse, error) {
-	refreshToken, err := h.ParseRefreshToken(s.JWTConf.Secret, body.RefreshToken)
+	refreshToken, err := h.ParseRefreshToken(s.JWTSecret, body.RefreshToken)
 	if err != nil {
 		return models.AuthRefreshResponse{}, err
 	}
 	accessToken, err := h.NewAccessToken(
-		s.JWTConf.Secret, &models.User{ID: refreshToken.UserID, Email: refreshToken.Email}, refreshToken.Provider,
+		s.JWTSecret, &models.User{ID: refreshToken.UserID, Email: refreshToken.Email}, refreshToken.Provider,
 	)
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
@@ -142,12 +142,12 @@ func (s AuthService) OpenIDCallback(
 		s.DB.Create(&searchUser)
 	}
 
-	accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &searchUser, providerName)
+	accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, providerName)
 	if err != nil {
 		return "", "", customerrors.ErrorGenerateAccessTokenFailed
 	}
 
-	refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &searchUser, providerName)
+	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, providerName)
 	if err != nil {
 		return "", "", customerrors.ErrorGenerateRefreshTokenFailed
 	}

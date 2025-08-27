@@ -1,25 +1,26 @@
 package models
 
 type Configuration struct {
-	Platform PlatformConfiguration `mapstructure:"platform" validate:"required"`
+	App      AppConfiguration      `mapstructure:"app" validate:"required"`
 	Database DatabaseConfiguration `mapstructure:"database" validate:"required"`
-	JWT      JWTConfiguration      `mapstructure:"jwt" validate:"required"`
-	Cors     CorsConfiguration     `mapstructure:"cors" validate:"required"`
 	Auth     AuthConfiguration     `mapstructure:"auth" validate:"required"`
 	Cache    CacheConfiguration    `mapstructure:"cache" validate:"required"`
 	Storage  StorageConfiguration  `mapstructure:"storage" validate:"required"`
-	Admin    AdminConfiguration    `mapstructure:"admin" validate:"required"`
 	Events   EventsConfiguration   `mapstructure:"events" validate:"required"`
 	Mailer   MailerConfiguration   `mapstructure:"mailer" validate:"required"`
 	Activity ActivityConfiguration `mapstructure:"activity" validate:"required"`
 }
 
-type PlatformConfiguration struct {
+type AppConfiguration struct {
+	AdminEmail     string              `mapstructure:"admin_email" validate:"required,email"`
+	AdminPassword  string              `mapstructure:"admin_password" validate:"required"`
 	ApiUrl         string              `mapstructure:"api_url" validate:"required"`
-	WebUrl         string              `mapstructure:"web_url" validate:"required"`
-	TrustedProxies []string            `mapstructure:"trusted_proxies" validate:"required"`
+	AllowedOrigins []string            `mapstructure:"allowed_origins" validate:"required"`
+	JWTSecret      string              `mapstructure:"jwt_secret" validate:"required"`
 	Port           int                 `mapstructure:"port" validate:"gte=80,lte=65535" default:"8080"`
 	StaticFiles    StaticConfiguration `mapstructure:"static_files"`
+	TrustedProxies []string            `mapstructure:"trusted_proxies" validate:"required"`
+	WebUrl         string              `mapstructure:"web_url" validate:"required"`
 }
 
 type DatabaseConfiguration struct {
@@ -29,14 +30,6 @@ type DatabaseConfiguration struct {
 	Password string `mapstructure:"password" validate:"required"`
 	Name     string `mapstructure:"name" validate:"required"`
 	SSLMode  string `mapstructure:"sslmode"`
-}
-
-type JWTConfiguration struct {
-	Secret string `mapstructure:"secret" validate:"required"`
-}
-
-type CorsConfiguration struct {
-	AllowedOrigins []string `mapstructure:"allowed_origins" validate:"required"`
 }
 
 type AuthConfiguration struct {
@@ -98,11 +91,6 @@ type GCPConfiguration struct {
 type AWSConfiguration struct {
 	BucketName string `mapstructure:"bucket_name" validate:"required"`
 	SQSName    string `mapstructure:"sqs_name" validate:"required"`
-}
-
-type AdminConfiguration struct {
-	Username string `mapstructure:"username" validate:"required"`
-	Password string `mapstructure:"password" validate:"required"`
 }
 
 type EventsConfiguration struct {

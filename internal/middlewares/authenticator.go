@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func Authenticate(jwtConf models.JWTConfiguration) func(next http.Handler) http.Handler {
+func Authenticate(jwtSecret string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			if isExcluded(r.URL.Path, r.Method) {
@@ -19,7 +19,7 @@ func Authenticate(jwtConf models.JWTConfiguration) func(next http.Handler) http.
 			} else {
 				accessToken := r.Header.Get("Authorization")
 
-				userClaims, err := helpers.ParseAccessToken(jwtConf.Secret, accessToken)
+				userClaims, err := helpers.ParseAccessToken(jwtSecret, accessToken)
 
 				if err != nil {
 					zap.L().Info("error", zap.Error(err))

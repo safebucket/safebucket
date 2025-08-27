@@ -25,7 +25,7 @@ import (
 type InviteService struct {
 	DB             *gorm.DB
 	Storage        storage.IStorage
-	JWTConf        models.JWTConfiguration
+	JWTSecret      string
 	Enforcer       *casbin.Enforcer
 	Publisher      *messaging.IPublisher
 	Providers      configuration.Providers
@@ -155,11 +155,11 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 			s.DB.Delete(&invite)
 		}
 
-		accessToken, err := h.NewAccessToken(s.JWTConf.Secret, &newUser, configuration.AuthLocalProviderName)
+		accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, configuration.AuthLocalProviderName)
 		if err != nil {
 			return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_ACCESS_TOKEN_FAILED")
 		}
-		refreshToken, err := h.NewRefreshToken(s.JWTConf.Secret, &newUser, configuration.AuthLocalProviderName)
+		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &newUser, configuration.AuthLocalProviderName)
 		if err != nil {
 			return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_REFRESH_TOKEN_FAILED")
 		}

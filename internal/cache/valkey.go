@@ -50,11 +50,11 @@ func (v *ValkeyCache) StartIdentityTicker(id string) {
 	for range ticker.C {
 		err := v.RegisterPlatform(id)
 		if err != nil {
-			zap.L().Fatal("Platform identity ticker crashed", zap.Error(err))
+			zap.L().Fatal("App identity ticker crashed", zap.Error(err))
 		}
 		err = v.DeleteInactivePlatform()
 		if err != nil {
-			zap.L().Fatal("Platform identity ticker crashed", zap.Error(err))
+			zap.L().Fatal("App identity ticker crashed", zap.Error(err))
 		}
 	}
 }

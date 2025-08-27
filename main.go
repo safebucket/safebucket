@@ -56,10 +56,10 @@ func main() {
 	adminUser := models.User{
 		FirstName: "admin",
 		LastName:  "admin",
-		Email:     config.Admin.Username,
+		Email:     config.App.AdminEmail,
 	}
 
-	hash, _ := h.CreateHash(config.Admin.Password)
+	hash, _ := h.CreateHash(config.App.AdminPassword)
 	adminUser.HashedPassword = hash
 	db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "email"}},
@@ -71,7 +71,7 @@ func main() {
 
 	appIdentity := uuid.New().String()
 
-	go events.HandleNotifications(config.Platform.WebUrl, mailer, notifications)
+	go events.HandleNotifications(config.App.WebUrl, mailer, notifications)
 
 	go events.HandleBucketEvents(bucketEventsSubscriber, db, activity, bucketEvents)
 
@@ -86,7 +86,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   config.Cors.AllowedOrigins,
+		AllowedOrigins:   config.App.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{},
@@ -94,12 +94,12 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	providers := configuration.LoadProviders(context.Background(), config.Platform.ApiUrl, config.Auth.Providers)
+	providers := configuration.LoadProviders(context.Background(), config.App.ApiUrl, config.Auth.Providers)
 
 	// API routes with auth middleware
 	r.Route("/api", func(apiRouter chi.Router) {
-		apiRouter.Use(m.Authenticate(config.JWT))
-		apiRouter.Use(m.RateLimit(cache, config.Platform.TrustedProxies))
+		apiRouter.Use(m.Authenticate(config.App.JWTSecret))
+		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
 
 		apiRouter.Mount("/v1/users", services.UserService{DB: db, Enforcer: e}.Routes())
 		apiRouter.Mount("/v1/buckets", services.BucketService{
@@ -109,35 +109,35 @@ func main() {
 			Publisher:      &publisher,
 			ActivityLogger: activity,
 			Providers:      providers,
-			WebUrl:         config.Platform.WebUrl,
+			WebUrl:         config.App.WebUrl,
 		}.Routes())
 
 		apiRouter.Mount("/v1/auth", services.AuthService{
 			DB:        db,
-			JWTConf:   config.JWT,
+			JWTSecret: config.App.JWTSecret,
 			Providers: providers,
-			WebUrl:    config.Platform.WebUrl,
+			WebUrl:    config.App.WebUrl,
 		}.Routes())
 
 		apiRouter.Mount("/v1/invites", services.InviteService{
 			DB:             db,
-			JWTConf:        config.JWT,
+			JWTSecret:      config.App.JWTSecret,
 			Enforcer:       e,
 			Publisher:      &publisher,
 			ActivityLogger: activity,
 			Providers:      providers,
-			WebUrl:         config.Platform.WebUrl,
+			WebUrl:         config.App.WebUrl,
 		}.Routes())
 	})
 
 	// Initialize and mount static file service (if enabled)
-	if config.Platform.StaticFiles.Enabled {
-		staticFileService, err := services.NewStaticFileService(config.Platform.StaticFiles.Directory)
+	if config.App.StaticFiles.Enabled {
+		staticFileService, err := services.NewStaticFileService(config.App.StaticFiles.Directory)
 		if err != nil {
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))
 		}
 		r.Mount("/", staticFileService.Routes())
-		zap.L().Info("static file service enabled", zap.String("directory", config.Platform.StaticFiles.Directory))
+		zap.L().Info("static file service enabled", zap.String("directory", config.App.StaticFiles.Directory))
 	} else {
 		zap.L().Info("static file service disabled")
 	}
@@ -145,7 +145,7 @@ func main() {
 	zap.L().Info("App started")
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", config.Platform.Port),
+		Addr:         fmt.Sprintf(":%d", config.App.Port),
 		Handler:      r,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,

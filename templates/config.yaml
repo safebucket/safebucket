@@ -1,20 +1,21 @@
 platform:
   api_url: http://localhost:1323
   web_url: http://localhost:3000
+  allowed_origins:
+    - http://127.0.0.1:3000
+    - http://localhost:3000
+    - http://127.0.0.1:4173
+    - http://localhost:4173
   port: 8080
+  jwt_secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
   trusted_proxies:
     - 127.0.0.1
     - ::1
   static_files:
     enabled: false
     directory: "web/dist"
-
-cors:
-  allowed_origins:
-    - http://127.0.0.1:3000
-    - http://localhost:3000
-    - http://127.0.0.1:4173
-    - http://localhost:4173
+  admin_email: admin@safebucket.io
+  admin_password: ChangeMePlease
 
 database:
   host: localhost
@@ -22,19 +23,17 @@ database:
   password: root
   name: safebucket
   user: root
-  ssl: false
+  sslmode: false
 
 cache:
   type: redis # or valkey
   redis:
     hosts:
       - localhost:6379
-    port: 6379
     password: root
   # valkey:
   #   hosts:
   #     - localhost:6380
-  #   port: 6380
   #   password: root
 
 storage:
@@ -63,13 +62,6 @@ mailer:
   username: root
   password: root
   sender: notifications@safebucket.io
-
-jwt:
-  secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
-
-admin:
-  username: admin@safebucket.io
-  password: ChangeMePlease
 
 activity:
   type: loki
