@@ -32,12 +32,13 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 	for name, providerCfg := range providersCfg {
 		if countLocalProviders == 0 && providerCfg.Type == LocalAuthProviderType {
 			providers[name] = Provider{
-				Name:           providerCfg.Name,
+				Name:           providerCfg.Type,
 				Type:           providerCfg.Type,
 				Order:          idx,
 				SharingOptions: providerCfg.SharingConfiguration,
 			}
 			countLocalProviders++
+			idx++
 			continue
 		} else if countLocalProviders > 0 && providerCfg.Type == LocalAuthProviderType {
 			zap.L().Warn("Only one local auth provider can be configured. Skipping...")
@@ -46,7 +47,7 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 
 		provider, err := oidc.NewProvider(ctx, providerCfg.OIDC.Issuer)
 		if err != nil {
-			zap.L().Error(
+			zap.L().Fatal(
 				"Failed to load provider",
 				zap.String("name", name),
 				zap.Error(err),
@@ -60,12 +61,13 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 			ClientID:     providerCfg.OIDC.ClientId,
 			ClientSecret: providerCfg.OIDC.ClientSecret,
 			Endpoint:     provider.Endpoint(),
-			RedirectURL:  fmt.Sprintf("%s/auth/providers/%s/callback", apiUrl, name),
+			RedirectURL:  fmt.Sprintf("%s/api/v1/auth/providers/%s/callback", apiUrl, name),
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		}
 
 		providers[name] = Provider{
 			Name:           providerCfg.Name,
+			Type:           providerCfg.Type,
 			Provider:       provider,
 			Verifier:       verifier,
 			OauthConfig:    oauthConfig,

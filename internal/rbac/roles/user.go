@@ -4,6 +4,7 @@ import (
 	c "api/internal/configuration"
 	"api/internal/models"
 	"api/internal/rbac"
+
 	"github.com/casbin/casbin/v2"
 )
 
@@ -29,21 +30,4 @@ func AddUserToRoleUser(e *casbin.Enforcer, user models.User) error {
 		return err
 	}
 	return nil
-}
-
-func AllowUserToSelfModify(e *casbin.Enforcer, user models.User) error {
-	{
-		_, err := e.AddPolicies(getUserPoliciesToSelfModify(user))
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-func getUserPoliciesToSelfModify(user models.User) [][]string {
-	return [][]string{
-		{c.DefaultDomain, user.ID.String(), rbac.ResourceUser.String(), user.ID.String(), rbac.ActionRead.String()},
-		{c.DefaultDomain, user.ID.String(), rbac.ResourceUser.String(), user.ID.String(), rbac.ActionUpdate.String()},
-	}
 }

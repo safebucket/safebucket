@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { IActivity } from "@/types/activity.ts";
 
 import { Separator } from "@/components/ui/separator";
@@ -8,6 +9,8 @@ interface ActivityViewProps {
 }
 
 export function ActivityView({ activity }: ActivityViewProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       {activity.map((item, index) => (
@@ -19,7 +22,7 @@ export function ActivityView({ activity }: ActivityViewProps) {
 
       {!activity.length && (
         <p className="flex h-24 items-center justify-center text-center">
-          No activity yet.
+          {t("activity.no_activity_yet")}
         </p>
       )}
     </>

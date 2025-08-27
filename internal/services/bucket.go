@@ -377,24 +377,27 @@ func (s BucketService) GetActivity(user models.UserClaims, ids uuid.UUIDs) []map
 		bucketIds = append(bucketIds, bucket.ID.String())
 	}
 
-	searchCriteria := map[string][]string{
-		"domain":      {c.DefaultDomain},
-		"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String()},
-		"bucket_id":   bucketIds,
+	if len(bucketIds) > 0 {
+		searchCriteria := map[string][]string{
+			"domain":      {c.DefaultDomain},
+			"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String()},
+			"bucket_id":   bucketIds,
+		}
+
+		history, err := s.ActivityLogger.Search(searchCriteria)
+		if err != nil {
+			zap.L().Error("Search history failed", zap.Error(err))
+			return []map[string]interface{}{}
+		}
+
+		if len(history) == 0 {
+			return []map[string]interface{}{}
+		}
+
+		return activity.EnrichActivity(s.DB, history)
 	}
 
-	history, err := s.ActivityLogger.Search(searchCriteria)
-
-	if err != nil {
-		zap.L().Error("Search history failed", zap.Error(err))
-		return []map[string]interface{}{}
-	}
-
-	if len(history) == 0 {
-		return []map[string]interface{}{}
-	}
-
-	return activity.EnrichActivity(s.DB, history)
+	return []map[string]interface{}{}
 }
 
 func (s BucketService) GetBucketActivity(user models.UserClaims, ids uuid.UUIDs) (models.Page[map[string]interface{}], error) {

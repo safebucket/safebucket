@@ -142,7 +142,7 @@ func (s BucketMemberService) UpdateBucketMembers(
 	if !ok {
 		return nil, errors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
 	}
-	if !providerCfg.SharingOptions.Enabled {
+	if !providerCfg.SharingOptions.Allowed {
 		return nil, errors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
 	}
 

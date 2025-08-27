@@ -77,6 +77,7 @@
   },
   "activity": {
     "title": "Flux d'activité",
+    "no_activity_yet": "Aucune activité pour le moment.",
     "messages": {
       "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
       "file_uploaded": "A téléchargé un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",

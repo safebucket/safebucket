@@ -53,14 +53,22 @@ function Homepage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {activity.slice(0, 3).map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between pl-4 rounded-lg border"
-                    >
-                      <ActivityItem item={item} />
+                  {activity.length > 0 ? (
+                    activity.slice(0, 3).map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between pl-4 rounded-lg border"
+                      >
+                        <ActivityItem item={item} />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center min-h-[300px]">
+                      <p className="text-center text-muted-foreground">
+                        {t("activity.no_activity_yet")}
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

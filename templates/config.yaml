@@ -1,5 +1,5 @@
 app:
-  api_url: http://localhost:1323
+  api_url: http://localhost:8080
   web_url: http://localhost:3000
   allowed_origins:
     - http://127.0.0.1:3000
@@ -72,7 +72,16 @@ auth:
     local:
       type: local
       sharing:
-        enabled: true
+        allowed: true
+#    okta:
+#      type: oidc
+#      name: Okta
+#      oidc:
+#        client_id:
+#        client_secret:
+#        issuer:
+#      sharing:
+#        allowed: true
 #    google:
 #      type: oidc
 #      name: Google

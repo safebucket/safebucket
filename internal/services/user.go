@@ -7,12 +7,12 @@ import (
 	"api/internal/models"
 	"api/internal/rbac"
 	"api/internal/rbac/roles"
+	"api/internal/sql"
 	"errors"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -45,8 +45,6 @@ func (s UserService) Routes() chi.Router {
 }
 
 func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
-	// TODO: Transform to SQL transaction
-
 	newUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
@@ -59,15 +57,8 @@ func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.U
 			return models.User{}, errors.New("can not create hash password")
 		}
 		newUser.HashedPassword = hash
-		s.DB.Create(&newUser)
-		err = roles.AddUserToRoleUser(s.Enforcer, newUser)
-		if err != nil {
-			zap.L().Error("can not add user to role user", zap.Error(err))
-			return models.User{}, err
-		}
 
-		err = roles.AllowUserToSelfModify(s.Enforcer, newUser)
-
+		err = sql.CreateUserWithRole(s.DB, s.Enforcer, &newUser, roles.AddUserToRoleUser)
 		if err != nil {
 			return models.User{}, err
 		}
@@ -76,7 +67,6 @@ func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.U
 	} else {
 		return models.User{}, errors.New("user already exists, try to reset your password")
 	}
-
 }
 
 func (s UserService) GetUserList(_ models.UserClaims, _ uuid.UUIDs) []models.User {

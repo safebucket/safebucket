@@ -12,6 +12,7 @@ import (
 	"api/internal/models"
 	"api/internal/rbac/groups"
 	"api/internal/rbac/roles"
+	"api/internal/sql"
 	"api/internal/storage"
 	"strings"
 
@@ -121,16 +122,9 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 
 	result = s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
-		// Create a new user
-		s.DB.Create(&newUser) // No password is set, as this is an invite
-		zap.L().Info("User inserted", zap.Any("user", newUser))
-		err = roles.AddUserToRoleGuest(s.Enforcer, newUser)
+		err = sql.CreateUserWithRole(s.DB, s.Enforcer, &newUser, roles.AddUserToRoleGuest)
 		if err != nil {
-			zap.L().Error("can not add user to role user", zap.Error(err))
-		}
-		err = roles.AllowUserToSelfModify(s.Enforcer, newUser) // Allow the user to modify their own data (reset password, etc.)
-		if err != nil {
-			zap.L().Error("can not allow user to self modify", zap.Error(err))
+			return models.AuthLoginResponse{}, err
 		}
 
 		var invites []models.Invite

@@ -77,6 +77,7 @@
   },
   "activity": {
     "title": "Activity Feed",
+    "no_activity_yet": "No activity yet.",
     "messages": {
       "bucket_created": "Created a bucket '%%BUCKET_NAME%%' and shared it with you.",
       "file_uploaded": "Uploaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",

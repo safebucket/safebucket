@@ -77,7 +77,6 @@ func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) htt
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
 			Secure:   r.TLS != nil,
-			HttpOnly: true,
 		})
 
 		http.SetCookie(w, &http.Cookie{
@@ -87,7 +86,6 @@ func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) htt
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
 			Secure:   r.TLS != nil,
-			HttpOnly: true,
 		})
 
 		if refreshToken != "" {
@@ -98,7 +96,6 @@ func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) htt
 				Path:     "/",
 				SameSite: http.SameSiteStrictMode,
 				Secure:   r.TLS != nil,
-				HttpOnly: true,
 			})
 		}
 

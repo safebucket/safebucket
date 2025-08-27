@@ -50,7 +50,7 @@ type OIDCConfiguration struct {
 }
 
 type SharingConfiguration struct {
-	Enabled        bool     `mapstructure:"enabled" default:"true"`
+	Allowed        bool     `mapstructure:"allowed" default:"true"`
 	AllowedDomains []string `mapstructure:"allowed_domains" validate:"dive,hostname_rfc1123"`
 }
 

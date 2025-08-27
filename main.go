@@ -45,11 +45,11 @@ func main() {
 
 	model := rbac.GetModel()
 	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
-	e, _ := casbin.NewEnforcer(model, a)
+	enforcer, _ := casbin.NewEnforcer(model, a)
 
-	_ = roles.InsertRoleGuest(e)
-	_ = roles.InsertRoleUser(e)
-	_ = roles.InsertRoleAdmin(e)
+	_ = roles.InsertRoleGuest(enforcer)
+	_ = roles.InsertRoleUser(enforcer)
+	_ = roles.InsertRoleAdmin(enforcer)
 
 	// TODO: Create a dedicated fct
 
@@ -65,14 +65,14 @@ func main() {
 		Columns:   []clause.Column{{Name: "email"}},
 		DoUpdates: clause.AssignmentColumns([]string{"hashed_password"}),
 	}).Create(&adminUser)
-	_ = roles.AddUserToRoleAdmin(e, adminUser)
+	_ = roles.AddUserToRoleAdmin(enforcer, adminUser)
 
 	//
 
 	appIdentity := uuid.New().String()
-  
-  go events.HandleNotifications(config.App.WebUrl, notifier, notifications)
-  
+
+	go events.HandleNotifications(config.App.WebUrl, notifier, notifications)
+
 	go events.HandleBucketEvents(bucketEventsSubscriber, db, activity, bucketEvents)
 
 	go cache.StartIdentityTicker(appIdentity)
@@ -101,11 +101,11 @@ func main() {
 		apiRouter.Use(m.Authenticate(config.App.JWTSecret))
 		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
 
-		apiRouter.Mount("/v1/users", services.UserService{DB: db, Enforcer: e}.Routes())
+		apiRouter.Mount("/v1/users", services.UserService{DB: db, Enforcer: enforcer}.Routes())
 		apiRouter.Mount("/v1/buckets", services.BucketService{
 			DB:             db,
 			Storage:        storage,
-			Enforcer:       e,
+			Enforcer:       enforcer,
 			Publisher:      &publisher,
 			ActivityLogger: activity,
 			Providers:      providers,
@@ -114,6 +114,7 @@ func main() {
 
 		apiRouter.Mount("/v1/auth", services.AuthService{
 			DB:        db,
+			Enforcer:  enforcer,
 			JWTSecret: config.App.JWTSecret,
 			Providers: providers,
 			WebUrl:    config.App.WebUrl,
@@ -122,7 +123,7 @@ func main() {
 		apiRouter.Mount("/v1/invites", services.InviteService{
 			DB:             db,
 			JWTSecret:      config.App.JWTSecret,
-			Enforcer:       e,
+			Enforcer:       enforcer,
 			Publisher:      &publisher,
 			ActivityLogger: activity,
 			Providers:      providers,
