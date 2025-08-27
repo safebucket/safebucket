@@ -183,4 +183,3 @@ export AUTH__PROVIDERS__GOOGLE__ISSUER="https://accounts.google.com"
 - **Array fields** support multiple input formats for flexibility
 - **Provider names** in OAuth configuration should be uppercase in environment variables
 - **Validation** occurs at startup with detailed error messages for invalid configurations
-- **Secrets** should always be provided via environment variables, not committed to configuration files
