@@ -41,11 +41,14 @@ func parseAuthProviders(k *koanf.Koanf) {
 		providers := strings.Split(providersStr, ",")
 		for _, provider := range providers {
 			providerUpper := strings.ToUpper(provider)
+			typeKey := fmt.Sprintf("AUTH__PROVIDERS__%s__TYPE", providerUpper)
+			providerType := strings.ToUpper(os.Getenv(typeKey))
+
 			for _, key := range AuthProviderKeys {
 				keyUpper := strings.ToUpper(key)
-				envKey := fmt.Sprintf("AUTH__PROVIDERS__%s__%s", providerUpper, keyUpper)
+				envKey := fmt.Sprintf("AUTH__PROVIDERS__%s__%s__%s", providerUpper, providerType, keyUpper)
 				if envVal := os.Getenv(envKey); envVal != "" {
-					err := k.Set(fmt.Sprintf("auth.providers.%s.%s", provider, key), envVal)
+					err := k.Set(fmt.Sprintf("auth.providers.%s.%s.%s", provider, providerType, key), envVal)
 					if err != nil {
 						zap.L().Error("Failed to unmarshal value", zap.Error(err), zap.String("key", key))
 					}

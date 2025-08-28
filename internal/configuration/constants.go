@@ -26,7 +26,6 @@ var ConfigFileSearchPaths = []string{
 
 var AuthProviderKeys = []string{
 	"name",
-	"type",
 	"client_id",
 	"client_secret",
 	"issuer",
