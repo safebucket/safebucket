@@ -95,15 +95,24 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Load images and create manifest
+      - name: Load, push and create manifest
         run: |
           docker load -i /tmp/image-amd64.tar
           docker load -i /tmp/image-arm64.tar
           
+          # Push intermediate tags temporarily
+          docker push safebucket/safebucket:latest-amd64
+          docker push safebucket/safebucket:latest-arm64
+          
+          # Create multi-arch manifest
           docker buildx imagetools create \
             --tag safebucket/safebucket:latest \
             safebucket/safebucket:latest-amd64 \
             safebucket/safebucket:latest-arm64
+          
+          # Clean up intermediate tags
+          docker buildx imagetools rm safebucket/safebucket:latest-amd64
+          docker buildx imagetools rm safebucket/safebucket:latest-arm64
 
       - name: Delete artifacts
         uses: geekyeggo/delete-artifact@v5
