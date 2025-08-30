@@ -106,9 +106,9 @@ jobs:
         id: manifest-dockerhub
         run: |
           docker buildx imagetools create \
-            --tag ghcr.io/safebucket/safebucket:latest \
-            ghcr.io/safebucket/safebucket@${{ steps.push-dockerhub.outputs.amd64-digest }} \
-            ghcr.io/safebucket/safebucket@${{ steps.push-dockerhub.outputs.arm64-digest }}
+            --tag docker.io/safebucket/safebucket:latest \
+            docker.io/safebucket/safebucket@${{ steps.push-dockerhub.outputs.amd64-digest }} \
+            docker.io/safebucket/safebucket@${{ steps.push-dockerhub.outputs.arm64-digest }}
 
   push-ghcr:
     runs-on: ubuntu-latest
