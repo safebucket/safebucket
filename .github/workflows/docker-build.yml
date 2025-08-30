@@ -42,7 +42,7 @@ jobs:
           push: true
           outputs: |
             type=image,name=docker.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
-            type=image,name=ghcr.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
+       #     type=image,name=ghcr.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=amd64
           cache-to: type=gha,mode=max,scope=amd64
 
@@ -80,7 +80,7 @@ jobs:
           push: true
           outputs: |
             type=image,name=docker.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
-            type=image,name=ghcr.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
+     #       type=image,name=ghcr.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=arm64
           cache-to: type=gha,mode=max,scope=arm64
 
@@ -106,22 +106,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create multi-arch manifests
-        run: |
-          
-          echo ${{ needs.build-amd64.outputs.digest }}
-          echo ${{ needs.build-arm64.outputs.digest }}
-          echo ${{ needs.build-arm64.outputs.digest }}
-          echo ${{ needs.build-arm64.outputs.imageid }}
-          echo ${{ needs.build-arm64.outputs.metadata }}
-        
+        run: |        
           # Create Docker Hub manifest
           docker buildx imagetools create \
             --tag docker.io/safebucket/safebucket:latest \
             docker.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest }} \
             docker.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest }}
           
-          # Create GHCR manifest
-          docker buildx imagetools create \
-            --tag ghcr.io/safebucket/safebucket:latest \
-            ghcr.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest }} \
-            ghcr.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest }}
+ #         # Create GHCR manifest
+ #         docker buildx imagetools create \
+ #           --tag ghcr.io/safebucket/safebucket:latest \
+ #           ghcr.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest }} \
+ #           ghcr.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest }}
