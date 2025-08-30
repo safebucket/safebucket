@@ -95,12 +95,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Load and push images
+      - name: Load images and create manifest
         run: |
           docker load -i /tmp/image-amd64.tar
           docker load -i /tmp/image-arm64.tar
-          docker push safebucket/safebucket:latest-amd64
-          docker push safebucket/safebucket:latest-arm64
+          
           docker buildx imagetools create \
             --tag safebucket/safebucket:latest \
             safebucket/safebucket:latest-amd64 \
