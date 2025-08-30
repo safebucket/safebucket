@@ -107,6 +107,13 @@ jobs:
 
       - name: Create multi-arch manifests
         run: |
+          
+          echo ${{ needs.build-amd64.outputs.digest }}
+          echo ${{ needs.build-arm64.outputs.digest }}
+          echo ${{ needs.build-arm64.outputs.digest }}
+          echo ${{ needs.build-arm64.outputs.imageid }}
+          echo ${{ needs.build-arm64.outputs.metadata }}
+        
           # Create Docker Hub manifest
           docker buildx imagetools create \
             --tag docker.io/safebucket/safebucket:latest \
