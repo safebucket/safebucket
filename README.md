@@ -1,113 +1,97 @@
 <h1 align="center">
-  <a href="https://safebucket.io"><img src="./assets/safebucket_banner.png" alt="OpenCTI"></a>
+  <a href="https://safebucket.io"><img src="./assets/safebucket_banner.png" alt="SafeBucket"></a>
 </h1>
 
-## Introduction
+## 📖 Introduction
 
 SafeBucket is an open-source secure file sharing platform designed to share files in an easy and secure way, integrating with different cloud providers. Built for individuals and organizations that need to collaborate on files with robust security, flexible access controls, and seamless multi-cloud support across AWS S3, Google Cloud Storage, and MinIO.
 
-### Core Capabilities
+![SafeBucket Homepage](./assets/homepage.png)
 
-- **Secure File Sharing**: Share files and folders with colleagues, clients, and teams through secure bucket-based collaboration
-- **Multi-Provider Integration**: Store and share files across AWS S3, GCP Cloud Storage, and MinIO without vendor lock-in
-- **Role-Based Access Control**: Granular sharing permissions with owner, contributor, and viewer roles using Casbin RBAC
-- **User Invitation System**: Invite collaborators via email with secure role-based access to shared buckets
-- **Real-Time Activity Tracking**: Monitor file sharing activity with comprehensive audit trails via Loki integration
-- **Modern Sharing Interface**: Intuitive React-based dashboard with drag-and-drop uploads, file previews, and activity monitoring
+## ✨ Features
 
-### Key Features
+- 🔒 **Secure File Sharing**: Share files and folders with colleagues, clients, and teams through secure bucket-based collaboration
+- ☁️ **Multi-Storage Integration**: Store and share files across AWS S3, GCP Cloud Storage, or MinIO
+- 🔐 **OIDC Integration**: Single sign-on with any OIDC provider for seamless authentication
+- 👥 **Role-Based Access Control**: Granular sharing permissions with owner, contributor, and viewer roles
+- 📧 **User Invitation System**: Invite collaborators via email with secure role-based access to shared buckets
+- 📊 **Real-Time Activity Tracking**: Monitor file sharing activity with comprehensive audit trails
+- 🚀 **Highly Scalable**: Event-driven architecture for high-performance operations
 
-- **Easy File Sharing**: Create secure buckets and invite users to collaborate on files with flexible permission levels
-- **Cloud-Agnostic Storage**: Share files from any supported storage provider without workflow changes
-- **Secure by Design**: JWT authentication, OAuth integration (Google, Apple), and Argon2id password hashing
-- **Collaborative Workflows**: Real-time file sharing with upload progress tracking and activity notifications
-- **Privacy Focused**: Complete control over who can access shared files with detailed audit logging
-- **Developer-Friendly**: RESTful API for building custom file sharing integrations
+SafeBucket simplifies secure file sharing by providing an intuitive platform that combines the convenience of modern collaboration tools with the security and flexibility of self-hosted or cloud storage solutions.
 
-SafeBucket simplifies secure file sharing by providing an intuitive platform that combines the convenience of modern collaboration tools with the security and flexibility of self-hosted, multi-cloud storage solutions.
+## 🚀 Quick Start
 
-### Storage configuration
+### Prerequisites
+- Go 1.23+
+- Node.js 22+
+- Docker & Docker Compose (optional)
 
-#### Minio
+### Installation
 
-```yaml
-storage:
-  type: minio
-  minio:
-    bucket_name: safebucket
-    endpoint: localhost:9000
-    client_id: minio-root-user
-    client_secret: minio-root-password
-    type: jetstream
-    jetstream:
-      topic_name: safebucket:notifications
-      host: localhost
-      port: 4222
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/safebucket/safebucket.git
+   cd safebucket
+   ```
+
+2. **Backend Setup**
+   ```bash
+   # Install dependencies and run
+   go mod tidy
+   go run main.go
+   ```
+
+3. **Frontend Setup**
+   ```bash
+   cd web
+   npm install
+   npm run dev
+   ```
+
+4. **Using Docker Compose**
+   ```bash
+   docker-compose up -d
+   ```
+
+## 🔧 Development
+
+### Backend Commands
+```bash
+go run main.go                 # Start development server
+go test ./...                  # Run tests
+go fmt ./...                   # Format code
+go mod tidy                    # Clean dependencies
 ```
 
-#### GCP
-
-```yaml
-storage:
-  type: gcp
-  gcp:
-    bucket_name: safebucket-gcp
-    project_id: project-id
-    subscription_name: safebucket-bucket-events-sub
-    topic_name: safebucket-bucket-events
+### Frontend Commands
+```bash
+npm run dev                    # Development server with HMR
+npm run build                  # Production build
+npm run fixup                  # Prettier fix
 ```
 
-```
-export GOOGLE_APPLICATION_CREDENTIALS=/path/to/gcs.json
-```
+## 🤝 Contributing
 
-#### AWS
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-```yaml
-storage:
-  type: aws
-  aws:
-    bucket_name: safebucket
-    sqs_name: safebucket-sqs
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-```
-export AWS_ACCESS_KEY_ID=access_key
-export AWS_SECRET_ACCESS_KEY=secret_access_key
-export AWS_REGION=region
-```
+## 📄 License
 
-### Events configuration
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-#### Jetstream
+## 🙏 Acknowledgments
 
-```yaml
-events:
-  type: jetstream
-  jetstream:
-    topic_name: safebucket:notifications
-    host: localhost
-    port: 4222
-```
+- Built with ❤️ using Go and React
+- Icons by [Lucide](https://lucide.dev)
+- UI components by [Radix UI](https://radix-ui.com) and [shadcn/ui](https://ui.shadcn.com)
 
-#### GCP
+## 📞 Support
 
-```yaml
-events:
-  type: gcp
-  gcp:
-    project_id: project-id
-    subscription_name: safebucket-notifications-sub
-    topic_name: safebucket-notifications
-```
-
-#### AWS
-
-```yaml
-events:
-  type: aws
-  aws:
-    region: region
-    account_id: account_id
-    sqs_name: safebucket-sqs
-```
+- 📧 Email: support@safebucket.io
+- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/safebucket/issues)
