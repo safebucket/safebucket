@@ -93,20 +93,22 @@ jobs:
           AMD64_DIGEST=$(docker image inspect safebucket-amd64:latest --format='{{.Id}}' | cut -d':' -f2)
           ARM64_DIGEST=$(docker image inspect safebucket-arm64:latest --format='{{.Id}}' | cut -d':' -f2)
           
-          echo $AMD64_DIGEST
-          echo $ARM64_DIGEST
-          
           # Push by digest
           docker tag safebucket-amd64:latest docker.io/safebucket/safebucket
           docker push docker.io/safebucket/safebucket          
           docker tag safebucket-arm64:latest docker.io/safebucket/safebucket
           docker push docker.io/safebucket/safebucket
           
-          # Create manifest
+          echo "amd64-digest=sha256:$AMD64_DIGEST" >> $GITHUB_OUTPUT
+          echo "arm64-digest=sha256:$ARM64_DIGEST" >> $GITHUB_OUTPUT
+
+      - name: Generate manifest
+        id: manifest-dockerhub
+        run: |
           docker buildx imagetools create \
-            --tag docker.io/safebucket/safebucket:latest \
-            docker.io/safebucket/safebucket@sha256:$AMD64_DIGEST \
-            docker.io/safebucket/safebucket@sha256:$ARM64_DIGEST"
+            --tag ghcr.io/safebucket/safebucket:latest \
+            ghcr.io/safebucket/safebucket@${{ steps.push-dockerhub.outputs.amd64-digest }} \
+            ghcr.io/safebucket/safebucket@${{ steps.push-dockerhub.outputs.arm64-digest }}
 
   push-ghcr:
     runs-on: ubuntu-latest
