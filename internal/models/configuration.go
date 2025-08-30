@@ -128,8 +128,13 @@ type NotifierConfiguration struct {
 }
 
 type ActivityConfiguration struct {
-	Level    string `mapstructure:"level"`
-	Type     string `mapstructure:"type" validate:"required,oneof=loki"`
+	Level string            `mapstructure:"level"`
+	Type  string            `mapstructure:"type" validate:"required,oneof=loki"`
+	Loki  LokiConfiguration `mapstructure:"loki" validate:"required_if=Type loki"`
+}
+
+type LokiConfiguration struct {
+	Type     string `mapstructure:"type" validate:"required,oneof=smtp"`
 	Endpoint string `mapstructure:"endpoint" validate:"required"`
 }
 
