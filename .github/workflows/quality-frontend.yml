@@ -1,0 +1,38 @@
+name: Frontend Quality
+
+on:
+  push:
+    paths:
+      - 'web/**'
+      - '.github/workflows/quality-frontend.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/quality-frontend.yml'
+  workflow_dispatch:
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run prettier
+        run: npm run prettier
+
+      - name: Build app
+        run: npm run build
