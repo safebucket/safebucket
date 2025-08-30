@@ -52,7 +52,7 @@
     "react-day-picker": "^9.9.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.62.0",
-    "react-i18next": "^15.7.1",
+    "react-i18next": "^15.7.3",
     "react-resizable-panels": "^3.0.4",
     "tailwind-merge": "^3.0.2",
     "tailwindcss": "^4.0.6",
