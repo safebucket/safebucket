@@ -33,10 +33,11 @@ SafeBucket uses a hierarchical configuration system that supports:
 | `database.name`                                 | `DATABASE__NAME`                                    | -             | ✅        | `safebucket_prod`                                    | Database name                                     |
 | `database.sslmode`                              | `DATABASE__SSLMODE`                                 | -             | ❌        | `require`                                            | SSL connection mode                               |
 | **Auth Configuration**                          |
-| `auth.providers.{name}.name`                    | `AUTH__PROVIDERS__{NAME}__NAME`                     | -             | ✅*       | `Google`                                             | OAuth provider display name                       |
-| `auth.providers.{name}.client_id`               | `AUTH__PROVIDERS__{NAME}__CLIENT_ID`                | -             | ✅*       | `123456789.apps.googleusercontent.com`               | OAuth client ID                                   |
-| `auth.providers.{name}.client_secret`           | `AUTH__PROVIDERS__{NAME}__CLIENT_SECRET`            | -             | ✅*       | `GOCSPX-abcdef123456`                                | OAuth client secret                               |
-| `auth.providers.{name}.issuer`                  | `AUTH__PROVIDERS__{NAME}__ISSUER`                   | -             | ✅*       | `https://accounts.google.com`                        | OIDC issuer URL                                   |
+| `auth.providers.{name}.name`                    | `AUTH__PROVIDERS__{NAME}__NAME`                     | -             | ✅*       | `Google`                                             | Auth provider display name                        |
+| `auth.providers.{name}.type`                    | `AUTH__PROVIDERS__{NAME}__TYPE`                     | -             | ✅*       | `oidc` or `local`                                    | Auth provider type                                |
+| `auth.providers.{name}.client_id`               | `AUTH__PROVIDERS__{NAME}__CLIENT_ID`                | -             | ✅*       | `123456789.apps.googleusercontent.com`               | OAuth client ID (OIDC only)                      |
+| `auth.providers.{name}.client_secret`           | `AUTH__PROVIDERS__{NAME}__CLIENT_SECRET`            | -             | ✅*       | `GOCSPX-abcdef123456`                                | OAuth client secret (OIDC only)                  |
+| `auth.providers.{name}.issuer`                  | `AUTH__PROVIDERS__{NAME}__ISSUER`                   | -             | ✅*       | `https://accounts.google.com`                        | OIDC issuer URL (OIDC only)                      |
 | `auth.providers.{name}.sharing.enabled`         | `AUTH__PROVIDERS__{NAME}__SHARING__ENABLED`         | `true`        | ❌        | `false`                                              | Enable domain sharing                             |
 | `auth.providers.{name}.sharing.allowed_domains` | `AUTH__PROVIDERS__{NAME}__SHARING__ALLOWED_DOMAINS` | -             | ❌        | `["example.com", "company.org"]`                     | Allowed domains for sharing                       |
 | **Cache Configuration**                         |
@@ -81,7 +82,6 @@ SafeBucket uses a hierarchical configuration system that supports:
 | `notifier.smtp.enable_tls`                      | `NOTIFIER__SMTP__ENABLE_TLS`                        | `true`        | ❌        | `false`                                              | Enable TLS encryption                             |
 | `notifier.smtp.skip_verify_tls`                 | `NOTIFIER__SMTP__SKIP_VERIFY_TLS`                   | `false`       | ❌        | `true`                                               | Skip TLS certificate verification                 |
 | **Activity Configuration**                      |
-| `activity.level`                                | `ACTIVITY__LEVEL`                                   | -             | ❌        | `info`                                               | Activity logging level                            |
 | `activity.type`                                 | `ACTIVITY__TYPE`                                    | -             | ✅        | `loki`                                               | Activity logger: `loki`                           |
 | `activity.endpoint`                             | `ACTIVITY__ENDPOINT`                                | -             | ✅        | `http://localhost:3100`                              | Loki endpoint URL                                 |
 
@@ -163,11 +163,28 @@ export APP__JWT_SECRET="your-jwt-secret-key"
 export DATABASE__HOST="localhost"
 export DATABASE__PASSWORD="password"
 
-# OAuth Providers
-export AUTH__PROVIDERS__KEYS="google,apple"
+# Auth Providers
+export AUTH__PROVIDERS__KEYS="local,google,authelia"
+
+# Local Auth Provider (for development)
+export AUTH__PROVIDERS__LOCAL__NAME="Local"
+export AUTH__PROVIDERS__LOCAL__TYPE="local"
+
+# Google OAuth Provider
+export AUTH__PROVIDERS__GOOGLE__NAME="Google"
+export AUTH__PROVIDERS__GOOGLE__TYPE="oidc"
 export AUTH__PROVIDERS__GOOGLE__CLIENT_ID="your-google-client-id"
 export AUTH__PROVIDERS__GOOGLE__CLIENT_SECRET="your-google-client-secret"
 export AUTH__PROVIDERS__GOOGLE__ISSUER="https://accounts.google.com"
+export AUTH__PROVIDERS__GOOGLE__SHARING__ENABLED="true"
+
+# Authelia OIDC Provider
+export AUTH__PROVIDERS__AUTHELIA__NAME="Authelia"
+export AUTH__PROVIDERS__AUTHELIA__TYPE="oidc"
+export AUTH__PROVIDERS__AUTHELIA__CLIENT_ID="safebucket"
+export AUTH__PROVIDERS__AUTHELIA__CLIENT_SECRET="your-authelia-secret"
+export AUTH__PROVIDERS__AUTHELIA__ISSUER="https://auth.local"
+export AUTH__PROVIDERS__AUTHELIA__SHARING__ENABLED="true"
 ```
 
 ## Requirement Legend
