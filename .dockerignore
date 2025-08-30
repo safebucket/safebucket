@@ -1,0 +1,66 @@
+# Git files
+.git
+.gitignore
+
+# Documentation
+*.md
+README.md
+LICENSE
+
+# Development files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build artifacts (will be built inside container)
+web/dist/
+web/build/
+web/node_modules/
+
+# Go build files
+safebucket
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# Deployment files
+deployments/
+docker-compose.yml
+Dockerfile*
+
+# Test coverage
+*.cover
+coverage.out
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Local development
+CLAUDE.md
+.prettierrc.json
+.prettierignore
