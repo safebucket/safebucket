@@ -6,6 +6,8 @@ on:
 jobs:
   build-amd64:
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -19,26 +21,21 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build AMD64 image
+      - name: Build and push AMD64 image by digest
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
-          push: false
-          tags: safebucket/safebucket:latest-amd64
-          outputs: type=docker,dest=/tmp/image-amd64.tar
+          push: true
+          outputs: type=image,name=safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=amd64
           cache-to: type=gha,mode=max,scope=amd64
 
-      - name: Upload AMD64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: image-amd64
-          path: /tmp/image-amd64.tar
-          retention-days: 1
-
   build-arm64:
     runs-on: ubuntu-24.04-arm
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -52,40 +49,21 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build ARM64 image
+      - name: Build and push ARM64 image by digest
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/arm64
-          push: false
-          tags: safebucket/safebucket:latest-arm64
-          outputs: type=docker,dest=/tmp/image-arm64.tar
+          push: true
+          outputs: type=image,name=safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=arm64
           cache-to: type=gha,mode=max,scope=arm64
-
-      - name: Upload ARM64 artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: image-arm64
-          path: /tmp/image-arm64.tar
-          retention-days: 1
 
   create-manifest:
     runs-on: ubuntu-latest
     needs: [build-amd64, build-arm64]
     steps:
-      - name: Download AMD64 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: image-amd64
-          path: /tmp
-
-      - name: Download ARM64 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: image-arm64
-          path: /tmp
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -95,28 +73,9 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Load, push and create manifest
+      - name: Create and push multi-arch manifest
         run: |
-          docker load -i /tmp/image-amd64.tar
-          docker load -i /tmp/image-arm64.tar
-          
-          # Push intermediate tags temporarily
-          docker push safebucket/safebucket:latest-amd64
-          docker push safebucket/safebucket:latest-arm64
-          
-          # Create multi-arch manifest
           docker buildx imagetools create \
             --tag safebucket/safebucket:latest \
-            safebucket/safebucket:latest-amd64 \
-            safebucket/safebucket:latest-arm64
-          
-          # Clean up intermediate tags
-          docker buildx imagetools rm safebucket/safebucket:latest-amd64
-          docker buildx imagetools rm safebucket/safebucket:latest-arm64
-
-      - name: Delete artifacts
-        uses: geekyeggo/delete-artifact@v5
-        with:
-          name: |
-            image-amd64
-            image-arm64
+            safebucket/safebucket@${{ needs.build-amd64.outputs.digest }} \
+            safebucket/safebucket@${{ needs.build-arm64.outputs.digest }}
