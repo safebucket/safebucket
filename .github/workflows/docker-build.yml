@@ -10,8 +10,6 @@ permissions:
 jobs:
   build-amd64:
     runs-on: ubuntu-latest
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -19,37 +17,26 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push AMD64 image
-        id: build
+      - name: Build AMD64 image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
-          push: true
-          outputs: |
-            type=image,name=docker.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
-            type=image,name=ghcr.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
+          push: false
+          tags: safebucket-amd64:latest
+          outputs: type=docker,dest=/tmp/image-amd64.tar
           cache-from: type=gha,scope=amd64
           cache-to: type=gha,mode=max,scope=amd64
 
+      - name: Upload AMD64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-amd64
+          path: /tmp/image-amd64.tar
+          retention-days: 1
+
   build-arm64:
     runs-on: ubuntu-24.04-arm
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -57,37 +44,35 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push ARM64 image
-        id: build
+      - name: Build ARM64 image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/arm64
-          push: true
-          outputs: |
-            type=image,name=docker.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
-            type=image,name=ghcr.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
+          push: false
+          tags: safebucket-arm64:latest
+          outputs: type=docker,dest=/tmp/image-arm64.tar
           cache-from: type=gha,scope=arm64
           cache-to: type=gha,mode=max,scope=arm64
 
-  create-manifest:
+      - name: Upload ARM64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-arm64
+          path: /tmp/image-arm64.tar
+          retention-days: 1
+
+  push-dockerhub:
     runs-on: ubuntu-latest
     needs: [build-amd64, build-arm64]
     steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: image-*
+          path: /tmp
+          merge-multiple: true
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -98,6 +83,36 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Load, tag and push to Docker Hub
+        run: |
+          docker load -i /tmp/image-amd64.tar
+          docker load -i /tmp/image-arm64.tar
+          
+          docker tag safebucket-amd64:latest docker.io/safebucket/safebucket:latest-amd64
+          docker tag safebucket-arm64:latest docker.io/safebucket/safebucket:latest-arm64
+          
+          docker push docker.io/safebucket/safebucket:latest-amd64
+          docker push docker.io/safebucket/safebucket:latest-arm64
+          
+          docker buildx imagetools create \
+            --tag docker.io/safebucket/safebucket:latest \
+            docker.io/safebucket/safebucket:latest-amd64 \
+            docker.io/safebucket/safebucket:latest-arm64
+
+  push-ghcr:
+    runs-on: ubuntu-latest
+    needs: [build-amd64, build-arm64]
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: image-*
+          path: /tmp
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -105,16 +120,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create and push multi-arch manifest
+      - name: Load, tag and push to GHCR
         run: |
-          # Create Docker Hub manifest
-          docker buildx imagetools create \
-            --tag docker.io/safebucket/safebucket:latest \
-            docker.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest }} \
-            docker.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest }}
+          docker load -i /tmp/image-amd64.tar
+          docker load -i /tmp/image-arm64.tar
           
-          # Create GHCR manifest  
+          docker tag safebucket-amd64:latest ghcr.io/safebucket/safebucket:latest-amd64
+          docker tag safebucket-arm64:latest ghcr.io/safebucket/safebucket:latest-arm64
+          
+          docker push ghcr.io/safebucket/safebucket:latest-amd64
+          docker push ghcr.io/safebucket/safebucket:latest-arm64
+          
           docker buildx imagetools create \
             --tag ghcr.io/safebucket/safebucket:latest \
-            ghcr.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest }} \
-            ghcr.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest }}
+            ghcr.io/safebucket/safebucket:latest-amd64 \
+            ghcr.io/safebucket/safebucket:latest-arm64
+
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: [push-dockerhub, push-ghcr]
+    if: always()
+    steps:
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            image-amd64
+            image-arm64
