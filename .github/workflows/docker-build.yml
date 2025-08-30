@@ -83,21 +83,28 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Load, tag and push to Docker Hub
+      - name: Load and push to Docker Hub by digest
+        id: push-dockerhub
         run: |
           docker load -i /tmp/image-amd64.tar
           docker load -i /tmp/image-arm64.tar
           
-          docker tag safebucket-amd64:latest docker.io/safebucket/safebucket:latest-amd64
-          docker tag safebucket-arm64:latest docker.io/safebucket/safebucket:latest-arm64
+          # Get image digests
+          AMD64_DIGEST=$(docker image inspect safebucket-amd64:latest --format='{{.Id}}' | cut -d':' -f2)
+          ARM64_DIGEST=$(docker image inspect safebucket-arm64:latest --format='{{.Id}}' | cut -d':' -f2)
           
-          docker push docker.io/safebucket/safebucket:latest-amd64
-          docker push docker.io/safebucket/safebucket:latest-arm64
+          # Push by digest
+          docker tag safebucket-amd64:latest docker.io/safebucket/safebucket@sha256:$AMD64_DIGEST
+          docker tag safebucket-arm64:latest docker.io/safebucket/safebucket@sha256:$ARM64_DIGEST
           
+          docker push docker.io/safebucket/safebucket@sha256:$AMD64_DIGEST
+          docker push docker.io/safebucket/safebucket@sha256:$ARM64_DIGEST
+          
+          # Create manifest
           docker buildx imagetools create \
             --tag docker.io/safebucket/safebucket:latest \
-            docker.io/safebucket/safebucket:latest-amd64 \
-            docker.io/safebucket/safebucket:latest-arm64
+            docker.io/safebucket/safebucket@sha256:$AMD64_DIGEST \
+            docker.io/safebucket/safebucket@sha256:$ARM64_DIGEST"
 
   push-ghcr:
     runs-on: ubuntu-latest
@@ -120,21 +127,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Load, tag and push to GHCR
+      - name: Load and push to GHCR by digest
+        id: push-ghcr
         run: |
           docker load -i /tmp/image-amd64.tar
           docker load -i /tmp/image-arm64.tar
           
-          docker tag safebucket-amd64:latest ghcr.io/safebucket/safebucket:latest-amd64
-          docker tag safebucket-arm64:latest ghcr.io/safebucket/safebucket:latest-arm64
+          # Get digests from loaded images
+          AMD64_DIGEST=$(docker image inspect safebucket-amd64:latest --format='{{.Id}}' | cut -d':' -f2)
+          ARM64_DIGEST=$(docker image inspect safebucket-arm64:latest --format='{{.Id}}' | cut -d':' -f2)
           
-          docker push ghcr.io/safebucket/safebucket:latest-amd64
-          docker push ghcr.io/safebucket/safebucket:latest-arm64
+          docker tag safebucket-amd64:latest ghcr.io/safebucket/safebucket@sha256:$AMD64_DIGEST
+          docker tag safebucket-arm64:latest ghcr.io/safebucket/safebucket@sha256:$ARM64_DIGEST
           
+          docker push ghcr.io/safebucket/safebucket@sha256:$AMD64_DIGEST
+          docker push ghcr.io/safebucket/safebucket@sha256:$ARM64_DIGEST
+          
+          echo "amd64-digest=sha256:$AMD64_DIGEST" >> $GITHUB_OUTPUT
+          echo "arm64-digest=sha256:$ARM64_DIGEST" >> $GITHUB_OUTPUT
+
+      - name: Generate manifest
+        id: manifest-ghcr
+        run: |
           docker buildx imagetools create \
             --tag ghcr.io/safebucket/safebucket:latest \
-            ghcr.io/safebucket/safebucket:latest-amd64 \
-            ghcr.io/safebucket/safebucket:latest-arm64
+            ghcr.io/safebucket/safebucket@${{ steps.push-ghcr.outputs.amd64-digest }} \
+            ghcr.io/safebucket/safebucket@${{ steps.push-ghcr.outputs.arm64-digest }}
+
 
   cleanup:
     runs-on: ubuntu-latest
