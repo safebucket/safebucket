@@ -12,83 +12,83 @@ SafeBucket uses a hierarchical configuration system that supports:
 
 ## Configuration Variables Reference
 
-| File Variable                                   | Environment Variable                                | Default Value | Required | Example Value                                        | Description                                         |
-|-------------------------------------------------|-----------------------------------------------------|---------------|----------|------------------------------------------------------|-----------------------------------------------------|
+| File Variable                                   | Environment Variable                                | Default Value | Required | Example Value                                        | Description                                       |
+|-------------------------------------------------|-----------------------------------------------------|---------------|----------|------------------------------------------------------|---------------------------------------------------|
 | **App Configuration**                           |
-| `app.admin_email`                               | `APP__ADMIN_EMAIL`                                  | -             | ✅        | `admin@safebucket.io`                                | Administrator email address (must be valid email)   |
-| `app.admin_password`                            | `APP__ADMIN_PASSWORD`                               | -             | ✅        | `SecurePassword123!`                                 | Administrator password                              |
-| `app.api_url`                                   | `APP__API_URL`                                      | -             | ✅        | `http://localhost:8080`                              | API base URL                                        |
-| `app.allowed_origins`                           | `APP__ALLOWED_ORIGINS`                              | -             | ✅        | `["http://localhost:3000", "http://127.0.0.1:3000"]` | CORS allowed origins array                          |
-| `app.jwt_secret`                                | `APP__JWT_SECRET`                                   | -             | ✅        | `6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA`        | JWT signing secret                                  |
-| `app.port`                                      | `APP__PORT`                                         | `8080`        | ❌        | `3000`                                               | Server port (80-65535)                              |
-| `app.web_url`                                   | `APP__WEB_URL`                                      | -             | ✅        | `http://localhost:3000`                              | Frontend web URL                                    |
-| `app.trusted_proxies`                           | `APP__TRUSTED_PROXIES`                              | -             | ✅        | `["127.0.0.1", "::1"]`                               | Trusted proxy IPs array                             |
-| `app.static_files.enabled`                      | `APP__STATIC_FILES__ENABLED`                        | `true`        | ❌        | `false`                                              | Enable static file serving                          |
-| `app.static_files.directory`                    | `APP__STATIC_FILES__DIRECTORY`                      | `web/dist`    | ❌        | `public/build`                                       | Static files directory path                         |
+| `app.admin_email`                               | `APP__ADMIN_EMAIL`                                  | -             | ✅        | `admin@safebucket.io`                                | Administrator email address (must be valid email) |
+| `app.admin_password`                            | `APP__ADMIN_PASSWORD`                               | -             | ✅        | `SecurePassword123!`                                 | Administrator password                            |
+| `app.api_url`                                   | `APP__API_URL`                                      | -             | ✅        | `http://localhost:8080`                              | API base URL                                      |
+| `app.allowed_origins`                           | `APP__ALLOWED_ORIGINS`                              | -             | ✅        | `["http://localhost:3000", "http://127.0.0.1:3000"]` | CORS allowed origins array                        |
+| `app.jwt_secret`                                | `APP__JWT_SECRET`                                   | -             | ✅        | `6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA`        | JWT signing secret                                |
+| `app.port`                                      | `APP__PORT`                                         | `8080`        | ❌        | `3000`                                               | Server port (80-65535)                            |
+| `app.web_url`                                   | `APP__WEB_URL`                                      | -             | ✅        | `http://localhost:3000`                              | Frontend web URL                                  |
+| `app.trusted_proxies`                           | `APP__TRUSTED_PROXIES`                              | -             | ✅        | `["127.0.0.1", "::1"]`                               | Trusted proxy IPs array                           |
+| `app.static_files.enabled`                      | `APP__STATIC_FILES__ENABLED`                        | `true`        | ❌        | `false`                                              | Enable static file serving                        |
+| `app.static_files.directory`                    | `APP__STATIC_FILES__DIRECTORY`                      | `web/dist`    | ❌        | `public/build`                                       | Static files directory path                       |
 | **Database Configuration**                      |
-| `database.host`                                 | `DATABASE__HOST`                                    | -             | ✅        | `localhost`                                          | Database hostname                                   |
-| `database.port`                                 | `DATABASE__PORT`                                    | `5432`        | ❌        | `5433`                                               | Database port (80-65535)                            |
-| `database.user`                                 | `DATABASE__USER`                                    | -             | ✅        | `safebucket`                                         | Database username                                   |
-| `database.password`                             | `DATABASE__PASSWORD`                                | -             | ✅        | `mySecretPassword`                                   | Database password                                   |
-| `database.name`                                 | `DATABASE__NAME`                                    | -             | ✅        | `safebucket_prod`                                    | Database name                                       |
-| `database.sslmode`                              | `DATABASE__SSLMODE`                                 | -             | ❌        | `require`                                            | SSL connection mode                                 |
+| `database.host`                                 | `DATABASE__HOST`                                    | -             | ✅        | `localhost`                                          | Database hostname                                 |
+| `database.port`                                 | `DATABASE__PORT`                                    | `5432`        | ❌        | `5433`                                               | Database port (80-65535)                          |
+| `database.user`                                 | `DATABASE__USER`                                    | -             | ✅        | `safebucket`                                         | Database username                                 |
+| `database.password`                             | `DATABASE__PASSWORD`                                | -             | ✅        | `mySecretPassword`                                   | Database password                                 |
+| `database.name`                                 | `DATABASE__NAME`                                    | -             | ✅        | `safebucket_prod`                                    | Database name                                     |
+| `database.sslmode`                              | `DATABASE__SSLMODE`                                 | -             | ❌        | `require`                                            | SSL connection mode                               |
 | **Auth Configuration**                          |
-| `auth.providers.{name}.name`                    | `AUTH__PROVIDERS__{NAME}__NAME`                     | -             | ✅*       | `Google`                                             | Auth provider display name                          |
-| `auth.providers.{name}.type`                    | `AUTH__PROVIDERS__{NAME}__TYPE`                     | -             | ✅*       | `oidc` or `local`                                    | Auth provider type                                  |
-| `auth.providers.{name}.client_id`               | `AUTH__PROVIDERS__{NAME}__CLIENT_ID`                | -             | ✅*       | `123456789.apps.googleusercontent.com`               | OAuth client ID (OIDC only)                         |
-| `auth.providers.{name}.client_secret`           | `AUTH__PROVIDERS__{NAME}__CLIENT_SECRET`            | -             | ✅*       | `GOCSPX-abcdef123456`                                | OAuth client secret (OIDC only)                     |
-| `auth.providers.{name}.issuer`                  | `AUTH__PROVIDERS__{NAME}__ISSUER`                   | -             | ✅*       | `https://accounts.google.com`                        | OIDC issuer URL (OIDC only)                         |
-| `auth.providers.{name}.sharing.enabled`         | `AUTH__PROVIDERS__{NAME}__SHARING__ENABLED`         | `true`        | ❌        | `false`                                              | Enable domain sharing                               |
-| `auth.providers.{name}.sharing.allowed_domains` | `AUTH__PROVIDERS__{NAME}__SHARING__ALLOWED_DOMAINS` | -             | ❌        | `["example.com", "company.org"]`                     | Allowed domains for sharing                         |
+| `auth.providers.{name}.name`                    | `AUTH__PROVIDERS__{NAME}__NAME`                     | -             | ✅*       | `Google`                                             | Auth provider display name                        |
+| `auth.providers.{name}.type`                    | `AUTH__PROVIDERS__{NAME}__TYPE`                     | -             | ✅*       | `oidc` or `local`                                    | Auth provider type                                |
+| `auth.providers.{name}.client_id`               | `AUTH__PROVIDERS__{NAME}__CLIENT_ID`                | -             | ✅*       | `123456789.apps.googleusercontent.com`               | OAuth client ID (OIDC only)                       |
+| `auth.providers.{name}.client_secret`           | `AUTH__PROVIDERS__{NAME}__CLIENT_SECRET`            | -             | ✅*       | `GOCSPX-abcdef123456`                                | OAuth client secret (OIDC only)                   |
+| `auth.providers.{name}.issuer`                  | `AUTH__PROVIDERS__{NAME}__ISSUER`                   | -             | ✅*       | `https://accounts.google.com`                        | OIDC issuer URL (OIDC only)                       |
+| `auth.providers.{name}.sharing.enabled`         | `AUTH__PROVIDERS__{NAME}__SHARING__ENABLED`         | `true`        | ❌        | `false`                                              | Enable domain sharing                             |
+| `auth.providers.{name}.sharing.allowed_domains` | `AUTH__PROVIDERS__{NAME}__SHARING__ALLOWED_DOMAINS` | -             | ❌        | `["example.com", "company.org"]`                     | Allowed domains for sharing                       |
 | **Cache Configuration**                         |
-| `cache.type`                                    | `CACHE__TYPE`                                       | -             | ✅        | `redis`                                              | Cache type: `redis` or `valkey`                     |
-| `cache.redis.hosts`                             | `CACHE__REDIS__HOSTS`                               | -             | ✅*       | `["localhost:6379", "redis-2:6379"]`                 | Redis host addresses array                          |
-| `cache.redis.password`                          | `CACHE__REDIS__PASSWORD`                            | -             | ❌        | `redisPassword123`                                   | Redis password                                      |
-| `cache.valkey.hosts`                            | `CACHE__VALKEY__HOSTS`                              | -             | ✅*       | `["localhost:6380"]`                                 | Valkey host addresses array                         |
-| `cache.valkey.password`                         | `CACHE__VALKEY__PASSWORD`                           | -             | ❌        | `valkeySecret`                                       | Valkey password                                     |
+| `cache.type`                                    | `CACHE__TYPE`                                       | -             | ✅        | `redis`                                              | Cache type: `redis` or `valkey`                   |
+| `cache.redis.hosts`                             | `CACHE__REDIS__HOSTS`                               | -             | ✅*       | `["localhost:6379", "redis-2:6379"]`                 | Redis host addresses array                        |
+| `cache.redis.password`                          | `CACHE__REDIS__PASSWORD`                            | -             | ❌        | `redisPassword123`                                   | Redis password                                    |
+| `cache.valkey.hosts`                            | `CACHE__VALKEY__HOSTS`                              | -             | ✅*       | `["localhost:6380"]`                                 | Valkey host addresses array                       |
+| `cache.valkey.password`                         | `CACHE__VALKEY__PASSWORD`                           | -             | ❌        | `valkeySecret`                                       | Valkey password                                   |
 | **Storage Configuration**                       |
-| `storage.type`                                  | `STORAGE__TYPE`                                     | -             | ✅        | `minio`                                              | Storage provider: `minio`, `cloud_storage`, or `s3` |
+| `storage.type`                                  | `STORAGE__TYPE`                                     | -             | ✅        | `minio`                                              | Storage provider: `minio`, `gcp`, or `aws`        |
 | **MinIO Storage**                               |
-| `storage.minio.bucket_name`                     | `STORAGE__MINIO__BUCKET_NAME`                       | -             | ✅*       | `safebucket`                                         | MinIO bucket name                                   |
-| `storage.minio.endpoint`                        | `STORAGE__MINIO__ENDPOINT`                          | -             | ✅*       | `localhost:9000`                                     | MinIO endpoint URL                                  |
-| `storage.minio.client_id`                       | `STORAGE__MINIO__CLIENT_ID`                         | -             | ✅*       | `minio-root-user`                                    | MinIO access key                                    |
-| `storage.minio.client_secret`                   | `STORAGE__MINIO__CLIENT_SECRET`                     | -             | ✅*       | `minio-root-password`                                | MinIO secret key                                    |
-| `storage.minio.type`                            | `STORAGE__MINIO__TYPE`                              | -             | ✅*       | `jetstream`                                          | Event type: `jetstream`                             |
-| `storage.minio.jetstream.topic_name`            | `STORAGE__MINIO__JETSTREAM__TOPIC_NAME`             | -             | ✅*       | `safebucket:notifications`                           | JetStream topic name                                |
-| `storage.minio.jetstream.host`                  | `STORAGE__MINIO__JETSTREAM__HOST`                   | -             | ✅*       | `localhost`                                          | JetStream host                                      |
-| `storage.minio.jetstream.port`                  | `STORAGE__MINIO__JETSTREAM__PORT`                   | -             | ✅*       | `4222`                                               | JetStream port                                      |
+| `storage.minio.bucket_name`                     | `STORAGE__MINIO__BUCKET_NAME`                       | -             | ✅*       | `safebucket`                                         | MinIO bucket name                                 |
+| `storage.minio.endpoint`                        | `STORAGE__MINIO__ENDPOINT`                          | -             | ✅*       | `localhost:9000`                                     | MinIO endpoint URL                                |
+| `storage.minio.client_id`                       | `STORAGE__MINIO__CLIENT_ID`                         | -             | ✅*       | `minio-root-user`                                    | MinIO access key                                  |
+| `storage.minio.client_secret`                   | `STORAGE__MINIO__CLIENT_SECRET`                     | -             | ✅*       | `minio-root-password`                                | MinIO secret key                                  |
+| `storage.minio.type`                            | `STORAGE__MINIO__TYPE`                              | -             | ✅*       | `jetstream`                                          | Event type: `jetstream`                           |
+| `storage.minio.jetstream.topic_name`            | `STORAGE__MINIO__JETSTREAM__TOPIC_NAME`             | -             | ✅*       | `safebucket:notifications`                           | JetStream topic name                              |
+| `storage.minio.jetstream.host`                  | `STORAGE__MINIO__JETSTREAM__HOST`                   | -             | ✅*       | `localhost`                                          | JetStream host                                    |
+| `storage.minio.jetstream.port`                  | `STORAGE__MINIO__JETSTREAM__PORT`                   | -             | ✅*       | `4222`                                               | JetStream port                                    |
 | **GCP Cloud Storage**                           |
-| `storage.cloud_storage.bucket_name`             | `STORAGE__CLOUD_STORAGE__BUCKET_NAME`               | -             | ✅*       | `my-gcp-bucket`                                      | GCP Storage bucket name                             |
-| `storage.cloud_storage.project_id`              | `STORAGE__CLOUD_STORAGE__PROJECT_ID`                | -             | ✅*       | `my-gcp-project-123`                                 | GCP project ID                                      |
-| `storage.cloud_storage.topic_name`              | `STORAGE__CLOUD_STORAGE__TOPIC_NAME`                | -             | ✅*       | `safebucket-events`                                  | GCP Pub/Sub topic name for storage events           |
-| `storage.cloud_storage.subscription_name`       | `STORAGE__CLOUD_STORAGE__SUBSCRIPTION_NAME`         | -             | ✅*       | `safebucket-storage-sub`                             | GCP Pub/Sub subscription name for storage events    |
+| `storage.gcp.bucket_name`                       | `STORAGE__GCP__BUCKET_NAME`                         | -             | ✅*       | `my-gcp-bucket`                                      | GCP Storage bucket name                           |
+| `storage.gcp.project_id`                        | `STORAGE__GCP__PROJECT_ID`                          | -             | ✅*       | `my-gcp-project-123`                                 | GCP project ID                                    |
+| `storage.gcp.topic_name`                        | `STORAGE__GCP__TOPIC_NAME`                          | -             | ✅*       | `safebucket-events`                                  | GCP Pub/Sub topic name for storage events         |
+| `storage.gcp.subscription_name`                 | `STORAGE__GCP__SUBSCRIPTION_NAME`                   | -             | ✅*       | `safebucket-storage-sub`                             | GCP Pub/Sub subscription name for storage events  |
 | **AWS S3 Storage**                              |
-| `storage.s3.bucket_name`                        | `STORAGE__S3__BUCKET_NAME`                          | -             | ✅*       | `my-s3-bucket`                                       | S3 bucket name                                      |
-| `storage.s3.sqs_name`                           | `STORAGE__S3__SQS_NAME`                             | -             | ✅*       | `safebucket-s3-events`                               | SQS queue name for S3 events                        |
+| `storage.aws.bucket_name`                       | `STORAGE__AWS__BUCKET_NAME`                         | -             | ✅*       | `my-s3-bucket`                                       | S3 bucket name                                    |
+| `storage.aws.sqs_name`                          | `STORAGE__AWS__SQS_NAME`                            | -             | ✅*       | `safebucket-s3-events`                               | SQS queue name for S3 events                      |
 | **Events Configuration**                        |
-| `events.type`                                   | `EVENTS__TYPE`                                      | -             | ✅        | `jetstream`                                          | Event system: `jetstream`, `pubsub`, or `sqs`       |
+| `events.type`                                   | `EVENTS__TYPE`                                      | -             | ✅        | `jetstream`                                          | Event system: `jetstream`, `gcp`, or `aws`        |
 | **JetStream Events**                            |
-| `events.jetstream.topic_name`                   | `EVENTS__JETSTREAM__TOPIC_NAME`                     | -             | ✅*       | `safebucket:notifications`                           | JetStream topic name                                |
-| `events.jetstream.host`                         | `EVENTS__JETSTREAM__HOST`                           | -             | ✅*       | `localhost`                                          | JetStream host                                      |
-| `events.jetstream.port`                         | `EVENTS__JETSTREAM__PORT`                           | -             | ✅*       | `4222`                                               | JetStream port                                      |
+| `events.jetstream.topic_name`                   | `EVENTS__JETSTREAM__TOPIC_NAME`                     | -             | ✅*       | `safebucket:notifications`                           | JetStream topic name                              |
+| `events.jetstream.host`                         | `EVENTS__JETSTREAM__HOST`                           | -             | ✅*       | `localhost`                                          | JetStream host                                    |
+| `events.jetstream.port`                         | `EVENTS__JETSTREAM__PORT`                           | -             | ✅*       | `4222`                                               | JetStream port                                    |
 | **GCP Pub/Sub Events**                          |
-| `events.pubsub.project_id`                      | `EVENTS__PUBSUB__PROJECT_ID`                        | -             | ✅*       | `my-gcp-project-123`                                 | GCP project ID for Pub/Sub                          |
-| `events.pubsub.topic_name`                      | `EVENTS__PUBSUB__TOPIC_NAME`                        | -             | ✅*       | `safebucket-events`                                  | GCP Pub/Sub topic name                              |
-| `events.pubsub.subscription_name`               | `EVENTS__PUBSUB__SUBSCRIPTION_NAME`                 | -             | ✅*       | `safebucket-events-sub`                              | GCP Pub/Sub subscription name                       |
+| `events.gcp.project_id`                         | `EVENTS__GCP__PROJECT_ID`                           | -             | ✅*       | `my-gcp-project-123`                                 | GCP project ID for Pub/Sub                        |
+| `events.gcp.topic_name`                         | `EVENTS__GCP__TOPIC_NAME`                           | -             | ✅*       | `safebucket-events`                                  | GCP Pub/Sub topic name                            |
+| `events.gcp.subscription_name`                  | `EVENTS__GCP__SUBSCRIPTION_NAME`                    | -             | ✅*       | `safebucket-events-sub`                              | GCP Pub/Sub subscription name                     |
 | **AWS SQS Events**                              |
-| `events.sqs.name`                               | `EVENTS__SQS__NAME`                                 | -             | ✅*       | `safebucket-notifications`                           | SQS queue name for application events               |
+| `events.aws.name`                               | `EVENTS__AWS__NAME`                                 | -             | ✅*       | `safebucket-notifications`                           | SQS queue name for application events             |
 | **Notifier Configuration**                      |
-| `notifier.type`                                 | `NOTIFIER__TYPE`                                    | -             | ✅        | `smtp`                                               | Notifier type: `smtp`                               |
-| `notifier.smtp.host`                            | `NOTIFIER__SMTP__HOST`                              | -             | ✅*       | `smtp.gmail.com`                                     | SMTP server host                                    |
-| `notifier.smtp.port`                            | `NOTIFIER__SMTP__PORT`                              | -             | ✅*       | `587`                                                | SMTP server port                                    |
-| `notifier.smtp.username`                        | `NOTIFIER__SMTP__USERNAME`                          | -             | ❌        | `notifications@example.com`                          | SMTP username                                       |
-| `notifier.smtp.password`                        | `NOTIFIER__SMTP__PASSWORD`                          | -             | ❌        | `app-password-123`                                   | SMTP password                                       |
-| `notifier.smtp.sender`                          | `NOTIFIER__SMTP__SENDER`                            | -             | ✅*       | `notifications@safebucket.io`                        | Email sender address                                |
-| `notifier.smtp.enable_tls`                      | `NOTIFIER__SMTP__ENABLE_TLS`                        | `true`        | ❌        | `false`                                              | Enable TLS encryption                               |
-| `notifier.smtp.skip_verify_tls`                 | `NOTIFIER__SMTP__SKIP_VERIFY_TLS`                   | `false`       | ❌        | `true`                                               | Skip TLS certificate verification                   |
+| `notifier.type`                                 | `NOTIFIER__TYPE`                                    | -             | ✅        | `smtp`                                               | Notifier type: `smtp`                             |
+| `notifier.smtp.host`                            | `NOTIFIER__SMTP__HOST`                              | -             | ✅*       | `smtp.gmail.com`                                     | SMTP server host                                  |
+| `notifier.smtp.port`                            | `NOTIFIER__SMTP__PORT`                              | -             | ✅*       | `587`                                                | SMTP server port                                  |
+| `notifier.smtp.username`                        | `NOTIFIER__SMTP__USERNAME`                          | -             | ❌        | `notifications@example.com`                          | SMTP username                                     |
+| `notifier.smtp.password`                        | `NOTIFIER__SMTP__PASSWORD`                          | -             | ❌        | `app-password-123`                                   | SMTP password                                     |
+| `notifier.smtp.sender`                          | `NOTIFIER__SMTP__SENDER`                            | -             | ✅*       | `notifications@safebucket.io`                        | Email sender address                              |
+| `notifier.smtp.enable_tls`                      | `NOTIFIER__SMTP__ENABLE_TLS`                        | `true`        | ❌        | `false`                                              | Enable TLS encryption                             |
+| `notifier.smtp.skip_verify_tls`                 | `NOTIFIER__SMTP__SKIP_VERIFY_TLS`                   | `false`       | ❌        | `true`                                               | Skip TLS certificate verification                 |
 | **Activity Configuration**                      |
-| `activity.type`                                 | `ACTIVITY__TYPE`                                    | -             | ✅        | `loki`                                               | Activity logger: `loki`                             |
-| `activity.loki.endpoint`                        | `ACTIVITY__LOKI__ENDPOINT`                          | -             | ✅        | `http://localhost:3100`                              | Loki endpoint URL                                   |
+| `activity.type`                                 | `ACTIVITY__TYPE`                                    | -             | ✅        | `loki`                                               | Activity logger: `loki`                           |
+| `activity.loki.endpoint`                        | `ACTIVITY__LOKI__ENDPOINT`                          | -             | ✅        | `http://localhost:3100`                              | Loki endpoint URL                                 |
 
 ## Special Environment Variables
 
@@ -165,14 +165,14 @@ events:
 ### AWS S3 Configuration
 ```yaml
 storage:
-  type: s3
-  s3:
+  type: aws
+  aws:
     bucket_name: safebucket-prod
     sqs_name: safebucket-s3-events
 
 events:
-  type: sqs
-  sqs:
+  type: aws
+  aws:
     name: safebucket-notifications
 
 # Note: AWS credentials should be provided via:
@@ -185,16 +185,16 @@ events:
 ### GCP Cloud Storage Configuration
 ```yaml
 storage:
-  type: cloud_storage
-  cloud_storage:
+  type: gcp
+  gcp:
     bucket_name: safebucket-prod
     project_id: my-gcp-project-123
     topic_name: safebucket-storage-events
     subscription_name: safebucket-storage-sub
 
 events:
-  type: pubsub
-  pubsub:
+  type: gcp
+  gcp:
     project_id: my-gcp-project-123
     topic_name: safebucket-events
     subscription_name: safebucket-events-sub
@@ -242,11 +242,11 @@ export AUTH__PROVIDERS__AUTHELIA__ISSUER="https://auth.local"
 export AUTH__PROVIDERS__AUTHELIA__SHARING__ENABLED="true"
 
 # AWS Configuration
-export STORAGE__TYPE="s3"
-export STORAGE__S3__BUCKET_NAME="safebucket-prod"
-export STORAGE__S3__SQS_NAME="safebucket-s3-events"
-export EVENTS__TYPE="sqs"
-export EVENTS__SQS__NAME="safebucket-notifications"
+export STORAGE__TYPE="aws"
+export STORAGE__AWS__BUCKET_NAME="safebucket-prod"
+export STORAGE__AWS__SQS_NAME="safebucket-s3-events"
+export EVENTS__TYPE="aws"
+export EVENTS__AWS__NAME="safebucket-notifications"
 
 # AWS Credentials (optional - can use IAM roles)
 export AWS_ACCESS_KEY_ID="your-access-key"
@@ -254,15 +254,15 @@ export AWS_SECRET_ACCESS_KEY="your-secret-key"
 export AWS_REGION="us-east-1"
 
 # GCP Configuration
-export STORAGE__TYPE="cloud_storage"
-export STORAGE__CLOUD_STORAGE__BUCKET_NAME="safebucket-prod"
-export STORAGE__CLOUD_STORAGE__PROJECT_ID="my-gcp-project-123"
-export STORAGE__CLOUD_STORAGE__TOPIC_NAME="safebucket-storage-events"
-export STORAGE__CLOUD_STORAGE__SUBSCRIPTION_NAME="safebucket-storage-sub"
-export EVENTS__TYPE="pubsub"
-export EVENTS__PUBSUB__PROJECT_ID="my-gcp-project-123"
-export EVENTS__PUBSUB__TOPIC_NAME="safebucket-events"
-export EVENTS__PUBSUB__SUBSCRIPTION_NAME="safebucket-events-sub"
+export STORAGE__TYPE="gcp"
+export STORAGE__GCP__BUCKET_NAME="safebucket-prod"
+export STORAGE__GCP_STORAGE__PROJECT_ID="my-gcp-project-123"
+export STORAGE__GCP__TOPIC_NAME="safebucket-storage-events"
+export STORAGE__GCP__SUBSCRIPTION_NAME="safebucket-storage-sub"
+export EVENTS__TYPE="gcp"
+export EVENTS__GCP__PROJECT_ID="my-gcp-project-123"
+export EVENTS__GCP__TOPIC_NAME="safebucket-events"
+export EVENTS__GCP__SUBSCRIPTION_NAME="safebucket-events-sub"
 
 # GCP Credentials
 export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"

@@ -71,10 +71,10 @@ type ValkeyCacheConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	Type         string                     `mapstructure:"type" validate:"required,oneof=minio cloud_storage s3"`
+	Type         string                     `mapstructure:"type" validate:"required,oneof=minio gcp aws"`
 	Minio        *MinioStorageConfiguration `mapstructure:"minio" validate:"required_if=Type minio"`
-	CloudStorage *CloudStorage              `mapstructure:"cloud_storage" validate:"required_if=Type cloud_storage"`
-	S3           *S3Configuration           `mapstructure:"s3" validate:"required_if=Type s3"`
+	CloudStorage *CloudStorage              `mapstructure:"gcp" validate:"required_if=Type gcp"`
+	S3           *S3Configuration           `mapstructure:"aws" validate:"required_if=Type aws"`
 }
 
 type MinioStorageConfiguration struct {
@@ -99,10 +99,10 @@ type S3Configuration struct {
 }
 
 type EventsConfiguration struct {
-	Type      string                 `mapstructure:"type" validate:"required,oneof=jetstream pubsub sqs"`
+	Type      string                 `mapstructure:"type" validate:"required,oneof=jetstream gcp aws"`
 	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream" validate:"required_if=Type jetstream"`
-	PubSub    *PubSubConfiguration   `mapstructure:"pubsub" validate:"required_if=Type pubsub"`
-	SQS       *SQSConfiguration      `mapstructure:"sqs" validate:"required_if=Type sqs"`
+	PubSub    *PubSubConfiguration   `mapstructure:"gcp" validate:"required_if=Type gcp"`
+	SQS       *SQSConfiguration      `mapstructure:"aws" validate:"required_if=Type aws"`
 }
 
 type SQSConfiguration struct {
