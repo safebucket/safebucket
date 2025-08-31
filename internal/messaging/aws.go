@@ -39,7 +39,7 @@ func NewAWSPublisher(config *models.SQSConfiguration) IPublisher {
 		zap.L().Fatal("Unable to create publisher", zap.Error(err))
 	}
 
-	return &AWSPublisher{TopicName: config.SQSName, publisher: publisher}
+	return &AWSPublisher{TopicName: config.Name, publisher: publisher}
 }
 
 func (p *AWSPublisher) Publish(messages ...*message.Message) error {
