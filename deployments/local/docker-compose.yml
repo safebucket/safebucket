@@ -55,7 +55,7 @@ services:
 
   bucket:
     container_name: bucket
-    image: docker.io/bitnami/minio:2024.11.7
+    image: docker.io/bitnami/minio:2025.7.23
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
