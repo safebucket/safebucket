@@ -135,7 +135,7 @@ services:
       MP_SMTP_AUTH: root:root
 
   nats:
-    image: nats:2.10-alpine
+    image: nats:2.11-alpine
     container_name: nats
     ports:
       - "4222:4222"
