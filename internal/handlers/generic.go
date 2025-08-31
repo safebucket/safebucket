@@ -6,16 +6,18 @@ import (
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"errors"
-	"github.com/google/uuid"
 	"net/http"
+
+	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
-type CreateTargetFunc[In any, Out any] func(models.UserClaims, uuid.UUIDs, In) (Out, error)
-type ListTargetFunc[Out any] func(models.UserClaims, uuid.UUIDs) []Out
-type GetOneTargetFunc[Out any] func(models.UserClaims, uuid.UUIDs) (Out, error)
-type GetOneListTargetFunc[Out any] func(models.UserClaims, uuid.UUIDs) []Out
-type UpdateTargetFunc[In any, Out any] func(models.UserClaims, uuid.UUIDs, In) (Out, error)
-type DeleteTargetFunc func(models.UserClaims, uuid.UUIDs) error
+type CreateTargetFunc[In any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
+type ListTargetFunc[Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
+type GetOneTargetFunc[Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs) (Out, error)
+type GetOneListTargetFunc[Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
+type UpdateTargetFunc[In any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
+type DeleteTargetFunc func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
 
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +26,8 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 			return
 		}
 		claims, _ := h.GetUserClaims(r.Context())
-		resp, err := create(claims, ids, r.Context().Value(m.BodyKey{}).(In))
+		logger := m.GetLogger(r)
+		resp, err := create(logger, claims, ids, r.Context().Value(m.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusBadRequest, strErrors)
@@ -42,7 +45,8 @@ func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 		}
 
 		claims, _ := h.GetUserClaims(r.Context()) // todo: check error
-		records := getList(claims, ids)
+		logger := m.GetLogger(r)
+		records := getList(logger, claims, ids)
 		page := models.Page[Out]{Data: records}
 		h.RespondWithJSON(w, http.StatusOK, page)
 	}
@@ -56,7 +60,8 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 		}
 
 		claims, _ := h.GetUserClaims(r.Context())
-		record, err := getOne(claims, ids)
+		logger := m.GetLogger(r)
+		record, err := getOne(logger, claims, ids)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)
@@ -74,7 +79,8 @@ func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.Handl
 		}
 
 		claims, _ := h.GetUserClaims(r.Context())
-		_, err := update(claims, ids, r.Context().Value(m.BodyKey{}).(In))
+		logger := m.GetLogger(r)
+		_, err := update(logger, claims, ids, r.Context().Value(m.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 
@@ -98,7 +104,8 @@ func DeleteHandler(delete DeleteTargetFunc) http.HandlerFunc {
 		}
 
 		claims, _ := h.GetUserClaims(r.Context())
-		err := delete(claims, ids)
+		logger := m.GetLogger(r)
+		err := delete(logger, claims, ids)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)

@@ -42,7 +42,7 @@ func (s BucketMemberService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketMemberService) GetBucketMembers(_ models.UserClaims, ids uuid.UUIDs) []models.BucketMember {
+func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) []models.BucketMember {
 	bucketId := ids[0]
 	var bucket models.Bucket
 
@@ -110,7 +110,7 @@ func (s BucketMemberService) GetBucketMembers(_ models.UserClaims, ids uuid.UUID
 	var invites []models.Invite
 	result = s.DB.Where("bucket_id = ?", bucket.ID).Find(&invites)
 	if result.Error != nil {
-		zap.L().Error("Failed to fetch invites", zap.Error(result.Error))
+		logger.Error("Failed to fetch invites", zap.Error(result.Error))
 	} else {
 		for _, invite := range invites {
 			if _, exists := userEmailMap[invite.Email]; exists {
@@ -129,6 +129,7 @@ func (s BucketMemberService) GetBucketMembers(_ models.UserClaims, ids uuid.UUID
 }
 
 func (s BucketMemberService) UpdateBucketMembers(
+	logger *zap.Logger,
 	user models.UserClaims,
 	ids uuid.UUIDs,
 	body models.UpdateMembersBody,
@@ -153,7 +154,7 @@ func (s BucketMemberService) UpdateBucketMembers(
 		return nil, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
-	members := s.GetBucketMembers(user, ids)
+	members := s.GetBucketMembers(logger, user, ids)
 	currentMembers := map[string]models.BucketMember{}
 	for _, member := range members {
 		// This condition ensures there's always at least one owner on a bucket
@@ -175,19 +176,19 @@ func (s BucketMemberService) UpdateBucketMembers(
 
 	for _, member := range changes.ToAdd {
 		if s.isDomainAllowed(member.Email, providerCfg) {
-			s.addMember(user, bucket, member)
+			s.addMember(logger, user, bucket, member)
 		}
 	}
 
 	for _, member := range changes.ToUpdate {
 		if s.isDomainAllowed(member.Email, providerCfg) {
-			s.updateMember(user, bucket, member)
+			s.updateMember(logger, user, bucket, member)
 		}
 	}
 
 	for _, member := range changes.ToDelete {
 		if s.isDomainAllowed(member.Email, providerCfg) {
-			s.deleteMember(user, bucket, member)
+			s.deleteMember(logger, user, bucket, member)
 		}
 	}
 
@@ -249,10 +250,10 @@ func (s BucketMemberService) isDomainAllowed(
 	return false
 }
 
-func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Bucket, invite models.BucketMemberBody) {
+func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, invite models.BucketMemberBody) {
 	tx := s.DB.Begin()
 	if tx.Error != nil {
-		zap.L().Error("Failed to start transaction", zap.Error(tx.Error))
+		logger.Error("Failed to start transaction", zap.Error(tx.Error))
 		return
 	}
 
@@ -272,7 +273,7 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 			if strings.Contains(err.Error(), "duplicate key") {
 				return
 			}
-			zap.L().Error("Failed to create invite", zap.String("email", invite.Email), zap.Error(err))
+			logger.Error("Failed to create invite", zap.String("email", invite.Email), zap.Error(err))
 			return
 		}
 
@@ -310,12 +311,12 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 
 	if err != nil {
 		tx.Rollback()
-		zap.L().Error("Failed to add user to Casbin group after DB commit", zap.Error(err))
+		logger.Error("Failed to add user to Casbin group after DB commit", zap.Error(err))
 		return
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		zap.L().Error("Failed to commit transaction", zap.Error(err))
+		logger.Error("Failed to commit transaction", zap.Error(err))
 		return
 	}
 
@@ -333,14 +334,14 @@ func (s BucketMemberService) addMember(user models.UserClaims, bucket models.Buc
 
 	err = s.ActivityLogger.Send(action)
 	if err != nil {
-		zap.L().Error("Failed to log user invitation activity", zap.Error(err))
+		logger.Error("Failed to log user invitation activity", zap.Error(err))
 	}
 }
 
-func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.Bucket, member models.BucketMemberToUpdate) {
+func (s BucketMemberService) updateMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, member models.BucketMemberToUpdate) {
 	tx := s.DB.Begin()
 	if tx.Error != nil {
-		zap.L().Error("Failed to start transaction", zap.Error(tx.Error))
+		logger.Error("Failed to start transaction", zap.Error(tx.Error))
 		return
 	}
 
@@ -351,7 +352,7 @@ func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.
 
 		if updateResult.Error != nil {
 			tx.Rollback()
-			zap.L().Error("Failed to update invite role", zap.Error(updateResult.Error))
+			logger.Error("Failed to update invite role", zap.Error(updateResult.Error))
 			return
 		}
 
@@ -376,7 +377,7 @@ func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.
 
 		if err != nil {
 			tx.Rollback()
-			zap.L().Error("Failed to remove user from old role", zap.Error(err))
+			logger.Error("Failed to remove user from old role", zap.Error(err))
 			return
 		}
 
@@ -393,13 +394,13 @@ func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.
 
 		if err != nil {
 			tx.Rollback()
-			zap.L().Error("Failed to add user to new role", zap.Error(err))
+			logger.Error("Failed to add user to new role", zap.Error(err))
 			return
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		zap.L().Error("Failed to commit transaction", zap.Error(err))
+		logger.Error("Failed to commit transaction", zap.Error(err))
 		return
 	}
 
@@ -417,14 +418,14 @@ func (s BucketMemberService) updateMember(user models.UserClaims, bucket models.
 
 	err := s.ActivityLogger.Send(action)
 	if err != nil {
-		zap.L().Error("Failed to log user role update activity", zap.Error(err))
+		logger.Error("Failed to log user role update activity", zap.Error(err))
 	}
 }
 
-func (s BucketMemberService) deleteMember(user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
+func (s BucketMemberService) deleteMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
 	tx := s.DB.Begin()
 	if tx.Error != nil {
-		zap.L().Error("Failed to start transaction", zap.Error(tx.Error))
+		logger.Error("Failed to start transaction", zap.Error(tx.Error))
 		return
 	}
 
@@ -435,7 +436,7 @@ func (s BucketMemberService) deleteMember(user models.UserClaims, bucket models.
 
 		if deleteResult.Error != nil {
 			tx.Rollback()
-			zap.L().Error("Failed to delete invite", zap.Error(deleteResult.Error))
+			logger.Error("Failed to delete invite", zap.Error(deleteResult.Error))
 			return
 		}
 
@@ -460,13 +461,13 @@ func (s BucketMemberService) deleteMember(user models.UserClaims, bucket models.
 
 		if err != nil {
 			tx.Rollback()
-			zap.L().Error("Failed to remove user from role", zap.Error(err))
+			logger.Error("Failed to remove user from role", zap.Error(err))
 			return
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		zap.L().Error("Failed to commit transaction", zap.Error(err))
+		logger.Error("Failed to commit transaction", zap.Error(err))
 		return
 	}
 
@@ -484,6 +485,6 @@ func (s BucketMemberService) deleteMember(user models.UserClaims, bucket models.
 
 	err := s.ActivityLogger.Send(action)
 	if err != nil {
-		zap.L().Error("Failed to log user removal activity", zap.Error(err))
+		logger.Error("Failed to log user removal activity", zap.Error(err))
 	}
 }

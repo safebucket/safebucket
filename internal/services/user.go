@@ -13,6 +13,7 @@ import (
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -44,7 +45,7 @@ func (s UserService) Routes() chi.Router {
 	return r
 }
 
-func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
+func (s UserService) CreateUser(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
 	newUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
@@ -69,13 +70,13 @@ func (s UserService) CreateUser(_ models.UserClaims, _ uuid.UUIDs, body models.U
 	}
 }
 
-func (s UserService) GetUserList(_ models.UserClaims, _ uuid.UUIDs) []models.User {
+func (s UserService) GetUserList(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs) []models.User {
 	var users []models.User
 	s.DB.Find(&users)
 	return users
 }
 
-func (s UserService) GetUser(_ models.UserClaims, ids uuid.UUIDs) (models.User, error) {
+func (s UserService) GetUser(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) (models.User, error) {
 	var user models.User
 	result := s.DB.Where("id = ?", ids[0]).First(&user)
 	if result.RowsAffected == 0 {
@@ -85,7 +86,7 @@ func (s UserService) GetUser(_ models.UserClaims, ids uuid.UUIDs) (models.User, 
 	}
 }
 
-func (s UserService) UpdateUser(_ models.UserClaims, ids uuid.UUIDs, body models.UserUpdateBody) (models.User, error) {
+func (s UserService) UpdateUser(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.UserUpdateBody) (models.User, error) {
 	user := models.User{ID: ids[0]}
 
 	newUser := models.User{
@@ -108,7 +109,7 @@ func (s UserService) UpdateUser(_ models.UserClaims, ids uuid.UUIDs, body models
 	}
 }
 
-func (s UserService) DeleteUser(_ models.UserClaims, ids uuid.UUIDs) error {
+func (s UserService) DeleteUser(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) error {
 	result := s.DB.Where("id = ?", ids[0]).Delete(&models.User{})
 	if result.RowsAffected == 0 {
 		return errors.New("USER_NOT_FOUND")

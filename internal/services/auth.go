@@ -18,6 +18,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 )
@@ -47,7 +48,7 @@ func (s AuthService) Routes() chi.Router {
 	return r
 }
 
-func (s AuthService) Login(_ models.UserClaims, _ uuid.UUIDs, body models.AuthLogin) (models.AuthLoginResponse, error) {
+func (s AuthService) Login(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthLogin) (models.AuthLoginResponse, error) {
 	searchUser := models.User{Email: body.Email, IsExternal: false}
 	result := s.DB.Where("email = ?", searchUser.Email).First(&searchUser)
 	if result.RowsAffected == 1 {
@@ -71,12 +72,12 @@ func (s AuthService) Login(_ models.UserClaims, _ uuid.UUIDs, body models.AuthLo
 	return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 }
 
-func (s AuthService) Verify(_ models.UserClaims, _ uuid.UUIDs, body models.AuthVerify) (any, error) {
+func (s AuthService) Verify(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthVerify) (any, error) {
 	data, err := h.ParseAccessToken(s.JWTSecret, body.AccessToken)
 	return data, err
 }
 
-func (s AuthService) Refresh(_ models.UserClaims, _ uuid.UUIDs, body models.AuthRefresh) (models.AuthRefreshResponse, error) {
+func (s AuthService) Refresh(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthRefresh) (models.AuthRefreshResponse, error) {
 	refreshToken, err := h.ParseRefreshToken(s.JWTSecret, body.RefreshToken)
 	if err != nil {
 		return models.AuthRefreshResponse{}, err
@@ -87,7 +88,7 @@ func (s AuthService) Refresh(_ models.UserClaims, _ uuid.UUIDs, body models.Auth
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
 
-func (s AuthService) GetProviderList(_ models.UserClaims, _ uuid.UUIDs) []models.ProviderResponse {
+func (s AuthService) GetProviderList(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs) []models.ProviderResponse {
 	var providers = make([]models.ProviderResponse, len(s.Providers))
 	for id, provider := range s.Providers {
 		providers[provider.Order] = models.ProviderResponse{
