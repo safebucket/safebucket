@@ -4,11 +4,10 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "saturday"
+      interval: "day"
       time: "09:00"
     target-branch: "develop"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     commit-message:
       prefix: "[deps]"
       include: "scope"
@@ -17,71 +16,61 @@ updates:
   - package-ecosystem: "npm"
     directory: "/web"
     schedule:
-      interval: "weekly"
-      day: "saturday"
+      interval: "day"
       time: "09:00"
     target-branch: "develop"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     commit-message:
       prefix: "[deps]"
       include: "scope"
     ignore:
-      # Ignore major version updates for React and Next.js to avoid breaking changes
       - dependency-name: "react"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-dom"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "next"
-        update-types: ["version-update:semver-major"]
 
-  # Docker images
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "09:00"
-    target-branch: "develop"
-    open-pull-requests-limit: 3
-    commit-message:
-      prefix: "[docker]"
-      include: "scope"
-
-  # Docker images in web directory
-  - package-ecosystem: "docker"
-    directory: "/web"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "09:00"
-    target-branch: "develop"
-    open-pull-requests-limit: 3
-    commit-message:
-      prefix: "[docker]"
-      include: "scope"
-
-  # Docker images in deployments/local directory
-  - package-ecosystem: "docker"
+  # Docker-compose stack
+  - package-ecosystem: "docker-compose"
     directory: "/deployments/local"
     schedule:
-      interval: "weekly"
-      day: "saturday"
+      interval: "day"
       time: "09:00"
     target-branch: "develop"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     commit-message:
-      prefix: "[docker]"
+      prefix: "[docker-compose]"
       include: "scope"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "saturday"
+      interval: "day"
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 3
     commit-message:
       prefix: "[actions]"
+      include: "scope"
+
+  - package-ecosystem: "terraform"
+    directory: "/deployment/aws/terraform"
+    schedule:
+      interval: "day"
+      time: "09:00"
+    target-branch: "develop"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "[terraform-aws]"
+      include: "scope"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "day"
+      time: "09:00"
+    target-branch: "develop"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "[docker]"
       include: "scope"
