@@ -52,8 +52,8 @@ github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/cloudmock v0.53.0/go.mod h1:jUZ5LYlw40WMd07qxcQJD5M40aUxrfwqQX1g7zxYnrQ=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.53.0 h1:Ron4zCA/yk6U7WOBXhTJcDpsUBG9npumK6xw2auFltQ=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.53.0/go.mod h1:cSgYe11MCNYunTnRXrKiR/tHc0eoKjICUuWpNZoVCOo=
-github.com/ThreeDotsLabs/watermill v1.4.8-0.20250825132336-9e066d39bea6 h1:td3E/Sv6ljyodK/L/4dsQkymKO0R9IqmL+Ko83IHtyo=
-github.com/ThreeDotsLabs/watermill v1.4.8-0.20250825132336-9e066d39bea6/go.mod h1:qykQ1+u+K9ElNTBKyCWyTANnpFAeP7t3F3bZFw+n1rs=
+github.com/ThreeDotsLabs/watermill v1.5.0 h1:lWk8WSBaoQD/GFJRw10jqJvPyOedZUiXyUG7BOXImhM=
+github.com/ThreeDotsLabs/watermill v1.5.0/go.mod h1:qykQ1+u+K9ElNTBKyCWyTANnpFAeP7t3F3bZFw+n1rs=
 github.com/ThreeDotsLabs/watermill-aws v1.0.0 h1:+DVauWBexBwUeQRF45nUUEiUBWP+tutDtoDcjtg5i5o=
 github.com/ThreeDotsLabs/watermill-aws v1.0.0/go.mod h1:r0HCfMVxFP2SI4yE6n8b9WqFVzAGl0bZCWrrchkMAa4=
 github.com/ThreeDotsLabs/watermill-googlecloud v1.2.6 h1:Ll1NzWoiEXr3mtQ6APuVfMBoRNeGeLLvPcclYrpPTCA=
