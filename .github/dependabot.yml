@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "day"
+      interval: "daily"
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 10
@@ -16,7 +16,7 @@ updates:
   - package-ecosystem: "npm"
     directory: "/web"
     schedule:
-      interval: "day"
+      interval: "daily"
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 10
@@ -33,7 +33,7 @@ updates:
   - package-ecosystem: "docker-compose"
     directory: "/deployments/local"
     schedule:
-      interval: "day"
+      interval: "daily"
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 5
@@ -45,7 +45,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "day"
+      interval: "daily"
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 3
@@ -56,7 +56,7 @@ updates:
   - package-ecosystem: "terraform"
     directory: "/deployment/aws/terraform"
     schedule:
-      interval: "day"
+      interval: "daily"
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 5
@@ -67,7 +67,7 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "day"
+      interval: "daily"
       time: "09:00"
     target-branch: "develop"
     open-pull-requests-limit: 5
