@@ -80,7 +80,6 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Timeout(5 * time.Second))
-	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(m.Logger)
 	r.Use(middleware.Recoverer)
