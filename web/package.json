@@ -60,7 +60,7 @@
     "vaul": "^1.1.2"
   },
   "devDependencies": {
-    "@tanstack/eslint-config": "^0.3.0",
+    "@tanstack/eslint-config": "^0.3.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
     "@trivago/prettier-plugin-sort-imports": "^4.3.0",
