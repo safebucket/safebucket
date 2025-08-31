@@ -134,8 +134,7 @@ type ActivityConfiguration struct {
 }
 
 type LokiConfiguration struct {
-	Type     string `mapstructure:"type" validate:"required,oneof=loki"`
-	Endpoint string `mapstructure:"endpoint" validate:"required"`
+	Endpoint string `mapstructure:"endpoint" validate:"required,http_url"`
 }
 
 type StaticConfiguration struct {
