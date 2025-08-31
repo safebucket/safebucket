@@ -26,7 +26,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.0
 	github.com/knadh/koanf/v2 v2.2.2
 	github.com/minio/minio-go/v7 v7.0.95
-	github.com/nats-io/nats.go v1.44.0
+	github.com/nats-io/nats.go v1.45.0
 	github.com/redis/rueidis v1.0.64
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.0
