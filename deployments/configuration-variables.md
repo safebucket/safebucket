@@ -83,7 +83,7 @@ SafeBucket uses a hierarchical configuration system that supports:
 | `notifier.smtp.skip_verify_tls`                 | `NOTIFIER__SMTP__SKIP_VERIFY_TLS`                   | `false`       | ❌        | `true`                                               | Skip TLS certificate verification                 |
 | **Activity Configuration**                      |
 | `activity.type`                                 | `ACTIVITY__TYPE`                                    | -             | ✅        | `loki`                                               | Activity logger: `loki`                           |
-| `activity.endpoint`                             | `ACTIVITY__ENDPOINT`                                | -             | ✅        | `http://localhost:3100`                              | Loki endpoint URL                                 |
+| `activity.loki.endpoint`                        | `ACTIVITY__LOKI__ENDPOINT`                          | -             | ✅        | `http://localhost:3100`                              | Loki endpoint URL                                 |
 
 ## Special Environment Variables
 

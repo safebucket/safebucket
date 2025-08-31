@@ -94,4 +94,5 @@ auth:
 
 activity:
   type: loki
-  endpoint: http://localhost:3100
+  loki:
+    endpoint: http://localhost:3100

@@ -156,8 +156,8 @@ func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 
 	return &LokiClient{
 		Client:    client,
-		pushURL:   fmt.Sprintf("%s%s", config.Endpoint, lokiPushURI),
-		searchURL: fmt.Sprintf("%s%s", config.Endpoint, lokiSearchURI),
+		pushURL:   fmt.Sprintf("%s%s", config.Loki.Endpoint, lokiPushURI),
+		searchURL: fmt.Sprintf("%s%s", config.Loki.Endpoint, lokiSearchURI),
 	}
 }
 

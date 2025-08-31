@@ -3,11 +3,12 @@ package activity
 import (
 	"api/internal/models"
 	"fmt"
-	"gorm.io/gorm"
 	"reflect"
 	"sort"
 	"strconv"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type ToEnrichValue struct {
