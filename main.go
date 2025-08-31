@@ -30,6 +30,7 @@ func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 
 	config := configuration.Read()
+	core.NewLogger(config.App.LogLevel)
 	db := database.InitDB(config.Database)
 	cache := core.NewCache(config.Cache)
 	storage := core.NewStorage(config.Storage)

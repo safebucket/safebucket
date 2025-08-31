@@ -17,6 +17,7 @@ type AppConfiguration struct {
 	ApiUrl         string              `mapstructure:"api_url" validate:"required"`
 	AllowedOrigins []string            `mapstructure:"allowed_origins" validate:"required"`
 	JWTSecret      string              `mapstructure:"jwt_secret" validate:"required"`
+	LogLevel       string              `mapstructure:"log_level" validate:"oneof=debug info warn error fatal panic" default:"info"`
 	Port           int                 `mapstructure:"port" validate:"gte=80,lte=65535" default:"8080"`
 	StaticFiles    StaticConfiguration `mapstructure:"static_files"`
 	TrustedProxies []string            `mapstructure:"trusted_proxies" validate:"required"`
