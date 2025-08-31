@@ -75,7 +75,7 @@ services:
 
   db:
     container_name: db
-    image: bitnami/postgresql:16.4.0
+    image: bitnami/postgresql:17.6.0
     ports:
       - "5442:5432"
     volumes:
