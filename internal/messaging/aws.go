@@ -5,6 +5,7 @@ import (
 	"api/internal/storage"
 	"context"
 	"encoding/json"
+
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-aws/sqs"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -17,7 +18,7 @@ type AWSPublisher struct {
 	publisher *sqs.Publisher
 }
 
-func NewAWSPublisher(config *models.AWSConfiguration) IPublisher {
+func NewAWSPublisher(config *models.SQSConfiguration) IPublisher {
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background())
 
 	if err != nil {
@@ -67,7 +68,7 @@ func NewAWSSubscriber(sqsName string, storage storage.IStorage) ISubscriber {
 	}, nil)
 
 	if err != nil {
-		zap.L().Fatal("Failed to create GCP subscriber", zap.Error(err))
+		zap.L().Fatal("Failed to create CloudStorage subscriber", zap.Error(err))
 	}
 
 	return &AWSSubscriber{TopicName: sqsName, subscriber: subscriber, storage: storage}
@@ -109,7 +110,6 @@ func (s *AWSSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 				FileId:   fileId,
 				UserId:   userId,
 			})
-
 			message.Ack()
 		} else {
 			zap.L().Warn("event is not supported", zap.Any("event_name", event.EventName))

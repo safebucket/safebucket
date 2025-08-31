@@ -4,6 +4,7 @@ import (
 	"api/internal/models"
 	"context"
 	"encoding/json"
+
 	"github.com/ThreeDotsLabs/watermill-googlecloud/pkg/googlecloud"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"
@@ -14,13 +15,13 @@ type GCPPublisher struct {
 	publisher *googlecloud.Publisher
 }
 
-func NewGCPPublisher(config *models.GCPConfiguration) IPublisher {
+func NewGCPPublisher(config *models.PubSubConfiguration) IPublisher {
 	publisher, err := googlecloud.NewPublisher(googlecloud.PublisherConfig{
 		ProjectID: config.ProjectID,
 	}, nil)
 
 	if err != nil {
-		zap.L().Fatal("Failed to create GCP publisher", zap.Error(err))
+		zap.L().Fatal("Failed to create PUB/SUB publisher", zap.Error(err))
 	}
 
 	return &GCPPublisher{TopicName: config.TopicName, publisher: publisher}
@@ -39,7 +40,7 @@ type GCPSubscriber struct {
 	subscriber *googlecloud.Subscriber
 }
 
-func NewGCPSubscriber(config *models.GCPConfiguration) ISubscriber {
+func NewGCPSubscriber(config *models.PubSubConfiguration) ISubscriber {
 	subscriber, err := googlecloud.NewSubscriber(
 		googlecloud.SubscriberConfig{
 			ProjectID: config.ProjectID,
@@ -52,7 +53,7 @@ func NewGCPSubscriber(config *models.GCPConfiguration) ISubscriber {
 	)
 
 	if err != nil {
-		zap.L().Fatal("Failed to create GCP subscriber", zap.Error(err))
+		zap.L().Fatal("Failed to create PUB/SUB subscriber", zap.Error(err))
 	}
 
 	return &GCPSubscriber{TopicName: config.TopicName, subscriber: subscriber}

@@ -10,10 +10,10 @@ func NewPublisher(config models.EventsConfiguration) messaging.IPublisher {
 	switch config.Type {
 	case "jetstream":
 		return messaging.NewJetStreamPublisher(config.Jetstream)
-	case "gcp":
-		return messaging.NewGCPPublisher(config.GCP)
-	case "aws":
-		return messaging.NewAWSPublisher(config.AWS)
+	case "pubsub":
+		return messaging.NewGCPPublisher(config.PubSub)
+	case "sqs":
+		return messaging.NewAWSPublisher(config.SQS)
 	default:
 		return nil
 	}
@@ -23,10 +23,10 @@ func NewSubscriber(config models.EventsConfiguration) messaging.ISubscriber {
 	switch config.Type {
 	case "jetstream":
 		return messaging.NewJetStreamSubscriber(config.Jetstream)
-	case "gcp":
-		return messaging.NewGCPSubscriber(config.GCP)
-	case "aws":
-		return messaging.NewAWSSubscriber(config.AWS.SQSName, nil)
+	case "pubsub":
+		return messaging.NewGCPSubscriber(config.PubSub)
+	case "sqs":
+		return messaging.NewAWSSubscriber(config.SQS.Name, nil)
 	default:
 		return nil
 	}
@@ -41,10 +41,13 @@ func NewBucketEventsSubscriber(config models.StorageConfiguration, storage stora
 		default:
 			return nil
 		}
-	case "gcp":
-		return messaging.NewGCPSubscriber(config.GCP)
-	case "aws":
-		return messaging.NewAWSSubscriber(config.AWS.SQSName, storage)
+	case "cloud_storage":
+		return messaging.NewGCPSubscriber(&models.PubSubConfiguration{
+			ProjectID:        config.CloudStorage.ProjectID,
+			SubscriptionName: config.CloudStorage.SubscriptionName,
+			TopicName:        config.CloudStorage.TopicName})
+	case "s3":
+		return messaging.NewAWSSubscriber(config.S3.SQSName, storage)
 	default:
 		return nil
 	}
