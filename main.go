@@ -30,6 +30,7 @@ func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 
 	config := configuration.Read()
+	core.NewLogger(config.App.LogLevel)
 	db := database.InitDB(config.Database)
 	cache := core.NewCache(config.Cache)
 	storage := core.NewStorage(config.Storage)
@@ -80,9 +81,7 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Timeout(5 * time.Second))
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
+	r.Use(m.Logger)
 	r.Use(middleware.Recoverer)
 
 	r.Use(cors.Handler(cors.Options{

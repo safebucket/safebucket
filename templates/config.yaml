@@ -1,4 +1,5 @@
 app:
+  log_level: info
   api_url: http://localhost:8080
   web_url: http://localhost:3000
   allowed_origins:

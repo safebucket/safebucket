@@ -89,7 +89,7 @@ func (s BucketService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateBody) (models.Bucket, error) {
+func (s BucketService) CreateBucket(_ *zap.Logger, user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateBody) (models.Bucket, error) {
 	//TODO: Migrate to SQL transaction
 
 	newBucket := models.Bucket{Name: body.Name}
@@ -134,16 +134,16 @@ func (s BucketService) CreateBucket(user models.UserClaims, _ uuid.UUIDs, body m
 	return newBucket, nil
 }
 
-func (s BucketService) GetBucketList(user models.UserClaims, _ uuid.UUIDs) []models.Bucket {
+func (s BucketService) GetBucketList(logger *zap.Logger, user models.UserClaims, _ uuid.UUIDs) []models.Bucket {
 	var buckets []models.Bucket
 	if !user.Valid() {
-		zap.L().Warn(fmt.Sprintf("Invalid user claims %v", user.UserID.String()))
+		logger.Warn(fmt.Sprintf("Invalid user claims %v", user.UserID.String()))
 		return []models.Bucket{}
 	}
 	roles, err := s.Enforcer.GetImplicitRolesForUser(user.UserID.String(), c.DefaultDomain)
 
 	if err != nil {
-		zap.L().Warn(fmt.Sprintf("Error retrieving roles %v", user.UserID.String()))
+		logger.Warn(fmt.Sprintf("Error retrieving roles %v", user.UserID.String()))
 		return []models.Bucket{}
 	}
 
@@ -162,7 +162,7 @@ func (s BucketService) GetBucketList(user models.UserClaims, _ uuid.UUIDs) []mod
 	return buckets
 }
 
-func (s BucketService) GetBucket(_ models.UserClaims, ids uuid.UUIDs) (models.Bucket, error) {
+func (s BucketService) GetBucket(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) (models.Bucket, error) {
 	bucketId := ids[0]
 	var bucket models.Bucket
 	bucket.Files = []models.File{}
@@ -181,7 +181,7 @@ func (s BucketService) GetBucket(_ models.UserClaims, ids uuid.UUIDs) (models.Bu
 	}
 }
 
-func (s BucketService) UpdateBucket(_ models.UserClaims, ids uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) UpdateBucket(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
 	bucket := models.Bucket{ID: ids[0]}
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {
@@ -191,20 +191,20 @@ func (s BucketService) UpdateBucket(_ models.UserClaims, ids uuid.UUIDs, body mo
 	}
 }
 
-func (s BucketService) DeleteBucket(_ models.UserClaims, ids uuid.UUIDs) error {
+func (s BucketService) DeleteBucket(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) error {
 	// Soft delete the bucket
 	result := s.DB.Where("id = ?", ids[0]).Delete(&models.Bucket{})
 	if result.RowsAffected == 0 {
 		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	} else {
 		// Hard delete all invitations associated with the bucket
-		zap.L().Info("Deleting all invites for bucket", zap.String("bucket_id", ids[0].String()))
+		logger.Info("Deleting all invites for bucket", zap.String("bucket_id", ids[0].String()))
 		s.DB.Where("bucket_id = ?", ids[0]).Delete(&models.Invite{})
 		return nil
 	}
 }
 
-func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
+func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {
 	bucket, err := sql.GetById[models.Bucket](s.DB, ids[0])
 	if err != nil {
 		return models.FileTransferResponse{}, err
@@ -240,7 +240,7 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 	)
 
 	if err != nil {
-		zap.L().Error("Generate presigned URL failed", zap.Error(err))
+		logger.Error("Generate presigned URL failed", zap.Error(err))
 		return models.FileTransferResponse{}, err
 	}
 
@@ -251,7 +251,7 @@ func (s BucketService) UploadFile(user models.UserClaims, ids uuid.UUIDs, body m
 	}, nil
 }
 
-func (s BucketService) UpdateFile(user models.UserClaims, ids uuid.UUIDs, body models.UpdateFileBody) (models.File, error) {
+func (s BucketService) UpdateFile(_ *zap.Logger, user models.UserClaims, ids uuid.UUIDs, body models.UpdateFileBody) (models.File, error) {
 	bucketId, fileId := ids[0], ids[1]
 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)
@@ -291,7 +291,7 @@ func (s BucketService) UpdateFile(user models.UserClaims, ids uuid.UUIDs, body m
 	return file, nil
 }
 
-func (s BucketService) DeleteFile(user models.UserClaims, ids uuid.UUIDs) error {
+func (s BucketService) DeleteFile(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
 	bucketId, fileId := ids[0], ids[1]
 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)
@@ -302,12 +302,12 @@ func (s BucketService) DeleteFile(user models.UserClaims, ids uuid.UUIDs) error 
 	err = s.Storage.RemoveObject(path.Join("buckets", bucketId.String(), file.Path, file.Name))
 
 	if err != nil {
-		zap.L().Warn("File does not exist in storage", zap.Error(err))
+		logger.Warn("File does not exist in storage", zap.Error(err))
 	}
 
 	result := s.DB.Delete(&file)
 	if result.Error != nil {
-		zap.L().Error("Failed to delete file", zap.Error(result.Error))
+		logger.Error("Failed to delete file", zap.Error(result.Error))
 		return errors.NewAPIError(500, "FILE_DELETION_FAILED")
 	}
 
@@ -331,7 +331,7 @@ func (s BucketService) DeleteFile(user models.UserClaims, ids uuid.UUIDs) error 
 	return nil
 }
 
-func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (models.FileTransferResponse, error) {
+func (s BucketService) DownloadFile(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) (models.FileTransferResponse, error) {
 	bucketId, fileId := ids[0], ids[1]
 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)
@@ -342,7 +342,7 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 	url, err := s.Storage.PresignedGetObject(path.Join("buckets", file.BucketId.String(), file.Path, file.Name))
 
 	if err != nil {
-		zap.L().Error("Generate presigned URL failed", zap.Error(err))
+		logger.Error("Generate presigned URL failed", zap.Error(err))
 		return models.FileTransferResponse{}, err
 	}
 
@@ -369,8 +369,8 @@ func (s BucketService) DownloadFile(user models.UserClaims, ids uuid.UUIDs) (mod
 	}, nil
 }
 
-func (s BucketService) GetActivity(user models.UserClaims, ids uuid.UUIDs) []map[string]interface{} {
-	buckets := s.GetBucketList(user, ids)
+func (s BucketService) GetActivity(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) []map[string]interface{} {
+	buckets := s.GetBucketList(logger, user, ids)
 
 	var bucketIds []string
 	for _, bucket := range buckets {
@@ -386,7 +386,7 @@ func (s BucketService) GetActivity(user models.UserClaims, ids uuid.UUIDs) []map
 
 		history, err := s.ActivityLogger.Search(searchCriteria)
 		if err != nil {
-			zap.L().Error("Search history failed", zap.Error(err))
+			logger.Error("Search history failed", zap.Error(err))
 			return []map[string]interface{}{}
 		}
 
@@ -400,8 +400,8 @@ func (s BucketService) GetActivity(user models.UserClaims, ids uuid.UUIDs) []map
 	return []map[string]interface{}{}
 }
 
-func (s BucketService) GetBucketActivity(user models.UserClaims, ids uuid.UUIDs) (models.Page[map[string]interface{}], error) {
-	bucket, err := s.GetBucket(user, ids)
+func (s BucketService) GetBucketActivity(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) (models.Page[map[string]interface{}], error) {
+	bucket, err := s.GetBucket(logger, user, ids)
 
 	if err != nil {
 		return models.Page[map[string]interface{}]{}, err
@@ -416,7 +416,7 @@ func (s BucketService) GetBucketActivity(user models.UserClaims, ids uuid.UUIDs)
 	history, err := s.ActivityLogger.Search(searchCriteria)
 
 	if err != nil {
-		zap.L().Error("Search history failed", zap.Error(err))
+		logger.Error("Search history failed", zap.Error(err))
 		return models.Page[map[string]interface{}]{}, err
 	}
 

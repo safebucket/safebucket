@@ -1,10 +1,12 @@
 # SafeBucket Configuration Variables
 
-This document provides a comprehensive reference for all configuration variables in SafeBucket, including their file format, environment variable equivalents, default values, and descriptions.
+This document provides a comprehensive reference for all configuration variables in SafeBucket, including their file
+format, environment variable equivalents, default values, and descriptions.
 
 ## Configuration Overview
 
 SafeBucket uses a hierarchical configuration system that supports:
+
 - **YAML file configuration** with automatic search paths
 - **Environment variable overrides** using double underscore (`__`) delimiters
 - **Validation** with automatic startup failure on invalid configuration
@@ -15,6 +17,7 @@ SafeBucket uses a hierarchical configuration system that supports:
 | File Variable                                   | Environment Variable                                | Default Value | Required | Example Value                                        | Description                                       |
 |-------------------------------------------------|-----------------------------------------------------|---------------|----------|------------------------------------------------------|---------------------------------------------------|
 | **App Configuration**                           |
+| `app.log_level`                                 | `APP__LOG_LEVEL`                                    | `info`        | ❌        | `info`                                               | Set the app log level                             |
 | `app.admin_email`                               | `APP__ADMIN_EMAIL`                                  | -             | ✅        | `admin@safebucket.io`                                | Administrator email address (must be valid email) |
 | `app.admin_password`                            | `APP__ADMIN_PASSWORD`                               | -             | ✅        | `SecurePassword123!`                                 | Administrator password                            |
 | `app.api_url`                                   | `APP__API_URL`                                      | -             | ✅        | `http://localhost:8080`                              | API base URL                                      |
@@ -100,22 +103,23 @@ SafeBucket uses a hierarchical configuration system that supports:
 ## Configuration Loading Process
 
 1. **File Discovery**: Searches in order:
-   - `CONFIG_FILE_PATH` environment variable
-   - `./config.yaml` (current directory)
-   - `templates/config.yaml` (templates directory)
+    - `CONFIG_FILE_PATH` environment variable
+    - `./config.yaml` (current directory)
+    - `templates/config.yaml` (templates directory)
 
 2. **Environment Override**: Environment variables take precedence over file values
 
 3. **Array Processing**: String arrays can be specified as:
-   - Comma-separated: `"value1,value2,value3"`
-   - Space-separated: `"value1 value2 value3"`
-   - Bracketed: `"[value1,value2,value3]"`
+    - Comma-separated: `"value1,value2,value3"`
+    - Space-separated: `"value1 value2 value3"`
+    - Bracketed: `"[value1,value2,value3]"`
 
 4. **Provider Loading**: OAuth providers are dynamically loaded based on `AUTH__PROVIDERS__KEYS`
 
 ## Example Configuration
 
 ### YAML File (`config.yaml`)
+
 ```yaml
 app:
   api_url: http://localhost:8080
@@ -206,8 +210,10 @@ events:
 ```
 
 ### Environment Variables
+
 ```bash
 # App Configuration
+export APP__LOG_LEVEL=info
 export APP__API_URL="http://localhost:8080"
 export APP__WEB_URL="http://localhost:3000"
 export APP__ADMIN_EMAIL="admin@example.com"

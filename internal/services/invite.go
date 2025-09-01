@@ -49,7 +49,7 @@ func (s InviteService) Routes() chi.Router {
 	return r
 }
 
-func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {
+func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {
 	inviteId := ids[0]
 	var invite models.Invite
 	result := s.DB.Where("id = ?", inviteId).First(&invite)
@@ -96,7 +96,7 @@ func (s InviteService) CreateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs
 	}
 }
 
-func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeValidateBody) (models.AuthLoginResponse, error) {
+func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeValidateBody) (models.AuthLoginResponse, error) {
 	inviteId := ids[0]
 	challengeId := ids[1]
 
@@ -118,8 +118,6 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 		Email: challenge.Invite.Email,
 	}
 
-	zap.L().Info("Creating new user", zap.Any("user", newUser))
-
 	result = s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
 		err = sql.CreateUserWithRole(s.DB, s.Enforcer, &newUser, roles.AddUserToRoleGuest)
@@ -132,7 +130,6 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 		s.DB.Preload("Bucket").Where("email = ?", challenge.Invite.Email).Find(&invites)
 
 		for _, invite := range invites {
-			zap.L().Info("User inserted", zap.Any("user", newUser))
 			var err error
 			switch invite.Group {
 			case "viewer":
@@ -142,10 +139,10 @@ func (s InviteService) ValidateInviteChallenge(_ models.UserClaims, ids uuid.UUI
 			case "owner":
 				err = groups.AddUserToOwners(s.Enforcer, invite.Bucket, newUser.ID.String())
 			default:
-				zap.L().Error("Invalid group in invite", zap.String("group", invite.Group), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
+				logger.Error("Invalid group in invite", zap.String("group", invite.Group), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
 			}
 			if err != nil {
-				zap.L().Error("Failed to add user to group", zap.Error(err), zap.String("group", invite.Group), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
+				logger.Error("Failed to add user to group", zap.Error(err), zap.String("group", invite.Group), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
 			}
 			s.DB.Delete(&invite)
 		}

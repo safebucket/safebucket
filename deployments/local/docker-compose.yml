@@ -3,6 +3,7 @@ services:
     container_name: safebucket
     image: safebucket:latest
     environment:
+      - APP__LOG_LEVEL=${APP__LOG_LEVEL}
       - APP__API_URL=${APP__API_URL}
       - APP__WEB_URL=${APP__WEB_URL}
       - APP__PORT=${APP__PORT}
