@@ -35,9 +35,9 @@ SafeBucket uses a hierarchical configuration system that supports:
 | **Auth Configuration**                          |
 | `auth.providers.{name}.name`                    | `AUTH__PROVIDERS__{NAME}__NAME`                     | -             | ✅*       | `Google`                                             | Auth provider display name                        |
 | `auth.providers.{name}.type`                    | `AUTH__PROVIDERS__{NAME}__TYPE`                     | -             | ✅*       | `oidc` or `local`                                    | Auth provider type                                |
-| `auth.providers.{name}.client_id`               | `AUTH__PROVIDERS__{NAME}__CLIENT_ID`                | -             | ✅*       | `123456789.apps.googleusercontent.com`               | OAuth client ID (OIDC only)                      |
-| `auth.providers.{name}.client_secret`           | `AUTH__PROVIDERS__{NAME}__CLIENT_SECRET`            | -             | ✅*       | `GOCSPX-abcdef123456`                                | OAuth client secret (OIDC only)                  |
-| `auth.providers.{name}.issuer`                  | `AUTH__PROVIDERS__{NAME}__ISSUER`                   | -             | ✅*       | `https://accounts.google.com`                        | OIDC issuer URL (OIDC only)                      |
+| `auth.providers.{name}.client_id`               | `AUTH__PROVIDERS__{NAME}__CLIENT_ID`                | -             | ✅*       | `123456789.apps.googleusercontent.com`               | OAuth client ID (OIDC only)                       |
+| `auth.providers.{name}.client_secret`           | `AUTH__PROVIDERS__{NAME}__CLIENT_SECRET`            | -             | ✅*       | `GOCSPX-abcdef123456`                                | OAuth client secret (OIDC only)                   |
+| `auth.providers.{name}.issuer`                  | `AUTH__PROVIDERS__{NAME}__ISSUER`                   | -             | ✅*       | `https://accounts.google.com`                        | OIDC issuer URL (OIDC only)                       |
 | `auth.providers.{name}.sharing.enabled`         | `AUTH__PROVIDERS__{NAME}__SHARING__ENABLED`         | `true`        | ❌        | `false`                                              | Enable domain sharing                             |
 | `auth.providers.{name}.sharing.allowed_domains` | `AUTH__PROVIDERS__{NAME}__SHARING__ALLOWED_DOMAINS` | -             | ❌        | `["example.com", "company.org"]`                     | Allowed domains for sharing                       |
 | **Cache Configuration**                         |
@@ -54,24 +54,29 @@ SafeBucket uses a hierarchical configuration system that supports:
 | `storage.minio.client_id`                       | `STORAGE__MINIO__CLIENT_ID`                         | -             | ✅*       | `minio-root-user`                                    | MinIO access key                                  |
 | `storage.minio.client_secret`                   | `STORAGE__MINIO__CLIENT_SECRET`                     | -             | ✅*       | `minio-root-password`                                | MinIO secret key                                  |
 | `storage.minio.type`                            | `STORAGE__MINIO__TYPE`                              | -             | ✅*       | `jetstream`                                          | Event type: `jetstream`                           |
-| `storage.minio.jetstream.topic_name`            | `STORAGE__MINIO__JETSTREAM__TOPIC_NAME`             | -             | ❌        | `safebucket:notifications`                           | JetStream topic name                              |
-| `storage.minio.jetstream.host`                  | `STORAGE__MINIO__JETSTREAM__HOST`                   | -             | ❌        | `localhost`                                          | JetStream host                                    |
-| `storage.minio.jetstream.port`                  | `STORAGE__MINIO__JETSTREAM__PORT`                   | -             | ❌        | `4222`                                               | JetStream port                                    |
-| **GCP Storage**                                 |
+| `storage.minio.jetstream.topic_name`            | `STORAGE__MINIO__JETSTREAM__TOPIC_NAME`             | -             | ✅*       | `safebucket:notifications`                           | JetStream topic name                              |
+| `storage.minio.jetstream.host`                  | `STORAGE__MINIO__JETSTREAM__HOST`                   | -             | ✅*       | `localhost`                                          | JetStream host                                    |
+| `storage.minio.jetstream.port`                  | `STORAGE__MINIO__JETSTREAM__PORT`                   | -             | ✅*       | `4222`                                               | JetStream port                                    |
+| **GCP Cloud Storage**                           |
 | `storage.gcp.bucket_name`                       | `STORAGE__GCP__BUCKET_NAME`                         | -             | ✅*       | `my-gcp-bucket`                                      | GCP Storage bucket name                           |
-| `storage.gcp.topic_name`                        | `STORAGE__GCP__TOPIC_NAME`                          | -             | ✅*       | `safebucket-events`                                  | GCP Pub/Sub topic name                            |
 | `storage.gcp.project_id`                        | `STORAGE__GCP__PROJECT_ID`                          | -             | ✅*       | `my-gcp-project-123`                                 | GCP project ID                                    |
-| `storage.gcp.subscription_name`                 | `STORAGE__GCP__SUBSCRIPTION_NAME`                   | -             | ✅*       | `safebucket-sub`                                     | GCP Pub/Sub subscription name                     |
-| **AWS Storage**                                 |
+| `storage.gcp.topic_name`                        | `STORAGE__GCP__TOPIC_NAME`                          | -             | ✅*       | `safebucket-events`                                  | GCP Pub/Sub topic name for storage events         |
+| `storage.gcp.subscription_name`                 | `STORAGE__GCP__SUBSCRIPTION_NAME`                   | -             | ✅*       | `safebucket-storage-sub`                             | GCP Pub/Sub subscription name for storage events  |
+| **AWS S3 Storage**                              |
 | `storage.aws.bucket_name`                       | `STORAGE__AWS__BUCKET_NAME`                         | -             | ✅*       | `my-s3-bucket`                                       | S3 bucket name                                    |
-| `storage.aws.sqs_name`                          | `STORAGE__AWS__SQS_NAME`                            | -             | ✅*       | `safebucket-queue`                                   | SQS queue name                                    |
+| `storage.aws.sqs_name`                          | `STORAGE__AWS__SQS_NAME`                            | -             | ✅*       | `safebucket-s3-events`                               | SQS queue name for S3 events                      |
 | **Events Configuration**                        |
 | `events.type`                                   | `EVENTS__TYPE`                                      | -             | ✅        | `jetstream`                                          | Event system: `jetstream`, `gcp`, or `aws`        |
+| **JetStream Events**                            |
 | `events.jetstream.topic_name`                   | `EVENTS__JETSTREAM__TOPIC_NAME`                     | -             | ✅*       | `safebucket:notifications`                           | JetStream topic name                              |
 | `events.jetstream.host`                         | `EVENTS__JETSTREAM__HOST`                           | -             | ✅*       | `localhost`                                          | JetStream host                                    |
 | `events.jetstream.port`                         | `EVENTS__JETSTREAM__PORT`                           | -             | ✅*       | `4222`                                               | JetStream port                                    |
-| `events.gcp.*`                                  | `EVENTS__GCP__*`                                    | -             | ✅*       | Same as above                                        | Same as GCP storage configuration                 |
-| `events.aws.*`                                  | `EVENTS__AWS__*`                                    | -             | ✅*       | Same as above                                        | Same as AWS storage configuration                 |
+| **GCP Pub/Sub Events**                          |
+| `events.gcp.project_id`                         | `EVENTS__GCP__PROJECT_ID`                           | -             | ✅*       | `my-gcp-project-123`                                 | GCP project ID for Pub/Sub                        |
+| `events.gcp.topic_name`                         | `EVENTS__GCP__TOPIC_NAME`                           | -             | ✅*       | `safebucket-events`                                  | GCP Pub/Sub topic name                            |
+| `events.gcp.subscription_name`                  | `EVENTS__GCP__SUBSCRIPTION_NAME`                    | -             | ✅*       | `safebucket-events-sub`                              | GCP Pub/Sub subscription name                     |
+| **AWS SQS Events**                              |
+| `events.aws.name`                               | `EVENTS__AWS__NAME`                                 | -             | ✅*       | `safebucket-notifications`                           | SQS queue name for application events             |
 | **Notifier Configuration**                      |
 | `notifier.type`                                 | `NOTIFIER__TYPE`                                    | -             | ✅        | `smtp`                                               | Notifier type: `smtp`                             |
 | `notifier.smtp.host`                            | `NOTIFIER__SMTP__HOST`                              | -             | ✅*       | `smtp.gmail.com`                                     | SMTP server host                                  |
@@ -148,6 +153,56 @@ storage:
     endpoint: localhost:9000
     client_id: minio
     client_secret: minio123
+
+events:
+  type: jetstream
+  jetstream:
+    topic_name: safebucket:notifications
+    host: localhost
+    port: 4222
+```
+
+### AWS S3 Configuration
+```yaml
+storage:
+  type: aws
+  aws:
+    bucket_name: safebucket-prod
+    sqs_name: safebucket-s3-events
+
+events:
+  type: aws
+  aws:
+    name: safebucket-notifications
+
+# Note: AWS credentials should be provided via:
+# - AWS credentials file (~/.aws/credentials)
+# - EC2 instance profile
+# - Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+# - IAM roles for service accounts (IRSA) in EKS
+```
+
+### GCP Cloud Storage Configuration
+```yaml
+storage:
+  type: gcp
+  gcp:
+    bucket_name: safebucket-prod
+    project_id: my-gcp-project-123
+    topic_name: safebucket-storage-events
+    subscription_name: safebucket-storage-sub
+
+events:
+  type: gcp
+  gcp:
+    project_id: my-gcp-project-123
+    topic_name: safebucket-events
+    subscription_name: safebucket-events-sub
+
+# Note: GCP credentials should be provided via:
+# - GOOGLE_APPLICATION_CREDENTIALS environment variable pointing to service account JSON
+# - GCP metadata service (on GCE instances)
+# - Workload Identity (on GKE)
 ```
 
 ### Environment Variables
@@ -185,6 +240,33 @@ export AUTH__PROVIDERS__AUTHELIA__CLIENT_ID="safebucket"
 export AUTH__PROVIDERS__AUTHELIA__CLIENT_SECRET="your-authelia-secret"
 export AUTH__PROVIDERS__AUTHELIA__ISSUER="https://auth.local"
 export AUTH__PROVIDERS__AUTHELIA__SHARING__ENABLED="true"
+
+# AWS Configuration
+export STORAGE__TYPE="aws"
+export STORAGE__AWS__BUCKET_NAME="safebucket-prod"
+export STORAGE__AWS__SQS_NAME="safebucket-s3-events"
+export EVENTS__TYPE="aws"
+export EVENTS__AWS__NAME="safebucket-notifications"
+
+# AWS Credentials (optional - can use IAM roles)
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_REGION="us-east-1"
+
+# GCP Configuration
+export STORAGE__TYPE="gcp"
+export STORAGE__GCP__BUCKET_NAME="safebucket-prod"
+export STORAGE__GCP_STORAGE__PROJECT_ID="my-gcp-project-123"
+export STORAGE__GCP__TOPIC_NAME="safebucket-storage-events"
+export STORAGE__GCP__SUBSCRIPTION_NAME="safebucket-storage-sub"
+export EVENTS__TYPE="gcp"
+export EVENTS__GCP__PROJECT_ID="my-gcp-project-123"
+export EVENTS__GCP__TOPIC_NAME="safebucket-events"
+export EVENTS__GCP__SUBSCRIPTION_NAME="safebucket-events-sub"
+
+# GCP Credentials
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
+export GOOGLE_CLOUD_PROJECT="my-gcp-project-123"
 ```
 
 ## Requirement Legend

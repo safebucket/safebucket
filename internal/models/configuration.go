@@ -71,10 +71,10 @@ type ValkeyCacheConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	Type  string                     `mapstructure:"type" validate:"required,oneof=minio gcp aws"`
-	Minio *MinioStorageConfiguration `mapstructure:"minio" validate:"required_if=Type minio"`
-	GCP   *GCPConfiguration          `mapstructure:"gcp" validate:"required_if=Type gcp"`
-	AWS   *AWSConfiguration          `mapstructure:"aws" validate:"required_if=Type aws"`
+	Type         string                     `mapstructure:"type" validate:"required,oneof=minio gcp aws"`
+	Minio        *MinioStorageConfiguration `mapstructure:"minio" validate:"required_if=Type minio"`
+	CloudStorage *CloudStorage              `mapstructure:"gcp" validate:"required_if=Type gcp"`
+	S3           *S3Configuration           `mapstructure:"aws" validate:"required_if=Type aws"`
 }
 
 type MinioStorageConfiguration struct {
@@ -86,24 +86,33 @@ type MinioStorageConfiguration struct {
 	Jetstream    *JetStreamEventsConfig `mapstructure:"jetstream"`
 }
 
-type GCPConfiguration struct {
+type CloudStorage struct {
 	BucketName       string `mapstructure:"bucket_name" validate:"required"`
-	TopicName        string `mapstructure:"topic_name" validate:"required"`
 	ProjectID        string `mapstructure:"project_id" validate:"required"`
 	SubscriptionName string `mapstructure:"subscription_name" validate:"required"`
+	TopicName        string `mapstructure:"topic_name" validate:"required"`
 }
 
-type AWSConfiguration struct {
+type S3Configuration struct {
 	BucketName string `mapstructure:"bucket_name" validate:"required"`
 	SQSName    string `mapstructure:"sqs_name" validate:"required"`
 }
 
 type EventsConfiguration struct {
-	Type string `mapstructure:"type" validate:"required,oneof=jetstream gcp aws"`
-
+	Type      string                 `mapstructure:"type" validate:"required,oneof=jetstream gcp aws"`
 	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream" validate:"required_if=Type jetstream"`
-	GCP       *GCPConfiguration      `mapstructure:"gcp" validate:"required_if=Type gcp"`
-	AWS       *AWSConfiguration      `mapstructure:"aws" validate:"required_if=Type aws"`
+	PubSub    *PubSubConfiguration   `mapstructure:"gcp" validate:"required_if=Type gcp"`
+	SQS       *SQSConfiguration      `mapstructure:"aws" validate:"required_if=Type aws"`
+}
+
+type SQSConfiguration struct {
+	Name string `mapstructure:"name" validate:"required"`
+}
+
+type PubSubConfiguration struct {
+	ProjectID        string `mapstructure:"project_id" validate:"required"`
+	SubscriptionName string `mapstructure:"subscription_name" validate:"required"`
+	TopicName        string `mapstructure:"topic_name" validate:"required"`
 }
 
 type JetStreamEventsConfig struct {

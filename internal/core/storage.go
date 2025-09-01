@@ -10,9 +10,9 @@ func NewStorage(config models.StorageConfiguration) storage.IStorage {
 	case "minio":
 		return storage.NewS3Storage(config.Minio, config.Minio.BucketName)
 	case "gcp":
-		return storage.NewGCPStorage(config.GCP.BucketName)
+		return storage.NewGCPStorage(config.CloudStorage.BucketName)
 	case "aws":
-		return storage.NewAWSStorage(config.AWS.BucketName)
+		return storage.NewAWSStorage(config.S3.BucketName)
 	default:
 		return nil
 	}
