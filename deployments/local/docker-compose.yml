@@ -94,7 +94,7 @@ services:
 
   redis:
     container_name: redis
-    image: docker.io/bitnami/redis:7.4
+    image: docker.io/bitnami/redis:8.2
     ports:
       - "6379:6379"
     restart: unless-stopped
