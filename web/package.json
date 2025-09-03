@@ -34,7 +34,7 @@
     "@radix-ui/react-tooltip": "^1.1.3",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.2.2",
-    "@tanstack/react-query": "^5.85.6",
+    "@tanstack/react-query": "^5.85.8",
     "@tanstack/react-router": "^1.131.28",
     "@tanstack/react-router-devtools": "^1.131.31",
     "@tanstack/react-table": "^8.20.5",
