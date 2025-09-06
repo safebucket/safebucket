@@ -26,6 +26,7 @@ go.work.sum
 !/deployments/local/.env
 
 .idea/
+.claude/
 
 # Frontend
 node_modules/

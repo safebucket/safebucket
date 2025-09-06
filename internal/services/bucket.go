@@ -74,10 +74,6 @@ func (s BucketService) Routes() chi.Router {
 		}.Routes())
 
 		r.Route("/files/{id1}", func(r chi.Router) {
-			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
-				With(m.Validate[models.UpdateFileBody]).
-				Patch("/", handlers.UpdateHandler(s.UpdateFile))
-
 			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionErase, 0)).
 				Delete("/", handlers.DeleteHandler(s.DeleteFile))
 
@@ -89,29 +85,45 @@ func (s BucketService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketService) CreateBucket(_ *zap.Logger, user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateBody) (models.Bucket, error) {
-	//TODO: Migrate to SQL transaction
+func (s BucketService) CreateBucket(logger *zap.Logger, user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateBody) (models.Bucket, error) {
+	tx := s.DB.Begin()
 
 	newBucket := models.Bucket{Name: body.Name}
 	newBucket.CreatedBy = user.UserID
-	s.DB.Create(&newBucket)
+	res := tx.Create(&newBucket)
+
+	if res.Error != nil {
+		logger.Error("Failed to create bucket", zap.Error(res.Error))
+		tx.Rollback()
+		return models.Bucket{}, errors.ErrorCreateFailed
+	}
 
 	err := groups.InsertGroupBucketViewer(s.Enforcer, newBucket)
 	if err != nil {
-		return models.Bucket{}, err
+		logger.Error("Failed to create bucket group viewer", zap.Error(err))
+		tx.Rollback()
+		return models.Bucket{}, errors.ErrorCreateFailed
 	}
+
 	err = groups.InsertGroupBucketContributor(s.Enforcer, newBucket)
 	if err != nil {
-		return models.Bucket{}, err
+		logger.Error("Failed to create bucket group contributor", zap.Error(err))
+		tx.Rollback()
+		return models.Bucket{}, errors.ErrorCreateFailed
 	}
+
 	err = groups.InsertGroupBucketOwner(s.Enforcer, newBucket)
 	if err != nil {
-		return models.Bucket{}, err
+		logger.Error("Failed to create bucket group owner", zap.Error(err))
+		tx.Rollback()
+		return models.Bucket{}, errors.ErrorCreateFailed
 	}
 
 	err = groups.AddUserToOwners(s.Enforcer, newBucket, user.UserID.String())
 	if err != nil {
-		return models.Bucket{}, err
+		logger.Error("Failed to add user to group owner", zap.Error(err))
+		tx.Rollback()
+		return models.Bucket{}, errors.ErrorCreateFailed
 	}
 
 	action := models.Activity{
@@ -128,7 +140,15 @@ func (s BucketService) CreateBucket(_ *zap.Logger, user models.UserClaims, _ uui
 	err = s.ActivityLogger.Send(action)
 
 	if err != nil {
-		return newBucket, err
+		logger.Error("Failed to register activity", zap.Error(err))
+		tx.Rollback()
+		return models.Bucket{}, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		logger.Error("Failed to commit transaction", zap.Error(err))
+		tx.Rollback()
+		return models.Bucket{}, err
 	}
 
 	return newBucket, nil
@@ -224,7 +244,9 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 		Size:      body.Size,
 	}
 
-	err = sql.Create[*models.File](s.DB, file)
+	tx := s.DB.Begin()
+
+	err = sql.Create[*models.File](tx, file)
 	if err != nil {
 		return models.FileTransferResponse{}, err
 	}
@@ -241,7 +263,13 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
+		tx.Rollback()
 		return models.FileTransferResponse{}, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		logger.Error("Failed to commit transaction", zap.Error(err))
+		return models.FileTransferResponse{}, errors.NewAPIError(500, "UPLOAD_FAILED")
 	}
 
 	return models.FileTransferResponse{
@@ -249,46 +277,6 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 		Url:  url,
 		Body: formData,
 	}, nil
-}
-
-func (s BucketService) UpdateFile(_ *zap.Logger, user models.UserClaims, ids uuid.UUIDs, body models.UpdateFileBody) (models.File, error) {
-	bucketId, fileId := ids[0], ids[1]
-
-	file, err := sql.GetFileById(s.DB, bucketId, fileId)
-	if err != nil {
-		return file, err
-	}
-
-	if *body.Uploaded {
-		_, err := s.Storage.StatObject(path.Join("buckets", file.BucketId.String(), file.Path, file.Name))
-
-		if err != nil {
-			return models.File{}, errors.NewAPIError(400, "FILE_NOT_UPLOADED")
-		}
-
-		s.DB.Model(&file).Updates(body)
-
-		action := models.Activity{
-			Message: activity.FileUpdated,
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionUpdate.String(),
-				"bucket_id":   bucketId.String(),
-				"file_id":     fileId.String(),
-				"domain":      c.DefaultDomain,
-				"object_type": rbac.ResourceFile.String(),
-				"user_id":     user.UserID.String(),
-			}),
-		}
-		err = s.ActivityLogger.Send(action)
-
-		if err != nil {
-			return models.File{}, err
-		}
-
-		return file, nil
-	}
-
-	return file, nil
 }
 
 func (s BucketService) DeleteFile(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {

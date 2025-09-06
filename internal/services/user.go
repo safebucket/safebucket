@@ -1,6 +1,7 @@
 package services
 
 import (
+	customerrors "api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
@@ -109,11 +110,56 @@ func (s UserService) UpdateUser(_ *zap.Logger, _ models.UserClaims, ids uuid.UUI
 	}
 }
 
-func (s UserService) DeleteUser(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) error {
-	result := s.DB.Where("id = ?", ids[0]).Delete(&models.User{})
-	if result.RowsAffected == 0 {
-		return errors.New("USER_NOT_FOUND")
-	} else {
-		return nil
+func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		logger.Error("Failed to start transaction", zap.Error(tx.Error))
+		return customerrors.InternalServerError
 	}
+
+	userId := ids[0]
+
+	result := tx.Where("id = ?", userId).Delete(&models.User{})
+	if result.RowsAffected == 0 {
+		tx.Rollback()
+		return errors.New("USER_NOT_FOUND")
+	}
+
+	if result.Error != nil {
+		logger.Error("Failed to delete user", zap.Error(result.Error), zap.String("user_id", userId.String()))
+		tx.Rollback()
+		return customerrors.InternalServerError
+	}
+
+	// Remove user from all Casbin policies (roles and permissions)
+	_, err := s.Enforcer.RemoveFilteredGroupingPolicy(0, userId.String())
+	if err != nil {
+		logger.Error("Failed to remove user from Casbin roles", zap.Error(err), zap.String("user_id", userId.String()))
+		tx.Rollback()
+		return customerrors.InternalServerError
+	}
+
+	// Remove any direct policies assigned to the user
+	_, err = s.Enforcer.RemoveFilteredPolicy(0, ids[0].String())
+	if err != nil {
+		logger.Error("Failed to remove user policies from Casbin", zap.Error(err), zap.String("user_id", userId.String()))
+		tx.Rollback()
+		return customerrors.InternalServerError
+	}
+
+	// Delete user-created invites
+	result = tx.Where("created_by = ?", userId.String()).Delete(&models.Invite{})
+	if result.Error != nil {
+		logger.Error("Failed to delete user-created invites", zap.Error(result.Error), zap.String("user_id", userId.String()))
+		tx.Rollback()
+		return customerrors.InternalServerError
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		logger.Error("Failed to commit transaction", zap.Error(err), zap.String("user_id", userId.String()))
+		return customerrors.InternalServerError
+	}
+
+	logger.Info("User successfully deleted", zap.String("user_id", userId.String()), zap.String("email", user.Email))
+	return nil
 }

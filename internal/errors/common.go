@@ -5,7 +5,8 @@ import (
 )
 
 var (
-	ErrorCreateFailed = errors.New("CREATE_FAILED")
+	InternalServerError = errors.New("INTERNAL_SERVER_ERROR")
+	ErrorCreateFailed   = errors.New("CREATE_FAILED")
 )
 
 type APIError struct {

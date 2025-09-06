@@ -1,9 +1,10 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"time"
 )
 
 type File struct {
@@ -33,8 +34,4 @@ type FileTransferResponse struct {
 	ID   string            `json:"id"`
 	Url  string            `json:"url"`
 	Body map[string]string `json:"body"`
-}
-
-type UpdateFileBody struct {
-	Uploaded *bool `json:"uploaded" validate:"omitempty,required_with=Uploaded,eq=true"`
 }
