@@ -114,7 +114,7 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 	tx := s.DB.Begin()
 	if tx.Error != nil {
 		logger.Error("Failed to start transaction", zap.Error(tx.Error))
-		return customerrors.InternalServerError
+		return customerrors.ErrorInternalServer
 	}
 
 	userId := ids[0]
@@ -128,7 +128,7 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 	if result.Error != nil {
 		logger.Error("Failed to delete user", zap.Error(result.Error), zap.String("user_id", userId.String()))
 		tx.Rollback()
-		return customerrors.InternalServerError
+		return customerrors.ErrorInternalServer
 	}
 
 	// Remove user from all Casbin policies (roles and permissions)
@@ -136,7 +136,7 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 	if err != nil {
 		logger.Error("Failed to remove user from Casbin roles", zap.Error(err), zap.String("user_id", userId.String()))
 		tx.Rollback()
-		return customerrors.InternalServerError
+		return customerrors.ErrorInternalServer
 	}
 
 	// Remove any direct policies assigned to the user
@@ -144,7 +144,7 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 	if err != nil {
 		logger.Error("Failed to remove user policies from Casbin", zap.Error(err), zap.String("user_id", userId.String()))
 		tx.Rollback()
-		return customerrors.InternalServerError
+		return customerrors.ErrorInternalServer
 	}
 
 	// Delete user-created invites
@@ -152,12 +152,12 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 	if result.Error != nil {
 		logger.Error("Failed to delete user-created invites", zap.Error(result.Error), zap.String("user_id", userId.String()))
 		tx.Rollback()
-		return customerrors.InternalServerError
+		return customerrors.ErrorInternalServer
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		logger.Error("Failed to commit transaction", zap.Error(err), zap.String("user_id", userId.String()))
-		return customerrors.InternalServerError
+		return customerrors.ErrorInternalServer
 	}
 
 	logger.Info("User successfully deleted", zap.String("user_id", userId.String()), zap.String("email", user.Email))

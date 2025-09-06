@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	InternalServerError = errors.New("INTERNAL_SERVER_ERROR")
+	ErrorInternalServer = errors.New("INTERNAL_SERVER_ERROR")
 	ErrorCreateFailed   = errors.New("CREATE_FAILED")
 )
 
