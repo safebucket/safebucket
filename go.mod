@@ -1,6 +1,6 @@
 module api
 
-go 1.23.0
+go 1.24.0
 
 require (
 	cloud.google.com/go/storage v1.56.1
@@ -30,7 +30,7 @@ require (
 	github.com/redis/rueidis v1.0.64
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.31.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.5
