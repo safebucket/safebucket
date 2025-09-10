@@ -77,6 +77,9 @@ async function refreshToken(): Promise<void> {
     const apiUrl = await getApiUrl();
     const response = await fetch(`${apiUrl}/auth/refresh`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body,
     });
 
