@@ -1,6 +1,7 @@
 package storage
 
 import (
+	c "api/internal/configuration"
 	"context"
 	"time"
 
@@ -56,7 +57,7 @@ func (a AWSStorage) PresignedPostPolicy(path string, size int, metadata map[stri
 		Bucket:        aws.String(a.BucketName),
 		Key:           aws.String(path),
 		ContentLength: aws.Int64(int64(size)),
-		Expires:       aws.Time(time.Now().UTC().Add(15 * time.Minute)),
+		Expires:       aws.Time(time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute)),
 	}
 
 	// FIXME(YLB): Workaround to sign the metadata

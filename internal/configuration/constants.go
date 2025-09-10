@@ -12,6 +12,8 @@ const DefaultDomain = "04db8656-d4f6-4f27-a2bd-8fab66155b21"
 
 const LocalAuthProviderType = "local"
 
+const UploadPolicyExpirationInMinutes = 15
+
 var ArrayConfigFields = []string{
 	"platform.trusted_proxies",
 	"cors.allowed_origins",

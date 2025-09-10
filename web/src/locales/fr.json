@@ -80,7 +80,7 @@
     "no_activity_yet": "Aucune activité pour le moment.",
     "messages": {
       "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
-      "file_uploaded": "A téléchargé un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "file_uploaded": "A partagé un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_downloaded": "A téléchargé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "file_updated": "A modifié un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_deleted": "A supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
@@ -122,6 +122,9 @@
       "size": "Taille",
       "type": "Type",
       "uploaded_at": "Créé à",
+      "status": "Statut",
+      "uploaded": "Partagé",
+      "processing": "En cours",
       "empty_folder": "Le dossier est vide"
     },
     "grid_view": {

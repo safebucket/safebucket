@@ -1,12 +1,13 @@
-import type { FC } from "react";
 import { useTranslation } from "react-i18next";
+import { CheckCircle, LoaderCircle } from "lucide-react";
+import type { FC } from "react";
 
-import { formatDate, formatFileSize } from "@/lib/utils";
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import type { IFile } from "@/components/bucket-view/helpers/types";
 import { FileType } from "@/components/bucket-view/helpers/types";
+import { FileIconView } from "@/components/bucket-view/components/FileIconView";
+import { formatDate, formatFileSize } from "@/lib/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { DataTableColumnHeader } from "@/components/common/components/DataTable/DataColumnHeader";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
@@ -14,7 +15,7 @@ import { DataTableRowActions } from "@/components/common/components/DataTable/Da
 import { Badge } from "@/components/ui/badge";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 
-const createColumns = (t: (key: string) => string): ColumnDef<IFile>[] => [
+const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -79,13 +80,45 @@ const createColumns = (t: (key: string) => string): ColumnDef<IFile>[] => [
     },
   },
   {
+    accessorKey: "uploaded",
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title={t("bucket.list_view.status")}
+      />
+    ),
+    cell: ({ row }) => {
+      const uploaded = row.getValue("uploaded");
+      const fileType = row.getValue("type");
+
+      if (fileType === FileType.folder) {
+        return "-";
+      }
+
+      return uploaded ? (
+        <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
+          <CheckCircle className="h-3 w-3" />
+          {t("bucket.list_view.uploaded")}
+        </Badge>
+      ) : (
+        <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
+          <LoaderCircle className="h-3 w-3 animate-spin" />
+          {t("bucket.list_view.processing")}
+        </Badge>
+      );
+    },
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id));
+    },
+  },
+  {
     id: "actions",
     cell: ({ row }) => <DataTableRowActions row={row} />,
   },
 ];
 
 interface IBucketListViewProps {
-  files: IFile[];
+  files: Array<IFile>;
   bucketId: string;
 }
 
