@@ -1,6 +1,9 @@
 package core
 
 import (
+	"errors"
+	"syscall"
+
 	"go.uber.org/zap"
 )
 
@@ -31,7 +34,7 @@ func NewLogger(level string) {
 
 	defer func(logger *zap.Logger) {
 		err := logger.Sync()
-		if err != nil {
+		if err != nil && !errors.Is(err, syscall.ENOTTY) {
 			panic(err)
 		}
 	}(logger)
