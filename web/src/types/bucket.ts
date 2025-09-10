@@ -5,7 +5,8 @@ export interface File {
   type: FileType;
   extension: string;
   path: string;
-  files: File[];
+  files: Array<File>;
+  uploaded: boolean;
   created_at: string;
 }
 
@@ -22,12 +23,8 @@ export interface Invites {
 export interface Bucket {
   id: string;
   name: string;
-  files: File[];
+  files: Array<File>;
   created_by: string;
   created_at: string;
   updated_at: string;
-}
-
-export interface BucketsResponse {
-  data: Bucket[];
 }

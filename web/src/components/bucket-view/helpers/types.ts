@@ -8,6 +8,7 @@ export interface IFile {
   extension: string;
   path: string;
   files: Array<IFile>;
+  uploaded: boolean;
   created_at: string;
 }
 

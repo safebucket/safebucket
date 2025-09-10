@@ -1,4 +1,4 @@
-import React, { useReducer } from "react";
+import React, { useEffect, useReducer } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import * as actions from "../store/actions";
@@ -17,6 +17,26 @@ import { uploadsReducer } from "@/components/upload/store/reducer";
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
   const [uploads, dispatch] = useReducer(uploadsReducer, []);
+
+  // Add beforeunload warning when uploads are in progress
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      const hasActiveUploads = uploads.some(
+        (upload) => upload.status === UploadStatus.uploading,
+      );
+
+      if (hasActiveUploads) {
+        event.preventDefault();
+        return "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [uploads]);
 
   const addUpload = (uploadId: string, filename: string, path: string) =>
     dispatch(actions.addUpload(uploadId, filename, path));
@@ -41,15 +61,21 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     const apiPath = path || "/";
     api_createFile(file.name, FileType.file, apiPath, bucketId, file.size).then(
       (presignedUpload) => {
+        queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
         uploadToStorage(presignedUpload, file, uploadId, updateProgress).then(
           (success: boolean) => {
             const status = success ? UploadStatus.success : UploadStatus.failed;
             updateStatus(uploadId, status);
 
             if (success) {
-              successToast(`Upload completed for ${file.name}`);
+              setTimeout(function () {
+                queryClient
+                  .invalidateQueries({ queryKey: ["buckets", bucketId] })
+                  .then(() =>
+                    successToast(`Upload completed for ${file.name}`),
+                  );
+              }, 2000);
             }
-            queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
           },
         );
       },

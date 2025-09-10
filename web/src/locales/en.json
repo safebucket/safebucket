@@ -122,6 +122,9 @@
       "size": "Size",
       "type": "Type",
       "uploaded_at": "Uploaded At",
+      "status": "Status",
+      "uploaded": "Uploaded",
+      "processing": "Processing",
       "empty_folder": "Folder is empty"
     },
     "grid_view": {

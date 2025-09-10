@@ -1,6 +1,7 @@
 package storage
 
 import (
+	c "api/internal/configuration"
 	"context"
 	"net/http"
 	"time"
@@ -48,7 +49,7 @@ func (g GCPStorage) PresignedGetObject(path string) (string, error) {
 
 func (g GCPStorage) PresignedPostPolicy(path string, size int, metadata map[string]string) (string, map[string]string, error) {
 	opts := &gcs.PostPolicyV4Options{
-		Expires: time.Now().Add(15 * time.Minute),
+		Expires: time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
 		Fields: &gcs.PolicyV4Fields{
 			Metadata: map[string]string{
 				"x-goog-meta-bucket-id": metadata["bucket_id"],

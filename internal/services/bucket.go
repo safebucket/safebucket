@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
@@ -192,7 +193,11 @@ func (s BucketService) GetBucket(_ *zap.Logger, _ models.UserClaims, ids uuid.UU
 		return bucket, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	} else {
 		var files []models.File
-		result = s.DB.Where("bucket_id = ?", bucketId).Find(&files)
+		// Filter out expired files that haven't been uploaded yet (only applies to files, not folders)
+		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
+		result = s.DB.Where(
+			"bucket_id = ? AND (type = 'folder' OR uploaded = true OR created_at > ?)", bucketId, expirationTime,
+		).Find(&files)
 
 		if result.RowsAffected > 0 {
 			bucket.Files = files

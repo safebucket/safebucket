@@ -1,6 +1,7 @@
 package storage
 
 import (
+	c "api/internal/configuration"
 	"api/internal/models"
 	"context"
 	"time"
@@ -52,7 +53,7 @@ func (s S3Storage) PresignedPostPolicy(path string, size int, metadata map[strin
 	_ = policy.SetBucket(s.BucketName)
 	_ = policy.SetKey(path)
 	_ = policy.SetContentLengthRange(int64(size), int64(size))
-	_ = policy.SetExpires(time.Now().UTC().Add(15 * time.Minute))
+	_ = policy.SetExpires(time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute))
 	_ = policy.SetUserMetadata("Bucket-Id", metadata["bucket_id"])
 	_ = policy.SetUserMetadata("File-Id", metadata["file_id"])
 	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
