@@ -2,6 +2,7 @@ package activity
 
 const (
 	BucketCreated       string = "BUCKET_CREATED"
+	BucketDeleted       string = "BUCKET_DELETED"
 	FileUploaded        string = "FILE_UPLOADED"
 	FileDownloaded      string = "FILE_DOWNLOADED"
 	FileUpdated         string = "FILE_UPDATED"

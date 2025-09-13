@@ -22,6 +22,30 @@ func GetDefaultContributorBucketPolicies(bucket models.Bucket) [][]string {
 	}
 }
 
+func InsertGroupBucketContributor(e *casbin.Enforcer, bucket models.Bucket) error {
+	_, err := e.AddPolicies(GetDefaultContributorBucketPolicies(bucket))
+	if err != nil {
+		return err
+	}
+	_, err = e.AddGroupingPolicy(GetBucketContributorGroup(bucket), GetBucketViewerGroup(bucket), c.DefaultDomain)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func RemoveGroupBucketContributor(e *casbin.Enforcer, bucket models.Bucket) error {
+	_, err := e.RemovePolicies(GetDefaultContributorBucketPolicies(bucket))
+	if err != nil {
+		return err
+	}
+	_, err = e.RemoveGroupingPolicy(GetBucketContributorGroup(bucket), GetBucketViewerGroup(bucket), c.DefaultDomain)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func AddUserToContributors(e *casbin.Enforcer, bucket models.Bucket, userId string) error {
 	_, err := e.AddGroupingPolicy(userId, GetBucketContributorGroup(bucket), c.DefaultDomain)
 	if err != nil {
@@ -40,13 +64,10 @@ func RemoveUserFromContributors(e *casbin.Enforcer, bucket models.Bucket, userId
 	return nil
 }
 
-func InsertGroupBucketContributor(e *casbin.Enforcer, bucket models.Bucket) error {
-	_, err := e.AddPolicies(GetDefaultContributorBucketPolicies(bucket))
+func RemoveUsersFromContributors(e *casbin.Enforcer, bucket models.Bucket) error {
+	_, err := e.RemoveGroupingPolicy("", GetBucketContributorGroup(bucket), c.DefaultDomain)
 	if err != nil {
-		return err
-	}
-	_, err = e.AddGroupingPolicy(GetBucketContributorGroup(bucket), GetBucketViewerGroup(bucket), c.DefaultDomain)
-	if err != nil {
+		zap.L().Error("Failed to remove user from contributors", zap.Error(err))
 		return err
 	}
 	return nil

@@ -3,7 +3,6 @@ package events
 import (
 	"api/internal/messaging"
 	"api/internal/models"
-	"api/internal/notifier"
 	"encoding/json"
 	"fmt"
 
@@ -61,11 +60,13 @@ func (e *BucketSharedWith) Trigger() {
 	}
 }
 
-func (e *BucketSharedWith) callback(webUrl string, notifier notifier.INotifier) {
-	e.Payload.WebUrl = webUrl
+func (e *BucketSharedWith) callback(params *EventParams) error {
+	e.Payload.WebUrl = params.WebUrl
 	subject := fmt.Sprintf("%s has shared a bucket with you", e.Payload.From)
-	err := notifier.NotifyFromTemplate(e.Payload.To, subject, "bucket_shared_with", e.Payload)
+	err := params.Notifier.NotifyFromTemplate(e.Payload.To, subject, "bucket_shared_with", e.Payload)
 	if err != nil {
 		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
+		return err
 	}
+	return nil
 }

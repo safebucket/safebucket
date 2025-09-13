@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import type { FC } from "react";
-
 import type { FieldValues } from "react-hook-form";
 
 import type { IFormField } from "@/components/dialogs/helpers/types";
@@ -58,8 +57,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
 
   const onSubmitWrapper = (data: FieldValues) => {
     onSubmit(data);
-    const fieldsToReset = fields.filter((field) => field.type !== "file");
-    reset(fieldsToReset);
+    reset(fields);
     onOpenChange(false);
   };
 
@@ -74,8 +72,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
           <div className="grid gap-4 py-4">
             {fields.map(
               (field) =>
-                (!field.condition ||
-                  (field.condition && field.condition(values))) && (
+                (!field.condition || field.condition(values)) && (
                   <FormField
                     key={field.id}
                     field={field}

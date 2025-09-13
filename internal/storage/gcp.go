@@ -3,11 +3,13 @@ package storage
 import (
 	c "api/internal/configuration"
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	gcs "cloud.google.com/go/storage"
 	"go.uber.org/zap"
+	"google.golang.org/api/iterator"
 )
 
 type GCPStorage struct {
@@ -84,4 +86,41 @@ func (g GCPStorage) StatObject(path string) (map[string]string, error) {
 
 func (g GCPStorage) RemoveObject(path string) error {
 	return g.storage.Bucket(g.BucketName).Object(path).Delete(context.Background())
+}
+
+func (g GCPStorage) RemoveObjects(paths []string) error {
+	// GCP doesn't have native batch delete, so we delete one by one
+	for _, path := range paths {
+		if err := g.RemoveObject(path); err != nil {
+			zap.L().Error("Failed to delete object", zap.String("key", path), zap.Error(err))
+			return err
+		}
+	}
+	return nil
+}
+
+func (g GCPStorage) ListObjects(prefix string, _ int) ([]string, error) {
+	bucket := g.storage.Bucket(g.BucketName)
+
+	query := &gcs.Query{
+		Prefix: prefix,
+	}
+
+	it := bucket.Objects(context.Background(), query)
+
+	var objects []string
+
+	for {
+		attrs, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		objects = append(objects, attrs.Name)
+	}
+
+	return objects, nil
 }

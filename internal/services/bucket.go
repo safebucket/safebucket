@@ -4,6 +4,7 @@ import (
 	"api/internal/activity"
 	c "api/internal/configuration"
 	"api/internal/errors"
+	"api/internal/events"
 	"api/internal/handlers"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
@@ -12,6 +13,7 @@ import (
 	"api/internal/rbac/groups"
 	"api/internal/sql"
 	"api/internal/storage"
+	"context"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -216,17 +218,78 @@ func (s BucketService) UpdateBucket(_ *zap.Logger, _ models.UserClaims, ids uuid
 	}
 }
 
-func (s BucketService) DeleteBucket(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) error {
-	// Soft delete the bucket
-	result := s.DB.Where("id = ?", ids[0]).Delete(&models.Bucket{})
-	if result.RowsAffected == 0 {
-		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
-	} else {
-		// Hard delete all invitations associated with the bucket
-		logger.Info("Deleting all invites for bucket", zap.String("bucket_id", ids[0].String()))
-		s.DB.Where("bucket_id = ?", ids[0]).Delete(&models.Invite{})
-		return nil
+func (s BucketService) DeleteBucket(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		bucket := models.Bucket{}
+		result := tx.Where("id = ?", ids[0]).First(&bucket)
+
+		if result.RowsAffected == 0 {
+			return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		} else {
+			// Soft delete bucket
+			if _, err := gorm.G[models.Bucket](tx).Where("id = ?", bucket.ID).Delete(context.Background()); err != nil {
+				return err
+			}
+
+			// Hard delete all invitations associated to the bucket
+			if _, err := gorm.G[models.Invite](tx).Where("bucket_id = ?", bucket.ID).Delete(context.Background()); err != nil {
+				return err
+			}
+
+			// Remove bucket groups
+			if err := groups.RemoveGroupBucketViewer(s.Enforcer, bucket); err != nil {
+				return err
+			}
+
+			if err := groups.RemoveGroupBucketContributor(s.Enforcer, bucket); err != nil {
+				return err
+			}
+
+			if err := groups.RemoveGroupBucketOwner(s.Enforcer, bucket); err != nil {
+				return err
+			}
+
+			// Remove associated grouping policies
+			if err := groups.RemoveUsersFromViewers(s.Enforcer, bucket); err != nil {
+				return err
+			}
+
+			if err := groups.RemoveUsersFromContributors(s.Enforcer, bucket); err != nil {
+				return err
+			}
+
+			if err := groups.RemoveUsersFromOwners(s.Enforcer, bucket); err != nil {
+				return err
+			}
+
+			action := models.Activity{
+				Message: activity.BucketDeleted,
+				Filter: activity.NewLogFilter(map[string]string{
+					"action":      rbac.ActionDelete.String(),
+					"bucket_id":   bucket.ID.String(),
+					"domain":      c.DefaultDomain,
+					"object_type": rbac.ResourceBucket.String(),
+					"user_id":     user.UserID.String(),
+				}),
+			}
+
+			if err := s.ActivityLogger.Send(action); err != nil {
+				return err
+			}
+
+			// Trigger async file and folder deletion from root path
+			event := events.NewObjectDeletion(*s.Publisher, bucket, "/")
+			event.Trigger()
+			return nil
+		}
+	})
+
+	if err != nil {
+		logger.Error("Failed to delete bucket", zap.Error(err))
+		return errors.ErrorDeleteFailed
 	}
+
+	return nil
 }
 
 func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs, body models.FileTransferBody) (models.FileTransferResponse, error) {

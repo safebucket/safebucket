@@ -8,17 +8,27 @@ import (
 	"api/internal/notifier"
 	"api/internal/rbac"
 	"api/internal/sql"
+	"api/internal/storage"
 	"encoding/json"
 	"fmt"
+	"reflect"
+
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"reflect"
 )
 
+type EventParams struct {
+	WebUrl         string
+	Notifier       notifier.INotifier
+	DB             *gorm.DB
+	Storage        storage.IStorage
+	ActivityLogger activity.IActivityLogger
+}
+
 type Event interface {
-	callback(webUrl string, notifier notifier.INotifier)
+	callback(params *EventParams) error
 }
 
 func getEventFromMessage(eventType string, msg *message.Message) (Event, error) {
@@ -56,7 +66,7 @@ func getEventFromMessage(eventType string, msg *message.Message) (Event, error) 
 	return event, nil
 }
 
-func HandleNotifications(webUrl string, notifier notifier.INotifier, messages <-chan *message.Message) {
+func HandleEvents(params *EventParams, messages <-chan *message.Message) {
 	for msg := range messages {
 		zap.L().Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
 
@@ -69,8 +79,11 @@ func HandleNotifications(webUrl string, notifier notifier.INotifier, messages <-
 			continue
 		}
 
-		event.callback(webUrl, notifier)
-		msg.Ack()
+		if err := event.callback(params); err != nil {
+			msg.Nack()
+		} else {
+			msg.Ack()
+		}
 	}
 }
 

@@ -3,7 +3,6 @@ package events
 import (
 	"api/internal/messaging"
 	"api/internal/models"
-	"api/internal/notifier"
 	"encoding/json"
 	"fmt"
 
@@ -90,10 +89,13 @@ func (e *UserInvitation) Trigger() {
 	}
 }
 
-func (e *UserInvitation) callback(webUrl string, notifier notifier.INotifier) {
+func (e *UserInvitation) callback(params *EventParams) error {
+	e.Payload.WebUrl = params.WebUrl
 	subject := fmt.Sprintf("%s has invited you to SafeBucket", e.Payload.From)
-	err := notifier.NotifyFromTemplate(e.Payload.To, subject, "user_invitation", e.Payload)
+	err := params.Notifier.NotifyFromTemplate(e.Payload.To, subject, "user_invitation", e.Payload)
 	if err != nil {
 		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
+		return err
 	}
+	return nil
 }

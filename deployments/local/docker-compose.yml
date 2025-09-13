@@ -2,6 +2,8 @@ services:
   safebucket:
     container_name: safebucket
     image: safebucket:latest
+    profiles:
+      - debug
     environment:
       - APP__LOG_LEVEL=${APP__LOG_LEVEL}
       - APP__API_URL=${APP__API_URL}

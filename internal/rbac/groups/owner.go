@@ -23,6 +23,30 @@ func GetDefaultOwnerBucketPolicies(bucket models.Bucket) [][]string {
 	}
 }
 
+func InsertGroupBucketOwner(e *casbin.Enforcer, bucket models.Bucket) error {
+	_, err := e.AddPolicies(GetDefaultOwnerBucketPolicies(bucket))
+	if err != nil {
+		return err
+	}
+	_, err = e.AddGroupingPolicy(GetBucketOwnerGroup(bucket), GetBucketContributorGroup(bucket), c.DefaultDomain)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func RemoveGroupBucketOwner(e *casbin.Enforcer, bucket models.Bucket) error {
+	_, err := e.RemovePolicies(GetDefaultOwnerBucketPolicies(bucket))
+	if err != nil {
+		return err
+	}
+	_, err = e.RemoveGroupingPolicy(GetBucketOwnerGroup(bucket), GetBucketContributorGroup(bucket), c.DefaultDomain)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func AddUserToOwners(e *casbin.Enforcer, bucket models.Bucket, userId string) error {
 	_, err := e.AddGroupingPolicy(userId, GetBucketOwnerGroup(bucket), c.DefaultDomain)
 	if err != nil {
@@ -41,13 +65,10 @@ func RemoveUserFromOwners(e *casbin.Enforcer, bucket models.Bucket, userId strin
 	return nil
 }
 
-func InsertGroupBucketOwner(e *casbin.Enforcer, bucket models.Bucket) error {
-	_, err := e.AddPolicies(GetDefaultOwnerBucketPolicies(bucket))
+func RemoveUsersFromOwners(e *casbin.Enforcer, bucket models.Bucket) error {
+	_, err := e.RemoveGroupingPolicy("", GetBucketOwnerGroup(bucket), c.DefaultDomain)
 	if err != nil {
-		return err
-	}
-	_, err = e.AddGroupingPolicy(GetBucketOwnerGroup(bucket), GetBucketContributorGroup(bucket), c.DefaultDomain)
-	if err != nil {
+		zap.L().Error("Failed to remove user from owners", zap.Error(err))
 		return err
 	}
 	return nil

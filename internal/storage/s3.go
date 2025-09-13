@@ -77,6 +77,51 @@ func (s S3Storage) StatObject(path string) (map[string]string, error) {
 	return file.UserMetadata, err
 }
 
+func (s S3Storage) ListObjects(prefix string, maxKeys int) ([]string, error) {
+	opts := minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+		MaxKeys:   maxKeys,
+	}
+
+	var objects []string
+
+	for object := range s.storage.ListObjects(context.Background(), s.BucketName, opts) {
+		if object.Err != nil {
+			return nil, object.Err
+		}
+		objects = append(objects, object.Key)
+	}
+
+	return objects, nil
+}
+
 func (s S3Storage) RemoveObject(path string) error {
 	return s.storage.RemoveObject(context.Background(), s.BucketName, path, minio.RemoveObjectOptions{})
+}
+
+func (s S3Storage) RemoveObjects(paths []string) error {
+	objectsCh := make(chan minio.ObjectInfo)
+
+	go func() {
+		defer close(objectsCh)
+		for _, path := range paths {
+			objectsCh <- minio.ObjectInfo{Key: path}
+		}
+	}()
+
+	opts := minio.RemoveObjectsOptions{
+		GovernanceBypass: true,
+	}
+
+	errorCh := s.storage.RemoveObjects(context.Background(), s.BucketName, objectsCh, opts)
+
+	for err := range errorCh {
+		if err.Err != nil {
+			zap.L().Error("Failed to delete object", zap.String("key", err.ObjectName), zap.Error(err.Err))
+			return err.Err
+		}
+	}
+
+	return nil
 }

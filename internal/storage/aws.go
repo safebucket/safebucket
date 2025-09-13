@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"go.uber.org/zap"
 )
 
@@ -100,10 +101,71 @@ func (a AWSStorage) StatObject(path string) (map[string]string, error) {
 	return file.Metadata, err
 }
 
+func (a AWSStorage) ListObjects(prefix string, maxKeys int) ([]string, error) {
+	input := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(a.BucketName),
+		Prefix:  aws.String(prefix),
+		MaxKeys: aws.Int32(int32(maxKeys)),
+	}
+
+	var objects []string
+
+	result, err := a.storage.ListObjectsV2(context.Background(), input)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, obj := range result.Contents {
+		objects = append(objects, *obj.Key)
+	}
+
+	return objects, nil
+}
+
 func (a AWSStorage) RemoveObject(path string) error {
 	_, err := a.storage.DeleteObject(context.Background(), &s3.DeleteObjectInput{
 		Bucket: aws.String(a.BucketName),
 		Key:    aws.String(path),
 	})
 	return err
+}
+
+func (a AWSStorage) RemoveObjects(paths []string) error {
+	if len(paths) == 0 {
+		return nil
+	}
+
+	// AWS S3 batch delete supports up to 1000 objects per request
+	const batchSize = 1000
+
+	for i := 0; i < len(paths); i += batchSize {
+		end := i + batchSize
+		if end > len(paths) {
+			end = len(paths)
+		}
+
+		batch := paths[i:end]
+		objects := make([]types.ObjectIdentifier, len(batch))
+
+		for j, path := range batch {
+			objects[j] = types.ObjectIdentifier{
+				Key: aws.String(path),
+			}
+		}
+
+		_, err := a.storage.DeleteObjects(context.Background(), &s3.DeleteObjectsInput{
+			Bucket: aws.String(a.BucketName),
+			Delete: &types.Delete{
+				Objects: objects,
+				Quiet:   aws.Bool(true),
+			},
+		})
+
+		if err != nil {
+			zap.L().Error("Failed to delete objects batch", zap.Int("batch_start", i), zap.Error(err))
+			return err
+		}
+	}
+
+	return nil
 }

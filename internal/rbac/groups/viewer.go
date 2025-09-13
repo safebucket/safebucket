@@ -23,6 +23,22 @@ func GetDefaultViewerBucketPolicies(bucket models.Bucket) [][]string {
 	}
 }
 
+func InsertGroupBucketViewer(e *casbin.Enforcer, bucket models.Bucket) error {
+	_, err := e.AddPolicies(GetDefaultViewerBucketPolicies(bucket))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func RemoveGroupBucketViewer(e *casbin.Enforcer, bucket models.Bucket) error {
+	_, err := e.RemovePolicies(GetDefaultViewerBucketPolicies(bucket))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func AddUserToViewers(e *casbin.Enforcer, bucket models.Bucket, userId string) error {
 	_, err := e.AddGroupingPolicy(userId, GetBucketViewerGroup(bucket), c.DefaultDomain)
 	if err != nil {
@@ -41,9 +57,10 @@ func RemoveUserFromViewers(e *casbin.Enforcer, bucket models.Bucket, userId stri
 	return nil
 }
 
-func InsertGroupBucketViewer(e *casbin.Enforcer, bucket models.Bucket) error {
-	_, err := e.AddPolicies(GetDefaultViewerBucketPolicies(bucket))
+func RemoveUsersFromViewers(e *casbin.Enforcer, bucket models.Bucket) error {
+	_, err := e.RemoveGroupingPolicy(GetBucketViewerGroup(bucket), c.DefaultDomain)
 	if err != nil {
+		zap.L().Error("Failed to remove user from viewers", zap.Error(err))
 		return err
 	}
 	return nil

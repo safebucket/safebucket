@@ -11,4 +11,6 @@ var eventRegistry = map[string]reflect.Type{
 	ChallengeUserInvitePayloadName: reflect.TypeOf(ChallengeUserInvitePayload{}),
 	UserInvitationName:             reflect.TypeOf(UserInvitation{}),
 	UserInvitationPayloadName:      reflect.TypeOf(UserInvitationPayload{}),
+	ObjectDeletionName:             reflect.TypeOf(ObjectDeletion{}),
+	ObjectDeletionPayloadName:      reflect.TypeOf(ObjectDeletionPayload{}),
 }

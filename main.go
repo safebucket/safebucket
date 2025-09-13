@@ -72,7 +72,15 @@ func main() {
 
 	appIdentity := uuid.New().String()
 
-	go events.HandleNotifications(config.App.WebUrl, notifier, notifications)
+	eventParams := &events.EventParams{
+		WebUrl:         config.App.WebUrl,
+		Notifier:       notifier,
+		DB:             db,
+		Storage:        storage,
+		ActivityLogger: activity,
+	}
+
+	go events.HandleEvents(eventParams, notifications)
 
 	go events.HandleBucketEvents(bucketEventsSubscriber, db, activity, bucketEvents)
 

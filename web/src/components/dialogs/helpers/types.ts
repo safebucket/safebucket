@@ -13,7 +13,7 @@ export interface IFormField {
     | "otp";
   placeholder?: string;
   required?: boolean;
-  options?: { value: string; label: string }[];
+  options?: Array<{ value: string; label: string }>;
   defaultValue?: string | boolean;
   condition?: (values: FieldValues) => boolean;
   maxLength?: number;
