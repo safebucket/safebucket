@@ -3,11 +3,12 @@ package middlewares
 import (
 	"api/internal/cache"
 	"api/internal/helpers"
-	"go.uber.org/zap"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 const authenticatedRequestsPerMinute = 200
@@ -16,7 +17,11 @@ const unauthenticatedRequestsPerMinute = 20
 func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return "", err
+		if net.ParseIP(r.RemoteAddr) != nil {
+			remoteIP = r.RemoteAddr
+		} else {
+			return "", err
+		}
 	}
 
 	// If no trusted proxies configured, use remote address directly

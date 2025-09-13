@@ -4,6 +4,7 @@ import (
 	"api/internal/configuration"
 	"api/internal/models"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -16,10 +17,19 @@ type RedisCache struct {
 }
 
 func NewRedisCache(config models.RedisCacheConfiguration) (*RedisCache, error) {
-	client, err := rueidis.NewClient(rueidis.ClientOption{
+	clientOption := rueidis.ClientOption{
 		InitAddress: config.Hosts,
 		Password:    config.Password,
-	})
+	}
+
+	if config.TLSEnabled {
+		clientOption.TLSConfig = &tls.Config{
+			ServerName: config.TLSServerName,
+		}
+	}
+
+	client, err := rueidis.NewClient(clientOption)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to redis: %w", err)
 	}

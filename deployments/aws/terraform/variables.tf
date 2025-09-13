@@ -1,5 +1,6 @@
 # SafeBucket AWS Infrastructure Variables - Minimal Setup
 
+
 variable "project_name" {
   description = "Name of the project, used for resource naming"
   type        = string
@@ -156,4 +157,120 @@ variable "rds_storage_encrypted" {
   description = "Specifies whether the DB instance is encrypted"
   type        = bool
   default     = true
+}
+
+# ECS Configuration
+variable "safebucket_image" {
+  description = "Docker image for SafeBucket application"
+  type        = string
+  default     = "docker.io/safebucket/safebucket:latest"
+}
+
+variable "safebucket_cpu" {
+  description = "CPU units for SafeBucket task (1024 = 1 vCPU)"
+  type        = number
+  default     = 512
+}
+
+variable "safebucket_memory" {
+  description = "Memory in MB for SafeBucket task"
+  type        = number
+  default     = 1024
+}
+
+variable "safebucket_desired_count" {
+  description = "Desired number of SafeBucket tasks"
+  type        = number
+  default     = 1
+}
+
+variable "safebucket_min_capacity" {
+  description = "Minimum capacity for SafeBucket auto scaling"
+  type        = number
+  default     = 1
+}
+
+variable "safebucket_max_capacity" {
+  description = "Maximum capacity for SafeBucket auto scaling"
+  type        = number
+  default     = 3
+}
+
+variable "loki_image" {
+  description = "Docker image for Loki"
+  type        = string
+  default     = "grafana/loki:3.2.1"
+}
+
+variable "loki_cpu" {
+  description = "CPU units for Loki task (1024 = 1 vCPU)"
+  type        = number
+  default     = 512
+}
+
+variable "loki_memory" {
+  description = "Memory in MB for Loki task"
+  type        = number
+  default     = 1024
+}
+
+variable "mailpit_image" {
+  description = "Docker image for Mailpit"
+  type        = string
+  default     = "axllent/mailpit:v1.27.7"
+}
+
+variable "mailpit_cpu" {
+  description = "CPU units for Mailpit task (1024 = 1 vCPU)"
+  type        = number
+  default     = 256
+}
+
+variable "mailpit_memory" {
+  description = "Memory in MB for Mailpit task"
+  type        = number
+  default     = 512
+}
+
+variable "enable_autoscaling" {
+  description = "Enable auto scaling for SafeBucket service"
+  type        = bool
+  default     = false
+}
+
+variable "enable_ecs_exec" {
+  description = "Enable ECS Exec for debugging"
+  type        = bool
+  default     = false
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch logs retention period in days"
+  type        = number
+  default     = 7
+}
+
+# Application Configuration
+variable "jwt_secret" {
+  description = "JWT secret for application authentication"
+  type        = string
+  sensitive   = true
+}
+
+variable "admin_password" {
+  description = "Admin password for SafeBucket application"
+  type        = string
+  sensitive   = true
+}
+
+variable "smtp_sender" {
+  description = "SMTP sender email address"
+  type        = string
+  default     = "notifications@safebucket.io"
+}
+
+variable "admin_email" {
+  description = "Admin email address for SafeBucket application"
+  type        = string
+  default     = "admin@safebucket.io"
 }

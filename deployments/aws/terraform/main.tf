@@ -13,7 +13,21 @@ terraform {
 
 # AWS Provider configuration
 provider "aws" {
-  region = "eu-west-1" # Ireland
+  region     = "eu-west-1"
+}
+
+# Data sources
+data "aws_region" "current" {}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
 }
 
 # Local variables

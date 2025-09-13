@@ -41,7 +41,7 @@ resource "aws_sqs_queue_policy" "s3_events_safebucket_access" {
         Resource = aws_sqs_queue.s3_events.arn
         Condition = {
           ArnEquals = {
-            "aws:SourceArn" = aws_s3_bucket.storage.arn
+            "aws:SourceArn" = aws_s3_bucket.main.arn
           }
         }
       },

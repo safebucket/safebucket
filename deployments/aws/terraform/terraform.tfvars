@@ -39,7 +39,7 @@ rds_skip_final_snapshot        = true
 rds_storage_encrypted          = true
 
 # ECS Configuration
-#safebucket_image                = "docker.io/safebucket/safebucket:latest"
+safebucket_image                = "docker.io/safebucket/safebucket:latest"
 safebucket_cpu                 = 512
 safebucket_memory              = 1024
 safebucket_desired_count       = 1
@@ -47,8 +47,8 @@ safebucket_min_capacity        = 1
 safebucket_max_capacity        = 3
 
 loki_image                     = "grafana/loki:3.2.1"
-loki_cpu                       = 512
-loki_memory                    = 1024
+loki_cpu                       = 256
+loki_memory                    = 512
 
 mailpit_image                  = "axllent/mailpit:v1.27.7"
 mailpit_cpu                    = 256
@@ -60,6 +60,5 @@ log_retention_days             = 7
 
 # Application Configuration
 jwt_secret                     = "your-jwt-secret-32-chars-minimum-here"
-admin_password                 = "your-admin-password-here-12342"
-smtp_sender                    = "notifications@safebucket.io"
-admin_email                    = "admin@safebucket.io"
+admin_password                 = "your-admin-password-here"
+smtp_sender                    = "notifications@yourdomain.com"

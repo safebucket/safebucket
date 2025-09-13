@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,7 +17,13 @@ type StaticFileService struct {
 	discoveredFiles map[string]string
 }
 
-func NewStaticFileService(directory string) (*StaticFileService, error) {
+// ConfigJSON represents the frontend configuration structure
+type ConfigJSON struct {
+	ApiUrl      string `json:"apiUrl"`
+	Environment string `json:"environment"`
+}
+
+func NewStaticFileService(directory string, apiUrl string) (*StaticFileService, error) {
 	var staticPath string
 
 	if !filepath.IsAbs(directory) {
@@ -31,10 +38,48 @@ func NewStaticFileService(directory string) (*StaticFileService, error) {
 		discoveredFiles: make(map[string]string),
 	}
 
+	if err := service.createConfigFileIfNotExists(apiUrl); err != nil {
+		return nil, fmt.Errorf("failed to create config file: %w", err)
+	}
+
 	if err := service.discoverFiles(); err != nil {
 		return nil, fmt.Errorf("failed to discover files: %w", err)
 	}
 	return service, nil
+}
+
+// createConfigFileIfNotExists creates a config.json file in the static directory if it doesn't exist
+func (s *StaticFileService) createConfigFileIfNotExists(apiUrl string) error {
+	configPath := filepath.Join(s.staticPath, "config.json")
+
+	// Check if config.json already exists
+	if _, err := os.Stat(configPath); err == nil {
+		zap.L().Debug("config.json already exists, skipping creation", zap.String("path", configPath))
+		return nil
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to check config file existence: %w", err)
+	}
+
+	config := ConfigJSON{
+		ApiUrl:      apiUrl,
+		Environment: "production",
+	}
+
+	configData, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config to JSON: %w", err)
+	}
+
+	if err := os.MkdirAll(s.staticPath, 0755); err != nil {
+		return fmt.Errorf("failed to create static directory: %w", err)
+	}
+
+	if err := os.WriteFile(configPath, configData, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	zap.L().Info("created config.json", zap.String("path", configPath), zap.String("apiUrl", apiUrl), zap.String("environment", "production"))
+	return nil
 }
 
 func (s *StaticFileService) discoverFiles() error {

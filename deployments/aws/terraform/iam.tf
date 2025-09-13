@@ -42,8 +42,8 @@ resource "aws_iam_role_policy" "safebucket_app" {
           "s3:GetObjectAttributes"
         ]
         Resource = [
-          aws_s3_bucket.storage.arn,
-          "${aws_s3_bucket.storage.arn}/*"
+          aws_s3_bucket.main.arn,
+          "${aws_s3_bucket.main.arn}/*"
         ]
       },
       {

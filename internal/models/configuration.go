@@ -62,13 +62,17 @@ type CacheConfiguration struct {
 }
 
 type RedisCacheConfiguration struct {
-	Hosts    []string `mapstructure:"hosts"`
-	Password string   `mapstructure:"password"`
+	Hosts         []string `mapstructure:"hosts"`
+	Password      string   `mapstructure:"password"`
+	TLSEnabled    bool     `mapstructure:"tls_enabled"`
+	TLSServerName string   `mapstructure:"tls_server_name"`
 }
 
 type ValkeyCacheConfiguration struct {
-	Hosts    []string `mapstructure:"hosts"`
-	Password string   `mapstructure:"password"`
+	Hosts         []string `mapstructure:"hosts"`
+	Password      string   `mapstructure:"password"`
+	TLSEnabled    bool     `mapstructure:"tls_enabled"`
+	TLSServerName string   `mapstructure:"tls_server_name"`
 }
 
 type StorageConfiguration struct {

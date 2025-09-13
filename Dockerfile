@@ -39,7 +39,7 @@ WORKDIR /app
 COPY --from=backend-builder /app/safebucket ./safebucket
 
 # Copy built frontend static files from frontend builder
-COPY --from=frontend-builder /app/web/dist ./web/dist
+COPY --from=frontend-builder --chown=nonroot:nonroot /app/web/dist ./web/dist
 
 # Expose port
 EXPOSE 8080

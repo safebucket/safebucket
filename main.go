@@ -132,7 +132,10 @@ func main() {
 
 	// Initialize and mount static file service (if enabled)
 	if config.App.StaticFiles.Enabled {
-		staticFileService, err := services.NewStaticFileService(config.App.StaticFiles.Directory)
+		staticFileService, err := services.NewStaticFileService(
+			config.App.StaticFiles.Directory,
+			config.App.ApiUrl,
+		)
 		if err != nil {
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))
 		}

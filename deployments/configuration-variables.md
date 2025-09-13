@@ -47,8 +47,12 @@ SafeBucket uses a hierarchical configuration system that supports:
 | `cache.type`                                    | `CACHE__TYPE`                                       | -             | ✅        | `redis`                                              | Cache type: `redis` or `valkey`                   |
 | `cache.redis.hosts`                             | `CACHE__REDIS__HOSTS`                               | -             | ✅*       | `["localhost:6379", "redis-2:6379"]`                 | Redis host addresses array                        |
 | `cache.redis.password`                          | `CACHE__REDIS__PASSWORD`                            | -             | ❌        | `redisPassword123`                                   | Redis password                                    |
+| `cache.redis.tls_enabled`                       | `CACHE__REDIS__TLS_ENABLED`                         | `false`       | ❌        | `true`                                               | Enable TLS encryption for Redis connections       |
+| `cache.redis.tls_server_name`                   | `CACHE__REDIS__TLS_SERVER_NAME`                     | -             | ❌        | `redis-cluster.amazonaws.com`                        | TLS server name for Redis certificate validation  |
 | `cache.valkey.hosts`                            | `CACHE__VALKEY__HOSTS`                              | -             | ✅*       | `["localhost:6380"]`                                 | Valkey host addresses array                       |
 | `cache.valkey.password`                         | `CACHE__VALKEY__PASSWORD`                           | -             | ❌        | `valkeySecret`                                       | Valkey password                                   |
+| `cache.valkey.tls_enabled`                      | `CACHE__VALKEY__TLS_ENABLED`                        | `false`       | ❌        | `true`                                               | Enable TLS encryption for Valkey connections      |
+| `cache.valkey.tls_server_name`                  | `CACHE__VALKEY__TLS_SERVER_NAME`                    | -             | ❌        | `valkey-cluster.amazonaws.com`                       | TLS server name for Valkey certificate validation |
 | **Storage Configuration**                       |
 | `storage.type`                                  | `STORAGE__TYPE`                                     | -             | ✅        | `minio`                                              | Storage provider: `minio`, `gcp`, or `aws`        |
 | **MinIO Storage**                               |
@@ -149,6 +153,8 @@ cache:
     hosts:
       - localhost:6379
     password: ""
+    tls_enabled: false
+    tls_server_name: ""
 
 storage:
   type: minio
@@ -207,6 +213,43 @@ events:
 # - GOOGLE_APPLICATION_CREDENTIALS environment variable pointing to service account JSON
 # - GCP metadata service (on GCE instances)
 # - Workload Identity (on GKE)
+```
+
+### AWS ElastiCache with TLS Configuration
+```yaml
+cache:
+  type: redis
+  redis:
+    hosts:
+      - safebucket-cache.amazonaws.com:6379
+    password: your-redis-auth-token
+    tls_enabled: true
+    tls_server_name: safebucket-cache.amazonaws.com
+
+storage:
+  type: aws
+  aws:
+    bucket_name: safebucket-prod
+    sqs_name: safebucket-s3-events
+
+events:
+  type: aws
+  aws:
+    name: safebucket-notifications
+
+# Note: AWS credentials and region should be provided via IAM roles
+```
+
+### Valkey with TLS Configuration
+```yaml
+cache:
+  type: valkey
+  valkey:
+    hosts:
+      - valkey.example.com:6380
+    password: valkey-secure-password
+    tls_enabled: true
+    tls_server_name: valkey.example.com
 ```
 
 ### Environment Variables
@@ -273,6 +316,27 @@ export EVENTS__GCP__SUBSCRIPTION_NAME="safebucket-events-sub"
 # GCP Credentials
 export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
 export GOOGLE_CLOUD_PROJECT="my-gcp-project-123"
+
+# Cache Configuration (Redis/Valkey)
+export CACHE__TYPE="redis"
+export CACHE__REDIS__HOSTS="localhost:6379,redis-2:6379"
+export CACHE__REDIS__PASSWORD="redis-auth-token"
+export CACHE__REDIS__TLS_ENABLED="false"
+export CACHE__REDIS__TLS_SERVER_NAME=""
+
+# AWS ElastiCache with TLS (Production)
+export CACHE__TYPE="redis"
+export CACHE__REDIS__HOSTS="safebucket-cache.amazonaws.com:6379"
+export CACHE__REDIS__PASSWORD="your-redis-auth-token"
+export CACHE__REDIS__TLS_ENABLED="true"
+export CACHE__REDIS__TLS_SERVER_NAME="safebucket-cache.amazonaws.com"
+
+# Valkey Configuration
+export CACHE__TYPE="valkey"
+export CACHE__VALKEY__HOSTS="localhost:6380"
+export CACHE__VALKEY__PASSWORD="valkey-password"
+export CACHE__VALKEY__TLS_ENABLED="true"
+export CACHE__VALKEY__TLS_SERVER_NAME="valkey.example.com"
 ```
 
 ## Requirement Legend

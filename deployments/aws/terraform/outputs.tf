@@ -3,17 +3,22 @@
 # S3 Outputs
 output "s3_bucket_name" {
   description = "Name of the S3 bucket"
-  value       = aws_s3_bucket.storage.bucket
+  value       = aws_s3_bucket.main.bucket
 }
 
 output "s3_bucket_arn" {
   description = "ARN of the S3 bucket"
-  value       = aws_s3_bucket.storage.arn
+  value       = aws_s3_bucket.main.arn
 }
 
 output "s3_bucket_domain_name" {
   description = "Domain name of the S3 bucket"
-  value       = aws_s3_bucket.storage.bucket_domain_name
+  value       = aws_s3_bucket.main.bucket_domain_name
+}
+
+output "s3_loki_bucket_name" {
+  description = "Name of the Loki S3 bucket"
+  value       = aws_s3_bucket.loki.bucket
 }
 
 # SQS Outputs
@@ -63,15 +68,25 @@ output "instance_profile_name" {
   value       = aws_iam_instance_profile.safebucket_app.name
 }
 
+output "ecs_execution_role_arn" {
+  description = "ARN of the ECS execution role"
+  value       = aws_iam_role.ecs_execution_role.arn
+}
+
+output "ecs_task_role_arn" {
+  description = "ARN of the ECS task role"
+  value       = aws_iam_role.ecs_task_role.arn
+}
+
 # Redis Outputs
 output "redis_endpoint" {
   description = "Redis cluster endpoint"
-  value       = aws_elasticache_cluster.redis.cache_nodes[0].address
+  value       = aws_elasticache_replication_group.main.primary_endpoint_address
 }
 
 output "redis_port" {
   description = "Port number for the Redis cluster"
-  value       = aws_elasticache_cluster.redis.port
+  value       = 6379
 }
 
 output "redis_auth_token_enabled" {
@@ -84,35 +99,25 @@ output "redis_security_group_id" {
   value       = aws_security_group.redis.id
 }
 
-output "redis_user_group_id" {
-  description = "User group ID for Redis authentication"
-  value       = aws_elasticache_user_group.redis.user_group_id
-}
-
-output "redis_app_user_id" {
-  description = "Application user ID for Redis authentication"
-  value       = aws_elasticache_user.redis_app_user.user_id
-}
-
 # RDS Outputs
 output "rds_endpoint" {
   description = "RDS PostgreSQL endpoint"
-  value       = aws_db_instance.postgres.endpoint
+  value       = aws_db_instance.main.endpoint
 }
 
 output "rds_port" {
   description = "RDS PostgreSQL port"
-  value       = aws_db_instance.postgres.port
+  value       = aws_db_instance.main.port
 }
 
 output "rds_database_name" {
   description = "RDS database name"
-  value       = aws_db_instance.postgres.db_name
+  value       = aws_db_instance.main.db_name
 }
 
 output "rds_username" {
   description = "RDS master username"
-  value       = aws_db_instance.postgres.username
+  value       = aws_db_instance.main.username
   sensitive   = true
 }
 
@@ -123,21 +128,63 @@ output "rds_security_group_id" {
 
 output "rds_instance_id" {
   description = "RDS instance identifier"
-  value       = aws_db_instance.postgres.id
+  value       = aws_db_instance.main.id
 }
+
+# ECS Outputs
+output "ecs_cluster_name" {
+  description = "Name of the ECS cluster"
+  value       = aws_ecs_cluster.safebucket_cluster.name
+}
+
+output "ecs_cluster_arn" {
+  description = "ARN of the ECS cluster"
+  value       = aws_ecs_cluster.safebucket_cluster.arn
+}
+
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = aws_lb.safebucket_alb.dns_name
+}
+
+output "internal_alb_dns_name" {
+  description = "DNS name of the internal Application Load Balancer"
+  value       = aws_lb.internal_alb.dns_name
+}
+
+output "safebucket_service_name" {
+  description = "Name of the SafeBucket ECS service"
+  value       = aws_ecs_service.safebucket.name
+}
+
+output "loki_service_name" {
+  description = "Name of the Loki ECS service"
+  value       = aws_ecs_service.loki.name
+}
+
+output "mailpit_service_name" {
+  description = "Name of the Mailpit ECS service"
+  value       = aws_ecs_service.mailpit.name
+}
+
 
 # Configuration Summary
 output "infrastructure_summary" {
   description = "Summary of created infrastructure"
   value = {
-    s3_bucket              = aws_s3_bucket.storage.bucket
+    s3_bucket              = aws_s3_bucket.main.bucket
+    s3_loki_bucket         = aws_s3_bucket.loki.bucket
     s3_events_queue        = aws_sqs_queue.s3_events.name
     notifications_queue    = aws_sqs_queue.notifications.name
     iam_role              = aws_iam_role.safebucket_app.name
-    redis_endpoint         = aws_elasticache_cluster.redis.cache_nodes[0].address
-    redis_port             = aws_elasticache_cluster.redis.port
+    redis_endpoint         = aws_elasticache_replication_group.main.primary_endpoint_address
+    redis_port             = 6379
+    rds_endpoint           = aws_db_instance.main.endpoint
+    ecs_cluster            = aws_ecs_cluster.safebucket_cluster.name
+    alb_dns_name           = aws_lb.safebucket_alb.dns_name
+    internal_alb_dns_name  = aws_lb.internal_alb.dns_name
     environment           = var.environment
     project_name          = var.project_name
-    region                = "eu-west-1"
+    region                = data.aws_region.current.name
   }
 }

@@ -1,23 +1,11 @@
 # SafeBucket RDS PostgreSQL Resources
 
-# Get default VPC information (reusing from elasticache.tf)
-data "aws_vpc" "default_rds" {
-  default = true
-}
-
-# Get default subnets for RDS
-data "aws_subnets" "default_rds" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default_rds.id]
-  }
-}
 
 # Security Group for RDS PostgreSQL
 resource "aws_security_group" "rds" {
   name_prefix = "${var.project_name}-rds-"
   description = "Security group for SafeBucket RDS PostgreSQL"
-  vpc_id      = data.aws_vpc.default_rds.id
+  vpc_id      = data.aws_vpc.default.id
 
   # Allow inbound PostgreSQL traffic from within the VPC
   ingress {
@@ -25,7 +13,7 @@ resource "aws_security_group" "rds" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    cidr_blocks = [data.aws_vpc.default_rds.cidr_block]
+    cidr_blocks = [data.aws_vpc.default.cidr_block]
   }
 
   # Allow all outbound traffic
@@ -48,7 +36,7 @@ resource "aws_security_group" "rds" {
 # RDS Subnet Group
 resource "aws_db_subnet_group" "rds" {
   name       = "${var.project_name}-rds-subnet-group"
-  subnet_ids = data.aws_subnets.default_rds.ids
+  subnet_ids = data.aws_subnets.default.ids
 
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-rds-subnet-group"
@@ -82,7 +70,7 @@ resource "aws_db_parameter_group" "rds" {
 }
 
 # RDS PostgreSQL Instance
-resource "aws_db_instance" "postgres" {
+resource "aws_db_instance" "main" {
   identifier = "${var.project_name}-postgres"
 
   # Engine configuration
