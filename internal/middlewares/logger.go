@@ -32,8 +32,9 @@ func Logger(next http.Handler) http.Handler {
 		t1 := time.Now()
 		defer func() {
 			logger.Info("request",
-				zap.String("proto", r.Proto),
+				zap.String("method", r.Method),
 				zap.String("path", r.URL.Path),
+				zap.String("proto", r.Proto),
 				zap.Duration("lat", time.Since(t1)),
 				zap.Int("status", ww.Status()),
 				zap.Int("size", ww.BytesWritten()))
