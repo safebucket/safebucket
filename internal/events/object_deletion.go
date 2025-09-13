@@ -63,18 +63,21 @@ func (e *ObjectDeletion) Trigger() {
 }
 
 func (e *ObjectDeletion) callback(params *EventParams) error {
-	zap.L().Info(
-		"Starting object deletion",
+	zap.L().Info("Starting object deletion",
 		zap.String("bucket_id", e.Payload.Bucket.ID.String()),
 		zap.String("path", e.Payload.Path),
 	)
 
 	var files []models.File
-	bucketPrefix := path.Join("buckets", e.Payload.Bucket.ID.String(), e.Payload.Path)
+	objectsPath := path.Join("buckets", e.Payload.Bucket.ID.String(), e.Payload.Path)
 
-	zap.L().Info("Getting first batch of files to delete")
+	dbPath := fmt.Sprintf("%s%%", e.Payload.Path)
+	zap.L().Info("Getting batch of files to delete",
+		zap.String("bucket_id", e.Payload.Bucket.ID.String()),
+		zap.String("path", dbPath),
+	)
 	result := params.DB.Where(
-		"bucket_id = ? AND path LIKE ?", e.Payload.Bucket.ID, fmt.Sprintf("%s%", e.Payload.Path)).
+		"bucket_id = ? AND path LIKE ?", e.Payload.Bucket.ID, dbPath).
 		Limit(c.BulkActionsLimit).
 		Find(&files)
 
@@ -83,9 +86,9 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 		return result.Error
 	}
 
-	if len(files) == 0 {
+	if result.RowsAffected == 0 {
 		zap.L().Info("No files found in database, checking storage for orphaned files")
-		done := e.cleanupOrphanedFiles(params.Storage, bucketPrefix)
+		done := e.cleanupOrphanedFiles(params.Storage, objectsPath)
 		if !done {
 			zap.L().Info("Remaining files... requeuing deletion")
 			return errors.New("remaining files")
@@ -144,7 +147,7 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 
 	zap.L().Info("File deletion complete, performing final cleanup")
 
-	done := e.cleanupOrphanedFiles(params.Storage, bucketPrefix)
+	done := e.cleanupOrphanedFiles(params.Storage, objectsPath)
 	if !done {
 		return errors.New("remaining files left")
 	}

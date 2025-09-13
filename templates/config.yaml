@@ -46,7 +46,7 @@ storage:
     client_secret: minio-root-password
     type: jetstream
     jetstream:
-      topic_name: safebucket:notifications
+      topic_name: safebucket:events
       host: localhost
       port: 4222
 
