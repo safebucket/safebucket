@@ -136,7 +136,7 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 
 	if len(files) == c.BulkActionsLimit {
 		result := params.DB.Where(
-			"bucket_id = ? AND path LIKE ?", e.Payload.Bucket.ID, fmt.Sprintf("%s%", e.Payload.Path)).
+			"bucket_id = ? AND path LIKE ?", e.Payload.Bucket.ID, dbPath).
 			Find(&files)
 
 		if result.RowsAffected > 0 {
@@ -151,6 +151,11 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 	if !done {
 		return errors.New("remaining files left")
 	}
+
+	zap.L().Info("Object deletion complete",
+		zap.String("bucket_id", e.Payload.Bucket.ID.String()),
+		zap.String("path", e.Payload.Path),
+	)
 
 	return nil
 }
