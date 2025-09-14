@@ -85,11 +85,3 @@ resource "aws_s3_bucket_public_access_block" "loki" {
   restrict_public_buckets = true
 }
 
-/*
-resource "aws_s3_bucket_versioning" "loki" {
-  bucket = aws_s3_bucket.loki.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
- */
