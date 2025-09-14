@@ -70,11 +70,11 @@ func (s *StaticFileService) createConfigFileIfNotExists(apiUrl string) error {
 		return fmt.Errorf("failed to marshal config to JSON: %w", err)
 	}
 
-	if err := os.MkdirAll(s.staticPath, 0755); err != nil {
+	if err := os.MkdirAll(s.staticPath, 0750); err != nil {
 		return fmt.Errorf("failed to create static directory: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, configData, 0644); err != nil {
+	if err := os.WriteFile(configPath, configData, 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
