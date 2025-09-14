@@ -15,7 +15,7 @@ type GCPPublisher struct {
 	publisher *googlecloud.Publisher
 }
 
-func NewGCPPublisher(config *models.PubSubConfiguration) IPublisher {
+func NewGCPPublisher(config *models.PubSubConfiguration, topicName string) IPublisher {
 	publisher, err := googlecloud.NewPublisher(googlecloud.PublisherConfig{
 		ProjectID: config.ProjectID,
 	}, nil)
@@ -24,7 +24,7 @@ func NewGCPPublisher(config *models.PubSubConfiguration) IPublisher {
 		zap.L().Fatal("Failed to create PUB/SUB publisher", zap.Error(err))
 	}
 
-	return &GCPPublisher{TopicName: config.TopicName, publisher: publisher}
+	return &GCPPublisher{TopicName: topicName, publisher: publisher}
 }
 
 func (p *GCPPublisher) Publish(messages ...*message.Message) error {
@@ -40,12 +40,12 @@ type GCPSubscriber struct {
 	subscriber *googlecloud.Subscriber
 }
 
-func NewGCPSubscriber(config *models.PubSubConfiguration) ISubscriber {
+func NewGCPSubscriber(config *models.PubSubConfiguration, topicName string) ISubscriber {
 	subscriber, err := googlecloud.NewSubscriber(
 		googlecloud.SubscriberConfig{
 			ProjectID: config.ProjectID,
 			GenerateSubscriptionName: func(topic string) string {
-				return config.SubscriptionName
+				return topic + config.SubscriptionSuffix
 			},
 			DoNotCreateSubscriptionIfMissing: true,
 		},
@@ -56,7 +56,7 @@ func NewGCPSubscriber(config *models.PubSubConfiguration) ISubscriber {
 		zap.L().Fatal("Failed to create PUB/SUB subscriber", zap.Error(err))
 	}
 
-	return &GCPSubscriber{TopicName: config.TopicName, subscriber: subscriber}
+	return &GCPSubscriber{TopicName: topicName, subscriber: subscriber}
 }
 
 func (s *GCPSubscriber) Subscribe() <-chan *message.Message {

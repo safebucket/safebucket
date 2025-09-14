@@ -44,16 +44,17 @@ storage:
     endpoint: localhost:9000
     client_id: minio-root-user
     client_secret: minio-root-password
-    type: jetstream
-    jetstream:
-      topic_name: safebucket:events
-      host: localhost
-      port: 4222
 
 events:
   type: jetstream
+  topics:
+    notifications:
+      name: safebucket:notifications
+    bucket-events:
+      name: safebucket:bucket-events
+    object-deletion:
+      name: safebucket:object-deletion
   jetstream:
-    topic_name: safebucket:notifications
     host: localhost
     port: 4222
 

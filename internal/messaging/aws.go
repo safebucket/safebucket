@@ -1,7 +1,6 @@
 package messaging
 
 import (
-	"api/internal/models"
 	"api/internal/storage"
 	"context"
 	"encoding/json"
@@ -18,7 +17,7 @@ type AWSPublisher struct {
 	publisher *sqs.Publisher
 }
 
-func NewAWSPublisher(config *models.SQSConfiguration) IPublisher {
+func NewAWSPublisher(queueName string) IPublisher {
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background())
 
 	if err != nil {
@@ -39,7 +38,7 @@ func NewAWSPublisher(config *models.SQSConfiguration) IPublisher {
 		zap.L().Fatal("Unable to create publisher", zap.Error(err))
 	}
 
-	return &AWSPublisher{TopicName: config.Name, publisher: publisher}
+	return &AWSPublisher{TopicName: queueName, publisher: publisher}
 }
 
 func (p *AWSPublisher) Publish(messages ...*message.Message) error {

@@ -29,7 +29,7 @@ type InviteService struct {
 	Storage        storage.IStorage
 	JWTSecret      string
 	Enforcer       *casbin.Enforcer
-	Publisher      *messaging.IPublisher
+	Publisher      messaging.IPublisher
 	Providers      configuration.Providers
 	ActivityLogger activity.IActivityLogger
 	WebUrl         string
@@ -82,7 +82,7 @@ func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims,
 		}
 
 		event := events.NewChallengeUserInvite(
-			*s.Publisher,
+			s.Publisher,
 			secret,
 			invite.Email,
 			inviteId.String(),

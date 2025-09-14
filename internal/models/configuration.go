@@ -83,47 +83,40 @@ type StorageConfiguration struct {
 }
 
 type MinioStorageConfiguration struct {
-	BucketName   string                 `mapstructure:"bucket_name" validate:"required"`
-	Endpoint     string                 `mapstructure:"endpoint" validate:"required"`
-	ClientId     string                 `mapstructure:"client_id" validate:"required"`
-	ClientSecret string                 `mapstructure:"client_secret" validate:"required"`
-	Type         string                 `mapstructure:"type" validate:"required,oneof=jetstream"`
-	Jetstream    *JetStreamEventsConfig `mapstructure:"jetstream"`
+	BucketName   string `mapstructure:"bucket_name" validate:"required"`
+	Endpoint     string `mapstructure:"endpoint" validate:"required"`
+	ClientId     string `mapstructure:"client_id" validate:"required"`
+	ClientSecret string `mapstructure:"client_secret" validate:"required"`
 }
 
 type CloudStorage struct {
-	BucketName       string `mapstructure:"bucket_name" validate:"required"`
-	ProjectID        string `mapstructure:"project_id" validate:"required"`
-	SubscriptionName string `mapstructure:"subscription_name" validate:"required"`
-	TopicName        string `mapstructure:"topic_name" validate:"required"`
+	BucketName string `mapstructure:"bucket_name" validate:"required"`
+	ProjectID  string `mapstructure:"project_id" validate:"required"`
 }
 
 type S3Configuration struct {
 	BucketName string `mapstructure:"bucket_name" validate:"required"`
-	SQSName    string `mapstructure:"sqs_name" validate:"required"`
+}
+
+type TopicConfig struct {
+	Name string `mapstructure:"name" validate:"required"`
 }
 
 type EventsConfiguration struct {
 	Type      string                 `mapstructure:"type" validate:"required,oneof=jetstream gcp aws"`
+	Topics    map[string]TopicConfig `mapstructure:"topics" validate:"required"`
 	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream" validate:"required_if=Type jetstream"`
 	PubSub    *PubSubConfiguration   `mapstructure:"gcp" validate:"required_if=Type gcp"`
-	SQS       *SQSConfiguration      `mapstructure:"aws" validate:"required_if=Type aws"`
-}
-
-type SQSConfiguration struct {
-	Name string `mapstructure:"name" validate:"required"`
 }
 
 type PubSubConfiguration struct {
-	ProjectID        string `mapstructure:"project_id" validate:"required"`
-	SubscriptionName string `mapstructure:"subscription_name" validate:"required"`
-	TopicName        string `mapstructure:"topic_name" validate:"required"`
+	ProjectID          string `mapstructure:"project_id" validate:"required"`
+	SubscriptionSuffix string `mapstructure:"subscription_suffix" default:"-sub"`
 }
 
 type JetStreamEventsConfig struct {
-	TopicName string `mapstructure:"topic_name" validate:"required"`
-	Host      string `mapstructure:"host" validate:"required"`
-	Port      string `mapstructure:"port" validate:"required"`
+	Host string `mapstructure:"host" validate:"required"`
+	Port string `mapstructure:"port" validate:"required"`
 }
 
 type MailerConfiguration struct {

@@ -30,7 +30,7 @@ type BucketService struct {
 	DB             *gorm.DB
 	Storage        storage.IStorage
 	Enforcer       *casbin.Enforcer
-	Publisher      *messaging.IPublisher
+	Publisher      messaging.IPublisher
 	Providers      c.Providers
 	ActivityLogger activity.IActivityLogger
 	WebUrl         string
@@ -278,7 +278,7 @@ func (s BucketService) DeleteBucket(logger *zap.Logger, user models.UserClaims, 
 			}
 
 			// Trigger async file and folder deletion from root path
-			event := events.NewObjectDeletion(*s.Publisher, bucket, "/")
+			event := events.NewObjectDeletion(s.Publisher, bucket, "/")
 			event.Trigger()
 			return nil
 		}

@@ -24,7 +24,7 @@ type BucketMemberService struct {
 	DB             *gorm.DB
 	Enforcer       *casbin.Enforcer
 	Providers      configuration.Providers
-	Publisher      *messaging.IPublisher
+	Publisher      messaging.IPublisher
 	ActivityLogger activity.IActivityLogger
 	WebUrl         string
 }
@@ -278,7 +278,7 @@ func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaim
 		}
 
 		invitationEvent := events.NewUserInvitation(
-			*s.Publisher,
+			s.Publisher,
 			invite.Email,
 			user.Email,
 			bucket,
@@ -289,7 +289,7 @@ func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaim
 		invitationEvent.Trigger()
 	} else {
 		bucketSharedEvent := events.NewBucketSharedWith(
-			*s.Publisher,
+			s.Publisher,
 			bucket,
 			user.Email,
 			invite.Email,

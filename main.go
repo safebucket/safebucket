@@ -35,14 +35,7 @@ func main() {
 	cache := core.NewCache(config.Cache)
 	storage := core.NewStorage(config.Storage)
 	notifier := core.NewNotifier(config.Notifier)
-	publisher := core.NewPublisher(config.Events)
 	activity := core.NewActivityLogger(config.Activity)
-
-	notificationsSubscriber := core.NewSubscriber(config.Events)
-	notifications := notificationsSubscriber.Subscribe()
-
-	bucketEventsSubscriber := core.NewBucketEventsSubscriber(config.Storage, storage)
-	bucketEvents := bucketEventsSubscriber.Subscribe()
 
 	model := rbac.GetModel()
 	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
@@ -80,8 +73,17 @@ func main() {
 		ActivityLogger: activity,
 	}
 
+	eventsManager := core.NewEventsManager(config.Events)
+	eventRouter := core.NewEventRouter(eventsManager)
+
+	notifications := eventsManager.GetSubscriber(configuration.EventsNotifications).Subscribe()
 	go events.HandleEvents(eventParams, notifications)
 
+	deletionEvents := eventsManager.GetSubscriber(configuration.EventsObjectDeletion).Subscribe()
+	go events.HandleEvents(eventParams, deletionEvents)
+
+	bucketEventsSubscriber := eventsManager.GetSubscriber(configuration.EventsBucketEvents)
+	bucketEvents := bucketEventsSubscriber.Subscribe()
 	go events.HandleBucketEvents(bucketEventsSubscriber, db, activity, bucketEvents)
 
 	go cache.StartIdentityTicker(appIdentity)
@@ -113,7 +115,7 @@ func main() {
 			DB:             db,
 			Storage:        storage,
 			Enforcer:       enforcer,
-			Publisher:      &publisher,
+			Publisher:      eventRouter,
 			ActivityLogger: activity,
 			Providers:      providers,
 			WebUrl:         config.App.WebUrl,
@@ -131,7 +133,7 @@ func main() {
 			DB:             db,
 			JWTSecret:      config.App.JWTSecret,
 			Enforcer:       enforcer,
-			Publisher:      &publisher,
+			Publisher:      eventRouter,
 			ActivityLogger: activity,
 			Providers:      providers,
 			WebUrl:         config.App.WebUrl,

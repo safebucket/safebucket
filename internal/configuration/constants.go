@@ -4,6 +4,10 @@ const CacheMaxAppIdentityLifetime = 60
 const CacheAppIdentityKey = "platform:identity"
 const CacheAppRateLimitKey = "platform:ratelimit:%s"
 
+const EventsNotifications = "notifications"
+const EventsObjectDeletion = "object-deletion"
+const EventsBucketEvents = "bucket-events"
+
 const PolicyTableName = "policies"
 
 const NilUUID = "00000000-0000-0000-0000-000000000000"
