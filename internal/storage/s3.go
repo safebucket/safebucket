@@ -77,11 +77,11 @@ func (s S3Storage) StatObject(path string) (map[string]string, error) {
 	return file.UserMetadata, err
 }
 
-func (s S3Storage) ListObjects(prefix string, maxKeys int) ([]string, error) {
+func (s S3Storage) ListObjects(prefix string, maxKeys int32) ([]string, error) {
 	opts := minio.ListObjectsOptions{
 		Prefix:    prefix,
 		Recursive: true,
-		MaxKeys:   maxKeys,
+		MaxKeys:   int(maxKeys),
 	}
 
 	var objects []string

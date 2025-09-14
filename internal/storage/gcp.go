@@ -99,7 +99,7 @@ func (g GCPStorage) RemoveObjects(paths []string) error {
 	return nil
 }
 
-func (g GCPStorage) ListObjects(prefix string, _ int) ([]string, error) {
+func (g GCPStorage) ListObjects(prefix string, _ int32) ([]string, error) {
 	bucket := g.storage.Bucket(g.BucketName)
 
 	query := &gcs.Query{

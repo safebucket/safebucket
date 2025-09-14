@@ -101,11 +101,11 @@ func (a AWSStorage) StatObject(path string) (map[string]string, error) {
 	return file.Metadata, err
 }
 
-func (a AWSStorage) ListObjects(prefix string, maxKeys int) ([]string, error) {
+func (a AWSStorage) ListObjects(prefix string, maxKeys int32) ([]string, error) {
 	input := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(a.BucketName),
 		Prefix:  aws.String(prefix),
-		MaxKeys: aws.Int32(int32(maxKeys)),
+		MaxKeys: aws.Int32(maxKeys),
 	}
 
 	var objects []string
