@@ -25,6 +25,7 @@ func NewRedisCache(config models.RedisCacheConfiguration) (*RedisCache, error) {
 	if config.TLSEnabled {
 		clientOption.TLSConfig = &tls.Config{
 			ServerName: config.TLSServerName,
+			MinVersion: tls.VersionTLS12,
 		}
 	}
 

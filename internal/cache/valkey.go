@@ -26,6 +26,7 @@ func NewValkeyCache(cacheConfig models.ValkeyCacheConfiguration) (*ValkeyCache, 
 	if cacheConfig.TLSEnabled {
 		clientOption.TLSConfig = &tls.Config{
 			ServerName: cacheConfig.TLSServerName,
+			MinVersion: tls.VersionTLS12,
 		}
 	}
 	client, err := rueidis.NewClient(clientOption)
