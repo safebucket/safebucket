@@ -18,7 +18,7 @@ const LocalAuthProviderType = "local"
 
 const UploadPolicyExpirationInMinutes = 15
 
-const BulkActionsLimit = 10000
+const BulkActionsLimit = 1000
 
 var ArrayConfigFields = []string{
 	"platform.trusted_proxies",

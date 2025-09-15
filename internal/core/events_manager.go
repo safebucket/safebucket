@@ -45,13 +45,12 @@ func (em *EventsManager) initializePublishers() {
 			publisher = messaging.NewAWSPublisher(topicConfig.Name)
 		}
 
-		if publisher != nil {
-			em.publishers[topicKey] = publisher
-			zap.L().Info("Initialized publisher",
-				zap.String("topic_key", topicKey),
-				zap.String("topic_name", topicConfig.Name),
-				zap.String("provider", em.config.Type))
-		}
+		em.publishers[topicKey] = publisher
+
+		zap.L().Info("Initialized publisher",
+			zap.String("topic_key", topicKey),
+			zap.String("topic_name", topicConfig.Name),
+			zap.String("provider", em.config.Type))
 	}
 }
 
