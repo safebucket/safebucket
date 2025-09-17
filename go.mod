@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.39.0
 	github.com/aws/aws-sdk-go-v2/config v1.31.8
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.1
-	github.com/casbin/casbin/v2 v2.123.0
+	github.com/casbin/casbin/v2 v2.125.0
 	github.com/casbin/gorm-adapter/v3 v3.37.0
 	github.com/coreos/go-oidc/v3 v3.15.0
 	github.com/go-chi/chi/v5 v5.2.3
