@@ -21,8 +21,8 @@ cloud.google.com/go/monitoring v1.24.2 h1:5OTsoJ1dXYIiMiuL+sYscLc9BumrL3CarVLL7d
 cloud.google.com/go/monitoring v1.24.2/go.mod h1:x7yzPWcgDRnPEv3sI+jJGBkwl5qINf+6qY4eq0I9B4U=
 cloud.google.com/go/pubsub v1.49.0 h1:5054IkbslnrMCgA2MAEPcsN3Ky+AyMpEZcii/DoySPo=
 cloud.google.com/go/pubsub v1.49.0/go.mod h1:K1FswTWP+C1tI/nfi3HQecoVeFvL4HUOB1tdaNXKhUY=
-cloud.google.com/go/storage v1.56.1 h1:n6gy+yLnHn0hTwBFzNn8zJ1kqWfR91wzdM8hjRF4wP0=
-cloud.google.com/go/storage v1.56.1/go.mod h1:C9xuCZgFl3buo2HZU/1FncgvvOgTAs/rnh4gF4lMg0s=
+cloud.google.com/go/storage v1.56.2 h1:DzxQ4ppJe4OSTtZLtCqscC3knyW919eNl0zLLpojnqo=
+cloud.google.com/go/storage v1.56.2/go.mod h1:C9xuCZgFl3buo2HZU/1FncgvvOgTAs/rnh4gF4lMg0s=
 cloud.google.com/go/trace v1.11.6 h1:2O2zjPzqPYAHrn3OKl029qlqG6W8ZdYaOWRyr8NgMT4=
 cloud.google.com/go/trace v1.11.6/go.mod h1:GA855OeDEBiBMzcckLPE2kDunIpC72N+Pq8WFieFjnI=
 github.com/Azure/azure-sdk-for-go/sdk/azcore v1.4.0/go.mod h1:ON4tFdPTwRcgWEaVDrN3584Ef+b7GgSJaXxe5fW9t4M=
