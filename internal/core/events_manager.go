@@ -27,7 +27,7 @@ func NewEventsManager(config models.EventsConfiguration) *EventsManager {
 }
 
 func (em *EventsManager) initializePublishers() {
-	for topicKey, topicConfig := range em.config.Topics {
+	for topicKey, topicConfig := range em.config.Queues {
 		var publisher messaging.IPublisher
 
 		switch em.config.Type {
@@ -55,7 +55,7 @@ func (em *EventsManager) initializePublishers() {
 }
 
 func (em *EventsManager) initializeSubscribers() {
-	for topicKey, topicConfig := range em.config.Topics {
+	for topicKey, topicConfig := range em.config.Queues {
 		var subscriber messaging.ISubscriber
 
 		switch em.config.Type {

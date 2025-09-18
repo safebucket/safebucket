@@ -47,7 +47,7 @@ storage:
 
 events:
   type: jetstream
-  topics:
+  queues:
     notifications:
       name: safebucket:notifications
     bucket-events:

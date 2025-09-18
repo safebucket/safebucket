@@ -98,13 +98,13 @@ type S3Configuration struct {
 	BucketName string `mapstructure:"bucket_name" validate:"required"`
 }
 
-type TopicConfig struct {
+type QueueConfig struct {
 	Name string `mapstructure:"name" validate:"required"`
 }
 
 type EventsConfiguration struct {
 	Type      string                 `mapstructure:"type" validate:"required,oneof=jetstream gcp aws"`
-	Topics    map[string]TopicConfig `mapstructure:"topics" validate:"required"`
+	Queues    map[string]QueueConfig `mapstructure:"queues" validate:"required"`
 	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream" validate:"required_if=Type jetstream"`
 	PubSub    *PubSubConfiguration   `mapstructure:"gcp" validate:"required_if=Type gcp"`
 }
