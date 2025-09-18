@@ -5,6 +5,7 @@ import (
 	"api/internal/events"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"go.uber.org/zap"
 )
 
 type EventRouter struct {
@@ -21,6 +22,10 @@ func (er *EventRouter) Publish(messages ...*message.Message) error {
 	for _, msg := range messages {
 		eventType := msg.Metadata.Get("type")
 		topicKey := er.getTopicKeyForEvent(eventType)
+
+		if topicKey == "" {
+			zap.L().Fatal("Assign a topic to this event in getTopicKeyForEvent", zap.String("eventType", eventType))
+		}
 
 		publisher := er.eventsManager.GetPublisher(topicKey)
 		if publisher == nil {
@@ -48,6 +53,6 @@ func (er *EventRouter) getTopicKeyForEvent(eventType string) string {
 	case events.ObjectDeletionName:
 		return configuration.EventsObjectDeletion
 	default:
-		return configuration.EventsNotifications
+		return ""
 	}
 }
