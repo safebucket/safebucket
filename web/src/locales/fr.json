@@ -125,7 +125,7 @@
       "status": "Statut",
       "uploaded": "Partagé",
       "uploading": "Téléchargement",
-      "deletion_scheduled": "Suppression planifiée",
+      "deleting": "Suppression",
       "processing": "En cours",
       "empty_folder": "Le dossier est vide"
     },

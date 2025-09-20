@@ -10,9 +10,9 @@ import (
 type FileStatus string
 
 const (
-	FileStatusUploading         FileStatus = "uploading"
-	FileStatusUploaded          FileStatus = "uploaded"
-	FileStatusDeletionScheduled FileStatus = "deletion_scheduled"
+	FileStatusUploading FileStatus = "uploading"
+	FileStatusUploaded  FileStatus = "uploaded"
+	FileStatusDeleting  FileStatus = "deleting"
 )
 
 type File struct {

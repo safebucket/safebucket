@@ -1,10 +1,5 @@
 import type { UseMutationResult } from "@tanstack/react-query";
-
-export enum FileStatus {
-  uploading = "uploading",
-  uploaded = "uploaded",
-  deletion_scheduled = "deletion_scheduled",
-}
+import type { FileStatus } from "@/types/bucket.ts";
 
 export interface IFile {
   id: string;

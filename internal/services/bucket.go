@@ -375,7 +375,7 @@ func (s BucketService) DeleteFile(logger *zap.Logger, user models.UserClaims, id
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if file.Type == "folder" {
-			result := tx.Model(&file).Update("status", models.FileStatusDeletionScheduled)
+			result := tx.Model(&file).Update("status", models.FileStatusDeleting)
 			if result.Error != nil {
 				logger.Error("Failed to schedule folder for deletion", zap.Error(result.Error))
 				return err

@@ -5,7 +5,7 @@ import type { FC } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import type { IFile } from "@/components/bucket-view/helpers/types";
-import { FileStatus, FileType } from "@/components/bucket-view/helpers/types";
+import { FileType } from "@/components/bucket-view/helpers/types";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -14,6 +14,7 @@ import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { DataTableRowActions } from "@/components/common/components/DataTable/DataTableRowActions";
 import { Badge } from "@/components/ui/badge";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
+import { FileStatus } from "@/types/bucket.ts";
 
 const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
   {
@@ -105,10 +106,11 @@ const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
               {t("bucket.list_view.uploading")}
             </Badge>
           );
-        case FileStatus.deletion_scheduled:
+        case FileStatus.deleting:
           return (
             <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800">
-              {t("bucket.list_view.deletion_scheduled")}
+              <LoaderCircle className="h-3 w-3 animate-spin" />
+              {t("bucket.list_view.deleting")}
             </Badge>
           );
         default:

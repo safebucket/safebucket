@@ -1,7 +1,7 @@
 export enum FileStatus {
   uploading = "uploading",
   uploaded = "uploaded",
-  deletion_scheduled = "deletion_scheduled",
+  deleting = "deleting",
 }
 
 export interface File {
