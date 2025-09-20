@@ -124,6 +124,8 @@
       "uploaded_at": "Créé à",
       "status": "Statut",
       "uploaded": "Partagé",
+      "uploading": "Téléchargement",
+      "deletion_scheduled": "Suppression planifiée",
       "processing": "En cours",
       "empty_folder": "Le dossier est vide"
     },

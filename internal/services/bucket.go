@@ -198,7 +198,8 @@ func (s BucketService) GetBucket(_ *zap.Logger, _ models.UserClaims, ids uuid.UU
 		// Filter out expired files that haven't been uploaded yet (only applies to files, not folders)
 		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 		result = s.DB.Where(
-			"bucket_id = ? AND (type = 'folder' OR uploaded = true OR created_at > ?)", bucketId, expirationTime,
+			"bucket_id = ? AND (type = 'folder' OR (status = ? AND created_at > ?))",
+			bucketId, models.FileStatusUploading, expirationTime,
 		).Find(&files)
 
 		if result.RowsAffected > 0 {
@@ -298,12 +299,24 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 		return models.FileTransferResponse{}, err
 	}
 
+	var existingFile models.File
+	result := s.DB.Where("bucket_id = ? AND name = ? AND path = ?", bucket.ID, body.Name, body.Path).First(&existingFile)
+	if result.RowsAffected > 0 {
+		return models.FileTransferResponse{}, errors.NewAPIError(409, "FILE_ALREADY_EXISTS")
+	}
+
 	extension := filepath.Ext(body.Name)
 	if len(extension) > 0 {
 		extension = extension[1:]
 	}
 
+	var status models.FileStatus
+	if body.Type == "file" {
+		status = models.FileStatusUploading
+	}
+
 	file := &models.File{
+		Status:    status,
 		Name:      body.Name,
 		Extension: extension,
 		BucketId:  bucket.ID,
@@ -312,32 +325,37 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 		Size:      body.Size,
 	}
 
-	tx := s.DB.Begin()
+	var url string
+	var formData map[string]string
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		res := s.DB.Create(file)
+		if res.Error != nil {
+			return res.Error
+		}
 
-	err = sql.Create[*models.File](tx, file)
+		if file.Type == "file" {
+			url, formData, err = s.Storage.PresignedPostPolicy(
+				path.Join("buckets", bucket.ID.String(), file.Path, file.Name),
+				body.Size,
+				map[string]string{
+					"bucket_id": bucket.ID.String(),
+					"file_id":   file.ID.String(),
+					"user_id":   user.UserID.String(),
+				},
+			)
+
+			if err != nil {
+				logger.Error("Generate presigned URL failed", zap.Error(err))
+				return err
+			}
+
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return models.FileTransferResponse{}, err
-	}
-
-	url, formData, err := s.Storage.PresignedPostPolicy(
-		path.Join("buckets", bucket.ID.String(), file.Path, file.Name),
-		body.Size,
-		map[string]string{
-			"bucket_id": bucket.ID.String(),
-			"file_id":   file.ID.String(),
-			"user_id":   user.UserID.String(),
-		},
-	)
-
-	if err != nil {
-		logger.Error("Generate presigned URL failed", zap.Error(err))
-		tx.Rollback()
-		return models.FileTransferResponse{}, err
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("Failed to commit transaction", zap.Error(err))
-		return models.FileTransferResponse{}, errors.NewAPIError(500, "UPLOAD_FAILED")
+		return models.FileTransferResponse{}, errors.ErrorCreateFailed
 	}
 
 	return models.FileTransferResponse{
@@ -355,33 +373,62 @@ func (s BucketService) DeleteFile(logger *zap.Logger, user models.UserClaims, id
 		return err
 	}
 
-	err = s.Storage.RemoveObject(path.Join("buckets", bucketId.String(), file.Path, file.Name))
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if file.Type == "folder" {
+			result := tx.Model(&file).Update("status", models.FileStatusDeletionScheduled)
+			if result.Error != nil {
+				logger.Error("Failed to schedule folder for deletion", zap.Error(result.Error))
+				return err
+			}
+
+			bucket, err := sql.GetById[models.Bucket](s.DB, bucketId)
+			if err != nil {
+				logger.Error("Failed to get bucket for deletion event", zap.Error(err))
+				return err
+			}
+
+			folderPath := path.Join(file.Path, file.Name)
+			event := events.NewObjectDeletion(s.Publisher, bucket, folderPath)
+			event.Trigger()
+		} else {
+			result := tx.Delete(&file)
+			if result.Error != nil {
+				logger.Error("Failed to delete file from database", zap.Error(result.Error))
+				return err
+			}
+
+			err := s.Storage.RemoveObject(path.Join("buckets", bucketId.String(), file.Path, file.Name))
+			if err != nil {
+				logger.Warn("Failed to delete file from storage", zap.Error(err))
+				return err
+			}
+
+			return nil
+		}
+
+		action := models.Activity{
+			Message: activity.FileDeleted,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionDelete.String(),
+				"bucket_id":   bucketId.String(),
+				"file_id":     fileId.String(),
+				"domain":      c.DefaultDomain,
+				"object_type": rbac.ResourceFile.String(),
+				"user_id":     user.UserID.String(),
+			}),
+		}
+		err = s.ActivityLogger.Send(action)
+
+		if err != nil {
+			logger.Error("Failed to send activity", zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
 
 	if err != nil {
-		logger.Warn("File does not exist in storage", zap.Error(err))
-	}
-
-	result := s.DB.Delete(&file)
-	if result.Error != nil {
-		logger.Error("Failed to delete file", zap.Error(result.Error))
 		return errors.NewAPIError(500, "FILE_DELETION_FAILED")
-	}
-
-	action := models.Activity{
-		Message: activity.FileDeleted,
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionDelete.String(),
-			"bucket_id":   bucketId.String(),
-			"file_id":     fileId.String(),
-			"domain":      c.DefaultDomain,
-			"object_type": rbac.ResourceFile.String(),
-			"user_id":     user.UserID.String(),
-		}),
-	}
-	err = s.ActivityLogger.Send(action)
-
-	if err != nil {
-		return err
 	}
 
 	return nil

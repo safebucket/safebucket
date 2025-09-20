@@ -5,7 +5,7 @@ import type { FC } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import type { IFile } from "@/components/bucket-view/helpers/types";
-import { FileType } from "@/components/bucket-view/helpers/types";
+import { FileStatus, FileType } from "@/components/bucket-view/helpers/types";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -80,7 +80,7 @@ const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
     },
   },
   {
-    accessorKey: "uploaded",
+    accessorKey: "status",
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
@@ -88,24 +88,32 @@ const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
       />
     ),
     cell: ({ row }) => {
-      const uploaded = row.getValue("uploaded");
-      const fileType = row.getValue("type");
+      const status = row.getValue("status");
 
-      if (fileType === FileType.folder) {
-        return "-";
+      switch (status) {
+        case FileStatus.uploaded:
+          return (
+            <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
+              <CheckCircle className="h-3 w-3" />
+              {t("bucket.list_view.uploaded")}
+            </Badge>
+          );
+        case FileStatus.uploading:
+          return (
+            <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
+              <LoaderCircle className="h-3 w-3 animate-spin" />
+              {t("bucket.list_view.uploading")}
+            </Badge>
+          );
+        case FileStatus.deletion_scheduled:
+          return (
+            <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800">
+              {t("bucket.list_view.deletion_scheduled")}
+            </Badge>
+          );
+        default:
+          return "-";
       }
-
-      return uploaded ? (
-        <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
-          <CheckCircle className="h-3 w-3" />
-          {t("bucket.list_view.uploaded")}
-        </Badge>
-      ) : (
-        <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
-          <LoaderCircle className="h-3 w-3 animate-spin" />
-          {t("bucket.list_view.processing")}
-        </Badge>
-      );
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));

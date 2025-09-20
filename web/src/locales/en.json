@@ -124,6 +124,8 @@
       "uploaded_at": "Uploaded At",
       "status": "Status",
       "uploaded": "Uploaded",
+      "uploading": "Uploading",
+      "deletion_scheduled": "Deletion Scheduled",
       "processing": "Processing",
       "empty_folder": "Folder is empty"
     },

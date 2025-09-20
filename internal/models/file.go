@@ -7,16 +7,24 @@ import (
 	"gorm.io/gorm"
 )
 
+type FileStatus string
+
+const (
+	FileStatusUploading         FileStatus = "uploading"
+	FileStatusUploaded          FileStatus = "uploaded"
+	FileStatusDeletionScheduled FileStatus = "deletion_scheduled"
+)
+
 type File struct {
-	ID        uuid.UUID `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
-	Name      string    `gorm:"not null;default:null" json:"name"`
-	Extension string    `gorm:"default:null" json:"extension"`
-	Uploaded  bool      `gorm:"not null;default:false" json:"uploaded"`
-	BucketId  uuid.UUID `gorm:"type:uuid;" json:"bucket_id"`
-	Bucket    Bucket    `json:"-"`
-	Path      string    `gorm:"not null;default:/" json:"path"`
-	Type      string    `gorm:"not null;default:null" json:"type"`
-	Size      int       `gorm:"default:null" json:"size"`
+	ID        uuid.UUID  `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
+	Name      string     `gorm:"not null;default:null" json:"name"`
+	Extension string     `gorm:"default:null" json:"extension"`
+	Status    FileStatus `gorm:"type:varchar(20);default:null" json:"status"`
+	BucketId  uuid.UUID  `gorm:"type:uuid;" json:"bucket_id"`
+	Bucket    Bucket     `json:"-"`
+	Path      string     `gorm:"not null;default:/" json:"path"`
+	Type      string     `gorm:"not null;default:null" json:"type"`
+	Size      int        `gorm:"default:null" json:"size"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`

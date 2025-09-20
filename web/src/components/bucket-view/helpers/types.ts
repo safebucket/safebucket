@@ -1,5 +1,11 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 
+export enum FileStatus {
+  uploading = "uploading",
+  uploaded = "uploaded",
+  deletion_scheduled = "deletion_scheduled",
+}
+
 export interface IFile {
   id: string;
   name: string;
@@ -8,7 +14,7 @@ export interface IFile {
   extension: string;
   path: string;
   files: Array<IFile>;
-  uploaded: boolean;
+  status: FileStatus | null;
   created_at: string;
 }
 
