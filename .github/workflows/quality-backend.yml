@@ -7,6 +7,12 @@ on:
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/quality-backend.yml'
+  pull_request:
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/quality-backend.yml'
   workflow_dispatch:
 
 jobs:
