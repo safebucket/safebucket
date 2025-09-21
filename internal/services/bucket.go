@@ -198,8 +198,8 @@ func (s BucketService) GetBucket(_ *zap.Logger, _ models.UserClaims, ids uuid.UU
 		// Filter out expired files that haven't been uploaded yet (only applies to files, not folders)
 		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 		result = s.DB.Where(
-			"bucket_id = ? AND (type = 'folder' OR (status = ? AND created_at > ?))",
-			bucketId, models.FileStatusUploading, expirationTime,
+			"bucket_id = ? AND (type = 'folder' OR status = ? OR (status = ? AND created_at > ?))",
+			bucketId, models.FileStatusUploaded, models.FileStatusUploading, expirationTime,
 		).Find(&files)
 
 		if result.RowsAffected > 0 {
