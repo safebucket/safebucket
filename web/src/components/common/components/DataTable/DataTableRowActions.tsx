@@ -1,8 +1,8 @@
-import type { Row } from "@tanstack/react-table";
 import { Ellipsis } from "lucide-react";
+import type { Row } from "@tanstack/react-table";
 
+import type { IFile } from "@/types/file.ts";
 import { FileActions } from "@/components/FileActions/FileActions";
-import type { IFile } from "@/components/bucket-view/helpers/types";
 import { Button } from "@/components/ui/button";
 
 interface DataTableRowActionsProps<TData> {

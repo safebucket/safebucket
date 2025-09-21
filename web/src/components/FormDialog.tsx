@@ -24,7 +24,7 @@ interface FormDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
-  fields: Field[];
+  fields: Array<Field>;
   onSubmit: (data: Record<string, string>) => void;
   confirmLabel?: string;
   maxWidth?: string;

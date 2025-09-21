@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface AddMembersProps {
-  shareWith: Invites[];
-  onShareWithChange: (shareWith: Invites[]) => void;
+  shareWith: Array<Invites>;
+  onShareWithChange: (shareWith: Array<Invites>) => void;
   currentUserEmail?: string;
   currentUserName?: string;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/types/bucket.ts";
 import {
   errorToast,
   successToast,

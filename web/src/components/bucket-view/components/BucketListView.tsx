@@ -4,8 +4,8 @@ import type { FC } from "react";
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import type { IFile } from "@/components/bucket-view/helpers/types";
-import { FileType } from "@/components/bucket-view/helpers/types";
+import type { IFile } from "@/types/file.ts";
+import { FileStatus, FileType } from "@/types/file.ts";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -14,7 +14,6 @@ import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { DataTableRowActions } from "@/components/common/components/DataTable/DataTableRowActions";
 import { Badge } from "@/components/ui/badge";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
-import { FileStatus } from "@/types/bucket.ts";
 
 const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
   {

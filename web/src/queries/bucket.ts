@@ -1,9 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { IActivity, IListBucketActivity } from "@/types/activity";
-import type {
-  IBucket,
-  IBucketMember,
-} from "@/components/bucket-view/helpers/types.ts";
+import type { IBucketMember } from "@/components/bucket-view/helpers/types.ts";
+import type { IBucket } from "@/types/bucket.ts";
 import { api } from "@/lib/api";
 
 export const bucketsQueryOptions = () =>

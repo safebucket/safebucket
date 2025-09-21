@@ -1,35 +1,14 @@
-export enum FileStatus {
-  uploading = "uploading",
-  uploaded = "uploaded",
-  deleting = "deleting",
-}
-
-export interface File {
-  id: string;
-  name: string;
-  size: number;
-  type: FileType;
-  extension: string;
-  path: string;
-  files: Array<File>;
-  status: FileStatus | null;
-  created_at: string;
-}
-
-export enum FileType {
-  file = "file",
-  folder = "folder",
-}
+import type { IFile } from "@/types/file.ts";
 
 export interface Invites {
   email: string;
   group: string;
 }
 
-export interface Bucket {
+export interface IBucket {
   id: string;
   name: string;
-  files: Array<File>;
+  files: Array<IFile>;
   created_by: string;
   created_at: string;
   updated_at: string;

@@ -1,5 +1,3 @@
-import type { FC } from "react";
-
 import {
   FileAudio,
   FileChartColumn,
@@ -12,8 +10,9 @@ import {
   FileVideo,
   FolderClosed,
 } from "lucide-react";
+import type { FC } from "react";
 
-import { FileType } from "@/components/bucket-view/helpers/types";
+import { FileType } from "@/types/file.ts";
 
 interface IFileIconViewProps {
   className: string;

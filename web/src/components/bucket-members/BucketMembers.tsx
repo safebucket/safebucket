@@ -2,7 +2,7 @@ import { UserPlus, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
-import type { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/types/bucket.ts";
 import {
   EMAIL_REGEX,
   bucketGroups,

@@ -4,7 +4,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import * as actions from "../store/actions";
 import { generateRandomString } from "@/lib/utils";
 
-import { FileType } from "@/components/bucket-view/helpers/types";
 import { successToast } from "@/components/ui/hooks/use-toast";
 import {
   api_createFile,
@@ -13,6 +12,7 @@ import {
 import { UploadStatus } from "@/components/upload/helpers/types";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
 import { uploadsReducer } from "@/components/upload/store/reducer";
+import { FileType } from "@/types/file.ts";
 
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();

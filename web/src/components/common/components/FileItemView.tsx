@@ -1,12 +1,12 @@
 import type { FC } from "react";
 
+import type { IFile } from "@/types/file.ts";
 import { cn, formatDate, formatFileSize } from "@/lib/utils";
 
 import { FileActions } from "@/components/FileActions/FileActions";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
-import type { IFile } from "@/components/bucket-view/helpers/types";
-import { FileType } from "@/components/bucket-view/helpers/types";
 import { Card } from "@/components/ui/card";
+import { FileType } from "@/types/file.ts";
 
 interface IFileViewProps {
   file: IFile;
