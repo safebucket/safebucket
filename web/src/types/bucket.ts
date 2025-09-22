@@ -1,3 +1,9 @@
+export enum FileStatus {
+  uploading = "uploading",
+  uploaded = "uploaded",
+  deleting = "deleting",
+}
+
 export interface File {
   id: string;
   name: string;
@@ -6,7 +12,7 @@ export interface File {
   extension: string;
   path: string;
   files: Array<File>;
-  uploaded: boolean;
+  status: FileStatus | null;
   created_at: string;
 }
 

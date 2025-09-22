@@ -14,6 +14,7 @@ import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { DataTableRowActions } from "@/components/common/components/DataTable/DataTableRowActions";
 import { Badge } from "@/components/ui/badge";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
+import { FileStatus } from "@/types/bucket.ts";
 
 const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
   {
@@ -80,7 +81,7 @@ const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
     },
   },
   {
-    accessorKey: "uploaded",
+    accessorKey: "status",
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
@@ -88,24 +89,33 @@ const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
       />
     ),
     cell: ({ row }) => {
-      const uploaded = row.getValue("uploaded");
-      const fileType = row.getValue("type");
+      const status = row.getValue("status");
 
-      if (fileType === FileType.folder) {
-        return "-";
+      switch (status) {
+        case FileStatus.uploaded:
+          return (
+            <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
+              <CheckCircle className="h-3 w-3" />
+              {t("bucket.list_view.uploaded")}
+            </Badge>
+          );
+        case FileStatus.uploading:
+          return (
+            <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
+              <LoaderCircle className="h-3 w-3 animate-spin" />
+              {t("bucket.list_view.uploading")}
+            </Badge>
+          );
+        case FileStatus.deleting:
+          return (
+            <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800">
+              <LoaderCircle className="h-3 w-3 animate-spin" />
+              {t("bucket.list_view.deleting")}
+            </Badge>
+          );
+        default:
+          return "-";
       }
-
-      return uploaded ? (
-        <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
-          <CheckCircle className="h-3 w-3" />
-          {t("bucket.list_view.uploaded")}
-        </Badge>
-      ) : (
-        <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
-          <LoaderCircle className="h-3 w-3 animate-spin" />
-          {t("bucket.list_view.processing")}
-        </Badge>
-      );
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));

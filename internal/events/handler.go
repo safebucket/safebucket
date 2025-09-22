@@ -117,7 +117,7 @@ func HandleBucketEvents(
 				continue
 			}
 
-			db.Model(&file).Update("uploaded", true)
+			db.Model(&file).Update("status", models.FileStatusUploaded)
 
 			action := models.Activity{
 				Message: activity.FileUploaded,

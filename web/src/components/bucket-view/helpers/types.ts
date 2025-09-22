@@ -1,4 +1,5 @@
 import type { UseMutationResult } from "@tanstack/react-query";
+import type { FileStatus } from "@/types/bucket.ts";
 
 export interface IFile {
   id: string;
@@ -8,7 +9,7 @@ export interface IFile {
   extension: string;
   path: string;
   files: Array<IFile>;
-  uploaded: boolean;
+  status: FileStatus | null;
   created_at: string;
 }
 

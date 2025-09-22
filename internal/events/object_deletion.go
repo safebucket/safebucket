@@ -152,6 +152,26 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 		return errors.New("remaining files left")
 	}
 
+	if e.Payload.Path != "/" {
+		parentPath := path.Dir(e.Payload.Path)
+		folderName := path.Base(e.Payload.Path)
+
+		result := params.DB.Where("bucket_id = ? AND name = ? AND path = ? AND type = 'folder'",
+			e.Payload.Bucket.ID, folderName, parentPath).Delete(&models.File{})
+
+		if result.Error != nil {
+			zap.L().Error("Failed to delete folder from database", zap.Error(result.Error))
+			return result.Error
+		}
+
+		if result.RowsAffected > 0 {
+			zap.L().Info("Successfully deleted folder",
+				zap.String("folder_name", folderName),
+				zap.String("parent_path", parentPath),
+			)
+		}
+	}
+
 	zap.L().Info("Object deletion complete",
 		zap.String("bucket_id", e.Payload.Bucket.ID.String()),
 		zap.String("path", e.Payload.Path),
