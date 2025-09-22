@@ -102,7 +102,7 @@ function Login() {
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">{t("auth.password")}</Label>
                       <Link
-                        to="/"
+                        to="/auth/reset-password"
                         className="text-primary text-sm font-medium hover:underline"
                       >
                         {t("auth.forgot_password")}

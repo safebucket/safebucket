@@ -49,7 +49,7 @@ func runMigrations(db *gorm.DB) {
 		}
 	}
 
-	err = db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{}, &models.Invite{}, &models.Challenge{})
+	err = db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{}, &models.Invite{}, &models.Challenge{}, &models.PasswordResetChallenge{})
 	if err != nil {
 		zap.L().Fatal("failed to migrate db models", zap.Error(err))
 	}

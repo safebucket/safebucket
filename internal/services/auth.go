@@ -1,10 +1,13 @@
 package services
 
 import (
+	"api/internal/activity"
 	"api/internal/configuration"
 	customerr "api/internal/errors"
+	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
+	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac/roles"
@@ -12,6 +15,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/casbin/casbin/v2"
@@ -24,19 +28,26 @@ import (
 )
 
 type AuthService struct {
-	DB        *gorm.DB
-	Enforcer  *casbin.Enforcer
-	JWTSecret string
-	Providers configuration.Providers
-	WebUrl    string
+	DB             *gorm.DB
+	Enforcer       *casbin.Enforcer
+	JWTSecret      string
+	Providers      configuration.Providers
+	WebUrl         string
+	Publisher      messaging.IPublisher
+	ActivityLogger activity.IActivityLogger
 }
 
 func (s AuthService) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.With(m.Validate[models.AuthLogin]).Post("/login", handlers.CreateHandler(s.Login))
-	// TODO: MFA / ResetPassword / ResetTokens / IsAdmin (:= get user)
 	r.With(m.Validate[models.AuthVerify]).Post("/verify", handlers.CreateHandler(s.Verify))
 	r.With(m.Validate[models.AuthRefresh]).Post("/refresh", handlers.CreateHandler(s.Refresh))
+
+	// Password reset endpoints (unauthenticated)
+	r.With(m.Validate[models.PasswordResetRequestBody]).Post("/reset-password", handlers.CreateHandler(s.RequestPasswordReset))
+	r.Route("/reset-password/{id0}", func(r chi.Router) {
+		r.With(m.Validate[models.PasswordResetValidateBody]).Post("/validate", handlers.CreateHandler(s.ValidatePasswordReset))
+	})
 
 	r.Route("/providers", func(r chi.Router) {
 		r.Get("/", handlers.GetListHandler(s.GetProviderList))
@@ -185,4 +196,120 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	return accessToken, refreshToken, nil
+}
+
+func (s AuthService) RequestPasswordReset(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.PasswordResetRequestBody) (interface{}, error) {
+	var user models.User
+	result := s.DB.Where("email = ? AND is_external = ?", body.Email, false).First(&user)
+
+	if result.RowsAffected == 0 {
+		// Return success even if user doesn't exist to prevent email enumeration
+		return map[string]string{"message": "If an account with this email exists, a password reset email has been sent"}, nil
+	}
+
+	secret, err := h.GenerateSecret(6)
+	if err != nil {
+		return nil, customerr.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+	}
+
+	hashedSecret, err := h.CreateHash(secret)
+	if err != nil {
+		return nil, customerr.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+	}
+
+	// Delete any existing password reset challenges for this user
+	s.DB.Where("user_id = ?", user.ID).Delete(&models.PasswordResetChallenge{})
+
+	// Create a new password reset challenge
+	challenge := models.PasswordResetChallenge{
+		UserID:       user.ID,
+		HashedSecret: hashedSecret,
+	}
+
+	result = s.DB.Create(&challenge)
+	if result.Error != nil {
+		return nil, customerr.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+	}
+
+	// Send password reset email
+	event := events.NewPasswordResetChallenge(
+		s.Publisher,
+		secret,
+		user.Email,
+		challenge.ID.String(),
+		s.WebUrl,
+	)
+	event.Trigger()
+
+	return map[string]string{"message": "If an account with this email exists, a password reset email has been sent"}, nil
+}
+
+func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.PasswordResetValidateBody) (models.AuthLoginResponse, error) {
+	challengeId := ids[0]
+
+	var challenge models.PasswordResetChallenge
+	result := s.DB.Preload("User").Where("id = ?", challengeId).First(&challenge)
+
+	if result.RowsAffected == 0 {
+		return models.AuthLoginResponse{}, customerr.NewAPIError(404, "CHALLENGE_NOT_FOUND")
+	}
+
+	// Verify the code
+	match, err := argon2id.ComparePasswordAndHash(strings.ToUpper(body.Code), challenge.HashedSecret)
+	if err != nil || !match {
+		return models.AuthLoginResponse{}, customerr.NewAPIError(401, "WRONG_CODE")
+	}
+
+	// Hash the new password
+	hashedPassword, err := h.CreateHash(body.NewPassword)
+	if err != nil {
+		logger.Error("Failed to hash new password", zap.Error(err))
+		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
+	}
+
+	// Start transaction for password update and challenge cleanup
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		logger.Error("Failed to start transaction", zap.Error(tx.Error))
+		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "TRANSACTION_START_FAILED")
+	}
+
+	// Update user password
+	updateResult := tx.Model(&challenge.User).Update("hashed_password", hashedPassword)
+	if updateResult.Error != nil {
+		logger.Error("Failed to update password", zap.Error(updateResult.Error))
+		tx.Rollback()
+		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
+	}
+
+	// Delete the used challenge
+	deleteResult := tx.Delete(&challenge)
+	if deleteResult.Error != nil {
+		logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
+		tx.Rollback()
+		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		logger.Error("Failed to commit transaction", zap.Error(err))
+		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "TRANSACTION_COMMIT_FAILED")
+	}
+
+	// Generate tokens for the user
+	accessToken, err := h.NewAccessToken(s.JWTSecret, &challenge.User, string(models.LocalProviderType))
+	if err != nil {
+		logger.Error("Failed to generate access token", zap.Error(err))
+		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "GENERATE_ACCESS_TOKEN_FAILED")
+	}
+
+	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &challenge.User, string(models.LocalProviderType))
+	if err != nil {
+		logger.Error("Failed to generate refresh token", zap.Error(err))
+		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "GENERATE_REFRESH_TOKEN_FAILED")
+	}
+
+	return models.AuthLoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }

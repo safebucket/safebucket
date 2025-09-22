@@ -2,6 +2,8 @@ package core
 
 import (
 	"errors"
+	"runtime"
+	"strings"
 	"syscall"
 
 	"go.uber.org/zap"
@@ -34,8 +36,29 @@ func NewLogger(level string) {
 
 	defer func(logger *zap.Logger) {
 		err := logger.Sync()
-		if err != nil && !errors.Is(err, syscall.ENOTTY) {
+		if err != nil && !isIgnorableLogSyncError(err) {
 			panic(err)
 		}
 	}(logger)
+}
+
+// isIgnorableLogSyncError returns true for errors that can be safely ignored during logger sync
+func isIgnorableLogSyncError(err error) bool {
+	// Standard UNIX not-a-terminal error
+	if errors.Is(err, syscall.ENOTTY) {
+		return true
+	}
+
+	// Windows-specific sync errors
+	if runtime.GOOS == "windows" {
+		errStr := err.Error()
+		// Common Windows stderr sync errors
+		if strings.Contains(errStr, "The handle is invalid") ||
+			strings.Contains(errStr, "sync /dev/stderr") ||
+			strings.Contains(errStr, "inappropriate ioctl for device") {
+			return true
+		}
+	}
+
+	return false
 }

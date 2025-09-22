@@ -55,7 +55,10 @@ export const SessionProvider = ({
     } else {
       setSession(null);
       setStatus("unauthenticated");
-      if (!location.pathname.startsWith("/invites/")) {
+      if (
+        !location.pathname.startsWith("/invites/") &&
+        !location.pathname.startsWith("/auth/reset-password")
+      ) {
         router.navigate({ to: "/auth/login" });
       }
     }

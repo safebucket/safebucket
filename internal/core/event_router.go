@@ -48,7 +48,7 @@ func (er *EventRouter) Close() error {
 // getTopicKeyForEvent maps event types to topic keys
 func (er *EventRouter) getTopicKeyForEvent(eventType string) string {
 	switch eventType {
-	case events.UserInvitationName, events.BucketSharedWithName, events.ChallengeUserInviteName:
+	case events.UserInvitationName, events.BucketSharedWithName, events.ChallengeUserInviteName, events.PasswordResetChallengeName:
 		return configuration.EventsNotifications
 	case events.ObjectDeletionName:
 		return configuration.EventsObjectDeletion

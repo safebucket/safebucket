@@ -124,11 +124,13 @@ func main() {
 		}.Routes())
 
 		apiRouter.Mount("/v1/auth", services.AuthService{
-			DB:        db,
-			Enforcer:  enforcer,
-			JWTSecret: config.App.JWTSecret,
-			Providers: providers,
-			WebUrl:    config.App.WebUrl,
+			DB:             db,
+			Enforcer:       enforcer,
+			JWTSecret:      config.App.JWTSecret,
+			Providers:      providers,
+			WebUrl:         config.App.WebUrl,
+			Publisher:      eventRouter,
+			ActivityLogger: activity,
 		}.Routes())
 
 		apiRouter.Mount("/v1/invites", services.InviteService{
