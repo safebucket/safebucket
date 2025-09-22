@@ -2,11 +2,11 @@ import { useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  IBucket,
   IBucketsData,
   IMembers,
 } from "@/components/bucket-view/helpers/types";
 
+import type { IBucket } from "@/types/bucket.ts";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import { bucketsQueryOptions } from "@/queries/bucket.ts";
 import { api } from "@/lib/api.ts";

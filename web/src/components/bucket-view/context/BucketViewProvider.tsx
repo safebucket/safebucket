@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
 
-import type { IFile } from "@/components/bucket-view/helpers/types";
+import type { IFile } from "@/types/file.ts";
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { BucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 

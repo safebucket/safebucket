@@ -1,5 +1,5 @@
-import type { FileType } from "@/components/bucket-view/helpers/types";
 import type { ICreateFile } from "@/components/upload/helpers/types";
+import type { FileType } from "@/types/file.ts";
 import { api } from "@/lib/api";
 
 import { toast } from "@/components/ui/hooks/use-toast";

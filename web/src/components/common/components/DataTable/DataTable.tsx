@@ -18,7 +18,7 @@ import type {
   VisibilityState,
 } from "@tanstack/react-table";
 
-import type { IFile } from "@/components/bucket-view/helpers/types";
+import type { IFile } from "@/types/file.ts";
 import { FileActions } from "@/components/FileActions/FileActions";
 import {
   Table,

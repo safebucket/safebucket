@@ -2,7 +2,7 @@ import { BucketDeletion } from "./BucketDeletion";
 import { BucketInformation } from "./BucketInformation";
 import type { FC } from "react";
 
-import type { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/types/bucket.ts";
 import { BucketMembers } from "@/components/bucket-members/BucketMembers.tsx";
 
 interface IBucketSettingsProps {

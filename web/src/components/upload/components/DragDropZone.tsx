@@ -11,10 +11,10 @@ import type {
 } from "@/components/upload/helpers/types";
 import { cn } from "@/lib/utils";
 
-import { FileType } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { api_createFile } from "@/components/upload/helpers/api";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
+import { FileType } from "@/types/file.ts";
 
 interface IDragDropZoneProps {
   bucketId: string;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FC } from "react";
 
-import type { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/types/bucket.ts";
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { BucketActivityView } from "@/components/bucket-view/components/BucketActivityView";
 import { BucketGridView } from "@/components/bucket-view/components/BucketGridView";

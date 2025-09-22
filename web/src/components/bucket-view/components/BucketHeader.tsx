@@ -1,11 +1,10 @@
-import type { FC } from "react";
 import { useTranslation } from "react-i18next";
-
 import { PlusCircle } from "lucide-react";
+import type { FC } from "react";
 
+import type { IBucket } from "@/types/bucket.ts";
 import { BucketViewOptions } from "@/components/bucket-view/components/BucketViewOptions";
 import { shareFileFields } from "@/components/bucket-view/helpers/constants";
-import type { IBucket } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";

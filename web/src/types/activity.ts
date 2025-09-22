@@ -1,18 +1,11 @@
+import type { IBucket } from "@/types/bucket.ts";
+import type { IFile } from "@/types/file.ts";
+
 export interface IUser {
   id: string;
   email: string;
   first_name: string;
   last_name: string;
-}
-
-export interface IBucket {
-  id: string;
-  name: string;
-}
-
-export interface IFile {
-  id: string;
-  name: string;
 }
 
 export interface IActivity {
@@ -43,17 +36,4 @@ export enum ActivityMessage {
 
 export interface IListBucketActivity {
   data: Array<IActivity>;
-}
-
-export interface MessageMapping {
-  message: string;
-  icon: any;
-  iconColor: string;
-  iconBg: string;
-}
-
-export interface IActivityData {
-  activity: Array<IActivity>;
-  error: string;
-  isLoading: boolean;
 }

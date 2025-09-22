@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { AlertTriangle } from "lucide-react";
 import type { FC } from "react";
 
-import type { IBucket } from "@/components/bucket-view/helpers/types";
+import type { IBucket } from "@/types/bucket.ts";
 import { useBucketDeletion } from "@/components/bucket-view/hooks/useBucketDeletion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
