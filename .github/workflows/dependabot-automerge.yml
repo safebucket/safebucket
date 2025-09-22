@@ -20,7 +20,7 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Wait for status checks
-        uses: lewagon/wait-on-check-action@v1.3.4
+        uses: lewagon/wait-on-check-action@v1.4.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           check-name: 'backend'
@@ -29,7 +29,7 @@ jobs:
           allowed-conclusions: success
 
       - name: Wait for frontend checks
-        uses: lewagon/wait-on-check-action@v1.3.4
+        uses: lewagon/wait-on-check-action@v1.4.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           check-name: 'frontend'
