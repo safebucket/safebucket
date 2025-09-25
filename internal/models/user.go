@@ -13,8 +13,9 @@ type User struct {
 	LastName       string         `gorm:"default:null" json:"last_name"`
 	Email          string         `gorm:"unique;not null;default:null" json:"email"`
 	HashedPassword string         `gorm:"default:null" json:"-"`
-	IsExternal     bool           `gorm:"not null;default:false" json:"is_external"`
 	IsInitialized  bool           `gorm:"not null;default:false" json:"is_initialized"`
+	ProviderType   ProviderType   `gorm:"not null;type:provider_type;" json:"provider_type"`
+	ProviderName   string         `gorm:"not null;" json:"provider_name"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`

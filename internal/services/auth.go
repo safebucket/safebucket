@@ -2,6 +2,7 @@ package services
 
 import (
 	"api/internal/configuration"
+	customerr "api/internal/errors"
 	customerrors "api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
@@ -49,7 +50,15 @@ func (s AuthService) Routes() chi.Router {
 }
 
 func (s AuthService) Login(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthLogin) (models.AuthLoginResponse, error) {
-	searchUser := models.User{Email: body.Email, IsExternal: false}
+	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
+		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+	}
+
+	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
+		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+	}
+
+	searchUser := models.User{Email: body.Email}
 	result := s.DB.Where("email = ?", searchUser.Email).First(&searchUser)
 	if result.RowsAffected == 1 {
 		match, err := argon2id.ComparePasswordAndHash(body.Password, searchUser.HashedPassword)
@@ -57,12 +66,16 @@ func (s AuthService) Login(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, bod
 			return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 		}
 
-		accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, configuration.LocalAuthProviderType)
+		s.DB.Model(&searchUser).Updates(
+			models.User{ProviderType: models.LocalProviderType, ProviderName: string(models.LocalProviderType)},
+		)
+
+		accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, string(models.LocalProviderType))
 		if err != nil {
 			return models.AuthLoginResponse{}, customerrors.ErrorGenerateAccessTokenFailed
 		}
 
-		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, configuration.LocalAuthProviderType)
+		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, string(models.LocalProviderType))
 		if err != nil {
 			return models.AuthLoginResponse{}, customerrors.ErrorGenerateRefreshTokenFailed
 		}
@@ -142,14 +155,24 @@ func (s AuthService) OpenIDCallback(
 		return "", "", fmt.Errorf("failed to get user info %s", err.Error())
 	}
 
-	searchUser := models.User{Email: userInfo.Email, IsExternal: true}
+	if !h.IsDomainAllowed(userInfo.Email, s.Providers[providerName].Domains) {
+		return "", "", customerr.NewAPIError(403, "FORBIDDEN")
+	}
+
+	searchUser := models.User{Email: userInfo.Email}
 	result := s.DB.Where("email = ?", searchUser.Email).First(&searchUser)
 	if result.RowsAffected == 0 {
+		searchUser.ProviderType = models.OIDCProviderType
+		searchUser.ProviderName = providerName
 		err = sql.CreateUserWithRole(s.DB, s.Enforcer, &searchUser, roles.AddUserToRoleUser)
 		if err != nil {
 			return "", "", err
 		}
 	}
+
+	s.DB.Model(&searchUser).Updates(
+		models.User{ProviderType: models.OIDCProviderType, ProviderName: providerName},
+	)
 
 	accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, providerName)
 	if err != nil {

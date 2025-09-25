@@ -177,12 +177,12 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 		}
 
 		// Generate tokens after successful transaction commit
-		accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, configuration.LocalAuthProviderType)
+		accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
 		if err != nil {
 			logger.Error("Failed to generate access token", zap.Error(err))
 			return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_ACCESS_TOKEN_FAILED")
 		}
-		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &newUser, configuration.LocalAuthProviderType)
+		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
 		if err != nil {
 			logger.Error("Failed to generate refresh token", zap.Error(err))
 			return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_REFRESH_TOKEN_FAILED")

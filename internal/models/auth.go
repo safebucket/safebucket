@@ -1,5 +1,12 @@
 package models
 
+type ProviderType string
+
+const (
+	LocalProviderType ProviderType = "local"
+	OIDCProviderType  ProviderType = "oidc"
+)
+
 type AuthLogin struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
@@ -27,7 +34,7 @@ type AuthRefreshResponse struct {
 }
 
 type ProviderResponse struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Id   string       `json:"id"`
+	Name string       `json:"name"`
+	Type ProviderType `json:"type"`
 }

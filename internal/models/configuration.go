@@ -39,8 +39,9 @@ type AuthConfiguration struct {
 
 type ProviderConfiguration struct {
 	Name                 string               `mapstructure:"name" validate:"required_if=Type oidc"`
-	Type                 string               `mapstructure:"type" validate:"required,oneof=local oidc"`
+	Type                 ProviderType         `mapstructure:"type" validate:"required,oneof=local oidc"`
 	OIDC                 OIDCConfiguration    `mapstructure:"oidc" validate:"required_if=Type oidc"`
+	Domains              []string             `mapstructure:"domains" validate:"dive"`
 	SharingConfiguration SharingConfiguration `mapstructure:"sharing"`
 }
 
@@ -51,8 +52,8 @@ type OIDCConfiguration struct {
 }
 
 type SharingConfiguration struct {
-	Allowed        bool     `mapstructure:"allowed" default:"true"`
-	AllowedDomains []string `mapstructure:"allowed_domains" validate:"dive,hostname_rfc1123"`
+	Allowed bool     `mapstructure:"allowed" default:"true"`
+	Domains []string `mapstructure:"domains" validate:"dive"`
 }
 
 type CacheConfiguration struct {

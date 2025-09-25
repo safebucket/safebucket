@@ -73,26 +73,32 @@ auth:
   providers:
     local:
       type: local
+      domains:
       sharing:
         allowed: true
+        domains:
 #    okta:
 #      type: oidc
 #      name: Okta
+#      domains:
 #      oidc:
 #        client_id:
 #        client_secret:
 #        issuer:
 #      sharing:
 #        allowed: true
+#        domains:
 #    google:
 #      type: oidc
 #      name: Google
+#      domains:
 #      oidc:
 #        client_id:
 #        client_secret:
 #        issuer:
 #      sharing:
 #        enabled: true
+#        domains:
 
 activity:
   type: loki

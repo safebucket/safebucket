@@ -48,9 +48,11 @@ func main() {
 	// TODO: Create a dedicated fct
 
 	adminUser := models.User{
-		FirstName: "admin",
-		LastName:  "admin",
-		Email:     config.App.AdminEmail,
+		FirstName:    "admin",
+		LastName:     "admin",
+		Email:        config.App.AdminEmail,
+		ProviderType: models.LocalProviderType,
+		ProviderName: string(models.LocalProviderType),
 	}
 
 	hash, _ := h.CreateHash(config.App.AdminPassword)

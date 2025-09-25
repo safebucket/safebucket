@@ -37,6 +37,18 @@ func runMigrations(db *gorm.DB) {
 		}
 	}
 
+	err = db.Raw("select exists(select 1 from pg_type where typname = 'provider_type')").Scan(&exists).Error
+	if err != nil {
+		zap.L().Error("failed to check if provider_type enum exists", zap.Error(err))
+	}
+
+	if !exists {
+		err = db.Exec("CREATE TYPE provider_type AS ENUM ('local', 'oidc')").Error
+		if err != nil {
+			zap.L().Error("failed to create provider_type enum", zap.Error(err))
+		}
+	}
+
 	err = db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{}, &models.Invite{}, &models.Challenge{})
 	if err != nil {
 		zap.L().Error("failed to migrate db models", zap.Error(err))

@@ -6,6 +6,7 @@ import (
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
+	"api/internal/helpers"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
@@ -175,19 +176,19 @@ func (s BucketMemberService) UpdateBucketMembers(
 	changes := s.compareMemberships(currentMembers, updatedMembers)
 
 	for _, member := range changes.ToAdd {
-		if s.isDomainAllowed(member.Email, providerCfg) {
+		if helpers.IsDomainAllowed(member.Email, providerCfg.SharingOptions.Domains) {
 			s.addMember(logger, user, bucket, member)
 		}
 	}
 
 	for _, member := range changes.ToUpdate {
-		if s.isDomainAllowed(member.Email, providerCfg) {
+		if helpers.IsDomainAllowed(member.Email, providerCfg.SharingOptions.Domains) {
 			s.updateMember(logger, user, bucket, member)
 		}
 	}
 
 	for _, member := range changes.ToDelete {
-		if s.isDomainAllowed(member.Email, providerCfg) {
+		if helpers.IsDomainAllowed(member.Email, providerCfg.SharingOptions.Domains) {
 			s.deleteMember(logger, user, bucket, member)
 		}
 	}
@@ -226,28 +227,6 @@ func (s BucketMemberService) compareMemberships(
 	}
 
 	return changes
-}
-
-func (s BucketMemberService) isDomainAllowed(
-	email string,
-	providerCfg configuration.Provider,
-) bool {
-	domainParts := strings.Split(email, "@")
-	if len(domainParts) != 2 {
-		return false
-	}
-
-	emailDomain := domainParts[1]
-
-	if len(providerCfg.SharingOptions.AllowedDomains) > 0 {
-		for _, domain := range providerCfg.SharingOptions.AllowedDomains {
-			if strings.EqualFold(emailDomain, domain) {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, invite models.BucketMemberBody) {
