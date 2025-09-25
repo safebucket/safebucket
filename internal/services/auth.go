@@ -3,7 +3,6 @@ package services
 import (
 	"api/internal/configuration"
 	customerr "api/internal/errors"
-	customerrors "api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
@@ -72,12 +71,12 @@ func (s AuthService) Login(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, bod
 
 		accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, string(models.LocalProviderType))
 		if err != nil {
-			return models.AuthLoginResponse{}, customerrors.ErrorGenerateAccessTokenFailed
+			return models.AuthLoginResponse{}, customerr.ErrorGenerateAccessTokenFailed
 		}
 
 		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, string(models.LocalProviderType))
 		if err != nil {
-			return models.AuthLoginResponse{}, customerrors.ErrorGenerateRefreshTokenFailed
+			return models.AuthLoginResponse{}, customerr.ErrorGenerateRefreshTokenFailed
 		}
 
 		return models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
@@ -176,12 +175,12 @@ func (s AuthService) OpenIDCallback(
 
 	accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, providerName)
 	if err != nil {
-		return "", "", customerrors.ErrorGenerateAccessTokenFailed
+		return "", "", customerr.ErrorGenerateAccessTokenFailed
 	}
 
 	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, providerName)
 	if err != nil {
-		return "", "", customerrors.ErrorGenerateRefreshTokenFailed
+		return "", "", customerr.ErrorGenerateRefreshTokenFailed
 	}
 
 	return accessToken, refreshToken, nil
