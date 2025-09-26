@@ -48,9 +48,11 @@ func (s UserService) Routes() chi.Router {
 
 func (s UserService) CreateUser(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
 	newUser := models.User{
-		FirstName: body.FirstName,
-		LastName:  body.LastName,
-		Email:     body.Email,
+		FirstName:    body.FirstName,
+		LastName:     body.LastName,
+		Email:        body.Email,
+		ProviderType: body.ProviderType,
+		ProviderKey:  body.ProviderKey,
 	}
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {

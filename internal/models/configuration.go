@@ -41,7 +41,7 @@ type ProviderConfiguration struct {
 	Name                 string               `mapstructure:"name" validate:"required_if=Type oidc"`
 	Type                 ProviderType         `mapstructure:"type" validate:"required,oneof=local oidc"`
 	OIDC                 OIDCConfiguration    `mapstructure:"oidc" validate:"required_if=Type oidc"`
-	Domains              []string             `mapstructure:"domains" validate:"dive"`
+	Domains              []string             `mapstructure:"domains"`
 	SharingConfiguration SharingConfiguration `mapstructure:"sharing"`
 }
 

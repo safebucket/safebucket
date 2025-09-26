@@ -1,9 +1,10 @@
 import { useState } from "react";
-import type { FC } from "react";
 
 import { AlertCircle, Mail } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import type { FC } from "react";
 
 import { api_createChallenge } from "@/components/invites/helpers/api";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ interface IEmailConfirmationFormProps {
 export const EmailConfirmationForm: FC<IEmailConfirmationFormProps> = ({
   invitationId,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export const EmailConfirmationForm: FC<IEmailConfirmationFormProps> = ({
         navigate({ to: `/invites/${invitationId}/challenges/${res.id}` }),
       )
       .catch(() =>
-        setError("Failed to send verification code. Please try again."),
+        setError(t("invites.email_confirmation.send_error")),
       );
   };
 
@@ -55,10 +57,9 @@ export const EmailConfirmationForm: FC<IEmailConfirmationFormProps> = ({
         <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-100 p-3">
           <Mail className="h-6 w-6 text-blue-600" />
         </div>
-        <CardTitle>Verify your email address</CardTitle>
+        <CardTitle>{t("invites.email_confirmation.title")}</CardTitle>
         <CardDescription>
-          Confirm your email address to receive a security code challenge that
-          you&#39;ll need to create your account
+          {t("invites.email_confirmation.description")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -71,16 +72,16 @@ export const EmailConfirmationForm: FC<IEmailConfirmationFormProps> = ({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">{t("invites.email_confirmation.email_label")}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="name@example.com"
+              placeholder={t("invites.email_confirmation.email_placeholder")}
               {...register("email", {
-                required: "Email is required",
+                required: t("invites.email_confirmation.email_required"),
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: "Please enter a valid email address",
+                  message: t("invites.email_confirmation.email_invalid"),
                 },
               })}
               className={errors.email ? "border-red-500" : ""}
@@ -91,12 +92,11 @@ export const EmailConfirmationForm: FC<IEmailConfirmationFormProps> = ({
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Sending code..." : "Send verification code"}
+            {isSubmitting ? t("invites.email_confirmation.sending_button") : t("invites.email_confirmation.send_button")}
           </Button>
 
           <p className="text-muted-foreground mt-3 text-center text-xs">
-            After confirming, check your email for a verification code to
-            complete the process
+            {t("invites.email_confirmation.footer_text")}
           </p>
         </form>
       </CardContent>

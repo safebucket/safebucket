@@ -34,7 +34,8 @@ type AuthRefreshResponse struct {
 }
 
 type ProviderResponse struct {
-	Id   string       `json:"id"`
-	Name string       `json:"name"`
-	Type ProviderType `json:"type"`
+	Id      string       `json:"id"`
+	Name    string       `json:"name"`
+	Type    ProviderType `json:"type"`
+	Domains []string     `json:"domains"`
 }

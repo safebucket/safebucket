@@ -114,7 +114,9 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 
 	// If the code matches, we create a new user, create policies for the user, and return the access token.
 	newUser := models.User{
-		Email: challenge.Invite.Email,
+		Email:        challenge.Invite.Email,
+		ProviderType: models.LocalProviderType,
+		ProviderKey:  string(models.LocalProviderType),
 	}
 
 	result = s.DB.Where("email = ?", newUser.Email).First(&newUser)

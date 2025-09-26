@@ -1,13 +1,14 @@
 import { useState } from "react";
-import type { FC } from "react";
 
 import Cookies from "js-cookie";
 import { AlertCircle, CheckCircle, Shield } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import type { FC } from "react";
 
-import { api_validateChallenge } from "@/components/invites/helpers/api";
 import type { IChallengeValidationFormData } from "@/components/invites/helpers/types";
+import { api_validateChallenge } from "@/components/invites/helpers/api";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,6 +33,7 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
   invitationId,
   challengeId,
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [isValidated, setIsValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
     setError(null);
 
     if (code.length !== 6) {
-      setError("Verification code must be exactly 6 digits");
+      setError(t("invites.challenge_validation.code_length_error"));
       return;
     }
 
@@ -60,9 +62,7 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
         navigate({ to: "/" });
       })
       .catch(() =>
-        setError(
-          "Invalid verification code. Please check your email and try again.",
-        ),
+        setError(t("invites.challenge_validation.code_invalid_error")),
       );
   };
 
@@ -73,11 +73,10 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
           <div className="space-y-4 text-center">
             <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
             <h3 className="text-lg font-semibold">
-              Code Validated Successfully
+              {t("invites.challenge_validation.success_title")}
             </h3>
             <p className="text-muted-foreground text-sm">
-              Your verification code has been validated. Your account has been
-              created and you can now access the invitation.
+              {t("invites.challenge_validation.success_description")}
             </p>
           </div>
         </CardContent>
@@ -91,10 +90,9 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
         <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 p-3">
           <Shield className="h-6 w-6 text-green-600" />
         </div>
-        <CardTitle>Enter your verification code</CardTitle>
+        <CardTitle>{t("invites.challenge_validation.title")}</CardTitle>
         <CardDescription>
-          Enter the 6-digit verification code that was sent to your email
-          address to complete your account creation
+          {t("invites.challenge_validation.description")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -108,7 +106,7 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
 
           <div className="space-y-2">
             <Label className="flex justify-center" htmlFor="code">
-              6-digit verification code
+              {t("invites.challenge_validation.code_label")}
             </Label>
             <div className="flex justify-center">
               <InputOTP
@@ -133,12 +131,11 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
             className="w-full"
             disabled={isSubmitting || code.length !== 6}
           >
-            {isSubmitting ? "Validating..." : "Validate code"}
+            {isSubmitting ? t("invites.challenge_validation.validating_button") : t("invites.challenge_validation.validate_button")}
           </Button>
 
           <p className="text-muted-foreground mt-3 text-center text-xs">
-            Didn&apos;t receive the code? <br /> Check your spam folder or
-            request a new one
+            {t("invites.challenge_validation.footer_text")}
           </p>
         </div>
       </CardContent>

@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ActivityIndexRouteImport } from './routes/activity/index'
+import { Route as InvitesIdIndexRouteImport } from './routes/invites/$id/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
 import { Route as AuthCompleteIndexRouteImport } from './routes/auth/complete/index'
 import { Route as BucketsIdChar123PathChar125RouteImport } from './routes/buckets/$id/{-$path}'
+import { Route as InvitesIdChallengesChallengeIdIndexRouteImport } from './routes/invites/$id/challenges/$challengeId/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,6 +31,11 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
 const ActivityIndexRoute = ActivityIndexRouteImport.update({
   id: '/activity/',
   path: '/activity/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitesIdIndexRoute = InvitesIdIndexRouteImport.update({
+  id: '/invites/$id/',
+  path: '/invites/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
@@ -47,6 +54,12 @@ const BucketsIdChar123PathChar125Route =
     path: '/buckets/$id/{-$path}',
     getParentRoute: () => rootRouteImport,
   } as any)
+const InvitesIdChallengesChallengeIdIndexRoute =
+  InvitesIdChallengesChallengeIdIndexRouteImport.update({
+    id: '/invites/$id/challenges/$challengeId/',
+    path: '/invites/$id/challenges/$challengeId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -55,6 +68,8 @@ export interface FileRoutesByFullPath {
   '/buckets/$id/{-$path}': typeof BucketsIdChar123PathChar125Route
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
+  '/invites/$id': typeof InvitesIdIndexRoute
+  '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -63,6 +78,8 @@ export interface FileRoutesByTo {
   '/buckets/$id/{-$path}': typeof BucketsIdChar123PathChar125Route
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
+  '/invites/$id': typeof InvitesIdIndexRoute
+  '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -72,6 +89,8 @@ export interface FileRoutesById {
   '/buckets/$id/{-$path}': typeof BucketsIdChar123PathChar125Route
   '/auth/complete/': typeof AuthCompleteIndexRoute
   '/auth/login/': typeof AuthLoginIndexRoute
+  '/invites/$id/': typeof InvitesIdIndexRoute
+  '/invites/$id/challenges/$challengeId/': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -82,6 +101,8 @@ export interface FileRouteTypes {
     | '/buckets/$id/{-$path}'
     | '/auth/complete'
     | '/auth/login'
+    | '/invites/$id'
+    | '/invites/$id/challenges/$challengeId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -90,6 +111,8 @@ export interface FileRouteTypes {
     | '/buckets/$id/{-$path}'
     | '/auth/complete'
     | '/auth/login'
+    | '/invites/$id'
+    | '/invites/$id/challenges/$challengeId'
   id:
     | '__root__'
     | '/'
@@ -98,6 +121,8 @@ export interface FileRouteTypes {
     | '/buckets/$id/{-$path}'
     | '/auth/complete/'
     | '/auth/login/'
+    | '/invites/$id/'
+    | '/invites/$id/challenges/$challengeId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -107,6 +132,8 @@ export interface RootRouteChildren {
   BucketsIdChar123PathChar125Route: typeof BucketsIdChar123PathChar125Route
   AuthCompleteIndexRoute: typeof AuthCompleteIndexRoute
   AuthLoginIndexRoute: typeof AuthLoginIndexRoute
+  InvitesIdIndexRoute: typeof InvitesIdIndexRoute
+  InvitesIdChallengesChallengeIdIndexRoute: typeof InvitesIdChallengesChallengeIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -132,6 +159,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ActivityIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invites/$id/': {
+      id: '/invites/$id/'
+      path: '/invites/$id'
+      fullPath: '/invites/$id'
+      preLoaderRoute: typeof InvitesIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/login/': {
       id: '/auth/login/'
       path: '/auth/login'
@@ -153,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BucketsIdChar123PathChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invites/$id/challenges/$challengeId/': {
+      id: '/invites/$id/challenges/$challengeId/'
+      path: '/invites/$id/challenges/$challengeId'
+      fullPath: '/invites/$id/challenges/$challengeId'
+      preLoaderRoute: typeof InvitesIdChallengesChallengeIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -163,6 +204,9 @@ const rootRouteChildren: RootRouteChildren = {
   BucketsIdChar123PathChar125Route: BucketsIdChar123PathChar125Route,
   AuthCompleteIndexRoute: AuthCompleteIndexRoute,
   AuthLoginIndexRoute: AuthLoginIndexRoute,
+  InvitesIdIndexRoute: InvitesIdIndexRoute,
+  InvitesIdChallengesChallengeIdIndexRoute:
+    InvitesIdChallengesChallengeIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -12,7 +12,8 @@
     "email_placeholder": "name@example.com",
     "password": "Password",
     "forgot_password": "Forgot password?",
-    "sign_in": "Sign in"
+    "sign_in": "Sign in",
+    "continue": "Continue"
   },
   "homepage": {
     "welcome": "Welcome back {{firstName}}!",
@@ -181,6 +182,32 @@
       "description": "Select your preferred language",
       "english": "English",
       "french": "French"
+    }
+  },
+  "invites": {
+    "email_confirmation": {
+      "title": "Verify your email address",
+      "description": "Confirm your email address to receive a security code challenge that you'll need to create your account",
+      "email_label": "Email address",
+      "email_placeholder": "name@example.com",
+      "email_required": "Email is required",
+      "email_invalid": "Please enter a valid email address",
+      "send_button": "Send verification code",
+      "sending_button": "Sending code...",
+      "send_error": "Failed to send verification code. Please try again.",
+      "footer_text": "After confirming, check your email for a verification code to complete the process"
+    },
+    "challenge_validation": {
+      "title": "Enter your verification code",
+      "description": "Enter the 6-digit verification code that was sent to your email address to complete your account creation",
+      "code_label": "6-digit verification code",
+      "validate_button": "Validate code",
+      "validating_button": "Validating...",
+      "code_length_error": "Verification code must be exactly 6 digits",
+      "code_invalid_error": "Invalid verification code. Please check your email and try again.",
+      "success_title": "Code Validated Successfully",
+      "success_description": "Your verification code has been validated. Your account has been created and you can now access the invitation.",
+      "footer_text": "Didn't receive the code? Check your spam folder or request a new one"
     }
   }
 }

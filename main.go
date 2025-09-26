@@ -52,7 +52,7 @@ func main() {
 		LastName:     "admin",
 		Email:        config.App.AdminEmail,
 		ProviderType: models.LocalProviderType,
-		ProviderName: string(models.LocalProviderType),
+		ProviderKey:  string(models.LocalProviderType),
 	}
 
 	hash, _ := h.CreateHash(config.App.AdminPassword)
