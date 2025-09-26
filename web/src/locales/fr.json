@@ -185,9 +185,9 @@
     }
   },
   "invites": {
-    "email_confirmation": {
-      "title": "Vérifiez votre adresse e-mail",
-      "description": "Confirmez votre adresse e-mail pour recevoir un code de sécurité que vous devrez utiliser pour créer votre compte",
+    "smart_enrollment": {
+      "title": "Rejoindre avec votre compte",
+      "description": "Choisissez votre méthode de connexion préférée pour accepter cette invitation",
       "email_label": "Adresse e-mail",
       "email_placeholder": "nom@exemple.com",
       "email_required": "L'e-mail est requis",
@@ -195,7 +195,7 @@
       "send_button": "Envoyer le code de vérification",
       "sending_button": "Envoi du code...",
       "send_error": "Échec de l'envoi du code de vérification. Veuillez réessayer.",
-      "footer_text": "Après confirmation, vérifiez votre e-mail pour un code de vérification afin de terminer le processus"
+      "footer_text": "En continuant, vous acceptez cette invitation et acceptez de créer un compte"
     },
     "challenge_validation": {
       "title": "Saisissez votre code de vérification",

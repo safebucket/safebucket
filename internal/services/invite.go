@@ -4,13 +4,13 @@ import (
 	"api/internal/activity"
 	"api/internal/configuration"
 	"api/internal/errors"
+	customerr "api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
-	"api/internal/rbac/groups"
 	"api/internal/rbac/roles"
 	"api/internal/sql"
 	"api/internal/storage"
@@ -50,6 +50,14 @@ func (s InviteService) Routes() chi.Router {
 }
 
 func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {
+	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
+		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+	}
+
+	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
+		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+	}
+
 	inviteId := ids[0]
 	var invite models.Invite
 	result := s.DB.Where("id = ?", inviteId).First(&invite)
@@ -57,7 +65,7 @@ func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims,
 	if result.RowsAffected == 0 {
 		return invite, errors.NewAPIError(404, "INVITE_NOT_FOUND")
 	} else if invite.Email != body.Email {
-		return invite, errors.NewAPIError(400, "INVITE_EMAIL_MISMATCH") //Todo: In the frontend, "an email has been sent if the email is linked to this invitation".
+		return invite, errors.NewAPIError(400, "INVITE_EMAIL_MISMATCH")
 	} else {
 		secret, err := h.GenerateSecret(6)
 		if err != nil {
@@ -70,7 +78,6 @@ func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims,
 			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
 		}
 
-		// Create a new challenge for the invite
 		challenge := models.Challenge{
 			InviteID:     invite.ID,
 			HashedSecret: hashedSecret,
@@ -91,17 +98,25 @@ func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims,
 		)
 		event.Trigger()
 
-		return challenge, nil // TODO: In the frontend, "an email has been sent if the email is linked to this invitation".
+		return challenge, nil
 	}
 }
 
 func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeValidateBody) (models.AuthLoginResponse, error) {
+	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
+		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+	}
+
 	inviteId := ids[0]
 	challengeId := ids[1]
 
 	var challenge models.Challenge
 
 	result := s.DB.Preload("Invite").Where("id = ? AND invite_id = ?", challengeId, inviteId).First(&challenge)
+
+	if !h.IsDomainAllowed(challenge.Invite.Email, s.Providers[string(models.LocalProviderType)].Domains) {
+		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+	}
 
 	if result.RowsAffected == 0 {
 		return models.AuthLoginResponse{}, errors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
@@ -121,61 +136,10 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 
 	result = s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
-		// Start transaction for user creation and invite processing
-		tx := s.DB.Begin()
-		if tx.Error != nil {
-			logger.Error("Failed to start transaction", zap.Error(tx.Error))
-			return models.AuthLoginResponse{}, errors.NewAPIError(500, "TRANSACTION_START_FAILED")
-		}
+		err := sql.CreateUserWithRoleAndInvites(logger, s.DB, s.Enforcer, &newUser, roles.AddUserToRoleGuest)
 
-		err = sql.CreateUserWithRoleBase(tx, s.Enforcer, &newUser, roles.AddUserToRoleGuest)
 		if err != nil {
-			logger.Error("Failed to create user with role", zap.Error(err))
-			tx.Rollback()
-			return models.AuthLoginResponse{}, err
-		}
-
-		var invites []models.Invite
-		result = tx.Preload("Bucket").Where("email = ?", challenge.Invite.Email).Find(&invites)
-		if result.Error != nil {
-			logger.Error("Failed to fetch user invites", zap.Error(result.Error))
-			tx.Rollback()
-			return models.AuthLoginResponse{}, errors.NewAPIError(500, "FETCH_INVITES_FAILED")
-		}
-
-		// Process all invites within the transaction
-		for _, invite := range invites {
-			var err error
-			switch invite.Group {
-			case "viewer":
-				err = groups.AddUserToViewers(s.Enforcer, invite.Bucket, newUser.ID.String())
-			case "contributor":
-				err = groups.AddUserToContributors(s.Enforcer, invite.Bucket, newUser.ID.String())
-			case "owner":
-				err = groups.AddUserToOwners(s.Enforcer, invite.Bucket, newUser.ID.String())
-			default:
-				logger.Error("Invalid group in invite", zap.String("group", invite.Group), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
-				continue
-			}
-
-			if err != nil {
-				logger.Error("Failed to add user to group", zap.Error(err), zap.String("group", invite.Group), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
-				tx.Rollback()
-				return models.AuthLoginResponse{}, errors.NewAPIError(500, "ROLE_ASSIGNMENT_FAILED")
-			}
-
-			// Delete invite within transaction
-			deleteResult := tx.Delete(&invite)
-			if deleteResult.Error != nil {
-				logger.Error("Failed to delete invite", zap.Error(deleteResult.Error), zap.String("invite_id", invite.ID.String()))
-				tx.Rollback()
-				return models.AuthLoginResponse{}, errors.NewAPIError(500, "INVITE_CLEANUP_FAILED")
-			}
-		}
-
-		if err := tx.Commit().Error; err != nil {
-			logger.Error("Failed to commit transaction", zap.Error(err))
-			return models.AuthLoginResponse{}, errors.NewAPIError(500, "TRANSACTION_COMMIT_FAILED")
+			return models.AuthLoginResponse{}, errors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 
 		// Generate tokens after successful transaction commit

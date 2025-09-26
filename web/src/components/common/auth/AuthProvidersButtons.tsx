@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { IProvider } from "@/types/auth_providers.ts";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
-import { Button } from "@/components/ui/button";
+import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext.ts";
+import { Button } from "@/components/ui/button.tsx";
 
 interface IAuthProvidersButtonsProps {
   providers: Array<IProvider>;
@@ -15,7 +15,9 @@ export const AuthProvidersButtons: FC<IAuthProvidersButtonsProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="mt-4 grid grid-cols-2 gap-4">
+    <div
+      className={`grid ${providers.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+    >
       {providers.map((provider) => (
         <Button
           key={provider.id}

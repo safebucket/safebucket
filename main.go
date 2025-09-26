@@ -58,7 +58,7 @@ func main() {
 	hash, _ := h.CreateHash(config.App.AdminPassword)
 	adminUser.HashedPassword = hash
 	db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "email"}},
+		Columns:   []clause.Column{{Name: "email"}, {Name: "provider_key"}},
 		DoUpdates: clause.AssignmentColumns([]string{"hashed_password"}),
 	}).Create(&adminUser)
 	_ = roles.AddUserToRoleAdmin(enforcer, adminUser)

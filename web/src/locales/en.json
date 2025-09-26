@@ -185,9 +185,9 @@
     }
   },
   "invites": {
-    "email_confirmation": {
-      "title": "Verify your email address",
-      "description": "Confirm your email address to receive a security code challenge that you'll need to create your account",
+    "smart_enrollment": {
+      "title": "Join with your account",
+      "description": "Choose your preferred sign-in method to accept this invitation",
       "email_label": "Email address",
       "email_placeholder": "name@example.com",
       "email_required": "Email is required",
@@ -195,7 +195,7 @@
       "send_button": "Send verification code",
       "sending_button": "Sending code...",
       "send_error": "Failed to send verification code. Please try again.",
-      "footer_text": "After confirming, check your email for a verification code to complete the process"
+      "footer_text": "By continuing, you accept this invitation and agree to create an account"
     },
     "challenge_validation": {
       "title": "Enter your verification code",

@@ -2,6 +2,7 @@ import type {
   SubmitHandler,
   UseFormHandleSubmit,
   UseFormRegister,
+  UseFormWatch,
 } from "react-hook-form";
 
 export type Status = "authenticated" | "loading" | "unauthenticated";
@@ -35,6 +36,7 @@ export interface ISessionContext {
   register: UseFormRegister<ILoginForm>;
   localLogin: SubmitHandler<ILoginForm>;
   handleSubmit: UseFormHandleSubmit<ILoginForm>;
+  watch: UseFormWatch<ILoginForm>;
 
   login: (provider: string) => void;
   logout: () => void;

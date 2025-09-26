@@ -22,12 +22,10 @@ type User struct {
 }
 
 type UserCreateBody struct {
-	FirstName    string       `json:"first_name" validate:"omitempty"`
-	LastName     string       `json:"last_name" validate:"omitempty"`
-	Email        string       `json:"email" validate:"required,omitempty,email"`
-	Password     string       `json:"password" validate:"required,min=8"`
-	ProviderType ProviderType `json:"provider_type" validate:"required"`
-	ProviderKey  string       `json:"provider_key" validate:"required"`
+	FirstName string `json:"first_name" validate:"omitempty"`
+	LastName  string `json:"last_name" validate:"omitempty"`
+	Email     string `json:"email" validate:"required,omitempty,email"`
+	Password  string `json:"password" validate:"required,min=8"`
 }
 
 type UserUpdateBody struct {

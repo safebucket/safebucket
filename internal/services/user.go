@@ -46,14 +46,15 @@ func (s UserService) Routes() chi.Router {
 	return r
 }
 
-func (s UserService) CreateUser(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
+func (s UserService) CreateUser(logger *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
 	newUser := models.User{
 		FirstName:    body.FirstName,
 		LastName:     body.LastName,
 		Email:        body.Email,
-		ProviderType: body.ProviderType,
-		ProviderKey:  body.ProviderKey,
+		ProviderType: models.LocalProviderType,
+		ProviderKey:  string(models.LocalProviderType),
 	}
+
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected == 0 {
 		hash, err := h.CreateHash(body.Password)
@@ -62,9 +63,9 @@ func (s UserService) CreateUser(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs
 		}
 		newUser.HashedPassword = hash
 
-		err = sql.CreateUserWithRole(s.DB, s.Enforcer, &newUser, roles.AddUserToRoleUser)
+		err = sql.CreateUserWithRoleAndInvites(logger, s.DB, s.Enforcer, &newUser, roles.AddUserToRoleUser)
 		if err != nil {
-			return models.User{}, err
+			return models.User{}, customerrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 
 		return newUser, nil

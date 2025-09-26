@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { EmailConfirmationForm } from "@/components/invites/components/EmailConfirmationForm.tsx";
+import { InviteFormSmartEnrollment } from "@/components/invites/components/InviteFormSmartEnrollment.tsx";
+import { authProvidersQueryOptions } from "@/queries/auth_providers.ts";
 
 export const Route = createFileRoute("/invites/$id/")({
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(authProvidersQueryOptions()),
   component: InvitePage,
 });
 
@@ -10,7 +13,7 @@ function InvitePage() {
 
   return (
     <div className="m-6 flex h-full items-center justify-center">
-      <EmailConfirmationForm invitationId={id} />
+      <InviteFormSmartEnrollment invitationId={id} />
     </div>
   );
 }

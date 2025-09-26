@@ -164,9 +164,10 @@ func (s AuthService) OpenIDCallback(
 	if result.RowsAffected == 0 {
 		searchUser.ProviderType = models.OIDCProviderType
 		searchUser.ProviderKey = providerKey
-		err = sql.CreateUserWithRole(s.DB, s.Enforcer, &searchUser, roles.AddUserToRoleUser)
+
+		err := sql.CreateUserWithRoleAndInvites(zap.L(), s.DB, s.Enforcer, &searchUser, roles.AddUserToRoleUser)
 		if err != nil {
-			return "", "", err
+			return "", "", customerr.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 	}
 

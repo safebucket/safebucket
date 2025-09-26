@@ -35,7 +35,7 @@ export const SessionProvider = ({
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<Status>("unauthenticated");
 
-  const { register, handleSubmit } = useForm<ILoginForm>();
+  const { register, handleSubmit, watch } = useForm<ILoginForm>();
 
   useEffect(() => {
     setStatus("loading");
@@ -94,6 +94,7 @@ export const SessionProvider = ({
         localLogin,
         register,
         handleSubmit,
+        watch,
         logout,
         session,
         status,
