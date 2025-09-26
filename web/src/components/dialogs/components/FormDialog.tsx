@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 import type { FieldValues } from "react-hook-form";
 
 import type { IFormField } from "@/components/dialogs/helpers/types";
@@ -23,7 +23,7 @@ interface IFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   confirmLabel: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   maxWidth?: string;
 }
 
@@ -57,7 +57,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
 
   const onSubmitWrapper = (data: FieldValues) => {
     onSubmit(data);
-    reset(fields);
+    reset();
     onOpenChange(false);
   };
 
