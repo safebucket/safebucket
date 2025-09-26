@@ -4,7 +4,6 @@ import (
 	"api/internal/activity"
 	"api/internal/configuration"
 	"api/internal/errors"
-	customerr "api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
@@ -51,11 +50,11 @@ func (s InviteService) Routes() chi.Router {
 
 func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
-		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
-		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	inviteId := ids[0]
@@ -104,7 +103,7 @@ func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims,
 
 func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeValidateBody) (models.AuthLoginResponse, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
-		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	inviteId := ids[0]
@@ -115,7 +114,7 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 	result := s.DB.Preload("Invite").Where("id = ? AND invite_id = ?", challengeId, inviteId).First(&challenge)
 
 	if !h.IsDomainAllowed(challenge.Invite.Email, s.Providers[string(models.LocalProviderType)].Domains) {
-		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	if result.RowsAffected == 0 {

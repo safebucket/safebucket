@@ -131,7 +131,9 @@ export const ChallengeValidationForm: FC<IChallengeValidationFormProps> = ({
             className="w-full"
             disabled={isSubmitting || code.length !== 6}
           >
-            {isSubmitting ? t("invites.challenge_validation.validating_button") : t("invites.challenge_validation.validate_button")}
+            {isSubmitting
+              ? t("invites.challenge_validation.validating_button")
+              : t("invites.challenge_validation.validate_button")}
           </Button>
 
           <p className="text-muted-foreground mt-3 text-center text-xs">
