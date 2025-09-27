@@ -1,59 +1,4 @@
 services:
-  safebucket:
-    container_name: safebucket
-    image: safebucket:latest
-    environment:
-      - APP__LOG_LEVEL=${APP__LOG_LEVEL}
-      - APP__API_URL=${APP__API_URL}
-      - APP__WEB_URL=${APP__WEB_URL}
-      - APP__PORT=${APP__PORT}
-      - APP__TRUSTED_PROXIES=${APP__TRUSTED_PROXIES}
-      - APP__STATIC_FILES__ENABLED=${APP__STATIC_FILES__ENABLED}
-      - APP__STATIC_FILES__DIRECTORY=${APP__STATIC_FILES__DIRECTORY}
-      - DATABASE__HOST=db
-      - DATABASE__PORT=5432
-      - DATABASE__USER=${DATABASE__USER}
-      - DATABASE__PASSWORD=${DATABASE__PASSWORD}
-      - DATABASE__NAME=${DATABASE__NAME}
-      - DATABASE__SSLMODE=disable
-      - APP__JWT_SECRET=${APP__JWT_SECRET}
-      - APP__ADMIN_EMAIL=${APP__ADMIN_EMAIL}
-      - APP__ADMIN_PASSWORD=${APP__ADMIN_PASSWORD}
-      - APP__ALLOWED_ORIGINS=${APP__ALLOWED_ORIGINS}
-      - CACHE__TYPE=${CACHE__TYPE}
-      - CACHE__REDIS__HOSTS=${CACHE__REDIS__HOSTS}
-      - CACHE__REDIS__PASSWORD=${CACHE__REDIS__PASSWORD}
-      - STORAGE__TYPE=${STORAGE__TYPE}
-      - STORAGE__MINIO__BUCKET_NAME=${STORAGE__MINIO__BUCKET_NAME}
-      - STORAGE__MINIO__ENDPOINT=${STORAGE__MINIO__ENDPOINT}
-      - STORAGE__MINIO__CLIENT_ID=${STORAGE__MINIO__CLIENT_ID}
-      - STORAGE__MINIO__CLIENT_SECRET=${STORAGE__MINIO__CLIENT_SECRET}
-      - STORAGE__MINIO__TYPE=${STORAGE__MINIO__TYPE}
-      - STORAGE__MINIO__JETSTREAM__TOPIC_NAME=${STORAGE__MINIO__JETSTREAM__TOPIC_NAME}
-      - STORAGE__MINIO__JETSTREAM__HOST=${STORAGE__MINIO__JETSTREAM__HOST}
-      - STORAGE__MINIO__JETSTREAM__PORT=${STORAGE__MINIO__JETSTREAM__PORT}
-      - EVENTS__TYPE=${EVENTS__TYPE}
-      - EVENTS__JETSTREAM__TOPIC_NAME=${EVENTS__JETSTREAM__TOPIC_NAME}
-      - EVENTS__JETSTREAM__HOST=${EVENTS__JETSTREAM__HOST}
-      - EVENTS__JETSTREAM__PORT=${EVENTS__JETSTREAM__PORT}
-      - NOTIFIER__TYPE=${NOTIFIER__TYPE}
-      - NOTIFIER__SMTP__HOST=${NOTIFIER__SMTP__HOST}
-      - NOTIFIER__SMTP__PORT=${NOTIFIER__SMTP__PORT}
-      - NOTIFIER__SMTP__USERNAME=${NOTIFIER__SMTP__USERNAME}
-      - NOTIFIER__SMTP__PASSWORD=${NOTIFIER__SMTP__PASSWORD}
-      - NOTIFIER__SMTP__SENDER=${NOTIFIER__SMTP__SENDER}
-      - NOTIFIER__SMTP__ENABLE_TLS=${NOTIFIER__SMTP__ENABLE_TLS}
-      - NOTIFIER__SMTP__SKIP_VERIFY_TLS=${NOTIFIER__SMTP__SKIP_VERIFY_TLS}
-      - ACTIVITY__TYPE=${ACTIVITY__TYPE}
-      - ACTIVITY__LOKI__ENDPOINT=${ACTIVITY__LOKI__ENDPOINT}
-      - AUTH__PROVIDERS__KEYS=${AUTH__PROVIDERS__KEYS}
-      - AUTH__PROVIDERS__LOCAL__NAME=${AUTH__PROVIDERS__LOCAL__NAME}
-      - AUTH__PROVIDERS__LOCAL__TYPE=${AUTH__PROVIDERS__LOCAL__TYPE}
-
-    ports:
-      - "8080:8080"
-    restart: no
-
   bucket:
     container_name: bucket
     image: docker.io/bitnami/minio:2024.11.7
@@ -73,6 +18,51 @@ services:
       timeout: 20s
       retries: 3
     restart: unless-stopped
+    depends_on:
+      - nats
+
+  minio-events-config:
+    container_name: minio-events-config
+    image: minio/mc:latest
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Configuring MinIO bucket events for NATS JetStream..."
+        echo "Waiting for MinIO to be ready..."
+        while ! mc alias set local http://bucket:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} 2>/dev/null; do
+          echo "MinIO not ready yet, waiting..."
+          sleep 2
+        done
+        echo "MinIO is ready. Configuring NATS notification target..."
+        mc admin config set local notify_nats:safebucket address="nats:4222" subject="safebucket.bucket-events" nats_jetstream="on" tls="off" tls_skip_verify="off"
+        echo "Restarting MinIO to apply configuration..."
+        mc admin service restart local --json
+        echo "Waiting for MinIO to restart..."
+        sleep 15
+        
+        while ! mc admin info local 2>/dev/null; do
+          echo "Waiting for MinIO to be ready after restart..."
+          sleep 3
+        done
+        echo "MinIO is ready after restart. Verifying NATS target configuration..."
+        echo "Available notification targets:"
+        mc admin config get local notify_nats
+        echo "Adding bucket notification events..."
+        mc event add local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get
+        # If the above fails, try with alternative ARN format
+        echo "Verifying bucket notification configuration:"
+        mc event list local/safebucket
+        echo "MinIO bucket events configured successfully!"
+        echo "Events will be published to NATS subject: safebucket.bucket-events"
+    depends_on:
+      bucket:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    restart: "no"
 
   db:
     container_name: db
