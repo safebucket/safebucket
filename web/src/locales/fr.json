@@ -14,7 +14,18 @@
     "password": "Mot de passe",
     "forgot_password": "Mot de passe oublié ?",
     "sign_in": "Se connecter",
-    "continue": "Continuer"
+    "continue": "Continuer",
+    "password_reset": {
+      "title": "Réinitialiser votre mot de passe",
+      "subtitle": "Saisissez votre adresse e-mail et nous vous enverrons un code de vérification pour réinitialiser votre mot de passe",
+      "success_title": "Vérifiez votre e-mail",
+      "success_message": "Si un compte avec cette adresse e-mail existe, nous avons envoyé un code de réinitialisation de mot de passe à votre adresse e-mail",
+      "success_description": "L'e-mail contient un code à 6 chiffres et un lien pour réinitialiser votre mot de passe. Si vous ne le voyez pas, vérifiez votre dossier spam.",
+      "send_reset_code": "Envoyer le code de réinitialisation",
+      "sending": "Envoi...",
+      "error_message": "Échec de l'envoi de l'e-mail de réinitialisation de mot de passe. Veuillez réessayer.",
+      "back_to_login": "Retour à la connexion"
+    }
   },
   "homepage": {
     "welcome": "Bienvenue {{firstName}} !",

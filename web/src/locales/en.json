@@ -14,7 +14,18 @@
     "password": "Password",
     "forgot_password": "Forgot password?",
     "sign_in": "Sign in",
-    "continue": "Continue"
+    "continue": "Continue",
+    "password_reset": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email address and we'll send you a verification code to reset your password",
+      "success_title": "Check your email",
+      "success_message": "If an account with this email exists, we've sent a password reset code to your email address",
+      "success_description": "The email contains a 6-digit code and a link to reset your password. If you don't see it, check your spam folder.",
+      "send_reset_code": "Send reset code",
+      "sending": "Sending...",
+      "error_message": "Failed to send password reset email. Please try again.",
+      "back_to_login": "Back to login"
+    }
   },
   "homepage": {
     "welcome": "Welcome back {{firstName}}!",

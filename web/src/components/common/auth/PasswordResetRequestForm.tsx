@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertCircle, Key, Mail } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 
 import { api_requestPasswordReset } from "@/components/auth-view/helpers/api";
 import type { IPasswordResetRequestFormData } from "@/components/auth-view/helpers/types";
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const PasswordResetRequestForm: FC = () => {
+  const { t } = useTranslation();
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ export const PasswordResetRequestForm: FC = () => {
       await api_requestPasswordReset(data);
       setIsSuccess(true);
     } catch {
-      setError("Failed to send password reset email. Please try again.");
+      setError(t("auth.password_reset.error_message"));
     }
   };
 
@@ -46,21 +48,19 @@ export const PasswordResetRequestForm: FC = () => {
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 p-3">
             <Mail className="h-6 w-6 text-green-600" />
           </div>
-          <CardTitle>Check your email</CardTitle>
+          <CardTitle>{t("auth.password_reset.success_title")}</CardTitle>
           <CardDescription>
-            If an account with this email exists, we've sent a password reset
-            code to your email address
+            {t("auth.password_reset.success_message")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <p className="text-muted-foreground text-center text-sm">
-              The email contains a 6-digit code and a link to reset your
-              password. If you don't see it, check your spam folder.
+              {t("auth.password_reset.success_description")}
             </p>
             <Link to="/auth/login">
               <Button variant="outline" className="w-full">
-                Back to login
+                {t("auth.password_reset.back_to_login")}
               </Button>
             </Link>
           </div>
@@ -75,10 +75,9 @@ export const PasswordResetRequestForm: FC = () => {
         <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-100 p-3">
           <Key className="h-6 w-6 text-blue-600" />
         </div>
-        <CardTitle>Reset your password</CardTitle>
+        <CardTitle>{t("auth.password_reset.title")}</CardTitle>
         <CardDescription>
-          Enter your email address and we'll send you a verification code to
-          reset your password
+          {t("auth.password_reset.subtitle")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -91,11 +90,11 @@ export const PasswordResetRequestForm: FC = () => {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">{t("auth.email")}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="name@example.com"
+              placeholder={t("auth.email_placeholder")}
               {...register("email", {
                 required: "Email is required",
                 pattern: {
@@ -111,7 +110,7 @@ export const PasswordResetRequestForm: FC = () => {
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Sending..." : "Send reset code"}
+            {isSubmitting ? t("auth.password_reset.sending") : t("auth.password_reset.send_reset_code")}
           </Button>
 
           <div className="text-center">
@@ -119,14 +118,9 @@ export const PasswordResetRequestForm: FC = () => {
               to="/auth/login"
               className="text-muted-foreground hover:text-primary text-sm underline"
             >
-              Back to login
+              {t("auth.password_reset.back_to_login")}
             </Link>
           </div>
-
-          <p className="text-muted-foreground mt-3 text-center text-xs">
-            You'll receive an email with a verification code to reset your
-            password
-          </p>
         </form>
       </CardContent>
     </Card>

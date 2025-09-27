@@ -13,7 +13,7 @@ app:
     - 127.0.0.1
     - ::1
   static_files:
-    enabled: false
+    enabled: true
     directory: "web/dist"
   admin_email: admin@safebucket.io
   admin_password: ChangeMePlease

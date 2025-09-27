@@ -195,7 +195,7 @@ func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath s
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	if strings.HasSuffix(filePath, ".html") {
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:9000") //todo: adapt connect-src adress
 	}
 
 	w.Header().Set("X-Frame-Options", "DENY")

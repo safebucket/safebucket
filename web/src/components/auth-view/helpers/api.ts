@@ -4,10 +4,6 @@ export interface IPasswordResetRequestData {
   email: string;
 }
 
-export interface IPasswordResetRequestResponse {
-  message: string;
-}
-
 export interface IPasswordResetValidateData {
   code: string;
   new_password: string;
@@ -19,7 +15,7 @@ export interface IPasswordResetValidateResponse {
 }
 
 export const api_requestPasswordReset = (data: IPasswordResetRequestData) =>
-  api.post<IPasswordResetRequestResponse>("/auth/reset-password", data);
+  api.post<void>("/auth/reset-password", data);
 
 export const api_validatePasswordReset = (
   challengeId: string,

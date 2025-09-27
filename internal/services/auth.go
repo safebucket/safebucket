@@ -198,29 +198,47 @@ func (s AuthService) OpenIDCallback(
 	return accessToken, refreshToken, nil
 }
 
-func (s AuthService) RequestPasswordReset(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.PasswordResetRequestBody) (interface{}, error) {
+func (s AuthService) RequestPasswordReset(logger *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.PasswordResetRequestBody) (interface{}, error) {
 	var user models.User
 	result := s.DB.Where("email = ? AND is_external = ?", body.Email, false).First(&user)
 
+	if result.Error != nil {
+		logger.Error("Database error while searching for user during password reset",
+			zap.String("email", body.Email),
+			zap.Error(result.Error))
+		return nil, customerrors.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+	}
+
 	if result.RowsAffected == 0 {
-		// Return success even if user doesn't exist to prevent email enumeration
-		return map[string]string{"message": "If an account with this email exists, a password reset email has been sent"}, nil
+		logger.Info("Password reset requested for non-existent or external user",
+			zap.String("email", body.Email))
+		return nil, nil
 	}
 
 	secret, err := h.GenerateSecret(6)
 	if err != nil {
+		logger.Error("Failed to generate password reset secret",
+			zap.String("email", body.Email),
+			zap.Error(err))
 		return nil, customerr.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
 	}
 
 	hashedSecret, err := h.CreateHash(secret)
 	if err != nil {
+		logger.Error("Failed to hash password reset secret",
+			zap.String("email", body.Email),
+			zap.Error(err))
 		return nil, customerr.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
 	}
 
-	// Delete any existing password reset challenges for this user
-	s.DB.Where("user_id = ?", user.ID).Delete(&models.PasswordResetChallenge{})
+	deleteResult := s.DB.Where("user_id = ?", user.ID).Delete(&models.PasswordResetChallenge{})
+	if deleteResult.Error != nil {
+		logger.Error("Failed to delete existing password reset challenges",
+			zap.String("email", body.Email),
+			zap.Error(deleteResult.Error))
+		return nil, customerrors.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+	}
 
-	// Create a new password reset challenge
 	challenge := models.PasswordResetChallenge{
 		UserID:       user.ID,
 		HashedSecret: hashedSecret,
@@ -228,6 +246,9 @@ func (s AuthService) RequestPasswordReset(_ *zap.Logger, _ models.UserClaims, _ 
 
 	result = s.DB.Create(&challenge)
 	if result.Error != nil {
+		logger.Error("Failed to create password reset challenge record",
+			zap.String("email", body.Email),
+			zap.Error(result.Error))
 		return nil, customerr.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
 	}
 
@@ -241,7 +262,7 @@ func (s AuthService) RequestPasswordReset(_ *zap.Logger, _ models.UserClaims, _ 
 	)
 	event.Trigger()
 
-	return map[string]string{"message": "If an account with this email exists, a password reset email has been sent"}, nil
+	return nil, nil
 }
 
 func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.PasswordResetValidateBody) (models.AuthLoginResponse, error) {
