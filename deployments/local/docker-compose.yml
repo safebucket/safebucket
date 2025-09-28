@@ -37,7 +37,7 @@ services:
           sleep 2
         done
         echo "MinIO is ready. Configuring NATS notification target..."
-        mc admin config set local notify_nats:safebucket address="nats:4222" subject="safebucket.bucket-events" nats_jetstream="on" tls="off" tls_skip_verify="off"
+        mc admin config set local notify_nats:safebucket address="nats:4222" subject="safebucket:bucket-events" nats_jetstream="on" tls="off" tls_skip_verify="off"
         echo "Restarting MinIO to apply configuration..."
         mc admin service restart local --json
         echo "Waiting for MinIO to restart..."
@@ -51,12 +51,12 @@ services:
         echo "Available notification targets:"
         mc admin config get local notify_nats
         echo "Adding bucket notification events..."
-        mc event add local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get
+        mc event add local/safebucket arn:minio:sqs::safebucket:nats --event put,get
         # If the above fails, try with alternative ARN format
         echo "Verifying bucket notification configuration:"
         mc event list local/safebucket
         echo "MinIO bucket events configured successfully!"
-        echo "Events will be published to NATS subject: safebucket.bucket-events"
+        echo "Events will be published to NATS subject: safebucket:bucket-events"
     depends_on:
       bucket:
         condition: service_healthy
