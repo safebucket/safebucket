@@ -2,8 +2,10 @@ package tests
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 )
 
 type MockOpenIDBeginFunc struct {
@@ -21,11 +23,12 @@ type MockOpenIDCallbackFunc struct {
 
 func (m *MockOpenIDCallbackFunc) OpenIDCallback(
 	ctx context.Context,
+	logger *zap.Logger,
 	providerName,
 	code,
 	nonce string,
 ) (string, string, error) {
-	args := m.Called(ctx, providerName, code, nonce)
+	args := m.Called(ctx, logger, providerName, code, nonce)
 	return args.String(0), args.String(1), args.Error(2)
 }
 
