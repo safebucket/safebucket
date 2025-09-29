@@ -3,6 +3,7 @@ package handlers
 import (
 	customErr "api/internal/errors"
 	h "api/internal/helpers"
+	m "api/internal/middlewares"
 	"context"
 	"errors"
 	"fmt"
@@ -10,10 +11,11 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type OpenIDBeginFunc func(string, string, string) (string, error)
-type OpenIDCallbackFunc func(context.Context, string, string, string) (string, string, error)
+type OpenIDCallbackFunc func(context.Context, *zap.Logger, string, string, string) (string, string, error)
 
 func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -56,8 +58,11 @@ func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) htt
 			return
 		}
 
+		logger := m.GetLogger(r)
+
 		accessToken, refreshToken, err := openidCallback(
 			r.Context(),
+			logger,
 			providerName,
 			r.URL.Query().Get("code"),
 			nonce.Value,

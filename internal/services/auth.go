@@ -48,12 +48,14 @@ func (s AuthService) Routes() chi.Router {
 	return r
 }
 
-func (s AuthService) Login(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthLogin) (models.AuthLoginResponse, error) {
+func (s AuthService) Login(logger *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthLogin) (models.AuthLoginResponse, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
+		logger.Debug("Local auth provider not activated in the configuration")
 		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
 	}
 
 	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
+		logger.Debug("Domain not allowed")
 		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
 	}
 
@@ -124,7 +126,7 @@ func (s AuthService) OpenIDBegin(providerName string, state string, nonce string
 }
 
 func (s AuthService) OpenIDCallback(
-	ctx context.Context, providerKey string, code string, nonce string,
+	ctx context.Context, logger *zap.Logger, providerKey string, code string, nonce string,
 ) (string, string, error) {
 	provider, ok := s.Providers[providerKey]
 	if !ok {
@@ -156,6 +158,7 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	if !h.IsDomainAllowed(userInfo.Email, s.Providers[providerKey].Domains) {
+		logger.Debug("Domain not allowed")
 		return "", "", customerr.NewAPIError(403, "FORBIDDEN")
 	}
 
@@ -165,7 +168,7 @@ func (s AuthService) OpenIDCallback(
 		searchUser.ProviderType = models.OIDCProviderType
 		searchUser.ProviderKey = providerKey
 
-		err := sql.CreateUserWithRoleAndInvites(zap.L(), s.DB, s.Enforcer, &searchUser, roles.AddUserToRoleUser)
+		err := sql.CreateUserWithRoleAndInvites(logger, s.DB, s.Enforcer, &searchUser, roles.AddUserToRoleUser)
 		if err != nil {
 			return "", "", customerr.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
