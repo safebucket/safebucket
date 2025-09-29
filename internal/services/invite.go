@@ -48,12 +48,14 @@ func (s InviteService) Routes() chi.Router {
 	return r
 }
 
-func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {
+func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
+		logger.Debug("Local auth provider not activated in the configuration")
 		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
+		logger.Debug("Domain not allowed")
 		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
@@ -103,6 +105,7 @@ func (s InviteService) CreateInviteChallenge(_ *zap.Logger, _ models.UserClaims,
 
 func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeValidateBody) (models.AuthLoginResponse, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
+		logger.Debug("Local auth provider not activated in the configuration")
 		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
@@ -114,6 +117,7 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 	result := s.DB.Preload("Invite").Where("id = ? AND invite_id = ?", challengeId, inviteId).First(&challenge)
 
 	if !h.IsDomainAllowed(challenge.Invite.Email, s.Providers[string(models.LocalProviderType)].Domains) {
+		logger.Debug("Domain not allowed")
 		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 

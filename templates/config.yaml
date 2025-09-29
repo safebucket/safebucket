@@ -76,29 +76,29 @@ auth:
       domains:
       sharing:
         allowed: true
-        domains:
+        domains: []
 #    okta:
 #      type: oidc
 #      name: Okta
-#      domains:
+#      domains: []
 #      oidc:
 #        client_id:
 #        client_secret:
 #        issuer:
 #      sharing:
 #        allowed: true
-#        domains:
+#        domains: []
 #    google:
 #      type: oidc
 #      name: Google
-#      domains:
+#      domains: []
 #      oidc:
 #        client_id:
 #        client_secret:
 #        issuer:
 #      sharing:
 #        enabled: true
-#        domains:
+#        domains: []
 
 activity:
   type: loki
