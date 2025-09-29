@@ -93,7 +93,8 @@ func TestOpenIDCallbackHandler(t *testing.T) {
 
 	mockOpenIDCallback.On(
 		"OpenIDCallback",
-		mock.Anything,
+		mock.Anything, // ctx context.Context
+		mock.Anything, // logger *zap.Logger
 		providerName,
 		code,
 		nonce,
@@ -185,7 +186,8 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 				req.AddCookie(&http.Cookie{Name: "nonce", Value: nonce})
 				mockOpenIDCallback.On(
 					"OpenIDCallback",
-					mock.Anything,
+					mock.Anything, // ctx context.Context
+					mock.Anything, // logger *zap.Logger
 					providerName,
 					code,
 					nonce,
