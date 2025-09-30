@@ -43,8 +43,7 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 			idx++
 			continue
 		} else if countLocalProviders > 0 && providerCfg.Type == models.LocalProviderType {
-			zap.L().Warn("Only one local auth provider can be configured. Skipping...")
-			continue
+			zap.L().Fatal("Only one local auth provider can be configured.")
 		}
 
 		provider, err := oidc.NewProvider(ctx, providerCfg.OIDC.Issuer)
