@@ -111,7 +111,7 @@ services:
       - "valkey_data:/bitnami/valkey/data"
 
   mailpit:
-    image: axllent/mailpit:v1.27.8
+    image: axllent/mailpit:v1.27.9
     container_name: mailpit
     restart: unless-stopped
     volumes:
