@@ -95,7 +95,13 @@ function Homepage() {
                     </div>
                   ))}
                   <div className="pt-2 border-t border-border">
-                    <Button variant="default" className="w-full">
+                    <Button
+                      variant="default"
+                      className="w-full"
+                      onClick={() =>
+                        window.open("https://docs.safebucket.io", "_blank")
+                      }
+                    >
                       {t("homepage.quick_start.view_documentation")}
                     </Button>
                   </div>

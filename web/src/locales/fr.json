@@ -133,7 +133,13 @@
     "grid_view": {
       "empty_folder": "Ce dossier est vide",
       "empty_description": "Téléchargez des fichiers ou créez des dossiers pour commencer à organiser votre contenu.",
-      "drag_drop_hint": "Vous pouvez également glisser-déposer des fichiers ici pour les télécharger."
+      "drag_drop_hint": "Vous pouvez également glisser-déposer des fichiers ici pour les télécharger.",
+      "type": "Type",
+      "uploaded_at": "Téléchargé",
+      "status": "Statut",
+      "uploaded": "Partagé",
+      "uploading": "Téléchargement",
+      "deleting": "Suppression"
     },
     "settings": {
       "information": {

@@ -133,7 +133,13 @@
     "grid_view": {
       "empty_folder": "This folder is empty",
       "empty_description": "Upload files or create folders to get started organizing your content.",
-      "drag_drop_hint": "You can also drag and drop files here to upload them."
+      "drag_drop_hint": "You can also drag and drop files here to upload them.",
+      "type": "Type",
+      "uploaded_at": "Uploaded",
+      "status": "Status",
+      "uploaded": "Uploaded",
+      "uploading": "Uploading",
+      "deleting": "Deleting"
     },
     "settings": {
       "information": {

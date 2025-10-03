@@ -4,7 +4,7 @@ import type { FC } from "react";
 
 import type { IFile } from "@/types/file.ts";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import { FileItemView } from "@/components/common/components/FileItemView";
+import { FileGridCard } from "@/components/bucket-view/components/FileGridCard";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 
 interface IBucketGridViewProps {
@@ -40,9 +40,9 @@ export const BucketGridView: FC<IBucketGridViewProps> = ({
 
   return (
     <DragDropZone bucketId={bucketId}>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {files.map((file) => (
-          <FileItemView
+          <FileGridCard
             key={file.id}
             file={file}
             selected={selected}
