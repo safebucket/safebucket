@@ -16,7 +16,7 @@ import type {
 import { SessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { router } from "@/main.tsx";
 import { api, fetchApi } from "@/lib/api";
-import { getApiUrl } from "@/lib/config.ts";
+import { getApiUrl } from "@/hooks/useConfig.ts";
 
 export const SessionProvider = ({
   children,
@@ -63,7 +63,7 @@ export const SessionProvider = ({
 
   const login = async (provider: string) => {
     setStatus("loading");
-    const apiUrl = await getApiUrl();
+    const apiUrl = getApiUrl();
     window.location.href = `${apiUrl}/auth/providers/${provider}/begin`;
   };
 

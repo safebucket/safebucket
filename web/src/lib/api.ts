@@ -1,5 +1,5 @@
 import Cookies from "js-cookie";
-import { getApiUrl } from "./config";
+import { getApiUrl } from "@/hooks/useConfig.ts";
 
 type RequestOptions = {
   method?: string;
@@ -32,7 +32,7 @@ export async function fetchApi<T>(
   retry = true,
 ): Promise<T> {
   const { method = "GET", headers = {}, body, params } = options;
-  const apiUrl = await getApiUrl();
+  const apiUrl = getApiUrl();
   const fullUrl = buildUrlWithParams(`${apiUrl}${url}`, params);
 
   const token = Cookies.get("safebucket_access_token");
@@ -74,7 +74,7 @@ async function refreshToken(): Promise<void> {
       refresh_token: Cookies.get("safebucket_refresh_token"),
     });
 
-    const apiUrl = await getApiUrl();
+    const apiUrl = getApiUrl();
     const response = await fetch(`${apiUrl}/auth/refresh`, {
       method: "POST",
       headers: {
