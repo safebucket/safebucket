@@ -1,7 +1,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { IConfig } from "@/types/app.ts";
+import { EnvironmentType } from "@/types/app.ts";
 import { configQueryOptions } from "@/queries/config.ts";
 import { router } from "@/main.tsx";
+
+const defaultConfig: IConfig = {
+  apiUrl: "http://localhost:8080",
+  environment: EnvironmentType.production,
+};
 
 /**
  * Custom hook to access the application config
@@ -9,7 +15,7 @@ import { router } from "@/main.tsx";
  * This hook suspends while loading (use within a Suspense boundary)
  */
 export function useConfig() {
-  const { data } = useSuspenseQuery(configQueryOptions());
+  const { data } = useSuspenseQuery(configQueryOptions(defaultConfig));
   return data;
 }
 
@@ -20,16 +26,10 @@ export function useConfig() {
 export function getConfigSync(): IConfig {
   const queryClient = router.options.context.queryClient;
   const config = queryClient.getQueryData<IConfig>(
-    configQueryOptions().queryKey,
+    configQueryOptions(defaultConfig).queryKey,
   );
 
-  // Return cached config or default during initial load
-  return (
-    config ?? {
-      apiUrl: "http://localhost:8080",
-      environment: "production" as const,
-    }
-  );
+  return config ?? defaultConfig;
 }
 
 /**
