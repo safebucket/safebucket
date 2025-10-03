@@ -4,7 +4,14 @@ import type { FC } from "react";
 
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import { ButtonGroup } from "@/components/common/components/ButtonGroup";
+import { ButtonGroup } from "@/components/ui/button-group.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip.tsx";
 
 const options = [
   {
@@ -33,10 +40,24 @@ export const BucketViewOptions: FC = () => {
   const { view, setView } = useBucketViewContext();
 
   return (
-    <ButtonGroup
-      options={options}
-      currentOption={view}
-      setCurrentOption={setView}
-    />
+    <ButtonGroup className="default">
+      {options.map((opt, i) => (
+        <TooltipProvider key={i}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={view == opt.key ? "group" : "secondary"}
+                onClick={() => setView(opt.key)}
+              >
+                {opt.value}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{opt.tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ))}
+    </ButtonGroup>
   );
 };

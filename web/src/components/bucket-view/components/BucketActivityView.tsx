@@ -14,7 +14,7 @@ export const BucketActivityView = () => {
 
   return (
     <Card className="py-2">
-      <CardContent className="pb-0">
+      <CardContent className="pb-0 px-2">
         {isLoading ? (
           <ActivityViewSkeleton />
         ) : (

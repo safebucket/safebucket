@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ButtonGroup } from "@/components/ui/button-group.tsx";
 
 interface IBucketMembersProps {
   bucket: IBucket;
@@ -69,33 +70,40 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
             {t("bucket.settings.members.add_member")}
           </div>
           <div className="flex gap-3">
-            <Input
-              type="email"
-              placeholder={t("bucket.settings.members.enter_email")}
-              value={newMemberEmail}
-              onChange={(e) => setNewMemberEmail(e.target.value)}
-              className="flex-1"
-            />
-            <Select value={newMemberGroup} onValueChange={setNewMemberGroup}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {bucketGroups.map((group) => (
-                  <SelectItem key={group.id} value={group.id}>
-                    {group.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={addMember}
-              disabled={
-                !newMemberEmail.trim() || !EMAIL_REGEX.test(newMemberEmail)
-              }
-            >
-              <UserPlus className="h-4 w-4" />
-            </Button>
+            <ButtonGroup className="w-full ">
+              <Input
+                type="email"
+                placeholder={t("bucket.settings.members.enter_email")}
+                value={newMemberEmail}
+                onChange={(e) => setNewMemberEmail(e.target.value)}
+                className="flex-1 w-full"
+              />
+              <Select value={newMemberGroup} onValueChange={setNewMemberGroup}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="min-w-24">
+                  {bucketGroups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ButtonGroup>
+            <ButtonGroup>
+              <Button
+                aria-label="Add member"
+                onClick={addMember}
+                disabled={
+                  !newMemberEmail.trim() || !EMAIL_REGEX.test(newMemberEmail)
+                }
+                variant="outline"
+                size="icon"
+              >
+                <UserPlus />
+              </Button>
+            </ButtonGroup>
           </div>
         </div>
 

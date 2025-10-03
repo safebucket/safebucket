@@ -11,6 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item.tsx";
 
 interface IBucketMemberProps {
   member: IMemberState;
@@ -23,34 +31,27 @@ export const BucketMember: FC<IBucketMemberProps> = ({
   isCurrentUser,
   updateMemberRole,
 }) => (
-  <div
-    key={member.email}
-    className="flex items-center justify-between rounded-lg border p-3"
-  >
-    <div className="flex items-center space-x-4">
-      <Avatar>
+  <Item key={member.email} variant="outline">
+    <ItemMedia>
+      <Avatar className="size-10">
         <AvatarImage src="/avatars/01.png" />
         <AvatarFallback>{member.email.charAt(0).toUpperCase()}</AvatarFallback>
       </Avatar>
-      <div>
-        <div className="text-sm font-medium">
-          {member.first_name && member.last_name
-            ? `${member.first_name} ${member.last_name}${isCurrentUser ? " (you)" : ""}`
-            : member.email}
-        </div>
-        {member.first_name && member.last_name && (
-          <div className="text-muted-foreground text-sm">{member.email}</div>
-        )}
-        {member.status === "invited" && (
-          <div className="text-xs text-orange-500">Pending invitation</div>
-        )}
+    </ItemMedia>
+    <ItemContent>
+      <ItemTitle>
+        {member.first_name && member.last_name
+          ? `${member.first_name} ${member.last_name}${isCurrentUser ? " (you)" : ""}`
+          : member.email}
+      </ItemTitle>
+      <ItemDescription>{member.email}</ItemDescription>
+      <div className="">
         {member.isNew && (
           <div className="text-xs text-green-500">New member</div>
         )}
       </div>
-    </div>
-
-    <div className="flex items-center">
+    </ItemContent>
+    <ItemActions>
       <Select
         value={member.group}
         onValueChange={(value) => updateMemberRole(member.email, value)}
@@ -75,6 +76,6 @@ export const BucketMember: FC<IBucketMemberProps> = ({
           )}
         </SelectContent>
       </Select>
-    </div>
-  </div>
+    </ItemActions>
+  </Item>
 );

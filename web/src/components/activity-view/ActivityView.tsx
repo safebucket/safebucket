@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { IActivity } from "@/types/activity.ts";
 
-import { Separator } from "@/components/ui/separator";
+import { ItemGroup, ItemSeparator } from "@/components/ui/item";
 import { ActivityItem } from "@/components/activity-view/components/ActivityItem.tsx";
 
 interface ActivityViewProps {
@@ -11,20 +11,22 @@ interface ActivityViewProps {
 export function ActivityView({ activity }: ActivityViewProps) {
   const { t } = useTranslation();
 
+  if (!activity.length) {
+    return (
+      <p className="flex h-24 items-center justify-center text-center">
+        {t("activity.no_activity_yet")}
+      </p>
+    );
+  }
+
   return (
-    <>
+    <ItemGroup>
       {activity.map((item, index) => (
         <div key={index}>
           <ActivityItem item={item} />
-          {index < activity.length - 1 && <Separator />}
+          {index < activity.length - 1 && <ItemSeparator />}
         </div>
       ))}
-
-      {!activity.length && (
-        <p className="flex h-24 items-center justify-center text-center">
-          {t("activity.no_activity_yet")}
-        </p>
-      )}
-    </>
+    </ItemGroup>
   );
 }

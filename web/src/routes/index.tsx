@@ -57,7 +57,7 @@ function Homepage() {
                     activity.slice(0, 3).map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between pl-4 rounded-lg border"
+                        className="flex items-center justify-between rounded-lg border"
                       >
                         <ActivityItem item={item} />
                       </div>
