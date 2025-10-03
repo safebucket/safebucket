@@ -1,13 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { IConfig } from "@/types/app.ts";
-import { EnvironmentType } from "@/types/app.ts";
-import { configQueryOptions } from "@/queries/config.ts";
+import { configQueryOptions, defaultConfig } from "@/queries/config.ts";
 import { router } from "@/main.tsx";
-
-const defaultConfig: IConfig = {
-  apiUrl: "http://localhost:8080",
-  environment: EnvironmentType.production,
-};
 
 /**
  * Custom hook to access the application config
@@ -15,7 +9,7 @@ const defaultConfig: IConfig = {
  * This hook suspends while loading (use within a Suspense boundary)
  */
 export function useConfig() {
-  const { data } = useSuspenseQuery(configQueryOptions(defaultConfig));
+  const { data } = useSuspenseQuery(configQueryOptions());
   return data;
 }
 
@@ -26,7 +20,7 @@ export function useConfig() {
 export function getConfigSync(): IConfig {
   const queryClient = router.options.context.queryClient;
   const config = queryClient.getQueryData<IConfig>(
-    configQueryOptions(defaultConfig).queryKey,
+    configQueryOptions().queryKey,
   );
 
   return config ?? defaultConfig;

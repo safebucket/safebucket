@@ -1,7 +1,13 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { IConfig } from "@/types/app.ts";
+import { EnvironmentType } from "@/types/app.ts";
 
-export const configQueryOptions = (defaultConfig: IConfig) =>
+export const defaultConfig: IConfig = {
+  apiUrl: "http://localhost:8080",
+  environment: EnvironmentType.production,
+};
+
+export const configQueryOptions = () =>
   queryOptions({
     queryKey: ["config"],
     queryFn: async (): Promise<IConfig> => {
