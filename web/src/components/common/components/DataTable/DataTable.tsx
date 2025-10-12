@@ -75,7 +75,7 @@ export function DataTable<TData extends IFile, TValue>({
 
   return (
     <div className="space-y-4">
-      <div className="cursor bg-background rounded-md border shadow-sm">
+      <div className="cursor bg-primary-foreground rounded-md border shadow-sm">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

@@ -7,6 +7,7 @@ import ReactDOM from "react-dom/client";
 import reportWebVitals from "./reportWebVitals.ts";
 import { routeTree } from "./routeTree.gen";
 import { SessionProvider } from "@/components/auth-view/context/SessionProvider.tsx";
+import { ThemeProvider } from "@/components/theme/context/ThemeProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 
@@ -49,13 +50,15 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <SessionProvider>
-          <SidebarProvider>
-            <UploadProvider>
-              <RouterProvider router={router} />
-            </UploadProvider>
-          </SidebarProvider>
-        </SessionProvider>
+        <ThemeProvider>
+          <SessionProvider>
+            <SidebarProvider>
+              <UploadProvider>
+                <RouterProvider router={router} />
+              </UploadProvider>
+            </SidebarProvider>
+          </SessionProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </StrictMode>,
   );
