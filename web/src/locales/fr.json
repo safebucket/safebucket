@@ -182,7 +182,20 @@
     }
   },
   "settings": {
-    "title": "Paramètres",
+    "title": "Préférences",
+    "appearance": {
+      "title": "Apparence",
+      "description": "Personnalisez l'apparence de SafeBucket sur votre appareil",
+      "theme_mode": {
+        "label": "Mode",
+        "light": "Clair",
+        "dark": "Sombre",
+        "system": "Système"
+      },
+      "color_theme": {
+        "label": "Thème"
+      }
+    },
     "language": {
       "label": "Langue",
       "description": "Sélectionnez votre langue préférée",

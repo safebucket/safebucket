@@ -46,7 +46,7 @@ export const BucketViewOptions: FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={view == opt.key ? "group" : "secondary"}
+                variant={view == opt.key ? "default" : "secondary"}
                 onClick={() => setView(opt.key)}
               >
                 {opt.value}

@@ -182,7 +182,20 @@
     }
   },
   "settings": {
-    "title": "Settings",
+    "title": "Preferences",
+    "appearance": {
+      "title": "Appearance",
+      "description": "Customize how Safebucket looks",
+      "theme_mode": {
+        "label": "Theme Mode",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "color_theme": {
+        "label": "Color Theme"
+      }
+    },
     "language": {
       "label": "Language",
       "description": "Select your preferred language",

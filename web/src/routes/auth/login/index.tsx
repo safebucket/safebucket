@@ -76,7 +76,7 @@ function Login() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background text-muted-foreground px-2">
+                  <span className="bg-primary-foreground text-muted-foreground px-2">
                     {t("auth.or_continue_with")}
                   </span>
                 </div>
