@@ -63,7 +63,7 @@ export const FormDialog: FC<IFormDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`max-w-[${maxWidth}]`}>
+      <DialogContent style={{ maxWidth }}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -87,7 +87,9 @@ export const FormDialog: FC<IFormDialogProps> = ({
           {children}
 
           <DialogFooter>
-            <Button type="submit">{confirmLabel}</Button>
+            <Button type="submit" className="mt-2">
+              {confirmLabel}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

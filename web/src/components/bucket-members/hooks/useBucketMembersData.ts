@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IBucket } from "@/types/bucket.ts";
+import { EMAIL_REGEX } from "@/types/bucket.ts";
 import { bucketMembersQueryOptions } from "@/queries/bucket";
-import { EMAIL_REGEX } from "@/components/add-members/helpers/constants";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { api_updateMembers } from "@/components/bucket-members/helpers/api";
 import {

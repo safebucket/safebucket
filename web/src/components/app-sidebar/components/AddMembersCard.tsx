@@ -3,14 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import type { FC } from "react";
 
 import type { IMembers } from "@/components/bucket-view/helpers/types";
-import { AddMembersInput } from "@/components/add-members/components/AddMembersInput";
-import { AddMembersSkeleton } from "@/components/add-members/components/AddMembersSkeleton";
-import { PeopleWithAccess } from "@/components/add-members/components/PeopleWithAccess";
-import { useAddMembers } from "@/components/add-members/hooks/useAddMembers";
+import { AddMembersInput } from "@/components/app-sidebar/components/AddMembersInput";
+import { AddMembersList } from "@/components/app-sidebar/components/AddMembersList";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { bucketMembersQueryOptions } from "@/queries/bucket.ts";
+import { useAddMembers } from "@/components/app-sidebar/hooks/useAddMembers.ts";
 
-interface IAddMembersProps {
+interface IAddMembersCardProps {
   shareWith: Array<IMembers>;
   onShareWithChange: (shareWith: Array<IMembers>) => void;
   currentUserEmail?: string;
@@ -20,7 +20,7 @@ interface IAddMembersProps {
   onAllMembersChange?: (allMembers: Array<IMembers>) => void;
 }
 
-export const AddMembers: FC<IAddMembersProps> = ({
+export const AddMembersCard: FC<IAddMembersCardProps> = ({
   shareWith,
   onShareWithChange,
   currentUserEmail,
@@ -77,9 +77,13 @@ export const AddMembers: FC<IAddMembersProps> = ({
       <Separator className="my-4" />
 
       {isLoading ? (
-        <AddMembersSkeleton />
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
       ) : (
-        <PeopleWithAccess
+        <AddMembersList
           shareWith={shareWith}
           onGroupChange={setGroup}
           onRemoveUser={removeFromList}

@@ -1,23 +1,23 @@
 import { useState } from "react";
-
-import { EMAIL_REGEX } from "@/components/add-members/helpers/constants";
-import type { IMembers } from "@/components/bucket-view/helpers/types";
+import type { IMembers } from "@/components/bucket-view/helpers/types.ts";
+import { EMAIL_REGEX } from "@/types/bucket.ts";
 
 export const useAddMembers = (
-  initialShareWith: IMembers[] = [],
-  onShareWithChange?: (shareWith: IMembers[]) => void,
+  initialShareWith: Array<IMembers> = [],
+  onShareWithChange?: (shareWith: Array<IMembers>) => void,
 ) => {
   const [email, setEmail] = useState<string>("");
-  const [shareWith, setShareWithState] = useState<IMembers[]>(initialShareWith);
+  const [shareWith, setShareWithState] =
+    useState<Array<IMembers>>(initialShareWith);
 
-  const updateShareWith = (newShareWith: IMembers[]) => {
+  const updateShareWith = (newShareWith: Array<IMembers>) => {
     setShareWithState(newShareWith);
     onShareWithChange?.(newShareWith);
   };
 
-  const addEmail = (email: string) => {
+  const addEmail = (email: string, group: string = "viewer") => {
     if (EMAIL_REGEX.test(email) && !shareWith.find((e) => e.email === email)) {
-      const newShareWith = [...shareWith, { email: email, group: "viewer" }];
+      const newShareWith = [...shareWith, { email: email, group: group }];
       updateShareWith(newShareWith);
       setEmail("");
       return true;

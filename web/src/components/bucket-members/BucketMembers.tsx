@@ -3,10 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
 import type { IBucket } from "@/types/bucket.ts";
-import {
-  EMAIL_REGEX,
-  bucketGroups,
-} from "@/components/add-members/helpers/constants";
+import { EMAIL_REGEX, bucketGroups } from "@/types/bucket.ts";
 import { BucketMember } from "@/components/bucket-members/components/BucketMember";
 import { BucketMembersSkeleton } from "@/components/bucket-members/components/BucketMembersSkeleton";
 import { useBucketMembersData } from "@/components/bucket-members/hooks/useBucketMembersData";
@@ -70,8 +67,9 @@ export const BucketMembers: FC<IBucketMembersProps> = ({ bucket }) => {
             {t("bucket.settings.members.add_member")}
           </div>
           <div className="flex gap-3">
-            <ButtonGroup className="w-full ">
+            <ButtonGroup className="w-full">
               <Input
+                id="email"
                 type="email"
                 placeholder={t("bucket.settings.members.enter_email")}
                 value={newMemberEmail}

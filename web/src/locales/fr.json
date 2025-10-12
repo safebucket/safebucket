@@ -1,7 +1,8 @@
 {
   "common": {
     "logout": "Déconnexion",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "create": "Créer"
   },
   "auth": {
     "sign_in_title": "Connectez-vous à votre compte",
@@ -109,6 +110,11 @@
     }
   },
   "bucket": {
+    "new_bucket_dialog": {
+      "title": "Nouveau bucket",
+      "description": "Créer un bucket pour partager des fichiers en toute sécurité",
+      "name_label": "Nom"
+    },
     "header": {
       "share_file": "Partager un fichier",
       "upload_and_share": "Téléchargez un fichier et partagez-le en toute sécurité",
@@ -160,7 +166,13 @@
         "description": "Gérez les personnes qui ont accès à ce bucket et leurs permissions",
         "add_member": "Ajouter un membre",
         "members": "Membres",
-        "enter_email": "Saisir l'adresse e-mail"
+        "enter_email": "Saisir l'adresse e-mail",
+        "share_with": "Partager avec",
+        "add": "Ajouter",
+        "people_with_access": "Personnes ayant accès",
+        "owner": "Propriétaire",
+        "you": "vous",
+        "invited": "Invité"
       }
     }
   },

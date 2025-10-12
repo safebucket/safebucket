@@ -6,7 +6,6 @@ import { ChevronsUpDown, FolderSync, LogOut, Plus } from "lucide-react";
 import type { FC } from "react";
 
 import type { IMembers } from "@/components/bucket-view/helpers/types";
-import { AddMembers } from "@/components/add-members";
 import { nav } from "@/components/app-sidebar/helpers/nav";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
@@ -38,6 +37,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { AddMembersCard } from "@/components/app-sidebar/components/AddMembersCard.tsx";
 
 export const AppSidebar: FC = () => {
   const location = useLocation();
@@ -99,11 +99,16 @@ export const AppSidebar: FC = () => {
                 <Plus onClick={createBucketDialog.trigger} />
                 <FormDialog
                   {...createBucketDialog.props}
-                  title="New bucket"
-                  maxWidth="650px"
-                  description="Create a bucket to share files safely"
+                  title={t("bucket.new_bucket_dialog.title")}
+                  maxWidth="700px"
+                  description={t("bucket.new_bucket_dialog.description")}
                   fields={[
-                    { id: "name", label: "Name", type: "text", required: true },
+                    {
+                      id: "name",
+                      label: t("bucket.new_bucket_dialog.name_label"),
+                      type: "text",
+                      required: true,
+                    },
                   ]}
                   onSubmit={(data) => {
                     createBucketMutation.mutate({
@@ -112,9 +117,9 @@ export const AppSidebar: FC = () => {
                     });
                     setShareWith([]);
                   }}
-                  confirmLabel="Create"
+                  confirmLabel={t("common.create")}
                 >
-                  <AddMembers
+                  <AddMembersCard
                     shareWith={shareWith}
                     onShareWithChange={setShareWith}
                     currentUserEmail={session?.loggedUser?.email}

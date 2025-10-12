@@ -1,7 +1,6 @@
 import type { FC } from "react";
 
 import type { IMemberState } from "@/components/bucket-members/hooks/useBucketMembersData";
-import { bucketGroups } from "@/components/add-members";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
@@ -19,6 +18,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item.tsx";
+import { bucketGroups } from "@/types/bucket.ts";
 
 interface IBucketMemberProps {
   member: IMemberState;

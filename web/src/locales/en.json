@@ -1,7 +1,8 @@
 {
   "common": {
     "logout": "Logout",
-    "save": "Save"
+    "save": "Save",
+    "create": "Create"
   },
   "auth": {
     "sign_in_title": "Sign in to your account",
@@ -109,6 +110,11 @@
     }
   },
   "bucket": {
+    "new_bucket_dialog": {
+      "title": "New bucket",
+      "description": "Create a bucket to share files safely",
+      "name_label": "Name"
+    },
     "header": {
       "share_file": "Share a file",
       "upload_and_share": "Upload a file and share it safely",
@@ -160,7 +166,13 @@
         "description": "Manage who has access to this bucket and their permissions",
         "add_member": "Add Member",
         "members": "Members",
-        "enter_email": "Enter email address"
+        "enter_email": "Enter email address",
+        "share_with": "Share with",
+        "add": "Add",
+        "people_with_access": "People with access",
+        "owner": "Owner",
+        "you": "you",
+        "invited": "Invited"
       }
     }
   },
