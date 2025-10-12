@@ -68,7 +68,7 @@ func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserCl
 	} else if invite.Email != body.Email {
 		return invite, errors.NewAPIError(400, "INVITE_EMAIL_MISMATCH")
 	} else {
-		secret, err := h.GenerateSecret(6)
+		secret, err := h.GenerateSecret()
 		if err != nil {
 			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
 		}

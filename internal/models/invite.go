@@ -38,14 +38,17 @@ type PasswordResetRequestBody struct {
 }
 
 type PasswordResetChallenge struct {
-	ID           uuid.UUID `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
-	UserID       uuid.UUID `gorm:"type:uuid;not null;index:idx_password_reset_unique,unique" json:"user_id"`
-	User         User      `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"user"`
-	HashedSecret string    `gorm:"not null;default:null" json:"hashed_secret" validate:"required"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID             uuid.UUID  `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
+	UserID         uuid.UUID  `gorm:"type:uuid;not null;index:idx_password_reset_unique,unique" json:"user_id"`
+	User           User       `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"user"`
+	HashedSecret   string     `gorm:"not null;default:null" json:"hashed_secret" validate:"required"`
+	FailedAttempts int        `gorm:"not null;default:0" json:"failed_attempts"`
+	ExpiresAt      time.Time  `gorm:"not null" json:"expires_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+	DeletedAt      *time.Time `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 type PasswordResetValidateBody struct {
-	Code        string `json:"code" validate:"required"`
+	Code        string `json:"code" validate:"required,len=6,alphanum"`
 	NewPassword string `json:"new_password" validate:"required,min=8"`
 }
