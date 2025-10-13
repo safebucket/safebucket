@@ -296,7 +296,7 @@ func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClai
 
 func (s AuthService) RequestPasswordReset(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.PasswordResetRequestBody) (interface{}, error) {
 	var user models.User
-	result := s.DB.Where("email = ? AND is_external = ?", body.Email, false).First(&user)
+	result := s.DB.Where("email = ? AND provider_type = ?", body.Email, models.LocalProviderType).First(&user)
 
 	if result.RowsAffected == 0 {
 		return nil, nil
