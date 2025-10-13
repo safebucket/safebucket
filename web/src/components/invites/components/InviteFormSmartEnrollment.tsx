@@ -8,7 +8,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import type { FC } from "react";
 
 import { api_createChallenge } from "@/components/invites/helpers/api";
-import { AuthProvidersButtons } from "@/components/common/auth/AuthProvidersButtons.tsx";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,7 +21,8 @@ import { Label } from "@/components/ui/label";
 import { authProvidersQueryOptions } from "@/queries/auth_providers.ts";
 import { ProviderType } from "@/types/auth_providers.ts";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext.ts";
-import { checkEmailDomain } from "@/components/common/auth/helpers/utils.ts";
+import { checkEmailDomain } from "@/components/reset-password/helpers/utils.ts";
+import { AuthProvidersButtons } from "@/components/auth-providers-buttons/AuthProvidersButtons.tsx";
 
 interface ISmartInviteEnrollmentData {
   email: string;

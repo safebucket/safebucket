@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PasswordResetValidateForm } from "@/components/reset-password/PasswordResetValidateForm.tsx";
 
-import { PasswordResetValidateForm } from "@/components/auth-view/components/PasswordResetValidateForm";
-
-export const Route = createFileRoute("/auth/reset-password/$id")({
+export const Route = createFileRoute("/auth/reset-password/$id/")({
   component: PasswordResetValidateComponent,
 });
 

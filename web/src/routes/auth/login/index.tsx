@@ -5,7 +5,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { LogIn } from "lucide-react";
 import type { FormEvent } from "react";
-import { AuthProvidersButtons } from "@/components/common/auth/AuthProvidersButtons.tsx";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authProvidersQueryOptions } from "@/queries/auth_providers.ts";
 import { ProviderType } from "@/types/auth_providers.ts";
-import { checkEmailDomain } from "@/components/common/auth/helpers/utils.ts";
+import { checkEmailDomain } from "@/components/reset-password/helpers/utils.ts";
+import { AuthProvidersButtons } from "@/components/auth-providers-buttons/AuthProvidersButtons.tsx";
 
 export const Route = createFileRoute("/auth/login/")({
   loader: ({ context: { queryClient } }) =>

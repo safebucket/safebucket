@@ -1,23 +1,23 @@
-import type { FC } from "react";
 import { useState } from "react";
 
 import { AlertCircle, Key, Mail } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import type { FC } from "react";
 
-import { api_requestPasswordReset } from "@/components/auth-view/helpers/api";
-import type { IPasswordResetRequestFormData } from "@/components/auth-view/helpers/types";
-import { Button } from "@/components/ui/button";
+import type { IPasswordResetRequestFormData } from "@/components/auth-view/helpers/types.ts";
+import { api_requestPasswordReset } from "@/components/auth-view/helpers/api.ts";
+import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components/ui/card.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
 
 export const PasswordResetRequestForm: FC = () => {
   const { t } = useTranslation();
@@ -76,9 +76,7 @@ export const PasswordResetRequestForm: FC = () => {
           <Key className="h-6 w-6 text-blue-600" />
         </div>
         <CardTitle>{t("auth.password_reset.title")}</CardTitle>
-        <CardDescription>
-          {t("auth.password_reset.subtitle")}
-        </CardDescription>
+        <CardDescription>{t("auth.password_reset.subtitle")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
@@ -110,7 +108,9 @@ export const PasswordResetRequestForm: FC = () => {
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? t("auth.password_reset.sending") : t("auth.password_reset.send_reset_code")}
+            {isSubmitting
+              ? t("auth.password_reset.sending")
+              : t("auth.password_reset.send_reset_code")}
           </Button>
 
           <div className="text-center">

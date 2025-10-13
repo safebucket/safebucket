@@ -1,28 +1,28 @@
-import type { FC } from "react";
 import { useState } from "react";
 
 import Cookies from "js-cookie";
 import { AlertCircle, CheckCircle, Shield } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
+import type { FC } from "react";
 
-import { api_validatePasswordReset } from "@/components/auth-view/helpers/api";
-import type { IPasswordResetValidateFormData } from "@/components/auth-view/helpers/types";
-import { Button } from "@/components/ui/button";
+import type { IPasswordResetValidateFormData } from "@/components/auth-view/helpers/types.ts";
+import { api_validatePasswordReset } from "@/components/auth-view/helpers/api.ts";
+import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/card.tsx";
+import { Input } from "@/components/ui/input.tsx";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from "@/components/ui/input-otp";
-import { Label } from "@/components/ui/label";
+} from "@/components/ui/input-otp.tsx";
+import { Label } from "@/components/ui/label.tsx";
 
 export interface IPasswordResetValidateFormProps {
   challengeId: string;
