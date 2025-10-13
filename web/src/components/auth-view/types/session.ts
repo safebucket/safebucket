@@ -40,6 +40,7 @@ export interface ISessionContext {
 
   login: (provider: string) => void;
   logout: () => void;
+  setAuthenticationState: (accessToken: string, refreshToken: string, provider: string) => void;
 
   session: Session | null;
   status: string;

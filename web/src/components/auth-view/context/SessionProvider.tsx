@@ -90,7 +90,14 @@ export const SessionProvider = ({
     setAuthProvider(undefined);
   };
 
-  return (
+    const setAuthenticationState = (accessToken: string, refreshToken: string, provider: string) => {
+        setAccessToken(accessToken);
+        setRefreshToken(refreshToken);
+        setAuthProvider(provider);
+    };
+
+
+    return (
     <SessionContext.Provider
       value={{
         login,
@@ -99,6 +106,7 @@ export const SessionProvider = ({
         handleSubmit,
         watch,
         logout,
+        setAuthenticationState,
         session,
         status,
       }}

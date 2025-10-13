@@ -8,6 +8,7 @@ import type { FC } from "react";
 
 import type { IPasswordResetValidateFormData } from "@/components/auth-view/helpers/types.ts";
 import { api_validatePasswordReset } from "@/components/auth-view/helpers/api.ts";
+import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
@@ -32,6 +33,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
   challengeId,
 }) => {
   const navigate = useNavigate();
+  const { setAuthenticationState } = useSessionContext();
   const [isValidated, setIsValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -72,6 +74,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
 
       // Navigate to home after a short delay
       setTimeout(() => {
+        setAuthenticationState(response.access_token, response.refresh_token, "local");
         navigate({ to: "/" });
       }, 2000);
     } catch {
