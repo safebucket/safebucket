@@ -1,4 +1,6 @@
 :root {
+  --background: oklch(0.973 0.0133 286.1503);
+  --foreground: oklch(0.3015 0.0572 282.4176);
   --primary: oklch(0.5417 0.179 288.0332);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.9174 0.0435 292.6901);
@@ -10,6 +12,8 @@
 }
 
 .dark {
+  --background: oklch(0.1743 0.0227 283.7998);
+  --foreground: oklch(0.9185 0.0257 285.8834);
   --primary: oklch(0.7162 0.1597 290.3962);
   --primary-foreground: oklch(0.1743 0.0227 283.7998);
   --secondary: oklch(0.3139 0.0736 283.4591);

@@ -27,7 +27,7 @@ export const themes: Record<ColorTheme, ThemeConfig> = {
   default: {
     name: "default",
     label: "Default",
-    cssPath: "/src/styles/themes/default.css",
+    cssPath: "/src/styles/default.css",
     previewColors: {
       light: {
         primary: "oklch(0.5417 0.179 288.0332)",
@@ -46,7 +46,7 @@ export const themes: Record<ColorTheme, ThemeConfig> = {
   darkmatter: {
     name: "darkmatter",
     label: "Darkmatter",
-    cssPath: "/src/styles/themes/darkmatter.css",
+    cssPath: "/src/styles/darkmatter.css",
     previewColors: {
       light: {
         primary: "oklch(0.6716 0.1368 48.5130)",
@@ -65,7 +65,7 @@ export const themes: Record<ColorTheme, ThemeConfig> = {
   quantum_rose: {
     name: "quantum_rose",
     label: "Quantum Rose",
-    cssPath: "/src/styles/themes/quantum_rose.css",
+    cssPath: "/src/styles/quantum_rose.css",
     previewColors: {
       light: {
         primary: "oklch(0.6002 0.2414 0.1348)",
@@ -84,7 +84,7 @@ export const themes: Record<ColorTheme, ThemeConfig> = {
   ocean_breeze: {
     name: "ocean_breeze",
     label: "Ocean Breeze",
-    cssPath: "/src/styles/themes/ocean_breeze.css",
+    cssPath: "/src/styles/ocean_breeze.css",
     previewColors: {
       light: {
         primary: "oklch(0.7227 0.1920 149.5793)",
@@ -103,7 +103,7 @@ export const themes: Record<ColorTheme, ThemeConfig> = {
   elegant_luxury: {
     name: "elegant_luxury",
     label: "Elegant Luxury",
-    cssPath: "/src/styles/themes/elegant_luxury.css",
+    cssPath: "/src/styles/elegant_luxury.css",
     previewColors: {
       light: {
         primary: "oklch(0.4650 0.1470 24.9381)",
@@ -122,7 +122,7 @@ export const themes: Record<ColorTheme, ThemeConfig> = {
   neo_brutalism: {
     name: "neo_brutalism",
     label: "Neo Brutalism",
-    cssPath: "/src/styles/themes/neo_brutalism.css",
+    cssPath: "/src/styles/neo_brutalism.css",
     previewColors: {
       light: {
         primary: "oklch(0.6489 0.2370 26.9728)",
@@ -141,25 +141,35 @@ export const themes: Record<ColorTheme, ThemeConfig> = {
 };
 
 let currentThemeLink: HTMLLinkElement | null = null;
+let currentThemeStyle: HTMLStyleElement | null = null;
+
+const themeImports: Record<ColorTheme, () => Promise<{ default: string }>> = {
+  default: () => import("@/styles/default.css?inline"),
+  darkmatter: () => import("@/styles/darkmatter.css?inline"),
+  quantum_rose: () => import("@/styles/quantum_rose.css?inline"),
+  ocean_breeze: () => import("@/styles/ocean_breeze.css?inline"),
+  elegant_luxury: () => import("@/styles/elegant_luxury.css?inline"),
+  neo_brutalism: () => import("@/styles/neo_brutalism.css?inline"),
+};
 
 export async function loadTheme(theme: ColorTheme) {
-  const themeConfig = themes[theme];
-
   if (currentThemeLink) {
     currentThemeLink.remove();
     currentThemeLink = null;
   }
+  if (currentThemeStyle) {
+    currentThemeStyle.remove();
+    currentThemeStyle = null;
+  }
 
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = themeConfig.cssPath;
-  link.setAttribute("data-theme", theme);
-  document.head.appendChild(link);
-
-  currentThemeLink = link;
-
-  return new Promise<void>((resolve, reject) => {
-    link.onload = () => resolve();
-    link.onerror = () => reject(new Error(`Failed to load theme: ${theme}`));
-  });
+  try {
+    const themeModule = await themeImports[theme]();
+    const style = document.createElement("style");
+    style.textContent = themeModule.default;
+    style.setAttribute("data-theme", theme);
+    document.head.appendChild(style);
+    currentThemeStyle = style;
+  } catch (error) {
+    throw new Error(`Failed to load theme: ${theme}`);
+  }
 }
