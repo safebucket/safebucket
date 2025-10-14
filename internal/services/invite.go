@@ -80,7 +80,8 @@ func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserCl
 		}
 
 		challenge := models.Challenge{
-			InviteID:     invite.ID,
+			Type:         models.ChallengeTypeInvite,
+			InviteID:     &invite.ID,
 			HashedSecret: hashedSecret,
 		}
 
@@ -114,15 +115,20 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 
 	var challenge models.Challenge
 
-	result := s.DB.Preload("Invite").Where("id = ? AND invite_id = ?", challengeId, inviteId).First(&challenge)
+	result := s.DB.Preload("Invite").Where("id = ? AND invite_id = ? AND type = ?", challengeId, inviteId, models.ChallengeTypeInvite).First(&challenge)
+
+	if result.RowsAffected == 0 {
+		return models.AuthLoginResponse{}, errors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
+	}
+
+	if challenge.Invite == nil {
+		logger.Error("Challenge has no associated invite")
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
 
 	if !h.IsDomainAllowed(challenge.Invite.Email, s.Providers[string(models.LocalProviderType)].Domains) {
 		logger.Debug("Domain not allowed")
 		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
-	}
-
-	if result.RowsAffected == 0 {
-		return models.AuthLoginResponse{}, errors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
 	}
 
 	match, err := argon2id.ComparePasswordAndHash(strings.ToUpper(body.Code), challenge.HashedSecret)

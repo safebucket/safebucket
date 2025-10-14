@@ -206,29 +206,32 @@ func (s AuthService) OpenIDCallback(
 func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.PasswordResetValidateBody) (models.AuthLoginResponse, error) {
 	challengeId := ids[0]
 
-	var challenge models.PasswordResetChallenge
-	result := s.DB.Preload("User").Where("id = ?", challengeId).First(&challenge)
+	var challenge models.Challenge
+	result := s.DB.Preload("User").Where("id = ? AND type = ?", challengeId, models.ChallengeTypePasswordReset).First(&challenge)
 
 	if result.RowsAffected == 0 {
 		return models.AuthLoginResponse{}, customerr.NewAPIError(404, "CHALLENGE_NOT_FOUND")
 	}
 
-	// Check if challenge has expired
-	if time.Now().After(challenge.ExpiresAt) {
+	if challenge.User == nil {
+		logger.Error("Challenge has no associated user")
+		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
+	if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
 		s.DB.Delete(&challenge)
 		return models.AuthLoginResponse{}, customerr.NewAPIError(410, "CHALLENGE_EXPIRED")
 	}
 
 	match, err := argon2id.ComparePasswordAndHash(strings.ToUpper(body.Code), challenge.HashedSecret)
 	if err != nil || !match {
-		challenge.FailedAttempts++
+		challenge.FailedAttempts--
 
-		// Soft delete challenge if max failed attempts reached
-		if challenge.FailedAttempts >= PasswordResetMaxFailedAttempts {
+		if challenge.FailedAttempts <= 0 {
 			logger.Warn("Password reset challenge soft deleted due to too many failed attempts",
 				zap.String("challenge_id", challenge.ID.String()),
 				zap.String("user_id", challenge.UserID.String()),
-				zap.Int("failed_attempts", challenge.FailedAttempts))
+				zap.Int("remaining_attempts", challenge.FailedAttempts))
 			s.DB.Delete(&challenge)
 			return models.AuthLoginResponse{}, customerr.NewAPIError(403, "CHALLENGE_LOCKED")
 		}
@@ -255,7 +258,7 @@ func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClai
 	}
 
 	// Update user password
-	updateResult := tx.Model(&challenge.User).Update("hashed_password", hashedPassword)
+	updateResult := tx.Model(challenge.User).Update("hashed_password", hashedPassword)
 	if updateResult.Error != nil {
 		logger.Error("Failed to update password", zap.Error(updateResult.Error))
 		tx.Rollback()
@@ -276,13 +279,13 @@ func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClai
 	}
 
 	// Generate tokens for the user
-	accessToken, err := h.NewAccessToken(s.JWTSecret, &challenge.User, string(models.LocalProviderType))
+	accessToken, err := h.NewAccessToken(s.JWTSecret, challenge.User, string(models.LocalProviderType))
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
 		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "GENERATE_ACCESS_TOKEN_FAILED")
 	}
 
-	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &challenge.User, string(models.LocalProviderType))
+	refreshToken, err := h.NewRefreshToken(s.JWTSecret, challenge.User, string(models.LocalProviderType))
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
 		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "GENERATE_REFRESH_TOKEN_FAILED")
@@ -313,13 +316,16 @@ func (s AuthService) RequestPasswordReset(_ *zap.Logger, _ models.UserClaims, _ 
 	}
 
 	// Delete any existing password reset challenges for this user
-	s.DB.Where("user_id = ?", user.ID).Delete(&models.PasswordResetChallenge{})
+	s.DB.Where("user_id = ? AND type = ?", user.ID, models.ChallengeTypePasswordReset).Delete(&models.Challenge{})
 
 	// Create a new password reset challenge with configurable expiration
-	challenge := models.PasswordResetChallenge{
-		UserID:       user.ID,
-		HashedSecret: hashedSecret,
-		ExpiresAt:    time.Now().Add(PasswordResetExpirationMinutes * time.Minute),
+	expiresAt := time.Now().Add(PasswordResetExpirationMinutes * time.Minute)
+	challenge := models.Challenge{
+		Type:           models.ChallengeTypePasswordReset,
+		UserID:         &user.ID,
+		HashedSecret:   hashedSecret,
+		ExpiresAt:      &expiresAt,
+		FailedAttempts: PasswordResetMaxFailedAttempts,
 	}
 
 	result = s.DB.Create(&challenge)
