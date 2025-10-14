@@ -225,19 +225,19 @@ func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClai
 
 	match, err := argon2id.ComparePasswordAndHash(strings.ToUpper(body.Code), challenge.HashedSecret)
 	if err != nil || !match {
-		challenge.FailedAttempts--
+		challenge.AttemptsLeft--
 
-		if challenge.FailedAttempts <= 0 {
+		if challenge.AttemptsLeft <= 0 {
 			logger.Warn("Password reset challenge soft deleted due to too many failed attempts",
 				zap.String("challenge_id", challenge.ID.String()),
 				zap.String("user_id", challenge.UserID.String()),
-				zap.Int("remaining_attempts", challenge.FailedAttempts))
+				zap.Int("attempts_left", challenge.AttemptsLeft))
 			s.DB.Delete(&challenge)
 			return models.AuthLoginResponse{}, customerr.NewAPIError(403, "CHALLENGE_LOCKED")
 		}
 
-		if updateErr := s.DB.Model(&challenge).Update("failed_attempts", challenge.FailedAttempts).Error; updateErr != nil {
-			logger.Error("Failed to update failed attempts counter", zap.Error(updateErr))
+		if updateErr := s.DB.Model(&challenge).Update("failed_attempts", challenge.AttemptsLeft).Error; updateErr != nil {
+			logger.Error("Failed to update attempts counter", zap.Error(updateErr))
 		}
 
 		return models.AuthLoginResponse{}, customerr.NewAPIError(401, "WRONG_CODE")
@@ -321,11 +321,11 @@ func (s AuthService) RequestPasswordReset(_ *zap.Logger, _ models.UserClaims, _ 
 	// Create a new password reset challenge with configurable expiration
 	expiresAt := time.Now().Add(PasswordResetExpirationMinutes * time.Minute)
 	challenge := models.Challenge{
-		Type:           models.ChallengeTypePasswordReset,
-		UserID:         &user.ID,
-		HashedSecret:   hashedSecret,
-		ExpiresAt:      &expiresAt,
-		FailedAttempts: PasswordResetMaxFailedAttempts,
+		Type:         models.ChallengeTypePasswordReset,
+		UserID:       &user.ID,
+		HashedSecret: hashedSecret,
+		ExpiresAt:    &expiresAt,
+		AttemptsLeft: PasswordResetMaxFailedAttempts,
 	}
 
 	result = s.DB.Create(&challenge)
