@@ -137,3 +137,62 @@ func (e *PasswordResetChallengeEvent) callback(params *EventParams) error {
 	}
 	return nil
 }
+
+const PasswordResetSuccessName = "PasswordResetSuccess"
+const PasswordResetSuccessPayloadName = "PasswordResetSuccessPayload"
+
+type PasswordResetSuccessPayload struct {
+	Type      string
+	Email     string
+	WebUrl    string
+	ResetDate string
+}
+
+type PasswordResetSuccessEvent struct {
+	Publisher messaging.IPublisher
+	Payload   PasswordResetSuccessPayload
+}
+
+func NewPasswordResetSuccess(
+	publisher messaging.IPublisher,
+	email string,
+	webUrl string,
+	resetDate string,
+) PasswordResetSuccessEvent {
+	return PasswordResetSuccessEvent{
+		Publisher: publisher,
+		Payload: PasswordResetSuccessPayload{
+			Type:      PasswordResetSuccessName,
+			Email:     email,
+			WebUrl:    webUrl,
+			ResetDate: resetDate,
+		},
+	}
+}
+
+func (e *PasswordResetSuccessEvent) Trigger() {
+	payload, err := json.Marshal(e.Payload)
+	if err != nil {
+		zap.L().Error("Error marshalling event payload", zap.Error(err))
+		return
+	}
+
+	msg := message.NewMessage(watermill.NewUUID(), payload)
+	msg.Metadata.Set("type", e.Payload.Type)
+	err = e.Publisher.Publish(msg)
+
+	if err != nil {
+		zap.L().Error("failed to trigger event", zap.Error(err))
+	}
+}
+
+func (e *PasswordResetSuccessEvent) callback(params *EventParams) error {
+	e.Payload.WebUrl = params.WebUrl
+	subject := "Password Reset Successful"
+	err := params.Notifier.NotifyFromTemplate(e.Payload.Email, subject, "password_reset_success", e.Payload)
+	if err != nil {
+		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
+		return err
+	}
+	return nil
+}

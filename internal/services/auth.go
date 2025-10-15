@@ -243,21 +243,18 @@ func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClai
 		return models.AuthLoginResponse{}, customerr.NewAPIError(401, "WRONG_CODE")
 	}
 
-	// Hash the new password
 	hashedPassword, err := h.CreateHash(body.NewPassword)
 	if err != nil {
 		logger.Error("Failed to hash new password", zap.Error(err))
 		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
 	}
 
-	// Start transaction for password update and challenge cleanup
 	tx := s.DB.Begin()
 	if tx.Error != nil {
 		logger.Error("Failed to start transaction", zap.Error(tx.Error))
 		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "TRANSACTION_START_FAILED")
 	}
 
-	// Update user password
 	updateResult := tx.Model(challenge.User).Update("hashed_password", hashedPassword)
 	if updateResult.Error != nil {
 		logger.Error("Failed to update password", zap.Error(updateResult.Error))
@@ -265,7 +262,6 @@ func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClai
 		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
 	}
 
-	// Delete the used challenge
 	deleteResult := tx.Delete(&challenge)
 	if deleteResult.Error != nil {
 		logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
@@ -278,7 +274,15 @@ func (s AuthService) ValidatePasswordReset(logger *zap.Logger, _ models.UserClai
 		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "TRANSACTION_COMMIT_FAILED")
 	}
 
-	// Generate tokens for the user
+	resetDate := time.Now().Format("January 2, 2006 at 3:04 PM MST")
+	successEvent := events.NewPasswordResetSuccess(
+		s.Publisher,
+		challenge.User.Email,
+		s.WebUrl,
+		resetDate,
+	)
+	successEvent.Trigger()
+
 	accessToken, err := h.NewAccessToken(s.JWTSecret, challenge.User, string(models.LocalProviderType))
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))

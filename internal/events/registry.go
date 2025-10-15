@@ -11,6 +11,8 @@ var eventRegistry = map[string]reflect.Type{
 	ChallengeUserInvitePayloadName:    reflect.TypeOf(ChallengeUserInvitePayload{}),
 	PasswordResetChallengeName:        reflect.TypeOf(PasswordResetChallengeEvent{}),
 	PasswordResetChallengePayloadName: reflect.TypeOf(PasswordResetChallengePayload{}),
+	PasswordResetSuccessName:          reflect.TypeOf(PasswordResetSuccessEvent{}),
+	PasswordResetSuccessPayloadName:   reflect.TypeOf(PasswordResetSuccessPayload{}),
 	UserInvitationName:                reflect.TypeOf(UserInvitation{}),
 	UserInvitationPayloadName:         reflect.TypeOf(UserInvitationPayload{}),
 	ObjectDeletionName:                reflect.TypeOf(ObjectDeletion{}),
