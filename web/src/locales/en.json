@@ -24,7 +24,28 @@
       "send_reset_code": "Send reset code",
       "sending": "Sending...",
       "error_message": "Failed to send password reset email. Please try again.",
-      "back_to_login": "Back to login"
+      "back_to_login": "Back to login",
+      "validate": {
+        "title": "Reset your password",
+        "subtitle": "Enter the 6-digit verification code from your email and choose a new password",
+        "code_label": "6-digit verification code",
+        "new_password_label": "New password",
+        "new_password_placeholder": "Enter new password",
+        "confirm_password_label": "Confirm new password",
+        "confirm_password_placeholder": "Confirm new password",
+        "reset_button": "Reset password",
+        "resetting": "Resetting password...",
+        "success_title": "Password Reset Successful",
+        "success_message": "Your password has been reset successfully. You are now logged in and will be redirected to the homepage.",
+        "error_code_length": "Verification code must be exactly 6 digits",
+        "error_password_mismatch": "Passwords do not match",
+        "error_validation_failed": "Invalid verification code or failed to reset password. Please try again.",
+        "error_new_password_required": "New password is required",
+        "error_new_password_min_length": "Password must be at least 8 characters",
+        "error_confirm_password_required": "Please confirm your password",
+        "error_confirm_password_mismatch": "Passwords do not match",
+        "footer_text": "Didn't receive the code? Check your spam folder or request a new one"
+      }
     }
   },
   "homepage": {

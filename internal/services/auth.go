@@ -49,9 +49,11 @@ func (s AuthService) Routes() chi.Router {
 	r.With(m.Validate[models.AuthRefresh]).Post("/refresh", handlers.CreateHandler(s.Refresh))
 
 	// Password reset endpoints (unauthenticated)
-	r.With(m.Validate[models.PasswordResetRequestBody]).Post("/reset-password", handlers.CreateHandler(s.RequestPasswordReset))
-	r.Route("/reset-password/{id0}", func(r chi.Router) {
-		r.With(m.Validate[models.PasswordResetValidateBody]).Post("/validate", handlers.CreateHandler(s.ValidatePasswordReset))
+	r.Route("/reset-password", func(r chi.Router) {
+		r.With(m.Validate[models.PasswordResetRequestBody]).Post("/", handlers.CreateHandler(s.RequestPasswordReset))
+		r.Route("/{id0}", func(r chi.Router) {
+			r.With(m.Validate[models.PasswordResetValidateBody]).Post("/validate", handlers.CreateHandler(s.ValidatePasswordReset))
+		})
 	})
 
 	r.Route("/providers", func(r chi.Router) {

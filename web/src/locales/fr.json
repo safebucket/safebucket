@@ -24,7 +24,28 @@
       "send_reset_code": "Envoyer le code de réinitialisation",
       "sending": "Envoi...",
       "error_message": "Échec de l'envoi de l'e-mail de réinitialisation de mot de passe. Veuillez réessayer.",
-      "back_to_login": "Retour à la connexion"
+      "back_to_login": "Retour à la connexion",
+      "validate": {
+        "title": "Réinitialiser votre mot de passe",
+        "subtitle": "Saisissez le code de vérification à 6 chiffres de votre e-mail et choisissez un nouveau mot de passe",
+        "code_label": "Code de vérification à 6 chiffres",
+        "new_password_label": "Nouveau mot de passe",
+        "new_password_placeholder": "Saisir le nouveau mot de passe",
+        "confirm_password_label": "Confirmer le nouveau mot de passe",
+        "confirm_password_placeholder": "Confirmer le nouveau mot de passe",
+        "reset_button": "Réinitialiser le mot de passe",
+        "resetting": "Réinitialisation du mot de passe...",
+        "success_title": "Mot de passe réinitialisé avec succès",
+        "success_message": "Votre mot de passe a été réinitialisé avec succès. Vous êtes maintenant connecté et vous serez redirigé vers la page d'accueil.",
+        "error_code_length": "Le code de vérification doit contenir exactement 6 chiffres",
+        "error_password_mismatch": "Les mots de passe ne correspondent pas",
+        "error_validation_failed": "Code de vérification invalide ou échec de la réinitialisation du mot de passe. Veuillez réessayer.",
+        "error_new_password_required": "Le nouveau mot de passe est requis",
+        "error_new_password_min_length": "Le mot de passe doit contenir au moins 8 caractères",
+        "error_confirm_password_required": "Veuillez confirmer votre mot de passe",
+        "error_confirm_password_mismatch": "Les mots de passe ne correspondent pas",
+        "footer_text": "Vous n'avez pas reçu le code ? Vérifiez votre dossier spam ou demandez-en un nouveau"
+      }
     }
   },
   "homepage": {

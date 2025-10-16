@@ -49,6 +49,18 @@ func runMigrations(db *gorm.DB) {
 		}
 	}
 
+	err = db.Raw("select exists(select 1 from pg_type where typname = 'challenge_type')").Scan(&exists).Error
+	if err != nil {
+		zap.L().Fatal("failed to check if challenge_type enum exists", zap.Error(err))
+	}
+
+	if !exists {
+		err = db.Exec("CREATE TYPE challenge_type AS ENUM ('invite', 'password_reset')").Error
+		if err != nil {
+			zap.L().Fatal("failed to create challenge_type enum", zap.Error(err))
+		}
+	}
+
 	err = db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{}, &models.Invite{}, &models.Challenge{})
 	if err != nil {
 		zap.L().Fatal("failed to migrate db models", zap.Error(err))
