@@ -1,5 +1,5 @@
 # Multi-stage build: Frontend (Node.js) + Backend (Go)
-FROM node:20-alpine AS frontend-builder
+FROM node:25-alpine AS frontend-builder
 
 # Set working directory for frontend
 WORKDIR /app/web
