@@ -76,7 +76,11 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
 
       // Navigate to home after a short delay
       setTimeout(() => {
-        setAuthenticationState(response.access_token, response.refresh_token, "local");
+        setAuthenticationState(
+          response.access_token,
+          response.refresh_token,
+          "local",
+        );
         navigate({ to: "/" });
       }, 2000);
     } catch {
@@ -151,12 +155,18 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
             <Input
               id="newPassword"
               type="password"
-              placeholder={t("auth.password_reset.validate.new_password_placeholder")}
+              placeholder={t(
+                "auth.password_reset.validate.new_password_placeholder",
+              )}
               {...register("newPassword", {
-                required: t("auth.password_reset.validate.error_new_password_required"),
+                required: t(
+                  "auth.password_reset.validate.error_new_password_required",
+                ),
                 minLength: {
                   value: 8,
-                  message: t("auth.password_reset.validate.error_new_password_min_length"),
+                  message: t(
+                    "auth.password_reset.validate.error_new_password_min_length",
+                  ),
                 },
               })}
               className={errors.newPassword ? "border-red-500" : ""}
@@ -175,11 +185,18 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
             <Input
               id="confirmPassword"
               type="password"
-              placeholder={t("auth.password_reset.validate.confirm_password_placeholder")}
+              placeholder={t(
+                "auth.password_reset.validate.confirm_password_placeholder",
+              )}
               {...register("confirmPassword", {
-                required: t("auth.password_reset.validate.error_confirm_password_required"),
+                required: t(
+                  "auth.password_reset.validate.error_confirm_password_required",
+                ),
                 validate: (value) =>
-                  value === newPassword || t("auth.password_reset.validate.error_confirm_password_mismatch"),
+                  value === newPassword ||
+                  t(
+                    "auth.password_reset.validate.error_confirm_password_mismatch",
+                  ),
               })}
               className={errors.confirmPassword ? "border-red-500" : ""}
             />

@@ -105,14 +105,17 @@ export const SessionProvider = ({
     setAuthProvider(undefined);
   };
 
-    const setAuthenticationState = (accessToken: string, refreshToken: string, provider: string) => {
-        setAccessToken(accessToken);
-        setRefreshToken(refreshToken);
-        setAuthProvider(provider);
-    };
+  const setAuthenticationState = (
+    accessToken: string,
+    refreshToken: string,
+    provider: string,
+  ) => {
+    setAccessToken(accessToken);
+    setRefreshToken(refreshToken);
+    setAuthProvider(provider);
+  };
 
-
-    return (
+  return (
     <SessionContext.Provider
       value={{
         login,
