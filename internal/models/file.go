@@ -15,16 +15,23 @@ const (
 	FileStatusDeleting  FileStatus = "deleting"
 )
 
+type FileType string
+
+const (
+	FileTypeFile   FileType = "file"
+	FileTypeFolder FileType = "folder"
+)
+
 type File struct {
 	ID        uuid.UUID  `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
 	Name      string     `gorm:"not null;default:null" json:"name"`
 	Extension string     `gorm:"default:null" json:"extension"`
 	Status    FileStatus `gorm:"type:file_status;default:null" json:"status"`
-	BucketId  uuid.UUID  `gorm:"type:uuid;" json:"bucket_id"`
+	BucketID  uuid.UUID  `gorm:"type:uuid;" json:"bucket_id"`
 	Bucket    Bucket     `json:"-"`
 	Path      string     `gorm:"not null;default:/" json:"path"`
-	Type      string     `gorm:"not null;default:null" json:"type"`
-	Size      int        `gorm:"default:null" json:"size"`
+	Type      FileType   `gorm:"type:file_type;not null;default:null" json:"type"`
+	Size      int        `gorm:"default:null;type:bigint" json:"size"`
 
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`

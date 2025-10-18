@@ -1,5 +1,13 @@
 package models
 
+type GroupType string
+
+const (
+	Owner       GroupType = "owner"
+	Contributor GroupType = "contributor"
+	Viewer      GroupType = "viewer"
+)
+
 type Policy struct {
 	ID    uint   `gorm:"primaryKey;autoIncrement"`
 	Ptype string `gorm:"size:512;uniqueIndex:unique_index"`

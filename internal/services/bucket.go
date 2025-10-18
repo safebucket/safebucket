@@ -319,7 +319,7 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 		Status:    status,
 		Name:      body.Name,
 		Extension: extension,
-		BucketId:  bucket.ID,
+		BucketID:  bucket.ID,
 		Path:      body.Path,
 		Type:      body.Type,
 		Size:      body.Size,
@@ -442,7 +442,7 @@ func (s BucketService) DownloadFile(logger *zap.Logger, user models.UserClaims, 
 		return models.FileTransferResponse{}, err
 	}
 
-	url, err := s.Storage.PresignedGetObject(path.Join("buckets", file.BucketId.String(), file.Path, file.Name))
+	url, err := s.Storage.PresignedGetObject(path.Join("buckets", file.BucketID.String(), file.Path, file.Name))
 
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
