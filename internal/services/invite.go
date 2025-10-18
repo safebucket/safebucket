@@ -24,9 +24,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const InviteChallengeExpirationMinutes = 30
-const InviteChallengeMaxFailedAttempts = 3
-
 type InviteService struct {
 	DB             *gorm.DB
 	Storage        storage.IStorage
@@ -72,10 +69,12 @@ func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserCl
 	}
 
 	if invite.Email != body.Email {
-		return nil, errors.NewAPIError(400, "INVITE_EMAIL_MISMATCH")
+		logger.Warn("Invite email mismatch attempt detected",
+			zap.String("invite_id", inviteId.String()),
+			zap.String("provided_email", body.Email))
+		return nil, errors.NewAPIError(404, "INVITE_NOT_FOUND")
 	}
 
-	// Delete any existing invite challenges for this invite
 	s.DB.Where("invite_id = ? AND type = ?", invite.ID, models.ChallengeTypeInvite).Delete(&models.Challenge{})
 
 	secret, err := h.GenerateSecret()
@@ -89,13 +88,13 @@ func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserCl
 	}
 
 	// Create challenge with expiration and attempt limiting
-	expiresAt := time.Now().Add(InviteChallengeExpirationMinutes * time.Minute)
+	expiresAt := time.Now().Add(configuration.SecurityChallengeExpirationMinutes * time.Minute)
 	challenge := models.Challenge{
 		Type:         models.ChallengeTypeInvite,
 		InviteID:     &invite.ID,
 		HashedSecret: hashedSecret,
 		ExpiresAt:    &expiresAt,
-		AttemptsLeft: InviteChallengeMaxFailedAttempts,
+		AttemptsLeft: configuration.SecurityChallengeMaxFailedAttempts,
 	}
 
 	result = s.DB.Create(&challenge)
@@ -184,7 +183,6 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 		return models.AuthLoginResponse{}, errors.NewAPIError(401, "USER_ALREADY_EXISTS")
 	}
 
-	// Hash the new password
 	hashedPassword, err := h.CreateHash(body.NewPassword)
 	if err != nil {
 		logger.Error("Failed to hash password", zap.Error(err))
@@ -193,20 +191,17 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 
 	newUser.HashedPassword = hashedPassword
 
-	// Use transaction for user creation + challenge deletion
 	tx := s.DB.Begin()
 	if tx.Error != nil {
 		logger.Error("Failed to start transaction", zap.Error(tx.Error))
 		return models.AuthLoginResponse{}, errors.NewAPIError(500, "TRANSACTION_START_FAILED")
 	}
 
-	// Create user with role and invites
 	if err := sql.CreateUserWithRoleAndInvites(logger, tx, s.Enforcer, &newUser, roles.AddUserToRoleGuest); err != nil {
 		tx.Rollback()
 		return models.AuthLoginResponse{}, errors.NewAPIError(500, "USER_CREATION_FAILED")
 	}
 
-	// Delete challenge
 	if deleteResult := tx.Delete(&challenge); deleteResult.Error != nil {
 		logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
 		tx.Rollback()
@@ -218,7 +213,6 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 		return models.AuthLoginResponse{}, errors.NewAPIError(500, "TRANSACTION_COMMIT_FAILED")
 	}
 
-	// Send welcome email after successful user creation
 	welcomeEvent := events.NewUserWelcome(
 		s.Publisher,
 		newUser.Email,
@@ -226,7 +220,6 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 	)
 	welcomeEvent.Trigger()
 
-	// Generate tokens after successful transaction commit
 	accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
