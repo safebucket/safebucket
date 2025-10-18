@@ -1,7 +1,6 @@
 import { useState } from "react";
 
-import { AlertCircle, Mail } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { AlertCircle, CheckCircle, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -37,8 +36,8 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
 }) => {
   const { login } = useSessionContext();
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const providersQuery = useSuspenseQuery(authProvidersQueryOptions());
   const providers = providersQuery.data;
@@ -59,18 +58,37 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
       login(provider.id);
     } else {
       api_createChallenge(invitationId, data.email)
-        .then((res) =>
-          navigate({ to: `/invites/${invitationId}/challenges/${res.id}` }),
-        )
+        .then(() => setIsSuccess(true))
         .catch(() => setError(t("invites.smart_enrollment.send_error")));
     }
   };
 
+  if (isSuccess) {
+    return (
+      <Card className="mx-auto w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 p-3">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+          </div>
+          <CardTitle>{t("invites.smart_enrollment.success_title")}</CardTitle>
+          <CardDescription>
+            {t("invites.smart_enrollment.success_message")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-center text-sm">
+            {t("invites.smart_enrollment.success_description")}
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-100 p-3">
-          <Mail className="h-6 w-6 text-blue-600" />
+        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-purple-100 p-3">
+          <Mail className="h-6 w-6 text-purple-600" />
         </div>
         <CardTitle>{t("invites.smart_enrollment.title")}</CardTitle>
         <CardDescription>

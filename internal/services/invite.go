@@ -14,6 +14,7 @@ import (
 	"api/internal/sql"
 	"api/internal/storage"
 	"strings"
+	"time"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/casbin/casbin/v2"
@@ -22,6 +23,9 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
+
+const InviteChallengeExpirationMinutes = 30
+const InviteChallengeMaxFailedAttempts = 3
 
 type InviteService struct {
 	DB             *gorm.DB
@@ -51,57 +55,67 @@ func (s InviteService) Routes() chi.Router {
 func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
-		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
+		return nil, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
 		logger.Debug("Domain not allowed")
-		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
+		return nil, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	inviteId := ids[0]
 	var invite models.Invite
-	result := s.DB.Where("id = ?", inviteId).First(&invite)
+	result := s.DB.Preload("User").Where("id = ?", inviteId).First(&invite)
 
 	if result.RowsAffected == 0 {
-		return invite, errors.NewAPIError(404, "INVITE_NOT_FOUND")
-	} else if invite.Email != body.Email {
-		return invite, errors.NewAPIError(400, "INVITE_EMAIL_MISMATCH")
-	} else {
-		secret, err := h.GenerateSecret()
-		if err != nil {
-			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
-		}
-
-		hashedSecret, err := h.CreateHash(secret)
-
-		if err != nil {
-			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
-		}
-
-		challenge := models.Challenge{
-			Type:         models.ChallengeTypeInvite,
-			InviteID:     &invite.ID,
-			HashedSecret: hashedSecret,
-		}
-
-		result = s.DB.Create(&challenge)
-		if result.Error != nil {
-			return invite, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
-		}
-
-		event := events.NewChallengeUserInvite(
-			s.Publisher,
-			secret,
-			invite.Email,
-			inviteId.String(),
-			challenge.ID.String(),
-			s.WebUrl,
-		)
-		event.Trigger()
-
-		return challenge, nil
+		return nil, errors.NewAPIError(404, "INVITE_NOT_FOUND")
 	}
+
+	if invite.Email != body.Email {
+		return nil, errors.NewAPIError(400, "INVITE_EMAIL_MISMATCH")
+	}
+
+	// Delete any existing invite challenges for this invite
+	s.DB.Where("invite_id = ? AND type = ?", invite.ID, models.ChallengeTypeInvite).Delete(&models.Challenge{})
+
+	secret, err := h.GenerateSecret()
+	if err != nil {
+		return nil, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
+	}
+
+	hashedSecret, err := h.CreateHash(secret)
+	if err != nil {
+		return nil, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
+	}
+
+	// Create challenge with expiration and attempt limiting
+	expiresAt := time.Now().Add(InviteChallengeExpirationMinutes * time.Minute)
+	challenge := models.Challenge{
+		Type:         models.ChallengeTypeInvite,
+		InviteID:     &invite.ID,
+		HashedSecret: hashedSecret,
+		ExpiresAt:    &expiresAt,
+		AttemptsLeft: InviteChallengeMaxFailedAttempts,
+	}
+
+	result = s.DB.Create(&challenge)
+	if result.Error != nil {
+		return nil, errors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
+	}
+
+	event := events.NewChallengeUserInvite(
+		s.Publisher,
+		secret,
+		invite.Email,
+		invite.User.Email,
+		inviteId.String(),
+		challenge.ID.String(),
+		s.WebUrl,
+	)
+	event.Trigger()
+
+	// Don't return challenge ID - it's only available in the email notification
+	return nil, nil
 }
 
 func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeValidateBody) (models.AuthLoginResponse, error) {
@@ -126,6 +140,11 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 		return models.AuthLoginResponse{}, errors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
+	if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
+		s.DB.Delete(&challenge)
+		return models.AuthLoginResponse{}, errors.NewAPIError(410, "CHALLENGE_EXPIRED")
+	}
+
 	if !h.IsDomainAllowed(challenge.Invite.Email, s.Providers[string(models.LocalProviderType)].Domains) {
 		logger.Debug("Domain not allowed")
 		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
@@ -133,10 +152,27 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 
 	match, err := argon2id.ComparePasswordAndHash(strings.ToUpper(body.Code), challenge.HashedSecret)
 	if err != nil || !match {
+		challenge.AttemptsLeft--
+
+		// Soft delete if max attempts reached
+		if challenge.AttemptsLeft <= 0 {
+			logger.Warn("Invite challenge soft deleted due to too many failed attempts",
+				zap.String("challenge_id", challenge.ID.String()),
+				zap.String("invite_id", challenge.InviteID.String()),
+				zap.Int("attempts_left", challenge.AttemptsLeft))
+			s.DB.Delete(&challenge)
+			return models.AuthLoginResponse{}, errors.NewAPIError(403, "CHALLENGE_LOCKED")
+		}
+
+		// Update attempts counter
+		if updateErr := s.DB.Model(&challenge).Update("attempts_left", challenge.AttemptsLeft).Error; updateErr != nil {
+			logger.Error("Failed to update attempts counter", zap.Error(updateErr))
+		}
+
 		return models.AuthLoginResponse{}, errors.NewAPIError(401, "WRONG_CODE")
 	}
 
-	// If the code matches, we create a new user, create policies for the user, and return the access token.
+	// Check if user already exists
 	newUser := models.User{
 		Email:        challenge.Invite.Email,
 		ProviderType: models.LocalProviderType,
@@ -144,31 +180,67 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 	}
 
 	result = s.DB.Where("email = ?", newUser.Email).First(&newUser)
-	if result.RowsAffected == 0 {
-		err := sql.CreateUserWithRoleAndInvites(logger, s.DB, s.Enforcer, &newUser, roles.AddUserToRoleGuest)
-
-		if err != nil {
-			return models.AuthLoginResponse{}, errors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-		}
-
-		// Generate tokens after successful transaction commit
-		accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
-		if err != nil {
-			logger.Error("Failed to generate access token", zap.Error(err))
-			return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_ACCESS_TOKEN_FAILED")
-		}
-		refreshToken, err := h.NewRefreshToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
-		if err != nil {
-			logger.Error("Failed to generate refresh token", zap.Error(err))
-			return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_REFRESH_TOKEN_FAILED")
-		}
-
-		tokens := models.AuthLoginResponse{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-		}
-		return tokens, nil
-	} else {
+	if result.RowsAffected > 0 {
 		return models.AuthLoginResponse{}, errors.NewAPIError(401, "USER_ALREADY_EXISTS")
 	}
+
+	// Hash the new password
+	hashedPassword, err := h.CreateHash(body.NewPassword)
+	if err != nil {
+		logger.Error("Failed to hash password", zap.Error(err))
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "PASSWORD_HASH_FAILED")
+	}
+
+	newUser.HashedPassword = hashedPassword
+
+	// Use transaction for user creation + challenge deletion
+	tx := s.DB.Begin()
+	if tx.Error != nil {
+		logger.Error("Failed to start transaction", zap.Error(tx.Error))
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "TRANSACTION_START_FAILED")
+	}
+
+	// Create user with role and invites
+	if err := sql.CreateUserWithRoleAndInvites(logger, tx, s.Enforcer, &newUser, roles.AddUserToRoleGuest); err != nil {
+		tx.Rollback()
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "USER_CREATION_FAILED")
+	}
+
+	// Delete challenge
+	if deleteResult := tx.Delete(&challenge); deleteResult.Error != nil {
+		logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
+		tx.Rollback()
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		logger.Error("Failed to commit transaction", zap.Error(err))
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "TRANSACTION_COMMIT_FAILED")
+	}
+
+	// Send welcome email after successful user creation
+	welcomeEvent := events.NewUserWelcome(
+		s.Publisher,
+		newUser.Email,
+		s.WebUrl,
+	)
+	welcomeEvent.Trigger()
+
+	// Generate tokens after successful transaction commit
+	accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
+	if err != nil {
+		logger.Error("Failed to generate access token", zap.Error(err))
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_ACCESS_TOKEN_FAILED")
+	}
+
+	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
+	if err != nil {
+		logger.Error("Failed to generate refresh token", zap.Error(err))
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_REFRESH_TOKEN_FAILED")
+	}
+
+	return models.AuthLoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
