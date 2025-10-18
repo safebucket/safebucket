@@ -300,7 +300,7 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 	}
 
 	var existingFile models.File
-	result := s.DB.Where("bucket_id = ? AND name = ? AND path = ?", bucket.ID, body.Name, body.Path).First(&existingFile)
+	result := s.DB.Where("bucket_id = ? AND name = ? AND path = ?", bucket.ID, body.Name, body.Path).Find(&existingFile)
 	if result.RowsAffected > 0 {
 		return models.FileTransferResponse{}, errors.NewAPIError(409, "FILE_ALREADY_EXISTS")
 	}

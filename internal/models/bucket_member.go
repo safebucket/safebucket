@@ -3,8 +3,8 @@ package models
 import "github.com/google/uuid"
 
 type BucketMemberBody struct {
-	Email string `json:"email" validate:"required,email"`
-	Group string `json:"group" validate:"required,oneof=owner contributor viewer"`
+	Email string    `json:"email" validate:"required,email"`
+	Group GroupType `json:"group" validate:"required,oneof=owner contributor viewer"`
 }
 
 type UpdateMembersBody struct {
@@ -16,13 +16,13 @@ type BucketMember struct {
 	Email     string    `json:"email" validate:"required"`
 	FirstName string    `json:"first_name,omitempty"`
 	LastName  string    `json:"last_name,omitempty"`
-	Group     string    `json:"group" validate:"required,oneof=owner contributor viewer"`
+	Group     GroupType `json:"group" validate:"required,oneof=owner contributor viewer"`
 	Status    string    `json:"status" validate:"required,oneof=active invited"`
 }
 
 type BucketMemberToUpdate struct {
 	BucketMember
-	NewGroup string `validate:"required,oneof=owner contributor viewer"`
+	NewGroup GroupType `validate:"required,oneof=owner contributor viewer"`
 }
 
 type MembershipChanges struct {

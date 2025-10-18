@@ -81,7 +81,7 @@ func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserCl
 
 		challenge := models.Challenge{
 			Type:         models.ChallengeTypeInvite,
-			InviteID:     &invite.ID,
+			InviteID:     invite.ID,
 			HashedSecret: hashedSecret,
 		}
 

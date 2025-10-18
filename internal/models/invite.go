@@ -49,7 +49,7 @@ type Challenge struct {
 	Type         ChallengeType  `gorm:"type:challenge_type;not null;index:idx_challenge_type" json:"type" validate:"required,oneof=invite password_reset"`
 	HashedSecret string         `gorm:"not null;default:null" json:"hashed_secret" validate:"required"`
 	AttemptsLeft int            `gorm:"not null;default:3" json:"attempts_left"`
-	ExpiresAt    time.Time      `gorm:"index" json:"expires_at,omitempty"`
+	ExpiresAt    *time.Time     `gorm:"index" json:"expires_at,omitempty"`
 	CreatedAt    time.Time      `json:"created_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 

@@ -15,14 +15,14 @@ const UserInvitationName = "UserInvitation"
 const UserInvitationPayloadName = "UserInvitationPayload"
 
 type UserInvitationPayload struct {
-	Type            string
-	To              string
-	From            string
-	WebUrl          string
-	BucketName      string
-	Role            string
-	RoleDescription string
-	InviteUrl       string
+	Type             string
+	To               string
+	From             string
+	WebUrl           string
+	BucketName       string
+	Group            models.GroupType
+	GroupDescription string
+	InviteUrl        string
 }
 
 type UserInvitation struct {
@@ -35,12 +35,12 @@ func NewUserInvitation(
 	to string,
 	from string,
 	bucket models.Bucket,
-	role string,
+	group models.GroupType,
 	inviteId string,
 	webUrl string,
 ) UserInvitation {
 	// Generate role descriptions
-	roleDescription := getRoleDescription(role)
+	groupDescription := getGroupDescription(group)
 
 	// Create invite URL pointing to the invitation page
 	inviteUrl := fmt.Sprintf("%s/invites/%s", webUrl, inviteId)
@@ -48,25 +48,25 @@ func NewUserInvitation(
 	return UserInvitation{
 		Publisher: publisher,
 		Payload: UserInvitationPayload{
-			Type:            UserInvitationName,
-			To:              to,
-			From:            from,
-			WebUrl:          webUrl,
-			BucketName:      bucket.Name,
-			Role:            role,
-			RoleDescription: roleDescription,
-			InviteUrl:       inviteUrl,
+			Type:             UserInvitationName,
+			To:               to,
+			From:             from,
+			WebUrl:           webUrl,
+			BucketName:       bucket.Name,
+			Group:            group,
+			GroupDescription: groupDescription,
+			InviteUrl:        inviteUrl,
 		},
 	}
 }
 
-func getRoleDescription(role string) string {
-	switch role {
-	case "owner":
+func getGroupDescription(group models.GroupType) string {
+	switch group {
+	case models.Owner:
 		return "manage all aspects of this bucket, including adding/removing users and files"
-	case "contributor":
+	case models.Contributor:
 		return "upload, edit, and delete files in this bucket"
-	case "viewer":
+	case models.Viewer:
 		return "view and download files from this bucket"
 	default:
 		return "collaborate on this bucket"

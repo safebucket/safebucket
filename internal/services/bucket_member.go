@@ -86,13 +86,13 @@ func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserC
 				continue
 			}
 
-			var group string
+			var group models.GroupType
 			if groupName == groups.GetBucketOwnerGroup(bucket) {
-				group = "owner"
+				group = models.Owner
 			} else if groupName == groups.GetBucketContributorGroup(bucket) {
-				group = "contributor"
+				group = models.Contributor
 			} else if groupName == groups.GetBucketViewerGroup(bucket) {
-				group = "viewer"
+				group = models.Viewer
 			}
 
 			userEmailMap[dbUser.Email] = dbUser

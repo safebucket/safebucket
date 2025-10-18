@@ -68,12 +68,12 @@ func CreateUserWithRoleAndInvites(
 			case "owner":
 				err = groups.AddUserToOwners(enforcer, invite.Bucket, user.ID.String())
 			default:
-				logger.Error("Invalid group in invite", zap.String("group", invite.Group), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
+				logger.Error("Invalid group in invite", zap.String("group", string(invite.Group)), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
 				continue
 			}
 
 			if err != nil {
-				logger.Error("Failed to add user to group", zap.Error(err), zap.String("group", invite.Group), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
+				logger.Error("Failed to add user to group", zap.Error(err), zap.String("group", string(invite.Group)), zap.String("bucket_id", invite.BucketID.String()), zap.String("user_id", invite.CreatedBy.String()))
 				return err
 			}
 

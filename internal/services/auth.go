@@ -328,7 +328,7 @@ func (s AuthService) RequestPasswordReset(_ *zap.Logger, _ models.UserClaims, _ 
 	expiresAt := time.Now().Add(PasswordResetExpirationMinutes * time.Minute)
 	challenge := models.Challenge{
 		Type:         models.ChallengeTypePasswordReset,
-		UserID:       &user.ID,
+		UserID:       user.ID,
 		HashedSecret: hashedSecret,
 		ExpiresAt:    &expiresAt,
 		AttemptsLeft: PasswordResetMaxFailedAttempts,
