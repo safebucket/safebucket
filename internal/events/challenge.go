@@ -31,6 +31,7 @@ func NewChallengeUserInvite(
 	publisher messaging.IPublisher,
 	secret string,
 	to string,
+	from string,
 	inviteID string,
 	challengeID string,
 	webUrl string,
@@ -42,6 +43,7 @@ func NewChallengeUserInvite(
 			Type:         ChallengeUserInviteName,
 			Secret:       secret,
 			To:           to,
+			From:         from,
 			WebUrl:       webUrl,
 			ChallengeUrl: challengeUrl,
 		},
@@ -66,7 +68,7 @@ func (e *ChallengeUserInvite) Trigger() {
 
 func (e *ChallengeUserInvite) callback(params *EventParams) error {
 	e.Payload.WebUrl = params.WebUrl
-	subject := fmt.Sprintf("%s has invited you", "")
+	subject := fmt.Sprintf("%s has invited you", e.Payload.From)
 	err := params.Notifier.NotifyFromTemplate(e.Payload.To, subject, "user_invited", e.Payload)
 	if err != nil {
 		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
@@ -190,6 +192,62 @@ func (e *PasswordResetSuccessEvent) callback(params *EventParams) error {
 	e.Payload.WebUrl = params.WebUrl
 	subject := "Password Reset Successful"
 	err := params.Notifier.NotifyFromTemplate(e.Payload.Email, subject, "password_reset_success", e.Payload)
+	if err != nil {
+		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+const UserWelcomeName = "UserWelcome"
+const UserWelcomePayloadName = "UserWelcomePayload"
+
+type UserWelcomePayload struct {
+	Type   string
+	Email  string
+	WebUrl string
+}
+
+type UserWelcomeEvent struct {
+	Publisher messaging.IPublisher
+	Payload   UserWelcomePayload
+}
+
+func NewUserWelcome(
+	publisher messaging.IPublisher,
+	email string,
+	webUrl string,
+) UserWelcomeEvent {
+	return UserWelcomeEvent{
+		Publisher: publisher,
+		Payload: UserWelcomePayload{
+			Type:   UserWelcomeName,
+			Email:  email,
+			WebUrl: webUrl,
+		},
+	}
+}
+
+func (e *UserWelcomeEvent) Trigger() {
+	payload, err := json.Marshal(e.Payload)
+	if err != nil {
+		zap.L().Error("Error marshalling event payload", zap.Error(err))
+		return
+	}
+
+	msg := message.NewMessage(watermill.NewUUID(), payload)
+	msg.Metadata.Set("type", e.Payload.Type)
+	err = e.Publisher.Publish(msg)
+
+	if err != nil {
+		zap.L().Error("failed to trigger event", zap.Error(err))
+	}
+}
+
+func (e *UserWelcomeEvent) callback(params *EventParams) error {
+	e.Payload.WebUrl = params.WebUrl
+	subject := "Welcome to Safebucket!"
+	err := params.Notifier.NotifyFromTemplate(e.Payload.Email, subject, "user_welcome", e.Payload)
 	if err != nil {
 		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
 		return err

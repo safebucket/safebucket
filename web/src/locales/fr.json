@@ -258,18 +258,30 @@
       "send_button": "Envoyer le code de vérification",
       "sending_button": "Envoi du code...",
       "send_error": "Échec de l'envoi du code de vérification. Veuillez réessayer.",
-      "footer_text": "En continuant, vous acceptez cette invitation et acceptez de créer un compte"
+      "footer_text": "En continuant, vous acceptez cette invitation et acceptez de créer un compte",
+      "success_title": "Vérifiez votre e-mail",
+      "success_message": "Nous avons envoyé un code de vérification à votre adresse e-mail",
+      "success_description": "L'e-mail contient un code à 6 chiffres et un lien pour accepter l'invitation. Si vous ne le voyez pas, vérifiez votre dossier spam."
     },
-    "challenge_validation": {
-      "title": "Saisissez votre code de vérification",
-      "description": "Saisissez le code de vérification à 6 chiffres qui a été envoyé à votre adresse e-mail pour terminer la création de votre compte",
+    "accept": {
+      "title": "Accepter l'invitation",
+      "subtitle": "Saisissez le code de vérification à 6 chiffres de votre e-mail et créez votre mot de passe",
       "code_label": "Code de vérification à 6 chiffres",
-      "validate_button": "Valider le code",
-      "validating_button": "Validation...",
-      "code_length_error": "Le code de vérification doit contenir exactement 6 chiffres",
-      "code_invalid_error": "Code de vérification invalide. Veuillez vérifier votre e-mail et réessayer.",
-      "success_title": "Code validé avec succès",
-      "success_description": "Votre code de vérification a été validé. Votre compte a été créé et vous pouvez maintenant accéder à l'invitation.",
+      "new_password_label": "Nouveau mot de passe",
+      "new_password_placeholder": "Saisissez le nouveau mot de passe",
+      "confirm_password_label": "Confirmer le mot de passe",
+      "confirm_password_placeholder": "Confirmer le mot de passe",
+      "accept_button": "Accepter l'invitation",
+      "accepting": "Création du compte...",
+      "success_title": "Bienvenue !",
+      "success_message": "Votre compte a été créé avec succès. Vous êtes maintenant connecté et serez redirigé vers la page d'accueil.",
+      "error_code_length": "Le code de vérification doit contenir exactement 6 chiffres",
+      "error_password_mismatch": "Les mots de passe ne correspondent pas",
+      "error_validation_failed": "Code de vérification invalide ou échec de la création du compte. Veuillez réessayer.",
+      "error_new_password_required": "Le nouveau mot de passe est requis",
+      "error_new_password_min_length": "Le mot de passe doit contenir au moins 8 caractères",
+      "error_confirm_password_required": "Veuillez confirmer votre mot de passe",
+      "error_confirm_password_mismatch": "Les mots de passe ne correspondent pas",
       "footer_text": "Vous n'avez pas reçu le code ? Vérifiez votre dossier spam ou demandez-en un nouveau"
     }
   }

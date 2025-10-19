@@ -22,7 +22,8 @@ type InviteChallengeCreateBody struct {
 }
 
 type InviteChallengeValidateBody struct {
-	Code string `json:"code" validate:"required"` // TODO: validate value
+	Code        string `json:"code" validate:"required,len=6,alphanum"`
+	NewPassword string `json:"new_password" validate:"required,min=8"`
 }
 
 type PasswordResetRequestBody struct {

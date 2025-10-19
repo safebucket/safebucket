@@ -13,11 +13,9 @@ export const api_createChallenge = (invitationId: string, email: string) =>
 export const api_validateChallenge = (
   invitationId: string,
   challengeId: string,
-  code: string,
+  data: { code: string; new_password: string },
 ) =>
   api.post<IChallengeValidationResponse>(
     `/invites/${invitationId}/challenges/${challengeId}/validate`,
-    {
-      code,
-    },
+    data,
   );

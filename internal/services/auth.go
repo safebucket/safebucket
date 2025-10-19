@@ -28,9 +28,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const PasswordResetExpirationMinutes = 30
-const PasswordResetMaxFailedAttempts = 3
-
 type AuthService struct {
 	DB             *gorm.DB
 	Enforcer       *casbin.Enforcer
@@ -325,13 +322,13 @@ func (s AuthService) RequestPasswordReset(_ *zap.Logger, _ models.UserClaims, _ 
 	s.DB.Where("user_id = ? AND type = ?", user.ID, models.ChallengeTypePasswordReset).Delete(&models.Challenge{})
 
 	// Create a new password reset challenge with configurable expiration
-	expiresAt := time.Now().Add(PasswordResetExpirationMinutes * time.Minute)
+	expiresAt := time.Now().Add(configuration.SecurityChallengeExpirationMinutes * time.Minute)
 	challenge := models.Challenge{
 		Type:         models.ChallengeTypePasswordReset,
 		UserID:       &user.ID,
 		HashedSecret: hashedSecret,
 		ExpiresAt:    &expiresAt,
-		AttemptsLeft: PasswordResetMaxFailedAttempts,
+		AttemptsLeft: configuration.SecurityChallengeMaxFailedAttempts,
 	}
 
 	result = s.DB.Create(&challenge)
