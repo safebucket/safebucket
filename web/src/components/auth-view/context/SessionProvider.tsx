@@ -9,12 +9,11 @@ import type {
   IJWTPayload,
   ILoginForm,
   ILoginResponse,
-  IUser,
   Session,
   Status,
 } from "@/components/auth-view/types/session";
 import { SessionContext } from "@/components/auth-view/hooks/useSessionContext";
-import { api, fetchApi } from "@/lib/api";
+import { api } from "@/lib/api";
 import { getApiUrl } from "@/hooks/useConfig.ts";
 
 interface SessionProviderProps {
@@ -43,23 +42,31 @@ export const SessionProvider = ({
   const { register, handleSubmit, watch } = useForm<ILoginForm>();
 
   useEffect(() => {
-    setStatus("loading");
+    // Don't override status if we're already in loading state (e.g., during logout)
+    if (status !== "loading") {
+      setStatus("loading");
+    }
+
     if (accessToken && authProvider) {
       const decoded = jwtDecode<IJWTPayload>(accessToken);
 
-      fetchApi<IUser>(`/users/${decoded.user_id}`).then((res) =>
-        setSession({
-          loggedUser: res,
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-          authProvider: authProvider,
-        }),
-      );
+      setSession({
+        userId: decoded.user_id,
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        authProvider: authProvider,
+      });
 
       setStatus("authenticated");
     } else {
       setSession(null);
-      setStatus("unauthenticated");
+
+      // Only set to unauthenticated if we're not in the loading state
+      // (loading state is used during logout to show loading screen)
+      if (status !== "loading") {
+        setStatus("unauthenticated");
+      }
+
       if (
         !location.pathname.startsWith("/invites/") &&
         !location.pathname.startsWith("/auth/reset-password") &&
@@ -99,10 +106,18 @@ export const SessionProvider = ({
   };
 
   const logout = () => {
+    setStatus("loading");
+    setSession(null);
+
     Cookies.remove("safebucket_access_token");
     setAccessToken(undefined);
     Cookies.remove("safebucket_auth_provider");
     setAuthProvider(undefined);
+
+    // Delay to show loading state before redirect
+    setTimeout(() => {
+      window.location.href = "/auth/login";
+    }, 1000);
   };
 
   const setAuthenticationState = (

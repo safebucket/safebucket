@@ -8,7 +8,7 @@ import type {
 export type Status = "authenticated" | "loading" | "unauthenticated";
 
 export type Session = {
-  loggedUser: IUser | null;
+  userId: string;
   accessToken: string;
   refreshToken?: string;
   authProvider: string;

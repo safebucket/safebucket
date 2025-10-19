@@ -11,6 +11,7 @@ import { useSessionContext } from "@/components/auth-view/hooks/useSessionContex
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
+import { useCurrentUser } from "@/queries/user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -42,7 +43,8 @@ import { AddMembersCard } from "@/components/app-sidebar/components/AddMembersCa
 export const AppSidebar: FC = () => {
   const location = useLocation();
   const { t } = useTranslation();
-  const { session, logout } = useSessionContext();
+  const { logout } = useSessionContext();
+  const { data: user } = useCurrentUser();
   const createBucketDialog = useDialog();
   const { buckets, createBucketMutation } = useBucketsData();
 
@@ -122,8 +124,8 @@ export const AppSidebar: FC = () => {
                   <AddMembersCard
                     shareWith={shareWith}
                     onShareWithChange={setShareWith}
-                    currentUserEmail={session?.loggedUser?.email}
-                    currentUserName={`${session?.loggedUser?.first_name} ${session?.loggedUser?.last_name}`}
+                    currentUserEmail={user?.email}
+                    currentUserName={`${user?.first_name} ${user?.last_name}`}
                   />
                 </FormDialog>
               </SidebarMenuAction>
@@ -205,15 +207,15 @@ export const AppSidebar: FC = () => {
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage src={nav.user.avatar} alt="Image" />
                     <AvatarFallback className="rounded-lg">
-                      {session?.loggedUser?.email.charAt(0)}
+                      {user?.email.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {`${session?.loggedUser?.first_name} ${session?.loggedUser?.last_name}`}
+                      {`${user?.first_name} ${user?.last_name}`}
                     </span>
                     <span className="truncate text-xs">
-                      {session?.loggedUser?.email}
+                      {user?.email}
                     </span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
@@ -230,15 +232,15 @@ export const AppSidebar: FC = () => {
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage src={nav.user.avatar} alt="Image" />
                       <AvatarFallback className="rounded-lg">
-                        {session?.loggedUser?.email.charAt(0)}
+                        {user?.email.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {`${session?.loggedUser?.first_name} ${session?.loggedUser?.last_name}`}
+                        {`${user?.first_name} ${user?.last_name}`}
                       </span>
                       <span className="truncate text-xs">
-                        {session?.loggedUser?.email}
+                        {user?.email}
                       </span>
                     </div>
                   </div>

@@ -11,9 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext.ts";
 import { bucketsActivityQueryOptions } from "@/queries/bucket.ts";
 import { ActivityItem } from "@/components/activity-view/components/ActivityItem.tsx";
+import { useCurrentUser } from "@/queries/user";
 
 export const Route = createFileRoute("/")({
   component: Homepage,
@@ -23,7 +23,7 @@ function Homepage() {
   const { data: activity } = useSuspenseQuery(bucketsActivityQueryOptions());
 
   const { t } = useTranslation();
-  const { session } = useSessionContext();
+  const { data: user } = useCurrentUser();
 
   return (
     <div className="">
@@ -32,7 +32,7 @@ function Homepage() {
           <div className="text-center">
             <h1 className="text-3xl font-bold text-foreground">
               {t("homepage.welcome", {
-                firstName: session?.loggedUser?.first_name,
+                firstName: user?.first_name,
               })}
             </h1>
             <p className="text-lg text-muted-foreground">

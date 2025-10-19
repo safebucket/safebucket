@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { ProfileForm } from "@/components/settings-view/components/ProfileForm";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { useCurrentUser } from "@/queries/user";
 
 export const Route = createFileRoute("/settings/profile/")({
   component: Profile,
@@ -9,9 +9,9 @@ export const Route = createFileRoute("/settings/profile/")({
 
 function Profile() {
   const { t } = useTranslation();
-  const { session } = useSessionContext();
+  const { data: user, isLoading } = useCurrentUser();
 
-  if (!session?.loggedUser) {
+  if (isLoading || !user) {
     return null;
   }
 
@@ -26,7 +26,7 @@ function Profile() {
         </p>
       </div>
 
-      <ProfileForm user={session.loggedUser} />
+      <ProfileForm user={user} />
     </div>
   );
 }

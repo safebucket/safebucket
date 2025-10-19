@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IBucket } from "@/types/bucket.ts";
 import { EMAIL_REGEX } from "@/types/bucket.ts";
 import { bucketMembersQueryOptions } from "@/queries/bucket";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { useCurrentUser } from "@/queries/user";
 import { api_updateMembers } from "@/components/bucket-members/helpers/api";
 import {
   errorToast,
@@ -27,15 +27,15 @@ export const useBucketMembersData = (bucket: IBucket) => {
   });
 
   const queryClient = useQueryClient();
-  const { session } = useSessionContext();
+  const { data: user } = useCurrentUser();
 
   const [membersState, setMembersState] = useState<Array<IMemberState>>([]);
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberGroup, setNewMemberGroup] = useState("viewer");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currentUserEmail = session?.loggedUser?.email;
-  const currentUserName = `${session?.loggedUser?.first_name} ${session?.loggedUser?.last_name}`;
+  const currentUserEmail = user?.email;
+  const currentUserName = `${user?.first_name} ${user?.last_name}`;
 
   useEffect(() => {
     if (data) {

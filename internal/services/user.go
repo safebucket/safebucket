@@ -58,7 +58,7 @@ func (s UserService) CreateUser(logger *zap.Logger, _ models.UserClaims, _ uuid.
 		ProviderKey:  string(models.LocalProviderType),
 	}
 
-	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
+	result := s.DB.Where("email = ?", newUser.Email).Find(&newUser)
 	if result.RowsAffected == 0 {
 		hash, err := h.CreateHash(body.Password)
 		if err != nil {
@@ -108,16 +108,16 @@ func (s UserService) UpdateUser(logger *zap.Logger, _ models.UserClaims, ids uui
 		}
 
 		user.ProviderType = models.LocalProviderType
-		user.ProviderType = models.LocalProviderType
-
-		if !h.IsDomainAllowed(user.Email, s.Providers[string(models.LocalProviderType)].Domains) {
-			logger.Debug("Domain not allowed")
-			return models.User{}, customerrors.NewAPIError(403, "FORBIDDEN")
-		}
+		user.ProviderKey = string(models.LocalProviderType)
 
 		result := s.DB.Where(user, "id", "provider_type", "provider_key").Find(&user)
 		if result.RowsAffected == 0 {
 			return user, errors.New("USER_NOT_FOUND")
+		}
+
+		if !h.IsDomainAllowed(user.Email, s.Providers[string(models.LocalProviderType)].Domains) {
+			logger.Debug("Domain not allowed")
+			return models.User{}, customerrors.NewAPIError(403, "FORBIDDEN")
 		}
 
 		match, err := argon2id.ComparePasswordAndHash(body.OldPassword, user.HashedPassword)
