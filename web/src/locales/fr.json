@@ -107,7 +107,9 @@
     "home": "Accueil",
     "activity": "Activité",
     "shared_buckets": "Buckets",
-    "settings": "Préférences"
+    "settings": "Paramètres",
+    "profile": "Profil",
+    "preferences": "Préférences"
   },
   "activity": {
     "title": "Flux d'activité",
@@ -226,7 +228,32 @@
     }
   },
   "settings": {
-    "title": "Préférences",
+    "title": "Paramètres",
+    "profile": {
+      "tab": "Profil",
+      "title": "Informations du profil",
+      "description": "Gérez vos informations personnelles et les paramètres de votre compte",
+      "card_title": "Informations du profil",
+      "email": "E-mail",
+      "first_name": "Prénom",
+      "first_name_placeholder": "Saisir votre prénom",
+      "last_name": "Nom",
+      "last_name_placeholder": "Saisir votre nom",
+      "password": "Nouveau mot de passe",
+      "old_password_placeholder": "Saisir le mot de passe actuel",
+      "old_password_required": "Le mot de passe actuel est requis",
+      "password_placeholder": "Saisir le nouveau mot de passe",
+      "confirm_password": "Confirmer le mot de passe",
+      "confirm_password_placeholder": "Confirmer le nouveau mot de passe",
+      "password_min_length": "Le mot de passe doit contenir au moins 8 caractères",
+      "password_mismatch": "Les mots de passe ne correspondent pas",
+      "saving": "Enregistrement..."
+    },
+    "preferences": {
+      "tab": "Préférences",
+      "title": "Préférences",
+      "description": "Personnalisez les paramètres de votre application"
+    },
     "appearance": {
       "title": "Apparence",
       "description": "Personnalisez l'apparence de SafeBucket sur votre appareil",

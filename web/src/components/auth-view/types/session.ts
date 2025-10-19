@@ -28,6 +28,7 @@ export interface IUser {
   first_name: string;
   last_name: string;
   email: string;
+  provider_type: string;
   created_at: string;
   updated_at: string;
 }

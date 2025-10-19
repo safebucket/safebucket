@@ -107,7 +107,9 @@
     "home": "Home",
     "activity": "Activity",
     "shared_buckets": "Buckets",
-    "settings": "Preferences"
+    "settings": "Settings",
+    "profile": "Profile",
+    "preferences": "Preferences"
   },
   "activity": {
     "title": "Activity Feed",
@@ -226,7 +228,32 @@
     }
   },
   "settings": {
-    "title": "Preferences",
+    "title": "Settings",
+    "profile": {
+      "tab": "Profile",
+      "title": "Profile Information",
+      "description": "Manage your personal information and account settings",
+      "card_title": "Profile Information",
+      "email": "Email",
+      "first_name": "First Name",
+      "first_name_placeholder": "Enter your first name",
+      "last_name": "Last Name",
+      "last_name_placeholder": "Enter your last name",
+      "password": "New Password",
+      "old_password_placeholder": "Enter current password",
+      "old_password_required": "Current password is required",
+      "password_placeholder": "Enter new password",
+      "confirm_password": "Confirm Password",
+      "confirm_password_placeholder": "Confirm new password",
+      "password_min_length": "Password must be at least 8 characters",
+      "password_mismatch": "Passwords do not match",
+      "saving": "Saving..."
+    },
+    "preferences": {
+      "tab": "Preferences",
+      "title": "Preferences",
+      "description": "Customize your application settings"
+    },
     "appearance": {
       "title": "Appearance",
       "description": "Customize how Safebucket looks",

@@ -151,16 +151,24 @@ export const AppSidebar: FC = () => {
           <SidebarGroup>
             {nav.settings.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  tooltip={item.title}
-                  isActive={location.pathname.startsWith("/settings")}
-                >
-                  <Link to={item.url}>
+                <SidebarMenuButton asChild tooltip={t(item.title)}>
+                  <div>
                     <item.icon />
                     {t(item.title)}
-                  </Link>
+                  </div>
                 </SidebarMenuButton>
+                <SidebarMenuSub>
+                  {item.items.map((subItem) => (
+                    <SidebarMenuSubItem key={subItem.title}>
+                      <SidebarMenuSubButton
+                        asChild
+                        isActive={location.pathname === subItem.url}
+                      >
+                        <Link to={subItem.url}>{t(subItem.title)}</Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
               </SidebarMenuItem>
             ))}
           </SidebarGroup>

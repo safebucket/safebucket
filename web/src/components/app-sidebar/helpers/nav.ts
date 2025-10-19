@@ -24,8 +24,18 @@ export const nav = {
   settings: [
     {
       title: "navigation.settings",
-      url: "/settings",
+      url: "#",
       icon: Settings2,
+      items: [
+        {
+          title: "navigation.profile",
+          url: "/settings/profile",
+        },
+        {
+          title: "navigation.preferences",
+          url: "/settings/preferences",
+        },
+      ],
     },
   ],
   help: [
