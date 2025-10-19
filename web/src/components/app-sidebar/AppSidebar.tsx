@@ -214,9 +214,7 @@ export const AppSidebar: FC = () => {
                     <span className="truncate font-semibold">
                       {`${user?.first_name} ${user?.last_name}`}
                     </span>
-                    <span className="truncate text-xs">
-                      {user?.email}
-                    </span>
+                    <span className="truncate text-xs">{user?.email}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -239,9 +237,7 @@ export const AppSidebar: FC = () => {
                       <span className="truncate font-semibold">
                         {`${user?.first_name} ${user?.last_name}`}
                       </span>
-                      <span className="truncate text-xs">
-                        {user?.email}
-                      </span>
+                      <span className="truncate text-xs">{user?.email}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>

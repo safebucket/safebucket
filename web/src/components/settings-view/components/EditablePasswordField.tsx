@@ -89,7 +89,9 @@ export function EditablePasswordField({
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={isLoading || !oldPassword || !newPassword || !confirmPassword}
+                disabled={
+                  isLoading || !oldPassword || !newPassword || !confirmPassword
+                }
               >
                 <Check className="h-3 w-3" />
               </Button>
