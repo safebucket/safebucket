@@ -12,6 +12,7 @@ import (
 	"api/internal/models"
 	"api/internal/rbac"
 	"api/internal/rbac/groups"
+	"api/internal/sql"
 	"strings"
 
 	"github.com/casbin/casbin/v2"
@@ -230,240 +231,222 @@ func (s BucketMemberService) compareMemberships(
 }
 
 func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, invite models.BucketMemberBody) {
-	tx := s.DB.Begin()
-	if tx.Error != nil {
-		logger.Error("Failed to start transaction", zap.Error(tx.Error))
-		return
-	}
+	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+		var invitee models.User
+		result := tx.Where("email = ?", invite.Email).First(&invitee)
 
-	var invitee models.User
-	result := tx.Where("email = ?", invite.Email).First(&invitee)
-
-	if result.RowsAffected == 0 {
-		invite := models.Invite{
-			Email:     invite.Email,
-			Group:     invite.Group,
-			BucketID:  bucket.ID,
-			CreatedBy: user.UserID,
-		}
-
-		if err := tx.Create(&invite).Error; err != nil {
-			tx.Rollback()
-			if strings.Contains(err.Error(), "duplicate key") {
-				return
+		if result.RowsAffected == 0 {
+			inviteRecord := models.Invite{
+				Email:     invite.Email,
+				Group:     invite.Group,
+				BucketID:  bucket.ID,
+				CreatedBy: user.UserID,
 			}
-			logger.Error("Failed to create invite", zap.String("email", invite.Email), zap.Error(err))
-			return
+
+			if err := tx.Create(&inviteRecord).Error; err != nil {
+				if strings.Contains(err.Error(), "duplicate key") {
+					return err
+				}
+				logger.Error("Failed to create invite", zap.String("email", invite.Email), zap.Error(err))
+				return err
+			}
+
+			invitationEvent := events.NewUserInvitation(
+				s.Publisher,
+				inviteRecord.Email,
+				user.Email,
+				bucket,
+				inviteRecord.Group,
+				inviteRecord.ID.String(),
+				s.WebUrl,
+			)
+			invitationEvent.Trigger()
+		} else {
+			bucketSharedEvent := events.NewBucketSharedWith(
+				s.Publisher,
+				bucket,
+				user.Email,
+				invite.Email,
+			)
+			bucketSharedEvent.Trigger()
+
+			var err error
+			switch invite.Group {
+			case "viewer":
+				err = groups.AddUserToViewers(enforcer, bucket, invitee.ID.String())
+			case "contributor":
+				err = groups.AddUserToContributors(enforcer, bucket, invitee.ID.String())
+			case "owner":
+				err = groups.AddUserToOwners(enforcer, bucket, invitee.ID.String())
+			default:
+				return nil
+			}
+
+			if err != nil {
+				logger.Error("Failed to add user to Casbin group", zap.Error(err))
+				return err
+			}
 		}
 
-		invitationEvent := events.NewUserInvitation(
-			s.Publisher,
-			invite.Email,
-			user.Email,
-			bucket,
-			invite.Group,
-			invite.ID.String(),
-			s.WebUrl,
-		)
-		invitationEvent.Trigger()
-	} else {
-		bucketSharedEvent := events.NewBucketSharedWith(
-			s.Publisher,
-			bucket,
-			user.Email,
-			invite.Email,
-		)
-		bucketSharedEvent.Trigger()
-	}
+		action := models.Activity{
+			Message: activity.BucketMemberCreated,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":              rbac.ActionGrant.String(),
+				"domain":              configuration.DefaultDomain,
+				"object_type":         rbac.ResourceBucket.String(),
+				"bucket_id":           bucket.ID.String(),
+				"user_id":             user.UserID.String(),
+				"bucket_member_email": invite.Email,
+			}),
+		}
 
-	var err error
-	switch invite.Group {
-	case "viewer":
-		err = groups.AddUserToViewers(s.Enforcer, bucket, invitee.ID.String())
-	case "contributor":
-		err = groups.AddUserToContributors(s.Enforcer, bucket, invitee.ID.String())
-	case "owner":
-		err = groups.AddUserToOwners(s.Enforcer, bucket, invitee.ID.String())
-	default:
-		return
-	}
+		if err := s.ActivityLogger.Send(action); err != nil {
+			logger.Error("Failed to log user invitation activity", zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
 
 	if err != nil {
-		tx.Rollback()
-		logger.Error("Failed to add user to Casbin group after DB commit", zap.Error(err))
-		return
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("Failed to commit transaction", zap.Error(err))
-		return
-	}
-
-	action := models.Activity{
-		Message: activity.BucketMemberCreated,
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":              rbac.ActionGrant.String(),
-			"domain":              configuration.DefaultDomain,
-			"object_type":         rbac.ResourceBucket.String(),
-			"bucket_id":           bucket.ID.String(),
-			"user_id":             user.UserID.String(),
-			"bucket_member_email": invite.Email,
-		}),
-	}
-
-	err = s.ActivityLogger.Send(action)
-	if err != nil {
-		logger.Error("Failed to log user invitation activity", zap.Error(err))
+		logger.Error("Failed to add member", zap.Error(err))
 	}
 }
 
 func (s BucketMemberService) updateMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, member models.BucketMemberToUpdate) {
-	tx := s.DB.Begin()
-	if tx.Error != nil {
-		logger.Error("Failed to start transaction", zap.Error(tx.Error))
-		return
-	}
+	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+		if member.Status == "invited" {
+			updateResult := tx.Model(&models.Invite{}).
+				Where("bucket_id = ? AND email = ?", bucket.ID, member.Email).
+				Update("group", member.NewGroup)
 
-	if member.Status == "invited" {
-		updateResult := tx.Model(&models.Invite{}).
-			Where("bucket_id = ? AND email = ?", bucket.ID, member.Email).
-			Update("group", member.NewGroup)
+			if updateResult.Error != nil {
+				logger.Error("Failed to update invite role", zap.Error(updateResult.Error))
+				return updateResult.Error
+			}
 
-		if updateResult.Error != nil {
-			tx.Rollback()
-			logger.Error("Failed to update invite role", zap.Error(updateResult.Error))
-			return
+			if updateResult.RowsAffected == 0 {
+				return nil
+			}
+		} else {
+			userId := member.UserID.String()
+
+			var err error
+			switch member.Group {
+			case "viewer":
+				err = groups.RemoveUserFromViewers(enforcer, bucket, userId)
+			case "contributor":
+				err = groups.RemoveUserFromContributors(enforcer, bucket, userId)
+			case "owner":
+				err = groups.RemoveUserFromOwners(enforcer, bucket, userId)
+			default:
+				return nil
+			}
+
+			if err != nil {
+				logger.Error("Failed to remove user from old role", zap.Error(err))
+				return err
+			}
+
+			switch member.NewGroup {
+			case "owner":
+				err = groups.AddUserToOwners(enforcer, bucket, userId)
+			case "contributor":
+				err = groups.AddUserToContributors(enforcer, bucket, userId)
+			case "viewer":
+				err = groups.AddUserToViewers(enforcer, bucket, userId)
+			default:
+				return nil
+			}
+
+			if err != nil {
+				logger.Error("Failed to add user to new role", zap.Error(err))
+				return err
+			}
 		}
 
-		if updateResult.RowsAffected == 0 {
-			tx.Rollback()
-			return
-		}
-	} else {
-		userId := member.UserID.String()
-
-		var err error
-		switch member.Group {
-		case "viewer":
-			err = groups.RemoveUserFromViewers(s.Enforcer, bucket, userId)
-		case "contributor":
-			err = groups.RemoveUserFromContributors(s.Enforcer, bucket, userId)
-		case "owner":
-			err = groups.RemoveUserFromOwners(s.Enforcer, bucket, userId)
-		default:
-			return
+		action := models.Activity{
+			Message: activity.BucketMemberUpdated,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":              rbac.ActionGrant.String(),
+				"domain":              configuration.DefaultDomain,
+				"object_type":         rbac.ResourceBucket.String(),
+				"bucket_id":           bucket.ID.String(),
+				"user_id":             user.UserID.String(),
+				"bucket_member_email": member.Email,
+			}),
 		}
 
-		if err != nil {
-			tx.Rollback()
-			logger.Error("Failed to remove user from old role", zap.Error(err))
-			return
+		if err := s.ActivityLogger.Send(action); err != nil {
+			logger.Error("Failed to log user role update activity", zap.Error(err))
+			return err
 		}
 
-		switch member.NewGroup {
-		case "owner":
-			err = groups.AddUserToOwners(s.Enforcer, bucket, userId)
-		case "contributor":
-			err = groups.AddUserToContributors(s.Enforcer, bucket, userId)
-		case "viewer":
-			err = groups.AddUserToViewers(s.Enforcer, bucket, userId)
-		default:
-			return
-		}
+		return nil
+	})
 
-		if err != nil {
-			tx.Rollback()
-			logger.Error("Failed to add user to new role", zap.Error(err))
-			return
-		}
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("Failed to commit transaction", zap.Error(err))
-		return
-	}
-
-	action := models.Activity{
-		Message: activity.BucketMemberUpdated,
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":              rbac.ActionGrant.String(),
-			"domain":              configuration.DefaultDomain,
-			"object_type":         rbac.ResourceBucket.String(),
-			"bucket_id":           bucket.ID.String(),
-			"user_id":             user.UserID.String(),
-			"bucket_member_email": member.Email,
-		}),
-	}
-
-	err := s.ActivityLogger.Send(action)
 	if err != nil {
-		logger.Error("Failed to log user role update activity", zap.Error(err))
+		logger.Error("Failed to update member", zap.Error(err))
 	}
 }
 
 func (s BucketMemberService) deleteMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
-	tx := s.DB.Begin()
-	if tx.Error != nil {
-		logger.Error("Failed to start transaction", zap.Error(tx.Error))
-		return
-	}
+	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+		if member.Status == "invited" {
+			deleteResult := tx.Where(
+				"bucket_id = ? AND email = ?", bucket.ID, member.Email,
+			).Delete(&models.Invite{})
 
-	if member.Status == "invited" {
-		deleteResult := tx.Where(
-			"bucket_id = ? AND email = ?", bucket.ID, member.Email,
-		).Delete(&models.Invite{})
+			if deleteResult.Error != nil {
+				logger.Error("Failed to delete invite", zap.Error(deleteResult.Error))
+				return deleteResult.Error
+			}
 
-		if deleteResult.Error != nil {
-			tx.Rollback()
-			logger.Error("Failed to delete invite", zap.Error(deleteResult.Error))
-			return
+			if deleteResult.RowsAffected == 0 {
+				return nil
+			}
+		} else {
+			var err error
+			userIdStr := member.UserID.String()
+
+			switch member.Group {
+			case "owner":
+				err = groups.RemoveUserFromOwners(enforcer, bucket, userIdStr)
+			case "contributor":
+				err = groups.RemoveUserFromContributors(enforcer, bucket, userIdStr)
+			case "viewer":
+				err = groups.RemoveUserFromViewers(enforcer, bucket, userIdStr)
+			default:
+				return nil
+			}
+
+			if err != nil {
+				logger.Error("Failed to remove user from role", zap.Error(err))
+				return err
+			}
 		}
 
-		if deleteResult.RowsAffected == 0 {
-			tx.Rollback()
-			return
-		}
-	} else {
-		var err error
-		userIdStr := member.UserID.String()
-
-		switch member.Group {
-		case "owner":
-			err = groups.RemoveUserFromOwners(s.Enforcer, bucket, userIdStr)
-		case "contributor":
-			err = groups.RemoveUserFromContributors(s.Enforcer, bucket, userIdStr)
-		case "viewer":
-			err = groups.RemoveUserFromViewers(s.Enforcer, bucket, userIdStr)
-		default:
-			return
+		action := models.Activity{
+			Message: activity.BucketMemberDeleted,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":              rbac.ActionGrant.String(),
+				"domain":              configuration.DefaultDomain,
+				"object_type":         rbac.ResourceBucket.String(),
+				"bucket_id":           bucket.ID.String(),
+				"user_id":             user.UserID.String(),
+				"bucket_member_email": member.Email,
+			}),
 		}
 
-		if err != nil {
-			tx.Rollback()
-			logger.Error("Failed to remove user from role", zap.Error(err))
-			return
+		if err := s.ActivityLogger.Send(action); err != nil {
+			logger.Error("Failed to log user removal activity", zap.Error(err))
+			return err
 		}
-	}
 
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("Failed to commit transaction", zap.Error(err))
-		return
-	}
+		return nil
+	})
 
-	action := models.Activity{
-		Message: activity.BucketMemberDeleted,
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":              rbac.ActionGrant.String(),
-			"domain":              configuration.DefaultDomain,
-			"object_type":         rbac.ResourceBucket.String(),
-			"bucket_id":           bucket.ID.String(),
-			"user_id":             user.UserID.String(),
-			"bucket_member_email": member.Email,
-		}),
-	}
-
-	err := s.ActivityLogger.Send(action)
 	if err != nil {
-		logger.Error("Failed to log user removal activity", zap.Error(err))
+		logger.Error("Failed to delete member", zap.Error(err))
 	}
 }
