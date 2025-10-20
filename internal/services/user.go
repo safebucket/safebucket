@@ -1,7 +1,6 @@
 package services
 
 import (
-	c "api/internal/configuration"
 	customerrors "api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
@@ -21,9 +20,8 @@ import (
 )
 
 type UserService struct {
-	DB        *gorm.DB
-	Enforcer  *casbin.Enforcer
-	Providers c.Providers
+	DB       *gorm.DB
+	Enforcer *casbin.Enforcer
 }
 
 func (s UserService) Routes() chi.Router {
@@ -102,22 +100,12 @@ func (s UserService) UpdateUser(logger *zap.Logger, _ models.UserClaims, ids uui
 	}
 
 	if body.OldPassword != "" && body.NewPassword != "" {
-		if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
-			logger.Debug("Local auth provider not activated in the configuration")
-			return models.User{}, customerrors.NewAPIError(403, "FORBIDDEN")
-		}
-
 		user.ProviderType = models.LocalProviderType
 		user.ProviderKey = string(models.LocalProviderType)
 
 		result := s.DB.Where(user, "id", "provider_type", "provider_key").Find(&user)
 		if result.RowsAffected == 0 {
 			return user, errors.New("USER_NOT_FOUND")
-		}
-
-		if !h.IsDomainAllowed(user.Email, s.Providers[string(models.LocalProviderType)].Domains) {
-			logger.Debug("Domain not allowed")
-			return models.User{}, customerrors.NewAPIError(403, "FORBIDDEN")
 		}
 
 		match, err := argon2id.ComparePasswordAndHash(body.OldPassword, user.HashedPassword)

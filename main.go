@@ -113,9 +113,8 @@ func main() {
 		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
 
 		apiRouter.Mount("/v1/users", services.UserService{
-			DB:        db,
-			Enforcer:  enforcer,
-			Providers: providers,
+			DB:       db,
+			Enforcer: enforcer,
 		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
