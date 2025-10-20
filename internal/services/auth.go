@@ -75,7 +75,7 @@ func (s AuthService) Login(logger *zap.Logger, _ models.UserClaims, _ uuid.UUIDs
 	}
 
 	searchUser := models.User{Email: body.Email, ProviderType: models.LocalProviderType, ProviderKey: string(models.LocalProviderType)}
-	result := s.DB.Where("email = ?", searchUser.Email).First(&searchUser)
+	result := s.DB.Where(searchUser, "email", "provider_type", "provider_key").Find(&searchUser)
 	if result.RowsAffected == 1 {
 		match, err := argon2id.ComparePasswordAndHash(body.Password, searchUser.HashedPassword)
 		if err != nil || !match {
@@ -178,7 +178,7 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	searchUser := models.User{Email: userInfo.Email, ProviderType: models.OIDCProviderType, ProviderKey: providerKey}
-	result := s.DB.Where("email = ?", searchUser.Email).First(&searchUser)
+	result := s.DB.Where(searchUser, "email", "provider_type", "provider_key").Find(&searchUser)
 	if result.RowsAffected == 0 {
 		searchUser.ProviderType = models.OIDCProviderType
 		searchUser.ProviderKey = providerKey

@@ -11,6 +11,7 @@ import (
 	"api/internal/sql"
 	"errors"
 
+	"github.com/alexedwards/argon2id"
 	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -55,7 +56,7 @@ func (s UserService) CreateUser(logger *zap.Logger, _ models.UserClaims, _ uuid.
 		ProviderKey:  string(models.LocalProviderType),
 	}
 
-	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
+	result := s.DB.Where("email = ?", newUser.Email).Find(&newUser)
 	if result.RowsAffected == 0 {
 		hash, err := h.CreateHash(body.Password)
 		if err != nil {
@@ -90,26 +91,50 @@ func (s UserService) GetUser(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs)
 	}
 }
 
-func (s UserService) UpdateUser(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.UserUpdateBody) (models.User, error) {
+func (s UserService) UpdateUser(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.UserUpdateBody) (models.User, error) {
 	user := models.User{ID: ids[0]}
 
-	newUser := models.User{
+	updatedUser := models.User{
 		FirstName: body.FirstName,
 		LastName:  body.LastName,
 	}
 
-	if body.Password != "" {
-		hash, err := h.CreateHash(body.Password)
-		if err != nil {
-			return user, errors.New("can not create hash password")
+	if body.OldPassword != "" && body.NewPassword != "" {
+		user.ProviderType = models.LocalProviderType
+		user.ProviderKey = string(models.LocalProviderType)
+
+		result := s.DB.Where(user, "id", "provider_type", "provider_key").Find(&user)
+		if result.RowsAffected == 0 {
+			return user, errors.New("USER_NOT_FOUND")
 		}
-		newUser.HashedPassword = hash
-	}
-	result := s.DB.Model(&user).Updates(newUser)
-	if result.RowsAffected == 0 {
-		return user, errors.New("USER_NOT_FOUND")
+
+		match, err := argon2id.ComparePasswordAndHash(body.OldPassword, user.HashedPassword)
+		if err != nil {
+			return models.User{}, errors.New("INTERNAL_SERVER_ERROR")
+		}
+		if !match {
+			return models.User{}, errors.New("INCORRECT_PASSWORD")
+		}
+
+		hash, err := h.CreateHash(body.NewPassword)
+		if err != nil {
+			return models.User{}, errors.New("INTERNAL_SERVER_ERROR")
+		}
+
+		// The password can be updated after passing all the checks
+		updatedUser.HashedPassword = hash
 	} else {
-		return user, nil
+		result := s.DB.Where(user, "id").Find(&user)
+		if result.RowsAffected == 0 {
+			return user, errors.New("USER_NOT_FOUND")
+		}
+	}
+
+	result := s.DB.Model(&user).Updates(updatedUser)
+	if result.RowsAffected == 0 {
+		return models.User{}, errors.New("USER_NOT_FOUND")
+	} else {
+		return models.User{}, nil
 	}
 }
 

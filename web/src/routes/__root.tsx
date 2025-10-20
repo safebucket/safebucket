@@ -6,6 +6,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/app-sidebar/AppSidebar.tsx";
 import { AppSidebarInset } from "@/components/app-sidebar/components/AppSidebarInset.tsx";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext.ts";
+import { LoadingScreen } from "@/components/auth-view/components/LoadingScreen.tsx";
 import { Toaster } from "@/components/ui/toaster.tsx";
 import { EnvironmentType } from "@/types/app.ts";
 import { useConfig } from "@/hooks/useConfig.ts";
@@ -20,8 +21,12 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootComponent() {
-  const { session } = useSessionContext();
+  const { session, status } = useSessionContext();
   const config = useConfig();
+
+  if (status === "loading") {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="flex h-svh max-h-svh w-full">

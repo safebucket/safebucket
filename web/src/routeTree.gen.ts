@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ActivityIndexRouteImport } from './routes/activity/index'
+import { Route as SettingsProfileIndexRouteImport } from './routes/settings/profile/index'
+import { Route as SettingsPreferencesIndexRouteImport } from './routes/settings/preferences/index'
 import { Route as InvitesIdIndexRouteImport } from './routes/invites/$id/index'
 import { Route as AuthResetPasswordIndexRouteImport } from './routes/auth/reset-password/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
@@ -35,6 +37,17 @@ const ActivityIndexRoute = ActivityIndexRouteImport.update({
   path: '/activity/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsProfileIndexRoute = SettingsProfileIndexRouteImport.update({
+  id: '/settings/profile/',
+  path: '/settings/profile/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsPreferencesIndexRoute =
+  SettingsPreferencesIndexRouteImport.update({
+    id: '/settings/preferences/',
+    path: '/settings/preferences/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const InvitesIdIndexRoute = InvitesIdIndexRouteImport.update({
   id: '/invites/$id/',
   path: '/invites/$id/',
@@ -83,6 +96,8 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
+  '/settings/preferences': typeof SettingsPreferencesIndexRoute
+  '/settings/profile': typeof SettingsProfileIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
@@ -95,6 +110,8 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
+  '/settings/preferences': typeof SettingsPreferencesIndexRoute
+  '/settings/profile': typeof SettingsProfileIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
@@ -108,6 +125,8 @@ export interface FileRoutesById {
   '/auth/login/': typeof AuthLoginIndexRoute
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
+  '/settings/preferences/': typeof SettingsPreferencesIndexRoute
+  '/settings/profile/': typeof SettingsProfileIndexRoute
   '/auth/reset-password/$id/': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId/': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
@@ -122,6 +141,8 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/reset-password'
     | '/invites/$id'
+    | '/settings/preferences'
+    | '/settings/profile'
     | '/auth/reset-password/$id'
     | '/invites/$id/challenges/$challengeId'
   fileRoutesByTo: FileRoutesByTo
@@ -134,6 +155,8 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/reset-password'
     | '/invites/$id'
+    | '/settings/preferences'
+    | '/settings/profile'
     | '/auth/reset-password/$id'
     | '/invites/$id/challenges/$challengeId'
   id:
@@ -146,6 +169,8 @@ export interface FileRouteTypes {
     | '/auth/login/'
     | '/auth/reset-password/'
     | '/invites/$id/'
+    | '/settings/preferences/'
+    | '/settings/profile/'
     | '/auth/reset-password/$id/'
     | '/invites/$id/challenges/$challengeId/'
   fileRoutesById: FileRoutesById
@@ -159,6 +184,8 @@ export interface RootRouteChildren {
   AuthLoginIndexRoute: typeof AuthLoginIndexRoute
   AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
   InvitesIdIndexRoute: typeof InvitesIdIndexRoute
+  SettingsPreferencesIndexRoute: typeof SettingsPreferencesIndexRoute
+  SettingsProfileIndexRoute: typeof SettingsProfileIndexRoute
   AuthResetPasswordIdIndexRoute: typeof AuthResetPasswordIdIndexRoute
   InvitesIdChallengesChallengeIdIndexRoute: typeof InvitesIdChallengesChallengeIdIndexRoute
 }
@@ -184,6 +211,20 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/activity'
       preLoaderRoute: typeof ActivityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/profile/': {
+      id: '/settings/profile/'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/preferences/': {
+      id: '/settings/preferences/'
+      path: '/settings/preferences'
+      fullPath: '/settings/preferences'
+      preLoaderRoute: typeof SettingsPreferencesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invites/$id/': {
@@ -247,6 +288,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthLoginIndexRoute: AuthLoginIndexRoute,
   AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,
   InvitesIdIndexRoute: InvitesIdIndexRoute,
+  SettingsPreferencesIndexRoute: SettingsPreferencesIndexRoute,
+  SettingsProfileIndexRoute: SettingsProfileIndexRoute,
   AuthResetPasswordIdIndexRoute: AuthResetPasswordIdIndexRoute,
   InvitesIdChallengesChallengeIdIndexRoute:
     InvitesIdChallengesChallengeIdIndexRoute,

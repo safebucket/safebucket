@@ -112,7 +112,11 @@ func main() {
 		apiRouter.Use(m.Authenticate(config.App.JWTSecret))
 		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
 
-		apiRouter.Mount("/v1/users", services.UserService{DB: db, Enforcer: enforcer}.Routes())
+		apiRouter.Mount("/v1/users", services.UserService{
+			DB:       db,
+			Enforcer: enforcer,
+		}.Routes())
+
 		apiRouter.Mount("/v1/buckets", services.BucketService{
 			DB:             db,
 			Storage:        storage,

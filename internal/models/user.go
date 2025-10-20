@@ -29,7 +29,8 @@ type UserCreateBody struct {
 }
 
 type UserUpdateBody struct {
-	FirstName string `json:"first_name" validate:"omitempty"`
-	LastName  string `json:"last_name" validate:"omitempty"`
-	Password  string `json:"password" validate:"omitempty,min=8"`
+	FirstName   string `json:"first_name" validate:"omitempty"`
+	LastName    string `json:"last_name" validate:"omitempty"`
+	OldPassword string `json:"old_password" validate:"omitempty,required_with=NewPassword"`
+	NewPassword string `json:"new_password" validate:"omitempty,min=8"`
 }
