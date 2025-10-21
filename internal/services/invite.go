@@ -191,26 +191,22 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 
 	newUser.HashedPassword = hashedPassword
 
-	tx := s.DB.Begin()
-	if tx.Error != nil {
-		logger.Error("Failed to start transaction", zap.Error(tx.Error))
-		return models.AuthLoginResponse{}, errors.NewAPIError(500, "TRANSACTION_START_FAILED")
-	}
+	err = sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+		if err := sql.CreateUserWithRoleAndInvites(logger, tx, enforcer, &newUser, roles.AddUserToRoleGuest); err != nil {
+			return errors.NewAPIError(500, "USER_CREATION_FAILED")
+		}
 
-	if err := sql.CreateUserWithRoleAndInvites(logger, tx, s.Enforcer, &newUser, roles.AddUserToRoleGuest); err != nil {
-		tx.Rollback()
-		return models.AuthLoginResponse{}, errors.NewAPIError(500, "USER_CREATION_FAILED")
-	}
+		if deleteResult := tx.Delete(&challenge); deleteResult.Error != nil {
+			logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
+			return errors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		}
 
-	if deleteResult := tx.Delete(&challenge); deleteResult.Error != nil {
-		logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
-		tx.Rollback()
-		return models.AuthLoginResponse{}, errors.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
-	}
+		return nil
+	})
 
-	if err := tx.Commit().Error; err != nil {
+	if err != nil {
 		logger.Error("Failed to commit transaction", zap.Error(err))
-		return models.AuthLoginResponse{}, errors.NewAPIError(500, "TRANSACTION_COMMIT_FAILED")
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	welcomeEvent := events.NewUserWelcome(
@@ -223,13 +219,13 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 	accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
-		return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_ACCESS_TOKEN_FAILED")
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return models.AuthLoginResponse{}, errors.NewAPIError(500, "GENERATE_REFRESH_TOKEN_FAILED")
+		return models.AuthLoginResponse{}, errors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	return models.AuthLoginResponse{

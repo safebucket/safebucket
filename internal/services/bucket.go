@@ -89,69 +89,64 @@ func (s BucketService) Routes() chi.Router {
 }
 
 func (s BucketService) CreateBucket(logger *zap.Logger, user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateBody) (models.Bucket, error) {
-	tx := s.DB.Begin()
+	var newBucket models.Bucket
 
-	newBucket := models.Bucket{Name: body.Name}
-	newBucket.CreatedBy = user.UserID
-	res := tx.Create(&newBucket)
+	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+		newBucket = models.Bucket{Name: body.Name, CreatedBy: user.UserID}
+		res := tx.Create(&newBucket)
 
-	if res.Error != nil {
-		logger.Error("Failed to create bucket", zap.Error(res.Error))
-		tx.Rollback()
-		return models.Bucket{}, errors.ErrorCreateFailed
-	}
+		if res.Error != nil {
+			logger.Error("Failed to create bucket", zap.Error(res.Error))
+			return res.Error
+		}
 
-	err := groups.InsertGroupBucketViewer(s.Enforcer, newBucket)
+		err := groups.InsertGroupBucketViewer(enforcer, newBucket)
+		if err != nil {
+			logger.Error("Failed to create bucket group viewer", zap.Error(err))
+			return err
+		}
+
+		err = groups.InsertGroupBucketContributor(enforcer, newBucket)
+		if err != nil {
+			logger.Error("Failed to create bucket group contributor", zap.Error(err))
+			return err
+		}
+
+		err = groups.InsertGroupBucketOwner(enforcer, newBucket)
+		if err != nil {
+			logger.Error("Failed to create bucket group owner", zap.Error(err))
+			return err
+		}
+
+		err = groups.AddUserToOwners(enforcer, newBucket, user.UserID.String())
+		if err != nil {
+			logger.Error("Failed to add user to group owner", zap.Error(err))
+			return err
+		}
+
+		action := models.Activity{
+			Message: activity.BucketCreated,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionCreate.String(),
+				"domain":      c.DefaultDomain,
+				"object_type": rbac.ResourceBucket.String(),
+				"bucket_id":   newBucket.ID.String(),
+				"user_id":     user.UserID.String(),
+			}),
+		}
+
+		err = s.ActivityLogger.Send(action)
+
+		if err != nil {
+			logger.Error("Failed to register activity", zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		logger.Error("Failed to create bucket group viewer", zap.Error(err))
-		tx.Rollback()
 		return models.Bucket{}, errors.ErrorCreateFailed
-	}
-
-	err = groups.InsertGroupBucketContributor(s.Enforcer, newBucket)
-	if err != nil {
-		logger.Error("Failed to create bucket group contributor", zap.Error(err))
-		tx.Rollback()
-		return models.Bucket{}, errors.ErrorCreateFailed
-	}
-
-	err = groups.InsertGroupBucketOwner(s.Enforcer, newBucket)
-	if err != nil {
-		logger.Error("Failed to create bucket group owner", zap.Error(err))
-		tx.Rollback()
-		return models.Bucket{}, errors.ErrorCreateFailed
-	}
-
-	err = groups.AddUserToOwners(s.Enforcer, newBucket, user.UserID.String())
-	if err != nil {
-		logger.Error("Failed to add user to group owner", zap.Error(err))
-		tx.Rollback()
-		return models.Bucket{}, errors.ErrorCreateFailed
-	}
-
-	action := models.Activity{
-		Message: activity.BucketCreated,
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionCreate.String(),
-			"domain":      c.DefaultDomain,
-			"object_type": rbac.ResourceBucket.String(),
-			"bucket_id":   newBucket.ID.String(),
-			"user_id":     user.UserID.String(),
-		}),
-	}
-
-	err = s.ActivityLogger.Send(action)
-
-	if err != nil {
-		logger.Error("Failed to register activity", zap.Error(err))
-		tx.Rollback()
-		return models.Bucket{}, err
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("Failed to commit transaction", zap.Error(err))
-		tx.Rollback()
-		return models.Bucket{}, err
 	}
 
 	return newBucket, nil
@@ -220,69 +215,69 @@ func (s BucketService) UpdateBucket(_ *zap.Logger, _ models.UserClaims, ids uuid
 }
 
 func (s BucketService) DeleteBucket(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
+	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
 		bucket := models.Bucket{}
 		result := tx.Where("id = ?", ids[0]).First(&bucket)
 
 		if result.RowsAffected == 0 {
 			return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
-		} else {
-			// Soft delete bucket
-			if _, err := gorm.G[models.Bucket](tx).Where("id = ?", bucket.ID).Delete(context.Background()); err != nil {
-				return err
-			}
-
-			// Hard delete all invitations associated to the bucket
-			if _, err := gorm.G[models.Invite](tx).Where("bucket_id = ?", bucket.ID).Delete(context.Background()); err != nil {
-				return err
-			}
-
-			// Remove bucket groups
-			if err := groups.RemoveGroupBucketViewer(s.Enforcer, bucket); err != nil {
-				return err
-			}
-
-			if err := groups.RemoveGroupBucketContributor(s.Enforcer, bucket); err != nil {
-				return err
-			}
-
-			if err := groups.RemoveGroupBucketOwner(s.Enforcer, bucket); err != nil {
-				return err
-			}
-
-			// Remove associated grouping policies
-			if err := groups.RemoveUsersFromViewers(s.Enforcer, bucket); err != nil {
-				return err
-			}
-
-			if err := groups.RemoveUsersFromContributors(s.Enforcer, bucket); err != nil {
-				return err
-			}
-
-			if err := groups.RemoveUsersFromOwners(s.Enforcer, bucket); err != nil {
-				return err
-			}
-
-			action := models.Activity{
-				Message: activity.BucketDeleted,
-				Filter: activity.NewLogFilter(map[string]string{
-					"action":      rbac.ActionDelete.String(),
-					"bucket_id":   bucket.ID.String(),
-					"domain":      c.DefaultDomain,
-					"object_type": rbac.ResourceBucket.String(),
-					"user_id":     user.UserID.String(),
-				}),
-			}
-
-			if err := s.ActivityLogger.Send(action); err != nil {
-				return err
-			}
-
-			// Trigger async file and folder deletion from root path
-			event := events.NewObjectDeletion(s.Publisher, bucket, "/")
-			event.Trigger()
-			return nil
 		}
+
+		// Soft delete bucket
+		if _, err := gorm.G[models.Bucket](tx).Where("id = ?", bucket.ID).Delete(context.Background()); err != nil {
+			return err
+		}
+
+		// Hard delete all invitations associated to the bucket
+		if _, err := gorm.G[models.Invite](tx).Where("bucket_id = ?", bucket.ID).Delete(context.Background()); err != nil {
+			return err
+		}
+
+		// Remove bucket groups
+		if err := groups.RemoveGroupBucketViewer(enforcer, bucket); err != nil {
+			return err
+		}
+
+		if err := groups.RemoveGroupBucketContributor(enforcer, bucket); err != nil {
+			return err
+		}
+
+		if err := groups.RemoveGroupBucketOwner(enforcer, bucket); err != nil {
+			return err
+		}
+
+		// Remove associated grouping policies
+		if err := groups.RemoveUsersFromViewers(enforcer, bucket); err != nil {
+			return err
+		}
+
+		if err := groups.RemoveUsersFromContributors(enforcer, bucket); err != nil {
+			return err
+		}
+
+		if err := groups.RemoveUsersFromOwners(enforcer, bucket); err != nil {
+			return err
+		}
+
+		action := models.Activity{
+			Message: activity.BucketDeleted,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionDelete.String(),
+				"bucket_id":   bucket.ID.String(),
+				"domain":      c.DefaultDomain,
+				"object_type": rbac.ResourceBucket.String(),
+				"user_id":     user.UserID.String(),
+			}),
+		}
+
+		if err := s.ActivityLogger.Send(action); err != nil {
+			return err
+		}
+
+		// Trigger async file and folder deletion from root path
+		event := events.NewObjectDeletion(s.Publisher, bucket, "/")
+		event.Trigger()
+		return nil
 	})
 
 	if err != nil {

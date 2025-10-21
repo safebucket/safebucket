@@ -44,7 +44,7 @@ func CreateUserWithRoleAndInvites(
 	user *models.User,
 	roleFunc func(*casbin.Enforcer, models.User) error,
 ) error {
-	return db.Transaction(func(tx *gorm.DB) error {
+	return WithCasbinTx(db, enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
 		err := createUserWithRoleBase(tx, enforcer, user, roleFunc)
 		if err != nil {
 			return err
