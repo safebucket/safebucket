@@ -7,9 +7,9 @@ const (
 	OIDCProviderType  ProviderType = "oidc"
 )
 
-type AuthLogin struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
+type AuthLoginBody struct {
+	Email    string `json:"email" validate:"required,email,max=254"`
+	Password string `json:"password" validate:"required,max=72"`
 }
 
 type AuthLoginResponse struct {
@@ -17,16 +17,12 @@ type AuthLoginResponse struct {
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
-type AuthVerify struct {
-	AccessToken string `json:"access_token" validate:"required"`
+type AuthVerifyBody struct {
+	AccessToken string `json:"access_token" validate:"required,max=2048"`
 }
 
-type AuthVerifyResponse struct {
-	Valid bool `json:"valid"`
-}
-
-type AuthRefresh struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
+type AuthRefreshBody struct {
+	RefreshToken string `json:"refresh_token" validate:"required,max=2048"`
 }
 
 type AuthRefreshResponse struct {
@@ -38,4 +34,13 @@ type ProviderResponse struct {
 	Name    string       `json:"name"`
 	Type    ProviderType `json:"type"`
 	Domains []string     `json:"domains"`
+}
+
+type PasswordResetRequestBody struct {
+	Email string `json:"email" validate:"required,email,max=254"`
+}
+
+type PasswordResetValidateBody struct {
+	Code        string `json:"code" validate:"required,len=6,alphanum"`
+	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
 }
