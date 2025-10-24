@@ -76,6 +76,15 @@ func (s BucketService) Routes() chi.Router {
 			WebUrl:         s.WebUrl,
 		}.Routes())
 
+		r.Route("/trash", func(r chi.Router) {
+			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+				Get("/", handlers.GetListHandler(s.ListTrashedFiles))
+			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionPurge, 0)).
+				Delete("/{id1}", handlers.DeleteHandler(s.PurgeFile))
+			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRestore, 0)).
+				Post("/{id1}/restore", handlers.DeleteHandler(s.RestoreFile))
+		})
+
 		r.Route("/files/{id1}", func(r chi.Router) {
 			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionErase, 0)).
 				Delete("/", handlers.DeleteHandler(s.DeleteFile))
@@ -196,10 +205,11 @@ func (s BucketService) GetBucket(_ *zap.Logger, _ models.UserClaims, ids uuid.UU
 	} else {
 		var files []models.File
 		// Filter out expired files that haven't been uploaded yet (only applies to files, not folders)
+		// Also exclude trashed items from normal bucket view
 		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 		result = s.DB.Where(
-			"bucket_id = ? AND (type = 'folder' OR status = ? OR (status = ? AND created_at > ?))",
-			bucketId, models.FileStatusUploaded, models.FileStatusUploading, expirationTime,
+			"bucket_id = ? AND (status IS NULL OR status != ?) AND (type = 'folder' OR status = ? OR (status = ? AND created_at > ?))",
+			bucketId, models.FileStatusTrashed, models.FileStatusUploaded, models.FileStatusUploading, expirationTime,
 		).Find(&files)
 
 		if result.RowsAffected > 0 {
@@ -373,65 +383,10 @@ func (s BucketService) DeleteFile(logger *zap.Logger, user models.UserClaims, id
 		return err
 	}
 
-	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		if file.Type == "folder" {
-			result := tx.Model(&file).Update("status", models.FileStatusDeleting)
-			if result.Error != nil {
-				logger.Error("Failed to schedule folder for deletion", zap.Error(result.Error))
-				return err
-			}
-
-			bucket, err := sql.GetById[models.Bucket](s.DB, bucketId)
-			if err != nil {
-				logger.Error("Failed to get bucket for deletion event", zap.Error(err))
-				return err
-			}
-
-			folderPath := path.Join(file.Path, file.Name)
-			event := events.NewObjectDeletion(s.Publisher, bucket, folderPath)
-			event.Trigger()
-		} else {
-			result := tx.Delete(&file)
-			if result.Error != nil {
-				logger.Error("Failed to delete file from database", zap.Error(result.Error))
-				return err
-			}
-
-			err := s.Storage.RemoveObject(path.Join("buckets", bucketId.String(), file.Path, file.Name))
-			if err != nil {
-				logger.Warn("Failed to delete file from storage", zap.Error(err))
-				return err
-			}
-
-			return nil
-		}
-
-		action := models.Activity{
-			Message: activity.FileDeleted,
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionDelete.String(),
-				"bucket_id":   bucketId.String(),
-				"file_id":     fileId.String(),
-				"domain":      c.DefaultDomain,
-				"object_type": rbac.ResourceFile.String(),
-				"user_id":     user.UserID.String(),
-			}),
-		}
-		err = s.ActivityLogger.Send(action)
-
-		if err != nil {
-			logger.Error("Failed to send activity", zap.Error(err))
-			return err
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return errors.NewAPIError(500, "FILE_DELETION_FAILED")
+	if file.Type == "folder" {
+		return s.TrashFolder(logger, user, ids)
 	}
-
-	return nil
+	return s.TrashFile(logger, user, ids)
 }
 
 func (s BucketService) DownloadFile(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) (models.FileTransferResponse, error) {
@@ -440,6 +395,10 @@ func (s BucketService) DownloadFile(logger *zap.Logger, user models.UserClaims, 
 	file, err := sql.GetFileById(s.DB, bucketId, fileId)
 	if err != nil {
 		return models.FileTransferResponse{}, err
+	}
+
+	if file.Status == models.FileStatusTrashed {
+		return models.FileTransferResponse{}, errors.NewAPIError(403, "CANNOT_DOWNLOAD_TRASHED_FILE")
 	}
 
 	url, err := s.Storage.PresignedGetObject(path.Join("buckets", file.BucketId.String(), file.Path, file.Name))
@@ -530,4 +489,335 @@ func (s BucketService) GetBucketActivity(logger *zap.Logger, user models.UserCla
 	enriched := activity.EnrichActivity(s.DB, history)
 
 	return models.Page[map[string]interface{}]{Data: enriched}, nil
+}
+
+// TrashFile moves a file to trash instead of permanent deletion
+func (s BucketService) TrashFile(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
+	bucketId, fileId := ids[0], ids[1]
+
+	file, err := sql.GetFileById(s.DB, bucketId, fileId)
+	if err != nil {
+		return err
+	}
+
+	if file.Status == models.FileStatusTrashed {
+		return errors.NewAPIError(400, "FILE_ALREADY_TRASHED")
+	}
+
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		now := time.Now()
+
+		updates := map[string]interface{}{
+			"status":     models.FileStatusTrashed,
+			"trashed_at": now,
+			"trashed_by": user.UserID,
+		}
+
+		if err := tx.Model(&file).Updates(updates).Error; err != nil {
+			logger.Error("Failed to update file status to trashed", zap.Error(err))
+			return errors.NewAPIError(500, "UPDATE_FAILED")
+		}
+
+		objectPath := path.Join("buckets", bucketId.String(), file.Path, file.Name)
+		if err := s.Storage.TagObjectForTrash(objectPath, now); err != nil {
+			logger.Warn("Failed to tag object for trash in storage",
+				zap.Error(err),
+				zap.String("path", objectPath))
+		}
+
+		// Log activity
+		action := models.Activity{
+			Message: activity.FileTrashed,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionErase.String(),
+				"bucket_id":   bucketId.String(),
+				"file_id":     fileId.String(),
+				"domain":      c.DefaultDomain,
+				"object_type": rbac.ResourceFile.String(),
+				"user_id":     user.UserID.String(),
+			}),
+		}
+
+		if err := s.ActivityLogger.Send(action); err != nil {
+			logger.Error("Failed to log trash activity", zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+}
+
+// RestoreFile recovers a file or folder from trash
+func (s BucketService) RestoreFile(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
+	bucketId, fileId := ids[0], ids[1]
+
+	file, err := sql.GetFileById(s.DB, bucketId, fileId)
+	if err != nil {
+		return err
+	}
+
+	if file.Type == "folder" {
+		return s.RestoreFolder(logger, user, ids)
+	}
+	if file.Status != models.FileStatusTrashed {
+		return errors.NewAPIError(400, "FILE_NOT_IN_TRASH")
+	}
+	if file.TrashedAt != nil && time.Since(*file.TrashedAt) > 7*24*time.Hour {
+		return errors.NewAPIError(410, "FILE_TRASH_EXPIRED")
+	}
+
+	// Check for naming conflicts
+	var existingFile models.File
+	result := s.DB.Where(
+		"bucket_id = ? AND name = ? AND path = ? AND status != ?",
+		bucketId, file.Name, file.Path, models.FileStatusTrashed,
+	).First(&existingFile)
+
+	if result.RowsAffected > 0 {
+		return errors.NewAPIError(409, "FILE_NAME_CONFLICT")
+	}
+
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		updates := map[string]interface{}{
+			"status":     models.FileStatusUploaded,
+			"trashed_at": nil,
+			"trashed_by": nil,
+		}
+
+		if err := tx.Model(&file).Updates(updates).Error; err != nil {
+			logger.Error("Failed to restore file status", zap.Error(err))
+			return errors.NewAPIError(500, "UPDATE_FAILED")
+		}
+
+		objectPath := path.Join("buckets", bucketId.String(), file.Path, file.Name)
+		if err := s.Storage.RemoveTrashMarker(objectPath); err != nil {
+			logger.Warn("Failed to remove trash tag from storage",
+				zap.Error(err),
+				zap.String("path", objectPath))
+		}
+
+		action := models.Activity{
+			Message: activity.FileRestored,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionRestore.String(),
+				"bucket_id":   bucketId.String(),
+				"file_id":     fileId.String(),
+				"domain":      c.DefaultDomain,
+				"object_type": rbac.ResourceFile.String(),
+				"user_id":     user.UserID.String(),
+			}),
+		}
+		if err := s.ActivityLogger.Send(action); err != nil {
+			logger.Error("Failed to log restore activity", zap.Error(err))
+			return err
+		}
+		return nil
+	})
+}
+
+// ListTrashedFiles returns all trashed files for a bucket within 7-day window
+func (s BucketService) ListTrashedFiles(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) []models.File {
+	var files []models.File
+	cutoffDate := time.Now().Add(-7 * 24 * time.Hour)
+	result := s.DB.
+		Preload("TrashedUser").
+		Where(
+			"bucket_id = ? AND status = ? AND trashed_at > ?",
+			ids[0],
+			models.FileStatusTrashed,
+			cutoffDate,
+		).
+		Order("trashed_at DESC").
+		Find(&files)
+
+	if result.Error != nil {
+		logger.Error("Failed to list trashed files", zap.Error(result.Error))
+		return []models.File{}
+	}
+
+	return files
+}
+
+// PurgeFile permanently deletes a file or folder from trash (hard delete)
+func (s BucketService) PurgeFile(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
+	bucketId, fileId := ids[0], ids[1]
+
+	file, err := sql.GetFileById(s.DB, bucketId, fileId)
+	if err != nil {
+		return err
+	}
+
+	// Dispatch to folder purge if it's a folder
+	if file.Type == "folder" {
+		return s.PurgeFolder(logger, user, ids)
+	}
+
+	// Validate file is in trash
+	if file.Status != models.FileStatusTrashed {
+		return errors.NewAPIError(400, "FILE_NOT_IN_TRASH")
+	}
+
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		objectPath := path.Join("buckets", bucketId.String(), file.Path, file.Name)
+
+		// Delete from storage
+		if err := s.Storage.RemoveObject(objectPath); err != nil {
+			logger.Warn("Failed to delete file from storage",
+				zap.Error(err),
+				zap.String("path", objectPath))
+			// Continue to database deletion even if storage fails
+		}
+
+		// Soft delete from database (allows activity enrichment to still find the record)
+		if err := tx.Delete(&file).Error; err != nil {
+			logger.Error("Failed to soft delete file from database", zap.Error(err))
+			return errors.ErrorDeleteFailed
+		}
+
+		// Log activity
+		action := models.Activity{
+			Message: activity.FilePurged,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionPurge.String(),
+				"bucket_id":   bucketId.String(),
+				"file_id":     fileId.String(),
+				"domain":      c.DefaultDomain,
+				"object_type": rbac.ResourceFile.String(),
+				"user_id":     user.UserID.String(),
+			}),
+		}
+
+		if err := s.ActivityLogger.Send(action); err != nil {
+			logger.Error("Failed to log purge activity", zap.Error(err))
+			return err
+		}
+
+		return nil
+	})
+}
+
+// TrashFolder moves a folder and all its contents to trash (async)
+func (s BucketService) TrashFolder(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
+	bucketId, folderId := ids[0], ids[1]
+
+	folder, err := sql.GetFileById(s.DB, bucketId, folderId)
+	if err != nil {
+		return err
+	}
+
+	// Validate it's actually a folder
+	if folder.Type != "folder" {
+		return errors.NewAPIError(400, "NOT_A_FOLDER")
+	}
+
+	// Don't allow trashing already-trashed folders
+	if folder.Status == models.FileStatusTrashed {
+		return errors.NewAPIError(400, "FOLDER_ALREADY_TRASHED")
+	}
+
+	now := time.Now()
+
+	// Update folder to trashed status immediately
+	updates := map[string]interface{}{
+		"status":     models.FileStatusTrashed,
+		"trashed_at": now,
+		"trashed_by": user.UserID,
+	}
+
+	if err := s.DB.Model(&folder).Updates(updates).Error; err != nil {
+		logger.Error("Failed to update folder status to trashed", zap.Error(err))
+		return errors.NewAPIError(500, "UPDATE_FAILED")
+	}
+
+	// Trigger async trash event to handle children
+	event := events.NewFolderTrash(s.Publisher, bucketId, folderId, user.UserID, now)
+	event.Trigger()
+
+	logger.Info("Folder trash initiated (async)",
+		zap.String("folder", folder.Name),
+		zap.String("folder_id", folderId.String()))
+
+	return nil
+}
+
+// RestoreFolder recovers a folder and all its contents from trash (async)
+func (s BucketService) RestoreFolder(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
+	bucketId, folderId := ids[0], ids[1]
+
+	folder, err := sql.GetFileById(s.DB, bucketId, folderId)
+	if err != nil {
+		return err
+	}
+
+	// Validate it's actually a folder
+	if folder.Type != "folder" {
+		return errors.NewAPIError(400, "NOT_A_FOLDER")
+	}
+
+	// Validate folder is in trash
+	if folder.Status != models.FileStatusTrashed {
+		return errors.NewAPIError(400, "FOLDER_NOT_IN_TRASH")
+	}
+
+	// Check if expired (extra safety check)
+	if folder.TrashedAt != nil && time.Since(*folder.TrashedAt) > 7*24*time.Hour {
+		return errors.NewAPIError(410, "FOLDER_TRASH_EXPIRED")
+	}
+
+	// Check for naming conflicts at the folder level
+	var existingFolder models.File
+	result := s.DB.Where(
+		"bucket_id = ? AND name = ? AND path = ? AND type = 'folder' AND status != ? AND status != ?",
+		bucketId, folder.Name, folder.Path, models.FileStatusTrashed, models.FileStatusRestoring,
+	).First(&existingFolder)
+
+	if result.RowsAffected > 0 {
+		return errors.NewAPIError(409, "FOLDER_NAME_CONFLICT")
+	}
+
+	// Set folder to restoring status
+	if err := s.DB.Model(&folder).Update("status", models.FileStatusRestoring).Error; err != nil {
+		logger.Error("Failed to set folder to restoring status", zap.Error(err))
+		return errors.NewAPIError(500, "UPDATE_FAILED")
+	}
+
+	// Trigger async restore event
+	event := events.NewFolderRestore(s.Publisher, bucketId, folderId, user.UserID)
+	event.Trigger()
+
+	logger.Info("Folder restore initiated (async)",
+		zap.String("folder", folder.Name),
+		zap.String("folder_id", folderId.String()))
+
+	return nil
+}
+
+// PurgeFolder permanently deletes a folder and all its contents from trash (async)
+func (s BucketService) PurgeFolder(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
+	bucketId, folderId := ids[0], ids[1]
+
+	folder, err := sql.GetFileById(s.DB, bucketId, folderId)
+	if err != nil {
+		return err
+	}
+
+	// Validate it's actually a folder
+	if folder.Type != "folder" {
+		return errors.NewAPIError(400, "NOT_A_FOLDER")
+	}
+
+	// Validate folder is in trash
+	if folder.Status != models.FileStatusTrashed {
+		return errors.NewAPIError(400, "FOLDER_NOT_IN_TRASH")
+	}
+
+	// Trigger async purge event
+	event := events.NewFolderPurge(s.Publisher, bucketId, folderId, user.UserID)
+	event.Trigger()
+
+	logger.Info("Folder purge initiated (async)",
+		zap.String("folder", folder.Name),
+		zap.String("folder_id", folderId.String()))
+
+	return nil
 }

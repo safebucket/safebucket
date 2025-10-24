@@ -31,7 +31,7 @@ func runMigrations(db *gorm.DB) {
 	}
 
 	if !exists {
-		err = db.Exec("CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting')").Error
+		err = db.Exec("CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting', 'trashed', 'restoring')").Error
 		if err != nil {
 			zap.L().Fatal("failed to create file_status enum", zap.Error(err))
 		}

@@ -119,3 +119,65 @@ func (s *AWSSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 
 	return uploadEvents
 }
+
+func (s *AWSSubscriber) ParseBucketDeletionEvents(message *message.Message) []BucketDeletionEvent {
+	var event AWSEvent
+	if err := json.Unmarshal(message.Payload, &event); err != nil {
+		zap.L().Error("deletion event is unprocessable", zap.Error(err))
+		message.Ack()
+		return nil
+	}
+
+	var deletionEvents []BucketDeletionEvent
+	for _, record := range event.Records {
+		eventName := record.EventName
+		isRemoveEvent := len(eventName) >= len("ObjectRemoved:") && eventName[:len("ObjectRemoved:")] == "ObjectRemoved:"
+		isLifecycleEvent := len(eventName) >= len("LifecycleExpiration:") && eventName[:len("LifecycleExpiration:")] == "LifecycleExpiration:"
+
+		if isRemoveEvent || isLifecycleEvent {
+
+			objectKey := record.S3.Object.Key
+			var bucketId string
+			if len(objectKey) > 8 && objectKey[:8] == "buckets/" {
+				parts := make([]string, 0)
+				start := 0
+				for i, c := range objectKey {
+					if c == '/' {
+						parts = append(parts, objectKey[start:i])
+						start = i + 1
+					}
+				}
+				if start < len(objectKey) {
+					parts = append(parts, objectKey[start:])
+				}
+
+				if len(parts) >= 2 {
+					bucketId = parts[1]
+				}
+			}
+
+			if bucketId == "" {
+				zap.L().Warn("unable to extract bucket ID from object key",
+					zap.String("object_key", objectKey))
+				continue
+			}
+
+			deletionEvents = append(deletionEvents, BucketDeletionEvent{
+				BucketId:  bucketId,
+				ObjectKey: objectKey,
+				EventName: eventName,
+			})
+
+			zap.L().Debug("parsed deletion event",
+				zap.String("event_name", eventName),
+				zap.String("bucket_id", bucketId),
+				zap.String("object_key", objectKey))
+		}
+	}
+
+	if len(deletionEvents) > 0 {
+		message.Ack()
+	}
+
+	return deletionEvents
+}

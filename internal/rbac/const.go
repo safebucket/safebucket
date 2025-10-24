@@ -16,9 +16,11 @@ const (
 	ActionErase    = Action("erase")
 	ActionList     = Action("list")
 	ActionRead     = Action("read")
+	ActionRestore  = Action("restore")
 	ActionUpdate   = Action("update")
 	ActionUpload   = Action("upload")
 	ActionGrant    = Action("grant")
+	ActionPurge    = Action("purge")
 )
 
 // Resource represents an object type in the RBAC system.

@@ -35,6 +35,9 @@ interface DataTableProps<TData, TValue> {
   selected: TData | null;
   onRowClick: (row: TData) => void;
   onRowDoubleClick: (row: TData) => void;
+  trashMode?: boolean;
+  onRestore?: (fileId: string, fileName: string) => void;
+  onPermanentDelete?: (fileId: string, fileName: string) => void;
 }
 
 export function DataTable<TData extends IFile, TValue>({
@@ -43,6 +46,9 @@ export function DataTable<TData extends IFile, TValue>({
   selected,
   onRowClick,
   onRowDoubleClick,
+  trashMode = false,
+  onRestore,
+  onPermanentDelete,
 }: DataTableProps<TData, TValue>) {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -102,7 +108,14 @@ export function DataTable<TData extends IFile, TValue>({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <FileActions key={row.id} file={row.original} type="context">
+                <FileActions
+                  key={row.id}
+                  file={row.original}
+                  type="context"
+                  trashMode={trashMode}
+                  onRestore={onRestore}
+                  onPermanentDelete={onPermanentDelete}
+                >
                   <TableRow
                     key={row.id}
                     data-state={

@@ -90,16 +90,16 @@
     "download": "Download",
     "share": "Share",
     "new_folder": "New folder",
-    "delete": "Delete",
+    "move_to_trash": "Move to Trash",
     "new_folder_dialog": {
       "title": "New folder",
       "name_label": "Name",
       "create": "Create"
     },
     "delete_dialog": {
-      "title": "Delete {{fileName}}?",
-      "description": "Are you sure you want to delete this file? This action cannot be undone.",
-      "confirm": "Delete"
+      "title": "Move {{fileName}} to trash?",
+      "description": "This file will be moved to trash and can be restored within 7 days. After 7 days, it will be permanently deleted.",
+      "confirm": "Move to Trash"
     }
   },
   "navigation": {
@@ -120,6 +120,12 @@
       "file_downloaded": "Downloaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
       "file_updated": "Updated a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
       "file_deleted": "Deleted a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
+      "file_trashed": "Moved a file '%%FILE_NAME%%' to trash on the bucket '%%BUCKET_NAME%%'.",
+      "file_restored": "Restored a file '%%FILE_NAME%%' from trash on the bucket '%%BUCKET_NAME%%'.",
+      "file_purged": "Permanently deleted a file '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
+      "folder_trashed": "Moved a folder '%%FILE_NAME%%' to trash on the bucket '%%BUCKET_NAME%%'.",
+      "folder_restored": "Restored a folder '%%FILE_NAME%%' from trash on the bucket '%%BUCKET_NAME%%'.",
+      "folder_purged": "Permanently deleted a folder '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
       "bucket_member_created": "Invited %%BUCKET_MEMBER_EMAIL%% to the bucket '%%BUCKET_NAME%%'.",
       "bucket_member_updated": "Updated the group of %%BUCKET_MEMBER_EMAIL%% on the bucket '%%BUCKET_NAME%%'.",
       "bucket_member_deleted": "Removed %%BUCKET_MEMBER_EMAIL%% from the bucket '%%BUCKET_NAME%%'.",
@@ -156,6 +162,7 @@
       "list_view": "List view",
       "grid_view": "Grid view",
       "activity": "Bucket activity",
+      "trash": "Trash",
       "settings": "Settings"
     },
     "list_view": {
@@ -180,6 +187,22 @@
       "uploaded": "Uploaded",
       "uploading": "Uploading",
       "deleting": "Deleting"
+    },
+    "trash_view": {
+      "name": "Name",
+      "size": "Size",
+      "deleted_at": "Deleted At",
+      "deleted_by": "Deleted By",
+      "status": "Status",
+      "trashed": "In Trash",
+      "restoring": "Restoring",
+      "restore": "Restore",
+      "delete_permanently": "Delete Permanently",
+      "empty": "Trash is empty",
+      "empty_description": "Deleted files will appear here and be automatically removed after 7 days.",
+      "retention_notice": "Files in trash will be automatically deleted after 7 days. You can restore them before then.",
+      "restore_success": "File \"{{fileName}}\" has been restored.",
+      "purge_success": "File \"{{fileName}}\" has been permanently deleted."
     },
     "settings": {
       "information": {

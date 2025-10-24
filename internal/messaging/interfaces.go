@@ -15,4 +15,5 @@ type ISubscriber interface {
 	Subscribe() <-chan *message.Message
 	Close() error
 	ParseBucketUploadEvents(*message.Message) []BucketUploadEvent
+	ParseBucketDeletionEvents(*message.Message) []BucketDeletionEvent
 }

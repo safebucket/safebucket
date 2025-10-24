@@ -50,7 +50,7 @@ func (er *EventRouter) getTopicKeyForEvent(eventType string) string {
 	switch eventType {
 	case events.UserInvitationName, events.BucketSharedWithName, events.ChallengeUserInviteName, events.PasswordResetChallengeName, events.PasswordResetSuccessName, events.UserWelcomeName:
 		return configuration.EventsNotifications
-	case events.ObjectDeletionName:
+	case events.ObjectDeletionName, events.FolderTrashName, events.FolderPurgeName, events.FolderRestoreName, events.TrashExpirationName:
 		return configuration.EventsObjectDeletion
 	default:
 		return ""

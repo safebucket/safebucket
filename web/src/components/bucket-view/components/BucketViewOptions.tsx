@@ -1,6 +1,7 @@
-import { FolderClock, LayoutGrid, LayoutList, Settings } from "lucide-react";
+import { FolderClock, LayoutGrid, LayoutList, Settings, Trash2 } from "lucide-react";
 import { t } from "i18next";
 import type { FC } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -30,6 +31,11 @@ const options = [
     tooltip: t("bucket.header.activity"),
   },
   {
+    key: BucketViewMode.Trash,
+    value: <Trash2 />,
+    tooltip: t("bucket.header.trash"),
+  },
+  {
     key: BucketViewMode.Settings,
     value: <Settings />,
     tooltip: t("bucket.header.settings"),
@@ -37,7 +43,22 @@ const options = [
 ];
 
 export const BucketViewOptions: FC = () => {
-  const { view, setView } = useBucketViewContext();
+  const { view, setView, bucketId } = useBucketViewContext();
+  const queryClient = useQueryClient();
+
+  const handleViewChange = (newView: BucketViewMode) => {
+    setView(newView);
+
+    // Refresh trash data when switching to trash view
+    if (newView === BucketViewMode.Trash) {
+      queryClient.invalidateQueries({ queryKey: ["trashedFiles", bucketId] });
+    }
+
+    // Refresh activity data when switching to activity view
+    if (newView === BucketViewMode.Activity) {
+      queryClient.invalidateQueries({ queryKey: ["activities", bucketId] });
+    }
+  };
 
   return (
     <ButtonGroup className="default">
@@ -47,7 +68,7 @@ export const BucketViewOptions: FC = () => {
             <TooltipTrigger asChild>
               <Button
                 variant={view == opt.key ? "default" : "secondary"}
-                onClick={() => setView(opt.key)}
+                onClick={() => handleViewChange(opt.key)}
               >
                 {opt.value}
               </Button>

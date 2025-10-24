@@ -18,6 +18,7 @@ export enum BucketViewMode {
   List = "list",
   Grid = "grid",
   Activity = "activity",
+  Trash = "trash",
   Settings = "settings",
 }
 

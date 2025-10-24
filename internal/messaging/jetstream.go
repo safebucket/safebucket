@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -47,20 +48,38 @@ type JetStreamSubscriber struct {
 }
 
 func NewJetStreamSubscriber(config *models.JetStreamEventsConfig, topicName string) ISubscriber {
-	nc, _ := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, config.Port))
-	js, _ := natsJs.New(nc)
+	nc, err := nats.Connect(fmt.Sprintf("nats://%s:%s", config.Host, config.Port))
+	if err != nil {
+		zap.L().Fatal("Failed to connect to NATS", zap.Error(err))
+	}
 
-	stream, _ := js.CreateStream(context.Background(), natsJs.StreamConfig{
+	js, err := natsJs.New(nc)
+	if err != nil {
+		zap.L().Fatal("Failed to create JetStream context", zap.Error(err))
+	}
+
+	stream, err := js.CreateStream(context.Background(), natsJs.StreamConfig{
 		Name:      topicName,
 		Subjects:  []string{topicName},
 		Retention: natsJs.WorkQueuePolicy,
 	})
+	if err != nil {
+		zap.L().Fatal("Failed to create stream",
+			zap.String("stream_name", topicName),
+			zap.String("subject", topicName),
+			zap.Error(err))
+	}
 
 	consumerName := fmt.Sprintf("watermill__%s", topicName)
-	_, _ = stream.CreateOrUpdateConsumer(context.Background(), natsJs.ConsumerConfig{
+	_, err = stream.CreateOrUpdateConsumer(context.Background(), natsJs.ConsumerConfig{
 		Name:      consumerName,
 		AckPolicy: natsJs.AckExplicitPolicy,
 	})
+	if err != nil {
+		zap.L().Fatal("Failed to create consumer",
+			zap.String("consumer_name", consumerName),
+			zap.Error(err))
+	}
 
 	var namer jetstream.ConsumerConfigurator
 	subscriber, err := jetstream.NewSubscriber(jetstream.SubscriberConfig{
@@ -117,4 +136,52 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(message *message.Message) 
 	}
 
 	return uploadEvents
+}
+
+func (s *JetStreamSubscriber) ParseBucketDeletionEvents(message *message.Message) []BucketDeletionEvent {
+	var event MinioEvent
+	if err := json.Unmarshal(message.Payload, &event); err != nil {
+		zap.L().Error("deletion event is unprocessable", zap.Error(err))
+		message.Ack()
+		return nil
+	}
+
+	var deletionEvents []BucketDeletionEvent
+	for _, record := range event.Records {
+		if strings.HasPrefix(record.EventName, "s3:ObjectRemoved:") ||
+			strings.HasPrefix(record.EventName, "s3:LifecycleExpiration:") {
+
+			objectKey := record.S3.Object.Key
+			var bucketId string
+			if strings.HasPrefix(objectKey, "buckets/") {
+				parts := strings.Split(objectKey, "/")
+				if len(parts) >= 2 {
+					bucketId = parts[1]
+				}
+			}
+
+			if bucketId == "" {
+				zap.L().Warn("unable to extract bucket ID from object key",
+					zap.String("object_key", objectKey))
+				continue
+			}
+
+			deletionEvents = append(deletionEvents, BucketDeletionEvent{
+				BucketId:  bucketId,
+				ObjectKey: objectKey,
+				EventName: record.EventName,
+			})
+
+			zap.L().Debug("parsed deletion event",
+				zap.String("event_name", record.EventName),
+				zap.String("bucket_id", bucketId),
+				zap.String("object_key", objectKey))
+		}
+	}
+
+	if len(deletionEvents) > 0 {
+		message.Ack()
+	}
+
+	return deletionEvents
 }

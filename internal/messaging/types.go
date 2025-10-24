@@ -6,6 +6,12 @@ type BucketUploadEvent struct {
 	UserId   string `json:"user_id"`
 }
 
+type BucketDeletionEvent struct {
+	BucketId  string `json:"bucket_id"`
+	ObjectKey string `json:"object_key"`
+	EventName string `json:"event_name"`
+}
+
 type MinioEvent struct {
 	Records []struct {
 		EventName string `json:"eventName"`

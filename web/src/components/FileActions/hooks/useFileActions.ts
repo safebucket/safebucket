@@ -30,7 +30,7 @@ export const useFileActions = (): IFileActions => {
     onSuccess: ({ filename }) => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
       if (filename) {
-        successToast(`File ${filename} has been deleted.`);
+        successToast(`File "${filename}" has been moved to trash.`);
       }
     },
     onError: (error: Error) => errorToast(error),

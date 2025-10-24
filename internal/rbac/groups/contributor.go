@@ -19,6 +19,7 @@ func GetDefaultContributorBucketPolicies(bucket models.Bucket) [][]string {
 	return [][]string{
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionUpload.String()},
 		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionErase.String()},
+		{c.DefaultDomain, groupName, rbac.ResourceBucket.String(), bucket.ID.String(), rbac.ActionRestore.String()},
 	}
 }
 

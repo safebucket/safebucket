@@ -124,3 +124,44 @@ func (g GCPStorage) ListObjects(prefix string, _ int32) ([]string, error) {
 
 	return objects, nil
 }
+
+// TagObjectForTrash adds trash metadata to a GCP object for lifecycle policy targeting
+func (g GCPStorage) TagObjectForTrash(path string, trashedAt time.Time) error {
+	obj := g.storage.Bucket(g.BucketName).Object(path)
+
+	attrs, err := obj.Attrs(context.Background())
+	if err != nil {
+		return err
+	}
+
+	if attrs.Metadata == nil {
+		attrs.Metadata = make(map[string]string)
+	}
+	attrs.Metadata["status"] = "trashed"
+	attrs.Metadata["trashed_at"] = trashedAt.Format(time.RFC3339)
+
+	_, err = obj.Update(context.Background(), gcs.ObjectAttrsToUpdate{
+		Metadata: attrs.Metadata,
+	})
+	return err
+}
+
+// RemoveTrashMarker removes trash metadata from a GCP object (used during restore)
+func (g GCPStorage) RemoveTrashMarker(path string) error {
+	obj := g.storage.Bucket(g.BucketName).Object(path)
+
+	attrs, err := obj.Attrs(context.Background())
+	if err != nil {
+		return err
+	}
+
+	if attrs.Metadata != nil {
+		delete(attrs.Metadata, "status")
+		delete(attrs.Metadata, "trashed_at")
+	}
+
+	_, err = obj.Update(context.Background(), gcs.ObjectAttrsToUpdate{
+		Metadata: attrs.Metadata,
+	})
+	return err
+}

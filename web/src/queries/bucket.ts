@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import type { IActivity, IListBucketActivity } from "@/types/activity";
 import type { IBucketMember } from "@/components/bucket-view/helpers/types.ts";
 import type { IBucket } from "@/types/bucket.ts";
+import type { IFile } from "@/types/file.ts";
 import { api } from "@/lib/api";
 
 export const bucketsQueryOptions = () =>
@@ -38,4 +39,16 @@ export const bucketMembersQueryOptions = (bucketId: string) =>
     queryFn: () =>
       api.get<{ data: Array<IBucketMember> }>(`/buckets/${bucketId}/members`),
     select: (response) => response.data,
+  });
+
+export const bucketTrashedFilesQueryOptions = (bucketId: string) =>
+  queryOptions({
+    queryKey: ["buckets", bucketId, "trash"],
+    queryFn: async () => {
+      const response = await api.get<{ data: Array<IFile> }>(
+        `/buckets/${bucketId}/trash`,
+      );
+      return response.data;
+    },
+    enabled: !!bucketId,
   });

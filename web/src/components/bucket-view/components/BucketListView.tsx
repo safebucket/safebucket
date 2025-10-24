@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { CheckCircle, LoaderCircle } from "lucide-react";
+import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
 import type { FC } from "react";
 
 import type { ColumnDef } from "@tanstack/react-table";
@@ -110,6 +110,20 @@ const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
             <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800">
               <LoaderCircle className="h-3 w-3 animate-spin" />
               {t("bucket.list_view.deleting")}
+            </Badge>
+          );
+        case FileStatus.trashed:
+          return (
+            <Badge className="bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800">
+              <Trash2 className="h-3 w-3" />
+              {t("bucket.trash_view.trashed")}
+            </Badge>
+          );
+        case FileStatus.restoring:
+          return (
+            <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
+              <LoaderCircle className="h-3 w-3 animate-spin" />
+              {t("bucket.trash_view.restoring")}
             </Badge>
           );
         default:

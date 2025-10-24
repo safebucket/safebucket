@@ -138,6 +138,26 @@ func HandleBucketEvents(
 			}
 		}
 
+		deletionEvents := subscriber.ParseBucketDeletionEvents(msg)
+
+		for _, event := range deletionEvents {
+			bucketUuid, err := uuid.Parse(event.BucketId)
+			if err != nil {
+				zap.L().Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketId))
+				continue
+			}
+			trashEvent := NewTrashExpirationFromBucketEvent(bucketUuid, event.ObjectKey)
+
+			params := &EventParams{
+				DB:             db,
+				ActivityLogger: activityLogger,
+			}
+
+			if err := trashEvent.callback(params); err != nil {
+				zap.L().Error("Failed to process trash expiration", zap.Error(err))
+			}
+		}
+
 		msg.Ack()
 	}
 }

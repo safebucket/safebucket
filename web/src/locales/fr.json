@@ -90,7 +90,7 @@
     "download": "Télécharger",
     "share": "Partager",
     "new_folder": "Nouveau dossier",
-    "delete": "Supprimer",
+    "move_to_trash": "Déplacer vers la corbeille",
     "new_folder_dialog": {
       "title": "Nouveau dossier",
       "name_label": "Nom",
@@ -120,6 +120,12 @@
       "file_downloaded": "A téléchargé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "file_updated": "A modifié un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_deleted": "A supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
+      "file_trashed": "A déplacé un fichier '%%FILE_NAME%%' vers la corbeille dans le bucket '%%BUCKET_NAME%%'.",
+      "file_restored": "A restauré un fichier '%%FILE_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
+      "file_purged": "A définitivement supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
+      "folder_trashed": "A déplacé un dossier '%%FILE_NAME%%' vers la corbeille dans le bucket '%%BUCKET_NAME%%'.",
+      "folder_restored": "A restauré un dossier '%%FILE_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
+      "folder_purged": "A définitivement supprimé un dossier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "bucket_member_created": "A invité %%BUCKET_MEMBER_EMAIL%% dans le bucket '%%BUCKET_NAME%%'.",
       "bucket_member_updated": "A modifié le groupe de %%BUCKET_MEMBER_EMAIL%% dans le bucket '%%BUCKET_NAME%%'.",
       "bucket_member_deleted": "A retiré %%BUCKET_MEMBER_EMAIL%% du bucket '%%BUCKET_NAME%%'.",
@@ -180,6 +186,22 @@
       "uploaded": "Partagé",
       "uploading": "Téléchargement",
       "deleting": "Suppression"
+    },
+    "trash_view": {
+      "name": "Nom",
+      "size": "Taille",
+      "deleted_at": "Supprimé le",
+      "deleted_by": "Supprimé par",
+      "status": "Statut",
+      "trashed": "Dans la corbeille",
+      "restoring": "Restauration",
+      "restore": "Restaurer",
+      "delete_permanently": "Supprimer définitivement",
+      "empty": "La corbeille est vide",
+      "empty_description": "Les fichiers supprimés apparaîtront ici et seront automatiquement supprimés après 7 jours.",
+      "retention_notice": "Les fichiers dans la corbeille seront automatiquement supprimés après 7 jours. Vous pouvez les restaurer avant.",
+      "restore_success": "Le fichier \"{{fileName}}\" a été restauré.",
+      "purge_success": "Le fichier \"{{fileName}}\" a été définitivement supprimé."
     },
     "settings": {
       "information": {
