@@ -32,10 +32,10 @@ type File struct {
 }
 
 type FileTransferBody struct {
-	Name string `json:"name" validate:"required,filename"`
-	Path string `json:"path" validate:"required"`
+	Name string `json:"name" validate:"required,filename,max=255"`
+	Path string `json:"path" validate:"required,max=1024"`
 	Type string `json:"type" validate:"required,oneof=file folder"`
-	Size int    `json:"size" validate:"required_if=Type file"`
+	Size int    `json:"size" validate:"required_if=Type file,min=1,max=1099511627776"`
 }
 
 type FileTransferResponse struct {

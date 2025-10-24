@@ -21,6 +21,11 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providerName := chi.URLParam(r, "provider")
 
+		if err := h.ValidateProviderName(providerName); err != nil {
+			h.RespondWithError(w, http.StatusBadRequest, []string{"INVALID_PROVIDER_NAME"})
+			return
+		}
+
 		state, _ := h.RandString(16)
 		nonce, _ := h.RandString(16)
 
@@ -41,6 +46,11 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providerName := chi.URLParam(r, "provider")
+
+		if err := h.ValidateProviderName(providerName); err != nil {
+			h.RespondWithError(w, http.StatusBadRequest, []string{"INVALID_PROVIDER_NAME"})
+			return
+		}
 
 		state, err := r.Cookie("state")
 		if err != nil {

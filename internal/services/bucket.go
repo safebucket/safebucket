@@ -43,7 +43,7 @@ func (s BucketService) Routes() chi.Router {
 		Get("/", handlers.GetListHandler(s.GetBucketList))
 
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionCreate, -1)).
-		With(m.Validate[models.BucketCreateBody]).
+		With(m.Validate[models.BucketCreateUpdateBody]).
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionList, -1)).
@@ -54,7 +54,7 @@ func (s BucketService) Routes() chi.Router {
 			Get("/", handlers.GetOneHandler(s.GetBucket))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpdate, 0)).
-			With(m.Validate[models.Bucket]).
+			With(m.Validate[models.BucketCreateUpdateBody]).
 			Patch("/", handlers.UpdateHandler(s.UpdateBucket))
 
 		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDelete, 0)).
@@ -88,7 +88,7 @@ func (s BucketService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketService) CreateBucket(logger *zap.Logger, user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateBody) (models.Bucket, error) {
+func (s BucketService) CreateBucket(logger *zap.Logger, user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateUpdateBody) (models.Bucket, error) {
 	var newBucket models.Bucket
 
 	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
@@ -204,7 +204,7 @@ func (s BucketService) GetBucket(_ *zap.Logger, _ models.UserClaims, ids uuid.UU
 	}
 }
 
-func (s BucketService) UpdateBucket(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.Bucket) (models.Bucket, error) {
+func (s BucketService) UpdateBucket(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.BucketCreateUpdateBody) (models.Bucket, error) {
 	bucket := models.Bucket{ID: ids[0]}
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {

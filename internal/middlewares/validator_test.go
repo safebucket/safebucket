@@ -46,7 +46,7 @@ func TestValidateMiddleware(t *testing.T) {
 			name:           "Invalid JSON body",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "filename": "file.txt"`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{"failed to decode body"},
+			expectedErrors: []string{"BAD_REQUEST"},
 		},
 		{
 			name:           "Missing required fields",
