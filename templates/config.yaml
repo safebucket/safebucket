@@ -49,11 +49,11 @@ events:
   type: jetstream
   queues:
     notifications:
-      name: safebucket:notifications
+      name: safebucket-notifications
     bucket-events:
-      name: safebucket:bucket-events
+      name: safebucket-bucket-events
     object-deletion:
-      name: safebucket:object-deletion
+      name: safebucket-object-deletion
   jetstream:
     host: localhost
     port: 4222
