@@ -22,15 +22,15 @@ type User struct {
 }
 
 type UserCreateBody struct {
-	FirstName string `json:"first_name" validate:"omitempty"`
-	LastName  string `json:"last_name" validate:"omitempty"`
-	Email     string `json:"email" validate:"required,omitempty,email"`
-	Password  string `json:"password" validate:"required,min=8"`
+	FirstName string `json:"first_name" validate:"omitempty,max=100"`
+	LastName  string `json:"last_name" validate:"omitempty,max=100"`
+	Email     string `json:"email" validate:"required,omitempty,email,max=254"`
+	Password  string `json:"password" validate:"required,min=8,max=72"`
 }
 
 type UserUpdateBody struct {
-	FirstName   string `json:"first_name" validate:"omitempty"`
-	LastName    string `json:"last_name" validate:"omitempty"`
-	OldPassword string `json:"old_password" validate:"omitempty,required_with=NewPassword"`
-	NewPassword string `json:"new_password" validate:"omitempty,min=8"`
+	FirstName   string `json:"first_name" validate:"omitempty,max=100"`
+	LastName    string `json:"last_name" validate:"omitempty,max=100"`
+	OldPassword string `json:"old_password" validate:"omitempty,required_with=NewPassword,max=72"`
+	NewPassword string `json:"new_password" validate:"omitempty,min=8,max=72"`
 }

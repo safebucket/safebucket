@@ -17,6 +17,6 @@ type Bucket struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
-type BucketCreateBody struct {
-	Name string `json:"name" validate:"required"`
+type BucketCreateUpdateBody struct {
+	Name string `json:"name" validate:"required,max=100"`
 }

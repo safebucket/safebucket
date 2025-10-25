@@ -40,12 +40,10 @@ type AuthService struct {
 
 func (s AuthService) Routes() chi.Router {
 	r := chi.NewRouter()
-	r.With(m.Validate[models.AuthLogin]).Post("/login", handlers.CreateHandler(s.Login))
-	// TODO: MFA / ResetPassword / ResetTokens / IsAdmin (:= get user)
-	r.With(m.Validate[models.AuthVerify]).Post("/verify", handlers.CreateHandler(s.Verify))
-	r.With(m.Validate[models.AuthRefresh]).Post("/refresh", handlers.CreateHandler(s.Refresh))
+	r.With(m.Validate[models.AuthLoginBody]).Post("/login", handlers.CreateHandler(s.Login))
+	r.With(m.Validate[models.AuthVerifyBody]).Post("/verify", handlers.CreateHandler(s.Verify))
+	r.With(m.Validate[models.AuthRefreshBody]).Post("/refresh", handlers.CreateHandler(s.Refresh))
 
-	// Password reset endpoints (unauthenticated)
 	r.Route("/reset-password", func(r chi.Router) {
 		r.With(m.Validate[models.PasswordResetRequestBody]).Post("/", handlers.CreateHandler(s.RequestPasswordReset))
 		r.Route("/{id0}", func(r chi.Router) {
@@ -63,7 +61,7 @@ func (s AuthService) Routes() chi.Router {
 	return r
 }
 
-func (s AuthService) Login(logger *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthLogin) (models.AuthLoginResponse, error) {
+func (s AuthService) Login(logger *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthLoginBody) (models.AuthLoginResponse, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
 		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
@@ -97,12 +95,12 @@ func (s AuthService) Login(logger *zap.Logger, _ models.UserClaims, _ uuid.UUIDs
 	return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 }
 
-func (s AuthService) Verify(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthVerify) (any, error) {
+func (s AuthService) Verify(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthVerifyBody) (any, error) {
 	data, err := h.ParseAccessToken(s.JWTSecret, body.AccessToken)
 	return data, err
 }
 
-func (s AuthService) Refresh(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthRefresh) (models.AuthRefreshResponse, error) {
+func (s AuthService) Refresh(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.AuthRefreshBody) (models.AuthRefreshResponse, error) {
 	refreshToken, err := h.ParseRefreshToken(s.JWTSecret, body.RefreshToken)
 	if err != nil {
 		return models.AuthRefreshResponse{}, err
