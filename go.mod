@@ -4,6 +4,7 @@ go 1.24.4
 
 require (
 	cloud.google.com/go/storage v1.57.0
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/ThreeDotsLabs/watermill v1.5.1
 	github.com/ThreeDotsLabs/watermill-aws v1.0.1
 	github.com/ThreeDotsLabs/watermill-googlecloud v1.2.6
