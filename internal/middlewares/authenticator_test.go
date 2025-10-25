@@ -22,11 +22,11 @@ func mockAuthenticatedNextHandler(w http.ResponseWriter, r *http.Request) {
 	userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("NO_CLAIMS"))
+		_, _ = w.Write([]byte("NO_CLAIMS"))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK:" + userClaims.Email))
+	_, _ = w.Write([]byte("OK:" + userClaims.Email))
 }
 
 // generateTestToken creates a valid JWT token for testing
@@ -235,7 +235,7 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 			// For excluded paths, use a simple handler that just returns OK
 			simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				_, _ = w.Write([]byte("OK"))
 			})
 
 			handler := Authenticate(testJWTSecret)(simpleHandler)

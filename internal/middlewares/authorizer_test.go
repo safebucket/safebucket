@@ -4,6 +4,7 @@ import (
 	"api/internal/models"
 	"api/internal/tests"
 	"context"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -21,7 +22,7 @@ import (
 // mockNextHandler is a simple handler that returns 200 OK
 func mockAuthNextHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK"))
 }
 
 func TestAuthorizeRole(t *testing.T) {
@@ -234,7 +235,9 @@ func TestAuthorizeGroup(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			db, mock, err := sqlmock.New()
 			require.NoError(t, err)
-			defer db.Close()
+			defer func(db *sql.DB) {
+				_ = db.Close()
+			}(db)
 
 			gormDB, err := gorm.Open(postgres.New(postgres.Config{
 				Conn: db,
