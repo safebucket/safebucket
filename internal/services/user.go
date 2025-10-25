@@ -6,13 +6,10 @@ import (
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
 	"api/internal/models"
-	"api/internal/rbac"
-	"api/internal/rbac/roles"
 	"api/internal/sql"
 	"errors"
 
 	"github.com/alexedwards/argon2id"
-	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -20,28 +17,26 @@ import (
 )
 
 type UserService struct {
-	DB       *gorm.DB
-	Enforcer *casbin.Enforcer
+	DB *gorm.DB
 }
 
 func (s UserService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionList, -1)).
+	r.With(m.AuthorizeRole(models.RoleAdmin)).
 		Get("/", handlers.GetListHandler(s.GetUserList))
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionCreate, -1)).
+	r.With(m.AuthorizeRole(models.RoleAdmin)).
 		With(m.Validate[models.UserCreateBody]).Post("/", handlers.CreateHandler(s.CreateUser))
 
 	r.Route("/{id0}", func(r chi.Router) {
-
-		r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionRead, 0)).
+		r.With(m.AuthorizeSelfOrAdmin(0)).
 			Get("/", handlers.GetOneHandler(s.GetUser))
 
-		r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionUpdate, 0)).
+		r.With(m.AuthorizeSelfOrAdmin(0)).
 			With(m.Validate[models.UserUpdateBody]).Patch("/", handlers.UpdateHandler(s.UpdateUser))
 
-		r.With(m.Authorize(s.Enforcer, rbac.ResourceUser, rbac.ActionDelete, 0)).
+		r.With(m.AuthorizeRole(models.RoleAdmin)).
 			Delete("/", handlers.DeleteHandler(s.DeleteUser))
 	})
 	return r
@@ -54,6 +49,7 @@ func (s UserService) CreateUser(logger *zap.Logger, _ models.UserClaims, _ uuid.
 		Email:        body.Email,
 		ProviderType: models.LocalProviderType,
 		ProviderKey:  string(models.LocalProviderType),
+		Role:         models.RoleUser,
 	}
 
 	result := s.DB.Where("email = ?", newUser.Email).Find(&newUser)
@@ -64,7 +60,7 @@ func (s UserService) CreateUser(logger *zap.Logger, _ models.UserClaims, _ uuid.
 		}
 		newUser.HashedPassword = hash
 
-		err = sql.CreateUserWithRoleAndInvites(logger, s.DB, s.Enforcer, &newUser, roles.AddUserToRoleUser)
+		err = sql.CreateUserWithInvites(logger, s.DB, &newUser)
 		if err != nil {
 			return models.User{}, customerrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
@@ -141,7 +137,7 @@ func (s UserService) UpdateUser(logger *zap.Logger, _ models.UserClaims, ids uui
 func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
 	userId := ids[0]
 
-	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Where("id = ?", userId).Delete(&models.User{})
 		if result.RowsAffected == 0 {
 			return errors.New("USER_NOT_FOUND")
@@ -152,26 +148,14 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 			return result.Error
 		}
 
-		// Remove user from all Casbin policies (roles and permissions)
-		_, err := enforcer.RemoveFilteredGroupingPolicy(0, userId.String())
-		if err != nil {
-			logger.Error("Failed to remove user from Casbin roles", zap.Error(err), zap.String("user_id", userId.String()))
-			return err
-		}
-
-		// Remove any direct policies assigned to the user
-		_, err = enforcer.RemoveFilteredPolicy(0, userId.String())
-		if err != nil {
-			logger.Error("Failed to remove user policies from Casbin", zap.Error(err), zap.String("user_id", userId.String()))
-			return err
-		}
-
 		// Delete user-created invites
 		result = tx.Where("created_by = ?", userId.String()).Delete(&models.Invite{})
 		if result.Error != nil {
 			logger.Error("Failed to delete user-created invites", zap.Error(result.Error), zap.String("user_id", userId.String()))
 			return result.Error
 		}
+
+		// Note: User's memberships will be cascade deleted by the foreign key constraint
 
 		return nil
 	})

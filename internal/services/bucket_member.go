@@ -11,11 +11,8 @@ import (
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
-	"api/internal/rbac/groups"
-	"api/internal/sql"
 	"strings"
 
-	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -24,7 +21,6 @@ import (
 
 type BucketMemberService struct {
 	DB             *gorm.DB
-	Enforcer       *casbin.Enforcer
 	Providers      configuration.Providers
 	Publisher      messaging.IPublisher
 	ActivityLogger activity.IActivityLogger
@@ -34,10 +30,10 @@ type BucketMemberService struct {
 func (s BucketMemberService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+	r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
 		Get("/", handlers.GetListHandler(s.GetBucketMembers))
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionGrant, 0)).
+	r.With(m.AuthorizeGroup(s.DB, models.GroupOwner, 0)).
 		With(m.Validate[models.UpdateMembersBody]).
 		Put("/", handlers.UpdateHandler(s.UpdateBucketMembers))
 
@@ -53,62 +49,31 @@ func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserC
 		return []models.BucketMember{}
 	}
 
-	var members []models.BucketMember
+	var membersList []models.BucketMember
 	userEmailMap := make(map[string]models.User)
 
-	owners, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketOwnerGroup(bucket), configuration.DefaultDomain)
+	// Get all memberships for this bucket
+	memberships, err := rbac.GetBucketMembers(s.DB, bucketId)
 	if err != nil {
+		logger.Error("Failed to fetch bucket memberships", zap.Error(err))
 		return []models.BucketMember{}
 	}
 
-	contributors, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketContributorGroup(bucket), configuration.DefaultDomain)
-	if err != nil {
-		return []models.BucketMember{}
+	// Convert memberships to BucketMember format
+	for _, membership := range memberships {
+		userEmailMap[membership.User.Email] = membership.User
+
+		membersList = append(membersList, models.BucketMember{
+			UserID:    membership.User.ID,
+			Email:     membership.User.Email,
+			FirstName: membership.User.FirstName,
+			LastName:  membership.User.LastName,
+			Group:     string(membership.Group),
+			Status:    "active",
+		})
 	}
 
-	viewers, err := s.Enforcer.GetFilteredGroupingPolicy(0, "", groups.GetBucketViewerGroup(bucket), configuration.DefaultDomain)
-	if err != nil {
-		return []models.BucketMember{}
-	}
-
-	var allPolicies [][]string
-	allPolicies = append(allPolicies, owners...)
-	allPolicies = append(allPolicies, contributors...)
-	allPolicies = append(allPolicies, viewers...)
-
-	for _, policy := range allPolicies {
-		if !strings.HasPrefix(policy[0], "group") {
-			userId := policy[0]
-			groupName := policy[1]
-
-			var dbUser models.User
-			result := s.DB.Where("id = ?", userId).First(&dbUser)
-			if result.Error != nil {
-				continue
-			}
-
-			var group string
-			if groupName == groups.GetBucketOwnerGroup(bucket) {
-				group = "owner"
-			} else if groupName == groups.GetBucketContributorGroup(bucket) {
-				group = "contributor"
-			} else if groupName == groups.GetBucketViewerGroup(bucket) {
-				group = "viewer"
-			}
-
-			userEmailMap[dbUser.Email] = dbUser
-
-			members = append(members, models.BucketMember{
-				UserID:    dbUser.ID,
-				Email:     dbUser.Email,
-				FirstName: dbUser.FirstName,
-				LastName:  dbUser.LastName,
-				Group:     group,
-				Status:    "active",
-			})
-		}
-	}
-
+	// Add pending invites
 	var invites []models.Invite
 	result = s.DB.Where("bucket_id = ?", bucket.ID).Find(&invites)
 	if result.Error != nil {
@@ -119,7 +84,7 @@ func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserC
 				continue
 			}
 
-			members = append(members, models.BucketMember{
+			membersList = append(membersList, models.BucketMember{
 				Email:  invite.Email,
 				Group:  invite.Group,
 				Status: "invited",
@@ -127,7 +92,7 @@ func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserC
 		}
 	}
 
-	return members
+	return membersList
 }
 
 func (s BucketMemberService) UpdateBucketMembers(
@@ -231,11 +196,12 @@ func (s BucketMemberService) compareMemberships(
 }
 
 func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, invite models.BucketMemberBody) {
-	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		var invitee models.User
 		result := tx.Where("email = ?", invite.Email).First(&invitee)
 
 		if result.RowsAffected == 0 {
+			// User doesn't exist yet - create an invite
 			inviteRecord := models.Invite{
 				Email:     invite.Email,
 				Group:     invite.Group,
@@ -262,6 +228,7 @@ func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaim
 			)
 			invitationEvent.Trigger()
 		} else {
+			// User exists - create membership directly
 			bucketSharedEvent := events.NewBucketSharedWith(
 				s.Publisher,
 				bucket,
@@ -270,20 +237,9 @@ func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaim
 			)
 			bucketSharedEvent.Trigger()
 
-			var err error
-			switch invite.Group {
-			case "viewer":
-				err = groups.AddUserToViewers(enforcer, bucket, invitee.ID.String())
-			case "contributor":
-				err = groups.AddUserToContributors(enforcer, bucket, invitee.ID.String())
-			case "owner":
-				err = groups.AddUserToOwners(enforcer, bucket, invitee.ID.String())
-			default:
-				return nil
-			}
-
+			err := rbac.CreateMembership(tx, invitee.ID, bucket.ID, models.Group(invite.Group))
 			if err != nil {
-				logger.Error("Failed to add user to Casbin group", zap.Error(err))
+				logger.Error("Failed to create membership", zap.Error(err))
 				return err
 			}
 		}
@@ -314,7 +270,7 @@ func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaim
 }
 
 func (s BucketMemberService) updateMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, member models.BucketMemberToUpdate) {
-	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		if member.Status == "invited" {
 			updateResult := tx.Model(&models.Invite{}).
 				Where("bucket_id = ? AND email = ?", bucket.ID, member.Email).
@@ -329,38 +285,9 @@ func (s BucketMemberService) updateMember(logger *zap.Logger, user models.UserCl
 				return nil
 			}
 		} else {
-			userId := member.UserID.String()
-
-			var err error
-			switch member.Group {
-			case "viewer":
-				err = groups.RemoveUserFromViewers(enforcer, bucket, userId)
-			case "contributor":
-				err = groups.RemoveUserFromContributors(enforcer, bucket, userId)
-			case "owner":
-				err = groups.RemoveUserFromOwners(enforcer, bucket, userId)
-			default:
-				return nil
-			}
-
+			err := rbac.UpdateMembership(tx, member.UserID, bucket.ID, models.Group(member.NewGroup))
 			if err != nil {
-				logger.Error("Failed to remove user from old role", zap.Error(err))
-				return err
-			}
-
-			switch member.NewGroup {
-			case "owner":
-				err = groups.AddUserToOwners(enforcer, bucket, userId)
-			case "contributor":
-				err = groups.AddUserToContributors(enforcer, bucket, userId)
-			case "viewer":
-				err = groups.AddUserToViewers(enforcer, bucket, userId)
-			default:
-				return nil
-			}
-
-			if err != nil {
-				logger.Error("Failed to add user to new role", zap.Error(err))
+				logger.Error("Failed to update membership", zap.Error(err))
 				return err
 			}
 		}
@@ -391,7 +318,7 @@ func (s BucketMemberService) updateMember(logger *zap.Logger, user models.UserCl
 }
 
 func (s BucketMemberService) deleteMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
-	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		if member.Status == "invited" {
 			deleteResult := tx.Where(
 				"bucket_id = ? AND email = ?", bucket.ID, member.Email,
@@ -406,22 +333,9 @@ func (s BucketMemberService) deleteMember(logger *zap.Logger, user models.UserCl
 				return nil
 			}
 		} else {
-			var err error
-			userIdStr := member.UserID.String()
-
-			switch member.Group {
-			case "owner":
-				err = groups.RemoveUserFromOwners(enforcer, bucket, userIdStr)
-			case "contributor":
-				err = groups.RemoveUserFromContributors(enforcer, bucket, userIdStr)
-			case "viewer":
-				err = groups.RemoveUserFromViewers(enforcer, bucket, userIdStr)
-			default:
-				return nil
-			}
-
+			err := rbac.DeleteMembership(tx, member.UserID, bucket.ID)
 			if err != nil {
-				logger.Error("Failed to remove user from role", zap.Error(err))
+				logger.Error("Failed to delete membership", zap.Error(err))
 				return err
 			}
 		}

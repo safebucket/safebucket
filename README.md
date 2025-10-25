@@ -2,7 +2,7 @@
   <a href="https://safebucket.io"><img src="./assets/safebucket_banner.png" alt="SafeBucket"></a>
 </h1>
 
-## 📖 Introduction
+## Introduction
 
 Safebucket is an open-source secure file sharing platform designed to share files in an easy and secure way, integrating
 with different cloud providers. Built for individuals and organizations that need to collaborate on files with robust
@@ -10,11 +10,11 @@ security, flexible access controls, and seamless multi-cloud support across AWS 
 
 ![SafeBucket Homepage](./assets/homepage.png)
 
-## 🎯 Why Safebucket?
+## Why Safebucket?
 Safebucket eliminates the complexity of secure file sharing by providing a lightweight, stateless solution that integrates seamlessly with your existing infrastructure.
 Plug in your preferred auth providers and eliminate the need for local logins - your users can share files using their existing corporate identities.
 
-## ✨ Features
+## Features
 
 - 🔒 **Secure File Sharing**: Create a bucket to start sharing files and folders with colleagues, customers, and teams
 - 👥 **Role-Based Access Control**: Fine grained sharing permissions with owner, contributor, and viewer roles
@@ -24,13 +24,13 @@ Plug in your preferred auth providers and eliminate the need for local logins - 
 - ☁️ **Multi-Storage Integration**: Store and share files across AWS S3, GCP Cloud Storage, or MinIO
 - 🚀 **Highly Scalable**: Event-driven and cloud native architecture for high-performance operations
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
@@ -40,20 +40,19 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with ❤️ using Go and React
 - UI components by [Radix UI](https://radix-ui.com) and [shadcn/ui](https://ui.shadcn.com)
 - Database ORM by [Gorm](https://gorm.io/index.html)
-- RBAC by [Casbin](https://casbin.org)
 - Pub/sub integrations by [Watermill](https://watermill.io)
 - Configuration management by [Koanf](https://github.com/knadh/koanf)
 - Icons by [Lucide](https://lucide.dev)
 
-## 📞 Support
+## Support
 
 - 🐛 Issues: [GitHub Issues](https://github.com/safebucket/safebucket/issues)

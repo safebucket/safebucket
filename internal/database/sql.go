@@ -61,7 +61,39 @@ func runMigrations(db *gorm.DB) {
 		}
 	}
 
-	err = db.AutoMigrate(&models.User{}, &models.Bucket{}, &models.File{}, &models.Invite{}, &models.Challenge{})
+	err = db.Raw("select exists(select 1 from pg_type where typname = 'role_type')").Scan(&exists).Error
+	if err != nil {
+		zap.L().Fatal("failed to check if role_type enum exists", zap.Error(err))
+	}
+
+	if !exists {
+		err = db.Exec("CREATE TYPE role_type AS ENUM ('admin', 'user', 'guest')").Error
+		if err != nil {
+			zap.L().Fatal("failed to create role_type enum", zap.Error(err))
+		}
+	}
+
+	err = db.Raw("select exists(select 1 from pg_type where typname = 'group_type')").Scan(&exists).Error
+	if err != nil {
+		zap.L().Fatal("failed to check if group_type enum exists", zap.Error(err))
+	}
+
+	if !exists {
+		err = db.Exec("CREATE TYPE group_type AS ENUM ('owner', 'contributor', 'viewer')").Error
+		if err != nil {
+			zap.L().Fatal("failed to create group_type enum", zap.Error(err))
+		}
+	}
+
+	err = db.AutoMigrate(
+		&models.User{},
+		&models.Bucket{},
+		&models.File{},
+		&models.Invite{},
+		&models.Challenge{},
+		&models.Membership{},
+	)
+
 	if err != nil {
 		zap.L().Fatal("failed to migrate db models", zap.Error(err))
 	}

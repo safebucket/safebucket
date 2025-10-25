@@ -10,7 +10,6 @@ import (
 	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
-	"api/internal/rbac/roles"
 	"api/internal/sql"
 	"context"
 	"errors"
@@ -19,7 +18,6 @@ import (
 	"time"
 
 	"github.com/alexedwards/argon2id"
-	"github.com/casbin/casbin/v2"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -30,7 +28,6 @@ import (
 
 type AuthService struct {
 	DB             *gorm.DB
-	Enforcer       *casbin.Enforcer
 	JWTSecret      string
 	Providers      configuration.Providers
 	WebUrl         string
@@ -106,7 +103,7 @@ func (s AuthService) Refresh(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, b
 		return models.AuthRefreshResponse{}, err
 	}
 	accessToken, err := h.NewAccessToken(
-		s.JWTSecret, &models.User{ID: refreshToken.UserID, Email: refreshToken.Email}, refreshToken.Provider,
+		s.JWTSecret, &models.User{ID: refreshToken.UserID, Email: refreshToken.Email, Role: refreshToken.Role}, refreshToken.Provider,
 	)
 	return models.AuthRefreshResponse{AccessToken: accessToken}, err
 }
@@ -178,10 +175,9 @@ func (s AuthService) OpenIDCallback(
 	searchUser := models.User{Email: userInfo.Email, ProviderType: models.OIDCProviderType, ProviderKey: providerKey}
 	result := s.DB.Where(searchUser, "email", "provider_type", "provider_key").Find(&searchUser)
 	if result.RowsAffected == 0 {
-		searchUser.ProviderType = models.OIDCProviderType
-		searchUser.ProviderKey = providerKey
+		searchUser.Role = models.RoleUser
 
-		err := sql.CreateUserWithRoleAndInvites(logger, s.DB, s.Enforcer, &searchUser, roles.AddUserToRoleUser)
+		err := sql.CreateUserWithInvites(logger, s.DB, &searchUser)
 		if err != nil {
 			return "", "", customerr.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}

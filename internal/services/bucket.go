@@ -10,16 +10,13 @@ import (
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
-	"api/internal/rbac/groups"
 	"api/internal/sql"
 	"api/internal/storage"
 	"context"
-	"fmt"
 	"path"
 	"path/filepath"
 	"time"
 
-	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -27,50 +24,48 @@ import (
 )
 
 type BucketService struct {
-	DB                 *gorm.DB
-	Storage            storage.IStorage
-	Enforcer           *casbin.Enforcer
-	Publisher          messaging.IPublisher
-	Providers          c.Providers
-	ActivityLogger     activity.IActivityLogger
-	WebUrl             string
+	DB             *gorm.DB
+	Storage        storage.IStorage
+	Publisher      messaging.IPublisher
+	Providers      c.Providers
+	ActivityLogger activity.IActivityLogger
+	WebUrl         string
 	TrashRetentionDays int
 }
 
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionList, -1)).
+	r.With(m.AuthorizeRole(models.RoleUser)).
 		Get("/", handlers.GetListHandler(s.GetBucketList))
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionCreate, -1)).
+	r.With(m.AuthorizeRole(models.RoleUser)).
 		With(m.Validate[models.BucketCreateUpdateBody]).
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
-	r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionList, -1)).
+	r.With(m.AuthorizeRole(models.RoleUser)).
 		Get("/activity", handlers.GetListHandler(s.GetActivity))
 
 	r.Route("/{id0}", func(r chi.Router) {
-		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
 			Get("/", handlers.GetOneHandler(s.GetBucket))
 
-		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpdate, 0)).
+		r.With(m.AuthorizeGroup(s.DB, models.GroupOwner, 0)).
 			With(m.Validate[models.BucketCreateUpdateBody]).
 			Patch("/", handlers.UpdateHandler(s.UpdateBucket))
 
-		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDelete, 0)).
+		r.With(m.AuthorizeGroup(s.DB, models.GroupOwner, 0)).
 			Delete("/", handlers.DeleteHandler(s.DeleteBucket))
 
-		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionUpload, 0)).
+		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			With(m.Validate[models.FileTransferBody]).
 			Post("/files", handlers.CreateHandler(s.UploadFile))
 
-		r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
 			Get("/activity", handlers.GetOneHandler(s.GetBucketActivity))
 
 		r.Mount("/members", BucketMemberService{
 			DB:             s.DB,
-			Enforcer:       s.Enforcer,
 			Providers:      s.Providers,
 			Publisher:      s.Publisher,
 			ActivityLogger: s.ActivityLogger,
@@ -78,19 +73,19 @@ func (s BucketService) Routes() chi.Router {
 		}.Routes())
 
 		r.Route("/trash", func(r chi.Router) {
-			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRead, 0)).
+			r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
 				Get("/", handlers.GetListHandler(s.ListTrashedFiles))
-			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionPurge, 0)).
+			r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 				Delete("/{id1}", handlers.DeleteHandler(s.PurgeFile))
-			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionRestore, 0)).
+			r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 				Post("/{id1}/restore", handlers.DeleteHandler(s.RestoreFile))
 		})
 
 		r.Route("/files/{id1}", func(r chi.Router) {
-			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionErase, 0)).
+			r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 				Delete("/", handlers.DeleteHandler(s.DeleteFile))
 
-			r.With(m.Authorize(s.Enforcer, rbac.ResourceBucket, rbac.ActionDownload, 0)).
+			r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
 				Get("/download", handlers.GetOneHandler(s.DownloadFile))
 		})
 	})
@@ -101,7 +96,7 @@ func (s BucketService) Routes() chi.Router {
 func (s BucketService) CreateBucket(logger *zap.Logger, user models.UserClaims, _ uuid.UUIDs, body models.BucketCreateUpdateBody) (models.Bucket, error) {
 	var newBucket models.Bucket
 
-	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		newBucket = models.Bucket{Name: body.Name, CreatedBy: user.UserID}
 		res := tx.Create(&newBucket)
 
@@ -110,27 +105,9 @@ func (s BucketService) CreateBucket(logger *zap.Logger, user models.UserClaims, 
 			return res.Error
 		}
 
-		err := groups.InsertGroupBucketViewer(enforcer, newBucket)
+		err := rbac.CreateMembership(tx, user.UserID, newBucket.ID, models.GroupOwner)
 		if err != nil {
-			logger.Error("Failed to create bucket group viewer", zap.Error(err))
-			return err
-		}
-
-		err = groups.InsertGroupBucketContributor(enforcer, newBucket)
-		if err != nil {
-			logger.Error("Failed to create bucket group contributor", zap.Error(err))
-			return err
-		}
-
-		err = groups.InsertGroupBucketOwner(enforcer, newBucket)
-		if err != nil {
-			logger.Error("Failed to create bucket group owner", zap.Error(err))
-			return err
-		}
-
-		err = groups.AddUserToOwners(enforcer, newBucket, user.UserID.String())
-		if err != nil {
-			logger.Error("Failed to add user to group owner", zap.Error(err))
+			logger.Error("Failed to create owner membership", zap.Error(err))
 			return err
 		}
 
@@ -165,28 +142,30 @@ func (s BucketService) CreateBucket(logger *zap.Logger, user models.UserClaims, 
 func (s BucketService) GetBucketList(logger *zap.Logger, user models.UserClaims, _ uuid.UUIDs) []models.Bucket {
 	var buckets []models.Bucket
 	if !user.Valid() {
-		logger.Warn(fmt.Sprintf("Invalid user claims %v", user.UserID.String()))
+		logger.Warn("Invalid user claims", zap.String("user_id", user.UserID.String()))
 		return []models.Bucket{}
 	}
-	roles, err := s.Enforcer.GetImplicitRolesForUser(user.UserID.String(), c.DefaultDomain)
 
+	memberships, err := rbac.GetUserBuckets(s.DB, user.UserID)
 	if err != nil {
-		logger.Warn(fmt.Sprintf("Error retrieving roles %v", user.UserID.String()))
+		logger.Error("Error retrieving user buckets", zap.Error(err), zap.String("user_id", user.UserID.String()))
 		return []models.Bucket{}
 	}
 
-	var bucketIDs []string
-
-	for _, role := range roles {
-		policies, _ := s.Enforcer.GetFilteredPolicy(
-			0, c.DefaultDomain, role, rbac.ResourceBucket.String(), "", rbac.ActionRead.String(),
-		)
-
-		for _, policy := range policies {
-			bucketIDs = append(bucketIDs, policy[3])
-		}
+	var bucketIDs []uuid.UUID
+	for _, membership := range memberships {
+		bucketIDs = append(bucketIDs, membership.BucketID)
 	}
-	_ = s.DB.Model(&models.Bucket{}).Where("id IN ?", bucketIDs).Find(&buckets) // Todo: cache result
+
+	if len(bucketIDs) == 0 {
+		return []models.Bucket{}
+	}
+
+	if err := s.DB.Where("id IN ?", bucketIDs).Find(&buckets).Error; err != nil {
+		logger.Error("Error querying buckets", zap.Error(err))
+		return []models.Bucket{}
+	}
+
 	return buckets
 }
 
@@ -226,7 +205,7 @@ func (s BucketService) UpdateBucket(_ *zap.Logger, _ models.UserClaims, ids uuid
 }
 
 func (s BucketService) DeleteBucket(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
-	err := sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		bucket := models.Bucket{}
 		result := tx.Where("id = ?", ids[0]).First(&bucket)
 
@@ -234,39 +213,13 @@ func (s BucketService) DeleteBucket(logger *zap.Logger, user models.UserClaims, 
 			return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 		}
 
-		// Soft delete bucket
+		// Soft delete bucket (memberships will be cascade deleted by foreign key constraint)
 		if _, err := gorm.G[models.Bucket](tx).Where("id = ?", bucket.ID).Delete(context.Background()); err != nil {
 			return err
 		}
 
 		// Hard delete all invitations associated to the bucket
 		if _, err := gorm.G[models.Invite](tx).Where("bucket_id = ?", bucket.ID).Delete(context.Background()); err != nil {
-			return err
-		}
-
-		// Remove bucket groups
-		if err := groups.RemoveGroupBucketViewer(enforcer, bucket); err != nil {
-			return err
-		}
-
-		if err := groups.RemoveGroupBucketContributor(enforcer, bucket); err != nil {
-			return err
-		}
-
-		if err := groups.RemoveGroupBucketOwner(enforcer, bucket); err != nil {
-			return err
-		}
-
-		// Remove associated grouping policies
-		if err := groups.RemoveUsersFromViewers(enforcer, bucket); err != nil {
-			return err
-		}
-
-		if err := groups.RemoveUsersFromContributors(enforcer, bucket); err != nil {
-			return err
-		}
-
-		if err := groups.RemoveUsersFromOwners(enforcer, bucket); err != nil {
 			return err
 		}
 
@@ -306,7 +259,7 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 	}
 
 	var existingFile models.File
-	result := s.DB.Where("bucket_id = ? AND name = ? AND path = ?", bucket.ID, body.Name, body.Path).First(&existingFile)
+	result := s.DB.Where("bucket_id = ? AND name = ? AND path = ?", bucket.ID, body.Name, body.Path).Find(&existingFile)
 	if result.RowsAffected > 0 {
 		return models.FileTransferResponse{}, errors.NewAPIError(409, "FILE_ALREADY_EXISTS")
 	}

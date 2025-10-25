@@ -33,6 +33,7 @@ func NewAccessToken(jwtSecret string, user *models.User, provider string) (strin
 	claims := models.UserClaims{
 		Email:    user.Email,
 		UserID:   user.ID,
+		Role:     user.Role,
 		Aud:      "app:*", // Todo: make it a list ==> delete aud
 		Provider: provider,
 		Issuer:   "safebucket",
@@ -73,6 +74,7 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string) (stri
 	claims := models.UserClaims{
 		Email:    user.Email,
 		UserID:   user.ID,
+		Role:     user.Role,
 		Aud:      "auth:refresh",
 		Issuer:   "safebucket",
 		Provider: provider,

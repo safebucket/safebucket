@@ -10,14 +10,12 @@ import (
 	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
-	"api/internal/rbac/roles"
 	"api/internal/sql"
 	"api/internal/storage"
 	"strings"
 	"time"
 
 	"github.com/alexedwards/argon2id"
-	"github.com/casbin/casbin/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -28,7 +26,6 @@ type InviteService struct {
 	DB             *gorm.DB
 	Storage        storage.IStorage
 	JWTSecret      string
-	Enforcer       *casbin.Enforcer
 	Publisher      messaging.IPublisher
 	Providers      configuration.Providers
 	ActivityLogger activity.IActivityLogger
@@ -190,9 +187,10 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 	}
 
 	newUser.HashedPassword = hashedPassword
+	newUser.Role = models.RoleGuest
 
-	err = sql.WithCasbinTx(s.DB, s.Enforcer, func(tx *gorm.DB, enforcer *casbin.Enforcer) error {
-		if err := sql.CreateUserWithRoleAndInvites(logger, tx, enforcer, &newUser, roles.AddUserToRoleGuest); err != nil {
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := sql.CreateUserWithInvites(logger, tx, &newUser); err != nil {
 			return errors.NewAPIError(500, "USER_CREATION_FAILED")
 		}
 

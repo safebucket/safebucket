@@ -7,8 +7,6 @@ import (
 	"context"
 	"net/http"
 	"strings"
-
-	"go.uber.org/zap"
 )
 
 func Authenticate(jwtSecret string) func(next http.Handler) http.Handler {
@@ -22,8 +20,7 @@ func Authenticate(jwtSecret string) func(next http.Handler) http.Handler {
 				userClaims, err := helpers.ParseAccessToken(jwtSecret, accessToken)
 
 				if err != nil {
-					zap.L().Info("error", zap.Error(err))
-					helpers.RespondWithError(w, 403, []string{err.Error()})
+					helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
 					return
 				}
 				ctx := context.WithValue(r.Context(), models.UserClaimKey{}, userClaims)

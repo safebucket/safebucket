@@ -8,16 +8,12 @@ import (
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
 	"api/internal/models"
-	"api/internal/rbac"
-	"api/internal/rbac/roles"
 	"api/internal/services"
 	"context"
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/casbin/casbin/v2"
-	gormadapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -37,22 +33,13 @@ func main() {
 	notifier := core.NewNotifier(config.Notifier)
 	activity := core.NewActivityLogger(config.Activity)
 
-	model := rbac.GetModel()
-	a, _ := gormadapter.NewAdapterByDBWithCustomTable(db, &models.Policy{}, configuration.PolicyTableName)
-	enforcer, _ := casbin.NewEnforcer(model, a)
-
-	_ = roles.InsertRoleGuest(enforcer)
-	_ = roles.InsertRoleUser(enforcer)
-	_ = roles.InsertRoleAdmin(enforcer)
-
-	// TODO: Create a dedicated fct
-
 	adminUser := models.User{
 		FirstName:    "admin",
 		LastName:     "admin",
 		Email:        config.App.AdminEmail,
 		ProviderType: models.LocalProviderType,
 		ProviderKey:  string(models.LocalProviderType),
+		Role:         models.RoleAdmin,
 	}
 
 	hash, _ := h.CreateHash(config.App.AdminPassword)
@@ -61,9 +48,6 @@ func main() {
 		Columns:   []clause.Column{{Name: "email"}, {Name: "provider_key"}},
 		DoUpdates: clause.AssignmentColumns([]string{"hashed_password"}),
 	}).Create(&adminUser)
-	_ = roles.AddUserToRoleAdmin(enforcer, adminUser)
-
-	//
 
 	appIdentity := uuid.New().String()
 
@@ -114,24 +98,21 @@ func main() {
 		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
 
 		apiRouter.Mount("/v1/users", services.UserService{
-			DB:       db,
-			Enforcer: enforcer,
+			DB: db,
 		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
-			DB:                 db,
-			Storage:            storage,
-			Enforcer:           enforcer,
-			Publisher:          eventRouter,
-			ActivityLogger:     activity,
-			Providers:          providers,
-			WebUrl:             config.App.WebUrl,
+			DB:             db,
+			Storage:        storage,
+			Publisher:      eventRouter,
+			ActivityLogger: activity,
+			Providers:      providers,
+			WebUrl:         config.App.WebUrl,
 			TrashRetentionDays: config.App.TrashRetentionDays,
 		}.Routes())
 
 		apiRouter.Mount("/v1/auth", services.AuthService{
 			DB:             db,
-			Enforcer:       enforcer,
 			JWTSecret:      config.App.JWTSecret,
 			Providers:      providers,
 			WebUrl:         config.App.WebUrl,
@@ -142,7 +123,7 @@ func main() {
 		apiRouter.Mount("/v1/invites", services.InviteService{
 			DB:             db,
 			JWTSecret:      config.App.JWTSecret,
-			Enforcer:       enforcer,
+			Storage:        storage,
 			Publisher:      eventRouter,
 			ActivityLogger: activity,
 			Providers:      providers,

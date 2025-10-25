@@ -7,6 +7,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// Role represents the platform-wide access level of a user
+type Role string
+
+const (
+	RoleAdmin Role = "admin"
+	RoleUser  Role = "user"
+	RoleGuest Role = "guest"
+)
+
 type User struct {
 	ID             uuid.UUID      `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
 	FirstName      string         `gorm:"default:null" json:"first_name"`
@@ -16,6 +25,7 @@ type User struct {
 	IsInitialized  bool           `gorm:"not null;default:false" json:"is_initialized"`
 	ProviderType   ProviderType   `gorm:"not null;type:provider_type;" json:"provider_type"`
 	ProviderKey    string         `gorm:"not null;uniqueIndex:idx_email_provider_key" json:"provider_key"`
+	Role           Role           `gorm:"type:role_type;not null;" json:"role"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
