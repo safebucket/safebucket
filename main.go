@@ -68,11 +68,12 @@ func main() {
 	appIdentity := uuid.New().String()
 
 	eventParams := &events.EventParams{
-		WebUrl:         config.App.WebUrl,
-		Notifier:       notifier,
-		DB:             db,
-		Storage:        storage,
-		ActivityLogger: activity,
+		WebUrl:             config.App.WebUrl,
+		Notifier:           notifier,
+		DB:                 db,
+		Storage:            storage,
+		ActivityLogger:     activity,
+		TrashRetentionDays: config.App.TrashRetentionDays,
 	}
 
 	eventsManager := core.NewEventsManager(config.Events)
@@ -86,7 +87,7 @@ func main() {
 
 	bucketEventsSubscriber := eventsManager.GetSubscriber(configuration.EventsBucketEvents)
 	bucketEvents := bucketEventsSubscriber.Subscribe()
-	go events.HandleBucketEvents(bucketEventsSubscriber, db, activity, bucketEvents)
+	go events.HandleBucketEvents(bucketEventsSubscriber, db, activity, config.App.TrashRetentionDays, bucketEvents)
 
 	go cache.StartIdentityTicker(appIdentity)
 
@@ -118,13 +119,14 @@ func main() {
 		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
-			DB:             db,
-			Storage:        storage,
-			Enforcer:       enforcer,
-			Publisher:      eventRouter,
-			ActivityLogger: activity,
-			Providers:      providers,
-			WebUrl:         config.App.WebUrl,
+			DB:                 db,
+			Storage:            storage,
+			Enforcer:           enforcer,
+			Publisher:          eventRouter,
+			ActivityLogger:     activity,
+			Providers:          providers,
+			WebUrl:             config.App.WebUrl,
+			TrashRetentionDays: config.App.TrashRetentionDays,
 		}.Routes())
 
 		apiRouter.Mount("/v1/auth", services.AuthService{

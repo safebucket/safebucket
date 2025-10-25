@@ -17,6 +17,7 @@ app:
     directory: "web/dist"
   admin_email: admin@safebucket.io
   admin_password: ChangeMePlease
+  trash_retention_days: 7  # Files in trash will be automatically deleted after this many days
 
 database:
   host: localhost

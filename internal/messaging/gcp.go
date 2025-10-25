@@ -101,10 +101,8 @@ func (s *GCPSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 func (s *GCPSubscriber) ParseBucketDeletionEvents(message *message.Message) []BucketDeletionEvent {
 	var deletionEvents []BucketDeletionEvent
 
-	// GCP Cloud Storage sends OBJECT_DELETE events when objects are deleted
 	eventType := message.Metadata["eventType"]
 	if eventType == "OBJECT_DELETE" {
-		// Get object name from message metadata or attributes
 		objectKey := message.Metadata["objectId"]
 		if objectKey == "" {
 			objectKey = message.Metadata["name"]

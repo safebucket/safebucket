@@ -42,7 +42,12 @@ services:
         echo "MinIO is ready. Configuring NATS notification target..."
 
         # Add NATS JetStream notification target
-        mc admin config set local notify_nats:safebucket address="nats:4222" subject="safebucket.bucket-events" nats_jetstream="on" tls="off" tls_skip_verify="off"
+        mc admin config set local notify_nats:safebucket \
+          address="nats:4222" \
+          subject="safebucket.bucket-events" \
+          jetstream="on" \
+          tls="off" \
+          tls_skip_verify="off"
 
         # Restart MinIO to apply config
         echo "Restarting MinIO to apply configuration..."

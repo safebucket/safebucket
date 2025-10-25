@@ -87,7 +87,8 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			zap.String("current_status", string(folder.Status)))
 		return nil
 	}
-	if folder.TrashedAt != nil && time.Since(*folder.TrashedAt) > 7*24*time.Hour {
+	retentionPeriod := time.Duration(params.TrashRetentionDays) * 24 * time.Hour
+	if folder.TrashedAt != nil && time.Since(*folder.TrashedAt) > retentionPeriod {
 		zap.L().Error("Folder trash expired",
 			zap.String("folder_id", folder.ID.String()),
 			zap.Time("trashed_at", *folder.TrashedAt))
@@ -124,10 +125,11 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		}
 
 		objectPath := path.Join("buckets", e.Payload.BucketId.String(), folder.Path, folder.Name)
-		if err := params.Storage.RemoveTrashMarker(objectPath); err != nil {
-			zap.L().Warn("Failed to remove trash tag from folder in storage",
+		if err := params.Storage.RemoveObjectTags(objectPath, []string{"Status", "TrashedAt"}); err != nil {
+			zap.L().Error("Failed to remove trash tags from folder in storage - lifecycle policy may still target this folder",
 				zap.Error(err),
-				zap.String("path", objectPath))
+				zap.String("path", objectPath),
+				zap.String("folder_id", e.Payload.FolderId.String()))
 		}
 
 		folderPath := path.Join(folder.Path, folder.Name)
@@ -166,10 +168,11 @@ func (e *FolderRestore) callback(params *EventParams) error {
 
 			for _, child := range childFiles {
 				childPath := path.Join("buckets", e.Payload.BucketId.String(), child.Path, child.Name)
-				if err := params.Storage.RemoveTrashMarker(childPath); err != nil {
-					zap.L().Warn("Failed to remove trash tag from child object",
+				if err := params.Storage.RemoveObjectTags(childPath, []string{"Status", "TrashedAt"}); err != nil {
+					zap.L().Error("Failed to remove trash tags from child object - lifecycle policy may still target this file",
 						zap.Error(err),
-						zap.String("path", childPath))
+						zap.String("path", childPath),
+						zap.String("file_id", child.ID.String()))
 				}
 			}
 		}

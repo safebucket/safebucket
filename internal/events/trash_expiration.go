@@ -95,10 +95,12 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 
 	if file.TrashedAt != nil {
 		daysSinceTrashed := time.Since(*file.TrashedAt).Hours() / 24
-		if daysSinceTrashed < 7 {
+		retentionDays := float64(params.TrashRetentionDays)
+		if daysSinceTrashed < retentionDays {
 			zap.L().Error("Received expiration event for non-expired file",
 				zap.String("file_id", file.ID.String()),
 				zap.Float64("days_in_trash", daysSinceTrashed),
+				zap.Float64("retention_days", retentionDays),
 			)
 			return nil
 		}

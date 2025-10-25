@@ -125,8 +125,7 @@ func (g GCPStorage) ListObjects(prefix string, _ int32) ([]string, error) {
 	return objects, nil
 }
 
-// TagObjectForTrash adds trash metadata to a GCP object for lifecycle policy targeting
-func (g GCPStorage) TagObjectForTrash(path string, trashedAt time.Time) error {
+func (g GCPStorage) SetObjectTags(path string, tags map[string]string) error {
 	obj := g.storage.Bucket(g.BucketName).Object(path)
 
 	attrs, err := obj.Attrs(context.Background())
@@ -137,8 +136,10 @@ func (g GCPStorage) TagObjectForTrash(path string, trashedAt time.Time) error {
 	if attrs.Metadata == nil {
 		attrs.Metadata = make(map[string]string)
 	}
-	attrs.Metadata["status"] = "trashed"
-	attrs.Metadata["trashed_at"] = trashedAt.Format(time.RFC3339)
+
+	for key, value := range tags {
+		attrs.Metadata[key] = value
+	}
 
 	_, err = obj.Update(context.Background(), gcs.ObjectAttrsToUpdate{
 		Metadata: attrs.Metadata,
@@ -146,8 +147,27 @@ func (g GCPStorage) TagObjectForTrash(path string, trashedAt time.Time) error {
 	return err
 }
 
-// RemoveTrashMarker removes trash metadata from a GCP object (used during restore)
-func (g GCPStorage) RemoveTrashMarker(path string) error {
+func (g GCPStorage) GetObjectTags(path string) (map[string]string, error) {
+	obj := g.storage.Bucket(g.BucketName).Object(path)
+
+	attrs, err := obj.Attrs(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	if attrs.Metadata == nil {
+		return make(map[string]string), nil
+	}
+
+	tagMap := make(map[string]string)
+	for key, value := range attrs.Metadata {
+		tagMap[key] = value
+	}
+
+	return tagMap, nil
+}
+
+func (g GCPStorage) RemoveObjectTags(path string, tagsToRemove []string) error {
 	obj := g.storage.Bucket(g.BucketName).Object(path)
 
 	attrs, err := obj.Attrs(context.Background())
@@ -156,8 +176,9 @@ func (g GCPStorage) RemoveTrashMarker(path string) error {
 	}
 
 	if attrs.Metadata != nil {
-		delete(attrs.Metadata, "status")
-		delete(attrs.Metadata, "trashed_at")
+		for _, key := range tagsToRemove {
+			delete(attrs.Metadata, key)
+		}
 	}
 
 	_, err = obj.Update(context.Background(), gcs.ObjectAttrsToUpdate{

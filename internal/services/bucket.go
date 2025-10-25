@@ -27,13 +27,14 @@ import (
 )
 
 type BucketService struct {
-	DB             *gorm.DB
-	Storage        storage.IStorage
-	Enforcer       *casbin.Enforcer
-	Publisher      messaging.IPublisher
-	Providers      c.Providers
-	ActivityLogger activity.IActivityLogger
-	WebUrl         string
+	DB                 *gorm.DB
+	Storage            storage.IStorage
+	Enforcer           *casbin.Enforcer
+	Publisher          messaging.IPublisher
+	Providers          c.Providers
+	ActivityLogger     activity.IActivityLogger
+	WebUrl             string
+	TrashRetentionDays int
 }
 
 func (s BucketService) Routes() chi.Router {
@@ -398,7 +399,7 @@ func (s BucketService) DownloadFile(logger *zap.Logger, user models.UserClaims, 
 	}
 
 	if file.Status == models.FileStatusTrashed {
-		return models.FileTransferResponse{}, errors.NewAPIError(403, "CANNOT_DOWNLOAD_TRASHED_FILE")
+		return models.FileTransferResponse{}, errors.NewAPIError(403, errors.ErrCannotDownloadTrashed)
 	}
 
 	url, err := s.Storage.PresignedGetObject(path.Join("buckets", file.BucketId.String(), file.Path, file.Name))
@@ -501,7 +502,7 @@ func (s BucketService) TrashFile(logger *zap.Logger, user models.UserClaims, ids
 	}
 
 	if file.Status == models.FileStatusTrashed {
-		return errors.NewAPIError(400, "FILE_ALREADY_TRASHED")
+		return errors.NewAPIError(400, errors.ErrFileAlreadyTrashed)
 	}
 
 	return s.DB.Transaction(func(tx *gorm.DB) error {
@@ -519,10 +520,14 @@ func (s BucketService) TrashFile(logger *zap.Logger, user models.UserClaims, ids
 		}
 
 		objectPath := path.Join("buckets", bucketId.String(), file.Path, file.Name)
-		if err := s.Storage.TagObjectForTrash(objectPath, now); err != nil {
-			logger.Warn("Failed to tag object for trash in storage",
+		if err := s.Storage.SetObjectTags(objectPath, map[string]string{
+			"Status":    "trashed",
+			"TrashedAt": now.Format(time.RFC3339),
+		}); err != nil {
+			logger.Error("Failed to tag object for trash - lifecycle policy may not delete this file automatically",
 				zap.Error(err),
-				zap.String("path", objectPath))
+				zap.String("path", objectPath),
+				zap.String("file_id", fileId.String()))
 		}
 
 		// Log activity
@@ -560,10 +565,11 @@ func (s BucketService) RestoreFile(logger *zap.Logger, user models.UserClaims, i
 		return s.RestoreFolder(logger, user, ids)
 	}
 	if file.Status != models.FileStatusTrashed {
-		return errors.NewAPIError(400, "FILE_NOT_IN_TRASH")
+		return errors.NewAPIError(400, errors.ErrFileNotInTrash)
 	}
-	if file.TrashedAt != nil && time.Since(*file.TrashedAt) > 7*24*time.Hour {
-		return errors.NewAPIError(410, "FILE_TRASH_EXPIRED")
+	retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
+	if file.TrashedAt != nil && time.Since(*file.TrashedAt) > retentionPeriod {
+		return errors.NewAPIError(410, errors.ErrFileTrashExpired)
 	}
 
 	// Check for naming conflicts
@@ -590,10 +596,11 @@ func (s BucketService) RestoreFile(logger *zap.Logger, user models.UserClaims, i
 		}
 
 		objectPath := path.Join("buckets", bucketId.String(), file.Path, file.Name)
-		if err := s.Storage.RemoveTrashMarker(objectPath); err != nil {
-			logger.Warn("Failed to remove trash tag from storage",
+		if err := s.Storage.RemoveObjectTags(objectPath, []string{"Status", "TrashedAt"}); err != nil {
+			logger.Error("Failed to remove trash tags from storage - lifecycle policy may still target this file",
 				zap.Error(err),
-				zap.String("path", objectPath))
+				zap.String("path", objectPath),
+				zap.String("file_id", fileId.String()))
 		}
 
 		action := models.Activity{
@@ -618,7 +625,8 @@ func (s BucketService) RestoreFile(logger *zap.Logger, user models.UserClaims, i
 // ListTrashedFiles returns all trashed files for a bucket within 7-day window
 func (s BucketService) ListTrashedFiles(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) []models.File {
 	var files []models.File
-	cutoffDate := time.Now().Add(-7 * 24 * time.Hour)
+	retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
+	cutoffDate := time.Now().Add(-retentionPeriod)
 	result := s.DB.
 		Preload("TrashedUser").
 		Where(
@@ -654,7 +662,7 @@ func (s BucketService) PurgeFile(logger *zap.Logger, user models.UserClaims, ids
 
 	// Validate file is in trash
 	if file.Status != models.FileStatusTrashed {
-		return errors.NewAPIError(400, "FILE_NOT_IN_TRASH")
+		return errors.NewAPIError(400, errors.ErrFileNotInTrash)
 	}
 
 	return s.DB.Transaction(func(tx *gorm.DB) error {
@@ -707,12 +715,12 @@ func (s BucketService) TrashFolder(logger *zap.Logger, user models.UserClaims, i
 
 	// Validate it's actually a folder
 	if folder.Type != "folder" {
-		return errors.NewAPIError(400, "NOT_A_FOLDER")
+		return errors.NewAPIError(400, errors.ErrNotAFolder)
 	}
 
 	// Don't allow trashing already-trashed folders
 	if folder.Status == models.FileStatusTrashed {
-		return errors.NewAPIError(400, "FOLDER_ALREADY_TRASHED")
+		return errors.NewAPIError(400, errors.ErrFolderAlreadyTrashed)
 	}
 
 	now := time.Now()
@@ -751,17 +759,18 @@ func (s BucketService) RestoreFolder(logger *zap.Logger, user models.UserClaims,
 
 	// Validate it's actually a folder
 	if folder.Type != "folder" {
-		return errors.NewAPIError(400, "NOT_A_FOLDER")
+		return errors.NewAPIError(400, errors.ErrNotAFolder)
 	}
 
 	// Validate folder is in trash
 	if folder.Status != models.FileStatusTrashed {
-		return errors.NewAPIError(400, "FOLDER_NOT_IN_TRASH")
+		return errors.NewAPIError(400, errors.ErrFolderNotInTrash)
 	}
 
 	// Check if expired (extra safety check)
-	if folder.TrashedAt != nil && time.Since(*folder.TrashedAt) > 7*24*time.Hour {
-		return errors.NewAPIError(410, "FOLDER_TRASH_EXPIRED")
+	retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
+	if folder.TrashedAt != nil && time.Since(*folder.TrashedAt) > retentionPeriod {
+		return errors.NewAPIError(410, errors.ErrFolderTrashExpired)
 	}
 
 	// Check for naming conflicts at the folder level
@@ -772,7 +781,7 @@ func (s BucketService) RestoreFolder(logger *zap.Logger, user models.UserClaims,
 	).First(&existingFolder)
 
 	if result.RowsAffected > 0 {
-		return errors.NewAPIError(409, "FOLDER_NAME_CONFLICT")
+		return errors.NewAPIError(409, errors.ErrFolderNameConflict)
 	}
 
 	// Set folder to restoring status
@@ -803,12 +812,12 @@ func (s BucketService) PurgeFolder(logger *zap.Logger, user models.UserClaims, i
 
 	// Validate it's actually a folder
 	if folder.Type != "folder" {
-		return errors.NewAPIError(400, "NOT_A_FOLDER")
+		return errors.NewAPIError(400, errors.ErrNotAFolder)
 	}
 
 	// Validate folder is in trash
 	if folder.Status != models.FileStatusTrashed {
-		return errors.NewAPIError(400, "FOLDER_NOT_IN_TRASH")
+		return errors.NewAPIError(400, errors.ErrFolderNotInTrash)
 	}
 
 	// Trigger async purge event

@@ -12,16 +12,17 @@ type Configuration struct {
 }
 
 type AppConfiguration struct {
-	AdminEmail     string              `mapstructure:"admin_email" validate:"required,email"`
-	AdminPassword  string              `mapstructure:"admin_password" validate:"required"`
-	ApiUrl         string              `mapstructure:"api_url" validate:"required"`
-	AllowedOrigins []string            `mapstructure:"allowed_origins" validate:"required"`
-	JWTSecret      string              `mapstructure:"jwt_secret" validate:"required"`
-	LogLevel       string              `mapstructure:"log_level" validate:"oneof=debug info warn error fatal panic" default:"info"`
-	Port           int                 `mapstructure:"port" validate:"gte=80,lte=65535" default:"8080"`
-	StaticFiles    StaticConfiguration `mapstructure:"static_files"`
-	TrustedProxies []string            `mapstructure:"trusted_proxies" validate:"required"`
-	WebUrl         string              `mapstructure:"web_url" validate:"required"`
+	AdminEmail         string              `mapstructure:"admin_email" validate:"required,email"`
+	AdminPassword      string              `mapstructure:"admin_password" validate:"required"`
+	ApiUrl             string              `mapstructure:"api_url" validate:"required"`
+	AllowedOrigins     []string            `mapstructure:"allowed_origins" validate:"required"`
+	JWTSecret          string              `mapstructure:"jwt_secret" validate:"required"`
+	LogLevel           string              `mapstructure:"log_level" validate:"oneof=debug info warn error fatal panic" default:"info"`
+	Port               int                 `mapstructure:"port" validate:"gte=80,lte=65535" default:"8080"`
+	StaticFiles        StaticConfiguration `mapstructure:"static_files"`
+	TrustedProxies     []string            `mapstructure:"trusted_proxies" validate:"required"`
+	WebUrl             string              `mapstructure:"web_url" validate:"required"`
+	TrashRetentionDays int                 `mapstructure:"trash_retention_days" validate:"gte=1,lte=365" default:"7"`
 }
 
 type DatabaseConfiguration struct {

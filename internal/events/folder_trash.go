@@ -93,10 +93,14 @@ func (e *FolderTrash) callback(params *EventParams) error {
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		objectPath := path.Join("buckets", e.Payload.BucketId.String(), folder.Path, folder.Name)
-		if err := params.Storage.TagObjectForTrash(objectPath, e.Payload.TrashedAt); err != nil {
-			zap.L().Warn("Failed to tag folder in storage",
+		if err := params.Storage.SetObjectTags(objectPath, map[string]string{
+			"Status":    "trashed",
+			"TrashedAt": e.Payload.TrashedAt.Format(time.RFC3339),
+		}); err != nil {
+			zap.L().Error("Failed to tag folder in storage - lifecycle policy may not delete this folder automatically",
 				zap.Error(err),
-				zap.String("path", objectPath))
+				zap.String("path", objectPath),
+				zap.String("folder_id", e.Payload.FolderId.String()))
 		}
 
 		folderPath := path.Join(folder.Path, folder.Name)
@@ -140,10 +144,14 @@ func (e *FolderTrash) callback(params *EventParams) error {
 
 			for _, child := range childFiles {
 				childPath := path.Join("buckets", e.Payload.BucketId.String(), child.Path, child.Name)
-				if err := params.Storage.TagObjectForTrash(childPath, e.Payload.TrashedAt); err != nil {
-					zap.L().Warn("Failed to tag child object in storage",
+				if err := params.Storage.SetObjectTags(childPath, map[string]string{
+					"Status":    "trashed",
+					"TrashedAt": e.Payload.TrashedAt.Format(time.RFC3339),
+				}); err != nil {
+					zap.L().Error("Failed to tag child object in storage - lifecycle policy may not delete this file automatically",
 						zap.Error(err),
-						zap.String("path", childPath))
+						zap.String("path", childPath),
+						zap.String("file_id", child.ID.String()))
 				}
 			}
 		}

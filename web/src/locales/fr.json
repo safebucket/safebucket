@@ -201,7 +201,10 @@
       "empty_description": "Les fichiers supprimés apparaîtront ici et seront automatiquement supprimés après 7 jours.",
       "retention_notice": "Les fichiers dans la corbeille seront automatiquement supprimés après 7 jours. Vous pouvez les restaurer avant.",
       "restore_success": "Le fichier \"{{fileName}}\" a été restauré.",
-      "purge_success": "Le fichier \"{{fileName}}\" a été définitivement supprimé."
+      "purge_success": "Le fichier \"{{fileName}}\" a été définitivement supprimé.",
+      "confirm_delete_title": "Supprimer définitivement le fichier",
+      "confirm_delete_description": "Êtes-vous sûr de vouloir supprimer définitivement \"{{fileName}}\" ? Cette action est irréversible.",
+      "cancel": "Annuler"
     },
     "settings": {
       "information": {

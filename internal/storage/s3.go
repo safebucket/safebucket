@@ -127,13 +127,7 @@ func (s S3Storage) RemoveObjects(paths []string) error {
 	return nil
 }
 
-// TagObjectForTrash adds trash tags to a MinIO object for lifecycle policy targeting
-func (s S3Storage) TagObjectForTrash(path string, trashedAt time.Time) error {
-	tagMap := map[string]string{
-		"Status":    "trashed",
-		"TrashedAt": trashedAt.Format(time.RFC3339),
-	}
-
+func (s S3Storage) SetObjectTags(path string, tagMap map[string]string) error {
 	objectTags, err := tags.MapToObjectTags(tagMap)
 	if err != nil {
 		return err
@@ -143,29 +137,32 @@ func (s S3Storage) TagObjectForTrash(path string, trashedAt time.Time) error {
 	return err
 }
 
-// RemoveTrashMarker removes trash tags from a MinIO object (used during restore)
-// Only removes trash-related tags (Status, TrashedAt), preserving other tags
-func (s S3Storage) RemoveTrashMarker(path string) error {
-	// Get current tags
+func (s S3Storage) GetObjectTags(path string) (map[string]string, error) {
+	currentTags, err := s.storage.GetObjectTagging(context.Background(), s.BucketName, path, minio.GetObjectTaggingOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return currentTags.ToMap(), nil
+}
+
+func (s S3Storage) RemoveObjectTags(path string, tagsToRemove []string) error {
 	currentTags, err := s.storage.GetObjectTagging(context.Background(), s.BucketName, path, minio.GetObjectTaggingOptions{})
 	if err != nil {
 		return err
 	}
 
-	// Convert current tags to map
 	tagMap := currentTags.ToMap()
 
-	// Remove only trash-related tags
-	delete(tagMap, "Status")
-	delete(tagMap, "TrashedAt")
+	for _, tagKey := range tagsToRemove {
+		delete(tagMap, tagKey)
+	}
 
-	// Convert back to tags object
 	filteredTags, err := tags.MapToObjectTags(tagMap)
 	if err != nil {
 		return err
 	}
 
-	// Put back the filtered tags
 	err = s.storage.PutObjectTagging(context.Background(), s.BucketName, path, filteredTags, minio.PutObjectTaggingOptions{})
 	return err
 }

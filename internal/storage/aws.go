@@ -170,31 +170,44 @@ func (a AWSStorage) RemoveObjects(paths []string) error {
 	return nil
 }
 
-// TagObjectForTrash adds trash metadata tags to an S3 object for lifecycle policy targeting
-func (a AWSStorage) TagObjectForTrash(path string, trashedAt time.Time) error {
+func (a AWSStorage) SetObjectTags(path string, tagMap map[string]string) error {
+	var tagSet []types.Tag
+	for key, value := range tagMap {
+		tagSet = append(tagSet, types.Tag{
+			Key:   aws.String(key),
+			Value: aws.String(value),
+		})
+	}
+
 	_, err := a.storage.PutObjectTagging(context.Background(), &s3.PutObjectTaggingInput{
 		Bucket: aws.String(a.BucketName),
 		Key:    aws.String(path),
 		Tagging: &types.Tagging{
-			TagSet: []types.Tag{
-				{
-					Key:   aws.String("Status"),
-					Value: aws.String("trashed"),
-				},
-				{
-					Key:   aws.String("TrashedAt"),
-					Value: aws.String(trashedAt.Format(time.RFC3339)),
-				},
-			},
+			TagSet: tagSet,
 		},
 	})
 	return err
 }
 
-// RemoveTrashMarker removes trash tags from an S3 object (used during restore)
-// Only removes trash-related tags (Status, TrashedAt), preserving other tags
-func (a AWSStorage) RemoveTrashMarker(path string) error {
-	// Get current tags
+func (a AWSStorage) GetObjectTags(path string) (map[string]string, error) {
+	tagsOutput, err := a.storage.GetObjectTagging(context.Background(), &s3.GetObjectTaggingInput{
+		Bucket: aws.String(a.BucketName),
+		Key:    aws.String(path),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	tagMap := make(map[string]string)
+	for _, tag := range tagsOutput.TagSet {
+		if tag.Key != nil && tag.Value != nil {
+			tagMap[*tag.Key] = *tag.Value
+		}
+	}
+	return tagMap, nil
+}
+
+func (a AWSStorage) RemoveObjectTags(path string, tagsToRemove []string) error {
 	tagsOutput, err := a.storage.GetObjectTagging(context.Background(), &s3.GetObjectTaggingInput{
 		Bucket: aws.String(a.BucketName),
 		Key:    aws.String(path),
@@ -203,15 +216,18 @@ func (a AWSStorage) RemoveTrashMarker(path string) error {
 		return err
 	}
 
-	// Filter out trash-related tags, keep all others
+	removeSet := make(map[string]bool)
+	for _, key := range tagsToRemove {
+		removeSet[key] = true
+	}
+
 	var filteredTags []types.Tag
 	for _, tag := range tagsOutput.TagSet {
-		if tag.Key != nil && *tag.Key != "Status" && *tag.Key != "TrashedAt" {
+		if tag.Key != nil && !removeSet[*tag.Key] {
 			filteredTags = append(filteredTags, tag)
 		}
 	}
 
-	// Put back the filtered tags (or empty set if no other tags exist)
 	_, err = a.storage.PutObjectTagging(context.Background(), &s3.PutObjectTaggingInput{
 		Bucket: aws.String(a.BucketName),
 		Key:    aws.String(path),

@@ -20,11 +20,12 @@ import (
 )
 
 type EventParams struct {
-	WebUrl         string
-	Notifier       notifier.INotifier
-	DB             *gorm.DB
-	Storage        storage.IStorage
-	ActivityLogger activity.IActivityLogger
+	WebUrl             string
+	Notifier           notifier.INotifier
+	DB                 *gorm.DB
+	Storage            storage.IStorage
+	ActivityLogger     activity.IActivityLogger
+	TrashRetentionDays int
 }
 
 type Event interface {
@@ -91,6 +92,7 @@ func HandleBucketEvents(
 	subscriber messaging.ISubscriber,
 	db *gorm.DB,
 	activityLogger activity.IActivityLogger,
+	trashRetentionDays int,
 	messages <-chan *message.Message,
 ) {
 	for msg := range messages {
@@ -149,8 +151,9 @@ func HandleBucketEvents(
 			trashEvent := NewTrashExpirationFromBucketEvent(bucketUuid, event.ObjectKey)
 
 			params := &EventParams{
-				DB:             db,
-				ActivityLogger: activityLogger,
+				DB:                 db,
+				ActivityLogger:     activityLogger,
+				TrashRetentionDays: trashRetentionDays,
 			}
 
 			if err := trashEvent.callback(params); err != nil {

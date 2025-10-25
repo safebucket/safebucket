@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ArchiveRestore, LoaderCircle, Trash2 } from "lucide-react";
-import type { FC } from "react";
+import { type FC, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import type { IFile } from "@/types/file.ts";
@@ -18,6 +18,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MoreHorizontal } from "lucide-react";
 
 interface BucketTrashViewProps {
@@ -29,7 +39,7 @@ interface BucketTrashViewProps {
 const createColumns = (
   t: (key: string) => string,
   onRestore: (fileId: string, fileName: string) => void,
-  onPermanentDelete: (fileId: string, fileName: string) => void,
+  onOpenDeleteDialog: (fileId: string, fileName: string) => void,
 ): Array<ColumnDef<IFile>> => [
   {
     accessorKey: "name",
@@ -141,7 +151,7 @@ const createColumns = (
           <DropdownMenuItem
             className="text-red-600"
             onClick={() =>
-              onPermanentDelete(row.original.id, row.original.name)
+              onOpenDeleteDialog(row.original.id, row.original.name)
             }
           >
             <Trash2 className="mr-2 h-4 w-4" />
@@ -159,7 +169,23 @@ export const BucketTrashView: FC<BucketTrashViewProps> = ({
   onPermanentDelete,
 }: BucketTrashViewProps) => {
   const { t } = useTranslation();
-  const columns = createColumns(t, onRestore, onPermanentDelete);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<{ id: string; name: string } | null>(null);
+
+  const handleOpenDeleteDialog = (fileId: string, fileName: string) => {
+    setSelectedFile({ id: fileId, name: fileName });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedFile) {
+      onPermanentDelete(selectedFile.id, selectedFile.name);
+      setDeleteDialogOpen(false);
+      setSelectedFile(null);
+    }
+  };
+
+  const columns = createColumns(t, onRestore, handleOpenDeleteDialog);
 
   if (files.length === 0) {
     return (
@@ -174,22 +200,44 @@ export const BucketTrashView: FC<BucketTrashViewProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="bg-muted/50 p-4 rounded-lg border">
-        <p className="text-sm text-muted-foreground">
-          {t("bucket.trash_view.retention_notice")}
-        </p>
+    <>
+      <div className="space-y-4">
+        <div className="bg-muted/50 p-4 rounded-lg border">
+          <p className="text-sm text-muted-foreground">
+            {t("bucket.trash_view.retention_notice")}
+          </p>
+        </div>
+        <DataTable
+          columns={columns}
+          data={files}
+          selected={null}
+          onRowClick={() => {}}
+          onRowDoubleClick={() => {}}
+          trashMode={true}
+          onRestore={onRestore}
+          onPermanentDelete={onPermanentDelete}
+        />
       </div>
-      <DataTable
-        columns={columns}
-        data={files}
-        selected={null}
-        onRowClick={() => {}}
-        onRowDoubleClick={() => {}}
-        trashMode={true}
-        onRestore={onRestore}
-        onPermanentDelete={onPermanentDelete}
-      />
-    </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("bucket.trash_view.confirm_delete_title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("bucket.trash_view.confirm_delete_description", { fileName: selectedFile?.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("bucket.trash_view.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {t("bucket.trash_view.delete_permanently")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
