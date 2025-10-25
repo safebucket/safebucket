@@ -52,14 +52,12 @@ func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserC
 	var membersList []models.BucketMember
 	userEmailMap := make(map[string]models.User)
 
-	// Get all memberships for this bucket
 	memberships, err := rbac.GetBucketMembers(s.DB, bucketId)
 	if err != nil {
 		logger.Error("Failed to fetch bucket memberships", zap.Error(err))
 		return []models.BucketMember{}
 	}
 
-	// Convert memberships to BucketMember format
 	for _, membership := range memberships {
 		userEmailMap[membership.User.Email] = membership.User
 
@@ -73,7 +71,6 @@ func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserC
 		})
 	}
 
-	// Add pending invites
 	var invites []models.Invite
 	result = s.DB.Where("bucket_id = ?", bucket.ID).Find(&invites)
 	if result.Error != nil {
