@@ -2,8 +2,10 @@ package database
 
 import (
 	"api/internal/models"
+	"database/sql"
 	"fmt"
 
+	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -15,86 +17,21 @@ func InitDB(config models.DatabaseConfiguration) *gorm.DB {
 	)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		zap.L().Error("Failed to connect to database", zap.Error(err))
+		zap.L().Fatal("Failed to connect to database for migrations", zap.Error(err))
 	}
 
-	runMigrations(db)
+	sqlDb, err := db.DB()
+	if err != nil {
+		zap.L().Fatal("Failed to retrieve raw SQL database", zap.Error(err))
+	}
+
+	runMigrations(sqlDb)
 
 	return db
 }
 
-func runMigrations(db *gorm.DB) {
-	var exists bool
-	err := db.Raw("select exists(select 1 from pg_type where typname = 'file_status')").Scan(&exists).Error
-	if err != nil {
-		zap.L().Fatal("failed to check if file_status enum exists", zap.Error(err))
-	}
-
-	if !exists {
-		err = db.Exec("CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting', 'trashed', 'restoring')").Error
-		if err != nil {
-			zap.L().Fatal("failed to create file_status enum", zap.Error(err))
-		}
-	}
-
-	err = db.Raw("select exists(select 1 from pg_type where typname = 'provider_type')").Scan(&exists).Error
-	if err != nil {
-		zap.L().Fatal("failed to check if provider_type enum exists", zap.Error(err))
-	}
-
-	if !exists {
-		err = db.Exec("CREATE TYPE provider_type AS ENUM ('local', 'oidc')").Error
-		if err != nil {
-			zap.L().Fatal("failed to create provider_type enum", zap.Error(err))
-		}
-	}
-
-	err = db.Raw("select exists(select 1 from pg_type where typname = 'challenge_type')").Scan(&exists).Error
-	if err != nil {
-		zap.L().Fatal("failed to check if challenge_type enum exists", zap.Error(err))
-	}
-
-	if !exists {
-		err = db.Exec("CREATE TYPE challenge_type AS ENUM ('invite', 'password_reset')").Error
-		if err != nil {
-			zap.L().Fatal("failed to create challenge_type enum", zap.Error(err))
-		}
-	}
-
-	err = db.Raw("select exists(select 1 from pg_type where typname = 'role_type')").Scan(&exists).Error
-	if err != nil {
-		zap.L().Fatal("failed to check if role_type enum exists", zap.Error(err))
-	}
-
-	if !exists {
-		err = db.Exec("CREATE TYPE role_type AS ENUM ('admin', 'user', 'guest')").Error
-		if err != nil {
-			zap.L().Fatal("failed to create role_type enum", zap.Error(err))
-		}
-	}
-
-	err = db.Raw("select exists(select 1 from pg_type where typname = 'group_type')").Scan(&exists).Error
-	if err != nil {
-		zap.L().Fatal("failed to check if group_type enum exists", zap.Error(err))
-	}
-
-	if !exists {
-		err = db.Exec("CREATE TYPE group_type AS ENUM ('owner', 'contributor', 'viewer')").Error
-		if err != nil {
-			zap.L().Fatal("failed to create group_type enum", zap.Error(err))
-		}
-	}
-
-	err = db.AutoMigrate(
-		&models.User{},
-		&models.Bucket{},
-		&models.File{},
-		&models.Invite{},
-		&models.Challenge{},
-		&models.Membership{},
-	)
-
-	if err != nil {
-		zap.L().Fatal("failed to migrate db models", zap.Error(err))
+func runMigrations(db *sql.DB) {
+	if err := goose.Up(db, "internal/database/migrations"); err != nil {
+		zap.L().Fatal("Failed to run migrations", zap.Error(err))
 	}
 }

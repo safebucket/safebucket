@@ -24,12 +24,12 @@ import (
 )
 
 type BucketService struct {
-	DB             *gorm.DB
-	Storage        storage.IStorage
-	Publisher      messaging.IPublisher
-	Providers      c.Providers
-	ActivityLogger activity.IActivityLogger
-	WebUrl         string
+	DB                 *gorm.DB
+	Storage            storage.IStorage
+	Publisher          messaging.IPublisher
+	Providers          c.Providers
+	ActivityLogger     activity.IActivityLogger
+	WebUrl             string
 	TrashRetentionDays int
 }
 
@@ -270,7 +270,7 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 	}
 
 	var status models.FileStatus
-	if body.Type == "file" {
+	if body.Type == models.FileTypeFile {
 		status = models.FileStatusUploading
 	}
 
@@ -278,7 +278,7 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 		Status:    status,
 		Name:      body.Name,
 		Extension: extension,
-		BucketId:  bucket.ID,
+		BucketID:  bucket.ID,
 		Path:      body.Path,
 		Type:      body.Type,
 		Size:      body.Size,
@@ -292,7 +292,7 @@ func (s BucketService) UploadFile(logger *zap.Logger, user models.UserClaims, id
 			return res.Error
 		}
 
-		if file.Type == "file" {
+		if file.Type == models.FileTypeFile {
 			url, formData, err = s.Storage.PresignedPostPolicy(
 				path.Join("buckets", bucket.ID.String(), file.Path, file.Name),
 				body.Size,
@@ -332,7 +332,7 @@ func (s BucketService) DeleteFile(logger *zap.Logger, user models.UserClaims, id
 		return err
 	}
 
-	if file.Type == "folder" {
+	if file.Type == models.FileTypeFolder {
 		return s.TrashFolder(logger, user, ids)
 	}
 	return s.TrashFile(logger, user, ids)
@@ -350,7 +350,7 @@ func (s BucketService) DownloadFile(logger *zap.Logger, user models.UserClaims, 
 		return models.FileTransferResponse{}, errors.NewAPIError(403, errors.ErrCannotDownloadTrashed)
 	}
 
-	url, err := s.Storage.PresignedGetObject(path.Join("buckets", file.BucketId.String(), file.Path, file.Name))
+	url, err := s.Storage.PresignedGetObject(path.Join("buckets", file.BucketID.String(), file.Path, file.Name))
 
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
@@ -509,7 +509,7 @@ func (s BucketService) RestoreFile(logger *zap.Logger, user models.UserClaims, i
 		return err
 	}
 
-	if file.Type == "folder" {
+	if file.Type == models.FileTypeFolder {
 		return s.RestoreFolder(logger, user, ids)
 	}
 	if file.Status != models.FileStatusTrashed {
@@ -604,7 +604,7 @@ func (s BucketService) PurgeFile(logger *zap.Logger, user models.UserClaims, ids
 	}
 
 	// Dispatch to folder purge if it's a folder
-	if file.Type == "folder" {
+	if file.Type == models.FileTypeFolder {
 		return s.PurgeFolder(logger, user, ids)
 	}
 
@@ -662,7 +662,7 @@ func (s BucketService) TrashFolder(logger *zap.Logger, user models.UserClaims, i
 	}
 
 	// Validate it's actually a folder
-	if folder.Type != "folder" {
+	if folder.Type != models.FileTypeFolder {
 		return errors.NewAPIError(400, errors.ErrNotAFolder)
 	}
 
@@ -706,7 +706,7 @@ func (s BucketService) RestoreFolder(logger *zap.Logger, user models.UserClaims,
 	}
 
 	// Validate it's actually a folder
-	if folder.Type != "folder" {
+	if folder.Type != models.FileTypeFolder {
 		return errors.NewAPIError(400, errors.ErrNotAFolder)
 	}
 
@@ -759,7 +759,7 @@ func (s BucketService) PurgeFolder(logger *zap.Logger, user models.UserClaims, i
 	}
 
 	// Validate it's actually a folder
-	if folder.Type != "folder" {
+	if folder.Type != models.FileTypeFolder {
 		return errors.NewAPIError(400, errors.ErrNotAFolder)
 	}
 

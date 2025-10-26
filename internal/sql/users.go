@@ -30,7 +30,7 @@ func CreateUserWithInvites(
 		for _, invite := range invites {
 			if err := rbac.CreateMembership(tx, user.ID, invite.BucketID, models.Group(invite.Group)); err != nil {
 				logger.Error("Failed to create membership from invite", zap.Error(err),
-					zap.String("group", invite.Group),
+					zap.String("group", string(invite.Group)),
 					zap.String("bucket_id", invite.BucketID.String()))
 				return err
 			}
