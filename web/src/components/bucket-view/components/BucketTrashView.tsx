@@ -170,7 +170,10 @@ export const BucketTrashView: FC<BucketTrashViewProps> = ({
 }: BucketTrashViewProps) => {
   const { t } = useTranslation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<{ id: string; name: string } | null>(null);
+  const [selectedFile, setSelectedFile] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const handleOpenDeleteDialog = (fileId: string, fileName: string) => {
     setSelectedFile({ id: fileId, name: fileName });
@@ -222,13 +225,19 @@ export const BucketTrashView: FC<BucketTrashViewProps> = ({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("bucket.trash_view.confirm_delete_title")}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("bucket.trash_view.confirm_delete_title")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("bucket.trash_view.confirm_delete_description", { fileName: selectedFile?.name })}
+              {t("bucket.trash_view.confirm_delete_description", {
+                fileName: selectedFile?.name,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("bucket.trash_view.cancel")}</AlertDialogCancel>
+            <AlertDialogCancel>
+              {t("bucket.trash_view.cancel")}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"

@@ -19,19 +19,24 @@ export const useTrashActions = (): ITrashActions => {
   const { bucketId } = useBucketViewContext();
 
   // Fetch trashed files using centralized query options
-  const {
-    data: trashedFiles = [],
-    isLoading,
-  } = useQuery(bucketTrashedFilesQueryOptions(bucketId));
+  const { data: trashedFiles = [], isLoading } = useQuery(
+    bucketTrashedFilesQueryOptions(bucketId),
+  );
 
   // Restore file mutation
   const restoreFileMutation = useMutation({
     mutationFn: ({ fileId }: { fileId: string; fileName: string }) =>
       api.post<null>(`/buckets/${bucketId}/trash/${fileId}/restore`),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["buckets", bucketId, "trash"] });
+      queryClient.invalidateQueries({
+        queryKey: ["buckets", bucketId, "trash"],
+      });
       queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-      successToast(t("bucket.trash_view.restore_success", { fileName: variables.fileName }));
+      successToast(
+        t("bucket.trash_view.restore_success", {
+          fileName: variables.fileName,
+        }),
+      );
     },
     onError: (error: Error) => errorToast(error),
   });
@@ -40,8 +45,12 @@ export const useTrashActions = (): ITrashActions => {
     mutationFn: ({ fileId }: { fileId: string; fileName: string }) =>
       api.delete(`/buckets/${bucketId}/trash/${fileId}`),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["buckets", bucketId, "trash"] });
-      successToast(t("bucket.trash_view.purge_success", { fileName: variables.fileName }));
+      queryClient.invalidateQueries({
+        queryKey: ["buckets", bucketId, "trash"],
+      });
+      successToast(
+        t("bucket.trash_view.purge_success", { fileName: variables.fileName }),
+      );
     },
     onError: (error: Error) => errorToast(error),
   });

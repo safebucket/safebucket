@@ -1,6 +1,12 @@
 import { useTranslation } from "react-i18next";
 
-import { ArchiveRestore, Download, ExternalLink, FolderPlus, Trash2 } from "lucide-react";
+import {
+  ArchiveRestore,
+  Download,
+  ExternalLink,
+  FolderPlus,
+  Trash2,
+} from "lucide-react";
 import type { FC, ReactNode } from "react";
 
 import type { IFile } from "@/types/file.ts";
@@ -52,7 +58,8 @@ export const FileActions: FC<IFileActionsProps> = ({
   const MenuContent =
     type === "context" ? ContextMenuContent : DropdownMenuContent;
   const MenuItem = type === "context" ? ContextMenuItem : DropdownMenuItem;
-  const Separator = type === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
+  const Separator =
+    type === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
 
   const isFileTrashed = file.status === FileStatus.trashed;
 
@@ -79,7 +86,9 @@ export const FileActions: FC<IFileActionsProps> = ({
           ) : (
             <>
               <MenuItem
-                onClick={() => !isFileTrashed && downloadFile(file.id, file.name)}
+                onClick={() =>
+                  !isFileTrashed && downloadFile(file.id, file.name)
+                }
                 disabled={isFileTrashed}
               >
                 <Download className="mr-2 h-4 w-4" />
@@ -95,7 +104,10 @@ export const FileActions: FC<IFileActionsProps> = ({
                 {t("file_actions.new_folder")}
               </MenuItem>
               <Separator />
-              <MenuItem className="text-red-600" onClick={deleteFileDialog.trigger}>
+              <MenuItem
+                className="text-red-600"
+                onClick={deleteFileDialog.trigger}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 {t("file_actions.move_to_trash")}
               </MenuItem>
@@ -121,7 +133,9 @@ export const FileActions: FC<IFileActionsProps> = ({
           />
           <CustomAlertDialog
             {...deleteFileDialog.props}
-            title={t("file_actions.delete_dialog.title", { fileName: file.name })}
+            title={t("file_actions.delete_dialog.title", {
+              fileName: file.name,
+            })}
             description={t("file_actions.delete_dialog.description")}
             confirmLabel={t("file_actions.delete_dialog.confirm")}
             onConfirm={() => deleteFile(file.id, file.name)}

@@ -1,4 +1,10 @@
-import { FolderClock, LayoutGrid, LayoutList, Settings, Trash2 } from "lucide-react";
+import {
+  FolderClock,
+  LayoutGrid,
+  LayoutList,
+  Settings,
+  Trash2,
+} from "lucide-react";
 import { t } from "i18next";
 import type { FC } from "react";
 
