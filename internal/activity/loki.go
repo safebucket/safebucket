@@ -89,13 +89,23 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	}
 
 	if resp.StatusCode() != 200 {
-		zap.L().Error("Failed to query data from loki ", zap.Int("status_code", resp.StatusCode()))
+		zap.L().Error("Failed to query data from loki",
+			zap.String("query", query),
+			zap.Int("status_code", resp.StatusCode()),
+			zap.String("response_body", string(resp.Body())),
+			zap.Error(err),
+		)
 		return []map[string]interface{}{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
 	}
 
 	var parsedResp LokiQueryResponse
 	if err := json.Unmarshal(resp.Body(), &parsedResp); err != nil {
-		zap.L().Error("Failed to parse Loki response", zap.Error(err))
+		zap.L().Error("Failed to parse Loki response",
+			zap.String("query", query),
+			zap.Int("status_code", resp.StatusCode()),
+			zap.String("response_body", string(resp.Body())),
+			zap.Error(err),
+		)
 		return []map[string]interface{}{}, err
 	}
 

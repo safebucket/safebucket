@@ -44,9 +44,10 @@ memberlist:
       # discover_service_name to set + list of allowed labels
 
 limits_config:
+  max_query_length: 31d
+  split_queries_by_interval: 1d
   allow_structured_metadata: true
   discover_service_name: [ domain obj_type action ]
 
   # retention_period: 1
   # required_labels: ?
-
