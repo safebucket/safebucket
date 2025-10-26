@@ -11,8 +11,11 @@ security, flexible access controls, and seamless multi-cloud support across AWS 
 ![SafeBucket Homepage](./assets/homepage.png)
 
 ## Why Safebucket?
-Safebucket eliminates the complexity of secure file sharing by providing a lightweight, stateless solution that integrates seamlessly with your existing infrastructure.
-Plug in your preferred auth providers and eliminate the need for local logins - your users can share files using their existing corporate identities.
+
+Safebucket eliminates the complexity of secure file sharing by providing a lightweight, stateless solution that
+integrates seamlessly with your existing infrastructure.
+Plug in your preferred auth providers and eliminate the need for local logins - your users can share files using their
+existing corporate identities.
 
 ## Features
 
@@ -49,6 +52,7 @@ This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file 
 - Built with ❤️ using Go and React
 - UI components by [Radix UI](https://radix-ui.com) and [shadcn/ui](https://ui.shadcn.com)
 - Database ORM by [Gorm](https://gorm.io/index.html)
+- Database migrations by [Goose](https://github.com/pressly/goose)
 - Pub/sub integrations by [Watermill](https://watermill.io)
 - Configuration management by [Koanf](https://github.com/knadh/koanf)
 - Icons by [Lucide](https://lucide.dev)
