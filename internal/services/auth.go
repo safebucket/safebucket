@@ -292,29 +292,25 @@ func (s AuthService) ValidatePasswordReset(
 		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
 	}
 
-	tx := s.DB.Begin()
-	if tx.Error != nil {
-		logger.Error("Failed to start transaction", zap.Error(tx.Error))
-		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "TRANSACTION_START_FAILED")
-	}
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		updateResult := tx.Model(challenge.User).Update("hashed_password", hashedPassword)
+		if updateResult.Error != nil {
+			logger.Error("Failed to update password", zap.Error(updateResult.Error))
+			tx.Rollback()
+			return customerr.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
+		}
 
-	updateResult := tx.Model(challenge.User).Update("hashed_password", hashedPassword)
-	if updateResult.Error != nil {
-		logger.Error("Failed to update password", zap.Error(updateResult.Error))
-		tx.Rollback()
-		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
-	}
+		deleteResult := tx.Delete(&challenge)
+		if deleteResult.Error != nil {
+			logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
+			tx.Rollback()
+			return customerr.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
+		}
 
-	deleteResult := tx.Delete(&challenge)
-	if deleteResult.Error != nil {
-		logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
-		tx.Rollback()
-		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
-	}
-
-	if err = tx.Commit().Error; err != nil {
-		logger.Error("Failed to commit transaction", zap.Error(err))
-		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "TRANSACTION_COMMIT_FAILED")
+		return nil
+	})
+	if err != nil {
+		return models.AuthLoginResponse{}, err
 	}
 
 	resetDate := time.Now().Format("January 2, 2006 at 3:04 PM MST")

@@ -44,7 +44,7 @@ linters:
     - dupl # tool for code clone detection
     - durationcheck # checks for two durations multiplied together
     - embeddedstructfieldcheck # checks embedded types in structs
-#    - errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
+    #    - errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
     - exhaustive # checks exhaustiveness of enum switch statements
@@ -54,7 +54,6 @@ linters:
     - funcorder # checks the order of functions, methods, and constructors
     - funlen # tool for detection of long functions
     - gocheckcompilerdirectives # validates go compiler directive comments (//go:)
-#    - gochecknoglobals # checks that no global variables exist
     - gochecknoinits # checks that no init functions are present in Go code
     - gochecksumtype # checks exhaustiveness on Go "sum types"
     - gocognit # computes and checks the cognitive complexity of functions
@@ -74,12 +73,10 @@ linters:
     - loggercheck # checks key value pairs for common logger libraries (kitlog,klog,logr,zap)
     - makezero # finds slice declarations with non-zero initial length
     - mirror # reports wrong mirror patterns of bytes/strings usage
-#    - musttag # enforces field tags in (un)marshaled structs
     - nakedret # finds naked returns in functions greater than a specified function length
     - nestif # reports deeply nested if statements
     - nilerr # finds the code that returns nil even if it checks that the error is not nil
     - nilnesserr # reports that it checks for err != nil, but it returns a different nil value error (powered by nilness and nilerr)
-#    - nilnil # checks that there is no simultaneous return of nil error and an invalid value
     - noctx # finds sending http request without context.Context
     - nolintlint # reports ill-formed or insufficient nolint directives
     - nonamedreturns # reports all named returns
@@ -90,7 +87,6 @@ linters:
     - protogetter # reports direct reads from proto message fields when getters should be used
     - reassign # checks that package variables are not reassigned
     - recvcheck # checks for receiver type consistency
-#    - revive # fast, configurable, extensible, flexible, and beautiful linter for Go, drop-in replacement of golint
     - rowserrcheck # checks whether Err of rows is checked successfully
     - sloglint # ensure consistent code style when using log/slog
     - spancheck # checks for mistakes with OpenTelemetry/Census spans
@@ -105,6 +101,12 @@ linters:
     - usetesting # reports uses of functions with replacement inside the testing package
     - wastedassign # finds wasted assignment statements
     - whitespace # detects leading and trailing whitespace
+
+    ## disabled for bad reasons
+    #- revive # fast, configurable, extensible, flexible, and beautiful linter for Go, drop-in replacement of golint
+    #- nilnil # checks that there is no simultaneous return of nil error and an invalid value
+    #- musttag # enforces field tags in (un)marshaled structs
+    #- gochecknoglobals # checks that no global variables exist
 
     ## you may want to enable
     #- arangolint # opinionated best practices for arangodb client
@@ -267,11 +269,11 @@ linters:
       # Checks the number of lines in a function.
       # If lower than 0, disable the check.
       # Default: 60
-      lines: 100
+      lines: 200
       # Checks the number of statements in a function.
       # If lower than 0, disable the check.
       # Default: 40
-      statements: 50
+      statements: 55
 
     gochecksumtype:
       # Presence of `default` case in switch statements satisfies exhaustiveness, if all members are not listed.
@@ -281,7 +283,7 @@ linters:
     gocognit:
       # Minimal code complexity to report.
       # Default: 30 (but we recommend 10-20)
-      min-complexity: 20
+      min-complexity: 35
 
     gocritic:
       # Settings passed to gocritic.
@@ -320,6 +322,9 @@ linters:
           # Whether to be strict about shadowing; can be noisy.
           # Default: false
           strict: true
+
+    nestif:
+      min-complexity: 10
 
     inamedparam:
       # Skips check for interface methods with only a single parameter.

@@ -99,7 +99,7 @@ func UpdateHandler[In any](update UpdateTargetFunc[In]) http.HandlerFunc {
 	}
 }
 
-func DeleteHandler(delete DeleteTargetFunc) http.HandlerFunc {
+func DeleteHandler(del DeleteTargetFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
@@ -108,7 +108,7 @@ func DeleteHandler(delete DeleteTargetFunc) http.HandlerFunc {
 
 		claims, _ := h.GetUserClaims(r.Context())
 		logger := m.GetLogger(r)
-		err := delete(logger, claims, ids)
+		err := del(logger, claims, ids)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)
