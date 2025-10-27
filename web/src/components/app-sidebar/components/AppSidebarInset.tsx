@@ -1,10 +1,11 @@
-import { Link } from "@tanstack/react-router";
-import type { FC } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
+import React, { type FC } from "react";
 
 import {
   Breadcrumb,
   BreadcrumbLink,
   BreadcrumbList,
+  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
@@ -17,12 +18,12 @@ interface IAppSidebarInset {
 export const AppSidebarInset: FC<IAppSidebarInset> = ({
   children,
 }: IAppSidebarInset) => {
-  // const pathname = usePathname()
+  const location = useLocation();
+  const pathname = location.pathname;
 
-  // const path = pathname.split('/').filter((segment) => segment)
-  const path = "/";
-  const rootPath = `/${path[0]}/${path[1]}`;
-  // const pathShort = path.slice(2, path.length)
+  const path = pathname.split("/").filter((segment) => segment);
+  const rootPath = path.length >= 2 ? `/${path[0]}/${path[1]}` : "/";
+  const pathShort = path.slice(2, path.length);
 
   return (
     <SidebarInset>
@@ -35,21 +36,23 @@ export const AppSidebarInset: FC<IAppSidebarInset> = ({
               <BreadcrumbLink asChild>
                 <Link to={rootPath}>/</Link>
               </BreadcrumbLink>
-              <BreadcrumbSeparator className="hidden md:block" />
-              {/* {pathShort.map((segment, index) => {*/}
-              {/*  const isLast = index === pathShort.length - 1*/}
-              {/*  const link = path.slice(0, index - 1).join('/')*/}
-              {/*  return isLast ? (*/}
-              {/*    <BreadcrumbPage key={segment}>{segment}</BreadcrumbPage>*/}
-              {/*  ) : (*/}
-              {/*    <React.Fragment key={segment}>*/}
-              {/*      <BreadcrumbLink asChild>*/}
-              {/*        <Link to={`/${link}`}>{segment}</Link>*/}
-              {/*      </BreadcrumbLink>*/}
-              {/*      <BreadcrumbSeparator className="hidden md:block" />*/}
-              {/*    </React.Fragment>*/}
-              {/*  )*/}
-              {/* })}*/}
+              {pathShort.length > 0 && (
+                <BreadcrumbSeparator className="hidden md:block" />
+              )}
+              {pathShort.map((segment, index) => {
+                const isLast = index === pathShort.length - 1;
+                const link = "/" + path.slice(0, index + 3).join("/");
+                return isLast ? (
+                  <BreadcrumbPage key={segment}>{segment}</BreadcrumbPage>
+                ) : (
+                  <React.Fragment key={segment}>
+                    <BreadcrumbLink asChild>
+                      <Link to={link}>{segment}</Link>
+                    </BreadcrumbLink>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                  </React.Fragment>
+                );
+              })}
             </BreadcrumbList>
           </Breadcrumb>
         </div>
