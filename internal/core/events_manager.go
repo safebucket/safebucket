@@ -31,17 +31,17 @@ func (em *EventsManager) initializePublishers() {
 		var publisher messaging.IPublisher
 
 		switch em.config.Type {
-		case "jetstream":
+		case ProviderJetstream:
 			publisher = messaging.NewJetStreamPublisher(&models.JetStreamEventsConfig{
 				Host: em.config.Jetstream.Host,
 				Port: em.config.Jetstream.Port,
 			}, topicConfig.Name)
-		case "gcp":
+		case ProviderGCP:
 			publisher = messaging.NewGCPPublisher(&models.PubSubConfiguration{
 				ProjectID:          em.config.PubSub.ProjectID,
 				SubscriptionSuffix: em.config.PubSub.SubscriptionSuffix,
 			}, topicConfig.Name)
-		case "aws":
+		case ProviderAWS:
 			publisher = messaging.NewAWSPublisher(topicConfig.Name)
 		}
 
@@ -59,17 +59,17 @@ func (em *EventsManager) initializeSubscribers() {
 		var subscriber messaging.ISubscriber
 
 		switch em.config.Type {
-		case "jetstream":
+		case ProviderJetstream:
 			subscriber = messaging.NewJetStreamSubscriber(&models.JetStreamEventsConfig{
 				Host: em.config.Jetstream.Host,
 				Port: em.config.Jetstream.Port,
 			}, topicConfig.Name)
-		case "gcp":
+		case ProviderGCP:
 			subscriber = messaging.NewGCPSubscriber(&models.PubSubConfiguration{
 				ProjectID:          em.config.PubSub.ProjectID,
 				SubscriptionSuffix: em.config.PubSub.SubscriptionSuffix,
 			}, topicConfig.Name)
-		case "aws":
+		case ProviderAWS:
 			subscriber = messaging.NewAWSSubscriber(topicConfig.Name, nil)
 		}
 

@@ -38,7 +38,7 @@ type MockCreateFunc[In any, Out any] struct {
 
 func (m *MockCreateFunc[In, Out]) Create(ids uuid.UUIDs, input In) (Out, error) {
 	args := m.Called(ids, input)
-	return args.Get(0).(Out), args.Error(1)
+	return args.Get(0).(Out), args.Error(1) //nolint:errcheck
 }
 
 type MockGetListFunc[Out any] struct {
@@ -47,7 +47,7 @@ type MockGetListFunc[Out any] struct {
 
 func (m *MockGetListFunc[Out]) GetList() []Out {
 	args := m.Called()
-	return args.Get(0).([]Out)
+	return args.Get(0).([]Out) //nolint:errcheck
 }
 
 type MockGetOneFunc[Out any] struct {
@@ -56,7 +56,7 @@ type MockGetOneFunc[Out any] struct {
 
 func (m *MockGetOneFunc[Out]) GetOne(ids uuid.UUIDs) (Out, error) {
 	args := m.Called(ids)
-	return args.Get(0).(Out), args.Error(1)
+	return args.Get(0).(Out), args.Error(1) //nolint:errcheck
 }
 
 type MockUpdateFunc[In any, Out any] struct {
@@ -65,7 +65,7 @@ type MockUpdateFunc[In any, Out any] struct {
 
 func (m *MockUpdateFunc[In, Out]) Update(ids uuid.UUIDs, input In) (Out, error) {
 	args := m.Called(ids, input)
-	return args.Get(0).(Out), args.Error(1)
+	return args.Get(0).(Out), args.Error(1) //nolint:errcheck
 }
 
 type MockDeleteFunc struct {

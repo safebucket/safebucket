@@ -30,7 +30,15 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 		}
 		claims, _ := h.GetUserClaims(r.Context())
 		logger := m.GetLogger(r)
-		resp, err := create(logger, claims, ids, r.Context().Value(m.BodyKey{}).(In))
+
+		body, ok := r.Context().Value(m.BodyKey{}).(In)
+		if !ok {
+			logger.Error("Failed to extract body from context")
+			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			return
+		}
+
+		resp, err := create(logger, claims, ids, body)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusBadRequest, strErrors)
@@ -83,7 +91,15 @@ func UpdateHandler[In any](update UpdateTargetFunc[In]) http.HandlerFunc {
 
 		claims, _ := h.GetUserClaims(r.Context())
 		logger := m.GetLogger(r)
-		err := update(logger, claims, ids, r.Context().Value(m.BodyKey{}).(In))
+
+		body, ok := r.Context().Value(m.BodyKey{}).(In)
+		if !ok {
+			logger.Error("Failed to extract body from context")
+			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			return
+		}
+
+		err := update(logger, claims, ids, body)
 		if err != nil {
 			strErrors := []string{err.Error()}
 

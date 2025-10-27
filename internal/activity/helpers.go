@@ -56,8 +56,23 @@ func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string
 	}
 
 	sort.Slice(enrichedActivity, func(i, j int) bool {
-		t1, _ := strconv.ParseInt(enrichedActivity[i]["timestamp"].(string), 10, 64)
-		t2, _ := strconv.ParseInt(enrichedActivity[j]["timestamp"].(string), 10, 64)
+		ts1, ok1 := enrichedActivity[i]["timestamp"].(string)
+		if !ok1 {
+			return false
+		}
+		ts2, ok2 := enrichedActivity[j]["timestamp"].(string)
+		if !ok2 {
+			return true
+		}
+
+		t1, err1 := strconv.ParseInt(ts1, 10, 64)
+		if err1 != nil {
+			t1 = 0
+		}
+		t2, err2 := strconv.ParseInt(ts2, 10, 64)
+		if err2 != nil {
+			t2 = 0
+		}
 		return t1 > t2
 	})
 
