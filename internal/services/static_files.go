@@ -71,11 +71,11 @@ func (s *StaticFileService) createConfigFileIfNotExists(apiURL string) error {
 		return fmt.Errorf("failed to marshal config to JSON: %w", err)
 	}
 
-	if err := os.MkdirAll(s.staticPath, 0o750); err != nil {
+	if err = os.MkdirAll(s.staticPath, 0o750); err != nil {
 		return fmt.Errorf("failed to create static directory: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, configData, 0o600); err != nil {
+	if err = os.WriteFile(configPath, configData, 0o600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
@@ -114,7 +114,7 @@ func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 
 		if entry.IsDir() {
 			subURLPrefix := filepath.Join(urlPrefix, entry.Name())
-			if err := s.walkDirectory(fullPath, subURLPrefix); err != nil {
+			if err = s.walkDirectory(fullPath, subURLPrefix); err != nil {
 				zap.L().
 					Warn("failed to walk subdirectory", zap.String("dir", fullPath), zap.Error(err))
 				continue

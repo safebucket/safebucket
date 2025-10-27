@@ -9,13 +9,14 @@ import (
 
 	"api/internal/models"
 
+	"net"
+
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/jetstream"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/nats-io/nats.go"
 	natsJs "github.com/nats-io/nats.go/jetstream"
 	"go.uber.org/zap"
-	"net"
 )
 
 type JetStreamPublisher struct {

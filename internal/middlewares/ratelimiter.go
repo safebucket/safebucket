@@ -87,8 +87,8 @@ func RateLimit(cache cache.ICache, trustedProxies []string) func(next http.Handl
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			claims, err := helpers.GetUserClaims(r.Context())
 			if err != nil {
-				ipAddress, err := getClientIP(r, trustedProxies)
-				if err != nil {
+				ipAddress, err2 := getClientIP(r, trustedProxies)
+				if err2 != nil {
 					zap.L().Error("error", zap.Error(err))
 					helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
 					return

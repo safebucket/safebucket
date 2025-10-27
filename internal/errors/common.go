@@ -5,9 +5,9 @@ import (
 )
 
 var (
-	ErrorInternalServer = errors.New("INTERNAL_SERVER_ERROR")
-	ErrorCreateFailed   = errors.New("CREATE_FAILED")
-	ErrorDeleteFailed   = errors.New("DELETE_FAILED")
+	ErrInternalServer = errors.New("INTERNAL_SERVER_ERROR")
+	ErrCreateFailed   = errors.New("CREATE_FAILED")
+	ErrDeleteFailed   = errors.New("DELETE_FAILED")
 )
 
 type APIError struct {
@@ -15,13 +15,13 @@ type APIError struct {
 	Message string
 }
 
-func (e *APIError) Error() string {
-	return e.Message
-}
-
 func NewAPIError(code int, message string) *APIError {
 	return &APIError{
 		Code:    code,
 		Message: message,
 	}
+}
+
+func (e *APIError) Error() string {
+	return e.Message
 }

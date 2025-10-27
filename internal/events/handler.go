@@ -81,7 +81,7 @@ func HandleEvents(params *EventParams, messages <-chan *message.Message) {
 			continue
 		}
 
-		if err := event.callback(params); err != nil {
+		if err = event.callback(params); err != nil {
 			msg.Nack()
 		} else {
 			msg.Ack()
@@ -159,7 +159,7 @@ func HandleBucketEvents(
 				TrashRetentionDays: trashRetentionDays,
 			}
 
-			if err := trashEvent.callback(params); err != nil {
+			if err = trashEvent.callback(params); err != nil {
 				zap.L().Error("Failed to process trash expiration", zap.Error(err))
 			}
 		}

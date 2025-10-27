@@ -197,7 +197,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 		}),
 	}
 
-	if err := params.ActivityLogger.Send(action); err != nil {
+	if err = params.ActivityLogger.Send(action); err != nil {
 		zap.L().Error("Failed to log trash activity", zap.Error(err))
 	}
 

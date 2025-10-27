@@ -95,7 +95,7 @@ func (s AuthService) Login(
 			string(models.LocalProviderType),
 		)
 		if err != nil {
-			return models.AuthLoginResponse{}, customerr.ErrorGenerateAccessTokenFailed
+			return models.AuthLoginResponse{}, customerr.ErrGenerateAccessTokenFailed
 		}
 
 		refreshToken, err := h.NewRefreshToken(
@@ -104,7 +104,7 @@ func (s AuthService) Login(
 			string(models.LocalProviderType),
 		)
 		if err != nil {
-			return models.AuthLoginResponse{}, customerr.ErrorGenerateRefreshTokenFailed
+			return models.AuthLoginResponse{}, customerr.ErrGenerateRefreshTokenFailed
 		}
 
 		return models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
@@ -217,7 +217,7 @@ func (s AuthService) OpenIDCallback(
 	if result.RowsAffected == 0 {
 		searchUser.Role = models.RoleUser
 
-		err := sql.CreateUserWithInvites(logger, s.DB, &searchUser)
+		err = sql.CreateUserWithInvites(logger, s.DB, &searchUser)
 		if err != nil {
 			return "", "", customerr.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
@@ -225,12 +225,12 @@ func (s AuthService) OpenIDCallback(
 
 	accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, providerKey)
 	if err != nil {
-		return "", "", customerr.ErrorGenerateAccessTokenFailed
+		return "", "", customerr.ErrGenerateAccessTokenFailed
 	}
 
 	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, providerKey)
 	if err != nil {
-		return "", "", customerr.ErrorGenerateRefreshTokenFailed
+		return "", "", customerr.ErrGenerateRefreshTokenFailed
 	}
 
 	return accessToken, refreshToken, nil
@@ -312,7 +312,7 @@ func (s AuthService) ValidatePasswordReset(
 		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
 	}
 
-	if err := tx.Commit().Error; err != nil {
+	if err = tx.Commit().Error; err != nil {
 		logger.Error("Failed to commit transaction", zap.Error(err))
 		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "TRANSACTION_COMMIT_FAILED")
 	}

@@ -6,13 +6,14 @@ import (
 )
 
 type UserClaims struct {
+	jwt.RegisteredClaims
+
 	Email    string    `json:"email"`
 	UserID   uuid.UUID `json:"user_id"`
 	Role     Role      `json:"role"`
 	Issuer   string    `json:"iss"`
 	Aud      string    `json:"aud"`
 	Provider string    `json:"provider"`
-	jwt.RegisteredClaims
 }
 
 func (u *UserClaims) Valid() bool {

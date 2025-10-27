@@ -108,7 +108,7 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	}
 
 	var parsedResp LokiQueryResponse
-	if err := json.Unmarshal(resp.Body(), &parsedResp); err != nil {
+	if err = json.Unmarshal(resp.Body(), &parsedResp); err != nil {
 		zap.L().Error("Failed to parse Loki response",
 			zap.String("query", query),
 			zap.Int("status_code", resp.StatusCode()),

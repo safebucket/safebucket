@@ -35,7 +35,7 @@ func NewLogger(level string) {
 	zap.ReplaceGlobals(logger)
 
 	defer func(logger *zap.Logger) {
-		err := logger.Sync()
+		err = logger.Sync()
 		if err != nil && !isIgnorableLogSyncError(err) {
 			panic(err)
 		}

@@ -223,7 +223,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		}),
 	}
 
-	if err := params.ActivityLogger.Send(action); err != nil {
+	if err = params.ActivityLogger.Send(action); err != nil {
 		zap.L().Error("Failed to log restore activity", zap.Error(err))
 	}
 

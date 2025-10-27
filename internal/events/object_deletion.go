@@ -140,7 +140,7 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 	zap.L().Info("Checking if we need to delete more files")
 
 	if len(files) == c.BulkActionsLimit {
-		result := params.DB.Where(
+		result = params.DB.Where(
 			"bucket_id = ? AND path LIKE ?", e.Payload.Bucket.ID, dbPath).
 			Find(&files)
 
@@ -162,7 +162,7 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 		parentPath := path.Dir(e.Payload.Path)
 		folderName := path.Base(e.Payload.Path)
 
-		result := params.DB.Where("bucket_id = ? AND name = ? AND path = ? AND type = 'folder'",
+		result = params.DB.Where("bucket_id = ? AND name = ? AND path = ? AND type = 'folder'",
 			e.Payload.Bucket.ID, folderName, parentPath).Delete(&models.File{})
 
 		if result.Error != nil {

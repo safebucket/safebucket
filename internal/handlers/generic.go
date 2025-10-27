@@ -18,7 +18,7 @@ type (
 	ListTargetFunc[Out any]           func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
 	GetOneTargetFunc[Out any]         func(*zap.Logger, models.UserClaims, uuid.UUIDs) (Out, error)
 	GetOneListTargetFunc[Out any]     func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
-	UpdateTargetFunc[In any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
+	UpdateTargetFunc[In any]          func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) error
 	DeleteTargetFunc                  func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
 )
 
@@ -74,7 +74,7 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 	}
 }
 
-func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.HandlerFunc {
+func UpdateHandler[In any](update UpdateTargetFunc[In]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
@@ -83,7 +83,7 @@ func UpdateHandler[In any, Out any](update UpdateTargetFunc[In, Out]) http.Handl
 
 		claims, _ := h.GetUserClaims(r.Context())
 		logger := m.GetLogger(r)
-		_, err := update(logger, claims, ids, r.Context().Value(m.BodyKey{}).(In))
+		err := update(logger, claims, ids, r.Context().Value(m.BodyKey{}).(In))
 		if err != nil {
 			strErrors := []string{err.Error()}
 

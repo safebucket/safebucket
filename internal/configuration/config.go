@@ -125,7 +125,7 @@ func Read() models.Configuration {
 	}
 
 	validate := validator.New()
-	if err := validate.Struct(config); err != nil {
+	if err = validate.Struct(config); err != nil {
 		zap.L().Fatal("Invalid configuration", zap.Error(err))
 	}
 

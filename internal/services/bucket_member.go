@@ -102,7 +102,7 @@ func (s BucketMemberService) UpdateBucketMembers(
 	user models.UserClaims,
 	ids uuid.UUIDs,
 	body models.UpdateMembersBody,
-) (interface{}, error) {
+) error {
 	bucketID := ids[0]
 
 	var providerCfg configuration.Provider
@@ -110,17 +110,17 @@ func (s BucketMemberService) UpdateBucketMembers(
 
 	providerCfg, ok = s.Providers[user.Provider]
 	if !ok {
-		return nil, errors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
+		return errors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
 	}
 	if !providerCfg.SharingOptions.Allowed {
-		return nil, errors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
+		return errors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
 	}
 
 	var bucket models.Bucket
 	result := s.DB.Where("id = ?", bucketID).First(&bucket)
 
 	if result.RowsAffected == 0 {
-		return nil, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
 	members := s.GetBucketMembers(logger, user, ids)
@@ -161,7 +161,7 @@ func (s BucketMemberService) UpdateBucketMembers(
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
 func (s BucketMemberService) compareMemberships(

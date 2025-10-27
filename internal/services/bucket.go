@@ -137,7 +137,7 @@ func (s BucketService) CreateBucket(
 		return nil
 	})
 	if err != nil {
-		return models.Bucket{}, errors.ErrorCreateFailed
+		return models.Bucket{}, errors.ErrCreateFailed
 	}
 
 	return newBucket, nil
@@ -173,7 +173,7 @@ func (s BucketService) GetBucketList(
 		return []models.Bucket{}
 	}
 
-	if err := s.DB.Where("id IN ?", bucketIDs).Find(&buckets).Error; err != nil {
+	if err = s.DB.Where("id IN ?", bucketIDs).Find(&buckets).Error; err != nil {
 		logger.Error("Error querying buckets", zap.Error(err))
 		return []models.Bucket{}
 	}
@@ -215,13 +215,13 @@ func (s BucketService) UpdateBucket(
 	_ models.UserClaims,
 	ids uuid.UUIDs,
 	body models.BucketCreateUpdateBody,
-) (models.Bucket, error) {
+) error {
 	bucket := models.Bucket{ID: ids[0]}
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {
-		return bucket, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	} else {
-		return bucket, nil
+		return nil
 	}
 }
 
@@ -270,7 +270,7 @@ func (s BucketService) DeleteBucket(
 	})
 	if err != nil {
 		logger.Error("Failed to delete bucket", zap.Error(err))
-		return errors.ErrorDeleteFailed
+		return errors.ErrDeleteFailed
 	}
 
 	return nil
@@ -343,7 +343,7 @@ func (s BucketService) UploadFile(
 		return nil
 	})
 	if err != nil {
-		return models.FileTransferResponse{}, errors.ErrorCreateFailed
+		return models.FileTransferResponse{}, errors.ErrCreateFailed
 	}
 
 	return models.FileTransferResponse{
@@ -508,13 +508,13 @@ func (s BucketService) TrashFile(logger *zap.Logger, user models.UserClaims, ids
 			"trashed_by": user.UserID,
 		}
 
-		if err := tx.Model(&file).Updates(updates).Error; err != nil {
+		if err = tx.Model(&file).Updates(updates).Error; err != nil {
 			logger.Error("Failed to update file status to trashed", zap.Error(err))
 			return errors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
 		objectPath := path.Join("buckets", bucketID.String(), file.Path, file.Name)
-		if err := s.Storage.SetObjectTags(objectPath, map[string]string{
+		if err = s.Storage.SetObjectTags(objectPath, map[string]string{
 			"Status":    "trashed",
 			"TrashedAt": now.Format(time.RFC3339),
 		}); err != nil {
@@ -539,7 +539,7 @@ func (s BucketService) TrashFile(logger *zap.Logger, user models.UserClaims, ids
 			}),
 		}
 
-		if err := s.ActivityLogger.Send(action); err != nil {
+		if err = s.ActivityLogger.Send(action); err != nil {
 			logger.Error("Failed to log trash activity", zap.Error(err))
 			return err
 		}
@@ -590,13 +590,13 @@ func (s BucketService) RestoreFile(
 			"trashed_by": nil,
 		}
 
-		if err := tx.Model(&file).Updates(updates).Error; err != nil {
+		if err = tx.Model(&file).Updates(updates).Error; err != nil {
 			logger.Error("Failed to restore file status", zap.Error(err))
 			return errors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
 		objectPath := path.Join("buckets", bucketID.String(), file.Path, file.Name)
-		if err := s.Storage.RemoveObjectTags(objectPath, []string{"Status", "TrashedAt"}); err != nil {
+		if err = s.Storage.RemoveObjectTags(objectPath, []string{"Status", "TrashedAt"}); err != nil {
 			logger.Error(
 				"Failed to remove trash tags from storage - lifecycle policy may still target this file",
 				zap.Error(err),
@@ -616,7 +616,7 @@ func (s BucketService) RestoreFile(
 				"user_id":     user.UserID.String(),
 			}),
 		}
-		if err := s.ActivityLogger.Send(action); err != nil {
+		if err = s.ActivityLogger.Send(action); err != nil {
 			logger.Error("Failed to log restore activity", zap.Error(err))
 			return err
 		}
@@ -675,7 +675,7 @@ func (s BucketService) PurgeFile(logger *zap.Logger, user models.UserClaims, ids
 		objectPath := path.Join("buckets", bucketID.String(), file.Path, file.Name)
 
 		// Delete from storage
-		if err := s.Storage.RemoveObject(objectPath); err != nil {
+		if err = s.Storage.RemoveObject(objectPath); err != nil {
 			logger.Warn("Failed to delete file from storage",
 				zap.Error(err),
 				zap.String("path", objectPath))
@@ -683,9 +683,9 @@ func (s BucketService) PurgeFile(logger *zap.Logger, user models.UserClaims, ids
 		}
 
 		// Soft delete from database (allows activity enrichment to still find the record)
-		if err := tx.Delete(&file).Error; err != nil {
+		if err = tx.Delete(&file).Error; err != nil {
 			logger.Error("Failed to soft delete file from database", zap.Error(err))
-			return errors.ErrorDeleteFailed
+			return errors.ErrDeleteFailed
 		}
 
 		// Log activity
@@ -701,7 +701,7 @@ func (s BucketService) PurgeFile(logger *zap.Logger, user models.UserClaims, ids
 			}),
 		}
 
-		if err := s.ActivityLogger.Send(action); err != nil {
+		if err = s.ActivityLogger.Send(action); err != nil {
 			logger.Error("Failed to log purge activity", zap.Error(err))
 			return err
 		}
@@ -742,7 +742,7 @@ func (s BucketService) TrashFolder(
 		"trashed_by": user.UserID,
 	}
 
-	if err := s.DB.Model(&folder).Updates(updates).Error; err != nil {
+	if err = s.DB.Model(&folder).Updates(updates).Error; err != nil {
 		logger.Error("Failed to update folder status to trashed", zap.Error(err))
 		return errors.NewAPIError(500, "UPDATE_FAILED")
 	}
@@ -803,7 +803,7 @@ func (s BucketService) RestoreFolder(
 	}
 
 	// Set folder to restoring status
-	if err := s.DB.Model(&folder).Update("status", models.FileStatusRestoring).Error; err != nil {
+	if err = s.DB.Model(&folder).Update("status", models.FileStatusRestoring).Error; err != nil {
 		logger.Error("Failed to set folder to restoring status", zap.Error(err))
 		return errors.NewAPIError(500, "UPDATE_FAILED")
 	}

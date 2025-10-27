@@ -212,7 +212,7 @@ func (s InviteService) ValidateInviteChallenge(
 	newUser.Role = models.RoleGuest
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		if err := sql.CreateUserWithInvites(logger, tx, &newUser); err != nil {
+		if err = sql.CreateUserWithInvites(logger, tx, &newUser); err != nil {
 			return errors.NewAPIError(500, "USER_CREATION_FAILED")
 		}
 

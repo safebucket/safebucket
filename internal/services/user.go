@@ -98,11 +98,11 @@ func (s UserService) GetUser(
 }
 
 func (s UserService) UpdateUser(
-	logger *zap.Logger,
+	_ *zap.Logger,
 	_ models.UserClaims,
 	ids uuid.UUIDs,
 	body models.UserUpdateBody,
-) (models.User, error) {
+) error {
 	user := models.User{ID: ids[0]}
 
 	updatedUser := models.User{
@@ -116,20 +116,20 @@ func (s UserService) UpdateUser(
 
 		result := s.DB.Where(user, "id", "provider_type", "provider_key").Find(&user)
 		if result.RowsAffected == 0 {
-			return user, errors.New("USER_NOT_FOUND")
+			return errors.New("USER_NOT_FOUND")
 		}
 
 		match, err := argon2id.ComparePasswordAndHash(body.OldPassword, user.HashedPassword)
 		if err != nil {
-			return models.User{}, errors.New("INTERNAL_SERVER_ERROR")
+			return errors.New("INTERNAL_SERVER_ERROR")
 		}
 		if !match {
-			return models.User{}, errors.New("INCORRECT_PASSWORD")
+			return errors.New("INCORRECT_PASSWORD")
 		}
 
 		hash, err := h.CreateHash(body.NewPassword)
 		if err != nil {
-			return models.User{}, errors.New("INTERNAL_SERVER_ERROR")
+			return errors.New("INTERNAL_SERVER_ERROR")
 		}
 
 		// The password can be updated after passing all the checks
@@ -137,15 +137,15 @@ func (s UserService) UpdateUser(
 	} else {
 		result := s.DB.Where(user, "id").Find(&user)
 		if result.RowsAffected == 0 {
-			return user, errors.New("USER_NOT_FOUND")
+			return errors.New("USER_NOT_FOUND")
 		}
 	}
 
 	result := s.DB.Model(&user).Updates(updatedUser)
 	if result.RowsAffected == 0 {
-		return models.User{}, errors.New("USER_NOT_FOUND")
+		return errors.New("USER_NOT_FOUND")
 	} else {
-		return models.User{}, nil
+		return nil
 	}
 }
 
@@ -183,7 +183,7 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 		return nil
 	})
 	if err != nil {
-		return customerrors.ErrorInternalServer
+		return customerrors.ErrInternalServer
 	}
 
 	logger.Info(

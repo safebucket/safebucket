@@ -159,13 +159,13 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	}
 
 	objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
-	if err := params.Storage.RemoveObject(objectPath); err != nil {
+	if err = params.Storage.RemoveObject(objectPath); err != nil {
 		zap.L().Warn("Failed to delete folder from storage",
 			zap.Error(err),
 			zap.String("path", objectPath))
 	}
 
-	if err := params.DB.Delete(&folder).Error; err != nil {
+	if err = params.DB.Delete(&folder).Error; err != nil {
 		zap.L().Error("Failed to soft delete folder from database", zap.Error(err))
 		return err
 	}
@@ -182,7 +182,7 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		}),
 	}
 
-	if err := params.ActivityLogger.Send(action); err != nil {
+	if err = params.ActivityLogger.Send(action); err != nil {
 		zap.L().Error("Failed to log purge activity", zap.Error(err))
 	}
 
