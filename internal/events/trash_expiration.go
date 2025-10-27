@@ -1,10 +1,11 @@
 package events
 
 import (
-	"api/internal/models"
 	"encoding/json"
 	"path"
 	"time"
+
+	"api/internal/models"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -12,12 +13,14 @@ import (
 	"go.uber.org/zap"
 )
 
-const TrashExpirationName = "TrashExpiration"
-const TrashExpirationPayloadName = "TrashExpirationPayload"
+const (
+	TrashExpirationName        = "TrashExpiration"
+	TrashExpirationPayloadName = "TrashExpirationPayload"
+)
 
 type TrashExpirationPayload struct {
 	Type      string    `json:"type"`
-	BucketId  uuid.UUID `json:"bucket_id"`
+	BucketID  uuid.UUID `json:"bucket_id"`
 	ObjectKey string    `json:"object_key"`
 }
 
@@ -25,18 +28,18 @@ type TrashExpiration struct {
 	Payload TrashExpirationPayload
 }
 
-// NewTrashExpirationFromBucketEvent creates a trash expiration event from a bucket deletion event
-func NewTrashExpirationFromBucketEvent(bucketId uuid.UUID, objectKey string) *TrashExpiration {
+// NewTrashExpirationFromBucketEvent creates a trash expiration event from a bucket deletion event.
+func NewTrashExpirationFromBucketEvent(bucketID uuid.UUID, objectKey string) *TrashExpiration {
 	return &TrashExpiration{
 		Payload: TrashExpirationPayload{
 			Type:      TrashExpirationName,
-			BucketId:  bucketId,
+			BucketID:  bucketID,
 			ObjectKey: objectKey,
 		},
 	}
 }
 
-// Trigger publishes the trash expiration event (if needed for manual triggering)
+// Trigger publishes the trash expiration event (if needed for manual triggering).
 func (e *TrashExpiration) Trigger(publisher message.Publisher) {
 	payload, err := json.Marshal(e.Payload)
 	if err != nil {
@@ -47,21 +50,20 @@ func (e *TrashExpiration) Trigger(publisher message.Publisher) {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = publisher.Publish("events", msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger trash expiration event", zap.Error(err))
 	}
 }
 
-// callback processes the trash expiration event when lifecycle policy deletes an object
+// callback processes the trash expiration event when lifecycle policy deletes an object.
 func (e *TrashExpiration) callback(params *EventParams) error {
 	zap.L().Info("Processing trash expiration event",
-		zap.String("bucket_id", e.Payload.BucketId.String()),
+		zap.String("bucket_id", e.Payload.BucketID.String()),
 		zap.String("object_key", e.Payload.ObjectKey),
 	)
 
 	objectPath := e.Payload.ObjectKey
-	prefix := "buckets/" + e.Payload.BucketId.String() + "/"
+	prefix := "buckets/" + e.Payload.BucketID.String() + "/"
 	if len(objectPath) > len(prefix) {
 		objectPath = objectPath[len(prefix):]
 	}
@@ -77,7 +79,7 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 	var file models.File
 	result := params.DB.Where(
 		"bucket_id = ? AND path = ? AND name = ? AND status = ?",
-		e.Payload.BucketId,
+		e.Payload.BucketID,
 		dir,
 		filename,
 		models.FileStatusTrashed,
@@ -85,12 +87,12 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 
 	if result.Error != nil {
 		zap.L().Warn("File not found in trash, skipping cleanup",
-			zap.String("bucket_id", e.Payload.BucketId.String()),
+			zap.String("bucket_id", e.Payload.BucketID.String()),
 			zap.String("path", dir),
 			zap.String("name", filename),
 			zap.Error(result.Error),
 		)
-		return nil
+		return result.Error
 	}
 
 	if file.TrashedAt != nil {

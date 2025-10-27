@@ -1,18 +1,21 @@
 package middlewares
 
 import (
-	"api/internal/cache"
-	"api/internal/helpers"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"api/internal/cache"
+	"api/internal/helpers"
+
 	"go.uber.org/zap"
 )
 
-const authenticatedRequestsPerMinute = 200
-const unauthenticatedRequestsPerMinute = 20
+const (
+	authenticatedRequestsPerMinute   = 200
+	unauthenticatedRequestsPerMinute = 20
+)
 
 func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -92,8 +95,8 @@ func RateLimit(cache cache.ICache, trustedProxies []string) func(next http.Handl
 				}
 				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerMinute)
 			} else {
-				userId := claims.UserID.String()
-				applyRateLimit(next, w, r, cache, userId, authenticatedRequestsPerMinute)
+				userID := claims.UserID.String()
+				applyRateLimit(next, w, r, cache, userID, authenticatedRequestsPerMinute)
 			}
 		}
 		return http.HandlerFunc(fn)

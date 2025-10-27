@@ -1,14 +1,15 @@
 package events
 
 import (
-	c "api/internal/configuration"
-	"api/internal/messaging"
-	"api/internal/models"
-	"api/internal/storage"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
+
+	c "api/internal/configuration"
+	"api/internal/messaging"
+	"api/internal/models"
+	"api/internal/storage"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -17,8 +18,10 @@ import (
 	"gorm.io/gorm"
 )
 
-const ObjectDeletionName = "ObjectDeletion"
-const ObjectDeletionPayloadName = "ObjectDeletionPayload"
+const (
+	ObjectDeletionName        = "ObjectDeletion"
+	ObjectDeletionPayloadName = "ObjectDeletionPayload"
+)
 
 type ObjectDeletionPayload struct {
 	Type   string
@@ -56,7 +59,6 @@ func (e *ObjectDeletion) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
@@ -108,12 +110,16 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 			zap.L().Error("Failed to delete files from database", zap.Error(dbResult.Error))
 			return dbResult.Error
 		}
-		zap.L().Info("Successfully deleted files from database", zap.Int64("count", dbResult.RowsAffected))
+		zap.L().
+			Info("Successfully deleted files from database", zap.Int64("count", dbResult.RowsAffected))
 
 		zap.L().Info("Deleting files from storage", zap.Int("count", len(files)))
 		var storagePaths []string
 		for _, file := range files {
-			storagePaths = append(storagePaths, path.Join("buckets", file.BucketID.String(), file.Path, file.Name))
+			storagePaths = append(
+				storagePaths,
+				path.Join("buckets", file.BucketID.String(), file.Path, file.Name),
+			)
 		}
 
 		if len(storagePaths) > 0 {
@@ -127,7 +133,6 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}
@@ -140,7 +145,8 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 			Find(&files)
 
 		if result.RowsAffected > 0 {
-			zap.L().Info("More files to delete, requeuing event", zap.Int64("count", result.RowsAffected))
+			zap.L().
+				Info("More files to delete, requeuing event", zap.Int64("count", result.RowsAffected))
 			return errors.New("remaining files left")
 		}
 	}
@@ -180,7 +186,7 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 	return nil
 }
 
-// cleanupOrphanedFiles performs a final check for any files left in storage that weren't in the database
+// cleanupOrphanedFiles performs a final check for any files left in storage that weren't in the database.
 func (e *ObjectDeletion) cleanupOrphanedFiles(storage storage.IStorage, bucketPrefix string) bool {
 	objects, err := storage.ListObjects(bucketPrefix, c.BulkActionsLimit)
 	if err != nil {

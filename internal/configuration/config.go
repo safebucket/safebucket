@@ -1,10 +1,11 @@
 package configuration
 
 import (
-	"api/internal/models"
 	"fmt"
 	"os"
 	"strings"
+
+	"api/internal/models"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -29,7 +30,8 @@ func parseArrayFields(k *koanf.Koanf) {
 			}
 			err := k.Set(field, items)
 			if err != nil {
-				zap.L().Error("Error parsing array field", zap.String("field", field), zap.Error(err))
+				zap.L().
+					Error("Error parsing array field", zap.String("field", field), zap.Error(err))
 			}
 		}
 	}
@@ -46,11 +48,20 @@ func parseAuthProviders(k *koanf.Koanf) {
 
 			for _, key := range AuthProviderKeys {
 				keyUpper := strings.ToUpper(key)
-				envKey := fmt.Sprintf("AUTH__PROVIDERS__%s__%s__%s", providerUpper, providerType, keyUpper)
+				envKey := fmt.Sprintf(
+					"AUTH__PROVIDERS__%s__%s__%s",
+					providerUpper,
+					providerType,
+					keyUpper,
+				)
 				if envVal := os.Getenv(envKey); envVal != "" {
-					err := k.Set(fmt.Sprintf("auth.providers.%s.%s.%s", provider, providerType, key), envVal)
+					err := k.Set(
+						fmt.Sprintf("auth.providers.%s.%s.%s", provider, providerType, key),
+						envVal,
+					)
 					if err != nil {
-						zap.L().Error("Failed to unmarshal value", zap.Error(err), zap.String("key", key))
+						zap.L().
+							Error("Failed to unmarshal value", zap.Error(err), zap.String("key", key))
 					}
 				}
 			}
@@ -67,7 +78,6 @@ func readEnvVars(k *koanf.Koanf) {
 		result := strings.Join(segments, ".")
 		return result
 	}), nil)
-
 	if err != nil {
 		zap.L().Warn("Error loading environment variables", zap.Error(err))
 	}
@@ -93,7 +103,8 @@ func readFileConfig(k *koanf.Koanf) {
 	if filePath != "" {
 		err := k.Load(file.Provider(filePath), yaml.Parser())
 		if err != nil {
-			zap.L().Fatal("Fatal error loading config file", zap.String("path", filePath), zap.Error(err))
+			zap.L().
+				Fatal("Fatal error loading config file", zap.String("path", filePath), zap.Error(err))
 		}
 		zap.L().Info("Read configuration from file " + filePath)
 	} else {
@@ -109,7 +120,6 @@ func Read() models.Configuration {
 
 	var config models.Configuration
 	err := k.UnmarshalWithConf("", &config, koanf.UnmarshalConf{Tag: "mapstructure"})
-
 	if err != nil {
 		zap.L().Fatal("Unable to decode config into struct", zap.Error(err))
 	}

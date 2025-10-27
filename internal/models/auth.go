@@ -8,12 +8,12 @@ const (
 )
 
 type AuthLoginBody struct {
-	Email    string `json:"email" validate:"required,email,max=254"`
+	Email    string `json:"email"    validate:"required,email,max=254"`
 	Password string `json:"password" validate:"required,max=72"`
 }
 
 type AuthLoginResponse struct {
-	AccessToken  string `json:"access_token" validate:"required"`
+	AccessToken  string `json:"access_token"  validate:"required"`
 	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
@@ -30,7 +30,7 @@ type AuthRefreshResponse struct {
 }
 
 type ProviderResponse struct {
-	Id      string       `json:"id"`
+	ID      string       `json:"id"`
 	Name    string       `json:"name"`
 	Type    ProviderType `json:"type"`
 	Domains []string     `json:"domains"`
@@ -41,6 +41,6 @@ type PasswordResetRequestBody struct {
 }
 
 type PasswordResetValidateBody struct {
-	Code        string `json:"code" validate:"required,len=6,alphanum"`
+	Code        string `json:"code"         validate:"required,len=6,alphanum"`
 	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
 }

@@ -1,9 +1,10 @@
 package messaging
 
 import (
-	"api/internal/storage"
 	"context"
 	"encoding/json"
+
+	"api/internal/storage"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-aws/sqs"
@@ -19,7 +20,6 @@ type AWSPublisher struct {
 
 func NewAWSPublisher(queueName string) IPublisher {
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background())
-
 	if err != nil {
 		zap.L().Fatal("Unable to load SDK config.", zap.Error(err))
 	}
@@ -33,7 +33,6 @@ func NewAWSPublisher(queueName string) IPublisher {
 		DoNotCreateQueueIfNotExists: true,
 		Marshaler:                   sqs.DefaultMarshalerUnmarshaler{},
 	}, watermill.NopLogger{})
-
 	if err != nil {
 		zap.L().Fatal("Unable to create publisher", zap.Error(err))
 	}
@@ -65,7 +64,6 @@ func NewAWSSubscriber(sqsName string, storage storage.IStorage) ISubscriber {
 		AWSConfig:                   awsCfg,
 		DoNotCreateQueueIfNotExists: true,
 	}, nil)
-
 	if err != nil {
 		zap.L().Fatal("Failed to create CloudStorage subscriber", zap.Error(err))
 	}
@@ -76,7 +74,8 @@ func NewAWSSubscriber(sqsName string, storage storage.IStorage) ISubscriber {
 func (s *AWSSubscriber) Subscribe() <-chan *message.Message {
 	sub, err := s.subscriber.Subscribe(context.Background(), s.TopicName)
 	if err != nil {
-		zap.L().Fatal("Failed to subscribe to topic", zap.String("topic", s.TopicName), zap.Error(err))
+		zap.L().
+			Fatal("Failed to subscribe to topic", zap.String("topic", s.TopicName), zap.Error(err))
 	}
 	return sub
 }
@@ -100,14 +99,14 @@ func (s *AWSSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 				zap.L().Error("failed to stat object", zap.Error(err))
 			}
 
-			bucketId := metadata["bucket_id"]
-			fileId := metadata["file_id"]
-			userId := metadata["user_id"]
+			bucketID := metadata["bucket_id"]
+			fileID := metadata["file_id"]
+			userID := metadata["user_id"]
 
 			uploadEvents = append(uploadEvents, BucketUploadEvent{
-				BucketId: bucketId,
-				FileId:   fileId,
-				UserId:   userId,
+				BucketID: bucketID,
+				FileID:   fileID,
+				UserID:   userID,
 			})
 			message.Ack()
 		} else {
@@ -131,13 +130,14 @@ func (s *AWSSubscriber) ParseBucketDeletionEvents(message *message.Message) []Bu
 	var deletionEvents []BucketDeletionEvent
 	for _, record := range event.Records {
 		eventName := record.EventName
-		isRemoveEvent := len(eventName) >= len("ObjectRemoved:") && eventName[:len("ObjectRemoved:")] == "ObjectRemoved:"
-		isLifecycleEvent := len(eventName) >= len("LifecycleExpiration:") && eventName[:len("LifecycleExpiration:")] == "LifecycleExpiration:"
+		isRemoveEvent := len(eventName) >= len("ObjectRemoved:") &&
+			eventName[:len("ObjectRemoved:")] == "ObjectRemoved:"
+		isLifecycleEvent := len(eventName) >= len("LifecycleExpiration:") &&
+			eventName[:len("LifecycleExpiration:")] == "LifecycleExpiration:"
 
 		if isRemoveEvent || isLifecycleEvent {
-
 			objectKey := record.S3.Object.Key
-			var bucketId string
+			var bucketID string
 			if len(objectKey) > 8 && objectKey[:8] == "buckets/" {
 				parts := make([]string, 0)
 				start := 0
@@ -152,25 +152,25 @@ func (s *AWSSubscriber) ParseBucketDeletionEvents(message *message.Message) []Bu
 				}
 
 				if len(parts) >= 2 {
-					bucketId = parts[1]
+					bucketID = parts[1]
 				}
 			}
 
-			if bucketId == "" {
+			if bucketID == "" {
 				zap.L().Warn("unable to extract bucket ID from object key",
 					zap.String("object_key", objectKey))
 				continue
 			}
 
 			deletionEvents = append(deletionEvents, BucketDeletionEvent{
-				BucketId:  bucketId,
+				BucketID:  bucketID,
 				ObjectKey: objectKey,
 				EventName: eventName,
 			})
 
 			zap.L().Debug("parsed deletion event",
 				zap.String("event_name", eventName),
-				zap.String("bucket_id", bucketId),
+				zap.String("bucket_id", bucketID),
 				zap.String("object_key", objectKey))
 		}
 	}

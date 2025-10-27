@@ -1,13 +1,14 @@
 package services
 
 import (
+	"errors"
+
 	customerrors "api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/sql"
-	"errors"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"
@@ -42,7 +43,12 @@ func (s UserService) Routes() chi.Router {
 	return r
 }
 
-func (s UserService) CreateUser(logger *zap.Logger, _ models.UserClaims, _ uuid.UUIDs, body models.UserCreateBody) (models.User, error) {
+func (s UserService) CreateUser(
+	logger *zap.Logger,
+	_ models.UserClaims,
+	_ uuid.UUIDs,
+	body models.UserCreateBody,
+) (models.User, error) {
 	newUser := models.User{
 		FirstName:    body.FirstName,
 		LastName:     body.LastName,
@@ -77,7 +83,11 @@ func (s UserService) GetUserList(_ *zap.Logger, _ models.UserClaims, _ uuid.UUID
 	return users
 }
 
-func (s UserService) GetUser(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) (models.User, error) {
+func (s UserService) GetUser(
+	_ *zap.Logger,
+	_ models.UserClaims,
+	ids uuid.UUIDs,
+) (models.User, error) {
 	var user models.User
 	result := s.DB.Where("id = ?", ids[0]).First(&user)
 	if result.RowsAffected == 0 {
@@ -87,7 +97,12 @@ func (s UserService) GetUser(_ *zap.Logger, _ models.UserClaims, ids uuid.UUIDs)
 	}
 }
 
-func (s UserService) UpdateUser(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.UserUpdateBody) (models.User, error) {
+func (s UserService) UpdateUser(
+	logger *zap.Logger,
+	_ models.UserClaims,
+	ids uuid.UUIDs,
+	body models.UserUpdateBody,
+) (models.User, error) {
 	user := models.User{ID: ids[0]}
 
 	updatedUser := models.User{
@@ -135,23 +150,31 @@ func (s UserService) UpdateUser(logger *zap.Logger, _ models.UserClaims, ids uui
 }
 
 func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
-	userId := ids[0]
+	userID := ids[0]
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Where("id = ?", userId).Delete(&models.User{})
+		result := tx.Where("id = ?", userID).Delete(&models.User{})
 		if result.RowsAffected == 0 {
 			return errors.New("USER_NOT_FOUND")
 		}
 
 		if result.Error != nil {
-			logger.Error("Failed to delete user", zap.Error(result.Error), zap.String("user_id", userId.String()))
+			logger.Error(
+				"Failed to delete user",
+				zap.Error(result.Error),
+				zap.String("user_id", userID.String()),
+			)
 			return result.Error
 		}
 
 		// Delete user-created invites
-		result = tx.Where("created_by = ?", userId.String()).Delete(&models.Invite{})
+		result = tx.Where("created_by = ?", userID.String()).Delete(&models.Invite{})
 		if result.Error != nil {
-			logger.Error("Failed to delete user-created invites", zap.Error(result.Error), zap.String("user_id", userId.String()))
+			logger.Error(
+				"Failed to delete user-created invites",
+				zap.Error(result.Error),
+				zap.String("user_id", userID.String()),
+			)
 			return result.Error
 		}
 
@@ -159,11 +182,14 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 
 		return nil
 	})
-
 	if err != nil {
 		return customerrors.ErrorInternalServer
 	}
 
-	logger.Info("User successfully deleted", zap.String("user_id", userId.String()), zap.String("email", user.Email))
+	logger.Info(
+		"User successfully deleted",
+		zap.String("user_id", userID.String()),
+		zap.String("email", user.Email),
+	)
 	return nil
 }

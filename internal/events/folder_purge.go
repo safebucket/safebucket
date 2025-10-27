@@ -1,15 +1,16 @@
 package events
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"path"
+
 	"api/internal/activity"
 	c "api/internal/configuration"
 	"api/internal/messaging"
 	"api/internal/models"
 	"api/internal/rbac"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"path"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -18,14 +19,16 @@ import (
 	"gorm.io/gorm"
 )
 
-const FolderPurgeName = "FolderPurge"
-const FolderPurgePayloadName = "FolderPurgePayload"
+const (
+	FolderPurgeName        = "FolderPurge"
+	FolderPurgePayloadName = "FolderPurgePayload"
+)
 
 type FolderPurgePayload struct {
 	Type     string
-	BucketId uuid.UUID
-	FolderId uuid.UUID
-	UserId   uuid.UUID
+	BucketID uuid.UUID
+	FolderID uuid.UUID
+	UserID   uuid.UUID
 }
 
 type FolderPurge struct {
@@ -35,17 +38,17 @@ type FolderPurge struct {
 
 func NewFolderPurge(
 	publisher messaging.IPublisher,
-	bucketId uuid.UUID,
-	folderId uuid.UUID,
-	userId uuid.UUID,
+	bucketID uuid.UUID,
+	folderID uuid.UUID,
+	userID uuid.UUID,
 ) FolderPurge {
 	return FolderPurge{
 		Publisher: publisher,
 		Payload: FolderPurgePayload{
 			Type:     FolderPurgeName,
-			BucketId: bucketId,
-			FolderId: folderId,
-			UserId:   userId,
+			BucketID: bucketID,
+			FolderID: folderID,
+			UserID:   userID,
 		},
 	}
 }
@@ -60,7 +63,6 @@ func (e *FolderPurge) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger folder purge event", zap.Error(err))
 	}
@@ -68,13 +70,13 @@ func (e *FolderPurge) Trigger() {
 
 func (e *FolderPurge) callback(params *EventParams) error {
 	zap.L().Info("Starting folder purge (permanent deletion)",
-		zap.String("bucket_id", e.Payload.BucketId.String()),
-		zap.String("folder_id", e.Payload.FolderId.String()),
+		zap.String("bucket_id", e.Payload.BucketID.String()),
+		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
 	var folder models.File
 	result := params.DB.Where("id = ? AND bucket_id = ? AND type = 'folder'",
-		e.Payload.FolderId, e.Payload.BucketId).First(&folder)
+		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
 	if result.Error != nil {
 		zap.L().Error("Folder not found", zap.Error(result.Error))
@@ -94,7 +96,7 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		var childFiles []models.File
 		batchResult := tx.Where(
 			"bucket_id = ? AND path LIKE ?",
-			e.Payload.BucketId,
+			e.Payload.BucketID,
 			dbPath,
 		).Limit(c.BulkActionsLimit).Find(&childFiles)
 
@@ -110,7 +112,12 @@ func (e *FolderPurge) callback(params *EventParams) error {
 
 			var storagePaths []string
 			for _, child := range childFiles {
-				childPath := path.Join("buckets", e.Payload.BucketId.String(), child.Path, child.Name)
+				childPath := path.Join(
+					"buckets",
+					e.Payload.BucketID.String(),
+					child.Path,
+					child.Name,
+				)
 				storagePaths = append(storagePaths, childPath)
 			}
 
@@ -134,7 +141,6 @@ func (e *FolderPurge) callback(params *EventParams) error {
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}
@@ -142,7 +148,7 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	var remainingCount int64
 	params.DB.Model(&models.File{}).Where(
 		"bucket_id = ? AND path LIKE ?",
-		e.Payload.BucketId,
+		e.Payload.BucketID,
 		fmt.Sprintf("%s%%", path.Join(folder.Path, folder.Name)),
 	).Count(&remainingCount)
 
@@ -152,7 +158,7 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return errors.New("remaining files to purge")
 	}
 
-	objectPath := path.Join("buckets", e.Payload.BucketId.String(), folder.Path, folder.Name)
+	objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
 	if err := params.Storage.RemoveObject(objectPath); err != nil {
 		zap.L().Warn("Failed to delete folder from storage",
 			zap.Error(err),
@@ -168,11 +174,11 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		Message: activity.FolderPurged,
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionPurge.String(),
-			"bucket_id":   e.Payload.BucketId.String(),
-			"file_id":     e.Payload.FolderId.String(),
+			"bucket_id":   e.Payload.BucketID.String(),
+			"file_id":     e.Payload.FolderID.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFile.String(),
-			"user_id":     e.Payload.UserId.String(),
+			"user_id":     e.Payload.UserID.String(),
 		}),
 	}
 
@@ -181,8 +187,8 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	}
 
 	zap.L().Info("Folder purge complete",
-		zap.String("bucket_id", e.Payload.BucketId.String()),
-		zap.String("folder_id", e.Payload.FolderId.String()),
+		zap.String("bucket_id", e.Payload.BucketID.String()),
+		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
 	return nil

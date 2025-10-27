@@ -1,9 +1,10 @@
 package configuration
 
 import (
-	"api/internal/models"
 	"context"
 	"fmt"
+
+	"api/internal/models"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"go.uber.org/zap"
@@ -25,8 +26,12 @@ type Providers map[string]Provider
 
 type ProvidersConfiguration map[string]models.ProviderConfiguration
 
-func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersConfiguration) Providers {
-	var providers = Providers{}
+func LoadProviders(
+	ctx context.Context,
+	apiURL string,
+	providersCfg ProvidersConfiguration,
+) Providers {
+	providers := Providers{}
 	idx := 0
 	countLocalProviders := 0
 
@@ -56,13 +61,13 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 			continue
 		}
 
-		verifier := provider.Verifier(&oidc.Config{ClientID: providerCfg.OIDC.ClientId})
+		verifier := provider.Verifier(&oidc.Config{ClientID: providerCfg.OIDC.ClientID})
 
 		oauthConfig := oauth2.Config{
-			ClientID:     providerCfg.OIDC.ClientId,
+			ClientID:     providerCfg.OIDC.ClientID,
 			ClientSecret: providerCfg.OIDC.ClientSecret,
 			Endpoint:     provider.Endpoint(),
-			RedirectURL:  fmt.Sprintf("%s/api/v1/auth/providers/%s/callback", apiUrl, name),
+			RedirectURL:  fmt.Sprintf("%s/api/v1/auth/providers/%s/callback", apiURL, name),
 			Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
 		}
 
@@ -82,7 +87,7 @@ func LoadProviders(ctx context.Context, apiUrl string, providersCfg ProvidersCon
 		zap.L().Info(
 			"Loaded auth provider",
 			zap.String("name", name),
-			zap.String("client_id", providerCfg.OIDC.ClientId),
+			zap.String("client_id", providerCfg.OIDC.ClientID),
 			zap.String("issuer", providerCfg.OIDC.Issuer),
 			zap.Any("domains", providerCfg.Domains),
 		)

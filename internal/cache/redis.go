@@ -1,12 +1,13 @@
 package cache
 
 import (
-	"api/internal/configuration"
-	"api/internal/models"
 	"context"
 	"crypto/tls"
 	"fmt"
 	"time"
+
+	"api/internal/configuration"
+	"api/internal/models"
 
 	"github.com/redis/rueidis"
 	"go.uber.org/zap"
@@ -30,7 +31,6 @@ func NewRedisCache(config models.RedisCacheConfiguration) (*RedisCache, error) {
 	}
 
 	client, err := rueidis.NewClient(clientOption)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to redis: %w", err)
 	}
@@ -41,7 +41,8 @@ func (r *RedisCache) RegisterPlatform(id string) error {
 	ctx := context.Background()
 	sortedSetKey := configuration.CacheAppIdentityKey
 	currentTime := float64(time.Now().Unix())
-	err := r.client.Do(ctx, r.client.B().Zadd().Key(sortedSetKey).ScoreMember().ScoreMember(currentTime, id).Build()).Error()
+	err := r.client.Do(ctx, r.client.B().Zadd().Key(sortedSetKey).ScoreMember().ScoreMember(currentTime, id).Build()).
+		Error()
 	return err
 }
 
@@ -50,7 +51,8 @@ func (r *RedisCache) DeleteInactivePlatform() error {
 	sortedSetKey := configuration.CacheAppIdentityKey
 	currentTime := float64(time.Now().Unix())
 	maxLifetime := float64(configuration.CacheMaxAppIdentityLifetime)
-	err := r.client.Do(ctx, r.client.B().Zremrangebyscore().Key(sortedSetKey).Min("-inf").Max(fmt.Sprintf("%f", currentTime-maxLifetime)).Build()).Error()
+	err := r.client.Do(ctx, r.client.B().Zremrangebyscore().Key(sortedSetKey).Min("-inf").Max(fmt.Sprintf("%f", currentTime-maxLifetime)).Build()).
+		Error()
 	return err
 }
 
@@ -74,13 +76,13 @@ func (r *RedisCache) GetRateLimit(userIdentifier string, requestsPerMinute int) 
 
 	key := fmt.Sprintf(configuration.CacheAppRateLimitKey, userIdentifier)
 	count, err := r.client.Do(ctx, r.client.B().Incr().Key(key).Build()).AsInt64()
-
 	if err != nil {
 		return 0, err
 	}
 
 	if count == 1 {
-		err := r.client.Do(ctx, r.client.B().Expire().Key(key).Seconds(int64(1*time.Minute.Seconds())).Build()).Error()
+		err := r.client.Do(ctx, r.client.B().Expire().Key(key).Seconds(int64(1*time.Minute.Seconds())).Build()).
+			Error()
 		if err != nil {
 			return 0, err
 		}
@@ -88,7 +90,6 @@ func (r *RedisCache) GetRateLimit(userIdentifier string, requestsPerMinute int) 
 
 	if int(count) > requestsPerMinute {
 		retryAfter, err := r.client.Do(ctx, r.client.B().Ttl().Key(key).Build()).AsInt64()
-
 		if err != nil {
 			return 0, err
 		}

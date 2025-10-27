@@ -13,7 +13,7 @@ type UpdateMembersBody struct {
 
 type BucketMember struct {
 	UserID    uuid.UUID `json:"user_id,omitempty"`
-	Email     string    `json:"email" validate:"required"`
+	Email     string    `json:"email"                validate:"required"`
 	FirstName string    `json:"first_name,omitempty"`
 	LastName  string    `json:"last_name,omitempty"`
 	Group     Group     `json:"group" validate:"required,oneof=owner contributor viewer"`
@@ -23,6 +23,7 @@ type BucketMember struct {
 type BucketMemberToUpdate struct {
 	BucketMember
 	NewGroup Group `validate:"required,oneof=owner contributor viewer"`
+
 }
 
 type MembershipChanges struct {

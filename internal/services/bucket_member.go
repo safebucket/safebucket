@@ -1,6 +1,8 @@
 package services
 
 import (
+	"strings"
+
 	"api/internal/activity"
 	"api/internal/configuration"
 	"api/internal/errors"
@@ -11,7 +13,6 @@ import (
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -24,7 +25,7 @@ type BucketMemberService struct {
 	Providers      configuration.Providers
 	Publisher      messaging.IPublisher
 	ActivityLogger activity.IActivityLogger
-	WebUrl         string
+	WebURL         string
 }
 
 func (s BucketMemberService) Routes() chi.Router {
@@ -40,11 +41,15 @@ func (s BucketMemberService) Routes() chi.Router {
 	return r
 }
 
-func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) []models.BucketMember {
-	bucketId := ids[0]
+func (s BucketMemberService) GetBucketMembers(
+	logger *zap.Logger,
+	_ models.UserClaims,
+	ids uuid.UUIDs,
+) []models.BucketMember {
+	bucketID := ids[0]
 	var bucket models.Bucket
 
-	result := s.DB.Where("id = ?", bucketId).First(&bucket)
+	result := s.DB.Where("id = ?", bucketID).First(&bucket)
 	if result.RowsAffected == 0 {
 		return []models.BucketMember{}
 	}
@@ -52,7 +57,7 @@ func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserC
 	var membersList []models.BucketMember
 	userEmailMap := make(map[string]models.User)
 
-	memberships, err := rbac.GetBucketMembers(s.DB, bucketId)
+	memberships, err := rbac.GetBucketMembers(s.DB, bucketID)
 	if err != nil {
 		logger.Error("Failed to fetch bucket memberships", zap.Error(err))
 		return []models.BucketMember{}
@@ -98,7 +103,7 @@ func (s BucketMemberService) UpdateBucketMembers(
 	ids uuid.UUIDs,
 	body models.UpdateMembersBody,
 ) (interface{}, error) {
-	bucketId := ids[0]
+	bucketID := ids[0]
 
 	var providerCfg configuration.Provider
 	var ok bool
@@ -112,7 +117,7 @@ func (s BucketMemberService) UpdateBucketMembers(
 	}
 
 	var bucket models.Bucket
-	result := s.DB.Where("id = ?", bucketId).First(&bucket)
+	result := s.DB.Where("id = ?", bucketID).First(&bucket)
 
 	if result.RowsAffected == 0 {
 		return nil, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
@@ -192,7 +197,12 @@ func (s BucketMemberService) compareMemberships(
 	return changes
 }
 
-func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, invite models.BucketMemberBody) {
+func (s BucketMemberService) addMember(
+	logger *zap.Logger,
+	user models.UserClaims,
+	bucket models.Bucket,
+	invite models.BucketMemberBody,
+) {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		var invitee models.User
 		result := tx.Where("email = ?", invite.Email).First(&invitee)
@@ -210,7 +220,11 @@ func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaim
 				if strings.Contains(err.Error(), "duplicate key") {
 					return err
 				}
-				logger.Error("Failed to create invite", zap.String("email", invite.Email), zap.Error(err))
+				logger.Error(
+					"Failed to create invite",
+					zap.String("email", invite.Email),
+					zap.Error(err),
+				)
 				return err
 			}
 
@@ -221,7 +235,7 @@ func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaim
 				bucket,
 				inviteRecord.Group,
 				inviteRecord.ID.String(),
-				s.WebUrl,
+				s.WebURL,
 			)
 			invitationEvent.Trigger()
 		} else {
@@ -260,13 +274,17 @@ func (s BucketMemberService) addMember(logger *zap.Logger, user models.UserClaim
 
 		return nil
 	})
-
 	if err != nil {
 		logger.Error("Failed to add member", zap.Error(err))
 	}
 }
 
-func (s BucketMemberService) updateMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, member models.BucketMemberToUpdate) {
+func (s BucketMemberService) updateMember(
+	logger *zap.Logger,
+	user models.UserClaims,
+	bucket models.Bucket,
+	member models.BucketMemberToUpdate,
+) {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		if member.Status == "invited" {
 			updateResult := tx.Model(&models.Invite{}).
@@ -308,13 +326,17 @@ func (s BucketMemberService) updateMember(logger *zap.Logger, user models.UserCl
 
 		return nil
 	})
-
 	if err != nil {
 		logger.Error("Failed to update member", zap.Error(err))
 	}
 }
 
-func (s BucketMemberService) deleteMember(logger *zap.Logger, user models.UserClaims, bucket models.Bucket, member models.BucketMember) {
+func (s BucketMemberService) deleteMember(
+	logger *zap.Logger,
+	user models.UserClaims,
+	bucket models.Bucket,
+	member models.BucketMember,
+) {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		if member.Status == "invited" {
 			deleteResult := tx.Where(
@@ -356,7 +378,6 @@ func (s BucketMemberService) deleteMember(logger *zap.Logger, user models.UserCl
 
 		return nil
 	})
-
 	if err != nil {
 		logger.Error("Failed to delete member", zap.Error(err))
 	}

@@ -1,11 +1,12 @@
 package storage
 
 import (
-	c "api/internal/configuration"
 	"context"
 	"errors"
 	"net/http"
 	"time"
+
+	c "api/internal/configuration"
 
 	gcs "cloud.google.com/go/storage"
 	"go.uber.org/zap"
@@ -25,7 +26,8 @@ func NewGCPStorage(bucketName string) IStorage {
 
 	_, err = client.Bucket(bucketName).Attrs(context.Background())
 	if err != nil {
-		zap.L().Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
+		zap.L().
+			Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
 	}
 
 	return &GCPStorage{
@@ -41,7 +43,6 @@ func (g GCPStorage) PresignedGetObject(path string) (string, error) {
 	}
 
 	url, err := g.storage.Bucket(g.BucketName).SignedURL(path, opts)
-
 	if err != nil {
 		return "", err
 	}
@@ -49,7 +50,11 @@ func (g GCPStorage) PresignedGetObject(path string) (string, error) {
 	return url, nil
 }
 
-func (g GCPStorage) PresignedPostPolicy(path string, size int, metadata map[string]string) (string, map[string]string, error) {
+func (g GCPStorage) PresignedPostPolicy(
+	path string,
+	size int,
+	metadata map[string]string,
+) (string, map[string]string, error) {
 	opts := &gcs.PostPolicyV4Options{
 		Expires: time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
 		Fields: &gcs.PolicyV4Fields{
@@ -65,7 +70,6 @@ func (g GCPStorage) PresignedPostPolicy(path string, size int, metadata map[stri
 	}
 
 	postPolicy, err := g.storage.Bucket(g.BucketName).GenerateSignedPostPolicyV4(path, opts)
-
 	if err != nil {
 		zap.L().Error("Failed to generate post policy", zap.Error(err))
 		return "", nil, err
@@ -76,7 +80,6 @@ func (g GCPStorage) PresignedPostPolicy(path string, size int, metadata map[stri
 
 func (g GCPStorage) StatObject(path string) (map[string]string, error) {
 	file, err := g.storage.Bucket(g.BucketName).Object(path).Attrs(context.Background())
-
 	if err != nil {
 		return nil, err
 	}

@@ -42,7 +42,7 @@ func NewLogger(level string) {
 	}(logger)
 }
 
-// isIgnorableLogSyncError returns true for errors that can be safely ignored during logger sync
+// isIgnorableLogSyncError returns true for errors that can be safely ignored during logger sync.
 func isIgnorableLogSyncError(err error) bool {
 	// Standard UNIX not-a-terminal error
 	if errors.Is(err, syscall.ENOTTY) {

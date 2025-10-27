@@ -1,12 +1,13 @@
 package activity
 
 import (
-	"api/internal/models"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"api/internal/models"
 
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
@@ -14,8 +15,10 @@ import (
 
 var authorizedLabels = [3]string{"domain", "object_type", "action"}
 
-const lokiPushURI = "/loki/api/v1/push"
-const lokiSearchURI = "/loki/api/v1/query_range"
+const (
+	lokiPushURI   = "/loki/api/v1/push"
+	lokiSearchURI = "/loki/api/v1/query_range"
+)
 
 // LokiBody represents the main structure for sending logs to Loki, containing a list of log stream entries.
 type LokiBody struct {
@@ -58,7 +61,6 @@ func (s *LokiClient) Send(activity models.Activity) error {
 		SetHeader("Content-Type", "application/json").
 		SetBody(lokiBody).
 		Post(s.pushURL)
-
 	if err != nil {
 		zap.L().Error("Failed to send data to loki ", zap.Any("error", err))
 		return err
@@ -76,13 +78,17 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	query := generateSearchQuery(searchCriteria)
 
 	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Unix()
-	params := map[string]string{"start": strconv.FormatInt(thirtyDaysAgo, 10), "limit": "100", "query": query, "direction": "backward"}
+	params := map[string]string{
+		"start":     strconv.FormatInt(thirtyDaysAgo, 10),
+		"limit":     "100",
+		"query":     query,
+		"direction": "backward",
+	}
 
 	resp, err := s.Client.R().
 		SetQueryParams(params).
 		SetHeader("Accept", "application/json").
 		Get(s.searchURL)
-
 	if err != nil {
 		zap.L().Error("Failed to query Loki", zap.Any("error", err))
 		return []map[string]interface{}{}, err
@@ -95,7 +101,10 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 			zap.String("response_body", string(resp.Body())),
 			zap.Error(err),
 		)
-		return []map[string]interface{}{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+		return []map[string]interface{}{}, fmt.Errorf(
+			"unexpected status code: %d",
+			resp.StatusCode(),
+		)
 	}
 
 	var parsedResp LokiQueryResponse
@@ -112,7 +121,7 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	var activity []map[string]interface{}
 	for _, result := range parsedResp.Data.Result {
 		for _, log := range result.Values {
-			var entry = map[string]interface{}{
+			entry := map[string]interface{}{
 				"domain":              result.Stream["domain"],
 				"user_id":             result.Stream["user_id"],
 				"action":              result.Stream["action"],

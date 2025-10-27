@@ -1,11 +1,13 @@
 package middlewares
 
 import (
-	h "api/internal/helpers"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"regexp"
+
+	h "api/internal/helpers"
 
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
@@ -40,7 +42,11 @@ func Validate[T any](next http.Handler) http.Handler {
 		err = validate.Struct(data)
 		if err != nil {
 			var strErrors []string
-			for _, err := range err.(validator.ValidationErrors) {
+			for _, err := range func() validator.ValidationErrors {
+				var target validator.ValidationErrors
+				_ = errors.As(err, &target)
+				return target
+			}() {
 				strErrors = append(strErrors, err.Error())
 			}
 			h.RespondWithError(w, http.StatusBadRequest, strErrors)

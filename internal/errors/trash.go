@@ -1,6 +1,6 @@
 package errors
 
-// Trash error codes - HTTP 400 Bad Request
+// Trash error codes - HTTP 400 Bad Request.
 const (
 	ErrFileAlreadyTrashed    = "FILE_ALREADY_TRASHED"
 	ErrFileNotInTrash        = "FILE_NOT_IN_TRASH"
@@ -11,7 +11,7 @@ const (
 	ErrFolderNameConflict    = "FOLDER_NAME_CONFLICT"
 )
 
-// Trash error codes - HTTP 410 Gone
+// Trash error codes - HTTP 410 Gone.
 const (
 	ErrFileTrashExpired   = "FILE_TRASH_EXPIRED"
 	ErrFolderTrashExpired = "FOLDER_TRASH_EXPIRED"

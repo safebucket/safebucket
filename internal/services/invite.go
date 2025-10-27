@@ -1,6 +1,9 @@
 package services
 
 import (
+	"strings"
+	"time"
+
 	"api/internal/activity"
 	"api/internal/configuration"
 	"api/internal/errors"
@@ -12,8 +15,6 @@ import (
 	"api/internal/models"
 	"api/internal/sql"
 	"api/internal/storage"
-	"strings"
-	"time"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"
@@ -29,24 +30,31 @@ type InviteService struct {
 	Publisher      messaging.IPublisher
 	Providers      configuration.Providers
 	ActivityLogger activity.IActivityLogger
-	WebUrl         string
+	WebURL         string
 }
 
 func (s InviteService) Routes() chi.Router {
 	r := chi.NewRouter()
 
 	r.Route("/{id0}", func(r chi.Router) {
-		r.With(m.Validate[models.InviteChallengeCreateBody]).Post("/challenges", handlers.CreateHandler(s.CreateInviteChallenge))
+		r.With(m.Validate[models.InviteChallengeCreateBody]).
+			Post("/challenges", handlers.CreateHandler(s.CreateInviteChallenge))
 
 		r.Route("/challenges/{id1}", func(r chi.Router) {
-			r.With(m.Validate[models.InviteChallengeValidateBody]).Post("/validate", handlers.CreateHandler(s.ValidateInviteChallenge))
+			r.With(m.Validate[models.InviteChallengeValidateBody]).
+				Post("/validate", handlers.CreateHandler(s.ValidateInviteChallenge))
 		})
 	})
 
 	return r
 }
 
-func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeCreateBody) (interface{}, error) {
+func (s InviteService) CreateInviteChallenge(
+	logger *zap.Logger,
+	_ models.UserClaims,
+	ids uuid.UUIDs,
+	body models.InviteChallengeCreateBody,
+) (interface{}, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
 		return nil, errors.NewAPIError(403, "FORBIDDEN")
@@ -57,9 +65,9 @@ func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserCl
 		return nil, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
-	inviteId := ids[0]
+	inviteID := ids[0]
 	var invite models.Invite
-	result := s.DB.Preload("User").Where("id = ?", inviteId).First(&invite)
+	result := s.DB.Preload("User").Where("id = ?", inviteID).First(&invite)
 
 	if result.RowsAffected == 0 {
 		return nil, errors.NewAPIError(404, "INVITE_NOT_FOUND")
@@ -67,12 +75,13 @@ func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserCl
 
 	if invite.Email != body.Email {
 		logger.Warn("Invite email mismatch attempt detected",
-			zap.String("invite_id", inviteId.String()),
+			zap.String("invite_id", inviteID.String()),
 			zap.String("provided_email", body.Email))
 		return nil, errors.NewAPIError(404, "INVITE_NOT_FOUND")
 	}
 
-	s.DB.Where("invite_id = ? AND type = ?", invite.ID, models.ChallengeTypeInvite).Delete(&models.Challenge{})
+	s.DB.Where("invite_id = ? AND type = ?", invite.ID, models.ChallengeTypeInvite).
+		Delete(&models.Challenge{})
 
 	secret, err := h.GenerateSecret()
 	if err != nil {
@@ -104,9 +113,9 @@ func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserCl
 		secret,
 		invite.Email,
 		invite.User.Email,
-		inviteId.String(),
+		inviteID.String(),
 		challenge.ID.String(),
-		s.WebUrl,
+		s.WebURL,
 	)
 	event.Trigger()
 
@@ -114,18 +123,25 @@ func (s InviteService) CreateInviteChallenge(logger *zap.Logger, _ models.UserCl
 	return nil, nil
 }
 
-func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs, body models.InviteChallengeValidateBody) (models.AuthLoginResponse, error) {
+func (s InviteService) ValidateInviteChallenge(
+	logger *zap.Logger,
+	_ models.UserClaims,
+	ids uuid.UUIDs,
+	body models.InviteChallengeValidateBody,
+) (models.AuthLoginResponse, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
 		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
-	inviteId := ids[0]
-	challengeId := ids[1]
+	inviteID := ids[0]
+	challengeID := ids[1]
 
 	var challenge models.Challenge
 
-	result := s.DB.Preload("Invite").Where("id = ? AND invite_id = ? AND type = ?", challengeId, inviteId, models.ChallengeTypeInvite).First(&challenge)
+	result := s.DB.Preload("Invite").
+		Where("id = ? AND invite_id = ? AND type = ?", challengeID, inviteID, models.ChallengeTypeInvite).
+		First(&challenge)
 
 	if result.RowsAffected == 0 {
 		return models.AuthLoginResponse{}, errors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
@@ -141,12 +157,18 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 		return models.AuthLoginResponse{}, errors.NewAPIError(410, "CHALLENGE_EXPIRED")
 	}
 
-	if !h.IsDomainAllowed(challenge.Invite.Email, s.Providers[string(models.LocalProviderType)].Domains) {
+	if !h.IsDomainAllowed(
+		challenge.Invite.Email,
+		s.Providers[string(models.LocalProviderType)].Domains,
+	) {
 		logger.Debug("Domain not allowed")
 		return models.AuthLoginResponse{}, errors.NewAPIError(403, "FORBIDDEN")
 	}
 
-	match, err := argon2id.ComparePasswordAndHash(strings.ToUpper(body.Code), challenge.HashedSecret)
+	match, err := argon2id.ComparePasswordAndHash(
+		strings.ToUpper(body.Code),
+		challenge.HashedSecret,
+	)
 	if err != nil || !match {
 		challenge.AttemptsLeft--
 
@@ -201,7 +223,6 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 
 		return nil
 	})
-
 	if err != nil {
 		logger.Error("Failed to commit transaction", zap.Error(err))
 		return models.AuthLoginResponse{}, errors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
@@ -210,7 +231,7 @@ func (s InviteService) ValidateInviteChallenge(logger *zap.Logger, _ models.User
 	welcomeEvent := events.NewUserWelcome(
 		s.Publisher,
 		newUser.Email,
-		s.WebUrl,
+		s.WebURL,
 	)
 	welcomeEvent.Trigger()
 

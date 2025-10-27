@@ -1,10 +1,11 @@
 package storage
 
 import (
-	c "api/internal/configuration"
-	"api/internal/models"
 	"context"
 	"time"
+
+	c "api/internal/configuration"
+	"api/internal/models"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -19,10 +20,9 @@ type S3Storage struct {
 
 func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) IStorage {
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.ClientId, config.ClientSecret, ""),
+		Creds:  credentials.NewStaticV4(config.ClientID, config.ClientSecret, ""),
 		Secure: false,
 	})
-
 	if err != nil {
 		zap.L().Error("Failed to connect to storage", zap.Error(err))
 	}
@@ -33,15 +33,21 @@ func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) I
 	}
 
 	if !exists {
-		zap.L().Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
+		zap.L().
+			Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
 	}
 
 	return S3Storage{BucketName: bucketName, storage: minioClient}
 }
 
 func (s S3Storage) PresignedGetObject(path string) (string, error) {
-	url, err := s.storage.PresignedGetObject(context.Background(), s.BucketName, path, time.Minute*15, nil)
-
+	url, err := s.storage.PresignedGetObject(
+		context.Background(),
+		s.BucketName,
+		path,
+		time.Minute*15,
+		nil,
+	)
 	if err != nil {
 		return "", err
 	}
@@ -49,7 +55,11 @@ func (s S3Storage) PresignedGetObject(path string) (string, error) {
 	return url.String(), nil
 }
 
-func (s S3Storage) PresignedPostPolicy(path string, size int, metadata map[string]string) (string, map[string]string, error) {
+func (s S3Storage) PresignedPostPolicy(
+	path string,
+	size int,
+	metadata map[string]string,
+) (string, map[string]string, error) {
 	policy := minio.NewPostPolicy()
 	_ = policy.SetBucket(s.BucketName)
 	_ = policy.SetKey(path)
@@ -60,7 +70,6 @@ func (s S3Storage) PresignedPostPolicy(path string, size int, metadata map[strin
 	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
 
 	url, metadata, err := s.storage.PresignedPostPolicy(context.Background(), policy)
-
 	if err != nil {
 		return "", map[string]string{}, err
 	}
@@ -69,8 +78,12 @@ func (s S3Storage) PresignedPostPolicy(path string, size int, metadata map[strin
 }
 
 func (s S3Storage) StatObject(path string) (map[string]string, error) {
-	file, err := s.storage.StatObject(context.Background(), s.BucketName, path, minio.StatObjectOptions{})
-
+	file, err := s.storage.StatObject(
+		context.Background(),
+		s.BucketName,
+		path,
+		minio.StatObjectOptions{},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +111,12 @@ func (s S3Storage) ListObjects(prefix string, maxKeys int32) ([]string, error) {
 }
 
 func (s S3Storage) RemoveObject(path string) error {
-	return s.storage.RemoveObject(context.Background(), s.BucketName, path, minio.RemoveObjectOptions{})
+	return s.storage.RemoveObject(
+		context.Background(),
+		s.BucketName,
+		path,
+		minio.RemoveObjectOptions{},
+	)
 }
 
 func (s S3Storage) RemoveObjects(paths []string) error {
@@ -119,7 +137,8 @@ func (s S3Storage) RemoveObjects(paths []string) error {
 
 	for err := range errorCh {
 		if err.Err != nil {
-			zap.L().Error("Failed to delete object", zap.String("key", err.ObjectName), zap.Error(err.Err))
+			zap.L().
+				Error("Failed to delete object", zap.String("key", err.ObjectName), zap.Error(err.Err))
 			return err.Err
 		}
 	}
@@ -133,12 +152,23 @@ func (s S3Storage) SetObjectTags(path string, tagMap map[string]string) error {
 		return err
 	}
 
-	err = s.storage.PutObjectTagging(context.Background(), s.BucketName, path, objectTags, minio.PutObjectTaggingOptions{})
+	err = s.storage.PutObjectTagging(
+		context.Background(),
+		s.BucketName,
+		path,
+		objectTags,
+		minio.PutObjectTaggingOptions{},
+	)
 	return err
 }
 
 func (s S3Storage) GetObjectTags(path string) (map[string]string, error) {
-	currentTags, err := s.storage.GetObjectTagging(context.Background(), s.BucketName, path, minio.GetObjectTaggingOptions{})
+	currentTags, err := s.storage.GetObjectTagging(
+		context.Background(),
+		s.BucketName,
+		path,
+		minio.GetObjectTaggingOptions{},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +177,12 @@ func (s S3Storage) GetObjectTags(path string) (map[string]string, error) {
 }
 
 func (s S3Storage) RemoveObjectTags(path string, tagsToRemove []string) error {
-	currentTags, err := s.storage.GetObjectTagging(context.Background(), s.BucketName, path, minio.GetObjectTaggingOptions{})
+	currentTags, err := s.storage.GetObjectTagging(
+		context.Background(),
+		s.BucketName,
+		path,
+		minio.GetObjectTaggingOptions{},
+	)
 	if err != nil {
 		return err
 	}
@@ -163,6 +198,12 @@ func (s S3Storage) RemoveObjectTags(path string, tagsToRemove []string) error {
 		return err
 	}
 
-	err = s.storage.PutObjectTagging(context.Background(), s.BucketName, path, filteredTags, minio.PutObjectTaggingOptions{})
+	err = s.storage.PutObjectTagging(
+		context.Background(),
+		s.BucketName,
+		path,
+		filteredTags,
+		minio.PutObjectTaggingOptions{},
+	)
 	return err
 }

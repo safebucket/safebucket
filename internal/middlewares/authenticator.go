@@ -1,12 +1,13 @@
 package middlewares
 
 import (
-	"api/internal/configuration"
-	"api/internal/helpers"
-	"api/internal/models"
 	"context"
 	"net/http"
 	"strings"
+
+	"api/internal/configuration"
+	"api/internal/helpers"
+	"api/internal/models"
 )
 
 func Authenticate(jwtSecret string) func(next http.Handler) http.Handler {
@@ -18,7 +19,6 @@ func Authenticate(jwtSecret string) func(next http.Handler) http.Handler {
 				accessToken := r.Header.Get("Authorization")
 
 				userClaims, err := helpers.ParseAccessToken(jwtSecret, accessToken)
-
 				if err != nil {
 					helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
 					return

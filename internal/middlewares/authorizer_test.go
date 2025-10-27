@@ -1,14 +1,15 @@
 package middlewares
 
 import (
-	"api/internal/models"
-	"api/internal/tests"
 	"context"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"testing"
+
+	"api/internal/models"
+	"api/internal/tests"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-chi/chi/v5"
@@ -19,7 +20,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// mockNextHandler is a simple handler that returns 200 OK
+// mockNextHandler is a simple handler that returns 200 OK.
 func mockAuthNextHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("OK"))
@@ -117,7 +118,7 @@ func TestAuthorizeGroup(t *testing.T) {
 		userGroup        models.Group
 		requiredGroup    models.Group
 		hasUserClaims    bool
-		bucketIdIndex    int
+		bucketIDIndex    int
 		setupURLParams   bool
 		hasMembership    bool
 		mockDBError      bool
@@ -130,7 +131,7 @@ func TestAuthorizeGroup(t *testing.T) {
 			userGroup:      models.GroupOwner,
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  true,
-			bucketIdIndex:  0,
+			bucketIDIndex:  0,
 			setupURLParams: true,
 			hasMembership:  true,
 			expectedStatus: http.StatusOK,
@@ -147,7 +148,7 @@ func TestAuthorizeGroup(t *testing.T) {
 			userGroup:      models.GroupContributor,
 			requiredGroup:  models.GroupContributor,
 			hasUserClaims:  true,
-			bucketIdIndex:  0,
+			bucketIDIndex:  0,
 			setupURLParams: true,
 			hasMembership:  true,
 			expectedStatus: http.StatusOK,
@@ -164,7 +165,7 @@ func TestAuthorizeGroup(t *testing.T) {
 			userGroup:      models.GroupViewer,
 			requiredGroup:  models.GroupOwner,
 			hasUserClaims:  true,
-			bucketIdIndex:  0,
+			bucketIDIndex:  0,
 			setupURLParams: true,
 			hasMembership:  true,
 			expectedStatus: http.StatusForbidden,
@@ -181,7 +182,7 @@ func TestAuthorizeGroup(t *testing.T) {
 			name:           "User with no membership",
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  true,
-			bucketIdIndex:  0,
+			bucketIDIndex:  0,
 			setupURLParams: true,
 			hasMembership:  false,
 			expectedStatus: http.StatusForbidden,
@@ -196,29 +197,29 @@ func TestAuthorizeGroup(t *testing.T) {
 			name:           "Missing user claims",
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  false,
-			bucketIdIndex:  0,
+			bucketIDIndex:  0,
 			setupURLParams: true,
 			expectedStatus: http.StatusUnauthorized,
 			expectedErrors: []string{"UNAUTHORIZED"},
-			setupMockQueries: func(mock sqlmock.Sqlmock) {
+			setupMockQueries: func(_ sqlmock.Sqlmock) {
 			},
 		},
 		{
 			name:           "Invalid bucket UUID in URL",
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  true,
-			bucketIdIndex:  0,
+			bucketIDIndex:  0,
 			setupURLParams: false,
 			expectedStatus: http.StatusUnauthorized,
 			expectedErrors: []string{"UNAUTHORIZED"},
-			setupMockQueries: func(mock sqlmock.Sqlmock) {
+			setupMockQueries: func(_ sqlmock.Sqlmock) {
 			},
 		},
 		{
 			name:           "Database error",
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  true,
-			bucketIdIndex:  0,
+			bucketIDIndex:  0,
 			setupURLParams: true,
 			mockDBError:    true,
 			expectedStatus: http.StatusInternalServerError,
@@ -266,7 +267,13 @@ func TestAuthorizeGroup(t *testing.T) {
 				req = req.WithContext(ctx)
 			}
 
-			handler := AuthorizeGroup(gormDB, tt.requiredGroup, tt.bucketIdIndex)(http.HandlerFunc(mockAuthNextHandler))
+			handler := AuthorizeGroup(
+				gormDB,
+				tt.requiredGroup,
+				tt.bucketIDIndex,
+			)(
+				http.HandlerFunc(mockAuthNextHandler),
+			)
 			handler.ServeHTTP(recorder, req)
 
 			assert.Equal(t, tt.expectedStatus, recorder.Code)
@@ -291,7 +298,7 @@ func TestAuthorizeSelfOrAdmin(t *testing.T) {
 		targetID        uuid.UUID
 		userRole        models.Role
 		hasUserClaims   bool
-		targetUserIdIdx int
+		targetUserIDIdx int
 		setupURLParams  bool
 		expectedStatus  int
 		expectedErrors  []string
@@ -302,7 +309,7 @@ func TestAuthorizeSelfOrAdmin(t *testing.T) {
 			targetID:        userID,
 			userRole:        models.RoleUser,
 			hasUserClaims:   true,
-			targetUserIdIdx: 0,
+			targetUserIDIdx: 0,
 			setupURLParams:  true,
 			expectedStatus:  http.StatusOK,
 		},
@@ -312,7 +319,7 @@ func TestAuthorizeSelfOrAdmin(t *testing.T) {
 			targetID:        otherUserID,
 			userRole:        models.RoleAdmin,
 			hasUserClaims:   true,
-			targetUserIdIdx: 0,
+			targetUserIDIdx: 0,
 			setupURLParams:  true,
 			expectedStatus:  http.StatusOK,
 		},
@@ -322,7 +329,7 @@ func TestAuthorizeSelfOrAdmin(t *testing.T) {
 			targetID:        otherUserID,
 			userRole:        models.RoleUser,
 			hasUserClaims:   true,
-			targetUserIdIdx: 0,
+			targetUserIDIdx: 0,
 			setupURLParams:  true,
 			expectedStatus:  http.StatusForbidden,
 			expectedErrors:  []string{"FORBIDDEN"},
@@ -333,7 +340,7 @@ func TestAuthorizeSelfOrAdmin(t *testing.T) {
 			targetID:        otherUserID,
 			userRole:        models.RoleGuest,
 			hasUserClaims:   true,
-			targetUserIdIdx: 0,
+			targetUserIDIdx: 0,
 			setupURLParams:  true,
 			expectedStatus:  http.StatusForbidden,
 			expectedErrors:  []string{"FORBIDDEN"},
@@ -341,7 +348,7 @@ func TestAuthorizeSelfOrAdmin(t *testing.T) {
 		{
 			name:            "Missing user claims",
 			hasUserClaims:   false,
-			targetUserIdIdx: 0,
+			targetUserIDIdx: 0,
 			setupURLParams:  true,
 			expectedStatus:  http.StatusUnauthorized,
 			expectedErrors:  []string{"UNAUTHORIZED"},
@@ -351,7 +358,7 @@ func TestAuthorizeSelfOrAdmin(t *testing.T) {
 			authenticatedID: userID,
 			userRole:        models.RoleUser,
 			hasUserClaims:   true,
-			targetUserIdIdx: 0,
+			targetUserIDIdx: 0,
 			setupURLParams:  false,
 			expectedStatus:  http.StatusUnauthorized,
 			expectedErrors:  []string{"UNAUTHORIZED"},
@@ -385,7 +392,11 @@ func TestAuthorizeSelfOrAdmin(t *testing.T) {
 				req = req.WithContext(ctx)
 			}
 
-			handler := AuthorizeSelfOrAdmin(tt.targetUserIdIdx)(http.HandlerFunc(mockAuthNextHandler))
+			handler := AuthorizeSelfOrAdmin(
+				tt.targetUserIDIdx,
+			)(
+				http.HandlerFunc(mockAuthNextHandler),
+			)
 			handler.ServeHTTP(recorder, req)
 
 			assert.Equal(t, tt.expectedStatus, recorder.Code)

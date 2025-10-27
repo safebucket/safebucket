@@ -1,9 +1,10 @@
 package messaging
 
 import (
-	"api/internal/models"
 	"context"
 	"encoding/json"
+
+	"api/internal/models"
 
 	"github.com/ThreeDotsLabs/watermill-googlecloud/pkg/googlecloud"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -19,7 +20,6 @@ func NewGCPPublisher(config *models.PubSubConfiguration, topicName string) IPubl
 	publisher, err := googlecloud.NewPublisher(googlecloud.PublisherConfig{
 		ProjectID: config.ProjectID,
 	}, nil)
-
 	if err != nil {
 		zap.L().Fatal("Failed to create PUB/SUB publisher", zap.Error(err))
 	}
@@ -51,7 +51,6 @@ func NewGCPSubscriber(config *models.PubSubConfiguration, topicName string) ISub
 		},
 		nil,
 	)
-
 	if err != nil {
 		zap.L().Fatal("Failed to create PUB/SUB subscriber", zap.Error(err))
 	}
@@ -62,7 +61,8 @@ func NewGCPSubscriber(config *models.PubSubConfiguration, topicName string) ISub
 func (s *GCPSubscriber) Subscribe() <-chan *message.Message {
 	sub, err := s.subscriber.Subscribe(context.Background(), s.TopicName)
 	if err != nil {
-		zap.L().Fatal("Failed to subscribe to topic", zap.String("topic", s.TopicName), zap.Error(err))
+		zap.L().
+			Fatal("Failed to subscribe to topic", zap.String("topic", s.TopicName), zap.Error(err))
 	}
 	return sub
 }
@@ -80,14 +80,14 @@ func (s *GCPSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 			message.Ack()
 		}
 
-		bucketId := event.Metadata["bucket-id"]
-		fileId := event.Metadata["file-id"]
-		userId := event.Metadata["user-id"]
+		bucketID := event.Metadata["bucket-id"]
+		fileID := event.Metadata["file-id"]
+		userID := event.Metadata["user-id"]
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
-			BucketId: bucketId,
-			FileId:   fileId,
-			UserId:   userId,
+			BucketID: bucketID,
+			FileID:   fileID,
+			UserID:   userID,
 		})
 
 		message.Ack()
@@ -115,9 +115,9 @@ func (s *GCPSubscriber) ParseBucketDeletionEvents(message *message.Message) []Bu
 			return nil
 		}
 
-		bucketId := message.Metadata["bucket-id"]
+		bucketID := message.Metadata["bucket-id"]
 
-		if bucketId == "" {
+		if bucketID == "" {
 			zap.L().Warn("unable to extract bucket ID from object key",
 				zap.String("object_key", objectKey))
 			message.Ack()
@@ -125,14 +125,14 @@ func (s *GCPSubscriber) ParseBucketDeletionEvents(message *message.Message) []Bu
 		}
 
 		deletionEvents = append(deletionEvents, BucketDeletionEvent{
-			BucketId:  bucketId,
+			BucketID:  bucketID,
 			ObjectKey: objectKey,
 			EventName: eventType,
 		})
 
 		zap.L().Debug("parsed GCP deletion event",
 			zap.String("event_type", eventType),
-			zap.String("bucket_id", bucketId),
+			zap.String("bucket_id", bucketID),
 			zap.String("object_key", objectKey))
 
 		message.Ack()

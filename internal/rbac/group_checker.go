@@ -3,7 +3,7 @@ package rbac
 import "api/internal/models"
 
 // groupRank returns the hierarchical rank of a bucket group
-// Higher rank means more permissions (Owner > Contributor > Viewer)
+// Higher rank means more permissions (Owner > Contributor > Viewer).
 func groupRank(group models.Group) int {
 	switch group {
 	case models.GroupOwner:

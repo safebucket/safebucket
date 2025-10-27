@@ -1,13 +1,13 @@
 package messaging
 
 type BucketUploadEvent struct {
-	BucketId string `json:"bucket_id"`
-	FileId   string `json:"file_id"`
-	UserId   string `json:"user_id"`
+	BucketID string `json:"bucket_id"`
+	FileID   string `json:"file_id"`
+	UserID   string `json:"user_id"`
 }
 
 type BucketDeletionEvent struct {
-	BucketId  string `json:"bucket_id"`
+	BucketID  string `json:"bucket_id"`
 	ObjectKey string `json:"object_key"`
 	EventName string `json:"event_name"`
 }

@@ -1,12 +1,12 @@
 package activity
 
 import (
-	"api/internal/models"
-	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
 	"time"
+
+	"api/internal/models"
 
 	"gorm.io/gorm"
 )
@@ -26,7 +26,7 @@ var ToEnrich = map[string]ToEnrichValue{
 func NewLogFilter(criteria map[string]string) models.LogFilter {
 	return models.LogFilter{
 		Fields:    criteria,
-		Timestamp: fmt.Sprintf("%d", time.Now().UnixNano()),
+		Timestamp: strconv.FormatInt(time.Now().UnixNano(), 10),
 	}
 }
 

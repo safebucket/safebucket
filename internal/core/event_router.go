@@ -24,7 +24,8 @@ func (er *EventRouter) Publish(messages ...*message.Message) error {
 		topicKey := er.getTopicKeyForEvent(eventType)
 
 		if topicKey == "" {
-			zap.L().Fatal("Assign a topic to this event in getTopicKeyForEvent", zap.String("eventType", eventType))
+			zap.L().
+				Fatal("Assign a topic to this event in getTopicKeyForEvent", zap.String("eventType", eventType))
 		}
 
 		publisher := er.eventsManager.GetPublisher(topicKey)
@@ -45,12 +46,21 @@ func (er *EventRouter) Close() error {
 	return nil
 }
 
-// getTopicKeyForEvent maps event types to topic keys
+// getTopicKeyForEvent maps event types to topic keys.
 func (er *EventRouter) getTopicKeyForEvent(eventType string) string {
 	switch eventType {
-	case events.UserInvitationName, events.BucketSharedWithName, events.ChallengeUserInviteName, events.PasswordResetChallengeName, events.PasswordResetSuccessName, events.UserWelcomeName:
+	case events.UserInvitationName,
+		events.BucketSharedWithName,
+		events.ChallengeUserInviteName,
+		events.PasswordResetChallengeName,
+		events.PasswordResetSuccessName,
+		events.UserWelcomeName:
 		return configuration.EventsNotifications
-	case events.ObjectDeletionName, events.FolderTrashName, events.FolderPurgeName, events.FolderRestoreName, events.TrashExpirationName:
+	case events.ObjectDeletionName,
+		events.FolderTrashName,
+		events.FolderPurgeName,
+		events.FolderRestoreName,
+		events.TrashExpirationName:
 		return configuration.EventsObjectDeletion
 	default:
 		return ""

@@ -1,6 +1,10 @@
 package events
 
 import (
+	"encoding/json"
+	"fmt"
+	"reflect"
+
 	"api/internal/activity"
 	c "api/internal/configuration"
 	"api/internal/messaging"
@@ -9,9 +13,6 @@ import (
 	"api/internal/rbac"
 	"api/internal/sql"
 	"api/internal/storage"
-	"encoding/json"
-	"fmt"
-	"reflect"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ import (
 )
 
 type EventParams struct {
-	WebUrl             string
+	WebURL             string
 	Notifier           notifier.INotifier
 	DB                 *gorm.DB
 	Storage            storage.IStorage
@@ -69,11 +70,11 @@ func getEventFromMessage(eventType string, msg *message.Message) (Event, error) 
 
 func HandleEvents(params *EventParams, messages <-chan *message.Message) {
 	for msg := range messages {
-		zap.L().Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
+		zap.L().
+			Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
 
 		eventType := msg.Metadata.Get("type")
 		event, err := getEventFromMessage(eventType, msg)
-
 		if err != nil {
 			zap.L().Error("event is misconfigured", zap.Error(err))
 			msg.Ack()
@@ -96,24 +97,26 @@ func HandleBucketEvents(
 	messages <-chan *message.Message,
 ) {
 	for msg := range messages {
-		zap.L().Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
+		zap.L().
+			Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
 
 		uploadEvents := subscriber.ParseBucketUploadEvents(msg)
 
 		for _, event := range uploadEvents {
-			bucketUuid, err := uuid.Parse(event.BucketId)
+			bucketUUID, err := uuid.Parse(event.BucketID)
 			if err != nil {
-				zap.L().Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketId))
+				zap.L().
+					Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketID))
 				continue
 			}
 
-			fileUuid, err := uuid.Parse(event.FileId)
+			fileUUID, err := uuid.Parse(event.FileID)
 			if err != nil {
-				zap.L().Error("file id should be a valid UUID", zap.String("fileId", event.FileId))
+				zap.L().Error("file id should be a valid UUID", zap.String("fileID", event.FileID))
 				continue
 			}
 
-			file, err := sql.GetFileById(db, bucketUuid, fileUuid)
+			file, err := sql.GetFileByID(db, bucketUUID, fileUUID)
 			if err != nil {
 				zap.L().Error("event is misconfigured", zap.Error(err))
 				continue
@@ -127,14 +130,13 @@ func HandleBucketEvents(
 					"action":      rbac.ActionCreate.String(),
 					"domain":      c.DefaultDomain,
 					"object_type": rbac.ResourceBucket.String(),
-					"file_id":     event.FileId,
-					"bucket_id":   event.BucketId,
-					"user_id":     event.UserId,
+					"file_id":     event.FileID,
+					"bucket_id":   event.BucketID,
+					"user_id":     event.UserID,
 				}),
 			}
 
 			err = activityLogger.Send(action)
-
 			if err != nil {
 				zap.L().Error("failed to send activity", zap.Error(err))
 			}
@@ -143,12 +145,13 @@ func HandleBucketEvents(
 		deletionEvents := subscriber.ParseBucketDeletionEvents(msg)
 
 		for _, event := range deletionEvents {
-			bucketUuid, err := uuid.Parse(event.BucketId)
+			bucketUUID, err := uuid.Parse(event.BucketID)
 			if err != nil {
-				zap.L().Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketId))
+				zap.L().
+					Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketID))
 				continue
 			}
-			trashEvent := NewTrashExpirationFromBucketEvent(bucketUuid, event.ObjectKey)
+			trashEvent := NewTrashExpirationFromBucketEvent(bucketUUID, event.ObjectKey)
 
 			params := &EventParams{
 				DB:                 db,

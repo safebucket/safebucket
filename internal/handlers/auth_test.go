@@ -1,17 +1,19 @@
 package handlers
 
 import (
-	"api/internal/tests"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"api/internal/tests"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestOpenIDBeginHandler(t *testing.T) {
@@ -78,13 +80,13 @@ func TestOpenIDBeginHandler_ProviderNotFound(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "PROVIDER_NOT_FOUND")
 
 	cookies := recorder.Result().Cookies()
-	assert.Len(t, cookies, 0)
+	assert.Empty(t, cookies)
 }
 
 func TestOpenIDCallbackHandler(t *testing.T) {
 	mockOpenIDCallback := new(tests.MockOpenIDCallbackFunc)
 	providerName := "google"
-	webUrl := "https://safebucket.com"
+	webURL := "https://safebucket.com"
 	code := "test_code"
 	state := "test_state"
 	nonce := "test_nonce"
@@ -114,13 +116,13 @@ func TestOpenIDCallbackHandler(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: "state", Value: state})
 	req.AddCookie(&http.Cookie{Name: "nonce", Value: nonce})
 
-	handler := OpenIDCallbackHandler(webUrl, mockOpenIDCallback.OpenIDCallback)
+	handler := OpenIDCallbackHandler(webURL, mockOpenIDCallback.OpenIDCallback)
 	handler(recorder, req)
 
 	mockOpenIDCallback.AssertExpectations(t)
 
 	assert.Equal(t, http.StatusFound, recorder.Code)
-	assert.Equal(t, fmt.Sprintf("%s/auth/complete", webUrl), recorder.Header().Get("Location"))
+	assert.Equal(t, fmt.Sprintf("%s/auth/complete", webURL), recorder.Header().Get("Location"))
 
 	cookies := recorder.Result().Cookies()
 	assert.Len(t, cookies, 3)
@@ -133,7 +135,7 @@ func TestOpenIDCallbackHandler(t *testing.T) {
 
 	for _, cookie := range cookies {
 		expectedValue, exists := expectedCookies[cookie.Name]
-		assert.True(t, exists, fmt.Sprintf("Unexpected cookie: %s", cookie.Name))
+		assert.True(t, exists, "Unexpected cookie: %s", cookie.Name)
 		assert.Equal(t, expectedValue, cookie.Value)
 		assert.Equal(t, "/", cookie.Path)
 		assert.True(t, cookie.Expires.After(time.Now().Add(364*24*time.Hour)))
@@ -143,7 +145,7 @@ func TestOpenIDCallbackHandler(t *testing.T) {
 func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 	mockOpenIDCallback := new(tests.MockOpenIDCallbackFunc)
 	providerName := "google"
-	webUrl := "https://example.com"
+	webURL := "https://example.com"
 	code := "test_code"
 	state := "test_state"
 	nonce := "test_nonce"
@@ -191,7 +193,7 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 					providerName,
 					code,
 					nonce,
-				).Return("", "", fmt.Errorf("OpenIDCallback error"))
+				).Return("", "", errors.New("OpenIDCallback error"))
 			},
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedError:      "OpenIDCallback error",
@@ -200,7 +202,11 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/auth/callback/%s?code=%s&state=%s", providerName, code, state), nil)
+			req := httptest.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/auth/callback/%s?code=%s&state=%s", providerName, code, state),
+				nil,
+			)
 			recorder := httptest.NewRecorder()
 
 			rctx := chi.NewRouteContext()
@@ -209,7 +215,7 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 
 			tc.setupRequest(req)
 
-			handler := OpenIDCallbackHandler(webUrl, mockOpenIDCallback.OpenIDCallback)
+			handler := OpenIDCallbackHandler(webURL, mockOpenIDCallback.OpenIDCallback)
 			handler(recorder, req)
 
 			assert.Equal(t, tc.expectedStatusCode, recorder.Code)

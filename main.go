@@ -1,6 +1,11 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
 	"api/internal/configuration"
 	"api/internal/core"
 	"api/internal/database"
@@ -9,10 +14,6 @@ import (
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/services"
-	"context"
-	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -55,7 +56,7 @@ func main() {
 	appIdentity := uuid.New().String()
 
 	eventParams := &events.EventParams{
-		WebUrl:             config.App.WebUrl,
+		WebURL:             config.App.WebURL,
 		Notifier:           notifier,
 		DB:                 db,
 		Storage:            storage,
@@ -74,7 +75,13 @@ func main() {
 
 	bucketEventsSubscriber := eventsManager.GetSubscriber(configuration.EventsBucketEvents)
 	bucketEvents := bucketEventsSubscriber.Subscribe()
-	go events.HandleBucketEvents(bucketEventsSubscriber, db, activity, config.App.TrashRetentionDays, bucketEvents)
+	go events.HandleBucketEvents(
+		bucketEventsSubscriber,
+		db,
+		activity,
+		config.App.TrashRetentionDays,
+		bucketEvents,
+	)
 
 	go cache.StartIdentityTicker(appIdentity)
 
@@ -93,7 +100,11 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	providers := configuration.LoadProviders(context.Background(), config.App.ApiUrl, config.Auth.Providers)
+	providers := configuration.LoadProviders(
+		context.Background(),
+		config.App.APIURL,
+		config.Auth.Providers,
+	)
 
 	// API routes with auth middleware
 	r.Route("/api", func(apiRouter chi.Router) {
@@ -110,7 +121,7 @@ func main() {
 			Publisher:          eventRouter,
 			ActivityLogger:     activity,
 			Providers:          providers,
-			WebUrl:             config.App.WebUrl,
+			WebURL:             config.App.WebURL,
 			TrashRetentionDays: config.App.TrashRetentionDays,
 		}.Routes())
 
@@ -118,7 +129,7 @@ func main() {
 			DB:             db,
 			JWTSecret:      config.App.JWTSecret,
 			Providers:      providers,
-			WebUrl:         config.App.WebUrl,
+			WebURL:         config.App.WebURL,
 			Publisher:      eventRouter,
 			ActivityLogger: activity,
 		}.Routes())
@@ -130,7 +141,7 @@ func main() {
 			Publisher:      eventRouter,
 			ActivityLogger: activity,
 			Providers:      providers,
-			WebUrl:         config.App.WebUrl,
+			WebURL:         config.App.WebURL,
 		}.Routes())
 	})
 
@@ -138,13 +149,14 @@ func main() {
 	if config.App.StaticFiles.Enabled {
 		staticFileService, err := services.NewStaticFileService(
 			config.App.StaticFiles.Directory,
-			config.App.ApiUrl,
+			config.App.APIURL,
 		)
 		if err != nil {
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))
 		}
 		r.Mount("/", staticFileService.Routes())
-		zap.L().Info("static file service enabled", zap.String("directory", config.App.StaticFiles.Directory))
+		zap.L().
+			Info("static file service enabled", zap.String("directory", config.App.StaticFiles.Directory))
 	} else {
 		zap.L().Info("static file service disabled")
 	}

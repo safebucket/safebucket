@@ -3,7 +3,7 @@ package rbac
 import "api/internal/models"
 
 // roleRank returns the hierarchical rank of a role
-// Higher rank means more permissions (Admin > User > Guest)
+// Higher rank means more permissions (Admin > User > Guest).
 func roleRank(role models.Role) int {
 	switch role {
 	case models.RoleAdmin:

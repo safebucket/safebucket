@@ -1,25 +1,28 @@
 package events
 
 import (
-	"api/internal/messaging"
 	"encoding/json"
 	"fmt"
+
+	"api/internal/messaging"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"
 )
 
-const ChallengeUserInviteName = "ChallengeUserInvite"
-const ChallengeUserInvitePayloadName = "ChallengeUserInvitePayload"
+const (
+	ChallengeUserInviteName        = "ChallengeUserInvite"
+	ChallengeUserInvitePayloadName = "ChallengeUserInvitePayload"
+)
 
 type ChallengeUserInvitePayload struct {
 	Type         string
 	Secret       string
 	To           string
 	From         string
-	WebUrl       string
-	ChallengeUrl string
+	WebURL       string
+	ChallengeURL string
 }
 
 type ChallengeUserInvite struct {
@@ -34,9 +37,9 @@ func NewChallengeUserInvite(
 	from string,
 	inviteID string,
 	challengeID string,
-	webUrl string,
+	webURL string,
 ) ChallengeUserInvite {
-	challengeUrl := fmt.Sprintf("%s/invites/%s/challenges/%s", webUrl, inviteID, challengeID)
+	challengeURL := fmt.Sprintf("%s/invites/%s/challenges/%s", webURL, inviteID, challengeID)
 	return ChallengeUserInvite{
 		Publisher: publisher,
 		Payload: ChallengeUserInvitePayload{
@@ -44,8 +47,8 @@ func NewChallengeUserInvite(
 			Secret:       secret,
 			To:           to,
 			From:         from,
-			WebUrl:       webUrl,
-			ChallengeUrl: challengeUrl,
+			WebURL:       webURL,
+			ChallengeURL: challengeURL,
 		},
 	}
 }
@@ -60,14 +63,13 @@ func (e *ChallengeUserInvite) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 
 func (e *ChallengeUserInvite) callback(params *EventParams) error {
-	e.Payload.WebUrl = params.WebUrl
+	e.Payload.WebURL = params.WebURL
 	subject := fmt.Sprintf("%s has invited you", e.Payload.From)
 	err := params.Notifier.NotifyFromTemplate(e.Payload.To, subject, "user_invited", e.Payload)
 	if err != nil {
@@ -77,15 +79,17 @@ func (e *ChallengeUserInvite) callback(params *EventParams) error {
 	return nil
 }
 
-const PasswordResetChallengeName = "PasswordResetChallenge"
-const PasswordResetChallengePayloadName = "PasswordResetChallengePayload"
+const (
+	PasswordResetChallengeName        = "PasswordResetChallenge"
+	PasswordResetChallengePayloadName = "PasswordResetChallengePayload"
+)
 
 type PasswordResetChallengePayload struct {
 	Type         string
 	Secret       string
 	To           string
-	WebUrl       string
-	ChallengeUrl string
+	WebURL       string
+	ChallengeURL string
 }
 
 type PasswordResetChallengeEvent struct {
@@ -98,17 +102,17 @@ func NewPasswordResetChallenge(
 	secret string,
 	to string,
 	challengeID string,
-	webUrl string,
+	webURL string,
 ) PasswordResetChallengeEvent {
-	challengeUrl := fmt.Sprintf("%s/auth/reset-password/%s", webUrl, challengeID)
+	challengeURL := fmt.Sprintf("%s/auth/reset-password/%s", webURL, challengeID)
 	return PasswordResetChallengeEvent{
 		Publisher: publisher,
 		Payload: PasswordResetChallengePayload{
 			Type:         PasswordResetChallengeName,
 			Secret:       secret,
 			To:           to,
-			WebUrl:       webUrl,
-			ChallengeUrl: challengeUrl,
+			WebURL:       webURL,
+			ChallengeURL: challengeURL,
 		},
 	}
 }
@@ -123,14 +127,13 @@ func (e *PasswordResetChallengeEvent) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 
 func (e *PasswordResetChallengeEvent) callback(params *EventParams) error {
-	e.Payload.WebUrl = params.WebUrl
+	e.Payload.WebURL = params.WebURL
 	subject := "Password Reset Request"
 	err := params.Notifier.NotifyFromTemplate(e.Payload.To, subject, "password_reset", e.Payload)
 	if err != nil {
@@ -140,13 +143,15 @@ func (e *PasswordResetChallengeEvent) callback(params *EventParams) error {
 	return nil
 }
 
-const PasswordResetSuccessName = "PasswordResetSuccess"
-const PasswordResetSuccessPayloadName = "PasswordResetSuccessPayload"
+const (
+	PasswordResetSuccessName        = "PasswordResetSuccess"
+	PasswordResetSuccessPayloadName = "PasswordResetSuccessPayload"
+)
 
 type PasswordResetSuccessPayload struct {
 	Type      string
 	Email     string
-	WebUrl    string
+	WebURL    string
 	ResetDate string
 }
 
@@ -158,7 +163,7 @@ type PasswordResetSuccessEvent struct {
 func NewPasswordResetSuccess(
 	publisher messaging.IPublisher,
 	email string,
-	webUrl string,
+	webURL string,
 	resetDate string,
 ) PasswordResetSuccessEvent {
 	return PasswordResetSuccessEvent{
@@ -166,7 +171,7 @@ func NewPasswordResetSuccess(
 		Payload: PasswordResetSuccessPayload{
 			Type:      PasswordResetSuccessName,
 			Email:     email,
-			WebUrl:    webUrl,
+			WebURL:    webURL,
 			ResetDate: resetDate,
 		},
 	}
@@ -182,16 +187,20 @@ func (e *PasswordResetSuccessEvent) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 
 func (e *PasswordResetSuccessEvent) callback(params *EventParams) error {
-	e.Payload.WebUrl = params.WebUrl
+	e.Payload.WebURL = params.WebURL
 	subject := "Password Reset Successful"
-	err := params.Notifier.NotifyFromTemplate(e.Payload.Email, subject, "password_reset_success", e.Payload)
+	err := params.Notifier.NotifyFromTemplate(
+		e.Payload.Email,
+		subject,
+		"password_reset_success",
+		e.Payload,
+	)
 	if err != nil {
 		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
 		return err
@@ -199,13 +208,15 @@ func (e *PasswordResetSuccessEvent) callback(params *EventParams) error {
 	return nil
 }
 
-const UserWelcomeName = "UserWelcome"
-const UserWelcomePayloadName = "UserWelcomePayload"
+const (
+	UserWelcomeName        = "UserWelcome"
+	UserWelcomePayloadName = "UserWelcomePayload"
+)
 
 type UserWelcomePayload struct {
 	Type   string
 	Email  string
-	WebUrl string
+	WebURL string
 }
 
 type UserWelcomeEvent struct {
@@ -216,14 +227,14 @@ type UserWelcomeEvent struct {
 func NewUserWelcome(
 	publisher messaging.IPublisher,
 	email string,
-	webUrl string,
+	webURL string,
 ) UserWelcomeEvent {
 	return UserWelcomeEvent{
 		Publisher: publisher,
 		Payload: UserWelcomePayload{
 			Type:   UserWelcomeName,
 			Email:  email,
-			WebUrl: webUrl,
+			WebURL: webURL,
 		},
 	}
 }
@@ -238,14 +249,13 @@ func (e *UserWelcomeEvent) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 
 func (e *UserWelcomeEvent) callback(params *EventParams) error {
-	e.Payload.WebUrl = params.WebUrl
+	e.Payload.WebURL = params.WebURL
 	subject := "Welcome to Safebucket!"
 	err := params.Notifier.NotifyFromTemplate(e.Payload.Email, subject, "user_welcome", e.Payload)
 	if err != nil {

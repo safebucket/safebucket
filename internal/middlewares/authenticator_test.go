@@ -1,13 +1,14 @@
 package middlewares
 
 import (
-	"api/internal/models"
-	"api/internal/tests"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"api/internal/models"
+	"api/internal/tests"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -17,7 +18,7 @@ import (
 
 const testJWTSecret = "test-secret-key-for-testing"
 
-// mockAuthenticatedNextHandler checks if UserClaims are in context
+// mockAuthenticatedNextHandler checks if UserClaims are in context.
 func mockAuthenticatedNextHandler(w http.ResponseWriter, r *http.Request) {
 	userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 	if !ok {
@@ -29,7 +30,7 @@ func mockAuthenticatedNextHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("OK:" + userClaims.Email))
 }
 
-// generateTestToken creates a valid JWT token for testing
+// generateTestToken creates a valid JWT token for testing.
 func generateTestToken(secret string, user *models.User, expiresIn time.Duration) (string, error) {
 	claims := models.UserClaims{
 		Email:    user.Email,
@@ -233,7 +234,7 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 			recorder := httptest.NewRecorder()
 
 			// For excluded paths, use a simple handler that just returns OK
-			simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte("OK"))
 			})

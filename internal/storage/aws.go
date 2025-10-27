@@ -1,9 +1,10 @@
 package storage
 
 import (
-	c "api/internal/configuration"
 	"context"
 	"time"
+
+	c "api/internal/configuration"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
@@ -29,9 +30,9 @@ func NewAWSStorage(bucketName string) IStorage {
 	_, err = client.HeadBucket(context.Background(), &s3.HeadBucketInput{
 		Bucket: aws.String(bucketName),
 	})
-
 	if err != nil {
-		zap.L().Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
+		zap.L().
+			Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
 	}
 
 	presigner := s3.NewPresignClient(client)
@@ -45,7 +46,11 @@ func (a AWSStorage) PresignedGetObject(path string) (string, error) {
 		Key:    aws.String(path),
 	}
 
-	resp, err := a.presigner.PresignGetObject(context.Background(), req, s3.WithPresignExpires(15*time.Minute))
+	resp, err := a.presigner.PresignGetObject(
+		context.Background(),
+		req,
+		s3.WithPresignExpires(15*time.Minute),
+	)
 	if err != nil {
 		return "", err
 	}
@@ -53,12 +58,18 @@ func (a AWSStorage) PresignedGetObject(path string) (string, error) {
 	return resp.URL, nil
 }
 
-func (a AWSStorage) PresignedPostPolicy(path string, size int, metadata map[string]string) (string, map[string]string, error) {
+func (a AWSStorage) PresignedPostPolicy(
+	path string,
+	size int,
+	metadata map[string]string,
+) (string, map[string]string, error) {
 	req := &s3.PutObjectInput{
 		Bucket:        aws.String(a.BucketName),
 		Key:           aws.String(path),
 		ContentLength: aws.Int64(int64(size)),
-		Expires:       aws.Time(time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute)),
+		Expires: aws.Time(
+			time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
+		),
 	}
 
 	// FIXME(YLB): Workaround to sign the metadata
@@ -72,10 +83,13 @@ func (a AWSStorage) PresignedPostPolicy(path string, size int, metadata map[stri
 		})
 	}
 
-	presignedPost, err := a.presigner.PresignPostObject(context.Background(), req, func(opts *s3.PresignPostOptions) {
-		opts.Conditions = conditions
-	})
-
+	presignedPost, err := a.presigner.PresignPostObject(
+		context.Background(),
+		req,
+		func(opts *s3.PresignPostOptions) {
+			opts.Conditions = conditions
+		},
+	)
 	if err != nil {
 		return "", nil, err
 	}
@@ -93,7 +107,6 @@ func (a AWSStorage) StatObject(path string) (map[string]string, error) {
 		Bucket: aws.String(a.BucketName),
 		Key:    aws.String(path),
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -160,9 +173,9 @@ func (a AWSStorage) RemoveObjects(paths []string) error {
 				Quiet:   aws.Bool(true),
 			},
 		})
-
 		if err != nil {
-			zap.L().Error("Failed to delete objects batch", zap.Int("batch_start", i), zap.Error(err))
+			zap.L().
+				Error("Failed to delete objects batch", zap.Int("batch_start", i), zap.Error(err))
 			return err
 		}
 	}

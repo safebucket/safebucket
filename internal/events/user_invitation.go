@@ -1,28 +1,31 @@
 package events
 
 import (
-	"api/internal/messaging"
-	"api/internal/models"
 	"encoding/json"
 	"fmt"
+
+	"api/internal/messaging"
+	"api/internal/models"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"
 )
 
-const UserInvitationName = "UserInvitation"
-const UserInvitationPayloadName = "UserInvitationPayload"
+const (
+	UserInvitationName        = "UserInvitation"
+	UserInvitationPayloadName = "UserInvitationPayload"
+)
 
 type UserInvitationPayload struct {
-	Type             string
-	To               string
-	From             string
-	WebUrl           string
-	BucketName       string
-	Group            string
-	GroupDescription string
-	InviteUrl        string
+	Type            string
+	To              string
+	From            string
+	WebURL          string
+	BucketName      string
+	Role            string
+	RoleDescription string
+	InviteURL       string
 }
 
 type UserInvitation struct {
@@ -36,26 +39,26 @@ func NewUserInvitation(
 	from string,
 	bucket models.Bucket,
 	group models.Group,
-	inviteId string,
-	webUrl string,
+	inviteID string,
+	webURL string,
 ) UserInvitation {
 	// Generate role descriptions
-	roleDescription := getGroupDescription(group)
+	groupDescription := getGroupDescription(group)
 
 	// Create invite URL pointing to the invitation page
-	inviteUrl := fmt.Sprintf("%s/invites/%s", webUrl, inviteId)
+	inviteURL := fmt.Sprintf("%s/invites/%s", webURL, inviteID)
 
 	return UserInvitation{
 		Publisher: publisher,
 		Payload: UserInvitationPayload{
-			Type:             UserInvitationName,
-			To:               to,
-			From:             from,
-			WebUrl:           webUrl,
-			BucketName:       bucket.Name,
-			Group:            string(group),
-			GroupDescription: roleDescription,
-			InviteUrl:        inviteUrl,
+			Type:            UserInvitationName,
+			To:              to,
+			From:            from,
+			WebURL:          webURL,
+			BucketName:      bucket.Name,
+			Group:            group,
+			GroupDescription: groupDescription,
+			InviteURL:       inviteURL,
 		},
 	}
 }
@@ -83,14 +86,13 @@ func (e *UserInvitation) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 
 func (e *UserInvitation) callback(params *EventParams) error {
-	e.Payload.WebUrl = params.WebUrl
+	e.Payload.WebURL = params.WebURL
 	subject := fmt.Sprintf("%s has invited you to SafeBucket", e.Payload.From)
 	err := params.Notifier.NotifyFromTemplate(e.Payload.To, subject, "user_invitation", e.Payload)
 	if err != nil {

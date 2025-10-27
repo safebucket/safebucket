@@ -1,22 +1,23 @@
 package middlewares
 
 import (
-	"api/internal/models"
-	"api/internal/tests"
 	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"api/internal/models"
+	"api/internal/tests"
+
 	"github.com/stretchr/testify/assert"
 )
 
 type TestValidate struct {
-	Name     string `json:"name" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
+	Name     string `json:"name"     validate:"required"`
+	Email    string `json:"email"    validate:"required,email"`
 	Filename string `json:"filename" validate:"filename"`
-	Type     string `json:"type" validate:"omitempty,oneof=file folder"`
+	Type     string `json:"type"     validate:"omitempty,oneof=file folder"`
 }
 
 func mockNextHandler(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +78,11 @@ func TestValidateMiddleware(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/test", bytes.NewBufferString(tt.inputBody))
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/test",
+				bytes.NewBufferString(tt.inputBody),
+			)
 			req.Header.Set("Content-Type", "application/json")
 			recorder := httptest.NewRecorder()
 

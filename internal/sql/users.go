@@ -9,7 +9,7 @@ import (
 )
 
 // CreateUserWithInvites creates a user and processes any pending invites
-// Converting them to memberships in a single transaction
+// Converting them to memberships in a single transaction.
 func CreateUserWithInvites(
 	logger *zap.Logger,
 	db *gorm.DB,

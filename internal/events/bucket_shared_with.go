@@ -1,25 +1,28 @@
 package events
 
 import (
-	"api/internal/messaging"
-	"api/internal/models"
 	"encoding/json"
 	"fmt"
+
+	"api/internal/messaging"
+	"api/internal/models"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"
 )
 
-const BucketSharedWithName = "BucketSharedWith"
-const BucketSharedWithPayloadName = "BucketSharedWithPayload"
+const (
+	BucketSharedWithName        = "BucketSharedWith"
+	BucketSharedWithPayloadName = "BucketSharedWithPayload"
+)
 
 type BucketSharedWithPayload struct {
 	Type   string
 	Bucket models.Bucket
 	From   string
 	To     string
-	WebUrl string
+	WebURL string
 }
 
 type BucketSharedWith struct {
@@ -54,16 +57,20 @@ func (e *BucketSharedWith) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 
 func (e *BucketSharedWith) callback(params *EventParams) error {
-	e.Payload.WebUrl = params.WebUrl
+	e.Payload.WebURL = params.WebURL
 	subject := fmt.Sprintf("%s has shared a bucket with you", e.Payload.From)
-	err := params.Notifier.NotifyFromTemplate(e.Payload.To, subject, "bucket_shared_with", e.Payload)
+	err := params.Notifier.NotifyFromTemplate(
+		e.Payload.To,
+		subject,
+		"bucket_shared_with",
+		e.Payload,
+	)
 	if err != nil {
 		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
 		return err

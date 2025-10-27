@@ -1,23 +1,24 @@
 package notifier
 
 import (
-	"api/internal/models"
 	"bytes"
 	"crypto/tls"
 	"fmt"
 	"html/template"
 
+	"api/internal/models"
+
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
 )
 
-// SMTPNotifier implements INotifier using SMTP protocol
+// SMTPNotifier implements INotifier using SMTP protocol.
 type SMTPNotifier struct {
 	dialer *gomail.Dialer
 	sender string
 }
 
-// NewSMTPNotifier initializes the SMTP notifier and checks the connection
+// NewSMTPNotifier initializes the SMTP notifier and checks the connection.
 func NewSMTPNotifier(config models.MailerConfiguration) *SMTPNotifier {
 	dialer := gomail.NewDialer(config.Host, config.Port, config.Username, config.Password)
 
@@ -43,8 +44,13 @@ func NewSMTPNotifier(config models.MailerConfiguration) *SMTPNotifier {
 	return &SMTPNotifier{dialer: dialer, sender: config.Sender}
 }
 
-// NotifyFromTemplate sends an email using a given template and data
-func (s *SMTPNotifier) NotifyFromTemplate(to string, subject string, templateName string, data interface{}) error {
+// NotifyFromTemplate sends an email using a given template and data.
+func (s *SMTPNotifier) NotifyFromTemplate(
+	to string,
+	subject string,
+	templateName string,
+	data interface{},
+) error {
 	tmpl, err := template.ParseFiles(fmt.Sprintf("./internal/mails/%s.html", templateName))
 	if err != nil {
 		return err

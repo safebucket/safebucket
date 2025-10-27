@@ -1,13 +1,14 @@
 package helpers
 
 import (
-	"api/internal/models"
 	"context"
 	"crypto/rand"
 	"errors"
 	"math/big"
 	"strings"
 	"time"
+
+	"api/internal/models"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"
@@ -38,8 +39,10 @@ func NewAccessToken(jwtSecret string, user *models.User, provider string) (strin
 		Provider: provider,
 		Issuer:   "safebucket",
 		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * 60)}, // TODO: make it configurable
+			IssuedAt: &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{
+				Time: time.Now().Add(time.Minute * 60),
+			}, // TODO: make it configurable
 		},
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -63,7 +66,6 @@ func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, 
 			return []byte(jwtSecret), nil
 		},
 	)
-
 	if err != nil {
 		return models.UserClaims{}, errors.New("invalid access token")
 	}

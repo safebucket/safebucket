@@ -1,23 +1,26 @@
 package handlers
 
 import (
+	"errors"
+	"net/http"
+
 	customErr "api/internal/errors"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
 	"api/internal/models"
-	"errors"
-	"net/http"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-type CreateTargetFunc[In any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
-type ListTargetFunc[Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
-type GetOneTargetFunc[Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs) (Out, error)
-type GetOneListTargetFunc[Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
-type UpdateTargetFunc[In any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
-type DeleteTargetFunc func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
+type (
+	CreateTargetFunc[In any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
+	ListTargetFunc[Out any]           func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
+	GetOneTargetFunc[Out any]         func(*zap.Logger, models.UserClaims, uuid.UUIDs) (Out, error)
+	GetOneListTargetFunc[Out any]     func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
+	UpdateTargetFunc[In any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
+	DeleteTargetFunc                  func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
+)
 
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

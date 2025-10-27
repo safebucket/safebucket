@@ -1,16 +1,17 @@
 package events
 
 import (
-	"api/internal/activity"
-	c "api/internal/configuration"
-	"api/internal/messaging"
-	"api/internal/models"
-	"api/internal/rbac"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
 	"time"
+
+	"api/internal/activity"
+	c "api/internal/configuration"
+	"api/internal/messaging"
+	"api/internal/models"
+	"api/internal/rbac"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -19,14 +20,16 @@ import (
 	"gorm.io/gorm"
 )
 
-const FolderTrashName = "FolderTrash"
-const FolderTrashPayloadName = "FolderTrashPayload"
+const (
+	FolderTrashName        = "FolderTrash"
+	FolderTrashPayloadName = "FolderTrashPayload"
+)
 
 type FolderTrashPayload struct {
 	Type      string
-	BucketId  uuid.UUID
-	FolderId  uuid.UUID
-	UserId    uuid.UUID
+	BucketID  uuid.UUID
+	FolderID  uuid.UUID
+	UserID    uuid.UUID
 	TrashedAt time.Time
 }
 
@@ -37,18 +40,18 @@ type FolderTrash struct {
 
 func NewFolderTrash(
 	publisher messaging.IPublisher,
-	bucketId uuid.UUID,
-	folderId uuid.UUID,
-	userId uuid.UUID,
+	bucketID uuid.UUID,
+	folderID uuid.UUID,
+	userID uuid.UUID,
 	trashedAt time.Time,
 ) FolderTrash {
 	return FolderTrash{
 		Publisher: publisher,
 		Payload: FolderTrashPayload{
 			Type:      FolderTrashName,
-			BucketId:  bucketId,
-			FolderId:  folderId,
-			UserId:    userId,
+			BucketID:  bucketID,
+			FolderID:  folderID,
+			UserID:    userID,
 			TrashedAt: trashedAt,
 		},
 	}
@@ -64,7 +67,6 @@ func (e *FolderTrash) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger folder trash event", zap.Error(err))
 	}
@@ -72,13 +74,13 @@ func (e *FolderTrash) Trigger() {
 
 func (e *FolderTrash) callback(params *EventParams) error {
 	zap.L().Info("Starting folder trash",
-		zap.String("bucket_id", e.Payload.BucketId.String()),
-		zap.String("folder_id", e.Payload.FolderId.String()),
+		zap.String("bucket_id", e.Payload.BucketID.String()),
+		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
 	var folder models.File
 	result := params.DB.Where("id = ? AND bucket_id = ? AND type = 'folder'",
-		e.Payload.FolderId, e.Payload.BucketId).First(&folder)
+		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
 	if result.Error != nil {
 		zap.L().Error("Folder not found", zap.Error(result.Error))
@@ -92,15 +94,16 @@ func (e *FolderTrash) callback(params *EventParams) error {
 	}
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		objectPath := path.Join("buckets", e.Payload.BucketId.String(), folder.Path, folder.Name)
+		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
 		if err := params.Storage.SetObjectTags(objectPath, map[string]string{
 			"Status":    "trashed",
 			"TrashedAt": e.Payload.TrashedAt.Format(time.RFC3339),
 		}); err != nil {
-			zap.L().Error("Failed to tag folder in storage - lifecycle policy may not delete this folder automatically",
-				zap.Error(err),
-				zap.String("path", objectPath),
-				zap.String("folder_id", e.Payload.FolderId.String()))
+			zap.L().
+				Error("Failed to tag folder in storage - lifecycle policy may not delete this folder automatically",
+					zap.Error(err),
+					zap.String("path", objectPath),
+					zap.String("folder_id", e.Payload.FolderID.String()))
 		}
 
 		folderPath := path.Join(folder.Path, folder.Name)
@@ -109,7 +112,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 		var childFiles []models.File
 		batchResult := tx.Where(
 			"bucket_id = ? AND path LIKE ? AND status != ?",
-			e.Payload.BucketId,
+			e.Payload.BucketID,
 			dbPath,
 			models.FileStatusTrashed,
 		).Limit(c.BulkActionsLimit).Find(&childFiles)
@@ -132,7 +135,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			updates := map[string]interface{}{
 				"status":     models.FileStatusTrashed,
 				"trashed_at": e.Payload.TrashedAt,
-				"trashed_by": e.Payload.UserId,
+				"trashed_by": e.Payload.UserID,
 			}
 
 			if err := tx.Model(&models.File{}).
@@ -143,22 +146,27 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			}
 
 			for _, child := range childFiles {
-				childPath := path.Join("buckets", e.Payload.BucketId.String(), child.Path, child.Name)
+				childPath := path.Join(
+					"buckets",
+					e.Payload.BucketID.String(),
+					child.Path,
+					child.Name,
+				)
 				if err := params.Storage.SetObjectTags(childPath, map[string]string{
 					"Status":    "trashed",
 					"TrashedAt": e.Payload.TrashedAt.Format(time.RFC3339),
 				}); err != nil {
-					zap.L().Error("Failed to tag child object in storage - lifecycle policy may not delete this file automatically",
-						zap.Error(err),
-						zap.String("path", childPath),
-						zap.String("file_id", child.ID.String()))
+					zap.L().
+						Error("Failed to tag child object in storage - lifecycle policy may not delete this file automatically",
+							zap.Error(err),
+							zap.String("path", childPath),
+							zap.String("file_id", child.ID.String()))
 				}
 			}
 		}
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}
@@ -166,7 +174,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 	var remainingCount int64
 	params.DB.Model(&models.File{}).Where(
 		"bucket_id = ? AND path LIKE ? AND status != ?",
-		e.Payload.BucketId,
+		e.Payload.BucketID,
 		fmt.Sprintf("%s%%", path.Join(folder.Path, folder.Name)),
 		models.FileStatusTrashed,
 	).Count(&remainingCount)
@@ -181,11 +189,11 @@ func (e *FolderTrash) callback(params *EventParams) error {
 		Message: activity.FolderTrashed,
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionErase.String(),
-			"bucket_id":   e.Payload.BucketId.String(),
-			"file_id":     e.Payload.FolderId.String(),
+			"bucket_id":   e.Payload.BucketID.String(),
+			"file_id":     e.Payload.FolderID.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFile.String(),
-			"user_id":     e.Payload.UserId.String(),
+			"user_id":     e.Payload.UserID.String(),
 		}),
 	}
 
@@ -194,8 +202,8 @@ func (e *FolderTrash) callback(params *EventParams) error {
 	}
 
 	zap.L().Info("Folder trash complete",
-		zap.String("bucket_id", e.Payload.BucketId.String()),
-		zap.String("folder_id", e.Payload.FolderId.String()),
+		zap.String("bucket_id", e.Payload.BucketID.String()),
+		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
 	return nil

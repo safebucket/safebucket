@@ -1,13 +1,15 @@
 package helpers
 
 import (
-	"api/internal/models"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
+	"api/internal/models"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 const maxUuids = 2

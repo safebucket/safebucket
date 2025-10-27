@@ -1,23 +1,29 @@
 package helpers
 
 import (
-	"api/internal/models"
-	"api/internal/tests"
 	"context"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"api/internal/models"
+	"api/internal/tests"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseUUID(t *testing.T) {
 	t.Run("Valid UUID", func(t *testing.T) {
 		expectedUUID := uuid.New()
-		req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/test/%s", expectedUUID.String()), nil)
+		req := httptest.NewRequest(
+			http.MethodGet,
+			fmt.Sprintf("/test/%s", expectedUUID.String()),
+			nil,
+		)
 		recorder := httptest.NewRecorder()
 
 		rctx := chi.NewRouteContext()

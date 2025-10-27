@@ -1,21 +1,24 @@
 package handlers
 
 import (
-	customErr "api/internal/errors"
-	h "api/internal/helpers"
-	m "api/internal/middlewares"
 	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	customErr "api/internal/errors"
+	h "api/internal/helpers"
+	m "api/internal/middlewares"
+
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
-type OpenIDBeginFunc func(string, string, string) (string, error)
-type OpenIDCallbackFunc func(context.Context, *zap.Logger, string, string, string) (string, string, error)
+type (
+	OpenIDBeginFunc    func(string, string, string) (string, error)
+	OpenIDCallbackFunc func(context.Context, *zap.Logger, string, string, string) (string, string, error)
+)
 
 func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +46,7 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 	}
 }
 
-func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) http.HandlerFunc {
+func OpenIDCallbackHandler(webURL string, openidCallback OpenIDCallbackFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providerName := chi.URLParam(r, "provider")
 
@@ -77,7 +80,6 @@ func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) htt
 			r.URL.Query().Get("code"),
 			nonce.Value,
 		)
-
 		if err != nil {
 			strErrors := []string{err.Error()}
 			var apiErr *customErr.APIError
@@ -120,6 +122,6 @@ func OpenIDCallbackHandler(webUrl string, openidCallback OpenIDCallbackFunc) htt
 			})
 		}
 
-		http.Redirect(w, r, fmt.Sprintf("%s/auth/complete", webUrl), http.StatusFound)
+		http.Redirect(w, r, fmt.Sprintf("%s/auth/complete", webURL), http.StatusFound)
 	}
 }

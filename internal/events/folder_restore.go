@@ -1,16 +1,17 @@
 package events
 
 import (
-	"api/internal/activity"
-	c "api/internal/configuration"
-	"api/internal/messaging"
-	"api/internal/models"
-	"api/internal/rbac"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
 	"time"
+
+	"api/internal/activity"
+	c "api/internal/configuration"
+	"api/internal/messaging"
+	"api/internal/models"
+	"api/internal/rbac"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -19,14 +20,16 @@ import (
 	"gorm.io/gorm"
 )
 
-const FolderRestoreName = "FolderRestore"
-const FolderRestorePayloadName = "FolderRestorePayload"
+const (
+	FolderRestoreName        = "FolderRestore"
+	FolderRestorePayloadName = "FolderRestorePayload"
+)
 
 type FolderRestorePayload struct {
 	Type     string
-	BucketId uuid.UUID
-	FolderId uuid.UUID
-	UserId   uuid.UUID
+	BucketID uuid.UUID
+	FolderID uuid.UUID
+	UserID   uuid.UUID
 }
 
 type FolderRestore struct {
@@ -36,17 +39,17 @@ type FolderRestore struct {
 
 func NewFolderRestore(
 	publisher messaging.IPublisher,
-	bucketId uuid.UUID,
-	folderId uuid.UUID,
-	userId uuid.UUID,
+	bucketID uuid.UUID,
+	folderID uuid.UUID,
+	userID uuid.UUID,
 ) FolderRestore {
 	return FolderRestore{
 		Publisher: publisher,
 		Payload: FolderRestorePayload{
 			Type:     FolderRestoreName,
-			BucketId: bucketId,
-			FolderId: folderId,
-			UserId:   userId,
+			BucketID: bucketID,
+			FolderID: folderID,
+			UserID:   userID,
 		},
 	}
 }
@@ -61,7 +64,6 @@ func (e *FolderRestore) Trigger() {
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	msg.Metadata.Set("type", e.Payload.Type)
 	err = e.Publisher.Publish(msg)
-
 	if err != nil {
 		zap.L().Error("failed to trigger folder restore event", zap.Error(err))
 	}
@@ -69,13 +71,13 @@ func (e *FolderRestore) Trigger() {
 
 func (e *FolderRestore) callback(params *EventParams) error {
 	zap.L().Info("Starting folder restore",
-		zap.String("bucket_id", e.Payload.BucketId.String()),
-		zap.String("folder_id", e.Payload.FolderId.String()),
+		zap.String("bucket_id", e.Payload.BucketID.String()),
+		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
 	var folder models.File
 	result := params.DB.Where("id = ? AND bucket_id = ? AND type = 'folder'",
-		e.Payload.FolderId, e.Payload.BucketId).First(&folder)
+		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
 	if result.Error != nil {
 		zap.L().Error("Folder not found", zap.Error(result.Error))
@@ -100,7 +102,11 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	var existingFolder models.File
 	conflictResult := params.DB.Where(
 		"bucket_id = ? AND name = ? AND path = ? AND type = 'folder' AND (status IS NULL OR (status != ? AND status != ?))",
-		e.Payload.BucketId, folder.Name, folder.Path, models.FileStatusTrashed, models.FileStatusRestoring,
+		e.Payload.BucketID,
+		folder.Name,
+		folder.Path,
+		models.FileStatusTrashed,
+		models.FileStatusRestoring,
 	).First(&existingFolder)
 
 	if conflictResult.RowsAffected > 0 {
@@ -124,12 +130,13 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			return err
 		}
 
-		objectPath := path.Join("buckets", e.Payload.BucketId.String(), folder.Path, folder.Name)
+		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
 		if err := params.Storage.RemoveObjectTags(objectPath, []string{"Status", "TrashedAt"}); err != nil {
-			zap.L().Error("Failed to remove trash tags from folder in storage - lifecycle policy may still target this folder",
-				zap.Error(err),
-				zap.String("path", objectPath),
-				zap.String("folder_id", e.Payload.FolderId.String()))
+			zap.L().
+				Error("Failed to remove trash tags from folder in storage - lifecycle policy may still target this folder",
+					zap.Error(err),
+					zap.String("path", objectPath),
+					zap.String("folder_id", e.Payload.FolderID.String()))
 		}
 
 		folderPath := path.Join(folder.Path, folder.Name)
@@ -138,7 +145,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		var childFiles []models.File
 		batchResult := tx.Where(
 			"bucket_id = ? AND path LIKE ? AND status = ? AND trashed_at = ?",
-			e.Payload.BucketId,
+			e.Payload.BucketID,
 			dbPath,
 			models.FileStatusTrashed,
 			folder.TrashedAt,
@@ -167,19 +174,24 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			}
 
 			for _, child := range childFiles {
-				childPath := path.Join("buckets", e.Payload.BucketId.String(), child.Path, child.Name)
+				childPath := path.Join(
+					"buckets",
+					e.Payload.BucketID.String(),
+					child.Path,
+					child.Name,
+				)
 				if err := params.Storage.RemoveObjectTags(childPath, []string{"Status", "TrashedAt"}); err != nil {
-					zap.L().Error("Failed to remove trash tags from child object - lifecycle policy may still target this file",
-						zap.Error(err),
-						zap.String("path", childPath),
-						zap.String("file_id", child.ID.String()))
+					zap.L().
+						Error("Failed to remove trash tags from child object - lifecycle policy may still target this file",
+							zap.Error(err),
+							zap.String("path", childPath),
+							zap.String("file_id", child.ID.String()))
 				}
 			}
 		}
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}
@@ -187,7 +199,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	var remainingCount int64
 	params.DB.Model(&models.File{}).Where(
 		"bucket_id = ? AND path LIKE ? AND status = ? AND trashed_at = ?",
-		e.Payload.BucketId,
+		e.Payload.BucketID,
 		fmt.Sprintf("%s%%", path.Join(folder.Path, folder.Name)),
 		models.FileStatusTrashed,
 		folder.TrashedAt,
@@ -203,11 +215,11 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		Message: activity.FolderRestored,
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionRestore.String(),
-			"bucket_id":   e.Payload.BucketId.String(),
-			"file_id":     e.Payload.FolderId.String(),
+			"bucket_id":   e.Payload.BucketID.String(),
+			"file_id":     e.Payload.FolderID.String(),
 			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFile.String(),
-			"user_id":     e.Payload.UserId.String(),
+			"user_id":     e.Payload.UserID.String(),
 		}),
 	}
 
@@ -216,8 +228,8 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	}
 
 	zap.L().Info("Folder restore complete",
-		zap.String("bucket_id", e.Payload.BucketId.String()),
-		zap.String("folder_id", e.Payload.FolderId.String()),
+		zap.String("bucket_id", e.Payload.BucketID.String()),
+		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
 	return nil

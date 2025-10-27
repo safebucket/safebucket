@@ -1,9 +1,9 @@
 package database
 
 import (
-	"api/internal/models"
-	"database/sql"
 	"fmt"
+
+	"api/internal/models"
 
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"

@@ -2,9 +2,10 @@ package tests
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func AssertJSONResponse(

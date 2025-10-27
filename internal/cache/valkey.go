@@ -1,12 +1,13 @@
 package cache
 
 import (
-	"api/internal/configuration"
-	"api/internal/models"
 	"context"
 	"crypto/tls"
 	"fmt"
 	"time"
+
+	"api/internal/configuration"
+	"api/internal/models"
 
 	"github.com/redis/rueidis"
 	"go.uber.org/zap"
@@ -17,7 +18,6 @@ type ValkeyCache struct {
 }
 
 func NewValkeyCache(cacheConfig models.ValkeyCacheConfiguration) (*ValkeyCache, error) {
-
 	clientOption := rueidis.ClientOption{
 		InitAddress: cacheConfig.Hosts,
 		Password:    cacheConfig.Password,
@@ -30,7 +30,6 @@ func NewValkeyCache(cacheConfig models.ValkeyCacheConfiguration) (*ValkeyCache, 
 		}
 	}
 	client, err := rueidis.NewClient(clientOption)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to valkey: %w", err)
 	}
@@ -41,7 +40,8 @@ func (v *ValkeyCache) RegisterPlatform(id string) error {
 	ctx := context.Background()
 	sortedSetKey := configuration.CacheAppIdentityKey
 	currentTime := float64(time.Now().Unix())
-	err := v.client.Do(ctx, v.client.B().Zadd().Key(sortedSetKey).ScoreMember().ScoreMember(currentTime, id).Build()).Error()
+	err := v.client.Do(ctx, v.client.B().Zadd().Key(sortedSetKey).ScoreMember().ScoreMember(currentTime, id).Build()).
+		Error()
 	return err
 }
 
@@ -50,7 +50,8 @@ func (v *ValkeyCache) DeleteInactivePlatform() error {
 	sortedSetKey := configuration.CacheAppIdentityKey
 	currentTime := float64(time.Now().Unix())
 	maxLifetime := float64(configuration.CacheMaxAppIdentityLifetime)
-	err := v.client.Do(ctx, v.client.B().Zremrangebyscore().Key(sortedSetKey).Min("-inf").Max(fmt.Sprintf("%f", currentTime-maxLifetime)).Build()).Error()
+	err := v.client.Do(ctx, v.client.B().Zremrangebyscore().Key(sortedSetKey).Min("-inf").Max(fmt.Sprintf("%f", currentTime-maxLifetime)).Build()).
+		Error()
 	return err
 }
 
@@ -74,13 +75,13 @@ func (v *ValkeyCache) GetRateLimit(userIdentifier string, requestsPerMinute int)
 
 	key := fmt.Sprintf(configuration.CacheAppRateLimitKey, userIdentifier)
 	count, err := v.client.Do(ctx, v.client.B().Incr().Key(key).Build()).AsInt64()
-
 	if err != nil {
 		return 0, err
 	}
 
 	if count == 1 {
-		err := v.client.Do(ctx, v.client.B().Expire().Key(key).Seconds(int64(1*time.Minute.Seconds())).Build()).Error()
+		err := v.client.Do(ctx, v.client.B().Expire().Key(key).Seconds(int64(1*time.Minute.Seconds())).Build()).
+			Error()
 		if err != nil {
 			return 0, err
 		}
@@ -88,7 +89,6 @@ func (v *ValkeyCache) GetRateLimit(userIdentifier string, requestsPerMinute int)
 
 	if int(count) > requestsPerMinute {
 		retryAfter, err := v.client.Do(ctx, v.client.B().Ttl().Key(key).Build()).AsInt64()
-
 		if err != nil {
 			return 0, err
 		}

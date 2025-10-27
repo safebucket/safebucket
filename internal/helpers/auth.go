@@ -17,7 +17,7 @@ var validate = validator.New()
 
 // ValidateProviderName validates that a provider name is safe to use
 // Max length: 50 characters
-// Allowed characters: alphanumeric, underscore, hyphen
+// Allowed characters: alphanumeric, underscore, hyphen.
 func ValidateProviderName(providerName string) error {
 	if len(providerName) == 0 {
 		return errors.New("provider name cannot be empty")

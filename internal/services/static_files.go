@@ -17,13 +17,13 @@ type StaticFileService struct {
 	discoveredFiles map[string]string
 }
 
-// ConfigJSON represents the frontend configuration structure
+// ConfigJSON represents the frontend configuration structure.
 type ConfigJSON struct {
-	ApiUrl      string `json:"apiUrl"`
+	APIURL      string `json:"apiUrl"`
 	Environment string `json:"environment"`
 }
 
-func NewStaticFileService(directory string, apiUrl string) (*StaticFileService, error) {
+func NewStaticFileService(directory string, apiURL string) (*StaticFileService, error) {
 	var staticPath string
 
 	if !filepath.IsAbs(directory) {
@@ -38,7 +38,7 @@ func NewStaticFileService(directory string, apiUrl string) (*StaticFileService, 
 		discoveredFiles: make(map[string]string),
 	}
 
-	if err := service.createConfigFileIfNotExists(apiUrl); err != nil {
+	if err := service.createConfigFileIfNotExists(apiURL); err != nil {
 		return nil, fmt.Errorf("failed to create config file: %w", err)
 	}
 
@@ -48,20 +48,21 @@ func NewStaticFileService(directory string, apiUrl string) (*StaticFileService, 
 	return service, nil
 }
 
-// createConfigFileIfNotExists creates a config.json file in the static directory if it doesn't exist
-func (s *StaticFileService) createConfigFileIfNotExists(apiUrl string) error {
+// createConfigFileIfNotExists creates a config.json file in the static directory if it doesn't exist.
+func (s *StaticFileService) createConfigFileIfNotExists(apiURL string) error {
 	configPath := filepath.Join(s.staticPath, "config.json")
 
 	// Check if config.json already exists
 	if _, err := os.Stat(configPath); err == nil {
-		zap.L().Debug("config.json already exists, skipping creation", zap.String("path", configPath))
+		zap.L().
+			Debug("config.json already exists, skipping creation", zap.String("path", configPath))
 		return nil
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("failed to check config file existence: %w", err)
 	}
 
 	config := ConfigJSON{
-		ApiUrl:      apiUrl,
+		APIURL:      apiURL,
 		Environment: "production",
 	}
 
@@ -70,15 +71,16 @@ func (s *StaticFileService) createConfigFileIfNotExists(apiUrl string) error {
 		return fmt.Errorf("failed to marshal config to JSON: %w", err)
 	}
 
-	if err := os.MkdirAll(s.staticPath, 0750); err != nil {
+	if err := os.MkdirAll(s.staticPath, 0o750); err != nil {
 		return fmt.Errorf("failed to create static directory: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, configData, 0600); err != nil {
+	if err := os.WriteFile(configPath, configData, 0o600); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
-	zap.L().Info("created config.json", zap.String("path", configPath), zap.String("apiUrl", apiUrl), zap.String("environment", "production"))
+	zap.L().
+		Info("created config.json", zap.String("path", configPath), zap.String("apiURL", apiURL), zap.String("environment", "production"))
 	return nil
 }
 
@@ -111,9 +113,10 @@ func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 		fullPath := filepath.Join(dirPath, entry.Name())
 
 		if entry.IsDir() {
-			subUrlPrefix := filepath.Join(urlPrefix, entry.Name())
-			if err := s.walkDirectory(fullPath, subUrlPrefix); err != nil {
-				zap.L().Warn("failed to walk subdirectory", zap.String("dir", fullPath), zap.Error(err))
+			subURLPrefix := filepath.Join(urlPrefix, entry.Name())
+			if err := s.walkDirectory(fullPath, subURLPrefix); err != nil {
+				zap.L().
+					Warn("failed to walk subdirectory", zap.String("dir", fullPath), zap.Error(err))
 				continue
 			}
 		} else {
@@ -127,7 +130,8 @@ func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 			}
 		}
 	}
-	zap.L().Debug("file discovery completed", zap.String("directory", dirPath), zap.Int("total_files", len(s.discoveredFiles)))
+	zap.L().
+		Debug("file discovery completed", zap.String("directory", dirPath), zap.Int("total_files", len(s.discoveredFiles)))
 	return nil
 }
 
@@ -183,19 +187,22 @@ func (s *StaticFileService) serveSPAFallback(w http.ResponseWriter, r *http.Requ
 	s.secureServeFile(w, r, fullPath)
 }
 
-func (s *StaticFileService) secureServeFile(w http.ResponseWriter, r *http.Request, filePath string) {
-
+func (s *StaticFileService) secureServeFile(
+	w http.ResponseWriter,
+	r *http.Request,
+	filePath string,
+) {
 	s.setSecurityHeaders(w, filePath)
 
 	http.ServeFile(w, r, filePath)
 }
 
 func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath string) {
-
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	if strings.HasSuffix(filePath, ".html") {
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:9000") //todo: adapt connect-src adress
+		w.Header().
+			Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:9000")
 	}
 
 	w.Header().Set("X-Frame-Options", "DENY")
