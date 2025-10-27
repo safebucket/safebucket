@@ -72,9 +72,8 @@ func (s UserService) CreateUser(
 		}
 
 		return newUser, nil
-	} else {
-		return models.User{}, errors.New("user already exists, try to reset your password")
 	}
+	return models.User{}, errors.New("user already exists, try to reset your password")
 }
 
 func (s UserService) GetUserList(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs) []models.User {
@@ -92,9 +91,8 @@ func (s UserService) GetUser(
 	result := s.DB.Where("id = ?", ids[0]).First(&user)
 	if result.RowsAffected == 0 {
 		return user, errors.New("USER_NOT_FOUND")
-	} else {
-		return user, nil
 	}
+	return user, nil
 }
 
 func (s UserService) UpdateUser(
@@ -144,9 +142,8 @@ func (s UserService) UpdateUser(
 	result := s.DB.Model(&user).Updates(updatedUser)
 	if result.RowsAffected == 0 {
 		return errors.New("USER_NOT_FOUND")
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {

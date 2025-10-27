@@ -128,12 +128,12 @@ func (e *FolderPurge) callback(params *EventParams) error {
 				}
 			}
 
-			var fileIds []uuid.UUID
+			var fileIDs []uuid.UUID
 			for _, child := range childFiles {
-				fileIds = append(fileIds, child.ID)
+				fileIDs = append(fileIDs, child.ID)
 			}
 
-			if err := tx.Where("id IN ?", fileIds).Delete(&models.File{}).Error; err != nil {
+			if err := tx.Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
 				zap.L().Error("Failed to soft delete child files", zap.Error(err))
 				return err
 			}

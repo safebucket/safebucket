@@ -101,11 +101,11 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		zap.L().Info("Deleting files from database", zap.Int("count", len(files)))
 
-		var fileIds []uuid.UUID
+		var fileIDs []uuid.UUID
 		for _, file := range files {
-			fileIds = append(fileIds, file.ID)
+			fileIDs = append(fileIDs, file.ID)
 		}
-		dbResult := params.DB.Where("id IN ?", fileIds).Delete(&models.File{})
+		dbResult := tx.Where("id IN ?", fileIDs).Delete(&models.File{})
 		if dbResult.Error != nil {
 			zap.L().Error("Failed to delete files from database", zap.Error(dbResult.Error))
 			return dbResult.Error

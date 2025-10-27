@@ -21,7 +21,7 @@ import (
 )
 
 // mockNextHandler is a simple handler that returns 200 OK.
-func mockAuthNextHandler(w http.ResponseWriter, r *http.Request) {
+func mockAuthNextHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("OK"))
 }

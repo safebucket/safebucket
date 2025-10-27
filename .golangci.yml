@@ -44,7 +44,6 @@ linters:
     - dupl # tool for code clone detection
     - durationcheck # checks for two durations multiplied together
     - embeddedstructfieldcheck # checks embedded types in structs
-    #    - errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
     - exhaustive # checks exhaustiveness of enum switch statements
@@ -87,6 +86,7 @@ linters:
     - protogetter # reports direct reads from proto message fields when getters should be used
     - reassign # checks that package variables are not reassigned
     - recvcheck # checks for receiver type consistency
+    - revive # fast, configurable, extensible, flexible, and beautiful linter for Go, drop-in replacement of golint
     - rowserrcheck # checks whether Err of rows is checked successfully
     - sloglint # ensure consistent code style when using log/slog
     - spancheck # checks for mistakes with OpenTelemetry/Census spans
@@ -103,10 +103,15 @@ linters:
     - whitespace # detects leading and trailing whitespace
 
     ## disabled for bad reasons
-    #- revive # fast, configurable, extensible, flexible, and beautiful linter for Go, drop-in replacement of golint
     #- nilnil # checks that there is no simultaneous return of nil error and an invalid value
+    #- mnd # detects magic numbers
     #- musttag # enforces field tags in (un)marshaled structs
     #- gochecknoglobals # checks that no global variables exist
+    #- errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
+    #- unqueryvet # detects SELECT * in SQL queries and SQL builders, encouraging explicit column selection
+    #- testifylint # checks usage of github.com/stretchr/testify
+    #- testpackage # makes you use a separate _test package
+    #- tparallel # detects inappropriate usage of t.Parallel() method in your Go test codes
 
     ## you may want to enable
     #- arangolint # opinionated best practices for arangodb client
@@ -330,6 +335,26 @@ linters:
       # Skips check for interface methods with only a single parameter.
       # Default: false
       skip-single-param: true
+
+    mnd:
+      # List of function patterns to exclude from analysis.
+      # Values always ignored: `time.Date`,
+      # `strconv.FormatInt`, `strconv.FormatUint`, `strconv.FormatFloat`,
+      # `strconv.ParseInt`, `strconv.ParseUint`, `strconv.ParseFloat`.
+      # Default: []
+      ignored-functions:
+        - args.Error
+        - flag.Arg
+        - flag.Duration.*
+        - flag.Float.*
+        - flag.Int.*
+        - flag.Uint.*
+        - os.Chmod
+        - os.Mkdir.*
+        - os.OpenFile
+        - os.WriteFile
+        - prometheus.ExponentialBuckets.*
+        - prometheus.LinearBuckets
 
     nakedret:
       # Make an issue if func has more lines of code than this setting, and it has naked returns.

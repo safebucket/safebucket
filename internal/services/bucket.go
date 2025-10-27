@@ -193,21 +193,25 @@ func (s BucketService) GetBucket(
 	result := s.DB.Where("id = ?", bucketID).First(&bucket)
 	if result.RowsAffected == 0 {
 		return bucket, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
-	} else {
-		var files []models.File
-		// Filter out expired files that haven't been uploaded yet (only applies to files, not folders)
-		// Also exclude trashed items from normal bucket view
-		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
-		result = s.DB.Where(
-			"bucket_id = ? AND (status IS NULL OR status != ?) AND (type = 'folder' OR status = ? OR (status = ? AND created_at > ?))",
-			bucketID, models.FileStatusTrashed, models.FileStatusUploaded, models.FileStatusUploading, expirationTime,
-		).Find(&files)
-
-		if result.RowsAffected > 0 {
-			bucket.Files = files
-		}
-		return bucket, nil
 	}
+
+	var files []models.File
+	// Filter out expired files that haven't been uploaded yet (only applies to files, not folders)
+	// Also exclude trashed items from normal bucket view
+	expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
+	result = s.DB.Where(
+		"bucket_id = ? AND (status IS NULL OR status != ?) AND (type = 'folder' OR status = ? OR (status = ? AND created_at > ?))",
+		bucketID,
+		models.FileStatusTrashed,
+		models.FileStatusUploaded,
+		models.FileStatusUploading,
+		expirationTime,
+	).Find(&files)
+
+	if result.RowsAffected > 0 {
+		bucket.Files = files
+	}
+	return bucket, nil
 }
 
 func (s BucketService) UpdateBucket(
@@ -220,9 +224,8 @@ func (s BucketService) UpdateBucket(
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {
 		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (s BucketService) DeleteBucket(
@@ -319,7 +322,7 @@ func (s BucketService) UploadFile(
 	var formData map[string]string
 	var err error
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		res := s.DB.Create(file)
+		res := tx.Create(file)
 		if res.Error != nil {
 			return res.Error
 		}
@@ -427,16 +430,16 @@ func (s BucketService) GetActivity(
 ) []map[string]interface{} {
 	buckets := s.GetBucketList(logger, user, ids)
 
-	var bucketIds []string
+	var bucketIDs []string
 	for _, bucket := range buckets {
-		bucketIds = append(bucketIds, bucket.ID.String())
+		bucketIDs = append(bucketIDs, bucket.ID.String())
 	}
 
-	if len(bucketIds) > 0 {
+	if len(bucketIDs) > 0 {
 		searchCriteria := map[string][]string{
 			"domain":      {c.DefaultDomain},
 			"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String()},
-			"bucket_id":   bucketIds,
+			"bucket_id":   bucketIDs,
 		}
 
 		history, err := s.ActivityLogger.Search(searchCriteria)

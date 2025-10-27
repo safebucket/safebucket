@@ -127,9 +127,9 @@ func (e *FolderTrash) callback(params *EventParams) error {
 				zap.String("folder", folder.Name),
 				zap.Int("child_count", len(childFiles)))
 
-			var fileIds []uuid.UUID
+			var fileIDs []uuid.UUID
 			for _, child := range childFiles {
-				fileIds = append(fileIds, child.ID)
+				fileIDs = append(fileIDs, child.ID)
 			}
 
 			updates := map[string]interface{}{
@@ -139,7 +139,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			}
 
 			if err := tx.Model(&models.File{}).
-				Where("id IN ?", fileIds).
+				Where("id IN ?", fileIDs).
 				Updates(updates).Error; err != nil {
 				zap.L().Error("Failed to trash child files", zap.Error(err))
 				return err
