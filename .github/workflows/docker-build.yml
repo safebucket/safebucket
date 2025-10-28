@@ -1,21 +1,76 @@
 name: Build and Push Docker Image
 
 on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0, v2.1.3
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag (leave empty for latest)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
   packages: write
 
 jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    outputs:
+      on-default-branch: ${{ steps.check.outputs.on-default-branch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Fetch all history to check branch
+
+      - name: Check if tag is on main branch
+        id: check
+        run: |
+          # Check if the tag exists on the main branch
+          if git branch -r --contains ${{ github.ref_name }} | grep -q "origin/main"; then
+            echo "Tag ${{ github.ref_name }} is on main branch"
+            echo "on-default-branch=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag ${{ github.ref_name }} is NOT on main branch"
+            echo "on-default-branch=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
   build-amd64:
+    needs: [check-branch]
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true'))
     runs-on: ubuntu-latest
     outputs:
       digest-dockerhub: ${{ steps.build-dockerhub.outputs.digest }}
       digest-github: ${{ steps.build-github.outputs.digest }}
+      tags: ${{ steps.meta.outputs.tags }}
+      version: ${{ steps.meta.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            docker.io/safebucket/safebucket
+            ghcr.io/safebucket/safebucket
+          tags: |
+            # Tag pattern for semantic versioning
+            type=semver,pattern={{version}}
+            # Tag as latest for stable releases only (no pre-release suffix)
+            type=raw,value=latest,enable={{!contains(github.ref_name, '-')}}
+            # For manual dispatch
+            type=raw,value=${{ inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag != '' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag == '' }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -59,6 +114,11 @@ jobs:
           cache-to: type=gha,mode=max,scope=amd64
 
   build-arm64:
+    needs: [check-branch]
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true'))
     runs-on: ubuntu-24.04-arm
     outputs:
       digest-dockerhub: ${{ steps.build-dockerhub.outputs.digest }}
@@ -110,7 +170,13 @@ jobs:
 
   create-manifests:
     runs-on: ubuntu-latest
-    needs: [build-amd64, build-arm64]
+    needs: [check-branch, build-amd64, build-arm64]
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true')) &&
+      needs.build-amd64.result == 'success' &&
+      needs.build-arm64.result == 'success'
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -130,15 +196,30 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create multi-arch manifests
-        run: |        
-          # Create Docker Hub manifest
-          docker buildx imagetools create \
-            --tag docker.io/safebucket/safebucket:latest \
-            docker.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-dockerhub }} \
-            docker.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-dockerhub }}
-          
-          # Create GHCR manifest
-          docker buildx imagetools create \
-            --tag ghcr.io/safebucket/safebucket:latest \
-            ghcr.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-github }} \
-            ghcr.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-github }}
+        env:
+          TAGS: ${{ needs.build-amd64.outputs.tags }}
+        run: |
+          # Parse tags from metadata action
+          echo "Creating manifests for tags: $TAGS"
+
+          # Convert newline-separated tags to array
+          IFS=$'\n' read -rd '' -a tag_array <<<"$TAGS" || true
+
+          for tag in "${tag_array[@]}"; do
+            echo "Processing tag: $tag"
+
+            # Extract registry and determine which digests to use
+            if [[ $tag == docker.io/* ]]; then
+              echo "Creating Docker Hub manifest for $tag"
+              docker buildx imagetools create \
+                --tag "$tag" \
+                docker.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-dockerhub }} \
+                docker.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-dockerhub }}
+            elif [[ $tag == ghcr.io/* ]]; then
+              echo "Creating GHCR manifest for $tag"
+              docker buildx imagetools create \
+                --tag "$tag" \
+                ghcr.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-github }} \
+                ghcr.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-github }}
+            fi
+          done
