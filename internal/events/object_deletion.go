@@ -113,7 +113,7 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 		zap.L().Info("Deleting files from storage", zap.Int("count", len(files)))
 		var storagePaths []string
 		for _, file := range files {
-			storagePaths = append(storagePaths, path.Join("buckets", file.BucketId.String(), file.Path, file.Name))
+			storagePaths = append(storagePaths, path.Join("buckets", file.BucketID.String(), file.Path, file.Name))
 		}
 
 		if len(storagePaths) > 0 {

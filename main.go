@@ -45,7 +45,10 @@ func main() {
 	hash, _ := h.CreateHash(config.App.AdminPassword)
 	adminUser.HashedPassword = hash
 	db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "email"}, {Name: "provider_key"}},
+		Columns: []clause.Column{{Name: "email"}, {Name: "provider_key"}},
+		TargetWhere: clause.Where{Exprs: []clause.Expression{
+			clause.Eq{Column: "deleted_at", Value: nil},
+		}},
 		DoUpdates: clause.AssignmentColumns([]string{"hashed_password"}),
 	}).Create(&adminUser)
 
@@ -102,12 +105,12 @@ func main() {
 		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
-			DB:             db,
-			Storage:        storage,
-			Publisher:      eventRouter,
-			ActivityLogger: activity,
-			Providers:      providers,
-			WebUrl:         config.App.WebUrl,
+			DB:                 db,
+			Storage:            storage,
+			Publisher:          eventRouter,
+			ActivityLogger:     activity,
+			Providers:          providers,
+			WebUrl:             config.App.WebUrl,
 			TrashRetentionDays: config.App.TrashRetentionDays,
 		}.Routes())
 

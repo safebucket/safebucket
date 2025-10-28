@@ -66,7 +66,7 @@ func (s BucketMemberService) GetBucketMembers(logger *zap.Logger, _ models.UserC
 			Email:     membership.User.Email,
 			FirstName: membership.User.FirstName,
 			LastName:  membership.User.LastName,
-			Group:     string(membership.Group),
+			Group:     membership.Group,
 			Status:    "active",
 		})
 	}
