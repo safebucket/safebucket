@@ -26,20 +26,20 @@ const (
 
 type File struct {
 	ID          uuid.UUID      `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
-	Name        string         `gorm:"not null;default:null" json:"name"`
-	Extension   string         `gorm:"default:null" json:"extension"`
-	Status      FileStatus     `gorm:"type:file_status;default:null" json:"status"`
-	BucketID    uuid.UUID      `gorm:"type:uuid;" json:"bucket_id"`
-	Bucket      Bucket         `json:"-"`
-	Path        string         `gorm:"not null;default:/" json:"path"`
-	Type        FileType       `gorm:"type:file_type;not null;default:null" json:"type"`
-	Size        int            `gorm:"type:bigint;default:null" json:"size"`
-	TrashedAt   *time.Time     `gorm:"default:null;index" json:"trashed_at,omitempty"`
-	TrashedBy   *uuid.UUID     `gorm:"type:uuid;default:null" json:"trashed_by,omitempty"`
-	TrashedUser User           `gorm:"foreignKey:TrashedBy" json:"trashed_user,omitempty"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	Name        string         `gorm:"not null;default:null"                          json:"name"`
+	Extension   string         `gorm:"default:null"                                   json:"extension"`
+	Status      FileStatus     `gorm:"type:file_status;default:null"                  json:"status"`
+	BucketID    uuid.UUID      `gorm:"type:uuid;"                                     json:"bucket_id"`
+	Bucket      Bucket         `                                                      json:"-"`
+	Path        string         `gorm:"not null;default:/"                             json:"path"`
+	Type        FileType       `gorm:"type:file_type;not null;default:null"           json:"type"`
+	Size        int            `gorm:"type:bigint;default:null"                       json:"size"`
+	TrashedAt   *time.Time     `gorm:"default:null;index"                             json:"trashed_at,omitempty"`
+	TrashedBy   *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"trashed_by,omitempty"`
+	TrashedUser User           `gorm:"foreignKey:TrashedBy"                           json:"trashed_user,omitempty"`
+	CreatedAt   time.Time      `                                                      json:"created_at"`
+	UpdatedAt   time.Time      `                                                      json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index"                                          json:"-"`
 }
 
 type FileTransferBody struct {

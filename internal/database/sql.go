@@ -5,6 +5,8 @@ import (
 
 	"api/internal/models"
 
+	"database/sql"
+
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
@@ -20,12 +22,12 @@ func InitDB(config models.DatabaseConfiguration) *gorm.DB {
 		zap.L().Fatal("Failed to connect to database for migrations", zap.Error(err))
 	}
 
-	sqlDb, err := db.DB()
+	sqlDB, err := db.DB()
 	if err != nil {
 		zap.L().Fatal("Failed to retrieve raw SQL database", zap.Error(err))
 	}
 
-	runMigrations(sqlDb)
+	runMigrations(sqlDB)
 
 	return db
 }

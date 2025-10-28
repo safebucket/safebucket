@@ -16,14 +16,14 @@ type BucketMember struct {
 	Email     string    `json:"email"                validate:"required"`
 	FirstName string    `json:"first_name,omitempty"`
 	LastName  string    `json:"last_name,omitempty"`
-	Group     Group     `json:"group" validate:"required,oneof=owner contributor viewer"`
-	Status    string    `json:"status" validate:"required,oneof=active invited"`
+	Group     Group     `json:"group"                validate:"required,oneof=owner contributor viewer"`
+	Status    string    `json:"status"               validate:"required,oneof=active invited"`
 }
 
 type BucketMemberToUpdate struct {
 	BucketMember
-	NewGroup Group `validate:"required,oneof=owner contributor viewer"`
 
+	NewGroup Group `validate:"required,oneof=owner contributor viewer"`
 }
 
 type MembershipChanges struct {

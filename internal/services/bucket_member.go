@@ -248,7 +248,7 @@ func (s BucketMemberService) addMember(
 			)
 			bucketSharedEvent.Trigger()
 
-			err := rbac.CreateMembership(tx, invitee.ID, bucket.ID, models.Group(invite.Group))
+			err := rbac.CreateMembership(tx, invitee.ID, bucket.ID, invite.Group)
 			if err != nil {
 				logger.Error("Failed to create membership", zap.Error(err))
 				return err
@@ -300,7 +300,7 @@ func (s BucketMemberService) updateMember(
 				return nil
 			}
 		} else {
-			err := rbac.UpdateMembership(tx, member.UserID, bucket.ID, models.Group(member.NewGroup))
+			err := rbac.UpdateMembership(tx, member.UserID, bucket.ID, member.NewGroup)
 			if err != nil {
 				logger.Error("Failed to update membership", zap.Error(err))
 				return err

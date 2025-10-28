@@ -18,14 +18,14 @@ const (
 )
 
 type UserInvitationPayload struct {
-	Type            string
-	To              string
-	From            string
-	WebURL          string
-	BucketName      string
-	Role            string
-	RoleDescription string
-	InviteURL       string
+	Type             string
+	To               string
+	From             string
+	WebURL           string
+	BucketName       string
+	Group            models.Group
+	GroupDescription string
+	InviteURL        string
 }
 
 type UserInvitation struct {
@@ -51,14 +51,14 @@ func NewUserInvitation(
 	return UserInvitation{
 		Publisher: publisher,
 		Payload: UserInvitationPayload{
-			Type:            UserInvitationName,
-			To:              to,
-			From:            from,
-			WebURL:          webURL,
-			BucketName:      bucket.Name,
+			Type:             UserInvitationName,
+			To:               to,
+			From:             from,
+			WebURL:           webURL,
+			BucketName:       bucket.Name,
 			Group:            group,
 			GroupDescription: groupDescription,
-			InviteURL:       inviteURL,
+			InviteURL:        inviteURL,
 		},
 	}
 }
