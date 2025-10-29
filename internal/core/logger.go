@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"runtime"
 	"strings"
 	"syscall"
 
@@ -49,15 +48,12 @@ func isIgnorableLogSyncError(err error) bool {
 		return true
 	}
 
-	// Windows-specific sync errors
-	if runtime.GOOS == "windows" {
-		errStr := err.Error()
-		// Common Windows stderr sync errors
-		if strings.Contains(errStr, "The handle is invalid") ||
-			strings.Contains(errStr, "sync /dev/stderr") ||
-			strings.Contains(errStr, "inappropriate ioctl for device") {
-			return true
-		}
+	errStr := err.Error()
+	// Common Windows stderr sync errors
+	if strings.Contains(errStr, "The handle is invalid") ||
+		strings.Contains(errStr, "sync /dev/stderr") ||
+		strings.Contains(errStr, "inappropriate ioctl for device") {
+		return true
 	}
 
 	return false
