@@ -21,10 +21,10 @@ app:
 
 database:
   host: localhost
-  port: 5442
-  password: root
+  port: 5432
+  user: safebucket-user
+  password: safebucket-password
   name: safebucket
-  user: root
   sslmode: disable
 
 cache:
