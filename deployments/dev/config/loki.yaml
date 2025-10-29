@@ -1,0 +1,53 @@
+auth_enabled: false
+
+
+# https://medium.com/lonto-digital-services-integrator/grafana-loki-configuration-nuances-2e9b94da4ac1
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki
+  replication_factor: 1
+  storage:
+    s3:
+      endpoint: bucket:9000
+      insecure: true
+      bucketnames: loki-data
+      access_key_id: minio-root-user
+      secret_access_key: minio-root-password
+      s3forcepathstyle: true
+
+  ring:
+    kvstore:
+      store: memberlist
+
+schema_config:
+  configs:
+    - from: 2023-01-01
+      store: tsdb
+      object_store: s3
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+ingester:
+  chunk_idle_period: 1m
+
+ruler:
+  storage:
+    s3:
+      bucketnames: loki-ruler
+
+memberlist:
+  join_members:
+    - loki:7946
+      # discover_service_name to set + list of allowed labels
+
+limits_config:
+  max_query_length: 31d
+  split_queries_by_interval: 1d
+  allow_structured_metadata: true
+  discover_service_name: [ domain obj_type action ]
+
+  # retention_period: 1
+  # required_labels: ?
