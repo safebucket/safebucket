@@ -85,10 +85,11 @@ type StorageConfiguration struct {
 }
 
 type MinioStorageConfiguration struct {
-	BucketName   string `mapstructure:"bucket_name"   validate:"required"`
-	Endpoint     string `mapstructure:"endpoint"      validate:"required"`
-	ClientID     string `mapstructure:"client_id"     validate:"required"`
-	ClientSecret string `mapstructure:"client_secret" validate:"required"`
+	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
+	Endpoint         string `mapstructure:"endpoint"          validate:"required"`
+	ExternalEndpoint string `mapstructure:"external_endpoint"`
+	ClientID         string `mapstructure:"client_id"         validate:"required"`
+	ClientSecret     string `mapstructure:"client_secret"     validate:"required"`
 }
 
 type CloudStorage struct {

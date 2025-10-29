@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	c "api/internal/configuration"
@@ -14,8 +15,10 @@ import (
 )
 
 type S3Storage struct {
-	BucketName string
-	storage    *minio.Client
+	BucketName       string
+	InternalEndpoint string
+	ExternalEndpoint string
+	storage          *minio.Client
 }
 
 func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) IStorage {
@@ -37,7 +40,26 @@ func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) I
 			Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
 	}
 
-	return S3Storage{BucketName: bucketName, storage: minioClient}
+	// Use external endpoint for presigned URLs if provided, otherwise fall back to internal endpoint
+	externalEndpoint := config.ExternalEndpoint
+	if externalEndpoint == "" {
+		externalEndpoint = config.Endpoint
+	}
+
+	return S3Storage{
+		BucketName:       bucketName,
+		InternalEndpoint: config.Endpoint,
+		ExternalEndpoint: externalEndpoint,
+		storage:          minioClient,
+	}
+}
+
+// replaceEndpoint replaces the internal endpoint with the external endpoint in a URL.
+func (s S3Storage) replaceEndpoint(url string) string {
+	if s.InternalEndpoint == s.ExternalEndpoint {
+		return url
+	}
+	return strings.Replace(url, s.InternalEndpoint, s.ExternalEndpoint, 1)
 }
 
 func (s S3Storage) PresignedGetObject(path string) (string, error) {
@@ -52,7 +74,9 @@ func (s S3Storage) PresignedGetObject(path string) (string, error) {
 		return "", err
 	}
 
-	return url.String(), nil
+	// Replace internal endpoint with external endpoint for browser access
+	urlString := s.replaceEndpoint(url.String())
+	return urlString, nil
 }
 
 func (s S3Storage) PresignedPostPolicy(
@@ -74,7 +98,9 @@ func (s S3Storage) PresignedPostPolicy(
 		return "", map[string]string{}, err
 	}
 
-	return url.String(), metadata, nil
+	// Replace internal endpoint with external endpoint for browser access
+	urlString := s.replaceEndpoint(url.String())
+	return urlString, metadata, nil
 }
 
 func (s S3Storage) StatObject(path string) (map[string]string, error) {

@@ -17,7 +17,7 @@ services:
       - APP__ADMIN_PASSWORD=${APP__ADMIN_PASSWORD}
       - APP__ALLOWED_ORIGINS=${APP__ALLOWED_ORIGINS}
       - APP__TRASH_RETENTION_DAYS=${APP__TRASH_RETENTION_DAYS}
-      - DATABASE__HOST=db
+      - DATABASE__HOST=database
       - DATABASE__PORT=5432
       - DATABASE__USER=${DATABASE__USER}
       - DATABASE__PASSWORD=${DATABASE__PASSWORD}
@@ -29,12 +29,9 @@ services:
       - STORAGE__TYPE=${STORAGE__TYPE}
       - STORAGE__MINIO__BUCKET_NAME=${STORAGE__MINIO__BUCKET_NAME}
       - STORAGE__MINIO__ENDPOINT=${STORAGE__MINIO__ENDPOINT}
+      - STORAGE__MINIO__EXTERNAL_ENDPOINT=${STORAGE__MINIO__EXTERNAL_ENDPOINT}
       - STORAGE__MINIO__CLIENT_ID=${STORAGE__MINIO__CLIENT_ID}
       - STORAGE__MINIO__CLIENT_SECRET=${STORAGE__MINIO__CLIENT_SECRET}
-      - STORAGE__MINIO__TYPE=${STORAGE__MINIO__TYPE}
-      - STORAGE__MINIO__JETSTREAM__TOPIC_NAME=${STORAGE__MINIO__JETSTREAM__TOPIC_NAME}
-      - STORAGE__MINIO__JETSTREAM__HOST=${STORAGE__MINIO__JETSTREAM__HOST}
-      - STORAGE__MINIO__JETSTREAM__PORT=${STORAGE__MINIO__JETSTREAM__PORT}
       - EVENTS__TYPE=${EVENTS__TYPE}
       - EVENTS__QUEUES__NOTIFICATIONS__NAME=${EVENTS__QUEUES__NOTIFICATIONS__NAME}
       - EVENTS__QUEUES__BUCKET_EVENTS__NAME=${EVENTS__QUEUES__BUCKET_EVENTS__NAME}
@@ -57,11 +54,12 @@ services:
 
     ports:
       - "8080:8080"
-    restart: no
+    restart: on-failure:3
     depends_on:
-      - bucket
-      - database
-      - nats
+      bucket:
+        condition: service_healthy
+      database:
+        condition: service_healthy
 
   bucket:
     container_name: bucket
@@ -136,15 +134,17 @@ services:
         echo "Available notification targets:"
         mc admin config get local notify_nats
 
-        echo "Adding bucket notification events..."
+        echo "Removing any existing bucket notification events..."
+        mc event remove local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get 2>/dev/null || true
 
+        echo "Adding bucket notification events..."
         mc event add local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get
 
         echo "Verifying bucket notification configuration:"
         mc event list local/safebucket
 
         echo "MinIO bucket events configured successfully!"
-        echo "Events will be published to NATS subject: safebucket.bucket-events"
+        echo "Events will be published to NATS subject: safebucket-bucket-events"
     depends_on:
       bucket:
         condition: service_healthy
@@ -166,15 +166,16 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
-      interval: 1s
+      test: [ "CMD-SHELL", "psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1' || exit 1" ]
+      interval: 2s
       timeout: 5s
       retries: 20
+      start_period: 10s
 
   valkey:
     container_name: valkey
     image: valkey/valkey:9
-    command: ["valkey-server", "--requirepass", "${VALKEY_PASSWORD}"]
+    command: [ "valkey-server", "--requirepass", "${VALKEY_PASSWORD}" ]
     ports:
       - "6379:6379"
     restart: unless-stopped
