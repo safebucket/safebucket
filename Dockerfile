@@ -14,7 +14,7 @@ COPY web/ ./
 RUN npm install && npm run build
 
 # Backend builder stage
-FROM golang:1.23-alpine AS backend-builder
+FROM golang:1.24-alpine AS backend-builder
 
 RUN apk add --no-cache git ca-certificates tzdata
 
@@ -40,6 +40,9 @@ COPY --from=backend-builder /app/safebucket ./safebucket
 
 # Copy built frontend static files from frontend builder
 COPY --from=frontend-builder --chown=nonroot:nonroot /app/web/dist ./web/dist
+
+# Copy database migrations
+COPY --from=backend-builder --chown=nonroot:nonroot /app/internal/database/migrations ./internal/database/migrations
 
 # Expose port
 EXPOSE 8080

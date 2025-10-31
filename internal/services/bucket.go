@@ -286,7 +286,7 @@ func (s BucketService) UploadFile(
 	body models.FileTransferBody,
 ) (models.FileTransferResponse, error) {
 	var bucket models.Bucket
-	result := s.DB.Where("id = ? AND provider_type = ?", ids[0]).Find(&bucket)
+	result := s.DB.Where("id = ?", ids[0]).Find(&bucket)
 	if result.RowsAffected == 0 {
 		return models.FileTransferResponse{}, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}

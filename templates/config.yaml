@@ -21,10 +21,10 @@ app:
 
 database:
   host: localhost
-  port: 5442
-  password: root
+  port: 5432
+  user: safebucket-user
+  password: safebucket-password
   name: safebucket
-  user: root
   sslmode: disable
 
 cache:
@@ -51,9 +51,9 @@ events:
   queues:
     notifications:
       name: safebucket-notifications
-    bucket-events:
+    bucket_events:
       name: safebucket-bucket-events
-    object-deletion:
+    object_deletion:
       name: safebucket-object-deletion
   jetstream:
     host: localhost

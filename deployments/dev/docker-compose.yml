@@ -1,72 +1,12 @@
 name: safebucket
 
 services:
-  safebucket:
-    container_name: safebucket
-    image: safebucket/safebucket:latest
-    environment:
-      - APP__LOG_LEVEL=${APP__LOG_LEVEL}
-      - APP__API_URL=${APP__API_URL}
-      - APP__WEB_URL=${APP__WEB_URL}
-      - APP__PORT=${APP__PORT}
-      - APP__TRUSTED_PROXIES=${APP__TRUSTED_PROXIES}
-      - APP__STATIC_FILES__ENABLED=${APP__STATIC_FILES__ENABLED}
-      - APP__STATIC_FILES__DIRECTORY=${APP__STATIC_FILES__DIRECTORY}
-      - APP__JWT_SECRET=${APP__JWT_SECRET}
-      - APP__ADMIN_EMAIL=${APP__ADMIN_EMAIL}
-      - APP__ADMIN_PASSWORD=${APP__ADMIN_PASSWORD}
-      - APP__ALLOWED_ORIGINS=${APP__ALLOWED_ORIGINS}
-      - APP__TRASH_RETENTION_DAYS=${APP__TRASH_RETENTION_DAYS}
-      - DATABASE__HOST=database
-      - DATABASE__PORT=5432
-      - DATABASE__USER=${DATABASE__USER}
-      - DATABASE__PASSWORD=${DATABASE__PASSWORD}
-      - DATABASE__NAME=${DATABASE__NAME}
-      - DATABASE__SSLMODE=disable
-      - CACHE__TYPE=${CACHE__TYPE}
-      - CACHE__VALKEY__HOSTS=${CACHE__VALKEY__HOSTS}
-      - CACHE__VALKEY__PASSWORD=${CACHE__VALKEY__PASSWORD}
-      - STORAGE__TYPE=${STORAGE__TYPE}
-      - STORAGE__MINIO__BUCKET_NAME=${STORAGE__MINIO__BUCKET_NAME}
-      - STORAGE__MINIO__ENDPOINT=${STORAGE__MINIO__ENDPOINT}
-      - STORAGE__MINIO__EXTERNAL_ENDPOINT=${STORAGE__MINIO__EXTERNAL_ENDPOINT}
-      - STORAGE__MINIO__CLIENT_ID=${STORAGE__MINIO__CLIENT_ID}
-      - STORAGE__MINIO__CLIENT_SECRET=${STORAGE__MINIO__CLIENT_SECRET}
-      - EVENTS__TYPE=${EVENTS__TYPE}
-      - EVENTS__QUEUES__NOTIFICATIONS__NAME=${EVENTS__QUEUES__NOTIFICATIONS__NAME}
-      - EVENTS__QUEUES__BUCKET_EVENTS__NAME=${EVENTS__QUEUES__BUCKET_EVENTS__NAME}
-      - EVENTS__QUEUES__OBJECT_DELETION__NAME=${EVENTS__QUEUES__OBJECT_DELETION__NAME}
-      - EVENTS__JETSTREAM__HOST=${EVENTS__JETSTREAM__HOST}
-      - EVENTS__JETSTREAM__PORT=${EVENTS__JETSTREAM__PORT}
-      - NOTIFIER__TYPE=${NOTIFIER__TYPE}
-      - NOTIFIER__SMTP__HOST=${NOTIFIER__SMTP__HOST}
-      - NOTIFIER__SMTP__PORT=${NOTIFIER__SMTP__PORT}
-      - NOTIFIER__SMTP__USERNAME=${NOTIFIER__SMTP__USERNAME}
-      - NOTIFIER__SMTP__PASSWORD=${NOTIFIER__SMTP__PASSWORD}
-      - NOTIFIER__SMTP__SENDER=${NOTIFIER__SMTP__SENDER}
-      - NOTIFIER__SMTP__ENABLE_TLS=${NOTIFIER__SMTP__ENABLE_TLS}
-      - NOTIFIER__SMTP__SKIP_VERIFY_TLS=${NOTIFIER__SMTP__SKIP_VERIFY_TLS}
-      - ACTIVITY__TYPE=${ACTIVITY__TYPE}
-      - ACTIVITY__LOKI__ENDPOINT=${ACTIVITY__LOKI__ENDPOINT}
-      - AUTH__PROVIDERS__KEYS=${AUTH__PROVIDERS__KEYS}
-      - AUTH__PROVIDERS__LOCAL__NAME=${AUTH__PROVIDERS__LOCAL__NAME}
-      - AUTH__PROVIDERS__LOCAL__TYPE=${AUTH__PROVIDERS__LOCAL__TYPE}
-
-    ports:
-      - "8080:8080"
-    restart: on-failure:3
-    depends_on:
-      bucket:
-        condition: service_healthy
-      database:
-        condition: service_healthy
-
   bucket:
     container_name: bucket
     image: minio/minio:RELEASE.2024-11-07T00-52-20Z
     environment:
-      - MINIO_ROOT_USER=${STORAGE__MINIO__CLIENT_ID}
-      - MINIO_ROOT_PASSWORD=${STORAGE__MINIO__CLIENT_SECRET}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -84,10 +24,10 @@ services:
 
   minio-events-config:
     container_name: minio-events-config
-    image: minio/mc:RELEASE.2024-11-05T11-29-45Z
+    image: minio/mc:latest
     environment:
-      - MINIO_ROOT_USER=${STORAGE__MINIO__CLIENT_ID}
-      - MINIO_ROOT_PASSWORD=${STORAGE__MINIO__CLIENT_SECRET}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
@@ -144,7 +84,7 @@ services:
         mc event list local/safebucket
 
         echo "MinIO bucket events configured successfully!"
-        echo "Events will be published to NATS subject: safebucket-bucket-events"
+        echo "Events will be published to NATS subject: safebucket.bucket-events"
     depends_on:
       bucket:
         condition: service_healthy
@@ -162,11 +102,11 @@ services:
     restart: unless-stopped
     shm_size: 128mb
     environment:
-      POSTGRES_USER: ${DATABASE__USER}
-      POSTGRES_PASSWORD: ${DATABASE__PASSWORD}
-      POSTGRES_DB: ${DATABASE__NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     healthcheck:
-      test: [ "CMD-SHELL", "psql -U ${DATABASE__USER} -d ${DATABASE__NAME} -c 'SELECT 1' || exit 1" ]
+      test: [ "CMD-SHELL", "psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1' || exit 1" ]
       interval: 2s
       timeout: 5s
       retries: 20
@@ -175,7 +115,7 @@ services:
   valkey:
     container_name: valkey
     image: valkey/valkey:9
-    command: [ "valkey-server", "--requirepass", "${CACHE__VALKEY__PASSWORD}" ]
+    command: ["valkey-server", "--requirepass", "${VALKEY_PASSWORD}"]
     ports:
       - "6379:6379"
     restart: unless-stopped
@@ -184,7 +124,7 @@ services:
       - "valkey_data:/data"
 
   mailpit:
-    image: axllent/mailpit:v1.27
+    image: axllent/mailpit:v1.27.10
     container_name: mailpit
     restart: unless-stopped
     volumes:
@@ -224,6 +164,40 @@ services:
       - bucket
     healthcheck:
       test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    container_name: grafana
+    profiles: [ debug ]
+    image: docker.io/grafana/grafana:latest
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
+        apiVersion: 1
+        datasources:
+          - name: Loki
+            type: loki
+            access: proxy
+            url: http://loki:3100
+            jsonData:
+              httpHeaderName1: "X-Scope-OrgID"
+            secureJsonData:
+              httpHeaderValue1: "tenant1"
+        EOF
+        /run.sh
+    ports:
+      - "3200:3000"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
