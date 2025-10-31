@@ -150,6 +150,7 @@ func main() {
 		staticFileService, err := services.NewStaticFileService(
 			config.App.StaticFiles.Directory,
 			config.App.APIURL,
+			config.Storage.GetExternalURL(),
 		)
 		if err != nil {
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))

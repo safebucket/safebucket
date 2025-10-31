@@ -65,8 +65,8 @@ services:
     container_name: bucket
     image: minio/minio:RELEASE.2024-11-07T00-52-20Z
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_ROOT_USER=${STORAGE__MINIO__CLIENT_ID}
+      - MINIO_ROOT_PASSWORD=${STORAGE__MINIO__CLIENT_SECRET}
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -84,10 +84,10 @@ services:
 
   minio-events-config:
     container_name: minio-events-config
-    image: minio/mc:latest
+    image: minio/mc:RELEASE.2024-11-05T11-29-45Z
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_ROOT_USER=${STORAGE__MINIO__CLIENT_ID}
+      - MINIO_ROOT_PASSWORD=${STORAGE__MINIO__CLIENT_SECRET}
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
@@ -162,11 +162,11 @@ services:
     restart: unless-stopped
     shm_size: 128mb
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${DATABASE__USER}
+      POSTGRES_PASSWORD: ${DATABASE__PASSWORD}
+      POSTGRES_DB: ${DATABASE__NAME}
     healthcheck:
-      test: [ "CMD-SHELL", "psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1' || exit 1" ]
+      test: [ "CMD-SHELL", "psql -U ${DATABASE__USER} -d ${DATABASE__NAME} -c 'SELECT 1' || exit 1" ]
       interval: 2s
       timeout: 5s
       retries: 20
@@ -175,7 +175,7 @@ services:
   valkey:
     container_name: valkey
     image: valkey/valkey:9
-    command: [ "valkey-server", "--requirepass", "${VALKEY_PASSWORD}" ]
+    command: [ "valkey-server", "--requirepass", "${CACHE__VALKEY__PASSWORD}" ]
     ports:
       - "6379:6379"
     restart: unless-stopped

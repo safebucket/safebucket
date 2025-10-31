@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"strings"
+	"net/url"
 	"time"
 
 	c "api/internal/configuration"
@@ -55,11 +55,28 @@ func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) I
 }
 
 // replaceEndpoint replaces the internal endpoint with the external endpoint in a URL.
-func (s S3Storage) replaceEndpoint(url string) string {
+// It properly parses URLs to replace only the scheme and host, preserving path and query parameters.
+func (s S3Storage) replaceEndpoint(urlString string) string {
 	if s.InternalEndpoint == s.ExternalEndpoint {
-		return url
+		return urlString
 	}
-	return strings.Replace(url, s.InternalEndpoint, s.ExternalEndpoint, 1)
+
+	presignedURL, err := url.Parse(urlString)
+	if err != nil {
+		zap.L().Warn("failed to parse presigned URL, using original", zap.Error(err))
+		return urlString
+	}
+
+	externalURL, err := url.Parse(s.ExternalEndpoint)
+	if err != nil {
+		zap.L().Warn("failed to parse external endpoint, using original URL", zap.Error(err))
+		return urlString
+	}
+
+	presignedURL.Scheme = externalURL.Scheme
+	presignedURL.Host = externalURL.Host
+
+	return presignedURL.String()
 }
 
 func (s S3Storage) PresignedGetObject(path string) (string, error) {
