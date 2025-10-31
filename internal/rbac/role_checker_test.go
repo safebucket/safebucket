@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestRoleRank tests the internal role ranking function
+// TestRoleRank tests the internal role ranking function.
 func TestRoleRank(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -30,7 +30,7 @@ func TestRoleRank(t *testing.T) {
 	}
 }
 
-// TestHasRole tests role hierarchy checking
+// TestHasRole tests role hierarchy checking.
 func TestHasRole(t *testing.T) {
 	t.Run("admin should have admin role", func(t *testing.T) {
 		result := HasRole(models.RoleAdmin, models.RoleAdmin)
@@ -78,7 +78,7 @@ func TestHasRole(t *testing.T) {
 	})
 }
 
-// TestHasRole_EdgeCases tests edge cases and security scenarios
+// TestHasRole_EdgeCases tests edge cases and security scenarios.
 func TestHasRole_EdgeCases(t *testing.T) {
 	t.Run("unknown role should not have any valid role", func(t *testing.T) {
 		unknownRole := models.Role("hacker")
@@ -114,7 +114,7 @@ func TestHasRole_EdgeCases(t *testing.T) {
 	})
 }
 
-// TestHasRole_TableDriven comprehensive test matrix
+// TestHasRole_TableDriven comprehensive test matrix.
 func TestHasRole_TableDriven(t *testing.T) {
 	tests := []struct {
 		name         string

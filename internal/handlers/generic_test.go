@@ -20,7 +20,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// TestCreateHandler tests the successful creation of a resource
+// TestCreateHandler tests the successful creation of a resource.
 func TestCreateHandler(t *testing.T) {
 	testUUID := uuid.New()
 	mockInput := models.BucketCreateUpdateBody{Name: "test-bucket"}
@@ -63,7 +63,7 @@ func TestCreateHandler(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusCreated, mockOutput)
 }
 
-// TestCreateHandler_BadRequest tests creation with an error from the create function
+// TestCreateHandler_BadRequest tests creation with an error from the create function.
 func TestCreateHandler_BadRequest(t *testing.T) {
 	mockInput := models.BucketCreateUpdateBody{Name: "test-bucket"}
 
@@ -94,7 +94,7 @@ func TestCreateHandler_BadRequest(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
 
-// TestCreateHandler_InvalidUUID tests creation with invalid UUID in URL
+// TestCreateHandler_InvalidUUID tests creation with invalid UUID in URL.
 func TestCreateHandler_InvalidUUID(t *testing.T) {
 	invalidUUID := "invalid-uuid"
 
@@ -118,7 +118,7 @@ func TestCreateHandler_InvalidUUID(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
 
-// TestCreateHandler_BodyExtractionFailure tests creation when body cannot be extracted
+// TestCreateHandler_BodyExtractionFailure tests creation when body cannot be extracted.
 func TestCreateHandler_BodyExtractionFailure(t *testing.T) {
 	mockCreate := new(tests.MockCreateFunc[models.BucketCreateUpdateBody, models.Bucket])
 
@@ -139,7 +139,7 @@ func TestCreateHandler_BodyExtractionFailure(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusInternalServerError, expected)
 }
 
-// TestGetListHandler tests successful retrieval of a list
+// TestGetListHandler tests successful retrieval of a list.
 func TestGetListHandler(t *testing.T) {
 	records := []models.Bucket{
 		{
@@ -179,7 +179,7 @@ func TestGetListHandler(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusOK, page)
 }
 
-// TestGetListHandler_InvalidUUID tests list retrieval with invalid UUID
+// TestGetListHandler_InvalidUUID tests list retrieval with invalid UUID.
 func TestGetListHandler_InvalidUUID(t *testing.T) {
 	invalidUUID := "invalid-uuid"
 
@@ -203,7 +203,7 @@ func TestGetListHandler_InvalidUUID(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
 
-// TestGetOneHandler tests successful retrieval of a single record
+// TestGetOneHandler tests successful retrieval of a single record.
 func TestGetOneHandler(t *testing.T) {
 	testUUID := uuid.New()
 	expectedRecord := models.Bucket{
@@ -240,7 +240,7 @@ func TestGetOneHandler(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusOK, expectedRecord)
 }
 
-// TestGetOneHandler_NotFound tests retrieval when record is not found
+// TestGetOneHandler_NotFound tests retrieval when record is not found.
 func TestGetOneHandler_NotFound(t *testing.T) {
 	testUUID := uuid.New()
 
@@ -273,7 +273,7 @@ func TestGetOneHandler_NotFound(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusNotFound, expected)
 }
 
-// TestGetOneHandler_InvalidUUID tests retrieval with invalid UUID
+// TestGetOneHandler_InvalidUUID tests retrieval with invalid UUID.
 func TestGetOneHandler_InvalidUUID(t *testing.T) {
 	invalidUUID := "invalid-uuid"
 
@@ -297,7 +297,7 @@ func TestGetOneHandler_InvalidUUID(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
 
-// TestUpdateHandler tests successful update of a resource
+// TestUpdateHandler tests successful update of a resource.
 func TestUpdateHandler(t *testing.T) {
 	testUUID := uuid.New()
 	mockInput := models.BucketCreateUpdateBody{Name: "updated-bucket"}
@@ -332,7 +332,7 @@ func TestUpdateHandler(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusNoContent, nil)
 }
 
-// TestUpdateHandler_InvalidUUID tests update with invalid UUID
+// TestUpdateHandler_InvalidUUID tests update with invalid UUID.
 func TestUpdateHandler_InvalidUUID(t *testing.T) {
 	invalidUUID := "invalid-uuid"
 
@@ -356,7 +356,7 @@ func TestUpdateHandler_InvalidUUID(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
 
-// TestUpdateHandler_NotFoundWithAPIError tests update with custom APIError
+// TestUpdateHandler_NotFoundWithAPIError tests update with custom APIError.
 func TestUpdateHandler_NotFoundWithAPIError(t *testing.T) {
 	testUUID := uuid.New()
 	mockInput := models.BucketCreateUpdateBody{Name: "updated-bucket"}
@@ -392,7 +392,7 @@ func TestUpdateHandler_NotFoundWithAPIError(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusNotFound, expected)
 }
 
-// TestUpdateHandler_GenericError tests update with generic error
+// TestUpdateHandler_GenericError tests update with generic error.
 func TestUpdateHandler_GenericError(t *testing.T) {
 	testUUID := uuid.New()
 	mockInput := models.BucketCreateUpdateBody{Name: "updated-bucket"}
@@ -428,7 +428,7 @@ func TestUpdateHandler_GenericError(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
 
-// TestUpdateHandler_BodyExtractionFailure tests update when body cannot be extracted
+// TestUpdateHandler_BodyExtractionFailure tests update when body cannot be extracted.
 func TestUpdateHandler_BodyExtractionFailure(t *testing.T) {
 	testUUID := uuid.New()
 
@@ -455,7 +455,7 @@ func TestUpdateHandler_BodyExtractionFailure(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusInternalServerError, expected)
 }
 
-// TestDeleteHandler tests successful deletion of a resource
+// TestDeleteHandler tests successful deletion of a resource.
 func TestDeleteHandler(t *testing.T) {
 	testUUID := uuid.New()
 
@@ -487,7 +487,7 @@ func TestDeleteHandler(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusNoContent, nil)
 }
 
-// TestDeleteHandler_NotFound tests deletion when record is not found
+// TestDeleteHandler_NotFound tests deletion when record is not found.
 func TestDeleteHandler_NotFound(t *testing.T) {
 	testUUID := uuid.New()
 
@@ -520,7 +520,7 @@ func TestDeleteHandler_NotFound(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusNotFound, expected)
 }
 
-// TestDeleteHandler_InvalidUUID tests deletion with invalid UUID
+// TestDeleteHandler_InvalidUUID tests deletion with invalid UUID.
 func TestDeleteHandler_InvalidUUID(t *testing.T) {
 	invalidUUID := "invalid-uuid"
 

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestGroupRank tests the internal group ranking function
+// TestGroupRank tests the internal group ranking function.
 func TestGroupRank(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -30,7 +30,7 @@ func TestGroupRank(t *testing.T) {
 	}
 }
 
-// TestHasGroup tests group hierarchy checking
+// TestHasGroup tests group hierarchy checking.
 func TestHasGroup(t *testing.T) {
 	t.Run("owner should have owner group", func(t *testing.T) {
 		result := HasGroup(models.GroupOwner, models.GroupOwner)
@@ -78,7 +78,7 @@ func TestHasGroup(t *testing.T) {
 	})
 }
 
-// TestHasGroup_EdgeCases tests edge cases and security scenarios
+// TestHasGroup_EdgeCases tests edge cases and security scenarios.
 func TestHasGroup_EdgeCases(t *testing.T) {
 	t.Run("unknown group should not have any valid group", func(t *testing.T) {
 		unknownGroup := models.Group("superuser")
@@ -114,7 +114,7 @@ func TestHasGroup_EdgeCases(t *testing.T) {
 	})
 }
 
-// TestHasGroup_TableDriven comprehensive test matrix
+// TestHasGroup_TableDriven comprehensive test matrix.
 func TestHasGroup_TableDriven(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -130,12 +130,24 @@ func TestHasGroup_TableDriven(t *testing.T) {
 
 		// Contributor scenarios
 		{"Contributor->Owner", models.GroupContributor, models.GroupOwner, false, "Contributor CANNOT do Owner things"},
-		{"Contributor->Contributor", models.GroupContributor, models.GroupContributor, true, "Contributor can do Contributor things"},
+		{
+			"Contributor->Contributor",
+			models.GroupContributor,
+			models.GroupContributor,
+			true,
+			"Contributor can do Contributor things",
+		},
 		{"Contributor->Viewer", models.GroupContributor, models.GroupViewer, true, "Contributor can do Viewer things"},
 
 		// Viewer scenarios
 		{"Viewer->Owner", models.GroupViewer, models.GroupOwner, false, "Viewer CANNOT do Owner things"},
-		{"Viewer->Contributor", models.GroupViewer, models.GroupContributor, false, "Viewer CANNOT do Contributor things"},
+		{
+			"Viewer->Contributor",
+			models.GroupViewer,
+			models.GroupContributor,
+			false,
+			"Viewer CANNOT do Contributor things",
+		},
 		{"Viewer->Viewer", models.GroupViewer, models.GroupViewer, true, "Viewer can do Viewer things"},
 
 		// Edge cases
@@ -152,7 +164,7 @@ func TestHasGroup_TableDriven(t *testing.T) {
 	}
 }
 
-// TestHasGroup_SecurityImplications tests security-critical scenarios
+// TestHasGroup_SecurityImplications tests security-critical scenarios.
 func TestHasGroup_SecurityImplications(t *testing.T) {
 	t.Run("prevent horizontal privilege escalation", func(t *testing.T) {
 		// A viewer trying to act as owner

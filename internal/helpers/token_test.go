@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCreateHash tests password hashing functionality
+// TestCreateHash tests password hashing functionality.
 func TestCreateHash(t *testing.T) {
 	t.Run("should hash password successfully", func(t *testing.T) {
 		password := "testPassword123"
@@ -60,7 +60,7 @@ func TestCreateHash(t *testing.T) {
 	})
 }
 
-// TestNewAccessToken tests JWT access token generation
+// TestNewAccessToken tests JWT access token generation.
 func TestNewAccessToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
@@ -84,7 +84,7 @@ func TestNewAccessToken(t *testing.T) {
 
 		// Parse the token to verify claims
 		claims := &models.UserClaims{}
-		parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		parsedToken, err := jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
 		})
 
@@ -103,7 +103,7 @@ func TestNewAccessToken(t *testing.T) {
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
 		})
 
@@ -120,7 +120,7 @@ func TestNewAccessToken(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider)
 		require.NoError(t, err)
 
-		parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		parsedToken, err := jwt.Parse(token, func(_ *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
 		})
 
@@ -129,7 +129,7 @@ func TestNewAccessToken(t *testing.T) {
 	})
 }
 
-// TestParseAccessToken tests JWT access token parsing
+// TestParseAccessToken tests JWT access token parsing.
 func TestParseAccessToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
@@ -226,7 +226,7 @@ func TestParseAccessToken(t *testing.T) {
 	})
 }
 
-// TestNewRefreshToken tests JWT refresh token generation
+// TestNewRefreshToken tests JWT refresh token generation.
 func TestNewRefreshToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
@@ -249,7 +249,7 @@ func TestNewRefreshToken(t *testing.T) {
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
 		})
 
@@ -262,7 +262,7 @@ func TestNewRefreshToken(t *testing.T) {
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
 		})
 
@@ -275,7 +275,7 @@ func TestNewRefreshToken(t *testing.T) {
 	})
 }
 
-// TestParseRefreshToken tests JWT refresh token parsing
+// TestParseRefreshToken tests JWT refresh token parsing.
 func TestParseRefreshToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
@@ -337,7 +337,7 @@ func TestParseRefreshToken(t *testing.T) {
 	})
 }
 
-// TestGetUserClaims tests extracting claims from context
+// TestGetUserClaims tests extracting claims from context.
 func TestGetUserClaims(t *testing.T) {
 	t.Run("should extract valid claims from context", func(t *testing.T) {
 		expectedClaims := models.UserClaims{
@@ -375,7 +375,7 @@ func TestGetUserClaims(t *testing.T) {
 	})
 }
 
-// TestGenerateSecret tests random secret generation
+// TestGenerateSecret tests random secret generation.
 func TestGenerateSecret(t *testing.T) {
 	t.Run("should generate 6 character secret", func(t *testing.T) {
 		secret, err := GenerateSecret()
@@ -410,7 +410,7 @@ func TestGenerateSecret(t *testing.T) {
 	t.Run("should generate secrets with good distribution", func(t *testing.T) {
 		// Generate 100 secrets and check they're reasonably diverse
 		secrets := make(map[string]bool)
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			secret, err := GenerateSecret()
 			require.NoError(t, err)
 			secrets[secret] = true
@@ -423,10 +423,9 @@ func TestGenerateSecret(t *testing.T) {
 	t.Run("should use all characters in charset", func(t *testing.T) {
 		// Generate many secrets and verify all possible characters appear
 		charsSeen := make(map[rune]bool)
-		const charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 		// Generate enough secrets to likely see all characters
-		for i := 0; i < 1000; i++ {
+		for range 1000 {
 			secret, err := GenerateSecret()
 			require.NoError(t, err)
 			for _, char := range secret {
@@ -442,7 +441,7 @@ func TestGenerateSecret(t *testing.T) {
 	})
 }
 
-// TestSecretEntropyAndSecurity tests security properties of generated secrets
+// TestSecretEntropyAndSecurity tests security properties of generated secrets.
 func TestSecretEntropyAndSecurity(t *testing.T) {
 	t.Run("should have sufficient entropy for security", func(t *testing.T) {
 		// With 36 possible characters and 6 positions:
@@ -451,7 +450,7 @@ func TestSecretEntropyAndSecurity(t *testing.T) {
 
 		// Generate 10000 secrets to check for patterns
 		secrets := make(map[string]bool)
-		for i := 0; i < 10000; i++ {
+		for range 10000 {
 			secret, err := GenerateSecret()
 			require.NoError(t, err)
 			secrets[secret] = true
@@ -463,14 +462,14 @@ func TestSecretEntropyAndSecurity(t *testing.T) {
 
 	t.Run("should not have obvious patterns", func(t *testing.T) {
 		// Check that secrets don't follow obvious patterns
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			secret, err := GenerateSecret()
 			require.NoError(t, err)
 
 			// Should not be all same character
 			allSame := true
 			firstChar := secret[0]
-			for j := 0; j < len(secret); j++ {
+			for j := range len(secret) {
 				if secret[j] != firstChar {
 					allSame = false
 					break

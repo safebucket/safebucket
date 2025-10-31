@@ -38,7 +38,12 @@ type MockCreateFunc[In any, Out any] struct {
 	mock.Mock
 }
 
-func (m *MockCreateFunc[In, Out]) Create(logger *zap.Logger, claims models.UserClaims, ids uuid.UUIDs, input In) (Out, error) {
+func (m *MockCreateFunc[In, Out]) Create(
+	logger *zap.Logger,
+	claims models.UserClaims,
+	ids uuid.UUIDs,
+	input In,
+) (Out, error) {
 	args := m.Called(logger, claims, ids, input)
 	return args.Get(0).(Out), args.Error(1) //nolint:errcheck // test mock type assertion expected to succeed
 }
