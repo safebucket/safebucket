@@ -115,7 +115,7 @@ services:
   valkey:
     container_name: valkey
     image: valkey/valkey:9
-    command: ["valkey-server", "--requirepass", "${VALKEY_PASSWORD}"]
+    command: [ "valkey-server", "--requirepass", "${VALKEY_PASSWORD}" ]
     ports:
       - "6379:6379"
     restart: unless-stopped
@@ -144,11 +144,13 @@ services:
     ports:
       - "4222:4222"
     restart: unless-stopped
-    command: [ "-js" ]
+    command: [ "-js", "-sd", "/data" ]
     ulimits:
       nofile:
         soft: 65536
         hard: 65536
+    volumes:
+      - "nats_data:/data"
 
   loki:
     container_name: loki
@@ -207,3 +209,4 @@ volumes:
   postgresql_data:
   mail_data:
   valkey_data:
+  nats_data:
