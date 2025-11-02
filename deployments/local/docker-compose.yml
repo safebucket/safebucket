@@ -204,11 +204,13 @@ services:
     ports:
       - "4222:4222"
     restart: unless-stopped
-    command: [ "-js" ]
+    command: [ "-js", "-sd", "/data" ]
     ulimits:
       nofile:
         soft: 65536
         hard: 65536
+    volumes:
+      - "nats_data:/data"
 
   loki:
     container_name: loki
@@ -233,3 +235,4 @@ volumes:
   postgresql_data:
   mail_data:
   valkey_data:
+  nats_data:
