@@ -39,6 +39,9 @@ func (s UserService) Routes() chi.Router {
 
 		r.With(m.AuthorizeRole(models.RoleAdmin)).
 			Delete("/", handlers.DeleteHandler(s.DeleteUser))
+
+		r.With(m.AuthorizeSelfOrAdmin(0)).
+			Get("/stats", handlers.GetOneHandler(s.GetUserStats))
 	})
 	return r
 }
@@ -189,4 +192,33 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 		zap.String("email", user.Email),
 	)
 	return nil
+}
+
+func (s UserService) GetUserStats(
+	_ *zap.Logger,
+	_ models.UserClaims,
+	ids uuid.UUIDs,
+) (models.UserStatsResponse, error) {
+	userID := ids[0]
+
+	var user models.User
+	result := s.DB.Where("id = ?", userID).First(&user)
+	if result.RowsAffected == 0 {
+		return models.UserStatsResponse{}, errors.New("USER_NOT_FOUND")
+	}
+
+	var totalBuckets int64
+	s.DB.Model(&models.Membership{}).Where("user_id = ?", userID).Count(&totalBuckets)
+
+	var totalFiles int64
+	s.DB.Model(&models.File{}).
+		Joins("INNER JOIN memberships ON files.bucket_id = memberships.bucket_id").
+		Where("memberships.user_id = ?", userID).
+		Where("files.status != ?", models.FileStatusTrashed).
+		Count(&totalFiles)
+
+	return models.UserStatsResponse{
+		TotalFiles:   int(totalFiles),
+		TotalBuckets: int(totalBuckets),
+	}, nil
 }

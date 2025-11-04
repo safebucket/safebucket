@@ -77,7 +77,7 @@
     "statistics": {
       "title": "Statistiques",
       "total_files": "Total des fichiers",
-      "sharing_spaces": "Espaces de partage"
+      "total_buckets": "Total des buckets"
     },
     "tutorial": {
       "title": "Tutoriel : Comment transférer des fichiers",

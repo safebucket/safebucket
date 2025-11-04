@@ -44,3 +44,8 @@ type UserUpdateBody struct {
 	OldPassword string `json:"old_password" validate:"omitempty,required_with=NewPassword,max=72"`
 	NewPassword string `json:"new_password" validate:"omitempty,min=8,max=72"`
 }
+
+type UserStatsResponse struct {
+	TotalFiles   int `json:"total_files"`
+	TotalBuckets int `json:"total_buckets"`
+}

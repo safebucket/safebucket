@@ -76,8 +76,8 @@
     },
     "statistics": {
       "title": "Statistics",
-      "total_files": "Total Files",
-      "sharing_spaces": "Sharing Spaces"
+      "total_files": "Total files",
+      "total_buckets": "Total buckets"
     },
     "tutorial": {
       "title": "Tutorial: How to Transfer Files",
