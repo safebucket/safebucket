@@ -3,6 +3,7 @@ package errors
 // Trash error codes - HTTP 400 Bad Request.
 const (
 	ErrFileAlreadyTrashed    = "FILE_ALREADY_TRASHED"
+	ErrFileCannotBeTrashed   = "FILE_CANNOT_BE_TRASHED"
 	ErrFileNotInTrash        = "FILE_NOT_IN_TRASH"
 	ErrFolderAlreadyTrashed  = "FOLDER_ALREADY_TRASHED"
 	ErrFolderNotInTrash      = "FOLDER_NOT_IN_TRASH"

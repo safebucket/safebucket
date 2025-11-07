@@ -95,19 +95,22 @@ func (e *FolderTrash) callback(params *EventParams) error {
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
-		if err := params.Storage.SetObjectTags(objectPath, map[string]string{
-			"Status":    "trashed",
-			"TrashedAt": e.Payload.TrashedAt.Format(time.RFC3339),
+		if err := params.Storage.MarkFileAsTrashed(objectPath, models.TrashMetadata{
+			OriginalPath: objectPath,
+			TrashedAt:    e.Payload.TrashedAt,
+			TrashedBy:    e.Payload.UserID,
+			FileID:       e.Payload.FolderID,
 		}); err != nil {
 			zap.L().
-				Error("Failed to tag folder in storage - lifecycle policy may not delete this folder automatically",
+				Error("Failed to mark folder as trashed - rolling back transaction",
 					zap.Error(err),
 					zap.String("path", objectPath),
 					zap.String("folder_id", e.Payload.FolderID.String()))
+			return err
 		}
 
 		folderPath := path.Join(folder.Path, folder.Name)
-		dbPath := fmt.Sprintf("%s%%", folderPath)
+		dbPath := fmt.Sprintf("%s/%%", folderPath)
 
 		var childFiles []models.File
 		batchResult := tx.Where(
@@ -145,24 +148,9 @@ func (e *FolderTrash) callback(params *EventParams) error {
 				return err
 			}
 
-			for _, child := range childFiles {
-				childPath := path.Join(
-					"buckets",
-					e.Payload.BucketID.String(),
-					child.Path,
-					child.Name,
-				)
-				if err := params.Storage.SetObjectTags(childPath, map[string]string{
-					"Status":    "trashed",
-					"TrashedAt": e.Payload.TrashedAt.Format(time.RFC3339),
-				}); err != nil {
-					zap.L().
-						Error("Failed to tag child object in storage - lifecycle policy may not delete this file automatically",
-							zap.Error(err),
-							zap.String("path", childPath),
-							zap.String("file_id", child.ID.String()))
-				}
-			}
+			// Note: We only mark the folder itself in storage, not individual child files.
+			zap.L().Debug("Child files marked as trashed in database only",
+				zap.Int("child_count", len(childFiles)))
 		}
 
 		return nil
@@ -175,7 +163,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 	params.DB.Model(&models.File{}).Where(
 		"bucket_id = ? AND path LIKE ? AND status != ?",
 		e.Payload.BucketID,
-		fmt.Sprintf("%s%%", path.Join(folder.Path, folder.Name)),
+		fmt.Sprintf("%s/%%", path.Join(folder.Path, folder.Name)),
 		models.FileStatusTrashed,
 	).Count(&remainingCount)
 

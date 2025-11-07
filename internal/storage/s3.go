@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"net/url"
 	"time"
 
 	c "api/internal/configuration"
@@ -10,8 +9,14 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/minio/minio-go/v7/pkg/lifecycle"
 	"github.com/minio/minio-go/v7/pkg/tags"
 	"go.uber.org/zap"
+)
+
+const (
+	bucketsPrefix = "buckets/"
+	trashPrefix   = "trash/"
 )
 
 type S3Storage struct {
@@ -77,6 +82,10 @@ func (s S3Storage) replaceEndpoint(urlString string) string {
 	presignedURL.Host = externalURL.Host
 
 	return presignedURL.String()
+}
+
+func (s S3Storage) GetBucketName() string {
+	return s.BucketName
 }
 
 func (s S3Storage) PresignedGetObject(path string) (string, error) {
@@ -249,4 +258,116 @@ func (s S3Storage) RemoveObjectTags(path string, tagsToRemove []string) error {
 		minio.PutObjectTaggingOptions{},
 	)
 	return err
+}
+
+// IsTrashMarkerPath checks if a deletion event is for a trash marker.
+// Pattern: trash/{bucket-id}/{rest} -> buckets/{bucket-id}/{rest}
+func (s S3Storage) IsTrashMarkerPath(path string) (bool, string) {
+	if strings.HasPrefix(path, trashPrefix) {
+		originalPath := bucketsPrefix + strings.TrimPrefix(path, trashPrefix)
+		return true, originalPath
+	}
+
+	return false, ""
+}
+
+// getTrashMarkerPath converts buckets/{id}/path to trash/{id}/path
+func (s S3Storage) getTrashMarkerPath(objectPath string) string {
+	return strings.Replace(objectPath, bucketsPrefix, trashPrefix, 1)
+}
+
+func (s S3Storage) MarkFileAsTrashed(objectPath string, _ models.TrashMetadata) error {
+	ctx := context.Background()
+	markerPath := s.getTrashMarkerPath(objectPath)
+
+	_, err := s.storage.StatObject(ctx, s.BucketName, objectPath, minio.StatObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("object does not exist and can't be trashed: %w", err)
+	}
+
+	reader := bytes.NewReader([]byte{})
+	_, err = s.storage.PutObject(ctx, s.BucketName, markerPath, reader, 0, minio.PutObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create marker: %w", err)
+	}
+
+	return nil
+}
+
+func (s S3Storage) UnmarkFileAsTrashed(objectPath string) error {
+	ctx := context.Background()
+	markerPath := s.getTrashMarkerPath(objectPath)
+	err := s.storage.RemoveObject(ctx, s.BucketName, markerPath, minio.RemoveObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to remove marker: %w", err)
+	}
+	return nil
+}
+
+func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
+	const trashRuleID = "safebucket-trash-retention"
+
+	ctx := context.Background()
+	existingConfig, err := s.storage.GetBucketLifecycle(ctx, s.BucketName)
+
+	var config *lifecycle.Configuration
+	needsUpdate := true
+
+	if err == nil && existingConfig != nil && !existingConfig.Empty() {
+		config = existingConfig
+		var newRules []lifecycle.Rule
+		trashRuleFound := false
+
+		for _, rule := range config.Rules {
+			if rule.ID == trashRuleID {
+				trashRuleFound = true
+				if !rule.Expiration.IsDaysNull() &&
+					int(rule.Expiration.Days) == retentionDays &&
+					rule.RuleFilter.Prefix == "trash/" {
+					needsUpdate = false
+					zap.L().Debug("Trash lifecycle policy already up-to-date",
+						zap.String("bucket", s.BucketName),
+						zap.Int("retentionDays", retentionDays))
+					return nil
+				}
+			} else {
+				newRules = append(newRules, rule)
+			}
+		}
+
+		if trashRuleFound {
+			config.Rules = newRules
+		}
+	} else {
+		config = lifecycle.NewConfiguration()
+	}
+
+	if needsUpdate {
+		trashRule := lifecycle.Rule{
+			ID:     trashRuleID,
+			Status: "Enabled",
+			RuleFilter: lifecycle.Filter{
+				Prefix: "trash/",
+			},
+			Expiration: lifecycle.Expiration{
+				Days: lifecycle.ExpirationDays(retentionDays),
+			},
+		}
+		config.Rules = append(config.Rules, trashRule)
+
+		err = s.storage.SetBucketLifecycle(ctx, s.BucketName, config)
+		if err != nil {
+			zap.L().Error("Failed to set trash lifecycle policy",
+				zap.String("bucket", s.BucketName),
+				zap.Int("retentionDays", retentionDays),
+				zap.Error(err))
+			return err
+		}
+
+		zap.L().Info("Trash lifecycle policy configured",
+			zap.String("bucket", s.BucketName),
+			zap.Int("retentionDays", retentionDays))
+	}
+
+	return nil
 }

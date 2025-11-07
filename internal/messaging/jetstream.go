@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 	"time"
 
 	"api/internal/models"
-
-	"net"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-nats/v2/pkg/jetstream"
@@ -114,6 +114,33 @@ func (s *JetStreamSubscriber) Close() error {
 	return s.subscriber.Close()
 }
 
+// GetBucketEventType determines the type of MinIO S3 event
+func (s *JetStreamSubscriber) GetBucketEventType(message *message.Message) string {
+	var event MinioEvent
+	if err := json.Unmarshal(message.Payload, &event); err != nil {
+		zap.L().Error("Failed to unmarshal event to determine type", zap.Error(err))
+		return BucketEventTypeUnknown
+	}
+
+	if len(event.Records) == 0 {
+		return BucketEventTypeUnknown
+	}
+
+	// Check the first record's event name to determine type
+	eventName := event.Records[0].EventName
+
+	if eventName == "s3:ObjectCreated:Post" || eventName == "s3:ObjectCreated:Put" {
+		return BucketEventTypeUpload
+	}
+
+	if strings.HasPrefix(eventName, "s3:ObjectRemoved:") ||
+		strings.HasPrefix(eventName, "s3:LifecycleExpiration:") {
+		return BucketEventTypeDeletion
+	}
+
+	return BucketEventTypeUnknown
+}
+
 func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 	message *message.Message,
 ) []BucketUploadEvent {
@@ -124,11 +151,11 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 	}
 
 	var uploadEvents []BucketUploadEvent
-	for _, event := range event.Records {
-		if event.EventName == "s3:ObjectCreated:Post" {
-			bucketID := event.S3.Object.UserMetadata["X-Amz-Meta-Bucket-Id"]
-			fileID := event.S3.Object.UserMetadata["X-Amz-Meta-File-Id"]
-			userID := event.S3.Object.UserMetadata["X-Amz-Meta-User-Id"]
+	for _, record := range event.Records {
+		if record.EventName == "s3:ObjectCreated:Post" || record.EventName == "s3:ObjectCreated:Put" {
+			bucketID := record.S3.Object.UserMetadata["X-Amz-Meta-Bucket-Id"]
+			fileID := record.S3.Object.UserMetadata["X-Amz-Meta-File-Id"]
+			userID := record.S3.Object.UserMetadata["X-Amz-Meta-User-Id"]
 
 			uploadEvents = append(uploadEvents, BucketUploadEvent{
 				BucketID: bucketID,
@@ -137,10 +164,6 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 			})
 
 			message.Ack()
-		} else {
-			zap.L().Warn("event is not supported", zap.Any("event_name", event.EventName))
-			message.Ack()
-			continue
 		}
 	}
 
@@ -149,6 +172,7 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 
 func (s *JetStreamSubscriber) ParseBucketDeletionEvents(
 	message *message.Message,
+	expectedBucketName string,
 ) []BucketDeletionEvent {
 	var event MinioEvent
 	if err := json.Unmarshal(message.Payload, &event); err != nil {
@@ -159,34 +183,62 @@ func (s *JetStreamSubscriber) ParseBucketDeletionEvents(
 
 	var deletionEvents []BucketDeletionEvent
 	for _, record := range event.Records {
-		if strings.HasPrefix(record.EventName, "s3:ObjectRemoved:") ||
-			strings.HasPrefix(record.EventName, "s3:LifecycleExpiration:") {
-			objectKey := record.S3.Object.Key
-			var bucketID string
-			if strings.HasPrefix(objectKey, "buckets/") {
-				parts := strings.Split(objectKey, "/")
-				if len(parts) >= 2 {
-					bucketID = parts[1]
-				}
-			}
-
-			if bucketID == "" {
-				zap.L().Warn("unable to extract bucket ID from object key",
-					zap.String("object_key", objectKey))
-				continue
-			}
-
-			deletionEvents = append(deletionEvents, BucketDeletionEvent{
-				BucketID:  bucketID,
-				ObjectKey: objectKey,
-				EventName: record.EventName,
-			})
-
-			zap.L().Debug("parsed deletion event",
-				zap.String("event_name", record.EventName),
-				zap.String("bucket_id", bucketID),
-				zap.String("object_key", objectKey))
+		if !strings.HasPrefix(record.EventName, "s3:ObjectRemoved:") &&
+			!strings.HasPrefix(record.EventName, "s3:LifecycleExpiration:") {
+			continue
 		}
+
+		if record.S3.Bucket.Name != expectedBucketName {
+			zap.L().Debug("ignoring event from different bucket",
+				zap.String("event_bucket", record.S3.Bucket.Name),
+				zap.String("expected_bucket", expectedBucketName))
+			continue
+		}
+
+		objectKey, err := url.QueryUnescape(record.S3.Object.Key)
+		if err != nil {
+			zap.L().Warn("failed to URL decode object key",
+				zap.String("raw_key", record.S3.Object.Key),
+				zap.Error(err))
+			objectKey = record.S3.Object.Key // Fall back to raw key
+		}
+
+		// Log the full event record for debugging (only for actual deletion/expiration events)
+		zap.L().Info("received deletion/expiration event",
+			zap.String("event_name", record.EventName),
+			zap.String("object_key", objectKey),
+			zap.String("raw_payload", string(message.Payload)),
+			zap.Any("user_metadata", record.S3.Object.UserMetadata),
+			zap.String("bucket_name", record.S3.Bucket.Name),
+			zap.Int64("size", record.S3.Object.Size))
+
+		var bucketID string
+
+		// Handle both "buckets/" and "trash/" prefixes
+		if strings.HasPrefix(objectKey, "buckets/") || strings.HasPrefix(objectKey, "trash/") {
+			parts := strings.Split(objectKey, "/")
+			if len(parts) >= 2 {
+				bucketID = parts[1]
+			}
+		}
+
+		if bucketID == "" {
+			zap.L().Warn("unable to extract bucket ID from object key",
+				zap.String("object_key", objectKey),
+				zap.String("event_name", record.EventName))
+			continue
+		}
+
+		deletionEvents = append(deletionEvents, BucketDeletionEvent{
+			BucketID:  bucketID,
+			ObjectKey: objectKey,
+			EventName: record.EventName,
+		})
+
+		zap.L().Debug("parsed deletion event",
+			zap.String("event_name", record.EventName),
+			zap.String("bucket_id", bucketID),
+			zap.String("object_key", objectKey))
 	}
 
 	if len(deletionEvents) > 0 {

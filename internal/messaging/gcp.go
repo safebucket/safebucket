@@ -71,6 +71,21 @@ func (s *GCPSubscriber) Close() error {
 	return s.subscriber.Close()
 }
 
+// GetBucketEventType determines the type of GCP Cloud Storage event
+func (s *GCPSubscriber) GetBucketEventType(message *message.Message) string {
+	eventType := message.Metadata["eventType"]
+
+	if eventType == "OBJECT_FINALIZE" {
+		return BucketEventTypeUpload
+	}
+
+	if eventType == "OBJECT_DELETE" {
+		return BucketEventTypeDeletion
+	}
+
+	return BucketEventTypeUnknown
+}
+
 func (s *GCPSubscriber) ParseBucketUploadEvents(message *message.Message) []BucketUploadEvent {
 	var uploadEvents []BucketUploadEvent
 	if message.Metadata["eventType"] == "OBJECT_FINALIZE" {
@@ -98,7 +113,7 @@ func (s *GCPSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 	return uploadEvents
 }
 
-func (s *GCPSubscriber) ParseBucketDeletionEvents(message *message.Message) []BucketDeletionEvent {
+func (s *GCPSubscriber) ParseBucketDeletionEvents(message *message.Message, expectedBucketName string) []BucketDeletionEvent {
 	var deletionEvents []BucketDeletionEvent
 
 	eventType := message.Metadata["eventType"]
@@ -111,6 +126,15 @@ func (s *GCPSubscriber) ParseBucketDeletionEvents(message *message.Message) []Bu
 		if objectKey == "" {
 			zap.L().Warn("deletion event missing object key",
 				zap.Any("metadata", message.Metadata))
+			message.Ack()
+			return nil
+		}
+
+		// Verify bucket name if available in metadata
+		if bucketName := message.Metadata["bucket"]; bucketName != "" && bucketName != expectedBucketName {
+			zap.L().Debug("ignoring event from different bucket",
+				zap.String("event_bucket", bucketName),
+				zap.String("expected_bucket", expectedBucketName))
 			message.Ack()
 			return nil
 		}

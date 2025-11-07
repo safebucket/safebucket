@@ -131,16 +131,17 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		}
 
 		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
-		if err := params.Storage.RemoveObjectTags(objectPath, []string{"Status", "TrashedAt"}); err != nil {
+		if err := params.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
 			zap.L().
-				Error("Failed to remove trash tags from folder in storage - lifecycle policy may still target this folder",
+				Error("Failed to unmark folder as trashed - rolling back transaction",
 					zap.Error(err),
 					zap.String("path", objectPath),
 					zap.String("folder_id", e.Payload.FolderID.String()))
+			return err
 		}
 
 		folderPath := path.Join(folder.Path, folder.Name)
-		dbPath := fmt.Sprintf("%s%%", folderPath)
+		dbPath := fmt.Sprintf("%s/%%", folderPath)
 
 		var childFiles []models.File
 		batchResult := tx.Where(
@@ -173,21 +174,9 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				return err
 			}
 
-			for _, child := range childFiles {
-				childPath := path.Join(
-					"buckets",
-					e.Payload.BucketID.String(),
-					child.Path,
-					child.Name,
-				)
-				if err := params.Storage.RemoveObjectTags(childPath, []string{"Status", "TrashedAt"}); err != nil {
-					zap.L().
-						Error("Failed to remove trash tags from child object - lifecycle policy may still target this file",
-							zap.Error(err),
-							zap.String("path", childPath),
-							zap.String("file_id", child.ID.String()))
-				}
-			}
+			// Note: We only unmark the folder itself from storage, not individual child files. .
+			zap.L().Debug("Child files restored in database only",
+				zap.Int("child_count", len(childFiles)))
 		}
 
 		return nil
@@ -200,7 +189,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	params.DB.Model(&models.File{}).Where(
 		"bucket_id = ? AND path LIKE ? AND status = ? AND trashed_at = ?",
 		e.Payload.BucketID,
-		fmt.Sprintf("%s%%", path.Join(folder.Path, folder.Name)),
+		fmt.Sprintf("%s/%%", path.Join(folder.Path, folder.Name)),
 		models.FileStatusTrashed,
 		folder.TrashedAt,
 	).Count(&remainingCount)

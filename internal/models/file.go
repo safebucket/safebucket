@@ -54,3 +54,11 @@ type FileTransferResponse struct {
 	URL  string            `json:"url"`
 	Body map[string]string `json:"body"`
 }
+
+// TrashMetadata contains metadata for marking a file as trashed
+type TrashMetadata struct {
+	OriginalPath string
+	TrashedAt    time.Time
+	TrashedBy    uuid.UUID
+	FileID       uuid.UUID
+}
