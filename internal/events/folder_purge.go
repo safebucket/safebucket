@@ -91,7 +91,8 @@ func (e *FolderPurge) callback(params *EventParams) error {
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		folderPath := path.Join(folder.Path, folder.Name)
-		dbPath := fmt.Sprintf("%s%%", folderPath)
+		// Add "/" to ensure we only match direct children, not folders with similar names
+		dbPath := fmt.Sprintf("%s/%%", folderPath)
 
 		var childFiles []models.File
 		batchResult := tx.Where(
@@ -149,7 +150,7 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	params.DB.Model(&models.File{}).Where(
 		"bucket_id = ? AND path LIKE ?",
 		e.Payload.BucketID,
-		fmt.Sprintf("%s%%", path.Join(folder.Path, folder.Name)),
+		fmt.Sprintf("%s/%%", path.Join(folder.Path, folder.Name)),
 	).Count(&remainingCount)
 
 	if remainingCount > 0 {

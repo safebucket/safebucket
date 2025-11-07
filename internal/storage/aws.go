@@ -5,6 +5,7 @@ import (
 	"time"
 
 	c "api/internal/configuration"
+	"api/internal/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
@@ -38,6 +39,10 @@ func NewAWSStorage(bucketName string) IStorage {
 	presigner := s3.NewPresignClient(client)
 
 	return AWSStorage{BucketName: bucketName, storage: client, presigner: presigner}
+}
+
+func (a AWSStorage) GetBucketName() string {
+	return a.BucketName
 }
 
 func (a AWSStorage) PresignedGetObject(path string) (string, error) {
@@ -249,4 +254,107 @@ func (a AWSStorage) RemoveObjectTags(path string, tagsToRemove []string) error {
 		},
 	})
 	return err
+}
+
+func (a AWSStorage) MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error {
+	// Stub: Use old tag-based approach for AWS
+	return a.SetObjectTags(objectPath, map[string]string{
+		"Status":    "trashed",
+		"TrashedAt": metadata.TrashedAt.Format(time.RFC3339),
+	})
+}
+
+func (a AWSStorage) UnmarkFileAsTrashed(objectPath string) error {
+	// Stub: Use old tag-based approach for AWS
+	return a.RemoveObjectTags(objectPath, []string{"Status", "TrashedAt"})
+}
+
+func (a AWSStorage) IsTrashMarkerPath(path string) (bool, string) {
+	// Stub: AWS doesn't use markers yet, still using tags
+	return false, ""
+}
+
+func (a AWSStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
+	const trashRuleID = "safebucket-trash-retention"
+
+	ctx := context.Background()
+
+	// Get existing lifecycle configuration
+	existingConfig, err := a.storage.GetBucketLifecycleConfiguration(ctx, &s3.GetBucketLifecycleConfigurationInput{
+		Bucket: aws.String(a.BucketName),
+	})
+
+	// Prepare the trash lifecycle rule
+	trashRule := types.LifecycleRule{
+		ID:     aws.String(trashRuleID),
+		Status: types.ExpirationStatusEnabled,
+		Filter: &types.LifecycleRuleFilter{
+			Tag: &types.Tag{
+				Key:   aws.String("Status"),
+				Value: aws.String("trashed"),
+			},
+		},
+		Expiration: &types.LifecycleExpiration{
+			Days: aws.Int32(int32(retentionDays)),
+		},
+	}
+
+	var rules []types.LifecycleRule
+	needsUpdate := true
+
+	// If lifecycle config exists, preserve other rules and check if trash rule needs update
+	if err == nil && existingConfig != nil {
+		for _, rule := range existingConfig.Rules {
+			if rule.ID != nil && *rule.ID == trashRuleID {
+				// Check if the existing trash rule matches our desired configuration
+				if rule.Expiration != nil && rule.Expiration.Days != nil &&
+					*rule.Expiration.Days == int32(retentionDays) &&
+					rule.Filter != nil && rule.Filter.Tag != nil &&
+					rule.Filter.Tag.Key != nil && *rule.Filter.Tag.Key == "Status" &&
+					rule.Filter.Tag.Value != nil && *rule.Filter.Tag.Value == "trashed" {
+					needsUpdate = false
+					zap.L().Debug("Trash lifecycle policy already up-to-date",
+						zap.String("bucket", a.BucketName),
+						zap.Int("retentionDays", retentionDays))
+					return nil
+				}
+				// Replace with updated rule
+				rules = append(rules, trashRule)
+			} else {
+				// Preserve other rules
+				rules = append(rules, rule)
+			}
+		}
+
+		// If trash rule wasn't found in existing rules, add it
+		if needsUpdate && len(rules) == len(existingConfig.Rules) {
+			rules = append(rules, trashRule)
+		}
+	} else {
+		// No existing lifecycle config or error reading it, create new one with trash rule
+		rules = []types.LifecycleRule{trashRule}
+	}
+
+	// Only update if changes are needed
+	if needsUpdate {
+		_, err = a.storage.PutBucketLifecycleConfiguration(ctx, &s3.PutBucketLifecycleConfigurationInput{
+			Bucket: aws.String(a.BucketName),
+			LifecycleConfiguration: &types.BucketLifecycleConfiguration{
+				Rules: rules,
+			},
+		})
+		if err != nil {
+			zap.L().Error("Failed to set trash lifecycle policy",
+				zap.String("bucket", a.BucketName),
+				zap.Int("retentionDays", retentionDays),
+				zap.Error(err))
+			return err
+		}
+
+		zap.L().Info("Trash lifecycle policy configured",
+			zap.String("bucket", a.BucketName),
+			zap.Int("retentionDays", retentionDays))
+	}
+
+	return nil
 }
