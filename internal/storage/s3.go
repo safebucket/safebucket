@@ -17,11 +17,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	bucketsPrefix = "buckets/"
-	trashPrefix   = "trash/"
-)
-
 type S3Storage struct {
 	BucketName string
 	storage    *minio.Client
@@ -222,7 +217,7 @@ func (s S3Storage) RemoveObjectTags(path string, tagsToRemove []string) error {
 }
 
 // IsTrashMarkerPath checks if a deletion event is for a trash marker.
-// Pattern: trash/{bucket-id}/{rest} -> buckets/{bucket-id}/{rest}
+// Pattern: trash/{bucket-id}/{rest} -> buckets/{bucket-id}/{rest}.
 func (s S3Storage) IsTrashMarkerPath(path string) (bool, string) {
 	if strings.HasPrefix(path, trashPrefix) {
 		originalPath := bucketsPrefix + strings.TrimPrefix(path, trashPrefix)
@@ -232,7 +227,7 @@ func (s S3Storage) IsTrashMarkerPath(path string) (bool, string) {
 	return false, ""
 }
 
-// getTrashMarkerPath converts buckets/{id}/path to trash/{id}/path
+// getTrashMarkerPath converts buckets/{id}/path to trash/{id}/path.
 func (s S3Storage) getTrashMarkerPath(objectPath string) string {
 	return strings.Replace(objectPath, bucketsPrefix, trashPrefix, 1)
 }
@@ -265,45 +260,79 @@ func (s S3Storage) UnmarkFileAsTrashed(objectPath string) error {
 	return nil
 }
 
+// processExistingLifecycleRules processes existing lifecycle rules and returns the updated configuration.
+func (s S3Storage) processExistingLifecycleRules(
+	existingConfig *lifecycle.Configuration,
+	err error,
+	trashRuleID, multipartRuleID string,
+	retentionDays int,
+) *lifecycle.Configuration {
+	if err != nil || existingConfig == nil || existingConfig.Empty() {
+		return lifecycle.NewConfiguration()
+	}
+
+	config := existingConfig
+	var newRules []lifecycle.Rule
+	trashRuleFound := false
+	multipartRuleFound := false
+
+	for _, rule := range config.Rules {
+		switch rule.ID {
+		case trashRuleID:
+			trashRuleFound = true
+			if !rule.Expiration.IsDaysNull() &&
+				int(rule.Expiration.Days) == retentionDays &&
+				rule.RuleFilter.Prefix == "trash/" {
+				zap.L().Debug("Trash lifecycle policy already up-to-date",
+					zap.String("bucket", s.BucketName),
+					zap.Int("retentionDays", retentionDays))
+			}
+
+		case multipartRuleID:
+			multipartRuleFound = true
+			if rule.AbortIncompleteMultipartUpload.DaysAfterInitiation == 1 {
+				zap.L().Debug("Multipart upload cleanup policy already up-to-date",
+					zap.String("bucket", s.BucketName))
+				newRules = append(newRules, rule)
+			}
+
+		default:
+			newRules = append(newRules, rule)
+		}
+	}
+
+	if trashRuleFound || multipartRuleFound {
+		config.Rules = newRules
+	}
+
+	return config
+}
+
 func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	const trashRuleID = "safebucket-trash-retention"
+	const multipartRuleID = "safebucket-abort-incomplete-multipart"
+
+	// Validate retentionDays to prevent overflow and invalid values
+	if retentionDays < 0 {
+		return fmt.Errorf("retentionDays %d cannot be negative", retentionDays)
+	}
+	if retentionDays > 2147483647 { // math.MaxInt32
+		return fmt.Errorf("retentionDays %d exceeds maximum allowed value (2147483647)", retentionDays)
+	}
 
 	ctx := context.Background()
 	existingConfig, err := s.storage.GetBucketLifecycle(ctx, s.BucketName)
 
-	var config *lifecycle.Configuration
-	needsUpdate := true
+	config := s.processExistingLifecycleRules(
+		existingConfig,
+		err,
+		trashRuleID,
+		multipartRuleID,
+		retentionDays,
+	)
 
-	if err == nil && existingConfig != nil && !existingConfig.Empty() {
-		config = existingConfig
-		var newRules []lifecycle.Rule
-		trashRuleFound := false
-
-		for _, rule := range config.Rules {
-			if rule.ID == trashRuleID {
-				trashRuleFound = true
-				if !rule.Expiration.IsDaysNull() &&
-					int(rule.Expiration.Days) == retentionDays &&
-					rule.RuleFilter.Prefix == "trash/" {
-					needsUpdate = false
-					zap.L().Debug("Trash lifecycle policy already up-to-date",
-						zap.String("bucket", s.BucketName),
-						zap.Int("retentionDays", retentionDays))
-					return nil
-				}
-			} else {
-				newRules = append(newRules, rule)
-			}
-		}
-
-		if trashRuleFound {
-			config.Rules = newRules
-		}
-	} else {
-		config = lifecycle.NewConfiguration()
-	}
-
-	if needsUpdate {
+	// Add trash expiration rule
+	{
 		trashRule := lifecycle.Rule{
 			ID:     trashRuleID,
 			Status: "Enabled",
@@ -315,20 +344,32 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 			},
 		}
 		config.Rules = append(config.Rules, trashRule)
-
-		err = s.storage.SetBucketLifecycle(ctx, s.BucketName, config)
-		if err != nil {
-			zap.L().Error("Failed to set trash lifecycle policy",
-				zap.String("bucket", s.BucketName),
-				zap.Int("retentionDays", retentionDays),
-				zap.Error(err))
-			return err
-		}
-
-		zap.L().Info("Trash lifecycle policy configured",
-			zap.String("bucket", s.BucketName),
-			zap.Int("retentionDays", retentionDays))
 	}
 
+	// Add incomplete multipart upload cleanup rule
+	{
+		multipartRule := lifecycle.Rule{
+			ID:     multipartRuleID,
+			Status: "Enabled",
+			AbortIncompleteMultipartUpload: lifecycle.AbortIncompleteMultipartUpload{
+				DaysAfterInitiation: 1,
+			},
+		}
+		config.Rules = append(config.Rules, multipartRule)
+	}
+
+	err = s.storage.SetBucketLifecycle(ctx, s.BucketName, config)
+	if err != nil {
+		zap.L().Error("Failed to set lifecycle policies",
+			zap.String("bucket", s.BucketName),
+			zap.Int("trashRetentionDays", retentionDays),
+			zap.Error(err))
+		return err
+	}
+
+	zap.L().Info("Lifecycle policies configured",
+		zap.String("bucket", s.BucketName),
+		zap.Int("trashRetentionDays", retentionDays),
+		zap.Int("multipartCleanupDays", 1))
 	return nil
 }

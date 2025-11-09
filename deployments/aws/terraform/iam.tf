@@ -35,11 +35,24 @@ resource "aws_iam_role_policy" "safebucket_app" {
         # S3 permissions for signed URLs and bucket operations
         Effect = "Allow"
         Action = [
+          # Object operations
           "s3:GetObject",
           "s3:PutObject",
           "s3:DeleteObject",
+          "s3:DeleteObjects",
+          "s3:HeadObject",
+          "s3:GetObjectAttributes",
+
+          # Tagging operations (required for file metadata)
+          "s3:GetObjectTagging",
+          "s3:PutObjectTagging",
+
+          # List operations
           "s3:ListBucket",
-          "s3:GetObjectAttributes"
+
+          # Lifecycle operations (CRITICAL - required for trash retention)
+          "s3:GetBucketLifecycleConfiguration",
+          "s3:PutBucketLifecycleConfiguration"
         ]
         Resource = [
           aws_s3_bucket.main.arn,
@@ -47,10 +60,11 @@ resource "aws_iam_role_policy" "safebucket_app" {
         ]
       },
       {
-        # SQS permissions for S3 events queue (read only)
+        # SQS permissions for S3 events queue (read and delete)
         Effect = "Allow"
         Action = [
           "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
           "sqs:GetQueueAttributes",
           "sqs:GetQueueUrl"
         ]
@@ -62,6 +76,7 @@ resource "aws_iam_role_policy" "safebucket_app" {
         Action = [
           "sqs:SendMessage",
           "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
           "sqs:GetQueueAttributes",
           "sqs:GetQueueUrl"
         ]

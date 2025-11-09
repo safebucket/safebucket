@@ -1,7 +1,11 @@
 package storage
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	c "api/internal/configuration"
@@ -256,87 +260,189 @@ func (a AWSStorage) RemoveObjectTags(path string, tagsToRemove []string) error {
 	return err
 }
 
-func (a AWSStorage) MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error {
-	// Stub: Use old tag-based approach for AWS
-	return a.SetObjectTags(objectPath, map[string]string{
-		"Status":    "trashed",
-		"TrashedAt": metadata.TrashedAt.Format(time.RFC3339),
+// IsTrashMarkerPath checks if a deletion event is for a trash marker.
+// Pattern: trash/{bucket-id}/{rest} -> buckets/{bucket-id}/{rest}.
+func (a AWSStorage) IsTrashMarkerPath(path string) (bool, string) {
+	if strings.HasPrefix(path, trashPrefix) {
+		originalPath := bucketsPrefix + strings.TrimPrefix(path, trashPrefix)
+		return true, originalPath
+	}
+
+	return false, ""
+}
+
+// getTrashMarkerPath converts buckets/{id}/path to trash/{id}/path.
+func (a AWSStorage) getTrashMarkerPath(objectPath string) string {
+	return strings.Replace(objectPath, bucketsPrefix, trashPrefix, 1)
+}
+
+func (a AWSStorage) MarkFileAsTrashed(objectPath string, _ models.TrashMetadata) error {
+	ctx := context.Background()
+	markerPath := a.getTrashMarkerPath(objectPath)
+
+	// Verify original object exists
+	_, err := a.storage.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(a.BucketName),
+		Key:    aws.String(objectPath),
 	})
+	if err != nil {
+		return fmt.Errorf("object does not exist and can't be trashed: %w", err)
+	}
+
+	// Create empty marker object
+	reader := bytes.NewReader([]byte{})
+	_, err = a.storage.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(a.BucketName),
+		Key:    aws.String(markerPath),
+		Body:   reader,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create marker: %w", err)
+	}
+
+	return nil
 }
 
 func (a AWSStorage) UnmarkFileAsTrashed(objectPath string) error {
-	// Stub: Use old tag-based approach for AWS
-	return a.RemoveObjectTags(objectPath, []string{"Status", "TrashedAt"})
+	ctx := context.Background()
+	markerPath := a.getTrashMarkerPath(objectPath)
+
+	_, err := a.storage.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(a.BucketName),
+		Key:    aws.String(markerPath),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to remove marker: %w", err)
+	}
+
+	return nil
 }
 
-func (a AWSStorage) IsTrashMarkerPath(path string) (bool, string) {
-	// Stub: AWS doesn't use markers yet, still using tags
-	return false, ""
+// isTrashLifecycleRuleUpToDate checks if an existing lifecycle rule matches the desired trash retention configuration.
+func isTrashLifecycleRuleUpToDate(rule types.LifecycleRule, retentionDays int) bool {
+	if rule.Expiration == nil || rule.Expiration.Days == nil {
+		return false
+	}
+	if *rule.Expiration.Days != int32(retentionDays) { //nolint:gosec // validated in EnsureTrashLifecyclePolicy
+		return false
+	}
+	if rule.Filter == nil || rule.Filter.Prefix == nil {
+		return false
+	}
+	if *rule.Filter.Prefix != trashPrefix {
+		return false
+	}
+
+	return true
+}
+
+// processExistingLifecycleRules processes existing lifecycle rules and returns the updated rules list.
+func (a AWSStorage) processExistingLifecycleRules(
+	existingConfig *s3.GetBucketLifecycleConfigurationOutput,
+	err error,
+	trashRuleID, multipartRuleID string,
+	trashRule, multipartRule types.LifecycleRule,
+	retentionDays int,
+) ([]types.LifecycleRule, bool, bool) {
+	var rules []types.LifecycleRule
+	trashRuleFound := false
+	multipartRuleFound := false
+
+	if err != nil || existingConfig == nil {
+		return []types.LifecycleRule{trashRule, multipartRule}, false, false
+	}
+
+	for _, rule := range existingConfig.Rules {
+		if rule.ID == nil {
+			rules = append(rules, rule)
+			continue
+		}
+
+		switch *rule.ID {
+		case trashRuleID:
+			if isTrashLifecycleRuleUpToDate(rule, retentionDays) {
+				zap.L().Debug("Trash lifecycle policy already up-to-date",
+					zap.String("bucket", a.BucketName),
+					zap.Int("retentionDays", retentionDays))
+			}
+			trashRuleFound = true
+			rules = append(rules, trashRule)
+
+		case multipartRuleID:
+			multipartRuleFound = true
+			if rule.AbortIncompleteMultipartUpload != nil &&
+				rule.AbortIncompleteMultipartUpload.DaysAfterInitiation != nil &&
+				*rule.AbortIncompleteMultipartUpload.DaysAfterInitiation == 1 {
+				zap.L().Debug("Multipart upload cleanup policy already up-to-date",
+					zap.String("bucket", a.BucketName))
+				rules = append(rules, rule)
+			} else {
+				rules = append(rules, multipartRule)
+			}
+
+		default:
+			rules = append(rules, rule)
+		}
+	}
+
+	return rules, trashRuleFound, multipartRuleFound
 }
 
 func (a AWSStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	const trashRuleID = "safebucket-trash-retention"
+	const multipartRuleID = "safebucket-abort-incomplete-multipart"
+
+	// Validate retentionDays fits in int32 to prevent overflow
+	if retentionDays < 0 || retentionDays > math.MaxInt32 {
+		return fmt.Errorf("retentionDays %d is out of valid range (0-%d)", retentionDays, math.MaxInt32)
+	}
 
 	ctx := context.Background()
 
-	// Get existing lifecycle configuration
 	existingConfig, err := a.storage.GetBucketLifecycleConfiguration(ctx, &s3.GetBucketLifecycleConfigurationInput{
 		Bucket: aws.String(a.BucketName),
 	})
 
-	// Prepare the trash lifecycle rule
 	trashRule := types.LifecycleRule{
 		ID:     aws.String(trashRuleID),
 		Status: types.ExpirationStatusEnabled,
 		Filter: &types.LifecycleRuleFilter{
-			Tag: &types.Tag{
-				Key:   aws.String("Status"),
-				Value: aws.String("trashed"),
-			},
+			Prefix: aws.String(trashPrefix),
 		},
 		Expiration: &types.LifecycleExpiration{
 			Days: aws.Int32(int32(retentionDays)),
 		},
 	}
 
-	var rules []types.LifecycleRule
-	needsUpdate := true
-
-	// If lifecycle config exists, preserve other rules and check if trash rule needs update
-	if err == nil && existingConfig != nil {
-		for _, rule := range existingConfig.Rules {
-			if rule.ID != nil && *rule.ID == trashRuleID {
-				// Check if the existing trash rule matches our desired configuration
-				if rule.Expiration != nil && rule.Expiration.Days != nil &&
-					*rule.Expiration.Days == int32(retentionDays) &&
-					rule.Filter != nil && rule.Filter.Tag != nil &&
-					rule.Filter.Tag.Key != nil && *rule.Filter.Tag.Key == "Status" &&
-					rule.Filter.Tag.Value != nil && *rule.Filter.Tag.Value == "trashed" {
-					needsUpdate = false
-					zap.L().Debug("Trash lifecycle policy already up-to-date",
-						zap.String("bucket", a.BucketName),
-						zap.Int("retentionDays", retentionDays))
-					return nil
-				}
-				// Replace with updated rule
-				rules = append(rules, trashRule)
-			} else {
-				// Preserve other rules
-				rules = append(rules, rule)
-			}
-		}
-
-		// If trash rule wasn't found in existing rules, add it
-		if needsUpdate && len(rules) == len(existingConfig.Rules) {
-			rules = append(rules, trashRule)
-		}
-	} else {
-		// No existing lifecycle config or error reading it, create new one with trash rule
-		rules = []types.LifecycleRule{trashRule}
+	multipartRule := types.LifecycleRule{
+		ID:     aws.String(multipartRuleID),
+		Status: types.ExpirationStatusEnabled,
+		Filter: &types.LifecycleRuleFilter{
+			Prefix: aws.String(""),
+		},
+		AbortIncompleteMultipartUpload: &types.AbortIncompleteMultipartUpload{
+			DaysAfterInitiation: aws.Int32(1),
+		},
 	}
 
-	// Only update if changes are needed
-	if needsUpdate {
+	rules, trashRuleFound, multipartRuleFound := a.processExistingLifecycleRules(
+		existingConfig,
+		err,
+		trashRuleID,
+		multipartRuleID,
+		trashRule,
+		multipartRule,
+		retentionDays,
+	)
+
+	if !trashRuleFound {
+		rules = append(rules, trashRule)
+	}
+	if !multipartRuleFound {
+		rules = append(rules, multipartRule)
+	}
+
+	{
 		_, err = a.storage.PutBucketLifecycleConfiguration(ctx, &s3.PutBucketLifecycleConfigurationInput{
 			Bucket: aws.String(a.BucketName),
 			LifecycleConfiguration: &types.BucketLifecycleConfiguration{
@@ -344,17 +450,17 @@ func (a AWSStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 			},
 		})
 		if err != nil {
-			zap.L().Error("Failed to set trash lifecycle policy",
+			zap.L().Error("Failed to set lifecycle policies",
 				zap.String("bucket", a.BucketName),
-				zap.Int("retentionDays", retentionDays),
+				zap.Int("trashRetentionDays", retentionDays),
 				zap.Error(err))
 			return err
 		}
 
-		zap.L().Info("Trash lifecycle policy configured",
+		zap.L().Info("Lifecycle policies configured",
 			zap.String("bucket", a.BucketName),
-			zap.Int("retentionDays", retentionDays))
+			zap.Int("trashRetentionDays", retentionDays),
+			zap.Int("multipartCleanupDays", 1))
+		return nil
 	}
-
-	return nil
 }

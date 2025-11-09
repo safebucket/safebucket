@@ -13,8 +13,9 @@ import (
 )
 
 type StaticFileService struct {
-	staticPath      string
-	discoveredFiles map[string]string
+	staticPath         string
+	discoveredFiles    map[string]string
+	storageExternalURL string
 }
 
 // ConfigJSON represents the frontend configuration structure.
@@ -23,7 +24,7 @@ type ConfigJSON struct {
 	Environment string `json:"environment"`
 }
 
-func NewStaticFileService(directory string, apiURL string) (*StaticFileService, error) {
+func NewStaticFileService(directory string, apiURL string, storageExternalURL string) (*StaticFileService, error) {
 	var staticPath string
 
 	if !filepath.IsAbs(directory) {
@@ -34,8 +35,9 @@ func NewStaticFileService(directory string, apiURL string) (*StaticFileService, 
 	}
 
 	service := &StaticFileService{
-		staticPath:      staticPath,
-		discoveredFiles: make(map[string]string),
+		staticPath:         staticPath,
+		discoveredFiles:    make(map[string]string),
+		storageExternalURL: storageExternalURL,
 	}
 
 	if err := service.createConfigFileIfNotExists(apiURL); err != nil {
@@ -201,11 +203,15 @@ func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath s
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	if strings.HasSuffix(filePath, ".html") {
-		w.Header().
-			Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:9000")
+		connectSrc := fmt.Sprintf("'self' %s", s.storageExternalURL)
+
+		csp := fmt.Sprintf(
+			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src %s",
+			connectSrc,
+		)
+		w.Header().Set("Content-Security-Policy", csp)
 	}
 
 	w.Header().Set("X-Frame-Options", "DENY")
-
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
 }

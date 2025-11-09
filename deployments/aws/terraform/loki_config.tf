@@ -22,7 +22,7 @@ common:
       store: inmemory
 
 ingester:
-  chunk_idle_period: 30m
+  chunk_idle_period: 1m
   chunk_retain_period: 1m
   max_chunk_age: 1h
   chunk_target_size: 1048576
@@ -52,8 +52,6 @@ storage_config:
     active_index_directory: /loki/tsdb-index
     cache_location: /loki/tsdb-cache
     cache_ttl: 24h
-    index_gateway_client:
-      server_address: 127.0.0.1:9095
   aws:
     bucketnames: ${aws_s3_bucket.loki.bucket}
     region: ${data.aws_region.current.name}
@@ -69,6 +67,8 @@ compactor:
 limits_config:
   allow_structured_metadata: true
   discover_service_name: [ domain obj_type action ]
+  max_query_length: 31d
+  split_queries_by_interval: 1d
 
 ruler:
   storage:

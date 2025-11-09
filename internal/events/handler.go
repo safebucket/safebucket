@@ -93,7 +93,7 @@ func HandleBucketEvents(
 	subscriber messaging.ISubscriber,
 	db *gorm.DB,
 	activityLogger activity.IActivityLogger,
-	stor storage.IStorage,
+	storage storage.IStorage,
 	trashRetentionDays int,
 	messages <-chan *message.Message,
 ) {
@@ -148,7 +148,7 @@ func HandleBucketEvents(
 			}
 
 		case messaging.BucketEventTypeDeletion:
-			deletionEvents := subscriber.ParseBucketDeletionEvents(msg, stor.GetBucketName())
+			deletionEvents := subscriber.ParseBucketDeletionEvents(msg, storage.GetBucketName())
 
 			for _, event := range deletionEvents {
 				bucketUUID, err := uuid.Parse(event.BucketID)
@@ -161,7 +161,7 @@ func HandleBucketEvents(
 
 				params := &EventParams{
 					DB:                 db,
-					Storage:            stor,
+					Storage:            storage,
 					ActivityLogger:     activityLogger,
 					TrashRetentionDays: trashRetentionDays,
 				}

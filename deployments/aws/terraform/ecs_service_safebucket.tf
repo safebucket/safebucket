@@ -1,16 +1,16 @@
 # SafeBucket ECS Service
 resource "aws_ecs_service" "safebucket" {
-  name                              = "${var.project_name}-${var.environment}-safebucket"
-  cluster                          = aws_ecs_cluster.safebucket_cluster.id
-  task_definition                  = aws_ecs_task_definition.safebucket.arn
-  desired_count                    = var.safebucket_desired_count
+  name                               = "${var.project_name}-${var.environment}-safebucket"
+  cluster                            = aws_ecs_cluster.safebucket_cluster.id
+  task_definition                    = aws_ecs_task_definition.safebucket.arn
+  desired_count                      = var.safebucket_desired_count
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
-  enable_execute_command            = var.enable_ecs_exec
+  enable_execute_command             = var.enable_ecs_exec
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE"
-    weight           = 100
+    weight            = 100
   }
 
   network_configuration {
@@ -36,6 +36,12 @@ resource "aws_ecs_service" "safebucket" {
   deployment_circuit_breaker {
     enable   = false
     rollback = false
+  }
+
+  # Trigger redeployment when needed
+  # Change the redeployment_trigger variable value to force update
+  triggers = {
+    redeployment = var.redeployment_trigger
   }
 
   tags = {
@@ -73,7 +79,7 @@ resource "aws_appautoscaling_policy" "safebucket_cpu_policy" {
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
-    target_value = 70.0
+    target_value       = 70.0
     scale_in_cooldown  = 300
     scale_out_cooldown = 300
   }
@@ -91,7 +97,7 @@ resource "aws_appautoscaling_policy" "safebucket_memory_policy" {
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageMemoryUtilization"
     }
-    target_value = 80.0
+    target_value       = 80.0
     scale_in_cooldown  = 300
     scale_out_cooldown = 300
   }

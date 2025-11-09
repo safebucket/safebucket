@@ -114,7 +114,7 @@ func (s *JetStreamSubscriber) Close() error {
 	return s.subscriber.Close()
 }
 
-// GetBucketEventType determines the type of MinIO S3 event
+// GetBucketEventType determines the type of MinIO S3 event.
 func (s *JetStreamSubscriber) GetBucketEventType(message *message.Message) string {
 	var event MinioEvent
 	if err := json.Unmarshal(message.Payload, &event); err != nil {
@@ -152,19 +152,17 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 
 	var uploadEvents []BucketUploadEvent
 	for _, record := range event.Records {
-		if record.EventName == "s3:ObjectCreated:Post" || record.EventName == "s3:ObjectCreated:Put" {
-			bucketID := record.S3.Object.UserMetadata["X-Amz-Meta-Bucket-Id"]
-			fileID := record.S3.Object.UserMetadata["X-Amz-Meta-File-Id"]
-			userID := record.S3.Object.UserMetadata["X-Amz-Meta-User-Id"]
+		bucketID := record.S3.Object.UserMetadata["X-Amz-Meta-Bucket-Id"]
+		fileID := record.S3.Object.UserMetadata["X-Amz-Meta-File-Id"]
+		userID := record.S3.Object.UserMetadata["X-Amz-Meta-User-Id"]
 
-			uploadEvents = append(uploadEvents, BucketUploadEvent{
-				BucketID: bucketID,
-				FileID:   fileID,
-				UserID:   userID,
-			})
+		uploadEvents = append(uploadEvents, BucketUploadEvent{
+			BucketID: bucketID,
+			FileID:   fileID,
+			UserID:   userID,
+		})
 
-			message.Ack()
-		}
+		message.Ack()
 	}
 
 	return uploadEvents
@@ -183,11 +181,6 @@ func (s *JetStreamSubscriber) ParseBucketDeletionEvents(
 
 	var deletionEvents []BucketDeletionEvent
 	for _, record := range event.Records {
-		if !strings.HasPrefix(record.EventName, "s3:ObjectRemoved:") &&
-			!strings.HasPrefix(record.EventName, "s3:LifecycleExpiration:") {
-			continue
-		}
-
 		if record.S3.Bucket.Name != expectedBucketName {
 			zap.L().Debug("ignoring event from different bucket",
 				zap.String("event_bucket", record.S3.Bucket.Name),

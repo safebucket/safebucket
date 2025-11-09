@@ -47,10 +47,10 @@ resource "aws_vpc_endpoint" "ecr_dkr" {
 
 # S3 VPC Endpoint (Gateway type for ECR image layers)
 resource "aws_vpc_endpoint" "s3" {
-  vpc_id          = data.aws_vpc.default.id
-  service_name    = "com.amazonaws.${data.aws_region.current.name}.s3"
+  vpc_id            = data.aws_vpc.default.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
   vpc_endpoint_type = "Gateway"
-  route_table_ids = data.aws_route_tables.default.ids
+  route_table_ids   = data.aws_route_tables.default.ids
 
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-s3-endpoint"
@@ -94,10 +94,10 @@ resource "aws_security_group" "vpc_endpoints" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "HTTPS from ECS tasks"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
+    description     = "HTTPS from ECS tasks"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
     security_groups = [aws_security_group.ecs_tasks.id]
   }
 

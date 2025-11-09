@@ -64,7 +64,7 @@ func main() {
 		TrashRetentionDays: config.App.TrashRetentionDays,
 	}
 
-	eventsManager := core.NewEventsManager(config.Events)
+	eventsManager := core.NewEventsManager(config.Events, storage)
 	eventRouter := core.NewEventRouter(eventsManager)
 
 	notifications := eventsManager.GetSubscriber(configuration.EventsNotifications).Subscribe()
@@ -152,6 +152,7 @@ func main() {
 		staticFileService, err := services.NewStaticFileService(
 			config.App.StaticFiles.Directory,
 			config.App.APIURL,
+			config.Storage.GetExternalURL(),
 		)
 		if err != nil {
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))

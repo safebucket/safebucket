@@ -2,7 +2,7 @@
 
 # S3 Bucket for SafeBucket storage
 resource "aws_s3_bucket" "main" {
-  bucket = var.s3_bucket_name
+  bucket        = var.s3_bucket_name
   force_destroy = true
 
   tags = merge(local.common_tags, {
@@ -37,7 +37,7 @@ resource "aws_s3_bucket_cors_configuration" "storage" {
   cors_rule {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "POST", "PUT", "DELETE"]
-    allowed_origins = var.s3_cors_allowed_origins
+    allowed_origins = local.cors_allowed_origins
     expose_headers  = []
     max_age_seconds = 3000
   }
@@ -58,7 +58,7 @@ resource "aws_s3_bucket_notification" "storage" {
 
 # S3 bucket for Loki storage (separate from main app storage)
 resource "aws_s3_bucket" "loki" {
-  bucket = "${var.s3_bucket_name}-loki"
+  bucket        = "${var.s3_bucket_name}-loki"
   force_destroy = true
 
   tags = merge(local.common_tags, {

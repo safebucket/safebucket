@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	c "api/internal/configuration"
@@ -135,37 +136,6 @@ func (g GCPStorage) ListObjects(prefix string, _ int32) ([]string, error) {
 }
 
 func (g GCPStorage) SetObjectTags(path string, tags map[string]string) error {
-	// GCP lifecycle policies don't support metadata-based conditions
-	// Instead, we create a marker file with .trashed extension
-	// The lifecycle policy will delete the marker based on age and extension
-	if status, exists := tags["Status"]; exists && status == "trashed" {
-		// Verify actual file exists before creating marker to prevent orphaned markers
-		obj := g.storage.Bucket(g.BucketName).Object(path)
-		if _, err := obj.Attrs(context.Background()); err != nil {
-			zap.L().Warn("Cannot create .trashed marker for non-existent file",
-				zap.String("path", path),
-				zap.Error(err))
-			return err
-		}
-
-		// Create marker file with .trashed extension
-		markerPath := path + ".trashed"
-		markerObj := g.storage.Bucket(g.BucketName).Object(markerPath)
-
-		writer := markerObj.NewWriter(context.Background())
-		// Empty marker file - just acts as a "tag"
-		if err := writer.Close(); err != nil {
-			return err
-		}
-
-		zap.L().Info("Created .trashed marker file",
-			zap.String("marker_path", markerPath),
-			zap.String("original_path", path))
-
-		return nil
-	}
-
-	// For non-trash tags, use metadata (though this won't work with lifecycle policies)
 	obj := g.storage.Bucket(g.BucketName).Object(path)
 
 	attrs, err := obj.Attrs(context.Background())
@@ -208,39 +178,10 @@ func (g GCPStorage) GetObjectTags(path string) (map[string]string, error) {
 }
 
 func (g GCPStorage) RemoveObjectTags(path string, tagsToRemove []string) error {
-	var markerErr error
-
-	// Check if we're removing the "Status" tag (used for trash restoration)
-	for _, tag := range tagsToRemove {
-		if tag == "Status" {
-			// Delete the .trashed marker file
-			markerPath := path + ".trashed"
-			markerObj := g.storage.Bucket(g.BucketName).Object(markerPath)
-
-			if err := markerObj.Delete(context.Background()); err != nil {
-				zap.L().Warn("Failed to delete .trashed marker",
-					zap.String("marker_path", markerPath),
-					zap.Error(err))
-				markerErr = err
-			} else {
-				zap.L().Info("Deleted .trashed marker file",
-					zap.String("marker_path", markerPath),
-					zap.String("original_path", path))
-			}
-
-			// Continue to remove from metadata as well for consistency
-			break
-		}
-	}
-
 	obj := g.storage.Bucket(g.BucketName).Object(path)
 
 	attrs, err := obj.Attrs(context.Background())
 	if err != nil {
-		// If marker deletion also failed, return aggregated error
-		if markerErr != nil {
-			return fmt.Errorf("marker deletion failed: %w; attrs retrieval failed: %v", markerErr, err)
-		}
 		return err
 	}
 
@@ -254,51 +195,67 @@ func (g GCPStorage) RemoveObjectTags(path string, tagsToRemove []string) error {
 		Metadata: attrs.Metadata,
 	})
 
-	// Aggregate errors if both operations failed
-	if err != nil && markerErr != nil {
-		return fmt.Errorf("marker deletion failed: %w; metadata update failed: %v", markerErr, err)
-	}
-
-	// Return marker error if metadata update succeeded but marker deletion failed
-	if err == nil && markerErr != nil {
-		return markerErr
-	}
-
 	return err
 }
 
-// MarkFileAsTrashed creates a .trashed marker file for GCP
-// GCP implementation: Creates {path}.trashed marker file
-func (g GCPStorage) MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error {
-	// GCP uses suffix-based markers, reuse existing SetObjectTags logic
-	return g.SetObjectTags(objectPath, map[string]string{
-		"Status":    "trashed",
-		"TrashedAt": metadata.TrashedAt.Format(time.RFC3339),
-	})
-}
-
-// UnmarkFileAsTrashed removes the .trashed marker file for GCP
-// GCP implementation: Deletes the {path}.trashed marker
-func (g GCPStorage) UnmarkFileAsTrashed(objectPath string) error {
-	// GCP uses suffix-based markers, reuse existing RemoveObjectTags logic
-	return g.RemoveObjectTags(objectPath, []string{"Status", "TrashedAt"})
-}
-
-// IsTrashMarkerPath checks if a deletion event is for a .trashed marker (GCP uses suffix-based)
-// Pattern: {path}.trashed -> original: {path}
+// IsTrashMarkerPath checks if a deletion event is for a trash marker.
+// Pattern: trash/{bucket-id}/{rest} -> buckets/{bucket-id}/{rest}.
 func (g GCPStorage) IsTrashMarkerPath(path string) (bool, string) {
-	if len(path) > 8 && path[len(path)-8:] == ".trashed" {
-		originalPath := path[:len(path)-8]
+	if strings.HasPrefix(path, trashPrefix) {
+		originalPath := bucketsPrefix + strings.TrimPrefix(path, trashPrefix)
 		return true, originalPath
 	}
+
 	return false, ""
+}
+
+// getTrashMarkerPath converts buckets/{id}/path to trash/{id}/path.
+func (g GCPStorage) getTrashMarkerPath(objectPath string) string {
+	return strings.Replace(objectPath, bucketsPrefix, trashPrefix, 1)
+}
+
+func (g GCPStorage) MarkFileAsTrashed(objectPath string, _ models.TrashMetadata) error {
+	ctx := context.Background()
+	markerPath := g.getTrashMarkerPath(objectPath)
+
+	// Verify original object exists
+	obj := g.storage.Bucket(g.BucketName).Object(objectPath)
+	if _, err := obj.Attrs(ctx); err != nil {
+		return fmt.Errorf("object does not exist and can't be trashed: %w", err)
+	}
+
+	// Create empty marker object
+	markerObj := g.storage.Bucket(g.BucketName).Object(markerPath)
+	writer := markerObj.NewWriter(ctx)
+
+	// Write empty content (0 bytes)
+	if _, err := writer.Write([]byte{}); err != nil {
+		return fmt.Errorf("failed to create marker: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("failed to create marker: %w", err)
+	}
+
+	return nil
+}
+
+func (g GCPStorage) UnmarkFileAsTrashed(objectPath string) error {
+	ctx := context.Background()
+	markerPath := g.getTrashMarkerPath(objectPath)
+
+	markerObj := g.storage.Bucket(g.BucketName).Object(markerPath)
+	if err := markerObj.Delete(ctx); err != nil {
+		return fmt.Errorf("failed to remove marker: %w", err)
+	}
+
+	return nil
 }
 
 func (g GCPStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	ctx := context.Background()
 	bucket := g.storage.Bucket(g.BucketName)
 
-	// Get existing lifecycle configuration
 	attrs, err := bucket.Attrs(ctx)
 	if err != nil {
 		zap.L().Error("Failed to get bucket attributes",
@@ -307,62 +264,68 @@ func (g GCPStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 		return err
 	}
 
-	// Check if trash lifecycle rule already exists and is up-to-date
 	const trashRuleActionType = gcs.DeleteAction
-	var existingRuleIndex = -1
-	var needsUpdate = true
+	const multipartRuleActionType = gcs.AbortIncompleteMPUAction
+	var existingTrashRuleIndex = -1
+	var existingMultipartRuleIndex = -1
 
 	if attrs.Lifecycle.Rules != nil {
 		for i, rule := range attrs.Lifecycle.Rules {
-			// Check if this is our trash rule (matching .trashed suffix)
+			// Check for trash expiration rule
 			if rule.Action.Type == trashRuleActionType &&
-				rule.Condition.MatchesSuffix != nil &&
-				len(rule.Condition.MatchesSuffix) > 0 &&
-				rule.Condition.MatchesSuffix[0] == ".trashed" {
+				rule.Condition.MatchesPrefix != nil &&
+				len(rule.Condition.MatchesPrefix) > 0 &&
+				rule.Condition.MatchesPrefix[0] == trashPrefix {
+				existingTrashRuleIndex = i
 
-				existingRuleIndex = i
-
-				// Check if retention period matches
 				if rule.Condition.AgeInDays == int64(retentionDays) {
-					needsUpdate = false
 					zap.L().Debug("Trash lifecycle policy already up-to-date",
 						zap.String("bucket", g.BucketName),
 						zap.Int("retentionDays", retentionDays))
-					return nil
+					// Don't return yet - need to check multipart rule too
 				}
-				break
+			}
+
+			// Check for multipart upload cleanup rule
+			if rule.Action.Type == multipartRuleActionType &&
+				rule.Condition.AgeInDays == 1 {
+				existingMultipartRuleIndex = i
+				zap.L().Debug("Multipart upload cleanup policy already up-to-date",
+					zap.String("bucket", g.BucketName))
 			}
 		}
 	}
 
-	if !needsUpdate {
-		return nil
-	}
-
-	// Create or update the trash lifecycle rule
 	trashRule := gcs.LifecycleRule{
 		Action: gcs.LifecycleAction{
 			Type: trashRuleActionType,
 		},
 		Condition: gcs.LifecycleCondition{
 			AgeInDays:     int64(retentionDays),
-			MatchesSuffix: []string{".trashed"},
+			MatchesPrefix: []string{trashPrefix},
+		},
+	}
+
+	multipartRule := gcs.LifecycleRule{
+		Action: gcs.LifecycleAction{
+			Type: multipartRuleActionType,
+		},
+		Condition: gcs.LifecycleCondition{
+			AgeInDays: 1,
 		},
 	}
 
 	var newRules []gcs.LifecycleRule
 	if attrs.Lifecycle.Rules != nil {
-		// Preserve existing rules
 		for i, rule := range attrs.Lifecycle.Rules {
-			if i != existingRuleIndex {
+			// Skip existing trash and multipart rules - we'll add updated versions
+			if i != existingTrashRuleIndex && i != existingMultipartRuleIndex {
 				newRules = append(newRules, rule)
 			}
 		}
 	}
-	// Add the new/updated trash rule
-	newRules = append(newRules, trashRule)
+	newRules = append(newRules, trashRule, multipartRule)
 
-	// Update bucket lifecycle configuration
 	updateAttrs := gcs.BucketAttrsToUpdate{
 		Lifecycle: &gcs.Lifecycle{
 			Rules: newRules,
@@ -370,17 +333,17 @@ func (g GCPStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	}
 
 	if _, err = bucket.Update(ctx, updateAttrs); err != nil {
-		zap.L().Error("Failed to update trash lifecycle policy",
+		zap.L().Error("Failed to update lifecycle policies",
 			zap.String("bucket", g.BucketName),
-			zap.Int("retentionDays", retentionDays),
+			zap.Int("trashRetentionDays", retentionDays),
 			zap.Error(err))
 		return err
 	}
 
-	zap.L().Info("Trash lifecycle policy configured for GCP",
+	zap.L().Info("Lifecycle policies configured",
 		zap.String("bucket", g.BucketName),
-		zap.Int("retentionDays", retentionDays),
-		zap.String("rule", "Delete objects with .trashed suffix"))
+		zap.Int("trashRetentionDays", retentionDays),
+		zap.Int("multipartCleanupDays", 1))
 
 	return nil
 }

@@ -24,7 +24,7 @@ func NewStorage(config models.StorageConfiguration, trashRetentionDays int) stor
 	if store != nil && trashRetentionDays > 0 {
 		err := store.EnsureTrashLifecyclePolicy(trashRetentionDays)
 		if err != nil {
-			zap.L().Warn("Failed to configure trash lifecycle policy, manual configuration may be required",
+			zap.L().Fatal("Failed to configure trash lifecycle policy",
 				zap.String("provider", config.Type),
 				zap.Int("retentionDays", trashRetentionDays),
 				zap.Error(err))

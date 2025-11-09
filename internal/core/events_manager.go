@@ -3,6 +3,7 @@ package core
 import (
 	"api/internal/messaging"
 	"api/internal/models"
+	"api/internal/storage"
 
 	"go.uber.org/zap"
 )
@@ -11,13 +12,15 @@ type EventsManager struct {
 	publishers  map[string]messaging.IPublisher
 	subscribers map[string]messaging.ISubscriber
 	config      models.EventsConfiguration
+	storage     storage.IStorage
 }
 
-func NewEventsManager(config models.EventsConfiguration) *EventsManager {
+func NewEventsManager(config models.EventsConfiguration, storage storage.IStorage) *EventsManager {
 	manager := &EventsManager{
 		publishers:  make(map[string]messaging.IPublisher),
 		subscribers: make(map[string]messaging.ISubscriber),
 		config:      config,
+		storage:     storage,
 	}
 
 	manager.initializePublishers()
@@ -70,7 +73,7 @@ func (em *EventsManager) initializeSubscribers() {
 				SubscriptionSuffix: em.config.PubSub.SubscriptionSuffix,
 			}, topicConfig.Name)
 		case ProviderAWS:
-			subscriber = messaging.NewAWSSubscriber(topicConfig.Name, nil)
+			subscriber = messaging.NewAWSSubscriber(topicConfig.Name, em.storage)
 		}
 
 		if subscriber != nil {

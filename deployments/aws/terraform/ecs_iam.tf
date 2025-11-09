@@ -97,10 +97,26 @@ resource "aws_iam_policy" "safebucket_task_policy" {
       {
         Effect = "Allow"
         Action = [
+          # Object operations
           "s3:GetObject",
           "s3:PutObject",
           "s3:DeleteObject",
-          "s3:ListBucket"
+          "s3:DeleteObjects",
+          "s3:HeadObject",
+
+          # Tagging operations (required for file metadata)
+          "s3:GetObjectTagging",
+          "s3:PutObjectTagging",
+
+          # List operations
+          "s3:ListBucket",
+
+          # Lifecycle operations (CRITICAL - required for trash retention)
+          # Both old and new API actions are included for compatibility
+          "s3:GetBucketLifecycleConfiguration",
+          "s3:PutBucketLifecycleConfiguration",
+          "s3:GetLifecycleConfiguration",
+          "s3:PutLifecycleConfiguration"
         ]
         Resource = [
           aws_s3_bucket.main.arn,
@@ -118,7 +134,8 @@ resource "aws_iam_policy" "safebucket_task_policy" {
         ]
         Resource = [
           aws_sqs_queue.s3_events.arn,
-          aws_sqs_queue.notifications.arn
+          aws_sqs_queue.notifications.arn,
+          aws_sqs_queue.object_deletion.arn
         ]
       }
     ]

@@ -49,13 +49,23 @@ func isIgnorableLogSyncError(err error) bool {
 		return true
 	}
 
+	// Invalid argument errors (common when stderr is redirected or closed)
+	if errors.Is(err, syscall.EINVAL) {
+		return true
+	}
+
+	// Check error string for common sync errors across all platforms
+	errStr := err.Error()
+	if strings.Contains(errStr, "sync /dev/stderr") ||
+		strings.Contains(errStr, "sync /dev/stdout") ||
+		strings.Contains(errStr, "inappropriate ioctl for device") ||
+		strings.Contains(errStr, "invalid argument") {
+		return true
+	}
+
 	// Windows-specific sync errors
 	if runtime.GOOS == "windows" {
-		errStr := err.Error()
-		// Common Windows stderr sync errors
-		if strings.Contains(errStr, "The handle is invalid") ||
-			strings.Contains(errStr, "sync /dev/stderr") ||
-			strings.Contains(errStr, "inappropriate ioctl for device") {
+		if strings.Contains(errStr, "The handle is invalid") {
 			return true
 		}
 	}

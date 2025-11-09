@@ -57,7 +57,8 @@ SafeBucket uses a hierarchical configuration system that supports:
 | `storage.type`                                  | `STORAGE__TYPE`                                     | -             | ✅        | `minio`                                              | Storage provider: `minio`, `gcp`, or `aws`        |
 | **MinIO Storage**                               |
 | `storage.minio.bucket_name`                     | `STORAGE__MINIO__BUCKET_NAME`                       | -             | ✅*       | `safebucket`                                         | MinIO bucket name                                 |
-| `storage.minio.endpoint`                        | `STORAGE__MINIO__ENDPOINT`                          | -             | ✅*       | `localhost:9000`                                     | MinIO endpoint URL                                |
+| `storage.minio.endpoint`                        | `STORAGE__MINIO__ENDPOINT`                          | -             | ✅*       | `localhost:9000`                                     | MinIO internal endpoint URL                       |
+| `storage.minio.external_endpoint`               | `STORAGE__MINIO__EXTERNAL_ENDPOINT`                 | -             | ✅*       | `http://localhost:9000`                              | MinIO external endpoint URL (for browser CSP)     |
 | `storage.minio.client_id`                       | `STORAGE__MINIO__CLIENT_ID`                         | -             | ✅*       | `minio-root-user`                                    | MinIO access key                                  |
 | `storage.minio.client_secret`                   | `STORAGE__MINIO__CLIENT_SECRET`                     | -             | ✅*       | `minio-root-password`                                | MinIO secret key                                  |
 | `storage.minio.type`                            | `STORAGE__MINIO__TYPE`                              | -             | ✅*       | `jetstream`                                          | Event type: `jetstream`                           |
@@ -71,6 +72,7 @@ SafeBucket uses a hierarchical configuration system that supports:
 | `storage.gcp.subscription_name`                 | `STORAGE__GCP__SUBSCRIPTION_NAME`                   | -             | ✅*       | `safebucket-storage-sub`                             | GCP Pub/Sub subscription name for storage events  |
 | **AWS S3 Storage**                              |
 | `storage.aws.bucket_name`                       | `STORAGE__AWS__BUCKET_NAME`                         | -             | ✅*       | `my-s3-bucket`                                       | S3 bucket name                                    |
+| `storage.aws.external_endpoint`                 | `STORAGE__AWS__EXTERNAL_ENDPOINT`                   | -             | ❌        | `https://my-bucket.s3.us-east-1.amazonaws.com`       | S3 external endpoint URL (for browser CSP)        |
 | `storage.aws.sqs_name`                          | `STORAGE__AWS__SQS_NAME`                            | -             | ✅*       | `safebucket-s3-events`                               | SQS queue name for S3 events                      |
 | **Events Configuration**                        |
 | `events.type`                                   | `EVENTS__TYPE`                                      | -             | ✅        | `jetstream`                                          | Event system: `jetstream`, `gcp`, or `aws`        |

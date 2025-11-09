@@ -85,10 +85,11 @@ type StorageConfiguration struct {
 }
 
 type MinioStorageConfiguration struct {
-	BucketName   string `mapstructure:"bucket_name"   validate:"required"`
-	Endpoint     string `mapstructure:"endpoint"      validate:"required"`
-	ClientID     string `mapstructure:"client_id"     validate:"required"`
-	ClientSecret string `mapstructure:"client_secret" validate:"required"`
+	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
+	Endpoint         string `mapstructure:"endpoint"          validate:"required"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
+	ClientID         string `mapstructure:"client_id"         validate:"required"`
+	ClientSecret     string `mapstructure:"client_secret"     validate:"required"`
 }
 
 type CloudStorage struct {
@@ -97,7 +98,25 @@ type CloudStorage struct {
 }
 
 type S3Configuration struct {
-	BucketName string `mapstructure:"bucket_name" validate:"required"`
+	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
+	ExternalEndpoint string `mapstructure:"external_endpoint"`
+}
+
+func (s *StorageConfiguration) GetExternalURL() string {
+	switch s.Type {
+	case "minio":
+		if s.Minio != nil {
+			return s.Minio.ExternalEndpoint
+		}
+	case "gcp":
+		return ""
+	case "aws":
+		if s.S3 != nil && s.S3.ExternalEndpoint != "" {
+			return s.S3.ExternalEndpoint
+		}
+		return ""
+	}
+	return ""
 }
 
 type QueueConfig struct {

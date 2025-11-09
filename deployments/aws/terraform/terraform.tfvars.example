@@ -7,12 +7,14 @@ project_name = "safebucket"
 environment  = "dev"
 
 # S3 Configuration
-s3_bucket_name             = "safebucket-storage-dev-unique-suffix"
-s3_cors_allowed_origins    = ["http://localhost:3000"]
+s3_bucket_name = "safebucket-storage-dev-unique-suffix"
+# s3_cors_allowed_origins - Optional: If not specified, will automatically use ALB DNS and localhost
+# s3_cors_allowed_origins = ["https://yourdomain.com"]
 
 # SQS Configuration
-s3_event_queue_name      = "safebucket-s3-events-dev"
-notification_queue_name  = "safebucket-notifications-dev"
+s3_event_queue_name        = "safebucket-s3-events-dev"
+notification_queue_name    = "safebucket-notifications-dev"
+object_deletion_queue_name = "safebucket-object-deletion-dev"
 
 # Redis Configuration
 redis_node_type                  = "cache.t3.micro"

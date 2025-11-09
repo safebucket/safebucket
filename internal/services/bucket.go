@@ -489,7 +489,7 @@ func (s BucketService) GetBucketActivity(
 	return models.Page[map[string]interface{}]{Data: enriched}, nil
 }
 
-// TrashFile moves a file to trash (soft delete)
+// TrashFile moves a file to trash (soft delete).
 func (s BucketService) TrashFile(logger *zap.Logger, user models.UserClaims, file models.File) error {
 	if file.Status != models.FileStatusUploaded {
 		return errors.NewAPIError(400, errors.ErrFileCannotBeTrashed)

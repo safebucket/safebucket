@@ -37,5 +37,21 @@ locals {
     Environment = var.environment
     ManagedBy   = "Terraform"
   }
+
+  # Environment-specific log retention periods (in days)
+  log_retention_days = {
+    dev     = 3
+    staging = 7
+    prod    = 90
+  }
+
+  # Dynamic CORS origins - use custom list if provided, otherwise use ALB DNS and localhost
+  cors_allowed_origins = length(var.s3_cors_allowed_origins) > 0 ? var.s3_cors_allowed_origins : [
+    "http://${aws_lb.safebucket_alb.dns_name}",
+    "http://localhost:3000"
+  ]
+
+  # S3 external endpoint for CSP (presigned URLs)
+  s3_external_endpoint = "https://${aws_s3_bucket.main.bucket}.s3.${data.aws_region.current.name}.amazonaws.com"
 }
 
