@@ -28,7 +28,7 @@ resource "aws_ecs_cluster_capacity_providers" "cluster_capacity_providers" {
 # CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "safebucket_logs" {
   name              = "/ecs/${var.project_name}-${var.environment}-safebucket"
-  retention_in_days = var.log_retention_days
+  retention_in_days = lookup(local.log_retention_days, var.environment, 7)
   tags = {
     Name        = "${var.project_name}-${var.environment}-safebucket-logs"
     Environment = var.environment
@@ -38,7 +38,7 @@ resource "aws_cloudwatch_log_group" "safebucket_logs" {
 
 resource "aws_cloudwatch_log_group" "loki_logs" {
   name              = "/ecs/${var.project_name}-${var.environment}-loki"
-  retention_in_days = var.log_retention_days
+  retention_in_days = lookup(local.log_retention_days, var.environment, 7)
   tags = {
     Name        = "${var.project_name}-${var.environment}-loki-logs"
     Environment = var.environment
@@ -48,7 +48,7 @@ resource "aws_cloudwatch_log_group" "loki_logs" {
 
 resource "aws_cloudwatch_log_group" "mailpit_logs" {
   name              = "/ecs/${var.project_name}-${var.environment}-mailpit"
-  retention_in_days = var.log_retention_days
+  retention_in_days = lookup(local.log_retention_days, var.environment, 7)
   tags = {
     Name        = "${var.project_name}-${var.environment}-mailpit-logs"
     Environment = var.environment
@@ -75,7 +75,7 @@ resource "aws_security_group" "ecs_tasks" {
     to_port     = 3100
     protocol    = "tcp"
     cidr_blocks = [data.aws_vpc.default.cidr_block]
-    description = "Loki HTTP API"
+    description = "Loki HTTP API (Service Discovery)"
   }
 
   ingress {
@@ -91,7 +91,7 @@ resource "aws_security_group" "ecs_tasks" {
     to_port     = 1025
     protocol    = "tcp"
     cidr_blocks = [data.aws_vpc.default.cidr_block]
-    description = "Mailpit SMTP"
+    description = "Mailpit SMTP (Service Discovery)"
   }
 
   egress {
@@ -148,6 +148,14 @@ resource "aws_security_group" "alb" {
     description = "HTTPS"
   }
 
+  ingress {
+    from_port   = 8025
+    to_port     = 8025
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Mailpit Web UI"
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -185,32 +193,6 @@ resource "aws_lb_target_group" "safebucket_tg" {
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-safebucket-tg"
-    Environment = var.environment
-    Project     = var.project_name
-  }
-}
-
-resource "aws_lb_target_group" "loki_tg" {
-  name        = "${var.project_name}-${var.environment}-loki"
-  port        = 3100
-  protocol    = "HTTP"
-  vpc_id      = data.aws_vpc.default.id
-  target_type = "ip"
-
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
-    path                = "/ready"
-    matcher             = "200"
-    port                = "traffic-port"
-    protocol            = "HTTP"
-  }
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-loki-tg"
     Environment = var.environment
     Project     = var.project_name
   }
@@ -271,32 +253,12 @@ resource "aws_lb" "internal_alb" {
 
 resource "aws_security_group" "internal_alb" {
   name        = "${var.project_name}-${var.environment}-internal-alb"
-  description = "Security group for Internal Application Load Balancer"
+  description = "Security group for Internal Application Load Balancer (currently unused)"
   vpc_id      = data.aws_vpc.default.id
 
-  ingress {
-    from_port       = 3100
-    to_port         = 3100
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_tasks.id]
-    description     = "Loki from ECS tasks"
-  }
-
-  ingress {
-    from_port       = 8025
-    to_port         = 8025
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_tasks.id]
-    description     = "Mailpit Web UI from ECS tasks"
-  }
-
-  ingress {
-    from_port       = 1025
-    to_port         = 1025
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_tasks.id]
-    description     = "Mailpit SMTP from ECS tasks"
-  }
+  # No ingress rules - internal ALB is currently not used
+  # Loki and Mailpit SMTP now use Service Discovery
+  # Mailpit Web UI moved to public ALB
 
   egress {
     from_port   = 0
@@ -313,19 +275,8 @@ resource "aws_security_group" "internal_alb" {
   }
 }
 
-resource "aws_lb_listener" "loki_listener" {
-  load_balancer_arn = aws_lb.internal_alb.arn
-  port              = "3100"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.loki_tg.arn
-  }
-}
-
 resource "aws_lb_listener" "mailpit_web_listener" {
-  load_balancer_arn = aws_lb.internal_alb.arn
+  load_balancer_arn = aws_lb.safebucket_alb.arn
   port              = "8025"
   protocol          = "HTTP"
 

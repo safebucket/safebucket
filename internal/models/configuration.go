@@ -98,7 +98,25 @@ type CloudStorage struct {
 }
 
 type S3Configuration struct {
-	BucketName string `mapstructure:"bucket_name" validate:"required"`
+	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
+	ExternalEndpoint string `mapstructure:"external_endpoint"`
+}
+
+func (s *StorageConfiguration) GetExternalURL() string {
+	switch s.Type {
+	case "minio":
+		if s.Minio != nil {
+			return s.Minio.ExternalEndpoint
+		}
+	case "gcp":
+		return ""
+	case "aws":
+		if s.S3 != nil && s.S3.ExternalEndpoint != "" {
+			return s.S3.ExternalEndpoint
+		}
+		return ""
+	}
+	return ""
 }
 
 // GetExternalURL returns the external URL for the configured storage provider.

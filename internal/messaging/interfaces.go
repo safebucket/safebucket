@@ -4,7 +4,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 )
 
-// Bucket event type constants
+// Bucket event type constants.
 const (
 	BucketEventTypeUpload   = "upload"
 	BucketEventTypeDeletion = "deletion"

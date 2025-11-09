@@ -55,7 +55,7 @@ type FileTransferResponse struct {
 	Body map[string]string `json:"body"`
 }
 
-// TrashMetadata contains metadata for marking a file as trashed
+// TrashMetadata contains metadata for marking a file as trashed.
 type TrashMetadata struct {
 	OriginalPath string
 	TrashedAt    time.Time

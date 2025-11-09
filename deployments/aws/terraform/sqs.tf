@@ -25,6 +25,18 @@ resource "aws_sqs_queue" "notifications" {
   })
 }
 
+# SQS Queue for object deletion events (trash expiration, folder restore)
+resource "aws_sqs_queue" "object_deletion" {
+  name                       = var.object_deletion_queue_name
+  message_retention_seconds = 1209600 # 14 days
+  visibility_timeout_seconds = 30
+  receive_wait_time_seconds  = 20
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-object-deletion"
+  })
+}
+
 # SQS Policy to allow SafeBucket role to access S3 events queue
 resource "aws_sqs_queue_policy" "s3_events_safebucket_access" {
   queue_url = aws_sqs_queue.s3_events.id
@@ -80,6 +92,30 @@ resource "aws_sqs_queue_policy" "notifications_safebucket_access" {
           "sqs:GetQueueUrl"
         ]
         Resource = aws_sqs_queue.notifications.arn
+      }
+    ]
+  })
+}
+
+# SQS Policy to allow SafeBucket role to access object deletion queue
+resource "aws_sqs_queue_policy" "object_deletion_safebucket_access" {
+  queue_url = aws_sqs_queue.object_deletion.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_iam_role.safebucket_app.arn
+        }
+        Action = [
+          "sqs:SendMessage",
+          "sqs:ReceiveMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl"
+        ]
+        Resource = aws_sqs_queue.object_deletion.arn
       }
     ]
   })

@@ -64,7 +64,7 @@ func main() {
 		TrashRetentionDays: config.App.TrashRetentionDays,
 	}
 
-	eventsManager := core.NewEventsManager(config.Events)
+	eventsManager := core.NewEventsManager(config.Events, storage)
 	eventRouter := core.NewEventRouter(eventsManager)
 
 	notifications := eventsManager.GetSubscriber(configuration.EventsNotifications).Subscribe()

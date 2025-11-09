@@ -20,9 +20,9 @@ variable "s3_bucket_name" {
 }
 
 variable "s3_cors_allowed_origins" {
-  description = "List of allowed origins for S3 CORS configuration"
+  description = "List of allowed origins for S3 CORS configuration. If empty, will default to ALB DNS and localhost"
   type        = list(string)
-  default     = ["http://localhost:3000"]
+  default = []
 }
 
 # SQS Configuration
@@ -33,6 +33,11 @@ variable "s3_event_queue_name" {
 
 variable "notification_queue_name" {
   description = "Name of the SQS queue for application notifications"
+  type        = string
+}
+
+variable "object_deletion_queue_name" {
+  description = "Name of the SQS queue for object deletion events (trash expiration, folder restore)"
   type        = string
 }
 
@@ -242,6 +247,12 @@ variable "enable_ecs_exec" {
   description = "Enable ECS Exec for debugging"
   type        = bool
   default     = false
+}
+
+variable "redeployment_trigger" {
+  description = "Change this value to force ECS service redeployment (e.g., when Docker image with same tag is updated)"
+  type        = string
+  default     = "1"
 }
 
 variable "log_retention_days" {

@@ -96,27 +96,27 @@ resource "aws_elasticache_user" "redis_app_user" {
 
 # ElastiCache Replication Group
 resource "aws_elasticache_replication_group" "main" {
-  replication_group_id       = "${var.project_name}-redis"
-  description                = "SafeBucket Redis cluster"
-  node_type                  = var.redis_node_type
-  port                       = 6379
-  parameter_group_name       = aws_elasticache_parameter_group.redis.name
-  subnet_group_name          = aws_elasticache_subnet_group.redis.name
-  security_group_ids         = [aws_security_group.redis.id]
-  
-  num_cache_clusters         = var.redis_num_cache_nodes
-  engine                     = "redis"
-  engine_version             = "7.0"
-  
+  replication_group_id = "${var.project_name}-redis"
+  description          = "SafeBucket Redis cluster"
+  node_type            = var.redis_node_type
+  port                 = 6379
+  parameter_group_name = aws_elasticache_parameter_group.redis.name
+  subnet_group_name    = aws_elasticache_subnet_group.redis.name
+  security_group_ids = [aws_security_group.redis.id]
+
+  num_cache_clusters = var.redis_num_cache_nodes
+  engine             = "redis"
+  engine_version     = "7.0"
+
   transit_encryption_enabled = true
   at_rest_encryption_enabled = true
   auth_token                 = var.redis_auth_token_enabled && var.redis_auth_token != null ? var.redis_auth_token : null
-  
-  maintenance_window         = var.redis_maintenance_window
-  snapshot_window            = var.redis_snapshot_window
-  snapshot_retention_limit   = var.redis_snapshot_retention_limit
-  apply_immediately          = true
-  
+
+  maintenance_window       = var.redis_maintenance_window
+  snapshot_window          = var.redis_snapshot_window
+  snapshot_retention_limit = var.redis_snapshot_retention_limit
+  apply_immediately        = true
+
   # Logging
   log_delivery_configuration {
     destination      = aws_cloudwatch_log_group.redis_slow.name

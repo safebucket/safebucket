@@ -7,58 +7,60 @@ project_name = "safebucket"
 environment  = "dev"
 
 # S3 Configuration
-s3_bucket_name             = "safebucket-storage-dev-unique-suffix"
-s3_cors_allowed_origins    = ["http://localhost:3000"]
+s3_bucket_name = "safebucket-storage-dev-unique-suffix"
+# s3_cors_allowed_origins - Optional: If not specified, will automatically use ALB DNS and localhost
+# s3_cors_allowed_origins = ["https://yourdomain.com"]
 
 # SQS Configuration
-s3_event_queue_name      = "safebucket-s3-events-dev"
-notification_queue_name  = "safebucket-notifications-dev"
+s3_event_queue_name     = "safebucket-s3-events-dev"
+notification_queue_name = "safebucket-notifications-dev"
+object_deletion_queue_name = "safebucket-object-deletion-dev"
 
 # Redis Configuration
-redis_node_type                  = "cache.t3.micro"
-redis_num_cache_nodes           = 1
-redis_auth_token_enabled        = true
-redis_auth_token                = "ymvUVeOkgHlkeZ+mWwE4Yj36p74a9rqPSc8jVCI47TI="
-redis_snapshot_retention_limit  = 5
-redis_snapshot_window           = "03:00-05:00"
-redis_maintenance_window        = "sun:05:00-sun:07:00"
-redis_log_retention_days        = 7
+redis_node_type                = "cache.t3.micro"
+redis_num_cache_nodes          = 1
+redis_auth_token_enabled       = true
+redis_auth_token               = "ymvUVeOkgHlkeZ+mWwE4Yj36p74a9rqPSc8jVCI47TI="
+redis_snapshot_retention_limit = 5
+redis_snapshot_window          = "03:00-05:00"
+redis_maintenance_window       = "sun:05:00-sun:07:00"
+redis_log_retention_days = 7
 
 # RDS Configuration
-rds_instance_class              = "db.t3.micro"
-rds_allocated_storage           = 20
-rds_max_allocated_storage       = 100
-rds_database_name              = "safebucket"
-rds_username                   = "safebucket"
-rds_password                   = "your-secure-database-password-here"
-rds_backup_retention_period    = 7
-rds_backup_window              = "03:00-04:00"
-rds_maintenance_window         = "sun:04:00-sun:05:00"
-rds_deletion_protection        = false
-rds_skip_final_snapshot        = true
-rds_storage_encrypted          = true
+rds_instance_class          = "db.t3.micro"
+rds_allocated_storage       = 20
+rds_max_allocated_storage   = 100
+rds_database_name           = "safebucket"
+rds_username                = "safebucket"
+rds_password                = "your-secure-database-password-here"
+rds_backup_retention_period = 7
+rds_backup_window           = "03:00-04:00"
+rds_maintenance_window      = "sun:04:00-sun:05:00"
+rds_deletion_protection     = false
+rds_skip_final_snapshot     = true
+rds_storage_encrypted = true
 
 # ECS Configuration
-safebucket_image                = "docker.io/safebucket/safebucket:latest"
-safebucket_cpu                 = 512
-safebucket_memory              = 1024
-safebucket_desired_count       = 1
-safebucket_min_capacity        = 1
-safebucket_max_capacity        = 3
+safebucket_image         = "docker.io/safebucket/safebucket:latest"
+safebucket_cpu           = 512
+safebucket_memory        = 1024
+safebucket_desired_count = 1
+safebucket_min_capacity  = 1
+safebucket_max_capacity  = 3
 
-loki_image                     = "grafana/loki:3.2.1"
-loki_cpu                       = 256
-loki_memory                    = 512
+loki_image  = "grafana/loki:3.2.1"
+loki_cpu    = 256
+loki_memory = 512
 
-mailpit_image                  = "axllent/mailpit:v1.27.7"
-mailpit_cpu                    = 256
-mailpit_memory                 = 512
+mailpit_image  = "axllent/mailpit:v1.27.7"
+mailpit_cpu    = 256
+mailpit_memory = 512
 
-enable_autoscaling             = false
-enable_ecs_exec                = true
-log_retention_days             = 7
+enable_autoscaling = false
+enable_ecs_exec    = true
+log_retention_days = 7
 
 # Application Configuration
-jwt_secret                     = "your-jwt-secret-32-chars-minimum-here"
-admin_password                 = "your-admin-password-here"
-smtp_sender                    = "notifications@yourdomain.com"
+jwt_secret     = "your-jwt-secret-32-chars-minimum-here"
+admin_password = "your-admin-password-here"
+smtp_sender    = "notifications@yourdomain.com"

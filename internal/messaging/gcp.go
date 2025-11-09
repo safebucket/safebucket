@@ -71,7 +71,7 @@ func (s *GCPSubscriber) Close() error {
 	return s.subscriber.Close()
 }
 
-// GetBucketEventType determines the type of GCP Cloud Storage event
+// GetBucketEventType determines the type of GCP Cloud Storage event.
 func (s *GCPSubscriber) GetBucketEventType(message *message.Message) string {
 	eventType := message.Metadata["eventType"]
 
@@ -113,7 +113,10 @@ func (s *GCPSubscriber) ParseBucketUploadEvents(message *message.Message) []Buck
 	return uploadEvents
 }
 
-func (s *GCPSubscriber) ParseBucketDeletionEvents(message *message.Message, expectedBucketName string) []BucketDeletionEvent {
+func (s *GCPSubscriber) ParseBucketDeletionEvents(
+	message *message.Message,
+	expectedBucketName string,
+) []BucketDeletionEvent {
 	var deletionEvents []BucketDeletionEvent
 
 	eventType := message.Metadata["eventType"]

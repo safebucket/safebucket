@@ -2,6 +2,11 @@ package storage
 
 import "api/internal/models"
 
+const (
+	bucketsPrefix = "buckets/"
+	trashPrefix   = "trash/"
+)
+
 type IStorage interface {
 	PresignedGetObject(path string) (string, error)
 	PresignedPostPolicy(
