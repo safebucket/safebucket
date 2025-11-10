@@ -119,6 +119,23 @@ func (s *StorageConfiguration) GetExternalURL() string {
 	return ""
 }
 
+// GetExternalURL returns the external URL for the configured storage provider.
+// This URL is used for browser-accessible endpoints (e.g., for CSP headers).
+// Returns empty string if no external URL is configured or applicable.
+func (s *StorageConfiguration) GetExternalURL() string {
+	switch s.Type {
+	case "minio":
+		if s.Minio != nil {
+			return s.Minio.ExternalEndpoint
+		}
+	case "gcp":
+		return ""
+	case "aws":
+		return ""
+	}
+	return ""
+}
+
 type QueueConfig struct {
 	Name string `mapstructure:"name" validate:"required"`
 }

@@ -3,6 +3,8 @@ package tests
 import (
 	"context"
 
+	"api/internal/models"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
@@ -36,8 +38,13 @@ type MockCreateFunc[In any, Out any] struct {
 	mock.Mock
 }
 
-func (m *MockCreateFunc[In, Out]) Create(ids uuid.UUIDs, input In) (Out, error) {
-	args := m.Called(ids, input)
+func (m *MockCreateFunc[In, Out]) Create(
+	logger *zap.Logger,
+	claims models.UserClaims,
+	ids uuid.UUIDs,
+	input In,
+) (Out, error) {
+	args := m.Called(logger, claims, ids, input)
 	return args.Get(0).(Out), args.Error(1) //nolint:errcheck // test mock type assertion expected to succeed
 }
 
@@ -45,8 +52,8 @@ type MockGetListFunc[Out any] struct {
 	mock.Mock
 }
 
-func (m *MockGetListFunc[Out]) GetList() []Out {
-	args := m.Called()
+func (m *MockGetListFunc[Out]) GetList(logger *zap.Logger, claims models.UserClaims, ids uuid.UUIDs) []Out {
+	args := m.Called(logger, claims, ids)
 	return args.Get(0).([]Out) //nolint:errcheck // test mock type assertion expected to succeed
 }
 
@@ -54,25 +61,25 @@ type MockGetOneFunc[Out any] struct {
 	mock.Mock
 }
 
-func (m *MockGetOneFunc[Out]) GetOne(ids uuid.UUIDs) (Out, error) {
-	args := m.Called(ids)
+func (m *MockGetOneFunc[Out]) GetOne(logger *zap.Logger, claims models.UserClaims, ids uuid.UUIDs) (Out, error) {
+	args := m.Called(logger, claims, ids)
 	return args.Get(0).(Out), args.Error(1) //nolint:errcheck // test mock type assertion expected to succeed
 }
 
-type MockUpdateFunc[In any, Out any] struct {
+type MockUpdateFunc[In any] struct {
 	mock.Mock
 }
 
-func (m *MockUpdateFunc[In, Out]) Update(ids uuid.UUIDs, input In) (Out, error) {
-	args := m.Called(ids, input)
-	return args.Get(0).(Out), args.Error(1) //nolint:errcheck // test mock type assertion expected to succeed
+func (m *MockUpdateFunc[In]) Update(logger *zap.Logger, claims models.UserClaims, ids uuid.UUIDs, input In) error {
+	args := m.Called(logger, claims, ids, input)
+	return args.Error(0)
 }
 
 type MockDeleteFunc struct {
 	mock.Mock
 }
 
-func (m *MockDeleteFunc) Delete(ids uuid.UUIDs) error {
-	args := m.Called(ids)
+func (m *MockDeleteFunc) Delete(logger *zap.Logger, claims models.UserClaims, ids uuid.UUIDs) error {
+	args := m.Called(logger, claims, ids)
 	return args.Error(0)
 }

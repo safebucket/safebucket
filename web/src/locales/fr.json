@@ -76,8 +76,8 @@
     },
     "statistics": {
       "title": "Statistiques",
-      "total_files": "Total des fichiers",
-      "sharing_spaces": "Espaces de partage"
+      "total_files": "Nombre total de fichiers",
+      "total_buckets": "Nombre total de buckets"
     },
     "tutorial": {
       "title": "Tutoriel : Comment transférer des fichiers",

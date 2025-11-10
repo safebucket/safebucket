@@ -2,14 +2,14 @@ package configuration
 
 const (
 	CacheMaxAppIdentityLifetime = 60
-	CacheAppIdentityKey         = "platform:identity"
-	CacheAppRateLimitKey        = "platform:ratelimit:%s"
+	CacheAppIdentityKey         = "app:identity"
+	CacheAppRateLimitKey        = "app:ratelimit:%s"
 )
 
 const (
 	EventsNotifications  = "notifications"
-	EventsObjectDeletion = "object-deletion"
-	EventsBucketEvents   = "bucket-events"
+	EventsObjectDeletion = "object_deletion"
+	EventsBucketEvents   = "bucket_events"
 )
 
 const DefaultDomain = "04db8656-d4f6-4f27-a2bd-8fab66155b21"
@@ -24,7 +24,7 @@ const (
 const BulkActionsLimit = 1000
 
 var ArrayConfigFields = []string{
-	"platform.trusted_proxies",
+	"app.trusted_proxies",
 	"cors.allowed_origins",
 	"cache.redis.hosts",
 	"cache.valkey.hosts",

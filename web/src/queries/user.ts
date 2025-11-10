@@ -11,6 +11,11 @@ interface UpdateUserPayload {
   new_password?: string;
 }
 
+export interface UserStats {
+  total_files: number;
+  total_buckets: number;
+}
+
 export const useCurrentUser = () => {
   const { session } = useSessionContext();
 
@@ -33,5 +38,14 @@ export const useUpdateUserMutation = (userId: string) => {
       successToast("Profile updated successfully");
     },
     onError: (error: Error) => errorToast(error),
+  });
+};
+
+export const useUserStatsQuery = (userId: string) => {
+  return useQuery({
+    queryKey: ["users", userId, "stats"],
+    queryFn: () => fetchApi<UserStats>(`/users/${userId}/stats`),
+    enabled: !!userId,
+    staleTime: 15 * 60 * 1000, // Consider data fresh for 15 minutes
   });
 };

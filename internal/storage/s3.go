@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -18,8 +19,10 @@ import (
 )
 
 type S3Storage struct {
-	BucketName string
-	storage    *minio.Client
+	BucketName       string
+	InternalEndpoint string
+	ExternalEndpoint string
+	storage          *minio.Client
 }
 
 func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) IStorage {
@@ -41,7 +44,43 @@ func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) I
 			Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
 	}
 
-	return S3Storage{BucketName: bucketName, storage: minioClient}
+	// Use external endpoint for presigned URLs if provided, otherwise fall back to internal endpoint
+	externalEndpoint := config.ExternalEndpoint
+	if externalEndpoint == "" {
+		externalEndpoint = config.Endpoint
+	}
+
+	return S3Storage{
+		BucketName:       bucketName,
+		InternalEndpoint: config.Endpoint,
+		ExternalEndpoint: externalEndpoint,
+		storage:          minioClient,
+	}
+}
+
+// replaceEndpoint replaces the internal endpoint with the external endpoint in a URL.
+// It properly parses URLs to replace only the scheme and host, preserving path and query parameters.
+func (s S3Storage) replaceEndpoint(urlString string) string {
+	if s.InternalEndpoint == s.ExternalEndpoint {
+		return urlString
+	}
+
+	presignedURL, err := url.Parse(urlString)
+	if err != nil {
+		zap.L().Warn("failed to parse presigned URL, using original", zap.Error(err))
+		return urlString
+	}
+
+	externalURL, err := url.Parse(s.ExternalEndpoint)
+	if err != nil {
+		zap.L().Warn("failed to parse external endpoint, using original URL", zap.Error(err))
+		return urlString
+	}
+
+	presignedURL.Scheme = externalURL.Scheme
+	presignedURL.Host = externalURL.Host
+
+	return presignedURL.String()
 }
 
 func (s S3Storage) GetBucketName() string {
@@ -60,7 +99,9 @@ func (s S3Storage) PresignedGetObject(path string) (string, error) {
 		return "", err
 	}
 
-	return url.String(), nil
+	// Replace internal endpoint with external endpoint for browser access
+	urlString := s.replaceEndpoint(url.String())
+	return urlString, nil
 }
 
 func (s S3Storage) PresignedPostPolicy(
@@ -82,7 +123,9 @@ func (s S3Storage) PresignedPostPolicy(
 		return "", map[string]string{}, err
 	}
 
-	return url.String(), metadata, nil
+	// Replace internal endpoint with external endpoint for browser access
+	urlString := s.replaceEndpoint(url.String())
+	return urlString, metadata, nil
 }
 
 func (s S3Storage) StatObject(path string) (map[string]string, error) {

@@ -44,6 +44,9 @@ COPY --from=backend-builder /app/internal/database/migrations ./internal/databas
 # Copy built frontend static files from frontend builder
 COPY --from=frontend-builder --chown=nonroot:nonroot /app/web/dist ./web/dist
 
+# Copy database migrations
+COPY --from=backend-builder --chown=nonroot:nonroot /app/internal/database/migrations ./internal/database/migrations
+
 # Expose port
 EXPOSE 8080
 
