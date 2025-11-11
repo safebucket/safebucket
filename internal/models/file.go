@@ -61,4 +61,5 @@ type TrashMetadata struct {
 	TrashedAt    time.Time
 	TrashedBy    uuid.UUID
 	FileID       uuid.UUID
+	IsFolder     bool
 }

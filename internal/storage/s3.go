@@ -275,17 +275,21 @@ func (s S3Storage) getTrashMarkerPath(objectPath string) string {
 	return strings.Replace(objectPath, bucketsPrefix, trashPrefix, 1)
 }
 
-func (s S3Storage) MarkFileAsTrashed(objectPath string, _ models.TrashMetadata) error {
+func (s S3Storage) MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error {
 	ctx := context.Background()
 	markerPath := s.getTrashMarkerPath(objectPath)
 
-	_, err := s.storage.StatObject(ctx, s.BucketName, objectPath, minio.StatObjectOptions{})
-	if err != nil {
-		return fmt.Errorf("object does not exist and can't be trashed: %w", err)
+	// Only verify object exists for files (not folders, which only exist in database)
+	if !metadata.IsFolder {
+		_, err := s.storage.StatObject(ctx, s.BucketName, objectPath, minio.StatObjectOptions{})
+		if err != nil {
+			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
+		}
 	}
 
+	// Create empty marker object to trigger lifecycle policy deletion
 	reader := bytes.NewReader([]byte{})
-	_, err = s.storage.PutObject(ctx, s.BucketName, markerPath, reader, 0, minio.PutObjectOptions{})
+	_, err := s.storage.PutObject(ctx, s.BucketName, markerPath, reader, 0, minio.PutObjectOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create marker: %w", err)
 	}

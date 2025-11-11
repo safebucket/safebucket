@@ -100,6 +100,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			TrashedAt:    e.Payload.TrashedAt,
 			TrashedBy:    e.Payload.UserID,
 			FileID:       e.Payload.FolderID,
+			IsFolder:     true,
 		}); err != nil {
 			zap.L().
 				Error("Failed to mark folder as trashed - rolling back transaction",

@@ -45,8 +45,8 @@ resource "aws_db_subnet_group" "rds" {
 
 # RDS Parameter Group for PostgreSQL
 resource "aws_db_parameter_group" "rds" {
-  family = "postgres18"
-  name   = "${var.project_name}-postgres18-params"
+  family = "postgres17"
+  name   = "${var.project_name}-postgres17-params"
 
   # PostgreSQL configuration parameters
   parameter {
@@ -76,7 +76,7 @@ resource "aws_db_instance" "main" {
 
   # Engine configuration
   engine         = "postgres"
-  engine_version = "18"
+  engine_version = "17"
   instance_class = var.rds_instance_class
 
   # Storage configuration

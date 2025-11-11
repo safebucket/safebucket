@@ -516,6 +516,7 @@ func (s BucketService) TrashFile(logger *zap.Logger, user models.UserClaims, fil
 			TrashedAt:    now,
 			TrashedBy:    user.UserID,
 			FileID:       file.ID,
+			IsFolder:     false,
 		}); err != nil {
 			logger.Error(
 				"Failed to mark file as trashed - rolling back transaction",

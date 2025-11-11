@@ -214,17 +214,19 @@ func (g GCPStorage) getTrashMarkerPath(objectPath string) string {
 	return strings.Replace(objectPath, bucketsPrefix, trashPrefix, 1)
 }
 
-func (g GCPStorage) MarkFileAsTrashed(objectPath string, _ models.TrashMetadata) error {
+func (g GCPStorage) MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error {
 	ctx := context.Background()
 	markerPath := g.getTrashMarkerPath(objectPath)
 
-	// Verify original object exists
-	obj := g.storage.Bucket(g.BucketName).Object(objectPath)
-	if _, err := obj.Attrs(ctx); err != nil {
-		return fmt.Errorf("object does not exist and can't be trashed: %w", err)
+	// Only verify object exists for files (not folders, which only exist in database)
+	if !metadata.IsFolder {
+		obj := g.storage.Bucket(g.BucketName).Object(objectPath)
+		if _, err := obj.Attrs(ctx); err != nil {
+			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
+		}
 	}
 
-	// Create empty marker object
+	// Create empty marker object to trigger lifecycle policy deletion
 	markerObj := g.storage.Bucket(g.BucketName).Object(markerPath)
 	writer := markerObj.NewWriter(ctx)
 

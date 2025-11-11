@@ -276,22 +276,23 @@ func (a AWSStorage) getTrashMarkerPath(objectPath string) string {
 	return strings.Replace(objectPath, bucketsPrefix, trashPrefix, 1)
 }
 
-func (a AWSStorage) MarkFileAsTrashed(objectPath string, _ models.TrashMetadata) error {
+func (a AWSStorage) MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error {
 	ctx := context.Background()
 	markerPath := a.getTrashMarkerPath(objectPath)
 
-	// Verify original object exists
-	_, err := a.storage.HeadObject(ctx, &s3.HeadObjectInput{
-		Bucket: aws.String(a.BucketName),
-		Key:    aws.String(objectPath),
-	})
-	if err != nil {
-		return fmt.Errorf("object does not exist and can't be trashed: %w", err)
+	if !metadata.IsFolder {
+		_, err := a.storage.HeadObject(ctx, &s3.HeadObjectInput{
+			Bucket: aws.String(a.BucketName),
+			Key:    aws.String(objectPath),
+		})
+		if err != nil {
+			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
+		}
 	}
 
-	// Create empty marker object
+	// Create empty marker object to trigger lifecycle policy deletion
 	reader := bytes.NewReader([]byte{})
-	_, err = a.storage.PutObject(ctx, &s3.PutObjectInput{
+	_, err := a.storage.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(a.BucketName),
 		Key:    aws.String(markerPath),
 		Body:   reader,
@@ -349,7 +350,9 @@ func (a AWSStorage) processExistingLifecycleRules(
 	multipartRuleFound := false
 
 	if err != nil || existingConfig == nil {
-		return []types.LifecycleRule{trashRule, multipartRule}, false, false
+		// No existing config - return new rules with flags set to true
+		// to prevent duplicate addition in the caller
+		return []types.LifecycleRule{trashRule, multipartRule}, true, true
 	}
 
 	for _, rule := range existingConfig.Rules {
