@@ -88,7 +88,7 @@ func (s S3Storage) GetBucketName() string {
 }
 
 func (s S3Storage) PresignedGetObject(path string) (string, error) {
-	url, err := s.storage.PresignedGetObject(
+	presignedURL, err := s.storage.PresignedGetObject(
 		context.Background(),
 		s.BucketName,
 		path,
@@ -100,7 +100,7 @@ func (s S3Storage) PresignedGetObject(path string) (string, error) {
 	}
 
 	// Replace internal endpoint with external endpoint for browser access
-	urlString := s.replaceEndpoint(url.String())
+	urlString := s.replaceEndpoint(presignedURL.String())
 	return urlString, nil
 }
 
@@ -118,13 +118,13 @@ func (s S3Storage) PresignedPostPolicy(
 	_ = policy.SetUserMetadata("File-Id", metadata["file_id"])
 	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
 
-	url, metadata, err := s.storage.PresignedPostPolicy(context.Background(), policy)
+	presignedURL, metadata, err := s.storage.PresignedPostPolicy(context.Background(), policy)
 	if err != nil {
 		return "", map[string]string{}, err
 	}
 
 	// Replace internal endpoint with external endpoint for browser access
-	urlString := s.replaceEndpoint(url.String())
+	urlString := s.replaceEndpoint(presignedURL.String())
 	return urlString, metadata, nil
 }
 
