@@ -88,7 +88,6 @@
   },
   "file_actions": {
     "download": "Télécharger",
-    "share": "Partager",
     "new_folder": "Nouveau dossier",
     "move_to_trash": "Déplacer vers la corbeille",
     "new_folder_dialog": {
