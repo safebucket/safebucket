@@ -55,7 +55,9 @@ export const AppSidebar: FC = () => {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <img src="/safebucket_banner.png" alt="SafeBucket Logo" />
+            <Link to="/" className="cursor-pointer">
+              <img src="/safebucket_banner.png" alt="SafeBucket Logo" />
+            </Link>
             <Separator className="mt-2" />
           </SidebarMenuItem>
         </SidebarMenu>
@@ -97,38 +99,40 @@ export const AppSidebar: FC = () => {
                   {t("navigation.shared_buckets")}
                 </div>
               </SidebarMenuButton>
-              <SidebarMenuAction>
-                <Plus onClick={createBucketDialog.trigger} />
-                <FormDialog
-                  {...createBucketDialog.props}
-                  title={t("bucket.new_bucket_dialog.title")}
-                  maxWidth="700px"
-                  description={t("bucket.new_bucket_dialog.description")}
-                  fields={[
-                    {
-                      id: "name",
-                      label: t("bucket.new_bucket_dialog.name_label"),
-                      type: "text",
-                      required: true,
-                    },
-                  ]}
-                  onSubmit={(data) => {
-                    createBucketMutation.mutate({
-                      name: data.name,
-                      members: shareWith,
-                    });
-                    setShareWith([]);
-                  }}
-                  confirmLabel={t("common.create")}
-                >
-                  <AddMembersCard
-                    shareWith={shareWith}
-                    onShareWithChange={setShareWith}
-                    currentUserEmail={user?.email}
-                    currentUserName={`${user?.first_name} ${user?.last_name}`}
-                  />
-                </FormDialog>
-              </SidebarMenuAction>
+              {user?.role !== "guest" && (
+                <SidebarMenuAction>
+                  <Plus onClick={createBucketDialog.trigger} />
+                  <FormDialog
+                    {...createBucketDialog.props}
+                    title={t("bucket.new_bucket_dialog.title")}
+                    maxWidth="700px"
+                    description={t("bucket.new_bucket_dialog.description")}
+                    fields={[
+                      {
+                        id: "name",
+                        label: t("bucket.new_bucket_dialog.name_label"),
+                        type: "text",
+                        required: true,
+                      },
+                    ]}
+                    onSubmit={(data) => {
+                      createBucketMutation.mutate({
+                        name: data.name,
+                        members: shareWith,
+                      });
+                      setShareWith([]);
+                    }}
+                    confirmLabel={t("common.create")}
+                  >
+                    <AddMembersCard
+                      shareWith={shareWith}
+                      onShareWithChange={setShareWith}
+                      currentUserEmail={user?.email}
+                      currentUserName={`${user?.first_name} ${user?.last_name}`}
+                    />
+                  </FormDialog>
+                </SidebarMenuAction>
+              )}
               <SidebarMenuSub>
                 {buckets.map((bucket) => (
                   <SidebarMenuSubItem key={bucket.id}>

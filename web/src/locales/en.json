@@ -88,7 +88,6 @@
   },
   "file_actions": {
     "download": "Download",
-    "share": "Share",
     "new_folder": "New folder",
     "move_to_trash": "Move to Trash",
     "new_folder_dialog": {

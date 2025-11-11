@@ -29,6 +29,7 @@ export interface IUser {
   last_name: string;
   email: string;
   provider_type: string;
+  role: "admin" | "user" | "guest";
   created_at: string;
   updated_at: string;
 }

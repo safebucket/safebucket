@@ -111,6 +111,8 @@ export const SessionProvider = ({
 
     Cookies.remove("safebucket_access_token");
     setAccessToken(undefined);
+    Cookies.remove("safebucket_refresh_token");
+    setRefreshToken(undefined);
     Cookies.remove("safebucket_auth_provider");
     setAuthProvider(undefined);
 
