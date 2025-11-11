@@ -1,11 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import {
-  ArchiveRestore,
-  Download,
-  FolderPlus,
-  Trash2,
-} from "lucide-react";
+import { ArchiveRestore, Download, FolderPlus, Trash2 } from "lucide-react";
 import type { FC, ReactNode } from "react";
 
 import type { IFile } from "@/types/file.ts";
