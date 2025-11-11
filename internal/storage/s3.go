@@ -329,10 +329,11 @@ func (s S3Storage) processExistingLifecycleRules(
 			trashRuleFound = true
 			if !rule.Expiration.IsDaysNull() &&
 				int(rule.Expiration.Days) == retentionDays &&
-				rule.Prefix == "trash/" {
+				rule.RuleFilter.Prefix == "trash/" {
 				zap.L().Debug("Trash lifecycle policy already up-to-date",
 					zap.String("bucket", s.BucketName),
 					zap.Int("retentionDays", retentionDays))
+				newRules = append(newRules, rule)
 			}
 
 		case multipartRuleID:
@@ -355,13 +356,17 @@ func (s S3Storage) processExistingLifecycleRules(
 	return config
 }
 
-// NOTE: AbortIncompleteMultipartUpload not supported by MinIO
-// MinIO appears to not fully support the AbortIncompleteMultipartUpload lifecycle action.
+// EnsureTrashLifecyclePolicy configures lifecycle policies for the bucket, merging with existing rules.
+// It adds or updates the trash expiration rule (prefix: trash/) with the specified retention period.
+//
+// NOTE: AbortIncompleteMultipartUpload is not supported by MinIO.
+// MinIO does not fully support the AbortIncompleteMultipartUpload lifecycle action.
 // References:
 // - https://github.com/minio/minio/issues/16120
 // - https://github.com/minio/minio/issues/19115
 func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	const trashRuleID = "safebucket-trash-retention"
+	const multipartRuleID = "safebucket-abort-incomplete-multipart"
 
 	// Validate retentionDays to prevent overflow and invalid values
 	if retentionDays < 0 {
@@ -373,9 +378,29 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 
 	ctx := context.Background()
 
-	config := lifecycle.NewConfiguration()
+	// Fetch existing lifecycle configuration
+	existingConfig, err := s.storage.GetBucketLifecycle(ctx, s.BucketName)
 
-	{
+	// Process existing rules to preserve non-SafeBucket policies
+	config := s.processExistingLifecycleRules(
+		existingConfig,
+		err,
+		trashRuleID,
+		multipartRuleID,
+		retentionDays,
+	)
+
+	// Check if trash rule already exists and is up-to-date
+	trashRuleExists := false
+	for _, rule := range config.Rules {
+		if rule.ID == trashRuleID {
+			trashRuleExists = true
+			break
+		}
+	}
+
+	// Add or update trash rule if needed
+	if !trashRuleExists {
 		trashRule := lifecycle.Rule{
 			ID:     trashRuleID,
 			Status: "Enabled",
@@ -389,7 +414,7 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 		config.Rules = append(config.Rules, trashRule)
 	}
 
-	err := s.storage.SetBucketLifecycle(ctx, s.BucketName, config)
+	err = s.storage.SetBucketLifecycle(ctx, s.BucketName, config)
 	if err != nil {
 		zap.L().Error("Failed to set lifecycle policies",
 			zap.String("bucket", s.BucketName),
