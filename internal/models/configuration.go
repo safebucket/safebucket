@@ -102,23 +102,6 @@ type S3Configuration struct {
 	ExternalEndpoint string `mapstructure:"external_endpoint"`
 }
 
-func (s *StorageConfiguration) GetExternalURL() string {
-	switch s.Type {
-	case "minio":
-		if s.Minio != nil {
-			return s.Minio.ExternalEndpoint
-		}
-	case "gcp":
-		return ""
-	case "aws":
-		if s.S3 != nil && s.S3.ExternalEndpoint != "" {
-			return s.S3.ExternalEndpoint
-		}
-		return ""
-	}
-	return ""
-}
-
 // GetExternalURL returns the external URL for the configured storage provider.
 // This URL is used for browser-accessible endpoints (e.g., for CSP headers).
 // Returns empty string if no external URL is configured or applicable.
@@ -131,6 +114,9 @@ func (s *StorageConfiguration) GetExternalURL() string {
 	case "gcp":
 		return ""
 	case "aws":
+		if s.S3 != nil && s.S3.ExternalEndpoint != "" {
+			return s.S3.ExternalEndpoint
+		}
 		return ""
 	}
 	return ""

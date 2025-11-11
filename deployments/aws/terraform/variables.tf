@@ -45,7 +45,7 @@ variable "object_deletion_queue_name" {
 variable "redis_node_type" {
   description = "The instance type for the Redis cache nodes"
   type        = string
-  default     = "cache.t3.micro"
+  default = "cache.t4g.micro"
 }
 
 variable "redis_num_cache_nodes" {
@@ -95,7 +95,7 @@ variable "redis_log_retention_days" {
 variable "rds_instance_class" {
   description = "The instance class for the RDS PostgreSQL database"
   type        = string
-  default     = "db.t3.micro"
+  default = "db.t4g.micro"
 }
 
 variable "rds_allocated_storage" {
@@ -174,13 +174,23 @@ variable "safebucket_image" {
 variable "safebucket_cpu" {
   description = "CPU units for SafeBucket task (1024 = 1 vCPU)"
   type        = number
-  default     = 512
+  default = 256
 }
 
 variable "safebucket_memory" {
   description = "Memory in MB for SafeBucket task"
   type        = number
-  default     = 1024
+  default = 512
+}
+
+variable "safebucket_architecture" {
+  description = "CPU architecture for SafeBucket task (X86_64 or ARM64). ARM64 provides better price/performance."
+  type        = string
+  default     = "ARM64"
+  validation {
+    condition = contains(["X86_64", "ARM64"], var.safebucket_architecture)
+    error_message = "Architecture must be either X86_64 or ARM64"
+  }
 }
 
 variable "safebucket_desired_count" {
@@ -219,6 +229,22 @@ variable "loki_memory" {
   default     = 1024
 }
 
+variable "enable_loki_spot_instances" {
+  description = "Enable Fargate Spot instances for Loki service (up to 70% cost savings)"
+  type        = bool
+  default     = false
+}
+
+variable "loki_spot_instance_percentage" {
+  description = "Percentage of Loki tasks to run on Spot instances (0-100)"
+  type        = number
+  default     = 100
+  validation {
+    condition     = var.loki_spot_instance_percentage >= 0 && var.loki_spot_instance_percentage <= 100
+    error_message = "Loki spot instance percentage must be between 0 and 100"
+  }
+}
+
 variable "mailpit_image" {
   description = "Docker image for Mailpit"
   type        = string
@@ -237,10 +263,42 @@ variable "mailpit_memory" {
   default     = 512
 }
 
+variable "enable_mailpit_spot_instances" {
+  description = "Enable Fargate Spot instances for Mailpit service (up to 70% cost savings)"
+  type        = bool
+  default     = false
+}
+
+variable "mailpit_spot_instance_percentage" {
+  description = "Percentage of Mailpit tasks to run on Spot instances (0-100)"
+  type        = number
+  default     = 100
+  validation {
+    condition     = var.mailpit_spot_instance_percentage >= 0 && var.mailpit_spot_instance_percentage <= 100
+    error_message = "Mailpit spot instance percentage must be between 0 and 100"
+  }
+}
+
 variable "enable_autoscaling" {
   description = "Enable auto scaling for SafeBucket service"
   type        = bool
   default     = false
+}
+
+variable "enable_spot_instances" {
+  description = "Enable Fargate Spot instances for SafeBucket service (up to 70% cost savings, but can be interrupted)"
+  type        = bool
+  default     = false
+}
+
+variable "spot_instance_percentage" {
+  description = "Percentage of tasks to run on Spot instances (0-100). Only used if enable_spot_instances is true. 100 = all spot, 0 = all on-demand"
+  type        = number
+  default     = 100
+  validation {
+    condition     = var.spot_instance_percentage >= 0 && var.spot_instance_percentage <= 100
+    error_message = "Spot instance percentage must be between 0 and 100"
+  }
 }
 
 variable "enable_ecs_exec" {

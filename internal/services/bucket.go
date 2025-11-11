@@ -37,14 +37,14 @@ type BucketService struct {
 func (s BucketService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.With(m.AuthorizeRole(models.RoleUser)).
+	r.With(m.AuthorizeRole(models.RoleGuest)).
 		Get("/", handlers.GetListHandler(s.GetBucketList))
 
 	r.With(m.AuthorizeRole(models.RoleUser)).
 		With(m.Validate[models.BucketCreateUpdateBody]).
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
-	r.With(m.AuthorizeRole(models.RoleUser)).
+	r.With(m.AuthorizeRole(models.RoleGuest)).
 		Get("/activity", handlers.GetListHandler(s.GetActivity))
 
 	r.Route("/{id0}", func(r chi.Router) {

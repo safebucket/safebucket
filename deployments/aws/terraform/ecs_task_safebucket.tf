@@ -8,6 +8,12 @@ resource "aws_ecs_task_definition" "safebucket" {
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
 
+  # Runtime platform for CPU architecture (ARM64 for better price/performance)
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = var.safebucket_architecture
+  }
+
   container_definitions = jsonencode([
     {
       name      = "safebucket"
@@ -119,11 +125,11 @@ resource "aws_ecs_task_definition" "safebucket" {
           value = aws_sqs_queue.notifications.name
         },
         {
-          name = "EVENTS__QUEUES__BUCKET-EVENTS__NAME"
+          name = "EVENTS__QUEUES__BUCKET_EVENTS__NAME"
           value = aws_sqs_queue.s3_events.name
         },
         {
-          name  = "EVENTS__QUEUES__OBJECT-DELETION__NAME"
+          name = "EVENTS__QUEUES__OBJECT_DELETION__NAME"
           value = aws_sqs_queue.object_deletion.name
         },
         {

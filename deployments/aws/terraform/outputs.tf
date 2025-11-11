@@ -147,11 +147,6 @@ output "alb_dns_name" {
   value       = aws_lb.safebucket_alb.dns_name
 }
 
-output "internal_alb_dns_name" {
-  description = "DNS name of the internal Application Load Balancer"
-  value       = aws_lb.internal_alb.dns_name
-}
-
 output "safebucket_service_name" {
   description = "Name of the SafeBucket ECS service"
   value       = aws_ecs_service.safebucket.name
@@ -172,19 +167,18 @@ output "mailpit_service_name" {
 output "infrastructure_summary" {
   description = "Summary of created infrastructure"
   value = {
-    s3_bucket             = aws_s3_bucket.main.bucket
-    s3_loki_bucket        = aws_s3_bucket.loki.bucket
-    s3_events_queue       = aws_sqs_queue.s3_events.name
-    notifications_queue   = aws_sqs_queue.notifications.name
-    iam_role              = aws_iam_role.safebucket_app.name
-    redis_endpoint        = aws_elasticache_replication_group.main.primary_endpoint_address
-    redis_port            = 6379
-    rds_endpoint          = aws_db_instance.main.endpoint
-    ecs_cluster           = aws_ecs_cluster.safebucket_cluster.name
-    alb_dns_name          = aws_lb.safebucket_alb.dns_name
-    internal_alb_dns_name = aws_lb.internal_alb.dns_name
-    environment           = var.environment
-    project_name          = var.project_name
-    region                = data.aws_region.current.name
+    s3_bucket           = aws_s3_bucket.main.bucket
+    s3_loki_bucket      = aws_s3_bucket.loki.bucket
+    s3_events_queue     = aws_sqs_queue.s3_events.name
+    notifications_queue = aws_sqs_queue.notifications.name
+    iam_role            = aws_iam_role.safebucket_app.name
+    redis_endpoint      = aws_elasticache_replication_group.main.primary_endpoint_address
+    redis_port          = 6379
+    rds_endpoint        = aws_db_instance.main.endpoint
+    ecs_cluster         = aws_ecs_cluster.safebucket_cluster.name
+    alb_dns_name        = aws_lb.safebucket_alb.dns_name
+    environment         = var.environment
+    project_name        = var.project_name
+    region              = data.aws_region.current.name
   }
 }

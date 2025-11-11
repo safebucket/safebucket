@@ -8,9 +8,33 @@ resource "aws_ecs_service" "safebucket" {
   deployment_maximum_percent         = 200
   enable_execute_command = var.enable_ecs_exec
 
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE"
-    weight = 100
+  # Capacity provider strategy - supports Spot instances for cost savings
+  dynamic "capacity_provider_strategy" {
+    for_each = var.enable_spot_instances ? [1] : []
+    content {
+      capacity_provider = "FARGATE_SPOT"
+      weight            = var.spot_instance_percentage
+      base              = 0
+    }
+  }
+
+  dynamic "capacity_provider_strategy" {
+    for_each = var.enable_spot_instances && var.spot_instance_percentage < 100 ? [1] : []
+    content {
+      capacity_provider = "FARGATE"
+      weight            = 100 - var.spot_instance_percentage
+      base              = 0
+    }
+  }
+
+  # Default to FARGATE if spot instances are disabled
+  dynamic "capacity_provider_strategy" {
+    for_each = var.enable_spot_instances ? [] : [1]
+    content {
+      capacity_provider = "FARGATE"
+      weight            = 100
+      base              = 1
+    }
   }
 
   network_configuration {

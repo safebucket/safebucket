@@ -17,7 +17,7 @@ notification_queue_name = "safebucket-notifications-dev"
 object_deletion_queue_name = "safebucket-object-deletion-dev"
 
 # Redis Configuration
-redis_node_type                = "cache.t3.micro"
+redis_node_type = "cache.t4g.micro"
 redis_num_cache_nodes          = 1
 redis_auth_token_enabled       = true
 redis_auth_token               = "ymvUVeOkgHlkeZ+mWwE4Yj36p74a9rqPSc8jVCI47TI="
@@ -27,7 +27,7 @@ redis_maintenance_window       = "sun:05:00-sun:07:00"
 redis_log_retention_days = 7
 
 # RDS Configuration
-rds_instance_class          = "db.t3.micro"
+rds_instance_class = "db.t4g.micro"
 rds_allocated_storage       = 20
 rds_max_allocated_storage   = 100
 rds_database_name           = "safebucket"
@@ -42,8 +42,9 @@ rds_storage_encrypted = true
 
 # ECS Configuration
 safebucket_image         = "docker.io/safebucket/safebucket:latest"
-safebucket_cpu           = 512
-safebucket_memory        = 1024
+safebucket_cpu    = 256
+safebucket_memory = 512
+safebucket_architecture = "ARM64" # ARM64 (Graviton2) for better price/performance
 safebucket_desired_count = 1
 safebucket_min_capacity  = 1
 safebucket_max_capacity  = 3
@@ -51,12 +52,18 @@ safebucket_max_capacity  = 3
 loki_image  = "grafana/loki:3.2.1"
 loki_cpu    = 256
 loki_memory = 512
+enable_loki_spot_instances = true # Enable Spot for Loki (70% cost savings)
+loki_spot_instance_percentage = 100  # 100% Spot for dev
 
 mailpit_image  = "axllent/mailpit:v1.27.7"
 mailpit_cpu    = 256
 mailpit_memory = 512
+enable_mailpit_spot_instances = true # Enable Spot for Mailpit (70% cost savings)
+mailpit_spot_instance_percentage = 100  # 100% Spot for dev
 
-enable_autoscaling = false
+enable_autoscaling = true
+enable_spot_instances = true # Enable Spot for SafeBucket (70% cost savings)
+spot_instance_percentage = 100  # 100% Spot for maximum savings (use 70 for prod with mixed strategy)
 enable_ecs_exec    = true
 log_retention_days = 7
 

@@ -38,14 +38,14 @@ WORKDIR /app
 # Copy built binary from backend builder
 COPY --from=backend-builder /app/safebucket ./safebucket
 
-# Copy database migrations from backend builder
-COPY --from=backend-builder /app/internal/database/migrations ./internal/database/migrations
-
 # Copy built frontend static files from frontend builder
 COPY --from=frontend-builder --chown=nonroot:nonroot /app/web/dist ./web/dist
 
 # Copy database migrations
 COPY --from=backend-builder --chown=nonroot:nonroot /app/internal/database/migrations ./internal/database/migrations
+
+# Copy mail templates
+COPY --from=backend-builder --chown=nonroot:nonroot /app/internal/mails ./internal/mails
 
 # Expose port
 EXPOSE 8080

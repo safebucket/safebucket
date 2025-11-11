@@ -62,36 +62,40 @@ resource "aws_security_group" "ecs_tasks" {
   description = "Security group for ECS tasks"
   vpc_id      = data.aws_vpc.default.id
 
+  # SafeBucket application port - only accessible from ALB
   ingress {
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "SafeBucket application port"
+    security_groups = [aws_security_group.alb.id]
+    description = "SafeBucket application port from ALB only"
   }
 
+  # Loki HTTP API - internal VPC access only (Service Discovery)
   ingress {
     from_port   = 3100
     to_port     = 3100
     protocol    = "tcp"
     cidr_blocks = [data.aws_vpc.default.cidr_block]
-    description = "Loki HTTP API (Service Discovery)"
+    description = "Loki HTTP API (Service Discovery - VPC only)"
   }
 
+  # Mailpit Web UI - only accessible from ALB
   ingress {
     from_port   = 8025
     to_port     = 8025
     protocol    = "tcp"
-    cidr_blocks = [data.aws_vpc.default.cidr_block]
-    description = "Mailpit web UI"
+    security_groups = [aws_security_group.alb.id]
+    description = "Mailpit Web UI from ALB only"
   }
 
+  # Mailpit SMTP - internal VPC access only (Service Discovery)
   ingress {
     from_port   = 1025
     to_port     = 1025
     protocol    = "tcp"
     cidr_blocks = [data.aws_vpc.default.cidr_block]
-    description = "Mailpit SMTP (Service Discovery)"
+    description = "Mailpit SMTP (Service Discovery - VPC only)"
   }
 
   egress {
@@ -101,7 +105,6 @@ resource "aws_security_group" "ecs_tasks" {
     cidr_blocks = ["0.0.0.0/0"]
     description = "All outbound traffic"
   }
-
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-ecs-tasks"
@@ -132,22 +135,16 @@ resource "aws_security_group" "alb" {
   description = "Security group for Application Load Balancer"
   vpc_id      = data.aws_vpc.default.id
 
+  # HTTP port for SafeBucket application
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTP"
+    description = "HTTP - SafeBucket application"
   }
 
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTPS"
-  }
-
+  # Mailpit Web UI port
   ingress {
     from_port   = 8025
     to_port     = 8025
@@ -233,45 +230,6 @@ resource "aws_lb_listener" "safebucket_listener" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.safebucket_tg.arn
-  }
-}
-
-# Internal Load Balancer for Loki and Mailpit
-resource "aws_lb" "internal_alb" {
-  name               = "${var.project_name}-${var.environment}-internal-alb"
-  internal           = true
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.internal_alb.id]
-  subnets            = data.aws_subnets.default.ids
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-internal-alb"
-    Environment = var.environment
-    Project     = var.project_name
-  }
-}
-
-resource "aws_security_group" "internal_alb" {
-  name        = "${var.project_name}-${var.environment}-internal-alb"
-  description = "Security group for Internal Application Load Balancer (currently unused)"
-  vpc_id      = data.aws_vpc.default.id
-
-  # No ingress rules - internal ALB is currently not used
-  # Loki and Mailpit SMTP now use Service Discovery
-  # Mailpit Web UI moved to public ALB
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "All outbound traffic"
-  }
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-internal-alb"
-    Environment = var.environment
-    Project     = var.project_name
   }
 }
 

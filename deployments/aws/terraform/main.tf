@@ -13,7 +13,7 @@ terraform {
 
 # AWS Provider configuration
 provider "aws" {
-  region     = "eu-west-1"
+  region = "eu-west-1"
 }
 
 # Data sources
