@@ -329,7 +329,7 @@ func (s S3Storage) processExistingLifecycleRules(
 			trashRuleFound = true
 			if !rule.Expiration.IsDaysNull() &&
 				int(rule.Expiration.Days) == retentionDays &&
-				rule.RuleFilter.Prefix == "trash/" {
+				rule.Prefix == "trash/" {
 				zap.L().Debug("Trash lifecycle policy already up-to-date",
 					zap.String("bucket", s.BucketName),
 					zap.Int("retentionDays", retentionDays))
@@ -355,9 +355,13 @@ func (s S3Storage) processExistingLifecycleRules(
 	return config
 }
 
+// NOTE: AbortIncompleteMultipartUpload not supported by MinIO
+// MinIO appears to not fully support the AbortIncompleteMultipartUpload lifecycle action.
+// References:
+// - https://github.com/minio/minio/issues/16120
+// - https://github.com/minio/minio/issues/19115
 func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	const trashRuleID = "safebucket-trash-retention"
-	const multipartRuleID = "safebucket-abort-incomplete-multipart"
 
 	// Validate retentionDays to prevent overflow and invalid values
 	if retentionDays < 0 {
@@ -368,17 +372,9 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	}
 
 	ctx := context.Background()
-	existingConfig, err := s.storage.GetBucketLifecycle(ctx, s.BucketName)
 
-	config := s.processExistingLifecycleRules(
-		existingConfig,
-		err,
-		trashRuleID,
-		multipartRuleID,
-		retentionDays,
-	)
+	config := lifecycle.NewConfiguration()
 
-	// Add trash expiration rule
 	{
 		trashRule := lifecycle.Rule{
 			ID:     trashRuleID,
@@ -393,19 +389,7 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 		config.Rules = append(config.Rules, trashRule)
 	}
 
-	// Add incomplete multipart upload cleanup rule
-	{
-		multipartRule := lifecycle.Rule{
-			ID:     multipartRuleID,
-			Status: "Enabled",
-			AbortIncompleteMultipartUpload: lifecycle.AbortIncompleteMultipartUpload{
-				DaysAfterInitiation: 1,
-			},
-		}
-		config.Rules = append(config.Rules, multipartRule)
-	}
-
-	err = s.storage.SetBucketLifecycle(ctx, s.BucketName, config)
+	err := s.storage.SetBucketLifecycle(ctx, s.BucketName, config)
 	if err != nil {
 		zap.L().Error("Failed to set lifecycle policies",
 			zap.String("bucket", s.BucketName),
