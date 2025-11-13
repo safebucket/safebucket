@@ -14,7 +14,7 @@ export const BucketViewProvider = ({
   path: string;
 }) => {
   const navigate = useNavigate();
-  const params = useParams({ from: "/buckets/$id/{-$path}" });
+  const params = useParams({ from: "/buckets/$id/$" });
   const location = useLocation();
 
   const [view, setView] = useState<BucketViewMode>(BucketViewMode.List);

@@ -18,7 +18,7 @@ import { Route as InvitesIdIndexRouteImport } from './routes/invites/$id/index'
 import { Route as AuthResetPasswordIndexRouteImport } from './routes/auth/reset-password/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
 import { Route as AuthCompleteIndexRouteImport } from './routes/auth/complete/index'
-import { Route as BucketsIdChar123PathChar125RouteImport } from './routes/buckets/$id/{-$path}'
+import { Route as BucketsIdSplatRouteImport } from './routes/buckets/$id/$'
 import { Route as AuthResetPasswordIdIndexRouteImport } from './routes/auth/reset-password/$id/index'
 import { Route as InvitesIdChallengesChallengeIdIndexRouteImport } from './routes/invites/$id/challenges/$challengeId/index'
 
@@ -68,12 +68,11 @@ const AuthCompleteIndexRoute = AuthCompleteIndexRouteImport.update({
   path: '/auth/complete/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BucketsIdChar123PathChar125Route =
-  BucketsIdChar123PathChar125RouteImport.update({
-    id: '/buckets/$id/{-$path}',
-    path: '/buckets/$id/{-$path}',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const BucketsIdSplatRoute = BucketsIdSplatRouteImport.update({
+  id: '/buckets/$id/$',
+  path: '/buckets/$id/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthResetPasswordIdIndexRoute =
   AuthResetPasswordIdIndexRouteImport.update({
     id: '/auth/reset-password/$id/',
@@ -91,7 +90,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityIndexRoute
   '/settings': typeof SettingsIndexRoute
-  '/buckets/$id/{-$path}': typeof BucketsIdChar123PathChar125Route
+  '/buckets/$id/$': typeof BucketsIdSplatRoute
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
@@ -105,7 +104,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityIndexRoute
   '/settings': typeof SettingsIndexRoute
-  '/buckets/$id/{-$path}': typeof BucketsIdChar123PathChar125Route
+  '/buckets/$id/$': typeof BucketsIdSplatRoute
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
@@ -120,7 +119,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/activity/': typeof ActivityIndexRoute
   '/settings/': typeof SettingsIndexRoute
-  '/buckets/$id/{-$path}': typeof BucketsIdChar123PathChar125Route
+  '/buckets/$id/$': typeof BucketsIdSplatRoute
   '/auth/complete/': typeof AuthCompleteIndexRoute
   '/auth/login/': typeof AuthLoginIndexRoute
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
@@ -136,7 +135,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/settings'
-    | '/buckets/$id/{-$path}'
+    | '/buckets/$id/$'
     | '/auth/complete'
     | '/auth/login'
     | '/auth/reset-password'
@@ -150,7 +149,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/settings'
-    | '/buckets/$id/{-$path}'
+    | '/buckets/$id/$'
     | '/auth/complete'
     | '/auth/login'
     | '/auth/reset-password'
@@ -164,7 +163,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity/'
     | '/settings/'
-    | '/buckets/$id/{-$path}'
+    | '/buckets/$id/$'
     | '/auth/complete/'
     | '/auth/login/'
     | '/auth/reset-password/'
@@ -179,7 +178,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityIndexRoute: typeof ActivityIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
-  BucketsIdChar123PathChar125Route: typeof BucketsIdChar123PathChar125Route
+  BucketsIdSplatRoute: typeof BucketsIdSplatRoute
   AuthCompleteIndexRoute: typeof AuthCompleteIndexRoute
   AuthLoginIndexRoute: typeof AuthLoginIndexRoute
   AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
@@ -255,11 +254,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCompleteIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/buckets/$id/{-$path}': {
-      id: '/buckets/$id/{-$path}'
-      path: '/buckets/$id/{-$path}'
-      fullPath: '/buckets/$id/{-$path}'
-      preLoaderRoute: typeof BucketsIdChar123PathChar125RouteImport
+    '/buckets/$id/$': {
+      id: '/buckets/$id/$'
+      path: '/buckets/$id/$'
+      fullPath: '/buckets/$id/$'
+      preLoaderRoute: typeof BucketsIdSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/reset-password/$id/': {
@@ -283,7 +282,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityIndexRoute: ActivityIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
-  BucketsIdChar123PathChar125Route: BucketsIdChar123PathChar125Route,
+  BucketsIdSplatRoute: BucketsIdSplatRoute,
   AuthCompleteIndexRoute: AuthCompleteIndexRoute,
   AuthLoginIndexRoute: AuthLoginIndexRoute,
   AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,

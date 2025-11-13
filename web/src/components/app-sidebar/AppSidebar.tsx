@@ -143,7 +143,7 @@ export const AppSidebar: FC = () => {
                       )}
                     >
                       <Link
-                        to="/buckets/$id/{-$path}"
+                        to="/buckets/$id/$"
                         params={{ id: bucket.id }}
                       >
                         {bucket.name}
