@@ -68,7 +68,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.4",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.0",
+    "@vitejs/plugin-react": "^5.1.1",
     "jsdom": "^27.1.0",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.7.1",
