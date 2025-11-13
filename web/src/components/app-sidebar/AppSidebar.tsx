@@ -142,10 +142,7 @@ export const AppSidebar: FC = () => {
                         `/buckets/${bucket.id}`,
                       )}
                     >
-                      <Link
-                        to="/buckets/$id/$"
-                        params={{ id: bucket.id }}
-                      >
+                      <Link to="/buckets/$id/$" params={{ id: bucket.id }}>
                         {bucket.name}
                       </Link>
                     </SidebarMenuSubButton>
