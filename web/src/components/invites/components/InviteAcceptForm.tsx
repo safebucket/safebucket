@@ -1,13 +1,13 @@
+import type { FC } from "react";
 import { useState } from "react";
 
 import { AlertCircle, CheckCircle, Shield } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import type { FC } from "react";
 
 import { api_validateChallenge } from "@/components/invites/helpers/api";
-import { setAuthenticationState as authSetAuthenticationState } from "@/lib/auth-service";
+import { authCookies } from "@/lib/auth-service";
 import { useRefreshSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
@@ -75,7 +75,7 @@ export const InviteAcceptForm: FC<IInviteAcceptFormProps> = ({
       });
 
       // Set authentication state via auth service
-      authSetAuthenticationState(
+      authCookies.setAll(
         response.access_token,
         response.refresh_token,
         "local",

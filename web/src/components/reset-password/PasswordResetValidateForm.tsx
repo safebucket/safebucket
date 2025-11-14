@@ -1,14 +1,14 @@
+import type { FC } from "react";
 import { useState } from "react";
 
 import { AlertCircle, CheckCircle, Shield } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import type { FC } from "react";
 
 import type { IPasswordResetValidateFormData } from "@/components/auth-view/helpers/types.ts";
 import { api_validatePasswordReset } from "@/components/auth-view/helpers/api.ts";
-import { setAuthenticationState as authSetAuthenticationState } from "@/lib/auth-service";
+import { authCookies } from "@/lib/auth-service";
 import { useRefreshSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -69,7 +69,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
       });
 
       // Set authentication state via auth service
-      authSetAuthenticationState(
+      authCookies.setAll(
         response.access_token,
         response.refresh_token,
         "local",

@@ -10,7 +10,6 @@ import type {
 import { getApiUrl } from "@/hooks/useConfig";
 import { api } from "@/lib/api";
 
-// Cookie names as constants
 const COOKIE_ACCESS_TOKEN = "safebucket_access_token";
 const COOKIE_REFRESH_TOKEN = "safebucket_refresh_token";
 const COOKIE_AUTH_PROVIDER = "safebucket_auth_provider";
@@ -163,7 +162,6 @@ export const loginWithCredentials = async (
 
     return { success: true };
   } catch (error) {
-    console.error("Login failed:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Login failed",
@@ -176,16 +174,4 @@ export const loginWithCredentials = async (
  */
 export const logout = (): void => {
   authCookies.clearAll();
-};
-
-/**
- * Manually set authentication state
- * Used by password reset and invite acceptance flows
- */
-export const setAuthenticationState = (
-  accessToken: string,
-  refreshToken: string,
-  provider: string,
-): void => {
-  authCookies.setAll(accessToken, refreshToken, provider);
 };
