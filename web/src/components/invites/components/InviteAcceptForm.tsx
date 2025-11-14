@@ -7,8 +7,8 @@ import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
 import { api_validateChallenge } from "@/components/invites/helpers/api";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { setAuthenticationState as authSetAuthenticationState } from "@/lib/auth-service";
+import { useRefreshSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -41,7 +41,7 @@ export const InviteAcceptForm: FC<IInviteAcceptFormProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { refreshSession } = useSessionContext();
+  const refreshSession = useRefreshSession();
   const [isValidated, setIsValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState("");

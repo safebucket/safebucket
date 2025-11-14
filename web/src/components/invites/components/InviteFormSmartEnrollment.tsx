@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authProvidersQueryOptions } from "@/queries/auth_providers.ts";
 import { ProviderType } from "@/types/auth_providers.ts";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext.ts";
+import { useLogin } from "@/hooks/useAuth";
 import { checkEmailDomain } from "@/components/reset-password/helpers/utils.ts";
 import { AuthProvidersButtons } from "@/components/auth-providers-buttons/AuthProvidersButtons.tsx";
 
@@ -34,7 +34,7 @@ interface ISmartInviteEnrollmentProps {
 export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
   invitationId,
 }) => {
-  const { login } = useSessionContext();
+  const { loginOAuth } = useLogin();
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -55,7 +55,7 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
     setError(null);
     const provider = checkEmailDomain(data.email, providers);
     if (provider) {
-      login(provider.id);
+      loginOAuth(provider.id);
     } else {
       api_createChallenge(invitationId, data.email)
         .then(() => setIsSuccess(true))

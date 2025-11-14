@@ -8,8 +8,8 @@ import type { FC } from "react";
 
 import type { IPasswordResetValidateFormData } from "@/components/auth-view/helpers/types.ts";
 import { api_validatePasswordReset } from "@/components/auth-view/helpers/api.ts";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import { setAuthenticationState as authSetAuthenticationState } from "@/lib/auth-service";
+import { useRefreshSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
@@ -35,7 +35,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { refreshSession } = useSessionContext();
+  const refreshSession = useRefreshSession();
   const [isValidated, setIsValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState("");

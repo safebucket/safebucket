@@ -3,10 +3,9 @@ import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 
+import type { Session } from "@/components/auth-view/types/session";
 import { AppSidebar } from "@/components/app-sidebar/AppSidebar.tsx";
 import { AppSidebarInset } from "@/components/app-sidebar/components/AppSidebarInset.tsx";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext.ts";
-import { LoadingScreen } from "@/components/auth-view/components/LoadingScreen.tsx";
 import { Toaster } from "@/components/ui/toaster.tsx";
 import { EnvironmentType } from "@/types/app.ts";
 import { useConfig } from "@/hooks/useConfig.ts";
@@ -14,6 +13,7 @@ import { configQueryOptions } from "@/queries/config.ts";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
+  session: Session | null;
 }>()({
   loader: ({ context: { queryClient } }) =>
     queryClient.ensureQueryData(configQueryOptions()),
@@ -21,12 +21,8 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootComponent() {
-  const { session, status } = useSessionContext();
+  const { session } = Route.useRouteContext();
   const config = useConfig();
-
-  if (status === "loading") {
-    return <LoadingScreen />;
-  }
 
   return (
     <div className="flex h-svh max-h-svh w-full">

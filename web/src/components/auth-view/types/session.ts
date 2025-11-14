@@ -4,8 +4,6 @@ export type Session = {
   userId: string;
   email: string;
   role: "admin" | "user" | "guest";
-  accessToken: string;
-  refreshToken?: string;
   authProvider: string;
 };
 

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IUser } from "@/components/auth-view/types/session";
 import { api, fetchApi } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { useSession } from "@/hooks/useAuth";
 
 interface UpdateUserPayload {
   first_name?: string;
@@ -17,7 +17,7 @@ export interface UserStats {
 }
 
 export const useCurrentUser = () => {
-  const { session } = useSessionContext();
+  const session = useSession();
 
   return useQuery({
     queryKey: ["users", session?.userId],

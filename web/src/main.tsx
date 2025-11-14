@@ -1,21 +1,21 @@
 import { StrictMode } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import reportWebVitals from "./reportWebVitals.ts";
 import { routeTree } from "./routeTree.gen";
-import { SessionProvider } from "@/components/auth-view/context/SessionProvider.tsx";
 import { ThemeProvider } from "@/components/theme/context/ThemeProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
+import { initializeSession } from "@/lib/auth-manager";
 
 import "./lib/i18n";
 import "./styles.css";
 
 // Create a query client
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
@@ -24,11 +24,16 @@ const queryClient = new QueryClient({
   },
 });
 
-// Create a new router instance
+// Initialize session synchronously from cookies BEFORE router creation
+// This prevents race conditions between route guards and session initialization
+const initialSession = initializeSession();
+
+// Create a new router instance with session in context
 export const router = createRouter({
   routeTree,
   context: {
     queryClient,
+    session: initialSession,
   },
   defaultPreload: "intent",
   scrollRestoration: true,
@@ -51,13 +56,11 @@ if (rootElement && !rootElement.innerHTML) {
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <SessionProvider>
-            <SidebarProvider>
-              <UploadProvider>
-                <RouterProvider router={router} />
-              </UploadProvider>
-            </SidebarProvider>
-          </SessionProvider>
+          <SidebarProvider>
+            <UploadProvider>
+              <RouterProvider router={router} />
+            </UploadProvider>
+          </SidebarProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </StrictMode>,

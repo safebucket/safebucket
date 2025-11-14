@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { IProvider } from "@/types/auth_providers.ts";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext.ts";
+import { useLogin } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button.tsx";
 
 interface IAuthProvidersButtonsProps {
@@ -11,7 +11,7 @@ interface IAuthProvidersButtonsProps {
 export const AuthProvidersButtons: FC<IAuthProvidersButtonsProps> = ({
   providers,
 }) => {
-  const { login } = useSessionContext();
+  const { loginOAuth } = useLogin();
   const { t } = useTranslation();
 
   return (
@@ -22,7 +22,7 @@ export const AuthProvidersButtons: FC<IAuthProvidersButtonsProps> = ({
         <Button
           key={provider.id}
           variant="outline"
-          onClick={() => login(provider.id)}
+          onClick={() => loginOAuth(provider.id)}
         >
           <img
             width={15}

@@ -1,5 +1,4 @@
 import { redirect } from "@tanstack/react-router";
-import { isAuthenticated } from "@/lib/auth-service";
 
 /**
  * Route guard to require authentication
@@ -11,8 +10,15 @@ import { isAuthenticated } from "@/lib/auth-service";
  *   component: ProtectedComponent
  * })
  */
-export function requireAuth({ location }: { location: { href: string } }) {
-  if (!isAuthenticated()) {
+export function requireAuth({
+  location,
+  context,
+}: {
+  location: { href: string };
+  context: { session: any };
+}) {
+  // Check session from router context (single source of truth)
+  if (!context.session) {
     throw redirect({
       to: "/auth/login",
       search: {

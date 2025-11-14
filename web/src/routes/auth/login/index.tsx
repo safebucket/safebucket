@@ -7,9 +7,8 @@ import { LogIn } from "lucide-react";
 import type { FormEvent } from "react";
 import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
 import type { ILoginForm } from "@/components/auth-view/types/session";
-import { loginWithCredentials } from "@/lib/auth-service";
+import { useLogin } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,7 +42,7 @@ function Login() {
   const providersQuery = useSuspenseQuery(authProvidersQueryOptions());
   const providers = providersQuery.data;
 
-  const { login, refreshSession } = useSessionContext();
+  const { loginOAuth, loginLocal } = useLogin();
   const { register, handleSubmit, watch } = useForm<ILoginForm>();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,21 +60,19 @@ function Login() {
 
     const matchingProvider = checkEmailDomain(email, providers);
     if (matchingProvider) {
-      login(matchingProvider.id);
+      loginOAuth(matchingProvider.id);
     } else {
       setShowPassword(true);
     }
   };
 
-  const localLogin: SubmitHandler<ILoginForm> = async (data) => {
+  const handleLocalLogin: SubmitHandler<ILoginForm> = async (data) => {
     setIsLoading(true);
     setError(null);
 
-    const result = await loginWithCredentials(data);
+    const result = await loginLocal(data);
 
     if (result.success) {
-      refreshSession();
-
       // Navigate to redirect or home
       navigate({ to: redirect || "/" });
     } else {
@@ -115,7 +112,7 @@ function Login() {
 
               <form
                 onSubmit={
-                  showPassword ? handleSubmit(localLogin) : handleContinue
+                  showPassword ? handleSubmit(handleLocalLogin) : handleContinue
                 }
               >
                 <div className="grid gap-2">

@@ -1,8 +1,10 @@
 import { getApiUrl } from "@/hooks/useConfig.ts";
 import {
   authCookies,
+  getCurrentSession,
   logout as authLogout,
 } from "@/lib/auth-service";
+import { queryClient } from "@/main";
 
 type RequestOptions = {
   method?: string;
@@ -71,44 +73,71 @@ export async function fetchApi<T>(
   return response.json();
 }
 
+// Token refresh queue - prevents duplicate refresh calls
+// Single-flight pattern: only one refresh at a time
+let refreshPromise: Promise<void> | null = null;
+
 async function refreshToken(): Promise<void> {
-  try {
-    const refreshToken = authCookies.getRefreshToken();
-
-    if (!refreshToken) {
-      logout();
-      return;
-    }
-
-    const body = JSON.stringify({
-      refresh_token: refreshToken,
-    });
-
-    const apiUrl = getApiUrl();
-    const response = await fetch(`${apiUrl}/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body,
-    });
-
-    if (!response.ok) {
-      logout();
-      return;
-    }
-
-    const data = await response.json();
-    const newToken = data.access_token;
-
-    if (newToken) {
-      authCookies.setAccessToken(newToken);
-    } else {
-      logout();
-    }
-  } catch (err) {
-    logout();
+  // If refresh is already in progress, return the existing promise
+  if (refreshPromise) {
+    return refreshPromise;
   }
+
+  refreshPromise = (async () => {
+    try {
+      const refreshToken = authCookies.getRefreshToken();
+
+      if (!refreshToken) {
+        logout();
+        return;
+      }
+
+      const body = JSON.stringify({
+        refresh_token: refreshToken,
+      });
+
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body,
+      });
+
+      if (!response.ok) {
+        logout();
+        return;
+      }
+
+      const data = await response.json();
+      const newToken = data.access_token;
+
+      if (newToken) {
+        authCookies.setAccessToken(newToken);
+
+        // Update router context with refreshed session
+        const session = getCurrentSession();
+        if (window.router) {
+          window.router.update({
+            context: {
+              queryClient,
+              session,
+            },
+          });
+        }
+      } else {
+        logout();
+      }
+    } catch (err) {
+      logout();
+    } finally {
+      // Clear the promise after completion
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 export function logout() {

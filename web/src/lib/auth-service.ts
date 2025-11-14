@@ -38,15 +38,27 @@ export const authCookies = {
   },
 
   setAccessToken: (token: string): void => {
-    Cookies.set(COOKIE_ACCESS_TOKEN, token);
+    Cookies.set(COOKIE_ACCESS_TOKEN, token, {
+      secure: true,
+      sameSite: "strict",
+      path: "/",
+    });
   },
 
   setRefreshToken: (token: string): void => {
-    Cookies.set(COOKIE_REFRESH_TOKEN, token);
+    Cookies.set(COOKIE_REFRESH_TOKEN, token, {
+      secure: true,
+      sameSite: "strict",
+      path: "/",
+    });
   },
 
   setAuthProvider: (provider: string): void => {
-    Cookies.set(COOKIE_AUTH_PROVIDER, provider);
+    Cookies.set(COOKIE_AUTH_PROVIDER, provider, {
+      secure: true,
+      sameSite: "strict",
+      path: "/",
+    });
   },
 
   clearAll: (): void => {
@@ -55,7 +67,11 @@ export const authCookies = {
     Cookies.remove(COOKIE_AUTH_PROVIDER);
   },
 
-  setAll: (accessToken: string, refreshToken: string, provider: string): void => {
+  setAll: (
+    accessToken: string,
+    refreshToken: string,
+    provider: string,
+  ): void => {
     authCookies.setAccessToken(accessToken);
     authCookies.setRefreshToken(refreshToken);
     authCookies.setAuthProvider(provider);
@@ -75,11 +91,16 @@ export interface DecodedToken {
 /**
  * Safely decode JWT token with error handling
  */
+// Token expiry buffer in milliseconds (30 seconds)
+// Tokens are considered expired 30s before actual expiry to prevent race conditions
+const TOKEN_EXPIRY_BUFFER_MS = 30000;
+
 export const decodeToken = (token: string): DecodedToken | null => {
   try {
     const payload = jwtDecode<IJWTPayload>(token);
     const expiresAt = new Date(payload.exp * 1000);
-    const isExpired = Date.now() >= payload.exp * 1000;
+    // Add buffer: consider token expired 30s before actual expiry
+    const isExpired = Date.now() >= payload.exp * 1000 - TOKEN_EXPIRY_BUFFER_MS;
 
     return {
       payload,
@@ -113,10 +134,10 @@ export const isAuthenticated = (): boolean => {
 
 /**
  * Get current session from cookies
+ * Note: Tokens are kept in cookies only for security, not exposed in session object
  */
 export const getCurrentSession = (): Session | null => {
   const accessToken = authCookies.getAccessToken();
-  const refreshToken = authCookies.getRefreshToken();
   const authProvider = authCookies.getAuthProvider();
 
   if (!accessToken || !authProvider) {
@@ -132,8 +153,6 @@ export const getCurrentSession = (): Session | null => {
     userId: decoded.payload.user_id,
     email: decoded.payload.email,
     role: decoded.payload.role,
-    accessToken,
-    refreshToken,
     authProvider,
   };
 };
@@ -159,11 +178,7 @@ export const loginWithCredentials = async (
   try {
     const response = await api.post<ILoginResponse>("/auth/login", credentials);
 
-    authCookies.setAll(
-      response.access_token,
-      response.refresh_token,
-      "local",
-    );
+    authCookies.setAll(response.access_token, response.refresh_token, "local");
 
     return { success: true };
   } catch (error) {
