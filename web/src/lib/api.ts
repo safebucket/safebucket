@@ -83,7 +83,7 @@ async function refreshToken(): Promise<void> {
       const refreshToken = authCookies.getRefreshToken();
 
       if (!refreshToken) {
-        logout();
+        authLogout();
         return;
       }
 
@@ -101,7 +101,7 @@ async function refreshToken(): Promise<void> {
       });
 
       if (!response.ok) {
-        logout();
+        authLogout();
         return;
       }
 
@@ -111,10 +111,10 @@ async function refreshToken(): Promise<void> {
       if (newToken) {
         authCookies.setAccessToken(newToken);
       } else {
-        logout();
+        authLogout();
       }
     } catch (err) {
-      logout();
+      authLogout();
     } finally {
       // Clear the promise after completion
       refreshPromise = null;
@@ -122,11 +122,6 @@ async function refreshToken(): Promise<void> {
   })();
 
   return refreshPromise;
-}
-
-export function logout() {
-  authLogout();
-  window.location.href = "/auth/login";
 }
 
 export const api = {
