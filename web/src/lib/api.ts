@@ -1,10 +1,5 @@
 import { getApiUrl } from "@/hooks/useConfig.ts";
-import {
-  authCookies,
-  getCurrentSession,
-  logout as authLogout,
-} from "@/lib/auth-service";
-import { queryClient } from "@/main";
+import { authCookies, logout as authLogout } from "@/lib/auth-service";
 
 type RequestOptions = {
   method?: string;
@@ -115,17 +110,6 @@ async function refreshToken(): Promise<void> {
 
       if (newToken) {
         authCookies.setAccessToken(newToken);
-
-        // Update router context with refreshed session
-        const session = getCurrentSession();
-        if (window.router) {
-          window.router.update({
-            context: {
-              queryClient,
-              session,
-            },
-          });
-        }
       } else {
         logout();
       }

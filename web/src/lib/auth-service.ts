@@ -114,25 +114,6 @@ export const decodeToken = (token: string): DecodedToken | null => {
 };
 
 /**
- * Check if current session is valid based on stored tokens
- */
-export const isAuthenticated = (): boolean => {
-  const accessToken = authCookies.getAccessToken();
-  const authProvider = authCookies.getAuthProvider();
-
-  if (!accessToken || !authProvider) {
-    return false;
-  }
-
-  const decoded = decodeToken(accessToken);
-  if (!decoded || decoded.isExpired) {
-    return false;
-  }
-
-  return true;
-};
-
-/**
  * Get current session from cookies
  * Note: Tokens are kept in cookies only for security, not exposed in session object
  */
