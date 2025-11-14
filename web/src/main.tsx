@@ -9,10 +9,10 @@ import { routeTree } from "./routeTree.gen";
 import { ThemeProvider } from "@/components/theme/context/ThemeProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
-import { initializeSession } from "@/lib/auth-manager";
 
 import "./lib/i18n";
 import "./styles.css";
+import { getCurrentSession } from "@/lib/auth-service.ts";
 
 // Create a query client
 export const queryClient = new QueryClient({
@@ -24,16 +24,12 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Initialize session synchronously from cookies BEFORE router creation
-// This prevents race conditions between route guards and session initialization
-const initialSession = initializeSession();
-
 // Create a new router instance with session in context
 export const router = createRouter({
   routeTree,
   context: {
     queryClient,
-    session: initialSession,
+    session: getCurrentSession(),
   },
   defaultPreload: "intent",
   scrollRestoration: true,

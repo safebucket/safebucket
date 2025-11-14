@@ -66,10 +66,8 @@ export function useLogout() {
   const { queryClient } = useRouteContext({ from: "__root__" });
 
   return useCallback(() => {
-    // Clear auth state
     authLogout();
 
-    // Update router context
     router.update({
       context: {
         queryClient,
@@ -77,7 +75,6 @@ export function useLogout() {
       },
     });
 
-    // Navigate to login
     router.navigate({ to: "/auth/login", search: { redirect: undefined } });
   }, [router, queryClient]);
 }
