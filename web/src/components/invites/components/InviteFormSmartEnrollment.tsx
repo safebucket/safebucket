@@ -1,10 +1,10 @@
+import type { FC } from "react";
 import { useState } from "react";
 
 import { AlertCircle, CheckCircle, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import type { FC } from "react";
 
 import { api_createChallenge } from "@/components/invites/helpers/api";
 import { Button } from "@/components/ui/button";
@@ -95,23 +95,27 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
           {t("invites.smart_enrollment.description")}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2">
         <AuthProvidersButtons
           providers={providers.filter((p) => p.type === ProviderType.OIDC)}
         />
 
         {providers.find((p) => p.type === ProviderType.LOCAL) && (
           <>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+            {providers.filter((p) => p.type === ProviderType.OIDC).length >
+              0 && (
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-primary-foreground text-muted-foreground px-2">
+                    {t("auth.or_continue_with")}
+                  </span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-primary-foreground text-muted-foreground px-2">
-                  {t("auth.or_continue_with")}
-                </span>
-              </div>
-            </div>
+            )}
+
             <form onSubmit={handleSubmit(handleContinue)} className="space-y-4">
               {error && (
                 <div className="flex items-center space-x-2 rounded-md bg-red-50 p-3 text-red-600">

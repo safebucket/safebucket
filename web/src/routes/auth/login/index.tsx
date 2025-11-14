@@ -1,12 +1,12 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 
+import type { FormEvent } from "react";
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { LogIn } from "lucide-react";
-import type { FormEvent } from "react";
-import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import type { ILoginForm } from "@/components/auth-view/types/session";
 import { useLogin } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -92,23 +92,26 @@ function Login() {
           <CardTitle>{t("auth.sign_in_title")}</CardTitle>
           <CardDescription>{t("auth.sign_in_subtitle")}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2">
           <AuthProvidersButtons
             providers={providers.filter((p) => p.type === ProviderType.OIDC)}
           />
 
           {providers.find((p) => p.type === ProviderType.LOCAL) && (
             <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+              {providers.filter((p) => p.type === ProviderType.OIDC).length >
+                0 && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-primary-foreground text-muted-foreground px-2">
+                      {t("auth.or_continue_with")}
+                    </span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-primary-foreground text-muted-foreground px-2">
-                    {t("auth.or_continue_with")}
-                  </span>
-                </div>
-              </div>
+              )}
 
               <form
                 onSubmit={
