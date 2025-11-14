@@ -14,7 +14,9 @@
     "password": "Password",
     "forgot_password": "Forgot password?",
     "sign_in": "Sign in",
+    "signing_in": "Signing in...",
     "continue": "Continue",
+    "login_error": "Login failed. Please check your credentials and try again.",
     "password_reset": {
       "title": "Reset your password",
       "subtitle": "Enter your email address and we'll send you a verification code to reset your password",
@@ -155,9 +157,9 @@
       "name_label": "Name"
     },
     "header": {
-      "share_file": "Share a file",
+      "upload_file": "Upload a file",
       "upload_and_share": "Upload a file and share it safely",
-      "share": "Share",
+      "upload": "Upload",
       "list_view": "List view",
       "grid_view": "Grid view",
       "activity": "Bucket activity",

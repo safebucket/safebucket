@@ -9,45 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as ActivityIndexRouteImport } from './routes/activity/index'
-import { Route as SettingsProfileIndexRouteImport } from './routes/settings/profile/index'
-import { Route as SettingsPreferencesIndexRouteImport } from './routes/settings/preferences/index'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as InvitesIdIndexRouteImport } from './routes/invites/$id/index'
 import { Route as AuthResetPasswordIndexRouteImport } from './routes/auth/reset-password/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
 import { Route as AuthCompleteIndexRouteImport } from './routes/auth/complete/index'
-import { Route as BucketsIdSplatRouteImport } from './routes/buckets/$id/$'
+import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
+import { Route as AuthenticatedActivityIndexRouteImport } from './routes/_authenticated/activity/index'
 import { Route as AuthResetPasswordIdIndexRouteImport } from './routes/auth/reset-password/$id/index'
+import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
+import { Route as AuthenticatedSettingsPreferencesIndexRouteImport } from './routes/_authenticated/settings/preferences/index'
+import { Route as AuthenticatedBucketsIdSplatRouteImport } from './routes/_authenticated/buckets/$id/$'
 import { Route as InvitesIdChallengesChallengeIdIndexRouteImport } from './routes/invites/$id/challenges/$challengeId/index'
 
-const IndexRoute = IndexRouteImport.update({
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const SettingsIndexRoute = SettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ActivityIndexRoute = ActivityIndexRouteImport.update({
-  id: '/activity/',
-  path: '/activity/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsProfileIndexRoute = SettingsProfileIndexRouteImport.update({
-  id: '/settings/profile/',
-  path: '/settings/profile/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsPreferencesIndexRoute =
-  SettingsPreferencesIndexRouteImport.update({
-    id: '/settings/preferences/',
-    path: '/settings/preferences/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const InvitesIdIndexRoute = InvitesIdIndexRouteImport.update({
   id: '/invites/$id/',
   path: '/invites/$id/',
@@ -68,16 +52,41 @@ const AuthCompleteIndexRoute = AuthCompleteIndexRouteImport.update({
   path: '/auth/complete/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BucketsIdSplatRoute = BucketsIdSplatRouteImport.update({
-  id: '/buckets/$id/$',
-  path: '/buckets/$id/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedSettingsIndexRoute =
+  AuthenticatedSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedActivityIndexRoute =
+  AuthenticatedActivityIndexRouteImport.update({
+    id: '/activity/',
+    path: '/activity/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthResetPasswordIdIndexRoute =
   AuthResetPasswordIdIndexRouteImport.update({
     id: '/auth/reset-password/$id/',
     path: '/auth/reset-password/$id/',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedSettingsProfileIndexRoute =
+  AuthenticatedSettingsProfileIndexRouteImport.update({
+    id: '/settings/profile/',
+    path: '/settings/profile/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSettingsPreferencesIndexRoute =
+  AuthenticatedSettingsPreferencesIndexRouteImport.update({
+    id: '/settings/preferences/',
+    path: '/settings/preferences/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBucketsIdSplatRoute =
+  AuthenticatedBucketsIdSplatRouteImport.update({
+    id: '/buckets/$id/$',
+    path: '/buckets/$id/$',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
 const InvitesIdChallengesChallengeIdIndexRoute =
   InvitesIdChallengesChallengeIdIndexRouteImport.update({
@@ -87,45 +96,46 @@ const InvitesIdChallengesChallengeIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/activity': typeof ActivityIndexRoute
-  '/settings': typeof SettingsIndexRoute
-  '/buckets/$id/$': typeof BucketsIdSplatRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/activity': typeof AuthenticatedActivityIndexRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
-  '/settings/preferences': typeof SettingsPreferencesIndexRoute
-  '/settings/profile': typeof SettingsProfileIndexRoute
+  '/buckets/$id/$': typeof AuthenticatedBucketsIdSplatRoute
+  '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
+  '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/activity': typeof ActivityIndexRoute
-  '/settings': typeof SettingsIndexRoute
-  '/buckets/$id/$': typeof BucketsIdSplatRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/activity': typeof AuthenticatedActivityIndexRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
-  '/settings/preferences': typeof SettingsPreferencesIndexRoute
-  '/settings/profile': typeof SettingsProfileIndexRoute
+  '/buckets/$id/$': typeof AuthenticatedBucketsIdSplatRoute
+  '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
+  '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/activity/': typeof ActivityIndexRoute
-  '/settings/': typeof SettingsIndexRoute
-  '/buckets/$id/$': typeof BucketsIdSplatRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/activity/': typeof AuthenticatedActivityIndexRoute
+  '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/auth/complete/': typeof AuthCompleteIndexRoute
   '/auth/login/': typeof AuthLoginIndexRoute
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
-  '/settings/preferences/': typeof SettingsPreferencesIndexRoute
-  '/settings/profile/': typeof SettingsProfileIndexRoute
+  '/_authenticated/buckets/$id/$': typeof AuthenticatedBucketsIdSplatRoute
+  '/_authenticated/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
+  '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
   '/auth/reset-password/$id/': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId/': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
@@ -135,11 +145,11 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/settings'
-    | '/buckets/$id/$'
     | '/auth/complete'
     | '/auth/login'
     | '/auth/reset-password'
     | '/invites/$id'
+    | '/buckets/$id/$'
     | '/settings/preferences'
     | '/settings/profile'
     | '/auth/reset-password/$id'
@@ -149,82 +159,57 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/settings'
-    | '/buckets/$id/$'
     | '/auth/complete'
     | '/auth/login'
     | '/auth/reset-password'
     | '/invites/$id'
+    | '/buckets/$id/$'
     | '/settings/preferences'
     | '/settings/profile'
     | '/auth/reset-password/$id'
     | '/invites/$id/challenges/$challengeId'
   id:
     | '__root__'
-    | '/'
-    | '/activity/'
-    | '/settings/'
-    | '/buckets/$id/$'
+    | '/_authenticated'
+    | '/_authenticated/'
+    | '/_authenticated/activity/'
+    | '/_authenticated/settings/'
     | '/auth/complete/'
     | '/auth/login/'
     | '/auth/reset-password/'
     | '/invites/$id/'
-    | '/settings/preferences/'
-    | '/settings/profile/'
+    | '/_authenticated/buckets/$id/$'
+    | '/_authenticated/settings/preferences/'
+    | '/_authenticated/settings/profile/'
     | '/auth/reset-password/$id/'
     | '/invites/$id/challenges/$challengeId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ActivityIndexRoute: typeof ActivityIndexRoute
-  SettingsIndexRoute: typeof SettingsIndexRoute
-  BucketsIdSplatRoute: typeof BucketsIdSplatRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthCompleteIndexRoute: typeof AuthCompleteIndexRoute
   AuthLoginIndexRoute: typeof AuthLoginIndexRoute
   AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
   InvitesIdIndexRoute: typeof InvitesIdIndexRoute
-  SettingsPreferencesIndexRoute: typeof SettingsPreferencesIndexRoute
-  SettingsProfileIndexRoute: typeof SettingsProfileIndexRoute
   AuthResetPasswordIdIndexRoute: typeof AuthResetPasswordIdIndexRoute
   InvitesIdChallengesChallengeIdIndexRoute: typeof InvitesIdChallengesChallengeIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/': {
-      id: '/settings/'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/activity/': {
-      id: '/activity/'
-      path: '/activity'
-      fullPath: '/activity'
-      preLoaderRoute: typeof ActivityIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/profile/': {
-      id: '/settings/profile/'
-      path: '/settings/profile'
-      fullPath: '/settings/profile'
-      preLoaderRoute: typeof SettingsProfileIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/preferences/': {
-      id: '/settings/preferences/'
-      path: '/settings/preferences'
-      fullPath: '/settings/preferences'
-      preLoaderRoute: typeof SettingsPreferencesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/invites/$id/': {
       id: '/invites/$id/'
@@ -254,12 +239,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCompleteIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/buckets/$id/$': {
-      id: '/buckets/$id/$'
-      path: '/buckets/$id/$'
-      fullPath: '/buckets/$id/$'
-      preLoaderRoute: typeof BucketsIdSplatRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/settings/': {
+      id: '/_authenticated/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/activity/': {
+      id: '/_authenticated/activity/'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof AuthenticatedActivityIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/auth/reset-password/$id/': {
       id: '/auth/reset-password/$id/'
@@ -267,6 +259,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/reset-password/$id'
       preLoaderRoute: typeof AuthResetPasswordIdIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/settings/profile/': {
+      id: '/_authenticated/settings/profile/'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AuthenticatedSettingsProfileIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings/preferences/': {
+      id: '/_authenticated/settings/preferences/'
+      path: '/settings/preferences'
+      fullPath: '/settings/preferences'
+      preLoaderRoute: typeof AuthenticatedSettingsPreferencesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/buckets/$id/$': {
+      id: '/_authenticated/buckets/$id/$'
+      path: '/buckets/$id/$'
+      fullPath: '/buckets/$id/$'
+      preLoaderRoute: typeof AuthenticatedBucketsIdSplatRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/invites/$id/challenges/$challengeId/': {
       id: '/invites/$id/challenges/$challengeId/'
@@ -278,17 +291,36 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedActivityIndexRoute: typeof AuthenticatedActivityIndexRoute
+  AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
+  AuthenticatedBucketsIdSplatRoute: typeof AuthenticatedBucketsIdSplatRoute
+  AuthenticatedSettingsPreferencesIndexRoute: typeof AuthenticatedSettingsPreferencesIndexRoute
+  AuthenticatedSettingsProfileIndexRoute: typeof AuthenticatedSettingsProfileIndexRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedActivityIndexRoute: AuthenticatedActivityIndexRoute,
+  AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+  AuthenticatedBucketsIdSplatRoute: AuthenticatedBucketsIdSplatRoute,
+  AuthenticatedSettingsPreferencesIndexRoute:
+    AuthenticatedSettingsPreferencesIndexRoute,
+  AuthenticatedSettingsProfileIndexRoute:
+    AuthenticatedSettingsProfileIndexRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  ActivityIndexRoute: ActivityIndexRoute,
-  SettingsIndexRoute: SettingsIndexRoute,
-  BucketsIdSplatRoute: BucketsIdSplatRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthCompleteIndexRoute: AuthCompleteIndexRoute,
   AuthLoginIndexRoute: AuthLoginIndexRoute,
   AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,
   InvitesIdIndexRoute: InvitesIdIndexRoute,
-  SettingsPreferencesIndexRoute: SettingsPreferencesIndexRoute,
-  SettingsProfileIndexRoute: SettingsProfileIndexRoute,
   AuthResetPasswordIdIndexRoute: AuthResetPasswordIdIndexRoute,
   InvitesIdChallengesChallengeIdIndexRoute:
     InvitesIdChallengesChallengeIdIndexRoute,

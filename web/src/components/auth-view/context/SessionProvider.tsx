@@ -1,149 +1,147 @@
-import React, { useEffect, useState } from "react";
+import { useReducer, useEffect, useCallback } from "react";
+import { useNavigate } from "@tanstack/react-router";
 
-import Cookies from "js-cookie";
-import { jwtDecode } from "jwt-decode";
-import { useForm } from "react-hook-form";
-import type { SubmitHandler } from "react-hook-form";
-
-import type {
-  IJWTPayload,
-  ILoginForm,
-  ILoginResponse,
-  Session,
-  Status,
-} from "@/components/auth-view/types/session";
+import type { Session, Status } from "@/components/auth-view/types/session";
 import { SessionContext } from "@/components/auth-view/hooks/useSessionContext";
-import { api } from "@/lib/api";
-import { getApiUrl } from "@/hooks/useConfig.ts";
+import {
+  getCurrentSession,
+  loginWithProvider,
+  logout as authLogout,
+  setAuthenticationState as authSetAuthenticationState,
+} from "@/lib/auth-service";
+
+// ============================================================================
+// State Management with useReducer
+// ============================================================================
+
+interface SessionState {
+  session: Session | null;
+  status: Status;
+}
+
+type SessionAction =
+  | { type: "SET_LOADING" }
+  | { type: "SET_AUTHENTICATED"; payload: Session }
+  | { type: "SET_UNAUTHENTICATED" }
+  | { type: "REFRESH_SESSION" };
+
+const initialState: SessionState = {
+  session: null,
+  status: "loading",
+};
+
+function sessionReducer(
+  state: SessionState,
+  action: SessionAction,
+): SessionState {
+  switch (action.type) {
+    case "SET_LOADING":
+      return {
+        ...state,
+        status: "loading",
+      };
+
+    case "SET_AUTHENTICATED":
+      return {
+        session: action.payload,
+        status: "authenticated",
+      };
+
+    case "SET_UNAUTHENTICATED":
+      return {
+        session: null,
+        status: "unauthenticated",
+      };
+
+    case "REFRESH_SESSION": {
+      const session = getCurrentSession();
+      if (session) {
+        return {
+          session,
+          status: "authenticated",
+        };
+      }
+      return {
+        session: null,
+        status: "unauthenticated",
+      };
+    }
+
+    default:
+      return state;
+  }
+}
+
+// ============================================================================
+// SessionProvider Component
+// ============================================================================
 
 interface SessionProviderProps {
   children: React.ReactNode;
-  navigateToLogin?: () => void;
-  navigateToComplete?: () => void;
 }
 
-export const SessionProvider = ({
-  children,
-  navigateToLogin,
-  navigateToComplete,
-}: SessionProviderProps) => {
-  const [accessToken, setAccessToken] = useState(
-    Cookies.get("safebucket_access_token"),
-  );
-  const [refreshToken, setRefreshToken] = useState(
-    Cookies.get("safebucket_refresh_token"),
-  );
-  const [authProvider, setAuthProvider] = useState(
-    Cookies.get("safebucket_auth_provider"),
-  );
-  const [session, setSession] = useState<Session | null>(null);
-  const [status, setStatus] = useState<Status>("unauthenticated");
+export const SessionProvider = ({ children }: SessionProviderProps) => {
+  const [state, dispatch] = useReducer(sessionReducer, initialState);
+  const navigate = useNavigate();
 
-  const { register, handleSubmit, watch } = useForm<ILoginForm>();
-
+  // Initialize session from cookies on mount
   useEffect(() => {
-    // Don't override status if we're already in loading state (e.g., during logout)
-    if (status !== "loading") {
-      setStatus("loading");
-    }
+    const session = getCurrentSession();
 
-    if (accessToken && authProvider) {
-      const decoded = jwtDecode<IJWTPayload>(accessToken);
-
-      setSession({
-        userId: decoded.user_id,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        authProvider: authProvider,
-      });
-
-      setStatus("authenticated");
+    if (session) {
+      dispatch({ type: "SET_AUTHENTICATED", payload: session });
     } else {
-      setSession(null);
-
-      // Only set to unauthenticated if we're not in the loading state
-      // (loading state is used during logout to show loading screen)
-      if (status !== "loading") {
-        setStatus("unauthenticated");
-      }
-
-      if (
-        !location.pathname.startsWith("/invites/") &&
-        !location.pathname.startsWith("/auth/reset-password") &&
-        !location.pathname.startsWith("/auth/login") &&
-        !location.pathname.startsWith("/auth/")
-      ) {
-        if (navigateToLogin) {
-          navigateToLogin();
-        } else {
-          window.location.href = "/auth/login";
-        }
-      }
+      dispatch({ type: "SET_UNAUTHENTICATED" });
     }
-  }, [navigateToLogin, accessToken, refreshToken, authProvider]);
+  }, []);
 
-  const login = async (provider: string) => {
-    setStatus("loading");
-    const apiUrl = getApiUrl();
-    window.location.href = `${apiUrl}/auth/providers/${provider}/begin`;
-  };
+  // Refresh session when cookies change
+  const refreshSession = useCallback(() => {
+    dispatch({ type: "REFRESH_SESSION" });
+  }, []);
 
-  const localLogin: SubmitHandler<ILoginForm> = async (body) => {
-    setStatus("loading");
-    await api.post<ILoginResponse>("/auth/login", body).then((res) => {
-      Cookies.set("safebucket_access_token", res.access_token);
-      setAccessToken(res.access_token);
-      Cookies.set("safebucket_refresh_token", res.refresh_token);
-      setRefreshToken(res.refresh_token);
-      Cookies.set("safebucket_auth_provider", "local");
-      setAuthProvider("local");
-      if (navigateToComplete) {
-        navigateToComplete();
-      } else {
-        window.location.href = "/auth/complete";
+  // OAuth provider login
+  const login = useCallback((provider: string) => {
+    dispatch({ type: "SET_LOADING" });
+    loginWithProvider(provider);
+  }, []);
+
+  // Logout function
+  const logout = useCallback(() => {
+    dispatch({ type: "SET_LOADING" });
+
+    // Clear cookies and state
+    authLogout();
+    dispatch({ type: "SET_UNAUTHENTICATED" });
+
+    // Navigate to login
+    navigate({ to: "/auth/login", search: { redirect: undefined } });
+  }, [navigate]);
+
+  // Manually set authentication state (for password reset, invite acceptance)
+  const setAuthenticationState = useCallback(
+    (accessToken: string, refreshToken: string, provider: string) => {
+      // Set cookies via auth service
+      authSetAuthenticationState(accessToken, refreshToken, provider);
+
+      // Refresh session from cookies
+      const session = getCurrentSession();
+      if (session) {
+        dispatch({ type: "SET_AUTHENTICATED", payload: session });
       }
-    });
-  };
-
-  const logout = () => {
-    setStatus("loading");
-    setSession(null);
-
-    Cookies.remove("safebucket_access_token");
-    setAccessToken(undefined);
-    Cookies.remove("safebucket_refresh_token");
-    setRefreshToken(undefined);
-    Cookies.remove("safebucket_auth_provider");
-    setAuthProvider(undefined);
-
-    // Delay to show loading state before redirect
-    setTimeout(() => {
-      window.location.href = "/auth/login";
-    }, 1000);
-  };
-
-  const setAuthenticationState = (
-    accessToken: string,
-    refreshToken: string,
-    provider: string,
-  ) => {
-    setAccessToken(accessToken);
-    setRefreshToken(refreshToken);
-    setAuthProvider(provider);
-  };
+    },
+    [],
+  );
 
   return (
     <SessionContext.Provider
       value={{
+        session: state.session,
+        status: state.status,
         login,
-        localLogin,
-        register,
-        handleSubmit,
-        watch,
         logout,
         setAuthenticationState,
-        session,
-        status,
+        refreshSession,
       }}
     >
       {children}

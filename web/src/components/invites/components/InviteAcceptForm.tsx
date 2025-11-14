@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import Cookies from "js-cookie";
 import { AlertCircle, CheckCircle, Shield } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
@@ -9,6 +8,7 @@ import type { FC } from "react";
 
 import { api_validateChallenge } from "@/components/invites/helpers/api";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { setAuthenticationState as authSetAuthenticationState } from "@/lib/auth-service";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -41,7 +41,7 @@ export const InviteAcceptForm: FC<IInviteAcceptFormProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setAuthenticationState } = useSessionContext();
+  const { refreshSession } = useSessionContext();
   const [isValidated, setIsValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -74,19 +74,18 @@ export const InviteAcceptForm: FC<IInviteAcceptFormProps> = ({
         new_password: data.newPassword,
       });
 
-      Cookies.set("safebucket_access_token", response.access_token);
-      Cookies.set("safebucket_refresh_token", response.refresh_token);
-      Cookies.set("safebucket_auth_provider", "local");
+      // Set authentication state via auth service
+      authSetAuthenticationState(
+        response.access_token,
+        response.refresh_token,
+        "local",
+      );
 
       setIsValidated(true);
 
       // Navigate after delay (matches password reset UX)
       setTimeout(() => {
-        setAuthenticationState(
-          response.access_token,
-          response.refresh_token,
-          "local",
-        );
+        refreshSession();
         navigate({ to: "/" });
       }, 2000);
     } catch {

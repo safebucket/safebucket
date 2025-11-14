@@ -48,7 +48,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
           <ButtonGroup>
             <Button onClick={shareFileDialog.trigger}>
               <PlusCircle className="mr-2 h-4 w-4" />
-              {t("bucket.header.share_file")}
+              {t("bucket.header.upload_file")}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -69,11 +69,11 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
 
           <FormDialog
             {...shareFileDialog.props}
-            title={t("bucket.header.share_file")}
+            title={t("bucket.header.upload_file")}
             description={t("bucket.header.upload_and_share")}
             fields={shareFileFields}
             onSubmit={(data) => startUpload(data.files, path, bucket.id)}
-            confirmLabel={t("bucket.header.share")}
+            confirmLabel={t("bucket.header.upload")}
           />
 
           <FormDialog

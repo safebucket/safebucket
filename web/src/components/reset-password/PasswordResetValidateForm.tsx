@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import Cookies from "js-cookie";
 import { AlertCircle, CheckCircle, Shield } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
@@ -10,6 +9,7 @@ import type { FC } from "react";
 import type { IPasswordResetValidateFormData } from "@/components/auth-view/helpers/types.ts";
 import { api_validatePasswordReset } from "@/components/auth-view/helpers/api.ts";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { setAuthenticationState as authSetAuthenticationState } from "@/lib/auth-service";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
@@ -35,7 +35,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { setAuthenticationState } = useSessionContext();
+  const { refreshSession } = useSessionContext();
   const [isValidated, setIsValidated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -68,19 +68,18 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
         new_password: data.newPassword,
       });
 
-      Cookies.set("safebucket_access_token", response.access_token);
-      Cookies.set("safebucket_refresh_token", response.refresh_token);
-      Cookies.set("safebucket_auth_provider", "local");
+      // Set authentication state via auth service
+      authSetAuthenticationState(
+        response.access_token,
+        response.refresh_token,
+        "local",
+      );
 
       setIsValidated(true);
 
       // Navigate to home after a short delay
       setTimeout(() => {
-        setAuthenticationState(
-          response.access_token,
-          response.refresh_token,
-          "local",
-        );
+        refreshSession();
         navigate({ to: "/" });
       }, 2000);
     } catch {

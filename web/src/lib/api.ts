@@ -1,5 +1,8 @@
-import Cookies from "js-cookie";
 import { getApiUrl } from "@/hooks/useConfig.ts";
+import {
+  authCookies,
+  logout as authLogout,
+} from "@/lib/auth-service";
 
 type RequestOptions = {
   method?: string;
@@ -35,7 +38,7 @@ export async function fetchApi<T>(
   const apiUrl = getApiUrl();
   const fullUrl = buildUrlWithParams(`${apiUrl}${url}`, params);
 
-  const token = Cookies.get("safebucket_access_token");
+  const token = authCookies.getAccessToken();
 
   const response = await fetch(fullUrl, {
     method,
@@ -70,8 +73,15 @@ export async function fetchApi<T>(
 
 async function refreshToken(): Promise<void> {
   try {
+    const refreshToken = authCookies.getRefreshToken();
+
+    if (!refreshToken) {
+      logout();
+      return;
+    }
+
     const body = JSON.stringify({
-      refresh_token: Cookies.get("safebucket_refresh_token"),
+      refresh_token: refreshToken,
     });
 
     const apiUrl = getApiUrl();
@@ -85,13 +95,14 @@ async function refreshToken(): Promise<void> {
 
     if (!response.ok) {
       logout();
+      return;
     }
 
     const data = await response.json();
     const newToken = data.access_token;
 
     if (newToken) {
-      Cookies.set("safebucket_access_token", newToken);
+      authCookies.setAccessToken(newToken);
     } else {
       logout();
     }
@@ -101,8 +112,7 @@ async function refreshToken(): Promise<void> {
 }
 
 export function logout() {
-  Cookies.remove("safebucket_access_token");
-  Cookies.remove("safebucket_refresh_token");
+  authLogout();
   window.location.href = "/auth/login";
 }
 

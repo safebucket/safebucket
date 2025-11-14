@@ -1,11 +1,15 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { LogIn } from "lucide-react";
 import type { FormEvent } from "react";
+import { useForm } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
 import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import type { ILoginForm } from "@/components/auth-view/types/session";
+import { loginWithCredentials } from "@/lib/auth-service";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,6 +26,11 @@ import { checkEmailDomain } from "@/components/reset-password/helpers/utils.ts";
 import { AuthProvidersButtons } from "@/components/auth-providers-buttons/AuthProvidersButtons.tsx";
 
 export const Route = createFileRoute("/auth/login/")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      redirect: (search.redirect as string) || undefined,
+    };
+  },
   loader: ({ context: { queryClient } }) =>
     queryClient.ensureQueryData(authProvidersQueryOptions()),
   component: Login,
@@ -29,12 +38,16 @@ export const Route = createFileRoute("/auth/login/")({
 
 function Login() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
   const providersQuery = useSuspenseQuery(authProvidersQueryOptions());
   const providers = providersQuery.data;
 
-  const { register, handleSubmit, localLogin, login, watch } =
-    useSessionContext();
+  const { login, refreshSession } = useSessionContext();
+  const { register, handleSubmit, watch } = useForm<ILoginForm>();
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const emailValue = watch("email") || "";
 
@@ -52,6 +65,24 @@ function Login() {
     } else {
       setShowPassword(true);
     }
+  };
+
+  const localLogin: SubmitHandler<ILoginForm> = async (data) => {
+    setIsLoading(true);
+    setError(null);
+
+    const result = await loginWithCredentials(data);
+
+    if (result.success) {
+      refreshSession();
+
+      // Navigate to redirect or home
+      navigate({ to: redirect || "/" });
+    } else {
+      setError(result.error || t("auth.login_error"));
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -94,6 +125,7 @@ function Login() {
                     type="email"
                     placeholder={t("auth.email_placeholder")}
                     {...register("email", { required: true })}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -114,18 +146,29 @@ function Login() {
                       {...register("password", {
                         required: showPassword,
                       })}
+                      disabled={isLoading}
                     />
                   </div>
+                )}
+
+                {error && (
+                  <div className="text-sm text-red-600 mt-2">{error}</div>
                 )}
 
                 <Button
                   type="submit"
                   className="w-full mt-4"
                   disabled={
-                    !emailValue.trim() || (showPassword && !watch("password"))
+                    isLoading ||
+                    !emailValue.trim() ||
+                    (showPassword && !watch("password"))
                   }
                 >
-                  {showPassword ? t("auth.sign_in") : t("auth.continue")}
+                  {isLoading
+                    ? t("auth.signing_in")
+                    : showPassword
+                      ? t("auth.sign_in")
+                      : t("auth.continue")}
                 </Button>
               </form>
             </>
