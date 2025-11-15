@@ -212,3 +212,51 @@ export const refreshAccessToken = async (): Promise<boolean> => {
 
   return refreshPromise;
 };
+
+/**
+ * Get current session with automatic token refresh if expired
+ * Use this on app initialization to handle expired tokens gracefully
+ */
+export const getCurrentSessionWithRefresh =
+  async (): Promise<Session | null> => {
+    const accessToken = authCookies.getAccessToken();
+    const authProvider = authCookies.getAuthProvider();
+
+    if (!accessToken || !authProvider) {
+      return null;
+    }
+
+    const decoded = decodeToken(accessToken);
+
+    // If token is expired, try to refresh it
+    if (decoded && decoded.isExpired) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        // Get the new token and decode it
+        const newAccessToken = authCookies.getAccessToken();
+        if (newAccessToken) {
+          const newDecoded = decodeToken(newAccessToken);
+          if (newDecoded && !newDecoded.isExpired) {
+            return {
+              userId: newDecoded.payload.user_id,
+              email: newDecoded.payload.email,
+              role: newDecoded.payload.role,
+              authProvider,
+            };
+          }
+        }
+      }
+      return null;
+    }
+
+    if (!decoded) {
+      return null;
+    }
+
+    return {
+      userId: decoded.payload.user_id,
+      email: decoded.payload.email,
+      role: decoded.payload.role,
+      authProvider,
+    };
+  };

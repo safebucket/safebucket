@@ -12,9 +12,8 @@ import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 
 import "./lib/i18n";
 import "./styles.css";
-import { getCurrentSession } from "@/lib/auth-service.ts";
+import { getCurrentSessionWithRefresh } from "@/lib/auth-service.ts";
 
-// Create a query client
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -24,12 +23,11 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Create a new router instance with session in context
 export const router = createRouter({
   routeTree,
   context: {
     queryClient,
-    session: getCurrentSession(),
+    session: null,
   },
   defaultPreload: "intent",
   scrollRestoration: true,
@@ -44,24 +42,40 @@ declare module "@tanstack/react-router" {
   }
 }
 
-// Render the app
-const rootElement = document.getElementById("app");
-if (rootElement && !rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <SidebarProvider>
-            <UploadProvider>
-              <RouterProvider router={router} />
-            </UploadProvider>
-          </SidebarProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </StrictMode>,
-  );
+// Initialize app with session refresh check
+async function initializeApp() {
+  // Try to get session with automatic token refresh
+  const session = await getCurrentSessionWithRefresh();
+
+  // Update router context with refreshed session
+  router.update({
+    context: {
+      queryClient,
+      session,
+    },
+  });
+
+  // Render the app
+  const rootElement = document.getElementById("app");
+  if (rootElement && !rootElement.innerHTML) {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+      <StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <SidebarProvider>
+              <UploadProvider>
+                <RouterProvider router={router} />
+              </UploadProvider>
+            </SidebarProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </StrictMode>,
+    );
+  }
 }
+
+initializeApp();
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
