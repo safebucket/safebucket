@@ -41,7 +41,7 @@ func NewAccessToken(jwtSecret string, user *models.User, provider string) (strin
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{
-				Time: time.Now().Add(time.Minute * 1),
+				Time: time.Now().Add(time.Minute * 60),
 			}, // TODO: make it configurable
 		},
 	}
