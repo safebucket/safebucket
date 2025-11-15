@@ -19,10 +19,6 @@ const COOKIE_AUTH_PROVIDER = "safebucket_auth_provider";
  * All cookie management and auth logic centralized here
  */
 
-// ============================================================================
-// Cookie Management
-// ============================================================================
-
 export const authCookies = {
   getAccessToken: (): string | undefined => {
     return Cookies.get(COOKIE_ACCESS_TOKEN);
@@ -76,10 +72,6 @@ export const authCookies = {
     authCookies.setAuthProvider(provider);
   },
 };
-
-// ============================================================================
-// JWT Token Utilities
-// ============================================================================
 
 export interface DecodedToken {
   payload: IJWTPayload;
@@ -137,21 +129,11 @@ export const getCurrentSession = (): Session | null => {
   };
 };
 
-// ============================================================================
-// Authentication Actions
-// ============================================================================
-
-/**
- * OAuth provider login - redirects to backend OAuth flow
- */
 export const loginWithProvider = (provider: string): void => {
   const apiUrl = getApiUrl();
   window.location.href = `${apiUrl}/auth/providers/${provider}/begin`;
 };
 
-/**
- * Local email/password login
- */
 export const loginWithCredentials = async (
   credentials: ILoginForm,
 ): Promise<{ success: boolean; error?: string }> => {
@@ -169,9 +151,64 @@ export const loginWithCredentials = async (
   }
 };
 
-/**
- * Logout - clears all auth state
- */
 export const logout = (): void => {
   authCookies.clearAll();
+};
+
+// Token refresh queue - prevents duplicate refresh calls
+// Single-flight pattern: only one refresh at a time
+let refreshPromise: Promise<boolean> | null = null;
+
+/**
+ * Refresh the access token using the refresh token
+ * Returns true if refresh succeeded, false otherwise
+ * Uses single-flight pattern to prevent duplicate refresh calls
+ */
+export const refreshAccessToken = async (): Promise<boolean> => {
+  // If refresh is already in progress, return the existing promise
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const refreshToken = authCookies.getRefreshToken();
+
+      if (!refreshToken) {
+        return false;
+      }
+
+      const apiUrl = getApiUrl();
+      const response = await fetch(`${apiUrl}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          refresh_token: refreshToken,
+        }),
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = await response.json();
+      const newToken = data.access_token;
+
+      if (newToken) {
+        authCookies.setAccessToken(newToken);
+        return true;
+      }
+
+      return false;
+    } catch (err) {
+      return false;
+    } finally {
+      // Clear the promise after completion
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 };

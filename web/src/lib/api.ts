@@ -1,5 +1,9 @@
 import { getApiUrl } from "@/hooks/useConfig.ts";
-import { authCookies, logout as authLogout } from "@/lib/auth-service";
+import {
+  authCookies,
+  logout as authLogout,
+  refreshAccessToken,
+} from "@/lib/auth-service";
 
 type RequestOptions = {
   method?: string;
@@ -49,8 +53,12 @@ export async function fetchApi<T>(
   });
 
   if (response.status === 403 && retry) {
-    await refreshToken();
-    return fetchApi<T>(url, options, false);
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return fetchApi<T>(url, options, false);
+    } else {
+      authLogout();
+    }
   }
 
   if (!response.ok) {
@@ -66,62 +74,6 @@ export async function fetchApi<T>(
   }
 
   return response.json();
-}
-
-// Token refresh queue - prevents duplicate refresh calls
-// Single-flight pattern: only one refresh at a time
-let refreshPromise: Promise<void> | null = null;
-
-async function refreshToken(): Promise<void> {
-  // If refresh is already in progress, return the existing promise
-  if (refreshPromise) {
-    return refreshPromise;
-  }
-
-  refreshPromise = (async () => {
-    try {
-      const refreshToken = authCookies.getRefreshToken();
-
-      if (!refreshToken) {
-        authLogout();
-        return;
-      }
-
-      const body = JSON.stringify({
-        refresh_token: refreshToken,
-      });
-
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/auth/refresh`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body,
-      });
-
-      if (!response.ok) {
-        authLogout();
-        return;
-      }
-
-      const data = await response.json();
-      const newToken = data.access_token;
-
-      if (newToken) {
-        authCookies.setAccessToken(newToken);
-      } else {
-        authLogout();
-      }
-    } catch (err) {
-      authLogout();
-    } finally {
-      // Clear the promise after completion
-      refreshPromise = null;
-    }
-  })();
-
-  return refreshPromise;
 }
 
 export const api = {
