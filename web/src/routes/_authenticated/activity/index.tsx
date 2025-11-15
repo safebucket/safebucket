@@ -4,13 +4,13 @@ import { useTranslation } from "react-i18next";
 import { bucketsActivityQueryOptions } from "@/queries/bucket.ts";
 
 import { ActivityView } from "@/components/activity-view/ActivityView";
-import { ActivityViewSkeleton } from "@/components/activity-view/components/ActivityViewSkeleton.tsx";
+import { ActivityPageSkeleton } from "@/components/activity-view/components/ActivityPageSkeleton.tsx";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const Route = createFileRoute("/_authenticated/activity/")({
   loader: ({ context: { queryClient } }) =>
     queryClient.ensureQueryData(bucketsActivityQueryOptions()),
-  pendingComponent: ActivityViewSkeleton,
+  pendingComponent: ActivityPageSkeleton,
   component: ActivityPage,
 });
 
