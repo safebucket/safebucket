@@ -7,7 +7,7 @@ import type { FC } from "react";
 
 import type { IMembers } from "@/components/bucket-view/helpers/types";
 import { nav } from "@/components/app-sidebar/helpers/nav";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { useLogout } from "@/hooks/useAuth";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
@@ -43,7 +43,7 @@ import { AddMembersCard } from "@/components/app-sidebar/components/AddMembersCa
 export const AppSidebar: FC = () => {
   const location = useLocation();
   const { t } = useTranslation();
-  const { logout } = useSessionContext();
+  const logout = useLogout();
   const { data: user } = useCurrentUser();
   const createBucketDialog = useDialog();
   const { buckets, createBucketMutation } = useBucketsData();

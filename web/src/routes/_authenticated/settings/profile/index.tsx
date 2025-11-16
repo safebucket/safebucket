@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ProfileForm } from "@/components/settings-view/components/ProfileForm";
 import { useCurrentUser } from "@/queries/user";
 
-export const Route = createFileRoute("/settings/profile/")({
+export const Route = createFileRoute("/_authenticated/settings/profile/")({
   component: Profile,
 });
 

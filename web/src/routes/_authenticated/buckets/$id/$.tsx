@@ -7,7 +7,7 @@ import { BucketView } from "@/components/bucket-view/BucketView";
 import { BucketViewProvider } from "@/components/bucket-view/context/BucketViewProvider";
 import { FileType } from "@/types/file.ts";
 
-export const Route = createFileRoute("/buckets/$id/$")({
+export const Route = createFileRoute("/_authenticated/buckets/$id/$")({
   loader: ({ context: { queryClient }, params: { id } }) =>
     queryClient.ensureQueryData(bucketDataQueryOptions(id)),
   component: BucketComponent,

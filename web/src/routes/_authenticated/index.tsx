@@ -17,7 +17,7 @@ import { ActivityItem } from "@/components/activity-view/components/ActivityItem
 import { ActivityViewSkeleton } from "@/components/activity-view/components/ActivityViewSkeleton.tsx";
 import { useCurrentUser, useUserStatsQuery } from "@/queries/user";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   component: Homepage,
 });
 

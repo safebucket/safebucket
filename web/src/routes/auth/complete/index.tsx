@@ -2,22 +2,33 @@ import { useEffect } from "react";
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import { useRefreshSession, useSession } from "@/hooks/useAuth";
 import { LoadingView } from "@/components/common/components/LoadingView.tsx";
 
 export const Route = createFileRoute("/auth/complete/")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      redirect: (search.redirect as string) || undefined,
+    };
+  },
   component: CompleteAuthComponent,
 });
 
 function CompleteAuthComponent() {
   const navigate = useNavigate();
-  const { status } = useSessionContext();
+  const { redirect } = Route.useSearch();
+  const refreshSession = useRefreshSession();
+  const session = useSession();
 
   useEffect(() => {
-    if (status == "authenticated") {
-      navigate({ to: "/", replace: true });
+    // Refresh session to pick up new cookies set by OAuth
+    refreshSession();
+
+    // Navigate immediately if session exists
+    if (session) {
+      navigate({ to: redirect || "/", replace: true });
     }
-  }, [status]);
+  }, [session, redirect, navigate, refreshSession]);
 
   return <LoadingView />;
 }

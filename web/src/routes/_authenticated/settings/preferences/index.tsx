@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { PreferencesTab } from "@/components/settings-view/components/PreferencesTab";
 
-export const Route = createFileRoute("/settings/preferences/")({
+export const Route = createFileRoute("/_authenticated/settings/preferences/")({
   component: Preferences,
 });
 

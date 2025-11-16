@@ -1,16 +1,9 @@
-import type {
-  SubmitHandler,
-  UseFormHandleSubmit,
-  UseFormRegister,
-  UseFormWatch,
-} from "react-hook-form";
-
 export type Status = "authenticated" | "loading" | "unauthenticated";
 
 export type Session = {
   userId: string;
-  accessToken: string;
-  refreshToken?: string;
+  email: string;
+  role: "admin" | "user" | "guest";
   authProvider: string;
 };
 
@@ -21,6 +14,7 @@ export interface IJWTPayload {
   iat: number;
   iss: string;
   user_id: string;
+  role: "admin" | "user" | "guest";
 }
 
 export interface IUser {
@@ -35,11 +29,6 @@ export interface IUser {
 }
 
 export interface ISessionContext {
-  register: UseFormRegister<ILoginForm>;
-  localLogin: SubmitHandler<ILoginForm>;
-  handleSubmit: UseFormHandleSubmit<ILoginForm>;
-  watch: UseFormWatch<ILoginForm>;
-
   login: (provider: string) => void;
   logout: () => void;
   setAuthenticationState: (
@@ -47,9 +36,10 @@ export interface ISessionContext {
     refreshToken: string,
     provider: string,
   ) => void;
+  refreshSession: () => void;
 
   session: Session | null;
-  status: string;
+  status: Status;
 }
 
 export interface ILoginForm {

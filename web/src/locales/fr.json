@@ -14,7 +14,9 @@
     "password": "Mot de passe",
     "forgot_password": "Mot de passe oublié ?",
     "sign_in": "Se connecter",
+    "signing_in": "Connexion en cours...",
     "continue": "Continuer",
+    "login_error": "La connexion a échoué. Veuillez vérifier vos identifiants et réessayer.",
     "password_reset": {
       "title": "Réinitialiser votre mot de passe",
       "subtitle": "Saisissez votre adresse e-mail et nous vous enverrons un code de vérification pour réinitialiser votre mot de passe",
@@ -155,12 +157,13 @@
       "name_label": "Nom"
     },
     "header": {
-      "share_file": "Partager un fichier",
-      "upload_and_share": "Téléchargez un fichier et partagez-le en toute sécurité",
-      "share": "Partager",
+      "upload_file": "Uploader un fichier",
+      "upload_and_share": "Uploadez un fichier et partagez-le en toute sécurité",
+      "upload": "Uploader",
       "list_view": "Vue liste",
       "grid_view": "Vue grille",
       "activity": "Activité du bucket",
+      "trash": "Corbeille",
       "settings": "Paramètres"
     },
     "list_view": {

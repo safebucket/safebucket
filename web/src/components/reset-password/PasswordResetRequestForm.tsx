@@ -58,7 +58,7 @@ export const PasswordResetRequestForm: FC = () => {
             <p className="text-muted-foreground text-center text-sm">
               {t("auth.password_reset.success_description")}
             </p>
-            <Link to="/auth/login">
+            <Link to="/auth/login" search={{ redirect: undefined }}>
               <Button variant="outline" className="w-full">
                 {t("auth.password_reset.back_to_login")}
               </Button>
@@ -116,6 +116,7 @@ export const PasswordResetRequestForm: FC = () => {
           <div className="text-center">
             <Link
               to="/auth/login"
+              search={{ redirect: undefined }}
               className="text-muted-foreground hover:text-primary text-sm underline"
             >
               {t("auth.password_reset.back_to_login")}

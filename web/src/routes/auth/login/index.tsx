@@ -1,11 +1,14 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 
+import type { FormEvent } from "react";
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { LogIn } from "lucide-react";
-import type { FormEvent } from "react";
-import { useSessionContext } from "@/components/auth-view/hooks/useSessionContext";
+import type { SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import type { ILoginForm } from "@/components/auth-view/types/session";
+import { useLogin } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,6 +25,11 @@ import { checkEmailDomain } from "@/components/reset-password/helpers/utils.ts";
 import { AuthProvidersButtons } from "@/components/auth-providers-buttons/AuthProvidersButtons.tsx";
 
 export const Route = createFileRoute("/auth/login/")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      redirect: (search.redirect as string) || undefined,
+    };
+  },
   loader: ({ context: { queryClient } }) =>
     queryClient.ensureQueryData(authProvidersQueryOptions()),
   component: Login,
@@ -29,12 +37,16 @@ export const Route = createFileRoute("/auth/login/")({
 
 function Login() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
   const providersQuery = useSuspenseQuery(authProvidersQueryOptions());
   const providers = providersQuery.data;
 
-  const { register, handleSubmit, localLogin, login, watch } =
-    useSessionContext();
+  const { loginOAuth, loginLocal } = useLogin();
+  const { register, handleSubmit, watch } = useForm<ILoginForm>();
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const emailValue = watch("email") || "";
 
@@ -48,10 +60,26 @@ function Login() {
 
     const matchingProvider = checkEmailDomain(email, providers);
     if (matchingProvider) {
-      login(matchingProvider.id);
+      loginOAuth(matchingProvider.id);
     } else {
       setShowPassword(true);
     }
+  };
+
+  const handleLocalLogin: SubmitHandler<ILoginForm> = async (data) => {
+    setIsLoading(true);
+    setError(null);
+
+    const result = await loginLocal(data);
+
+    if (result.success) {
+      // Navigate to redirect or home
+      navigate({ to: redirect || "/" });
+    } else {
+      setError(result.error || t("auth.login_error"));
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -64,27 +92,30 @@ function Login() {
           <CardTitle>{t("auth.sign_in_title")}</CardTitle>
           <CardDescription>{t("auth.sign_in_subtitle")}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2">
           <AuthProvidersButtons
             providers={providers.filter((p) => p.type === ProviderType.OIDC)}
           />
 
           {providers.find((p) => p.type === ProviderType.LOCAL) && (
             <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+              {providers.filter((p) => p.type === ProviderType.OIDC).length >
+                0 && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-primary-foreground text-muted-foreground px-2">
+                      {t("auth.or_continue_with")}
+                    </span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-primary-foreground text-muted-foreground px-2">
-                    {t("auth.or_continue_with")}
-                  </span>
-                </div>
-              </div>
+              )}
 
               <form
                 onSubmit={
-                  showPassword ? handleSubmit(localLogin) : handleContinue
+                  showPassword ? handleSubmit(handleLocalLogin) : handleContinue
                 }
               >
                 <div className="grid gap-2">
@@ -94,6 +125,7 @@ function Login() {
                     type="email"
                     placeholder={t("auth.email_placeholder")}
                     {...register("email", { required: true })}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -114,18 +146,29 @@ function Login() {
                       {...register("password", {
                         required: showPassword,
                       })}
+                      disabled={isLoading}
                     />
                   </div>
+                )}
+
+                {error && (
+                  <div className="text-sm text-red-600 mt-2">{error}</div>
                 )}
 
                 <Button
                   type="submit"
                   className="w-full mt-4"
                   disabled={
-                    !emailValue.trim() || (showPassword && !watch("password"))
+                    isLoading ||
+                    !emailValue.trim() ||
+                    (showPassword && !watch("password"))
                   }
                 >
-                  {showPassword ? t("auth.sign_in") : t("auth.continue")}
+                  {isLoading
+                    ? t("auth.signing_in")
+                    : showPassword
+                      ? t("auth.sign_in")
+                      : t("auth.continue")}
                 </Button>
               </form>
             </>
