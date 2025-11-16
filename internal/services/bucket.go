@@ -624,7 +624,7 @@ func (s BucketService) RestoreFile(
 		parentName := path.Base(file.Path)
 
 		var parentFolder models.File
-		result := s.DB.Where(
+		parentResult := s.DB.Where(
 			"bucket_id = ? AND path = ? AND name = ? AND type = ? AND status = ?",
 			bucketID,
 			parentPath,
@@ -633,7 +633,7 @@ func (s BucketService) RestoreFile(
 			models.FileStatusTrashed,
 		).First(&parentFolder)
 
-		if result.Error == nil {
+		if parentResult.Error == nil {
 			shouldUnmark = false
 			logger.Debug("Skipping unmark for child of trashed folder",
 				zap.String("file_id", fileID.String()),

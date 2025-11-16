@@ -155,7 +155,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 
 			for _, child := range childFiles {
 				var existingFile models.File
-				conflictResult := tx.Where(
+				childConflictResult := tx.Where(
 					"bucket_id = ? AND name = ? AND path = ? AND status IS NOT NULL AND status != ? AND status != ?",
 					e.Payload.BucketID,
 					child.Name,
@@ -164,7 +164,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 					models.FileStatusRestoring,
 				).First(&existingFile)
 
-				if conflictResult.RowsAffected > 0 {
+				if childConflictResult.RowsAffected > 0 {
 					zap.L().Error("Child file name conflict detected, aborting restore",
 						zap.String("file_name", child.Name),
 						zap.String("path", child.Path),
@@ -198,10 +198,10 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	}
 
 	objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
-	if err := params.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
+	if unmarkErr := params.Storage.UnmarkFileAsTrashed(objectPath); unmarkErr != nil {
 		zap.L().
 			Error("Failed to unmark folder as trashed",
-				zap.Error(err),
+				zap.Error(unmarkErr),
 				zap.String("path", objectPath),
 				zap.String("folder_id", e.Payload.FolderID.String()))
 		revertUpdates := map[string]interface{}{
@@ -214,7 +214,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				zap.Error(revertErr),
 				zap.String("folder_id", e.Payload.FolderID.String()))
 		}
-		return err
+		return unmarkErr
 	}
 
 	var remainingCount int64
