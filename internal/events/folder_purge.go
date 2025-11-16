@@ -91,13 +91,13 @@ func (e *FolderPurge) callback(params *EventParams) error {
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		folderPath := path.Join(folder.Path, folder.Name)
-		// Add "/" to ensure we only match direct children, not folders with similar names
 		dbPath := fmt.Sprintf("%s/%%", folderPath)
 
 		var childFiles []models.File
 		batchResult := tx.Where(
-			"bucket_id = ? AND path LIKE ?",
+			"bucket_id = ? AND (path = ? OR path LIKE ?)",
 			e.Payload.BucketID,
+			folderPath,
 			dbPath,
 		).Limit(c.BulkActionsLimit).Find(&childFiles)
 
@@ -147,10 +147,12 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	}
 
 	var remainingCount int64
+	folderPathForCount := path.Join(folder.Path, folder.Name)
 	params.DB.Model(&models.File{}).Where(
-		"bucket_id = ? AND path LIKE ?",
+		"bucket_id = ? AND (path = ? OR path LIKE ?)",
 		e.Payload.BucketID,
-		fmt.Sprintf("%s/%%", path.Join(folder.Path, folder.Name)),
+		folderPathForCount,
+		fmt.Sprintf("%s/%%", folderPathForCount),
 	).Count(&remainingCount)
 
 	if remainingCount > 0 {
@@ -160,6 +162,13 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	}
 
 	objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
+
+	if err = params.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
+		zap.L().Warn("Failed to delete trash marker",
+			zap.Error(err),
+			zap.String("path", objectPath))
+	}
+
 	if err = params.Storage.RemoveObject(objectPath); err != nil {
 		zap.L().Warn("Failed to delete folder from storage",
 			zap.Error(err),

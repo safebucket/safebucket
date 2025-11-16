@@ -61,6 +61,25 @@ const createColumns = (
     ),
   },
   {
+    accessorKey: "path",
+    header: ({column}) => (
+        <DataTableColumnHeader
+            column={column}
+            title={t("bucket.trash_view.original_location")}
+        />
+    ),
+    cell: ({row}) => {
+      const path = row.getValue("path") as string;
+      const name = row.original.name;
+      const fullPath = path === "/" ? `/${name}` : `${path}/${name}`;
+      return (
+          <span className="text-muted-foreground text-sm">
+          {fullPath}
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: "size",
     header: ({ column }) => (
       <DataTableColumnHeader

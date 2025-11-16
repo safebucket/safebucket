@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"path/filepath"
 	"time"
@@ -196,14 +197,13 @@ func (s BucketService) GetBucket(
 	}
 
 	var files []models.File
-	// Filter out expired files that haven't been uploaded yet (only applies to files, not folders)
-	// Also exclude trashed items from normal bucket view
 	expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 	result = s.DB.Where(
-		"bucket_id = ? AND (status IS NULL OR status != ?) AND (type = 'folder' OR status = ? OR (status = ? AND created_at > ?))",
+		"bucket_id = ? AND (status IS NULL OR status != ?) AND (type = 'folder' OR status = ? OR status = ? OR (status = ? AND created_at > ?))",
 		bucketID,
 		models.FileStatusTrashed,
 		models.FileStatusUploaded,
+		models.FileStatusRestoring,
 		models.FileStatusUploading,
 		expirationTime,
 	).Find(&files)
@@ -583,7 +583,7 @@ func (s BucketService) RestoreFile(
 		return errors.NewAPIError(409, "FILE_NAME_CONFLICT")
 	}
 
-	return s.DB.Transaction(func(tx *gorm.DB) error {
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		updates := map[string]interface{}{
 			"status":     models.FileStatusUploaded,
 			"trashed_at": nil,
@@ -593,17 +593,6 @@ func (s BucketService) RestoreFile(
 		if err = tx.Model(&file).Updates(updates).Error; err != nil {
 			logger.Error("Failed to restore file status", zap.Error(err))
 			return errors.NewAPIError(500, "UPDATE_FAILED")
-		}
-
-		objectPath := path.Join("buckets", bucketID.String(), file.Path, file.Name)
-		if err = s.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
-			logger.Error(
-				"Failed to unmark file as trashed - rolling back transaction",
-				zap.Error(err),
-				zap.String("path", objectPath),
-				zap.String("file_id", fileID.String()),
-			)
-			return err
 		}
 
 		action := models.Activity{
@@ -623,6 +612,60 @@ func (s BucketService) RestoreFile(
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	objectPath := path.Join("buckets", bucketID.String(), file.Path, file.Name)
+
+	shouldUnmark := true
+	if file.Path != "/" {
+		parentPath := path.Dir(file.Path)
+		parentName := path.Base(file.Path)
+
+		var parentFolder models.File
+		result := s.DB.Where(
+			"bucket_id = ? AND path = ? AND name = ? AND type = ? AND status = ?",
+			bucketID,
+			parentPath,
+			parentName,
+			models.FileTypeFolder,
+			models.FileStatusTrashed,
+		).First(&parentFolder)
+
+		if result.Error == nil {
+			shouldUnmark = false
+			logger.Debug("Skipping unmark for child of trashed folder",
+				zap.String("file_id", fileID.String()),
+				zap.String("parent_folder", parentName),
+			)
+		}
+	}
+
+	if shouldUnmark {
+		if err = s.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
+			logger.Error(
+				"Failed to unmark file as trashed - reverting status",
+				zap.Error(err),
+				zap.String("path", objectPath),
+				zap.String("file_id", fileID.String()),
+			)
+			revertUpdates := map[string]interface{}{
+				"status":     models.FileStatusTrashed,
+				"trashed_at": file.TrashedAt,
+				"trashed_by": file.TrashedBy,
+			}
+			if revertErr := s.DB.Model(&file).Updates(revertUpdates).Error; revertErr != nil {
+				logger.Error("Failed to revert file status after storage error",
+					zap.Error(revertErr),
+					zap.String("file_id", fileID.String()),
+				)
+			}
+			return errors.NewAPIError(500, "STORAGE_OPERATION_FAILED")
+		}
+	}
+
+	return nil
 }
 
 // ListTrashedFiles returns all trashed files for a bucket within 7-day window.
@@ -675,20 +718,18 @@ func (s BucketService) PurgeFile(logger *zap.Logger, user models.UserClaims, ids
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		objectPath := path.Join("buckets", bucketID.String(), file.Path, file.Name)
 
-		// Delete the trash marker first
 		if err = s.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
-			logger.Warn("Failed to delete trash marker",
+			logger.Error("Failed to delete trash marker",
 				zap.Error(err),
 				zap.String("path", objectPath))
-			// Continue - marker might have been already deleted by lifecycle policy
+			return fmt.Errorf("failed to delete trash marker: %w", err)
 		}
 
-		// Delete the original file from storage
 		if err = s.Storage.RemoveObject(objectPath); err != nil {
-			logger.Warn("Failed to delete file from storage",
+			logger.Error("Failed to delete file from storage",
 				zap.Error(err),
 				zap.String("path", objectPath))
-			// Continue to database deletion even if storage fails
+			return fmt.Errorf("failed to delete file from storage: %w", err)
 		}
 
 		// Soft delete from database (allows activity enrichment to still find the record)

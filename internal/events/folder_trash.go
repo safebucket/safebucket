@@ -115,8 +115,9 @@ func (e *FolderTrash) callback(params *EventParams) error {
 
 		var childFiles []models.File
 		batchResult := tx.Where(
-			"bucket_id = ? AND path LIKE ? AND status != ?",
+			"bucket_id = ? AND (path = ? OR path LIKE ?) AND status != ?",
 			e.Payload.BucketID,
+			folderPath,
 			dbPath,
 			models.FileStatusTrashed,
 		).Limit(c.BulkActionsLimit).Find(&childFiles)
@@ -161,10 +162,12 @@ func (e *FolderTrash) callback(params *EventParams) error {
 	}
 
 	var remainingCount int64
+	folderPathForCount := path.Join(folder.Path, folder.Name)
 	params.DB.Model(&models.File{}).Where(
-		"bucket_id = ? AND path LIKE ? AND status != ?",
+		"bucket_id = ? AND (path = ? OR path LIKE ?) AND status != ?",
 		e.Payload.BucketID,
-		fmt.Sprintf("%s/%%", path.Join(folder.Path, folder.Name)),
+		folderPathForCount,
+		fmt.Sprintf("%s/%%", folderPathForCount),
 		models.FileStatusTrashed,
 	).Count(&remainingCount)
 

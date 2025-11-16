@@ -130,23 +130,14 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			return err
 		}
 
-		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
-		if err := params.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
-			zap.L().
-				Error("Failed to unmark folder as trashed - rolling back transaction",
-					zap.Error(err),
-					zap.String("path", objectPath),
-					zap.String("folder_id", e.Payload.FolderID.String()))
-			return err
-		}
-
 		folderPath := path.Join(folder.Path, folder.Name)
 		dbPath := fmt.Sprintf("%s/%%", folderPath)
 
 		var childFiles []models.File
 		batchResult := tx.Where(
-			"bucket_id = ? AND path LIKE ? AND status = ? AND trashed_at = ?",
+			"bucket_id = ? AND (path = ? OR path LIKE ?) AND status = ? AND trashed_at = ?",
 			e.Payload.BucketID,
+			folderPath,
 			dbPath,
 			models.FileStatusTrashed,
 			folder.TrashedAt,
@@ -162,6 +153,28 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				zap.String("folder", folder.Name),
 				zap.Int("child_count", len(childFiles)))
 
+			for _, child := range childFiles {
+				var existingFile models.File
+				conflictResult := tx.Where(
+					"bucket_id = ? AND name = ? AND path = ? AND status IS NOT NULL AND status != ? AND status != ?",
+					e.Payload.BucketID,
+					child.Name,
+					child.Path,
+					models.FileStatusTrashed,
+					models.FileStatusRestoring,
+				).First(&existingFile)
+
+				if conflictResult.RowsAffected > 0 {
+					zap.L().Error("Child file name conflict detected, aborting restore",
+						zap.String("file_name", child.Name),
+						zap.String("path", child.Path),
+						zap.String("conflicting_file_id", existingFile.ID.String()))
+
+					tx.Model(&folder).Update("status", models.FileStatusTrashed)
+					return errors.New("child file name conflict")
+				}
+			}
+
 			var fileIDs []uuid.UUID
 			for _, child := range childFiles {
 				fileIDs = append(fileIDs, child.ID)
@@ -174,7 +187,6 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				return err
 			}
 
-			// Note: We only unmark the folder itself from storage, not individual child files. .
 			zap.L().Debug("Child files restored in database only",
 				zap.Int("child_count", len(childFiles)))
 		}
@@ -185,11 +197,33 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		return err
 	}
 
+	objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
+	if err := params.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
+		zap.L().
+			Error("Failed to unmark folder as trashed",
+				zap.Error(err),
+				zap.String("path", objectPath),
+				zap.String("folder_id", e.Payload.FolderID.String()))
+		revertUpdates := map[string]interface{}{
+			"status":     models.FileStatusTrashed,
+			"trashed_at": folder.TrashedAt,
+			"trashed_by": folder.TrashedBy,
+		}
+		if revertErr := params.DB.Model(&folder).Updates(revertUpdates).Error; revertErr != nil {
+			zap.L().Error("Failed to revert folder status after storage error",
+				zap.Error(revertErr),
+				zap.String("folder_id", e.Payload.FolderID.String()))
+		}
+		return err
+	}
+
 	var remainingCount int64
+	folderPathForCount := path.Join(folder.Path, folder.Name)
 	params.DB.Model(&models.File{}).Where(
-		"bucket_id = ? AND path LIKE ? AND status = ? AND trashed_at = ?",
+		"bucket_id = ? AND (path = ? OR path LIKE ?) AND status = ? AND trashed_at = ?",
 		e.Payload.BucketID,
-		fmt.Sprintf("%s/%%", path.Join(folder.Path, folder.Name)),
+		folderPathForCount,
+		fmt.Sprintf("%s/%%", folderPathForCount),
 		models.FileStatusTrashed,
 		folder.TrashedAt,
 	).Count(&remainingCount)

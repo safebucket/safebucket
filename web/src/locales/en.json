@@ -189,6 +189,7 @@
     },
     "trash_view": {
       "name": "Name",
+      "original_location": "Original Location",
       "size": "Size",
       "deleted_at": "Deleted At",
       "deleted_by": "Deleted By",

@@ -116,21 +116,30 @@ func (e *TrashExpiration) parseObjectPath(params *EventParams) parsedPathInfo {
 func (e *TrashExpiration) findTrashedFile(params *EventParams, pathInfo parsedPathInfo) (*models.File, error) {
 	var file models.File
 	result := params.DB.Where(
-		"bucket_id = ? AND path = ? AND name = ? AND status = ?",
+		"bucket_id = ? AND path = ? AND name = ?",
 		e.Payload.BucketID,
 		pathInfo.directory,
 		pathInfo.filename,
-		models.FileStatusTrashed,
 	).First(&file)
 
 	if result.Error != nil {
-		zap.L().Warn("File not found in trash, skipping cleanup",
+		zap.L().Warn("File not found, skipping cleanup",
 			zap.String("bucket_id", e.Payload.BucketID.String()),
 			zap.String("path", pathInfo.directory),
 			zap.String("name", pathInfo.filename),
 			zap.Error(result.Error),
 		)
 		return nil, result.Error
+	}
+
+	if file.Status != models.FileStatusTrashed {
+		zap.L().Info("File is not in trash (likely restored), skipping expiration",
+			zap.String("bucket_id", e.Payload.BucketID.String()),
+			zap.String("file_id", file.ID.String()),
+			zap.String("file_name", file.Name),
+			zap.String("current_status", string(file.Status)),
+		)
+		return nil, fmt.Errorf("file not in trash, status: %s", file.Status)
 	}
 
 	return &file, nil
@@ -146,12 +155,12 @@ func (e *TrashExpiration) handleFolderDeletion(params *EventParams, file *models
 	dbPath := fmt.Sprintf("%s/%%", folderPath)
 	var childFiles []models.File
 
-	// Single atomic query to fetch all children (direct and nested) to prevent race conditions
 	if err := params.DB.Where(
-		"bucket_id = ? AND (path = ? OR path LIKE ?)",
+		"bucket_id = ? AND (path = ? OR path LIKE ?) AND status = ?",
 		e.Payload.BucketID,
 		folderPath,
 		dbPath,
+		models.FileStatusTrashed,
 	).Find(&childFiles).Error; err != nil {
 		zap.L().Error("Failed to find children",
 			zap.String("folder_id", file.ID.String()),
