@@ -338,5 +338,28 @@
       "error_confirm_password_mismatch": "Passwords do not match",
       "footer_text": "Didn't receive the code? Check your spam folder or request a new one"
     }
+  },
+  "validation": {
+    "name_empty": "Name cannot be empty",
+    "name_too_long": "Name cannot exceed {{maxLength}} characters",
+    "path_too_long": "Path cannot exceed {{maxLength}} characters",
+    "path_traversal": "Path traversal (..) is not allowed",
+    "control_characters": "Control characters are not allowed",
+    "path_separators": "Path separators (/ \\) are not allowed",
+    "invalid_character": "Character '{{char}}' is not allowed",
+    "allowed_chars_description": "Letters, numbers, spaces, and: _ - ( ) ."
+  },
+  "toast": {
+    "bucket_name_invalid": "Invalid bucket name",
+    "bucket_name_updated": "Bucket name updated successfully",
+    "bucket_created": "The bucket has been created",
+    "field_copied": "{{field}} has been copied",
+    "filename_invalid": "Invalid filename",
+    "rename_file_prompt": "Please rename the file and try again",
+    "upload_completed": "Upload completed for {{fileName}}",
+    "folder_names_invalid": "Invalid folder names",
+    "filenames_invalid": "Invalid filenames",
+    "folder_created": "Folder {{name}} has been created",
+    "file_moved_to_trash": "File \"{{fileName}}\" has been moved to trash"
   }
 }

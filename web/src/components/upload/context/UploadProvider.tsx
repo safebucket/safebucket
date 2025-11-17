@@ -1,10 +1,11 @@
 import React, { useEffect, useReducer } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useQueryClient } from "@tanstack/react-query";
 import * as actions from "../store/actions";
 import { generateRandomString } from "@/lib/utils";
 
-import { successToast } from "@/components/ui/hooks/use-toast";
+import { successToast, toast } from "@/components/ui/hooks/use-toast";
 import {
   api_createFile,
   uploadToStorage,
@@ -13,8 +14,10 @@ import { UploadStatus } from "@/components/upload/helpers/types";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
 import { uploadsReducer } from "@/components/upload/store/reducer";
 import { FileType } from "@/types/file.ts";
+import { validateFileName } from "@/lib/validation";
 
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [uploads, dispatch] = useReducer(uploadsReducer, []);
 
@@ -49,6 +52,17 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
 
   const startUpload = (files: FileList, path: string, bucketId: string) => {
     const file = files[0];
+
+    const validation = validateFileName(file.name, t);
+    if (!validation.valid) {
+      toast({
+        variant: "destructive",
+        title: t("toast.filename_invalid"),
+        description: validation.error || t("toast.rename_file_prompt"),
+      });
+      return;
+    }
+
     const uploadId = generateRandomString(12);
 
     // Create full path display: path + filename
@@ -72,7 +86,9 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
                 queryClient
                   .invalidateQueries({ queryKey: ["buckets", bucketId] })
                   .then(() =>
-                    successToast(`Upload completed for ${file.name}`),
+                    successToast(
+                      t("toast.upload_completed", { fileName: file.name }),
+                    ),
                   );
               }, 2000);
             }

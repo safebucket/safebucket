@@ -44,7 +44,7 @@ type File struct {
 
 type FileTransferBody struct {
 	Name string   `json:"name" validate:"required,filename,max=255"`
-	Path string   `json:"path" validate:"required,max=1024"`
+	Path string   `json:"path" validate:"required,filepath,max=1024"`
 	Type FileType `json:"type" validate:"required,oneof=file folder"`
 	Size int      `json:"size" validate:"required_if=Type file,max=1099511627776"`
 }

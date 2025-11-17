@@ -13,6 +13,10 @@ import { UploadPopover } from "@/components/upload/components/UploadPopover";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 import { ButtonGroup } from "@/components/ui/button-group.tsx";
 import {
+  getAllowedCharactersDescription,
+  validateFolderName,
+} from "@/lib/validation";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -85,6 +89,13 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
                 label: t("file_actions.new_folder_dialog.name_label"),
                 type: "text",
                 required: true,
+                validate: (value: string) => {
+                  const result = validateFolderName(value, t);
+                  return (
+                    result.valid || result.error || t("validation.name_empty")
+                  );
+                },
+                helperText: getAllowedCharactersDescription(t),
               },
             ]}
             onSubmit={(data) => createFolder(data.name)}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
@@ -12,6 +13,7 @@ import { bucketsQueryOptions } from "@/queries/bucket.ts";
 import { api } from "@/lib/api.ts";
 
 export const useBucketsData = (): IBucketsData => {
+  const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const { data: buckets, isLoading } = useQuery(bucketsQueryOptions());
@@ -39,7 +41,7 @@ export const useBucketsData = (): IBucketsData => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
       setIsDialogOpen(false);
-      successToast("The bucket has been created");
+      successToast(t("toast.bucket_created"));
     },
     onError: (error: Error) => errorToast(error),
   });

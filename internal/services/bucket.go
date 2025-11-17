@@ -298,6 +298,18 @@ func (s BucketService) UploadFile(
 		return models.FileTransferResponse{}, errors.NewAPIError(409, "FILE_ALREADY_EXISTS")
 	}
 
+	// Validate that the parent folder exists (if not uploading to root)
+	if body.Path != "/" && body.Path != "" {
+		folderExists, err := sql.FolderExistsAtPath(s.DB, bucket.ID, body.Path)
+		if err != nil {
+			logger.Error("Failed to check folder existence", zap.Error(err), zap.String("path", body.Path))
+			return models.FileTransferResponse{}, errors.ErrCreateFailed
+		}
+		if !folderExists {
+			return models.FileTransferResponse{}, errors.NewAPIError(400, errors.ErrParentFolderNotFound)
+		}
+	}
+
 	extension := filepath.Ext(body.Name)
 	if len(extension) > 0 {
 		extension = extension[1:]

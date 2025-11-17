@@ -1,8 +1,8 @@
+import type { DragEvent, FC } from "react";
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Upload } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { DragEvent, FC } from "react";
 
 import type {
   FileSystemDirectoryEntry,
@@ -15,6 +15,8 @@ import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketVi
 import { api_createFile } from "@/components/upload/helpers/api";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 import { FileType } from "@/types/file.ts";
+import { validateFileName, validateFolderName } from "@/lib/validation";
+import { toast } from "@/components/ui/hooks/use-toast";
 
 interface IDragDropZoneProps {
   bucketId: string;
@@ -165,6 +167,25 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
 
   const createFolders = useCallback(
     async (folderPaths: Set<string>) => {
+      const invalidFolders: string[] = [];
+      folderPaths.forEach((folderPath) => {
+        const parts = folderPath.split("/");
+        const folderName = parts[parts.length - 1];
+        const validation = validateFolderName(folderName, t);
+        if (!validation.valid) {
+          invalidFolders.push(`${folderName}: ${validation.error}`);
+        }
+      });
+
+      if (invalidFolders.length > 0) {
+        toast({
+          variant: "destructive",
+          title: t("toast.folder_names_invalid"),
+          description: invalidFolders.join("; "),
+        });
+        throw new Error("Invalid folder names");
+      }
+
       const createFolderPromises = Array.from(folderPaths).map((folderPath) => {
         const parts = folderPath.split("/");
         const folderName = parts[parts.length - 1];
@@ -188,6 +209,34 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
 
   const uploadFiles = useCallback(
     (files: Array<File>) => {
+      const invalidFiles: string[] = [];
+      files.forEach((file) => {
+        const fileName = file.name;
+        const lastSlashIndex = fileName.lastIndexOf("/");
+        const baseName =
+          lastSlashIndex >= 0
+            ? fileName.substring(lastSlashIndex + 1)
+            : fileName;
+
+        const validation = validateFileName(baseName, t);
+        if (!validation.valid) {
+          invalidFiles.push(`${baseName}: ${validation.error}`);
+        }
+      });
+
+      if (invalidFiles.length > 0) {
+        toast({
+          variant: "destructive",
+          title: t("toast.filenames_invalid"),
+          description:
+            invalidFiles.slice(0, 3).join("; ") +
+            (invalidFiles.length > 3
+              ? ` and ${invalidFiles.length - 3} more...`
+              : ""),
+        });
+        return;
+      }
+
       files.forEach((file) => {
         const fileName = file.name;
         const lastSlashIndex = fileName.lastIndexOf("/");

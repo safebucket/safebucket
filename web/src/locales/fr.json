@@ -338,5 +338,28 @@
       "error_confirm_password_mismatch": "Les mots de passe ne correspondent pas",
       "footer_text": "Vous n'avez pas reçu le code ? Vérifiez votre dossier spam ou demandez-en un nouveau"
     }
+  },
+  "validation": {
+    "name_empty": "Le nom ne peut pas être vide",
+    "name_too_long": "Le nom ne peut pas dépasser {{maxLength}} caractères",
+    "path_too_long": "Le chemin ne peut pas dépasser {{maxLength}} caractères",
+    "path_traversal": "La traversée de chemin (..) n'est pas autorisée",
+    "control_characters": "Les caractères de contrôle ne sont pas autorisés",
+    "path_separators": "Les séparateurs de chemin (/ \\) ne sont pas autorisés",
+    "invalid_character": "Le caractère '{{char}}' n'est pas autorisé",
+    "allowed_chars_description": "Lettres, chiffres, espaces et: _ - ( ) ."
+  },
+  "toast": {
+    "bucket_name_invalid": "Nom de bucket invalide",
+    "bucket_name_updated": "Nom du bucket mis à jour avec succès",
+    "bucket_created": "Le bucket a été créé",
+    "field_copied": "{{field}} a été copié",
+    "filename_invalid": "Nom de fichier invalide",
+    "rename_file_prompt": "Veuillez renommer le fichier et réessayer",
+    "upload_completed": "Téléchargement terminé pour {{fileName}}",
+    "folder_names_invalid": "Noms de dossiers invalides",
+    "filenames_invalid": "Noms de fichiers invalides",
+    "folder_created": "Le dossier {{name}} a été créé",
+    "file_moved_to_trash": "Le fichier \"{{fileName}}\" a été déplacé dans la corbeille"
   }
 }

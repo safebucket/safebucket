@@ -10,6 +10,7 @@ const (
 	ErrCannotDownloadTrashed = "CANNOT_DOWNLOAD_TRASHED_FILE"
 	ErrNotAFolder            = "NOT_A_FOLDER"
 	ErrFolderNameConflict    = "FOLDER_NAME_CONFLICT"
+	ErrParentFolderNotFound  = "PARENT_FOLDER_NOT_FOUND"
 )
 
 // Trash error codes - HTTP 410 Gone.

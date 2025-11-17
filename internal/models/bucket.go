@@ -18,5 +18,5 @@ type Bucket struct {
 }
 
 type BucketCreateUpdateBody struct {
-	Name string `json:"name" validate:"required,max=100"`
+	Name string `json:"name" validate:"required,bucketname,max=100"`
 }

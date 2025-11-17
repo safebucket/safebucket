@@ -17,4 +17,6 @@ export interface IFormField {
   defaultValue?: string | boolean;
   condition?: (values: FieldValues) => boolean;
   maxLength?: number;
+  validate?: (value: string) => boolean | string;
+  helperText?: string;
 }

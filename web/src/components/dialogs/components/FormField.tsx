@@ -161,8 +161,16 @@ export const FormField: FC<IFormFieldProps> = ({
               type={field.type}
               placeholder={field.placeholder}
               defaultValue={field.defaultValue as string}
-              {...register(field.id, { required: field.required })}
+              {...register(field.id, {
+                required: field.required,
+                validate: field.validate,
+              })}
             />
+            {field.helperText && !errors[field.id] && (
+              <div className="text-muted-foreground mt-2 text-xs">
+                {field.helperText}
+              </div>
+            )}
             {errors[field.id] && (
               <div className="text-destructive mt-2 text-xs">
                 {errors[field.id]?.message?.toString() ||
