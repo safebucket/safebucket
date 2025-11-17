@@ -20,7 +20,7 @@ type BodyKey struct{}
 
 // validateName validates file, folder, and bucket names for S3 storage
 // Allowed: Unicode letters/numbers, spaces, and special chars: _ - ( ) .
-// Blocked: Path separators (/ \), path traversal (..), control chars, % (URL encoding issues), brackets
+// Blocked: Path separators (/ \), path traversal (..), control chars, % (URL encoding issues), brackets.
 func validateName(fl validator.FieldLevel) bool {
 	name := fl.Field().String()
 
@@ -59,17 +59,13 @@ func validateName(fl validator.FieldLevel) bool {
 		}
 	}
 
-	if !utf8.ValidString(name) {
-		return false
-	}
-
-	return true
+	return utf8.ValidString(name)
 }
 
 // validatePath validates folder paths for S3 storage
 // Allows forward slashes for path segments but blocks other problematic characters
 // Allowed: Unicode letters/numbers, spaces, forward slash (/), and special chars: _ - ( ) .
-// Blocked: Backslash (\), path traversal (..), control chars, % (URL encoding issues), brackets
+// Blocked: Backslash (\), path traversal (..), control chars, % (URL encoding issues), brackets.
 func validatePath(fl validator.FieldLevel) bool {
 	pathStr := fl.Field().String()
 
@@ -120,17 +116,13 @@ func validatePath(fl validator.FieldLevel) bool {
 		}
 	}
 
-	if !utf8.ValidString(pathStr) {
-		return false
-	}
-
-	return true
+	return utf8.ValidString(pathStr)
 }
 
 // validateS3KeyLength validates that the combined S3 object key length doesn't exceed 1024 bytes
 // This is a struct-level validator for FileTransferBody
 // S3 key format: buckets/{uuid}/{path}/{name}
-// UUID is 36 chars, so we check: 8 (buckets/) + 36 (uuid) + 1 (/) + len(path) + 1 (/) + len(name) <= 1024
+// UUID is 36 chars, so we check: 8 (buckets/) + 36 (uuid) + 1 (/) + len(path) + 1 (/) + len(name) <= 1024.
 func validateS3KeyLength(sl validator.StructLevel) {
 	// Type assertion to access the struct fields
 	// We need to use reflection since this is a generic validator

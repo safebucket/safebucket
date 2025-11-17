@@ -16,7 +16,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// setupMockDB creates a mock database for testing
+// setupMockDB creates a mock database for testing.
 func setupMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, *sql.DB) {
 	t.Helper()
 
