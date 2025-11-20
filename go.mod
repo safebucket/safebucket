@@ -29,7 +29,7 @@ require (
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/redis/rueidis v1.0.68
 	github.com/stretchr/testify v1.11.1
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 	golang.org/x/oauth2 v0.33.0
 	google.golang.org/api v0.256.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
