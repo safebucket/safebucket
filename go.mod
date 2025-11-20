@@ -10,7 +10,7 @@ require (
 	github.com/ThreeDotsLabs/watermill-googlecloud v1.2.6
 	github.com/ThreeDotsLabs/watermill-nats/v2 v2.1.3
 	github.com/alexedwards/argon2id v1.0.0
-	github.com/aws/aws-sdk-go-v2 v1.39.6
+	github.com/aws/aws-sdk-go-v2 v1.40.0
 	github.com/aws/aws-sdk-go-v2/config v1.31.20
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.90.2
 	github.com/coreos/go-oidc/v3 v3.16.0
