@@ -5,7 +5,6 @@ SELECT 'up SQL query';
 
 -- Create custom ENUM types
 CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting', 'trashed', 'restoring');
-CREATE TYPE file_type AS ENUM ('file', 'folder');
 CREATE TYPE provider_type AS ENUM ('local', 'oidc');
 CREATE TYPE challenge_type AS ENUM ('invite', 'password_reset');
 CREATE TYPE group_type AS ENUM ('owner', 'contributor', 'viewer');
@@ -78,6 +77,39 @@ CREATE INDEX idx_memberships_bucket_id ON memberships (bucket_id);
 -- Partial unique index for active memberships only (soft-delete aware)
 CREATE UNIQUE INDEX idx_memberships_user_bucket ON memberships (user_id, bucket_id) WHERE deleted_at IS NULL;
 
+-- Folders table
+CREATE TABLE folders
+(
+    id         uuid
+        PRIMARY KEY                  DEFAULT gen_random_uuid(),
+    name       VARCHAR(255) NOT NULL,
+    status     file_status,
+    folder_id  uuid,
+    bucket_id  uuid         NOT NULL,
+    trashed_at TIMESTAMP,
+    trashed_by uuid,
+    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP,
+
+    -- Foreign Keys
+    CONSTRAINT fk_folders_folder_id
+        FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_folders_bucket_id
+        FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_folders_trashed_by
+        FOREIGN KEY (trashed_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+-- Indexes for Folders
+-- Composite index for folder browsing (list folders in bucket at specific parent)
+CREATE INDEX idx_folders_bucket_parent ON folders (bucket_id, folder_id) WHERE deleted_at IS NULL;
+-- Composite index for trash view (list trashed folders in bucket)
+CREATE INDEX idx_folders_bucket_trashed ON folders (bucket_id, trashed_at) WHERE trashed_at IS NOT NULL;
+-- Unique index for folder name uniqueness within same parent (using COALESCE to handle NULL folder_id)
+CREATE UNIQUE INDEX idx_folders_unique_name
+    ON folders (bucket_id, COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid), name) WHERE deleted_at IS NULL;
+
 -- Files table
 CREATE TABLE files
     (
@@ -87,8 +119,7 @@ CREATE TABLE files
         extension VARCHAR(50),
         status file_status,
         bucket_id uuid NOT NULL,
-        path VARCHAR(1024) NOT NULL DEFAULT '/',
-        type file_type NOT NULL,
+        folder_id uuid,
         size BIGINT,
         trashed_at TIMESTAMP,
         trashed_by uuid,
@@ -99,6 +130,8 @@ CREATE TABLE files
         -- Foreign Keys
         CONSTRAINT fk_files_bucket_id
             FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        CONSTRAINT fk_files_folder_id
+            FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE CASCADE,
         CONSTRAINT fk_files_trashed_by
             FOREIGN KEY (trashed_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
 
@@ -108,12 +141,13 @@ CREATE TABLE files
     );
 
 -- Indexes for Files
--- Composite index for folder browsing (list files in bucket at specific path)
-CREATE INDEX idx_files_bucket_path ON files (bucket_id, path) WHERE deleted_at IS NULL;
+-- Composite index for file browsing (list files in bucket at specific folder)
+CREATE INDEX idx_files_bucket_folder ON files (bucket_id, folder_id) WHERE deleted_at IS NULL;
 -- Composite index for trash view (list trashed files in bucket)
 CREATE INDEX idx_files_bucket_trashed ON files (bucket_id, trashed_at) WHERE trashed_at IS NOT NULL;
--- Unique index for file uniqueness within bucket path
-CREATE UNIQUE INDEX idx_files_unique_path ON files (bucket_id, path, name) WHERE deleted_at IS NULL;
+-- Unique index for file name uniqueness within same folder (using COALESCE to handle NULL folder_id)
+CREATE UNIQUE INDEX idx_files_unique_name
+    ON files (bucket_id, COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid), name) WHERE deleted_at IS NULL;
 
 -- Invites table
 CREATE TABLE invites
@@ -201,6 +235,12 @@ CREATE TRIGGER update_memberships_updated_at
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_folders_updated_at
+    BEFORE UPDATE
+    ON folders
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_files_updated_at
     BEFORE UPDATE
     ON files
@@ -216,6 +256,7 @@ EXECUTE FUNCTION update_updated_at_column();
 DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 DROP TRIGGER IF EXISTS update_buckets_updated_at ON buckets;
 DROP TRIGGER IF EXISTS update_memberships_updated_at ON memberships;
+DROP TRIGGER IF EXISTS update_folders_updated_at ON folders;
 DROP TRIGGER IF EXISTS update_files_updated_at ON files;
 
 -- Drop trigger function
@@ -225,6 +266,7 @@ DROP FUNCTION IF EXISTS update_updated_at_column();
 DROP TABLE IF EXISTS challenges;
 DROP TABLE IF EXISTS invites;
 DROP TABLE IF EXISTS files;
+DROP TABLE IF EXISTS folders;
 DROP TABLE IF EXISTS memberships;
 DROP TABLE IF EXISTS buckets;
 DROP TABLE IF EXISTS users;
@@ -234,7 +276,6 @@ DROP TYPE IF EXISTS role_type;
 DROP TYPE IF EXISTS group_type;
 DROP TYPE IF EXISTS challenge_type;
 DROP TYPE IF EXISTS provider_type;
-DROP TYPE IF EXISTS file_type;
 DROP TYPE IF EXISTS file_status;
 
 -- +goose StatementEnd

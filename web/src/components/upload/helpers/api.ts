@@ -1,21 +1,18 @@
 import type { ICreateFile } from "@/components/upload/helpers/types";
-import type { FileType } from "@/types/file.ts";
 import { api } from "@/lib/api";
 
 import { toast } from "@/components/ui/hooks/use-toast";
 
 export const api_createFile = (
   name: string,
-  type: FileType,
-  path: string,
   bucketId: string,
-  size?: number,
+  size: number,
+  folderId?: string,
 ) =>
   api.post<ICreateFile>(`/buckets/${bucketId}/files`, {
     name,
-    type,
-    path,
     size,
+    folder_id: folderId,
   });
 
 export const uploadToStorage = async (
@@ -55,15 +52,13 @@ export const uploadToStorage = async (
 
 export const createFolderMutationFn = async (params: {
   name: string;
-  type: FileType;
-  path: string;
+  folderId?: string;
   bucketId: string;
 }): Promise<ICreateFile> => {
-  const { name, type, path, bucketId } = params;
-  return api.post<ICreateFile>(`/buckets/${bucketId}/files`, {
+  const {name, folderId, bucketId} = params;
+  return api.post<ICreateFile>(`/buckets/${bucketId}/folders`, {
     name,
-    type,
-    path,
+    folder_id: folderId,
   });
 };
 
@@ -71,8 +66,15 @@ export const deleteFileMutationFn = async (params: {
   bucketId: string;
   fileId: string;
   filename?: string;
+  isFolder?: boolean;
 }): Promise<{ filename?: string }> => {
-  const { bucketId, fileId, filename } = params;
-  await api.delete(`/buckets/${bucketId}/files/${fileId}`);
+  const {bucketId, fileId, filename, isFolder = false} = params;
+
+  if (isFolder) {
+    await api.delete(`/buckets/${bucketId}/folders/${fileId}`);
+  } else {
+    await api.delete(`/buckets/${bucketId}/files/${fileId}`);
+  }
+
   return { filename };
 };

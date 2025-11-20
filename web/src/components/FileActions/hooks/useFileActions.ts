@@ -10,11 +10,10 @@ import {
   createFolderMutationFn,
   deleteFileMutationFn,
 } from "@/components/upload/helpers/api.ts";
-import { FileType } from "@/types/file.ts";
 
 export const useFileActions = (): IFileActions => {
   const queryClient = useQueryClient();
-  const { bucketId, path } = useBucketViewContext();
+    const {bucketId, folderId} = useBucketViewContext();
 
   const createFolderMutation = useMutation({
     mutationFn: createFolderMutationFn,
@@ -39,8 +38,7 @@ export const useFileActions = (): IFileActions => {
   const createFolder = (name: string) => {
     createFolderMutation.mutate({
       name,
-      type: FileType.folder,
-      path,
+        folderId: folderId ?? undefined,
       bucketId,
     });
   };
@@ -51,8 +49,8 @@ export const useFileActions = (): IFileActions => {
     );
   };
 
-  const deleteFile = (fileId: string, filename: string) => {
-    deleteFileMutation.mutate({ bucketId, fileId, filename });
+    const deleteFile = (fileId: string, filename: string, isFolder = false) => {
+        deleteFileMutation.mutate({bucketId, fileId, filename, isFolder});
   };
 
   return {

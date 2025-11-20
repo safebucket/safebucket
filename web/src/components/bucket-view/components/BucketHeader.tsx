@@ -32,9 +32,11 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   const shareFileDialog = useDialog();
   const newFolderDialog = useDialog();
 
-  const { path } = useBucketViewContext();
+  const {folderId} = useBucketViewContext();
   const { startUpload } = useUploadContext();
   const { createFolder } = useFileActions();
+
+  const currentFolderId = folderId ?? undefined;
 
   return (
     <div className="flex-1">
@@ -72,7 +74,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
             title={t("bucket.header.upload_file")}
             description={t("bucket.header.upload_and_share")}
             fields={shareFileFields}
-            onSubmit={(data) => startUpload(data.files, path, bucket.id)}
+            onSubmit={(data) => startUpload(data.files, currentFolderId, bucket.id)}
             confirmLabel={t("bucket.header.upload")}
           />
 

@@ -3,7 +3,6 @@ package events
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"path"
 	"time"
 
@@ -78,8 +77,8 @@ func (e *FolderTrash) callback(params *EventParams) error {
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
-	var folder models.File
-	result := params.DB.Where("id = ? AND bucket_id = ? AND type = 'folder'",
+	var folder models.Folder
+	result := params.DB.Where("id = ? AND bucket_id = ?",
 		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
 	if result.Error != nil {
@@ -87,53 +86,103 @@ func (e *FolderTrash) callback(params *EventParams) error {
 		return result.Error
 	}
 
-	if folder.Status != models.FileStatusTrashed {
-		zap.L().Warn("Folder not in trashed status, skipping",
-			zap.String("current_status", string(folder.Status)))
-		return nil
-	}
+	// Collect child folder IDs to trigger events after transaction
+	var childFolderIDs []uuid.UUID
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
-		if err := params.Storage.MarkFileAsTrashed(objectPath, models.TrashMetadata{
-			OriginalPath: objectPath,
-			TrashedAt:    e.Payload.TrashedAt,
-			TrashedBy:    e.Payload.UserID,
-			FileID:       e.Payload.FolderID,
-			IsFolder:     true,
-		}); err != nil {
-			zap.L().
-				Error("Failed to mark folder as trashed - rolling back transaction",
-					zap.Error(err),
-					zap.String("path", objectPath),
-					zap.String("folder_id", e.Payload.FolderID.String()))
+		// Mark current folder as trashed in database (idempotent - safe if already trashed)
+		if err := tx.Model(&models.Folder{}).
+			Where("id = ? AND bucket_id = ?", e.Payload.FolderID, e.Payload.BucketID).
+			Updates(map[string]interface{}{
+				"status":     models.FileStatusTrashed,
+				"trashed_at": e.Payload.TrashedAt,
+				"trashed_by": e.Payload.UserID,
+			}).Error; err != nil {
+			zap.L().Error("Failed to mark folder as trashed in database", zap.Error(err))
 			return err
 		}
 
-		folderPath := path.Join(folder.Path, folder.Name)
-		dbPath := fmt.Sprintf("%s/%%", folderPath)
-
-		var childFiles []models.File
-		batchResult := tx.Where(
-			"bucket_id = ? AND path LIKE ? AND status != ?",
-			e.Payload.BucketID,
-			dbPath,
-			models.FileStatusTrashed,
-		).Limit(c.BulkActionsLimit).Find(&childFiles)
-
-		if batchResult.Error != nil {
-			zap.L().Error("Failed to find child files for trashing", zap.Error(batchResult.Error))
-			return batchResult.Error
+		// Mark folder itself as trashed in storage
+		objectPath := path.Join("folder", e.Payload.BucketID.String(), folder.ID.String())
+		if err := params.Storage.MarkFileAsTrashed(objectPath, models.TrashMetadata{
+			TrashedAt: e.Payload.TrashedAt,
+			TrashedBy: e.Payload.UserID,
+			ObjectID:  e.Payload.FolderID,
+			IsFolder:  true,
+		}); err != nil {
+			zap.L().Warn("Failed to mark folder as trashed in storage",
+				zap.Error(err),
+				zap.String("path", objectPath),
+				zap.String("folder_id", e.Payload.FolderID.String()))
+			// Continue - folders exist only in DB
 		}
 
+		// Get all child folders recursively
+		var childFolders []models.Folder
+		if err := tx.Where(
+			"bucket_id = ? AND folder_id = ? AND status != ?",
+			e.Payload.BucketID,
+			e.Payload.FolderID,
+			models.FileStatusTrashed,
+		).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
+			zap.L().Error("Failed to find child folders", zap.Error(err))
+			return err
+		}
+
+		// Collect child folder IDs for event triggering after transaction commits
+		if len(childFolders) > 0 {
+			zap.L().Info("Found child folders in transaction",
+				zap.String("parent_folder", folder.Name),
+				zap.String("parent_id", e.Payload.FolderID.String()),
+				zap.Int("count", len(childFolders)))
+
+			for _, child := range childFolders {
+				zap.L().Debug("Child folder details",
+					zap.String("child_id", child.ID.String()),
+					zap.String("child_name", child.Name),
+					zap.String("status", string(child.Status)))
+				childFolderIDs = append(childFolderIDs, child.ID)
+			}
+		} else {
+			zap.L().Info("No child folders found",
+				zap.String("parent_folder", folder.Name),
+				zap.String("parent_id", e.Payload.FolderID.String()))
+		}
+
+		// Get all files in this folder
+		var childFiles []models.File
+		if err := tx.Where(
+			"bucket_id = ? AND folder_id = ? AND status != ?",
+			e.Payload.BucketID,
+			e.Payload.FolderID,
+			models.FileStatusTrashed,
+		).Limit(c.BulkActionsLimit).Find(&childFiles).Error; err != nil {
+			zap.L().Error("Failed to find child files", zap.Error(err))
+			return err
+		}
+
+		// Trash child files
 		if len(childFiles) > 0 {
-			zap.L().Info("Trashing folder contents batch",
+			zap.L().Info("Trashing child files",
 				zap.String("folder", folder.Name),
 				zap.Int("child_count", len(childFiles)))
 
 			var fileIDs []uuid.UUID
 			for _, child := range childFiles {
 				fileIDs = append(fileIDs, child.ID)
+
+				// Mark each file as trashed in storage
+				filePath := path.Join("bucket", e.Payload.BucketID.String(), child.ID.String())
+				if err := params.Storage.MarkFileAsTrashed(filePath, models.TrashMetadata{
+					TrashedAt: e.Payload.TrashedAt,
+					TrashedBy: e.Payload.UserID,
+					ObjectID:  child.ID,
+					IsFolder:  false,
+				}); err != nil {
+					zap.L().Warn("Failed to mark file as trashed in storage",
+						zap.Error(err),
+						zap.String("file_id", child.ID.String()))
+				}
 			}
 
 			updates := map[string]interface{}{
@@ -148,10 +197,6 @@ func (e *FolderTrash) callback(params *EventParams) error {
 				zap.L().Error("Failed to trash child files", zap.Error(err))
 				return err
 			}
-
-			// Note: We only mark the folder itself in storage, not individual child files.
-			zap.L().Debug("Child files marked as trashed in database only",
-				zap.Int("child_count", len(childFiles)))
 		}
 
 		return nil
@@ -160,18 +205,55 @@ func (e *FolderTrash) callback(params *EventParams) error {
 		return err
 	}
 
-	var remainingCount int64
-	params.DB.Model(&models.File{}).Where(
-		"bucket_id = ? AND path LIKE ? AND status != ?",
-		e.Payload.BucketID,
-		fmt.Sprintf("%s/%%", path.Join(folder.Path, folder.Name)),
-		models.FileStatusTrashed,
-	).Count(&remainingCount)
+	// Trigger trash events for child folders after transaction commits
+	if len(childFolderIDs) > 0 {
+		zap.L().Info("Triggering trash events for child folders (after transaction commit)",
+			zap.String("folder", folder.Name),
+			zap.String("folder_id", e.Payload.FolderID.String()),
+			zap.Int("child_count", len(childFolderIDs)))
 
-	if remainingCount > 0 {
-		zap.L().Info("More files to trash, requeuing event",
-			zap.Int64("remaining", remainingCount))
-		return errors.New("remaining files to trash")
+		for _, childID := range childFolderIDs {
+			zap.L().Info("Triggering child folder trash event",
+				zap.String("parent_id", e.Payload.FolderID.String()),
+				zap.String("child_id", childID.String()))
+
+			childTrashEvent := NewFolderTrash(
+				params.Publisher,
+				e.Payload.BucketID,
+				childID,
+				e.Payload.UserID,
+				e.Payload.TrashedAt,
+			)
+			childTrashEvent.Trigger()
+		}
+	} else {
+		zap.L().Info("No child folders to trigger events for",
+			zap.String("folder", folder.Name),
+			zap.String("folder_id", e.Payload.FolderID.String()))
+	}
+
+	// Check if there are remaining items to trash
+	var remainingFolders int64
+	params.DB.Model(&models.Folder{}).Where(
+		"bucket_id = ? AND folder_id = ? AND status != ?",
+		e.Payload.BucketID,
+		e.Payload.FolderID,
+		models.FileStatusTrashed,
+	).Count(&remainingFolders)
+
+	var remainingFiles int64
+	params.DB.Model(&models.File{}).Where(
+		"bucket_id = ? AND folder_id = ? AND status != ?",
+		e.Payload.BucketID,
+		e.Payload.FolderID,
+		models.FileStatusTrashed,
+	).Count(&remainingFiles)
+
+	if remainingFolders > 0 || remainingFiles > 0 {
+		zap.L().Info("More items to trash, requeuing event",
+			zap.Int64("remaining_folders", remainingFolders),
+			zap.Int64("remaining_files", remainingFiles))
+		return errors.New("remaining items to trash")
 	}
 
 	action := models.Activity{
@@ -179,9 +261,9 @@ func (e *FolderTrash) callback(params *EventParams) error {
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionErase.String(),
 			"bucket_id":   e.Payload.BucketID.String(),
-			"file_id":     e.Payload.FolderID.String(),
+			"folder_id":   e.Payload.FolderID.String(),
 			"domain":      c.DefaultDomain,
-			"object_type": rbac.ResourceFile.String(),
+			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     e.Payload.UserID.String(),
 		}),
 	}

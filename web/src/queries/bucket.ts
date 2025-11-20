@@ -3,6 +3,7 @@ import type { IActivity, IListBucketActivity } from "@/types/activity";
 import type { IBucketMember } from "@/components/bucket-view/helpers/types.ts";
 import type { IBucket } from "@/types/bucket.ts";
 import type { IFile } from "@/types/file.ts";
+import type {IFolder} from "@/types/folder.ts";
 import { api } from "@/lib/api";
 
 export const bucketsQueryOptions = () =>
@@ -45,10 +46,11 @@ export const bucketTrashedFilesQueryOptions = (bucketId: string) =>
   queryOptions({
     queryKey: ["buckets", bucketId, "trash"],
     queryFn: async () => {
-      const response = await api.get<{ data: Array<IFile> }>(
-        `/buckets/${bucketId}/trash`,
-      );
-      return response.data;
+        const response = await api.get<{
+            files: Array<IFile>;
+            folders: Array<IFolder>;
+        }>(`/buckets/${bucketId}/trash`);
+        return response;
     },
     enabled: !!bucketId,
   });

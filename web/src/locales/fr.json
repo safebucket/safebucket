@@ -190,7 +190,9 @@
       "deleting": "Suppression"
     },
     "trash_view": {
+      "type": "Type",
       "name": "Nom",
+      "original_location": "Emplacement d'origine",
       "size": "Taille",
       "deleted_at": "Supprimé le",
       "deleted_by": "Supprimé par",

@@ -1,4 +1,5 @@
 import type { IFile } from "@/types/file.ts";
+import type {IFolder} from "@/types/folder.ts";
 
 export interface Invites {
   email: string;
@@ -9,6 +10,7 @@ export interface IBucket {
   id: string;
   name: string;
   files: Array<IFile>;
+  folders: Array<IFolder>;
   created_by: string;
   created_at: string;
   updated_at: string;

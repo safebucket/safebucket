@@ -4,8 +4,9 @@ import type { FC } from "react";
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import type { IFile } from "@/types/file.ts";
-import { FileStatus, FileType } from "@/types/file.ts";
+import {FileStatus} from "@/types/file.ts";
+import type {BucketItem} from "@/components/bucket-view/helpers/utils";
+import {isFolder} from "@/components/bucket-view/helpers/utils";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -15,7 +16,9 @@ import { DataTableRowActions } from "@/components/common/components/DataTable/Da
 import { Badge } from "@/components/ui/badge";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 
-const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
+const createColumns = (
+    t: (key: string) => string,
+): Array<ColumnDef<BucketItem>> => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -24,16 +27,20 @@ const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
         title={t("bucket.list_view.name")}
       />
     ),
-    cell: ({ row }) => (
-      <div className="flex w-[350px] items-center space-x-2">
-        <FileIconView
-          className="text-primary h-5 w-5"
-          type={row.getValue("type")}
-          extension={row.original.extension}
-        />
-        <p>{row.getValue("name")}</p>
-      </div>
-    ),
+    cell: ({row}) => {
+      const item = row.original;
+      const itemIsFolder = isFolder(item);
+      return (
+          <div className="flex w-[350px] items-center space-x-2">
+            <FileIconView
+                className="text-primary h-5 w-5"
+                isFolder={itemIsFolder}
+                extension={!itemIsFolder ? item.extension : undefined}
+            />
+            <p>{row.getValue("name")}</p>
+          </div>
+      );
+    },
   },
   {
     accessorKey: "size",
@@ -43,25 +50,27 @@ const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
         title={t("bucket.list_view.size")}
       />
     ),
-    cell: ({ row }) =>
-      row.getValue("type") === FileType.folder
-        ? "-"
-        : formatFileSize(row.getValue("size")),
+    cell: ({row}) => {
+      const item = row.original;
+      return isFolder(item) ? "-" : formatFileSize(item.size);
+    },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },
   },
   {
-    accessorKey: "type",
+    id: "type",
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
         title={t("bucket.list_view.type")}
       />
     ),
-    cell: ({ row }) => (
-      <Badge variant="secondary">{row.getValue("type")}</Badge>
-    ),
+    cell: ({row}) => {
+      const item = row.original;
+      const itemType = isFolder(item) ? "folder" : item.extension;
+      return <Badge variant="secondary">{itemType}</Badge>;
+    },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
     },
@@ -141,12 +150,12 @@ const createColumns = (t: (key: string) => string): Array<ColumnDef<IFile>> => [
 ];
 
 interface IBucketListViewProps {
-  files: Array<IFile>;
+  items: Array<BucketItem>;
   bucketId: string;
 }
 
 export const BucketListView: FC<IBucketListViewProps> = ({
-  files,
+                                                           items,
   bucketId,
 }: IBucketListViewProps) => {
   const { t } = useTranslation();
@@ -157,7 +166,7 @@ export const BucketListView: FC<IBucketListViewProps> = ({
     <DragDropZone bucketId={bucketId}>
       <DataTable
         columns={columns}
-        data={files}
+        data={items}
         selected={selected}
         onRowClick={setSelected}
         onRowDoubleClick={openFolder}

@@ -16,12 +16,16 @@ import (
 type BodyKey struct{}
 
 func validateFilename(fl validator.FieldLevel) bool {
-	fileType := fl.Parent().FieldByName("Type").String()
-	if fileType == "file" {
-		regex := regexp.MustCompile(`^[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]{1,10}$`)
-		return regex.MatchString(fl.Field().String())
-	}
-	return true
+	// Files must have an extension (name.ext format)
+	regex := regexp.MustCompile(`^[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]{1,10}$`)
+	return regex.MatchString(fl.Field().String())
+}
+
+func validateFoldername(fl validator.FieldLevel) bool {
+	// Folders cannot contain special characters except underscore and hyphen
+	// No extension allowed
+	regex := regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`)
+	return regex.MatchString(fl.Field().String())
 }
 
 func Validate[T any](next http.Handler) http.Handler {
@@ -38,6 +42,7 @@ func Validate[T any](next http.Handler) http.Handler {
 
 		validate := validator.New()
 		_ = validate.RegisterValidation("filename", validateFilename)
+		_ = validate.RegisterValidation("foldername", validateFoldername)
 
 		err = validate.Struct(data)
 		if err != nil {

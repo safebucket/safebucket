@@ -2,7 +2,6 @@ package events
 
 import (
 	"encoding/json"
-	"fmt"
 	"path"
 	"strings"
 
@@ -142,16 +141,15 @@ func (e *TrashExpiration) handleFolderDeletion(params *EventParams, file *models
 		zap.String("folder_id", file.ID.String()),
 		zap.String("folder_path", originalPath))
 
-	folderPath := path.Join(file.Path, file.Name)
-	dbPath := fmt.Sprintf("%s/%%", folderPath)
+	// Note: This function is called for folder markers, but folders are now in separate table
+	// For now, just remove the marker - the actual folder cleanup is handled by FolderPurge event
 	var childFiles []models.File
 
-	// Single atomic query to fetch all children (direct and nested) to prevent race conditions
+	// Find child files directly in this folder (single level, recursive handled by events)
 	if err := params.DB.Where(
-		"bucket_id = ? AND (path = ? OR path LIKE ?)",
+		"bucket_id = ? AND folder_id = ?",
 		e.Payload.BucketID,
-		folderPath,
-		dbPath,
+		file.ID,
 	).Find(&childFiles).Error; err != nil {
 		zap.L().Error("Failed to find children",
 			zap.String("folder_id", file.ID.String()),
@@ -189,10 +187,9 @@ func (e *TrashExpiration) deleteChildFiles(params *EventParams, childFiles []mod
 	var storagePaths []string
 	for _, child := range childFiles {
 		childPath := path.Join(
-			"buckets",
+			"bucket",
 			e.Payload.BucketID.String(),
-			child.Path,
-			child.Name,
+			child.ID.String(),
 		)
 		storagePaths = append(storagePaths, childPath)
 	}
@@ -262,16 +259,10 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 	)
 
 	if pathInfo.isMarker && params.Storage != nil {
-		if file.Type == models.FileTypeFolder {
-			err = e.handleFolderDeletion(params, file, pathInfo.originalPath)
-			if err != nil {
-				return err
-			}
-		} else {
-			err = e.handleFileDeletion(params, file, pathInfo.originalPath)
-			if err != nil {
-				return err
-			}
+		// Files only - folders are handled separately via FolderPurge events
+		err = e.handleFileDeletion(params, file, pathInfo.originalPath)
+		if err != nil {
+			return err
 		}
 	}
 

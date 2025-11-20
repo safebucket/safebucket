@@ -12,7 +12,6 @@ import {
 import { UploadStatus } from "@/components/upload/helpers/types";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
 import { uploadsReducer } from "@/components/upload/store/reducer";
-import { FileType } from "@/types/file.ts";
 
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
@@ -38,8 +37,8 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [uploads]);
 
-  const addUpload = (uploadId: string, filename: string, path: string) =>
-    dispatch(actions.addUpload(uploadId, filename, path));
+    const addUpload = (uploadId: string, filename: string, displayPath: string) =>
+        dispatch(actions.addUpload(uploadId, filename, displayPath));
 
   const updateProgress = (uploadId: string, progress: number) =>
     dispatch(actions.updateProgress(uploadId, progress));
@@ -47,19 +46,16 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const updateStatus = (uploadId: string, status: UploadStatus) =>
     dispatch(actions.updateStatus(uploadId, status));
 
-  const startUpload = (files: FileList, path: string, bucketId: string) => {
+    const startUpload = (files: FileList, folderId: string | undefined, bucketId: string) => {
     const file = files[0];
     const uploadId = generateRandomString(12);
 
-    // Create full path display: path + filename
-    const fullPath =
-      path && path !== "/" ? `${path}/${file.name}` : `/${file.name}`;
+        // Display path for UI (just show filename for now, folder path can be added later if needed)
+        const displayPath = file.name;
 
-    addUpload(uploadId, file.name, fullPath);
+        addUpload(uploadId, file.name, displayPath);
 
-    // Ensure path is never empty - backend requires non-empty path
-    const apiPath = path || "/";
-    api_createFile(file.name, FileType.file, apiPath, bucketId, file.size).then(
+        api_createFile(file.name, bucketId, file.size, folderId).then(
       (presignedUpload) => {
         queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
         uploadToStorage(presignedUpload, file, uploadId, updateProgress).then(

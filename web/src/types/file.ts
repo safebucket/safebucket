@@ -1,8 +1,3 @@
-export enum FileType {
-  file = "file",
-  folder = "folder",
-}
-
 export enum FileStatus {
   uploading = "uploading",
   uploaded = "uploaded",
@@ -22,10 +17,8 @@ export interface IFile {
   id: string;
   name: string;
   size: number;
-  type: FileType;
   extension: string;
-  path: string;
-  files: Array<IFile>;
+  folder_id?: string;
   status: FileStatus | null;
   created_at: string;
   trashed_at?: string;

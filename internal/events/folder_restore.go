@@ -3,7 +3,6 @@ package events
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"path"
 	"time"
 
@@ -75,8 +74,8 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
-	var folder models.File
-	result := params.DB.Where("id = ? AND bucket_id = ? AND type = 'folder'",
+	var folder models.Folder
+	result := params.DB.Where("id = ? AND bucket_id = ?",
 		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
 	if result.Error != nil {
@@ -89,6 +88,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			zap.String("current_status", string(folder.Status)))
 		return nil
 	}
+
 	retentionPeriod := time.Duration(params.TrashRetentionDays) * 24 * time.Hour
 	if folder.TrashedAt != nil && time.Since(*folder.TrashedAt) > retentionPeriod {
 		zap.L().Error("Folder trash expired",
@@ -99,20 +99,25 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		return errors.New("folder trash expired")
 	}
 
-	var existingFolder models.File
-	conflictResult := params.DB.Where(
-		"bucket_id = ? AND name = ? AND path = ? AND type = 'folder' AND (status IS NULL OR (status != ? AND status != ?))",
+	// Check for naming conflicts
+	var existingFolder models.Folder
+	query := params.DB.Where(
+		"bucket_id = ? AND name = ? AND (status IS NULL OR (status != ? AND status != ?))",
 		e.Payload.BucketID,
 		folder.Name,
-		folder.Path,
 		models.FileStatusTrashed,
 		models.FileStatusRestoring,
-	).First(&existingFolder)
+	)
+	if folder.FolderID != nil {
+		query = query.Where("folder_id = ?", folder.FolderID)
+	} else {
+		query = query.Where("folder_id IS NULL")
+	}
+	conflictResult := query.First(&existingFolder)
 
 	if conflictResult.RowsAffected > 0 {
 		zap.L().Error("Folder name conflict detected",
-			zap.String("folder_name", folder.Name),
-			zap.String("path", folder.Path))
+			zap.String("folder_name", folder.Name))
 
 		params.DB.Model(&folder).Update("status", models.FileStatusTrashed)
 		return errors.New("folder name conflict")
@@ -120,7 +125,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		updates := map[string]interface{}{
-			"status":     models.FileStatusUploaded,
+			"status":     nil,
 			"trashed_at": nil,
 			"trashed_by": nil,
 		}
@@ -130,53 +135,88 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			return err
 		}
 
-		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
+		// Unmark folder from storage
+		objectPath := path.Join("folder", e.Payload.BucketID.String(), folder.ID.String())
 		if err := params.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
-			zap.L().
-				Error("Failed to unmark folder as trashed - rolling back transaction",
-					zap.Error(err),
-					zap.String("path", objectPath),
-					zap.String("folder_id", e.Payload.FolderID.String()))
+			zap.L().Warn("Failed to unmark folder as trashed",
+				zap.Error(err),
+				zap.String("path", objectPath),
+				zap.String("folder_id", e.Payload.FolderID.String()))
+			// Continue - folders exist only in DB
+		}
+
+		// Restore child folders
+		var childFolders []models.Folder
+		if err := tx.Where(
+			"bucket_id = ? AND folder_id = ? AND status = ? AND trashed_at = ?",
+			e.Payload.BucketID,
+			e.Payload.FolderID,
+			models.FileStatusTrashed,
+			folder.TrashedAt,
+		).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
+			zap.L().Error("Failed to find child folders for restore", zap.Error(err))
 			return err
 		}
 
-		folderPath := path.Join(folder.Path, folder.Name)
-		dbPath := fmt.Sprintf("%s/%%", folderPath)
+		if len(childFolders) > 0 {
+			zap.L().Info("Restoring child folders",
+				zap.String("folder", folder.Name),
+				zap.Int("child_count", len(childFolders)))
 
+			var folderIDs []uuid.UUID
+			for _, child := range childFolders {
+				folderIDs = append(folderIDs, child.ID)
+			}
+
+			if err := tx.Model(&models.Folder{}).
+				Where("id IN ?", folderIDs).
+				Updates(updates).Error; err != nil {
+				zap.L().Error("Failed to restore child folders", zap.Error(err))
+				return err
+			}
+		}
+
+		// Restore child files
 		var childFiles []models.File
-		batchResult := tx.Where(
-			"bucket_id = ? AND path LIKE ? AND status = ? AND trashed_at = ?",
+		if err := tx.Where(
+			"bucket_id = ? AND folder_id = ? AND status = ? AND trashed_at = ?",
 			e.Payload.BucketID,
-			dbPath,
+			e.Payload.FolderID,
 			models.FileStatusTrashed,
 			folder.TrashedAt,
-		).Limit(c.BulkActionsLimit).Find(&childFiles)
-
-		if batchResult.Error != nil {
-			zap.L().Error("Failed to find child files for restore", zap.Error(batchResult.Error))
-			return batchResult.Error
+		).Limit(c.BulkActionsLimit).Find(&childFiles).Error; err != nil {
+			zap.L().Error("Failed to find child files for restore", zap.Error(err))
+			return err
 		}
 
 		if len(childFiles) > 0 {
-			zap.L().Info("Restoring folder contents batch",
+			zap.L().Info("Restoring child files",
 				zap.String("folder", folder.Name),
 				zap.Int("child_count", len(childFiles)))
 
 			var fileIDs []uuid.UUID
 			for _, child := range childFiles {
 				fileIDs = append(fileIDs, child.ID)
+
+				// Unmark each file from storage
+				filePath := path.Join("bucket", e.Payload.BucketID.String(), child.ID.String())
+				if err := params.Storage.UnmarkFileAsTrashed(filePath); err != nil {
+					zap.L().Warn("Failed to unmark file as trashed",
+						zap.Error(err),
+						zap.String("file_id", child.ID.String()))
+				}
 			}
 
 			if err := tx.Model(&models.File{}).
 				Where("id IN ?", fileIDs).
-				Updates(updates).Error; err != nil {
+				Updates(map[string]interface{}{
+					"status":     models.FileStatusUploaded,
+					"trashed_at": nil,
+					"trashed_by": nil,
+				}).Error; err != nil {
 				zap.L().Error("Failed to restore child files", zap.Error(err))
 				return err
 			}
-
-			// Note: We only unmark the folder itself from storage, not individual child files. .
-			zap.L().Debug("Child files restored in database only",
-				zap.Int("child_count", len(childFiles)))
 		}
 
 		return nil
@@ -185,19 +225,30 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		return err
 	}
 
-	var remainingCount int64
-	params.DB.Model(&models.File{}).Where(
-		"bucket_id = ? AND path LIKE ? AND status = ? AND trashed_at = ?",
+	// Check if there are remaining items to restore
+	var remainingFolders int64
+	params.DB.Model(&models.Folder{}).Where(
+		"bucket_id = ? AND folder_id = ? AND status = ? AND trashed_at = ?",
 		e.Payload.BucketID,
-		fmt.Sprintf("%s/%%", path.Join(folder.Path, folder.Name)),
+		e.Payload.FolderID,
 		models.FileStatusTrashed,
 		folder.TrashedAt,
-	).Count(&remainingCount)
+	).Count(&remainingFolders)
 
-	if remainingCount > 0 {
-		zap.L().Info("More files to restore, requeuing event",
-			zap.Int64("remaining", remainingCount))
-		return errors.New("remaining files to restore")
+	var remainingFiles int64
+	params.DB.Model(&models.File{}).Where(
+		"bucket_id = ? AND folder_id = ? AND status = ? AND trashed_at = ?",
+		e.Payload.BucketID,
+		e.Payload.FolderID,
+		models.FileStatusTrashed,
+		folder.TrashedAt,
+	).Count(&remainingFiles)
+
+	if remainingFolders > 0 || remainingFiles > 0 {
+		zap.L().Info("More items to restore, requeuing event",
+			zap.Int64("remaining_folders", remainingFolders),
+			zap.Int64("remaining_files", remainingFiles))
+		return errors.New("remaining items to restore")
 	}
 
 	action := models.Activity{
@@ -205,9 +256,9 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionRestore.String(),
 			"bucket_id":   e.Payload.BucketID.String(),
-			"file_id":     e.Payload.FolderID.String(),
+			"folder_id":   e.Payload.FolderID.String(),
 			"domain":      c.DefaultDomain,
-			"object_type": rbac.ResourceFile.String(),
+			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     e.Payload.UserID.String(),
 		}),
 	}

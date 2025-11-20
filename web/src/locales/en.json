@@ -190,7 +190,9 @@
       "deleting": "Deleting"
     },
     "trash_view": {
+      "type": "Type",
       "name": "Name",
+      "original_location": "Original Location",
       "size": "Size",
       "deleted_at": "Deleted At",
       "deleted_by": "Deleted By",

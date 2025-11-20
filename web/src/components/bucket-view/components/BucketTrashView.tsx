@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
-import { ArchiveRestore, LoaderCircle, Trash2 } from "lucide-react";
-import { type FC, useState } from "react";
+import {ArchiveRestore, LoaderCircle, Trash2, Folder} from "lucide-react";
+import {type FC, useState, useMemo} from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
-import type { IFile } from "@/types/file.ts";
+import type {TrashedItem} from "@/components/bucket-view/hooks/useTrashActions";
+import type {IBucket} from "@/types/bucket.ts";
 import { FileStatus } from "@/types/file.ts";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { formatDate, formatFileSize } from "@/lib/utils";
@@ -31,16 +32,58 @@ import {
 import { MoreHorizontal } from "lucide-react";
 
 interface BucketTrashViewProps {
-  files: Array<IFile>;
-  onRestore: (fileId: string, fileName: string) => void;
-  onPermanentDelete: (fileId: string, fileName: string) => void;
+  items: Array<TrashedItem>;
+  bucket: IBucket;
+  onRestore: (itemId: string, itemName: string, itemType: "file" | "folder") => void;
+  onPermanentDelete: (itemId: string, itemName: string, itemType: "file" | "folder") => void;
 }
+
+// Helper function to build the original folder path
+const buildFolderPath = (folderId: string | undefined, folders: IBucket["folders"]): string => {
+  if (!folderId) return "/";
+
+  const path: string[] = [];
+  let currentId: string | undefined = folderId;
+
+  while (currentId) {
+    const folder = folders.find((f) => f.id === currentId);
+    if (!folder) break;
+    path.unshift(folder.name);
+    currentId = folder.folder_id;
+  }
+
+  return "/" + path.join("/");
+};
 
 const createColumns = (
   t: (key: string) => string,
-  onRestore: (fileId: string, fileName: string) => void,
-  onOpenDeleteDialog: (fileId: string, fileName: string) => void,
-): Array<ColumnDef<IFile>> => [
+  bucket: IBucket,
+  onRestore: (itemId: string, itemName: string, itemType: "file" | "folder") => void,
+  onOpenDeleteDialog: (itemId: string, itemName: string, itemType: "file" | "folder") => void,
+): Array<ColumnDef<TrashedItem>> => [
+  {
+    id: "type",
+    header: ({column}) => (
+        <DataTableColumnHeader
+            column={column}
+            title={t("bucket.trash_view.type")}
+        />
+    ),
+    cell: ({row}) => {
+      const item = row.original;
+      if (item.itemType === "folder") {
+        return <Folder className="h-5 w-5 text-primary opacity-50"/>;
+      } else {
+        return (
+            <FileIconView
+                className="text-primary h-5 w-5 opacity-50"
+                isFolder={false}
+                extension={"extension" in item ? item.extension : ""}
+            />
+        );
+      }
+    },
+  },
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -50,15 +93,25 @@ const createColumns = (
       />
     ),
     cell: ({ row }) => (
-      <div className="flex w-[350px] items-center space-x-2">
-        <FileIconView
-          className="text-primary h-5 w-5 opacity-50"
-          type={row.original.type}
-          extension={row.original.extension}
-        />
+        <div className="flex w-[300px] items-center space-x-2">
         <p className="opacity-70">{row.getValue("name")}</p>
       </div>
     ),
+  },
+  {
+    id: "original_location",
+    header: ({column}) => (
+        <DataTableColumnHeader
+            column={column}
+            title={t("bucket.trash_view.original_location")}
+        />
+    ),
+    cell: ({row}) => {
+      const item = row.original;
+      const folderId = "folder_id" in item ? item.folder_id : undefined;
+      const path = buildFolderPath(folderId, bucket.folders);
+      return <span className="text-sm text-muted-foreground">{path}</span>;
+    },
   },
   {
     accessorKey: "size",
@@ -68,7 +121,13 @@ const createColumns = (
         title={t("bucket.trash_view.size")}
       />
     ),
-    cell: ({ row }) => formatFileSize(row.getValue("size")),
+    cell: ({row}) => {
+      const item = row.original;
+      if (item.itemType === "folder") {
+        return "-";
+      }
+      return "size" in item ? formatFileSize(item.size) : "-";
+    },
   },
   {
     accessorKey: "trashed_at",
@@ -129,68 +188,76 @@ const createColumns = (
   },
   {
     id: "actions",
-    cell: ({ row }) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[160px]">
-          <DropdownMenuItem
-            onClick={() => onRestore(row.original.id, row.original.name)}
-          >
-            <ArchiveRestore className="mr-2 h-4 w-4" />
-            {t("bucket.trash_view.restore")}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-red-600"
-            onClick={() =>
-              onOpenDeleteDialog(row.original.id, row.original.name)
-            }
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {t("bucket.trash_view.delete_permanently")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
+    cell: ({row}) => {
+      const item = row.original;
+      return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                  variant="ghost"
+                  className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
+              >
+                <MoreHorizontal className="h-4 w-4"/>
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[160px]">
+              <DropdownMenuItem
+                  onClick={() => onRestore(item.id, item.name, item.itemType)}
+              >
+                <ArchiveRestore className="mr-2 h-4 w-4"/>
+                {t("bucket.trash_view.restore")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator/>
+              <DropdownMenuItem
+                  className="text-red-600"
+                  onClick={() =>
+                      onOpenDeleteDialog(item.id, item.name, item.itemType)
+                  }
+              >
+                <Trash2 className="mr-2 h-4 w-4"/>
+                {t("bucket.trash_view.delete_permanently")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+      );
+    },
   },
 ];
 
 export const BucketTrashView: FC<BucketTrashViewProps> = ({
-  files,
+                                                            items,
+                                                            bucket,
   onRestore,
   onPermanentDelete,
 }: BucketTrashViewProps) => {
   const { t } = useTranslation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<{
+  const [selectedItem, setSelectedItem] = useState<{
     id: string;
     name: string;
+    itemType: "file" | "folder";
   } | null>(null);
 
-  const handleOpenDeleteDialog = (fileId: string, fileName: string) => {
-    setSelectedFile({ id: fileId, name: fileName });
+  const handleOpenDeleteDialog = (itemId: string, itemName: string, itemType: "file" | "folder") => {
+    setSelectedItem({id: itemId, name: itemName, itemType});
     setDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = () => {
-    if (selectedFile) {
-      onPermanentDelete(selectedFile.id, selectedFile.name);
+    if (selectedItem) {
+      onPermanentDelete(selectedItem.id, selectedItem.name, selectedItem.itemType);
       setDeleteDialogOpen(false);
-      setSelectedFile(null);
+      setSelectedItem(null);
     }
   };
 
-  const columns = createColumns(t, onRestore, handleOpenDeleteDialog);
+  const columns = useMemo(
+      () => createColumns(t, bucket, onRestore, handleOpenDeleteDialog),
+      [t, bucket, onRestore],
+  );
 
-  if (files.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
         <Trash2 className="h-16 w-16 mb-4 opacity-20" />
@@ -212,13 +279,23 @@ export const BucketTrashView: FC<BucketTrashViewProps> = ({
         </div>
         <DataTable
           columns={columns}
-          data={files}
+          data={items}
           selected={null}
           onRowClick={() => {}}
           onRowDoubleClick={() => {}}
           trashMode={true}
-          onRestore={onRestore}
-          onPermanentDelete={onPermanentDelete}
+          onRestore={(itemId: string, itemName: string) => {
+            const item = items.find((i) => i.id === itemId);
+            if (item) {
+              onRestore(itemId, itemName, item.itemType);
+            }
+          }}
+          onPermanentDelete={(itemId: string, itemName: string) => {
+            const item = items.find((i) => i.id === itemId);
+            if (item) {
+              handleOpenDeleteDialog(itemId, itemName, item.itemType);
+            }
+          }}
         />
       </div>
 
@@ -230,7 +307,7 @@ export const BucketTrashView: FC<BucketTrashViewProps> = ({
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t("bucket.trash_view.confirm_delete_description", {
-                fileName: selectedFile?.name,
+                fileName: selectedItem?.name,
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>

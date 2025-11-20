@@ -16,6 +16,7 @@ const (
 	ActionRestore  = Action("restore")
 	ActionGrant    = Action("grant")
 	ActionPurge    = Action("purge")
+	ActionUpdate   = Action("update")
 )
 
 // Resource represents an object type in the RBAC system.
@@ -29,4 +30,5 @@ func (r Resource) String() string {
 const (
 	ResourceBucket = Resource("bucket")
 	ResourceFile   = Resource("file")
+	ResourceFolder = Resource("folder")
 )

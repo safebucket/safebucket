@@ -2,24 +2,24 @@ import { FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
-import type { IFile } from "@/types/file.ts";
+import type {BucketItem} from "@/components/bucket-view/helpers/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { FileGridCard } from "@/components/bucket-view/components/FileGridCard";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 
 interface IBucketGridViewProps {
-  files: Array<IFile>;
+  items: Array<BucketItem>;
   bucketId: string;
 }
 
 export const BucketGridView: FC<IBucketGridViewProps> = ({
-  files,
+                                                           items,
   bucketId,
 }: IBucketGridViewProps) => {
   const { t } = useTranslation();
   const { selected, setSelected, openFolder } = useBucketViewContext();
 
-  if (files.length === 0) {
+  if (items.length === 0) {
     return (
       <DragDropZone bucketId={bucketId} className="min-h-[400px]">
         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -41,10 +41,10 @@ export const BucketGridView: FC<IBucketGridViewProps> = ({
   return (
     <DragDropZone bucketId={bucketId}>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-        {files.map((file) => (
+        {items.map((item) => (
           <FileGridCard
-            key={file.id}
-            file={file}
+              key={item.id}
+              file={item}
             selected={selected}
             setSelected={setSelected}
             onDoubleClick={openFolder}

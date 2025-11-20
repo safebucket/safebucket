@@ -55,17 +55,18 @@ func main() {
 
 	appIdentity := uuid.New().String()
 
+	eventsManager := core.NewEventsManager(config.Events, storage)
+	eventRouter := core.NewEventRouter(eventsManager)
+
 	eventParams := &events.EventParams{
 		WebURL:             config.App.WebURL,
 		Notifier:           notifier,
+		Publisher:          eventRouter,
 		DB:                 db,
 		Storage:            storage,
 		ActivityLogger:     activity,
 		TrashRetentionDays: config.App.TrashRetentionDays,
 	}
-
-	eventsManager := core.NewEventsManager(config.Events, storage)
-	eventRouter := core.NewEventRouter(eventsManager)
 
 	notifications := eventsManager.GetSubscriber(configuration.EventsNotifications).Subscribe()
 	go events.HandleEvents(eventParams, notifications)

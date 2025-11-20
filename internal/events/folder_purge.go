@@ -3,7 +3,6 @@ package events
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"path"
 
 	"api/internal/activity"
@@ -74,8 +73,8 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
-	var folder models.File
-	result := params.DB.Where("id = ? AND bucket_id = ? AND type = 'folder'",
+	var folder models.Folder
+	result := params.DB.Where("id = ? AND bucket_id = ?",
 		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
 	if result.Error != nil {
@@ -90,52 +89,70 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	}
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		folderPath := path.Join(folder.Path, folder.Name)
-		// Add "/" to ensure we only match direct children, not folders with similar names
-		dbPath := fmt.Sprintf("%s/%%", folderPath)
-
-		var childFiles []models.File
-		batchResult := tx.Where(
-			"bucket_id = ? AND path LIKE ?",
+		// Purge child folders
+		var childFolders []models.Folder
+		if err := tx.Where(
+			"bucket_id = ? AND folder_id = ?",
 			e.Payload.BucketID,
-			dbPath,
-		).Limit(c.BulkActionsLimit).Find(&childFiles)
+			e.Payload.FolderID,
+		).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
+			zap.L().Error("Failed to find child folders for purging", zap.Error(err))
+			return err
+		}
 
-		if batchResult.Error != nil {
-			zap.L().Error("Failed to find child files for purging", zap.Error(batchResult.Error))
-			return batchResult.Error
+		if len(childFolders) > 0 {
+			zap.L().Info("Purging child folders",
+				zap.String("folder", folder.Name),
+				zap.Int("child_count", len(childFolders)))
+
+			var folderIDs []uuid.UUID
+			for _, child := range childFolders {
+				folderIDs = append(folderIDs, child.ID)
+			}
+
+			if err := tx.Where("id IN ?", folderIDs).Delete(&models.Folder{}).Error; err != nil {
+				zap.L().Error("Failed to delete child folders", zap.Error(err))
+				return err
+			}
+		}
+
+		// Purge child files
+		var childFiles []models.File
+		if err := tx.Where(
+			"bucket_id = ? AND folder_id = ?",
+			e.Payload.BucketID,
+			e.Payload.FolderID,
+		).Limit(c.BulkActionsLimit).Find(&childFiles).Error; err != nil {
+			zap.L().Error("Failed to find child files for purging", zap.Error(err))
+			return err
 		}
 
 		if len(childFiles) > 0 {
-			zap.L().Info("Purging folder contents batch",
+			zap.L().Info("Purging child files",
 				zap.String("folder", folder.Name),
 				zap.Int("child_count", len(childFiles)))
 
 			var storagePaths []string
-			for _, child := range childFiles {
-				childPath := path.Join(
-					"buckets",
-					e.Payload.BucketID.String(),
-					child.Path,
-					child.Name,
-				)
-				storagePaths = append(storagePaths, childPath)
-			}
-
-			if len(storagePaths) > 0 {
-				err := params.Storage.RemoveObjects(storagePaths)
-				if err != nil {
-					zap.L().Error("Failed to delete files from storage", zap.Error(err))
-				}
-			}
-
 			var fileIDs []uuid.UUID
 			for _, child := range childFiles {
 				fileIDs = append(fileIDs, child.ID)
+
+				// Build storage path: bucket/{bucket_id}/{file_id}
+				childPath := path.Join("bucket", e.Payload.BucketID.String(), child.ID.String())
+				storagePaths = append(storagePaths, childPath)
 			}
 
+			// Delete files from storage
+			if len(storagePaths) > 0 {
+				if err := params.Storage.RemoveObjects(storagePaths); err != nil {
+					zap.L().Warn("Failed to delete some files from storage", zap.Error(err))
+					// Continue - some files may already be deleted
+				}
+			}
+
+			// Soft delete from database
 			if err := tx.Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
-				zap.L().Error("Failed to soft delete child files", zap.Error(err))
+				zap.L().Error("Failed to delete child files", zap.Error(err))
 				return err
 			}
 		}
@@ -146,28 +163,40 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return err
 	}
 
-	var remainingCount int64
-	params.DB.Model(&models.File{}).Where(
-		"bucket_id = ? AND path LIKE ?",
+	// Check if there are remaining items to purge
+	var remainingFolders int64
+	params.DB.Model(&models.Folder{}).Where(
+		"bucket_id = ? AND folder_id = ?",
 		e.Payload.BucketID,
-		fmt.Sprintf("%s/%%", path.Join(folder.Path, folder.Name)),
-	).Count(&remainingCount)
+		e.Payload.FolderID,
+	).Count(&remainingFolders)
 
-	if remainingCount > 0 {
-		zap.L().Info("More files to purge, requeuing event",
-			zap.Int64("remaining", remainingCount))
-		return errors.New("remaining files to purge")
+	var remainingFiles int64
+	params.DB.Model(&models.File{}).Where(
+		"bucket_id = ? AND folder_id = ?",
+		e.Payload.BucketID,
+		e.Payload.FolderID,
+	).Count(&remainingFiles)
+
+	if remainingFolders > 0 || remainingFiles > 0 {
+		zap.L().Info("More items to purge, requeuing event",
+			zap.Int64("remaining_folders", remainingFolders),
+			zap.Int64("remaining_files", remainingFiles))
+		return errors.New("remaining items to purge")
 	}
 
-	objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.Path, folder.Name)
+	// Delete folder marker from storage
+	objectPath := path.Join("folder", e.Payload.BucketID.String(), e.Payload.FolderID.String())
 	if err = params.Storage.RemoveObject(objectPath); err != nil {
-		zap.L().Warn("Failed to delete folder from storage",
+		zap.L().Warn("Failed to delete folder marker from storage",
 			zap.Error(err),
 			zap.String("path", objectPath))
+		// Continue - folder exists only in DB
 	}
 
+	// Soft delete folder from database
 	if err = params.DB.Delete(&folder).Error; err != nil {
-		zap.L().Error("Failed to soft delete folder from database", zap.Error(err))
+		zap.L().Error("Failed to delete folder from database", zap.Error(err))
 		return err
 	}
 
@@ -176,9 +205,9 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionPurge.String(),
 			"bucket_id":   e.Payload.BucketID.String(),
-			"file_id":     e.Payload.FolderID.String(),
+			"folder_id":   e.Payload.FolderID.String(),
 			"domain":      c.DefaultDomain,
-			"object_type": rbac.ResourceFile.String(),
+			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     e.Payload.UserID.String(),
 		}),
 	}

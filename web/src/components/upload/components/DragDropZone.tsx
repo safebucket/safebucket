@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Upload } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
 import type { DragEvent, FC } from "react";
 
 import type {
@@ -12,9 +11,7 @@ import type {
 import { cn } from "@/lib/utils";
 
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import { api_createFile } from "@/components/upload/helpers/api";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
-import { FileType } from "@/types/file.ts";
 
 interface IDragDropZoneProps {
   bucketId: string;
@@ -28,12 +25,11 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   className,
 }) => {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [isDragOver, setIsDragOver] = useState(false);
   const [_dragCounter, setDragCounter] = useState(0);
 
   const { startUpload } = useUploadContext();
-  const { path } = useBucketViewContext();
+    const {folderId} = useBucketViewContext();
 
   const handleDragEnter = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -74,38 +70,28 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
     [isDragOver],
   );
 
+    // Simplified: Just process files without complex folder structure
   const processFileEntry = useCallback(
-    (entry: FileSystemFileEntry, currentPath: string): Promise<Array<File>> => {
+      (entry: FileSystemFileEntry): Promise<File | null> => {
       return new Promise((resolve) => {
-        entry.file((file) => {
-          const fullPath = currentPath
-            ? `${currentPath}/${file.name}`
-            : file.name;
-          const fileWithPath = new File([file], fullPath, { type: file.type });
-          resolve([fileWithPath]);
-        });
+          entry.file((file) => resolve(file));
       });
     },
     [],
   );
 
   const processDirectoryEntry = useCallback(
-    async (
-      entry: FileSystemEntry,
-      currentPath: string = "",
-    ): Promise<Array<File>> => {
-      return new Promise((resolve) => {
-        if (entry.isFile) {
-          processFileEntry(entry as FileSystemFileEntry, currentPath).then(
-            resolve,
-          );
-          return;
-        }
+      async (entry: FileSystemEntry): Promise<Array<File>> => {
+          if (entry.isFile) {
+              const file = await processFileEntry(entry as FileSystemFileEntry);
+              return file ? [file] : [];
+          }
 
-        if (entry.isDirectory) {
-          const dirReader = (entry as FileSystemDirectoryEntry).createReader();
-          const allFiles: Array<File> = [];
+          if (entry.isDirectory) {
+              const dirReader = (entry as FileSystemDirectoryEntry).createReader();
+              const allFiles: Array<File> = [];
 
+              return new Promise((resolve) => {
           const readEntries = () => {
             dirReader.readEntries(async (entries: Array<FileSystemEntry>) => {
               if (entries.length === 0) {
@@ -114,13 +100,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
               }
 
               for (const childEntry of entries) {
-                const childPath = currentPath
-                  ? `${currentPath}/${entry.name}`
-                  : entry.name;
-                const childFiles = await processDirectoryEntry(
-                  childEntry,
-                  childPath,
-                );
+                  const childFiles = await processDirectoryEntry(childEntry);
                 allFiles.push(...childFiles);
               }
 
@@ -129,108 +109,12 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
           };
 
           readEntries();
-        }
-      });
+              });
+          }
+
+          return [];
     },
     [processFileEntry],
-  );
-
-  const extractFolderPaths = useCallback(
-    (files: Array<File>): Set<string> => {
-      const folderPaths = new Set<string>();
-
-      files.forEach((file) => {
-        const fileName = file.name;
-        const lastSlashIndex = fileName.lastIndexOf("/");
-        if (lastSlashIndex >= 0) {
-          const relativePath = fileName.substring(0, lastSlashIndex);
-          const pathParts = relativePath.split("/");
-
-          let currentPath = "";
-          pathParts.forEach((part) => {
-            currentPath = currentPath ? `${currentPath}/${part}` : part;
-            const fullFolderPath =
-              path && path !== "/"
-                ? `${path}/${currentPath}`
-                : `/${currentPath}`;
-            folderPaths.add(fullFolderPath);
-          });
-        }
-      });
-
-      return folderPaths;
-    },
-    [path],
-  );
-
-  const createFolders = useCallback(
-    async (folderPaths: Set<string>) => {
-      const createFolderPromises = Array.from(folderPaths).map((folderPath) => {
-        const parts = folderPath.split("/");
-        const folderName = parts[parts.length - 1];
-        const parentPath = parts.slice(0, -1).join("/");
-        // Ensure parentPath is never empty - backend requires non-empty path
-        const apiParentPath = parentPath || "/";
-
-        return api_createFile(
-          folderName,
-          FileType.folder,
-          apiParentPath,
-          bucketId,
-        );
-      });
-
-      await Promise.all(createFolderPromises);
-      queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-    },
-    [bucketId],
-  );
-
-  const uploadFiles = useCallback(
-    (files: Array<File>) => {
-      files.forEach((file) => {
-        const fileName = file.name;
-        const lastSlashIndex = fileName.lastIndexOf("/");
-        const baseName =
-          lastSlashIndex >= 0
-            ? fileName.substring(lastSlashIndex + 1)
-            : fileName;
-        const relativePath =
-          lastSlashIndex >= 0 ? fileName.substring(0, lastSlashIndex) : "";
-        const fullPath = relativePath
-          ? path && path !== "/"
-            ? `${path}/${relativePath}`
-            : `/${relativePath}`
-          : path;
-
-        const singleFileList = Object.assign([file], {
-          length: 1,
-          item: (index: number) => (index === 0 ? file : null),
-        }) as FileList;
-
-        Object.defineProperty(file, "name", {
-          value: baseName,
-          writable: false,
-          configurable: true,
-        });
-
-        startUpload(singleFileList, fullPath, bucketId);
-      });
-    },
-    [startUpload, path, bucketId],
-  );
-
-  const createFoldersAndUploadFiles = useCallback(
-    async (files: Array<File>) => {
-      try {
-        const folderPaths = extractFolderPaths(files);
-        await createFolders(folderPaths);
-        uploadFiles(files);
-      } catch (error) {
-        console.error("Error creating folders:", error);
-      }
-    },
-    [extractFolderPaths, createFolders, uploadFiles],
   );
 
   const processDroppedItems = useCallback(
@@ -262,26 +146,27 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       setDragCounter(0);
 
       const items = e.dataTransfer.items;
+        const currentFolderId = folderId ?? undefined;
+
       if (items.length > 0) {
         const allFiles = await processDroppedItems(items);
-        if (allFiles.length > 0) {
-          await createFoldersAndUploadFiles(allFiles);
+          // Upload all files from dropped folders to current folder
+          for (const file of allFiles) {
+              const fileList = Object.assign([file], {
+                  length: 1,
+                  item: (index: number) => (index === 0 ? file : null),
+              }) as FileList;
+              startUpload(fileList, currentFolderId, bucketId);
         }
         return;
       }
 
       const files = e.dataTransfer.files;
       if (files.length > 0) {
-        startUpload(files, path, bucketId);
+          startUpload(files, currentFolderId, bucketId);
       }
     },
-    [
-      processDroppedItems,
-      createFoldersAndUploadFiles,
-      startUpload,
-      path,
-      bucketId,
-    ],
+      [processDroppedItems, startUpload, folderId, bucketId],
   );
 
   return (

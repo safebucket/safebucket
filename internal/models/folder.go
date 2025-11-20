@@ -7,26 +7,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type FileStatus string
-
-const (
-	FileStatusUploading FileStatus = "uploading"
-	FileStatusUploaded  FileStatus = "uploaded"
-	FileStatusDeleting  FileStatus = "deleting"
-	FileStatusTrashed   FileStatus = "trashed"
-	FileStatusRestoring FileStatus = "restoring"
-)
-
-type File struct {
+type Folder struct {
 	ID           uuid.UUID      `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
 	Name         string         `gorm:"not null;default:null"                          json:"name"`
-	Extension    string         `gorm:"default:null"                                   json:"extension"`
 	Status       FileStatus     `gorm:"type:file_status;default:null"                  json:"status"`
-	BucketID     uuid.UUID      `gorm:"type:uuid;"                                     json:"bucket_id"`
-	Bucket       Bucket         `                                                      json:"-"`
 	FolderID     *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"folder_id,omitempty"`
 	ParentFolder *Folder        `gorm:"foreignKey:FolderID"                            json:"parent_folder,omitempty"`
-	Size         int            `gorm:"type:bigint;default:null"                       json:"size"`
+	BucketID     uuid.UUID      `gorm:"type:uuid;not null"                             json:"bucket_id"`
+	Bucket       Bucket         `                                                      json:"-"`
 	TrashedAt    *time.Time     `gorm:"default:null;index"                             json:"trashed_at,omitempty"`
 	TrashedBy    *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"trashed_by,omitempty"`
 	TrashedUser  User           `gorm:"foreignKey:TrashedBy"                           json:"trashed_user,omitempty"`
@@ -35,22 +23,11 @@ type File struct {
 	DeletedAt    gorm.DeletedAt `gorm:"index"                                          json:"-"`
 }
 
-type FileTransferBody struct {
-	Name     string     `json:"name" validate:"required,filename,max=255"`
+type FolderCreateBody struct {
+	Name     string     `json:"name" validate:"required,foldername,max=255"`
 	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
-	Size     int        `json:"size" validate:"required,max=1099511627776"`
 }
 
-type FileTransferResponse struct {
-	ID   string            `json:"id"`
-	URL  string            `json:"url"`
-	Body map[string]string `json:"body"`
-}
-
-// TrashMetadata contains metadata for marking a file or folder as trashed.
-type TrashMetadata struct {
-	TrashedAt time.Time
-	TrashedBy uuid.UUID
-	ObjectID  uuid.UUID
-	IsFolder  bool
+type FolderUpdateBody struct {
+	Name string `json:"name" validate:"required,foldername,max=255"`
 }

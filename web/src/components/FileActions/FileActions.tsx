@@ -3,8 +3,9 @@ import { useTranslation } from "react-i18next";
 import { ArchiveRestore, Download, FolderPlus, Trash2 } from "lucide-react";
 import type { FC, ReactNode } from "react";
 
-import type { IFile } from "@/types/file.ts";
-import { FileStatus, FileType } from "@/types/file.ts";
+import {FileStatus} from "@/types/file.ts";
+import type {BucketItem} from "@/components/bucket-view/helpers/utils";
+import {isFile} from "@/components/bucket-view/helpers/utils";
 import { useFileActions } from "@/components/FileActions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
@@ -26,7 +27,7 @@ import {
 
 interface IFileActionsProps {
   children: ReactNode;
-  file: IFile;
+  file: BucketItem;
   type: "context" | "dropdown";
   trashMode?: boolean;
   onRestore?: (fileId: string, fileName: string) => void;
@@ -79,7 +80,7 @@ export const FileActions: FC<IFileActionsProps> = ({
             </>
           ) : (
             <>
-              {file.type === FileType.file && (
+              {isFile(file) && (
                 <>
                   <MenuItem
                     onClick={() =>
@@ -132,7 +133,7 @@ export const FileActions: FC<IFileActionsProps> = ({
             })}
             description={t("file_actions.delete_dialog.description")}
             confirmLabel={t("file_actions.delete_dialog.confirm")}
-            onConfirm={() => deleteFile(file.id, file.name)}
+            onConfirm={() => deleteFile(file.id, file.name, !isFile(file))}
           />
         </>
       )}

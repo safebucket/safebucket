@@ -18,7 +18,6 @@ import type {
   VisibilityState,
 } from "@tanstack/react-table";
 
-import type { IFile } from "@/types/file.ts";
 import { FileActions } from "@/components/FileActions/FileActions";
 import {
   Table,
@@ -40,7 +39,7 @@ interface DataTableProps<TData, TValue> {
   onPermanentDelete?: (fileId: string, fileName: string) => void;
 }
 
-export function DataTable<TData extends IFile, TValue>({
+export function DataTable<TData extends { id: string; name: string }, TValue>({
   columns,
   data,
   selected,
@@ -110,7 +109,7 @@ export function DataTable<TData extends IFile, TValue>({
               table.getRowModel().rows.map((row) => (
                 <FileActions
                   key={row.id}
-                  file={row.original}
+                  file={row.original as any}
                   type="context"
                   trashMode={trashMode}
                   onRestore={onRestore}

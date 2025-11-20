@@ -2,8 +2,9 @@ import { useTranslation } from "react-i18next";
 import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
 import type { FC } from "react";
 
-import type { IFile } from "@/types/file.ts";
-import { FileStatus, FileType } from "@/types/file.ts";
+import {FileStatus} from "@/types/file.ts";
+import type {BucketItem} from "@/components/bucket-view/helpers/utils";
+import {isFolder} from "@/components/bucket-view/helpers/utils";
 import { cn, formatDate, formatFileSize } from "@/lib/utils";
 import { FileActions } from "@/components/FileActions/FileActions";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
@@ -11,10 +12,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface IFileGridCardProps {
-  file: IFile;
-  selected: IFile | null;
-  setSelected: (file: IFile) => void;
-  onDoubleClick: (file: IFile) => void;
+  file: BucketItem;
+  selected: BucketItem | null;
+  setSelected: (item: BucketItem) => void;
+  onDoubleClick: (item: BucketItem) => void;
 }
 
 export const FileGridCard: FC<IFileGridCardProps> = ({
@@ -25,6 +26,7 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
 }: IFileGridCardProps) => {
   const { t } = useTranslation();
   const isSelected = selected?.id === file.id;
+  const itemIsFolder = isFolder(file);
 
   const renderStatusBadge = () => {
     if (!file.status) return null;
@@ -90,8 +92,8 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
           >
             <FileIconView
               className="h-8 w-8"
-              type={file.type}
-              extension={file.extension}
+              isFolder={itemIsFolder}
+              extension={!itemIsFolder ? file.extension : undefined}
             />
           </div>
 
@@ -114,9 +116,7 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
                     : "text-muted-foreground",
                 )}
               >
-                {file.type === FileType.folder
-                  ? "-"
-                  : formatFileSize(file.size)}
+                {itemIsFolder ? "-" : formatFileSize(file.size)}
               </p>
               {renderStatusBadge()}
             </div>
@@ -131,7 +131,7 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
               isSelected && "bg-primary-foreground/20 text-primary-foreground",
             )}
           >
-            {file.type}
+            {itemIsFolder ? "folder" : file.extension}
           </Badge>
           <span
             className={cn(

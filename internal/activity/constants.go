@@ -10,6 +10,8 @@ const (
 	FileTrashed         string = "FILE_TRASHED"
 	FileRestored        string = "FILE_RESTORED"
 	FilePurged          string = "FILE_PURGED"
+	FolderCreated       string = "FOLDER_CREATED"
+	FolderUpdated       string = "FOLDER_UPDATED"
 	FolderTrashed       string = "FOLDER_TRASHED"
 	FolderRestored      string = "FOLDER_RESTORED"
 	FolderPurged        string = "FOLDER_PURGED"

@@ -1,16 +1,16 @@
 import { createContext, useContext } from "react";
 
 import type { BucketViewMode } from "@/components/bucket-view/helpers/types";
-import type { IFile } from "@/types/file.ts";
+import type {BucketItem} from "@/components/bucket-view/helpers/utils";
 
 export interface IBucketViewContext {
   bucketId: string;
-  path: string;
+    folderId: string | null;
   view: BucketViewMode;
   setView: (view: BucketViewMode) => void;
-  selected: IFile | null;
-  setSelected: (file: IFile) => void;
-  openFolder: (file: IFile) => void;
+    selected: BucketItem | null;
+    setSelected: (item: BucketItem) => void;
+    openFolder: (item: BucketItem) => void;
 }
 
 export const BucketViewContext = createContext<IBucketViewContext>(

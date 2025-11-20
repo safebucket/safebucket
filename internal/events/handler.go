@@ -23,6 +23,7 @@ import (
 type EventParams struct {
 	WebURL             string
 	Notifier           notifier.INotifier
+	Publisher          messaging.IPublisher
 	DB                 *gorm.DB
 	Storage            storage.IStorage
 	ActivityLogger     activity.IActivityLogger

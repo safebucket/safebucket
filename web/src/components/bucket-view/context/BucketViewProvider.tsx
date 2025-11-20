@@ -1,28 +1,32 @@
 import React, { useState } from "react";
 
-import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
+import {useNavigate, useParams} from "@tanstack/react-router";
 
-import type { IFile } from "@/types/file.ts";
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
+import type {BucketItem} from "@/components/bucket-view/helpers/utils";
+import {isFolder} from "@/components/bucket-view/helpers/utils";
 import { BucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 
 export const BucketViewProvider = ({
   children,
-  path,
+                                       folderId,
 }: {
   children: React.ReactNode;
-  path: string;
+    folderId: string | null;
 }) => {
-  const navigate = useNavigate();
   const params = useParams({ from: "/_authenticated/buckets/$id/$" });
-  const location = useLocation();
+    const navigate = useNavigate();
 
   const [view, setView] = useState<BucketViewMode>(BucketViewMode.List);
-  const [selected, setSelected] = useState<IFile | null>(null);
+    const [selected, setSelected] = useState<BucketItem | null>(null);
 
-  const openFolder = (file: IFile) => {
-    if (file.type == "folder") {
-      navigate({ to: `${location.pathname}/${file.name}` });
+    const openFolder = (item: BucketItem) => {
+        if (isFolder(item)) {
+            // Navigate to /buckets/{bucketId}/{folderId}
+            navigate({
+                to: "/buckets/$id/$",
+                params: {id: params.id, _splat: item.id},
+            });
     }
   };
 
@@ -30,7 +34,7 @@ export const BucketViewProvider = ({
     <BucketViewContext.Provider
       value={{
         bucketId: params.id,
-        path,
+          folderId,
         view,
         setView,
         selected,

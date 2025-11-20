@@ -12,20 +12,18 @@ import {
 } from "lucide-react";
 import type { FC } from "react";
 
-import { FileType } from "@/types/file.ts";
-
 interface IFileIconViewProps {
   className: string;
-  extension: string;
-  type: string;
+  extension?: string;
+  isFolder: boolean;
 }
 
 export const FileIconView: FC<IFileIconViewProps> = ({
   className,
   extension,
-  type,
+                                                       isFolder,
 }: IFileIconViewProps) => {
-  if (type === FileType.folder) {
+  if (isFolder) {
     return <FolderClosed className={className} />;
   }
 

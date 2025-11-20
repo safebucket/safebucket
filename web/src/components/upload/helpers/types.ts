@@ -17,7 +17,7 @@ export interface ICreateFile {
 
 export interface IUploadContext {
   uploads: Array<IUpload>;
-  startUpload: (files: FileList, path: string, bucketId: string) => void;
+    startUpload: (files: FileList, folderId: string | undefined, bucketId: string) => void;
 }
 
 export enum UploadStatus {
