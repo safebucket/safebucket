@@ -55,6 +55,19 @@ type FileTransferResponse struct {
 	Body map[string]string `json:"body"`
 }
 
+// FileListQueryParams is an example of query parameter validation.
+// Use with the ValidateQuery middleware:
+//
+//	r.With(m.ValidateQuery[models.FileListQueryParams]).
+//	    Get("/files", handler)
+type FileListQueryParams struct {
+	Path      string `json:"path" validate:"max=1024"`
+	SortBy    string `json:"sort_by" validate:"omitempty,oneof=name size created_at"`
+	SortOrder string `json:"sort_order" validate:"omitempty,oneof=asc desc"`
+	Limit     int    `json:"limit" validate:"omitempty,min=1,max=1000"`
+	Offset    int    `json:"offset" validate:"omitempty,min=0"`
+}
+
 // TrashMetadata contains metadata for marking a file as trashed.
 type TrashMetadata struct {
 	OriginalPath string
