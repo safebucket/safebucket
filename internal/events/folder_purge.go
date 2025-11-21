@@ -137,8 +137,7 @@ func (e *FolderPurge) callback(params *EventParams) error {
 			for _, child := range childFiles {
 				fileIDs = append(fileIDs, child.ID)
 
-				// Build storage path: bucket/{bucket_id}/{file_id}
-				childPath := path.Join("bucket", e.Payload.BucketID.String(), child.ID.String())
+				childPath := path.Join("buckets", e.Payload.BucketID.String(), child.ID.String())
 				storagePaths = append(storagePaths, childPath)
 			}
 
@@ -146,7 +145,6 @@ func (e *FolderPurge) callback(params *EventParams) error {
 			if len(storagePaths) > 0 {
 				if err := params.Storage.RemoveObjects(storagePaths); err != nil {
 					zap.L().Warn("Failed to delete some files from storage", zap.Error(err))
-					// Continue - some files may already be deleted
 				}
 			}
 

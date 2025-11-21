@@ -199,7 +199,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				fileIDs = append(fileIDs, child.ID)
 
 				// Unmark each file from storage
-				filePath := path.Join("bucket", e.Payload.BucketID.String(), child.ID.String())
+				filePath := path.Join("buckets", e.Payload.BucketID.String(), child.ID.String())
 				if err := params.Storage.UnmarkFileAsTrashed(filePath); err != nil {
 					zap.L().Warn("Failed to unmark file as trashed",
 						zap.Error(err),

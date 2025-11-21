@@ -118,7 +118,7 @@ func (e *ObjectDeletion) callback(params *EventParams) error {
 		for _, file := range files {
 			storagePaths = append(
 				storagePaths,
-				path.Join("bucket", file.BucketID.String(), file.ID.String()),
+				path.Join("buckets", file.BucketID.String(), file.ID.String()),
 			)
 		}
 

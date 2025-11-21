@@ -115,9 +115,8 @@ func (s BucketFileService) UploadFile(
 			return res.Error
 		}
 
-		// Use new path structure: bucket/{bucket_id}/{file_id}
 		url, formData, err = s.Storage.PresignedPostPolicy(
-			path.Join("bucket", bucket.ID.String(), file.ID.String()),
+			path.Join("buckets", bucket.ID.String(), file.ID.String()),
 			body.Size,
 			map[string]string{
 				"bucket_id": bucket.ID.String(),
@@ -177,9 +176,9 @@ func (s BucketFileService) DownloadFile(
 		)
 	}
 
-	// Use new path structure: bucket/{bucket_id}/{file_id}
+	// Use new path structure: buckets/{bucket_id}/{file_id}
 	url, err := s.Storage.PresignedGetObject(
-		path.Join("bucket", file.BucketID.String(), file.ID.String()),
+		path.Join("buckets", file.BucketID.String(), file.ID.String()),
 	)
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
@@ -228,8 +227,8 @@ func (s BucketFileService) TrashFile(logger *zap.Logger, user models.UserClaims,
 			return errors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
-		// Use new path structure: bucket/{bucket_id}/{file_id}
-		objectPath := path.Join("bucket", file.BucketID.String(), file.ID.String())
+		// Use new path structure: buckets/{bucket_id}/{file_id}
+		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
 
 		if err := s.Storage.MarkFileAsTrashed(objectPath, models.TrashMetadata{
 			TrashedAt: now,
@@ -317,8 +316,8 @@ func (s BucketFileService) RestoreFile(
 			return errors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
-		// Use new path structure: bucket/{bucket_id}/{file_id}
-		objectPath := path.Join("bucket", bucketID.String(), fileID.String())
+		// Use new path structure: buckets/{bucket_id}/{file_id}
+		objectPath := path.Join("buckets", bucketID.String(), fileID.String())
 		if err = s.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
 			logger.Error(
 				"Failed to unmark file as trashed - rolling back transaction",
@@ -422,8 +421,8 @@ func (s BucketFileService) PurgeFile(logger *zap.Logger, user models.UserClaims,
 	}
 
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		// Use new path structure: bucket/{bucket_id}/{file_id}
-		objectPath := path.Join("bucket", bucketID.String(), fileID.String())
+		// Use new path structure: buckets/{bucket_id}/{file_id}
+		objectPath := path.Join("buckets", bucketID.String(), fileID.String())
 
 		// Delete the trash marker first
 		if err = s.Storage.UnmarkFileAsTrashed(objectPath); err != nil {

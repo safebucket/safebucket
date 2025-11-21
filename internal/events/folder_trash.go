@@ -171,8 +171,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			for _, child := range childFiles {
 				fileIDs = append(fileIDs, child.ID)
 
-				// Mark each file as trashed in storage
-				filePath := path.Join("bucket", e.Payload.BucketID.String(), child.ID.String())
+				filePath := path.Join("buckets", e.Payload.BucketID.String(), child.ID.String())
 				if err := params.Storage.MarkFileAsTrashed(filePath, models.TrashMetadata{
 					TrashedAt: e.Payload.TrashedAt,
 					TrashedBy: e.Payload.UserID,
