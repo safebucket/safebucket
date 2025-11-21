@@ -94,7 +94,7 @@ CREATE TABLE folders
 
     -- Foreign Keys
     CONSTRAINT fk_folders_folder_id
-        FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT fk_folders_bucket_id
         FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT fk_folders_trashed_by
@@ -131,7 +131,7 @@ CREATE TABLE files
         CONSTRAINT fk_files_bucket_id
             FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
         CONSTRAINT fk_files_folder_id
-            FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE CASCADE,
+            FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE SET NULL,
         CONSTRAINT fk_files_trashed_by
             FOREIGN KEY (trashed_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
 

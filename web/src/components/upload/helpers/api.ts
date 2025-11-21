@@ -1,4 +1,5 @@
 import type { ICreateFile } from "@/components/upload/helpers/types";
+import type {IFolder} from "@/types/folder";
 import { api } from "@/lib/api";
 
 import { toast } from "@/components/ui/hooks/use-toast";
@@ -54,9 +55,9 @@ export const createFolderMutationFn = async (params: {
   name: string;
   folderId?: string;
   bucketId: string;
-}): Promise<ICreateFile> => {
+}): Promise<IFolder> => {
   const {name, folderId, bucketId} = params;
-  return api.post<ICreateFile>(`/buckets/${bucketId}/folders`, {
+  return api.post<IFolder>(`/buckets/${bucketId}/folders`, {
     name,
     folder_id: folderId,
   });
