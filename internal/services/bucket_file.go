@@ -347,7 +347,7 @@ func (s BucketFileService) RestoreFile(
 	})
 }
 
-// TrashResponse holds both trashed files and folders
+// TrashResponse holds both trashed files and folders.
 type TrashResponse struct {
 	Files   []models.File   `json:"files"`
 	Folders []models.Folder `json:"folders"`

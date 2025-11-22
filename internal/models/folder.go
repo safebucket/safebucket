@@ -24,7 +24,7 @@ type Folder struct {
 }
 
 type FolderCreateBody struct {
-	Name     string     `json:"name" validate:"required,foldername,max=255"`
+	Name     string     `json:"name"      validate:"required,foldername,max=255"`
 	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
 }
 

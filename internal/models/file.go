@@ -36,9 +36,9 @@ type File struct {
 }
 
 type FileTransferBody struct {
-	Name     string     `json:"name" validate:"required,filename,max=255"`
+	Name     string     `json:"name"      validate:"required,filename,max=255"`
 	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
-	Size     int        `json:"size" validate:"required,max=1099511627776"`
+	Size     int        `json:"size"      validate:"required,max=1099511627776"`
 }
 
 type FileTransferResponse struct {
