@@ -38,7 +38,7 @@ export const useFileActions = (): IFileActions => {
   const createFolder = (name: string) => {
     createFolderMutation.mutate({
       name,
-      folderId: folderId ?? undefined,
+      folderId,
       bucketId,
     });
   };

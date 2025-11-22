@@ -263,7 +263,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
             // Upload each file to its corresponding folder
             for (const { file, relativePath } of filesWithPaths) {
               // relativePath already contains the parent folder path
-              const targetFolderId = pathToIdMap.get(relativePath);
+              const targetFolderId = pathToIdMap.get(relativePath) ?? null;
 
               const fileList = Object.assign([file], {
                 length: 1,
