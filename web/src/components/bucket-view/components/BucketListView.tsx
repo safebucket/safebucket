@@ -5,7 +5,6 @@ import type { FC } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { FileStatus } from "@/types/file.ts";
-import type { BucketItem } from "@/components/bucket-view/helpers/utils";
 import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { formatDate, formatFileSize } from "@/lib/utils";
@@ -15,6 +14,7 @@ import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { DataTableRowActions } from "@/components/common/components/DataTable/DataTableRowActions";
 import { Badge } from "@/components/ui/badge";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
+import type { BucketItem } from "@/types/bucket.ts";
 
 const createColumns = (
   t: (key: string) => string,

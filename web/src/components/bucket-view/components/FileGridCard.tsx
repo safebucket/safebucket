@@ -3,13 +3,13 @@ import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
 import type { FC } from "react";
 
 import { FileStatus } from "@/types/file.ts";
-import type { BucketItem } from "@/components/bucket-view/helpers/utils";
 import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { cn, formatDate, formatFileSize } from "@/lib/utils";
 import { FileActions } from "@/components/FileActions/FileActions";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import type { BucketItem } from "@/types/bucket.ts";
 
 interface IFileGridCardProps {
   file: BucketItem;

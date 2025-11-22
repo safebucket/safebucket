@@ -3,9 +3,9 @@ import React, { useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
-import type { BucketItem } from "@/components/bucket-view/helpers/utils";
 import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { BucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
+import type { BucketItem } from "@/types/bucket.ts";
 
 export const BucketViewProvider = ({
   children,

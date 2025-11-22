@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 
 import type { BucketViewMode } from "@/components/bucket-view/helpers/types";
-import type { BucketItem } from "@/components/bucket-view/helpers/utils";
+import type { BucketItem } from "@/types/bucket.ts";
 
 export interface IBucketViewContext {
   bucketId: string;
