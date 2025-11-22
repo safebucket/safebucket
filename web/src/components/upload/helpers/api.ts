@@ -8,7 +8,7 @@ export const api_createFile = (
   name: string,
   bucketId: string,
   size: number,
-  folderId?: string,
+  folderId: string | null,
 ) =>
   api.post<ICreateFile>(`/buckets/${bucketId}/files`, {
     name,
@@ -53,7 +53,7 @@ export const uploadToStorage = async (
 
 export const createFolderMutationFn = async (params: {
   name: string;
-  folderId?: string;
+  folderId: string | null;
   bucketId: string;
 }): Promise<IFolder> => {
   const { name, folderId, bucketId } = params;

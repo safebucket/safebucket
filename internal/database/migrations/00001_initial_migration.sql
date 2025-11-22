@@ -15,13 +15,12 @@ CREATE TABLE users
     (
         id uuid
             PRIMARY KEY DEFAULT gen_random_uuid(),
-        first_name VARCHAR(255),
-        last_name VARCHAR(255),
-        email VARCHAR(255) NOT NULL,
-        hashed_password VARCHAR(255),
+        first_name      TEXT,
+        last_name       TEXT email TEXT NOT NULL,
+        hashed_password TEXT,
         is_initialized BOOLEAN NOT NULL DEFAULT FALSE,
         provider_type provider_type NOT NULL,
-        provider_key VARCHAR(255) NOT NULL,
+        provider_key    TEXT NOT NULL,
         role role_type NOT NULL DEFAULT 'user',
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -38,7 +37,7 @@ CREATE TABLE buckets
     (
         id uuid
             PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
+        name TEXT NOT NULL,
         created_by uuid NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -82,7 +81,7 @@ CREATE TABLE folders
 (
     id         uuid
         PRIMARY KEY                  DEFAULT gen_random_uuid(),
-    name       VARCHAR(255) NOT NULL,
+    name TEXT NOT NULL,
     status     file_status,
     folder_id  uuid,
     bucket_id  uuid         NOT NULL,
@@ -115,8 +114,8 @@ CREATE TABLE files
     (
         id uuid
             PRIMARY KEY DEFAULT gen_random_uuid(),
-        name VARCHAR(255) NOT NULL,
-        extension VARCHAR(50),
+        name      TEXT NOT NULL,
+        extension TEXT,
         status file_status,
         bucket_id uuid NOT NULL,
         folder_id uuid,
@@ -154,7 +153,7 @@ CREATE TABLE invites
     (
         id uuid
             PRIMARY KEY DEFAULT gen_random_uuid(),
-        email VARCHAR(255) NOT NULL,
+        email TEXT NOT NULL,
         "group" group_type NOT NULL,
         bucket_id uuid NOT NULL,
         created_by uuid NOT NULL,
@@ -181,7 +180,7 @@ CREATE TABLE challenges
         id uuid
             PRIMARY KEY DEFAULT gen_random_uuid(),
         type challenge_type NOT NULL,
-        hashed_secret VARCHAR(255) NOT NULL,
+        hashed_secret TEXT NOT NULL,
         attempts_left INTEGER NOT NULL DEFAULT 3,
         expires_at TIMESTAMP,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

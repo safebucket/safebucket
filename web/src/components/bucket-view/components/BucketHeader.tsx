@@ -36,8 +36,6 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   const { startUpload } = useUploadContext();
   const { createFolder } = useFileActions();
 
-  const currentFolderId = folderId ?? undefined;
-
   return (
     <div className="flex-1">
       <div className="flex items-center justify-between">
@@ -74,9 +72,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
             title={t("bucket.header.upload_file")}
             description={t("bucket.header.upload_and_share")}
             fields={shareFileFields}
-            onSubmit={(data) =>
-                startUpload(data.files, bucket.id, currentFolderId)
-            }
+            onSubmit={(data) => startUpload(data.files, bucket.id, folderId)}
             confirmLabel={t("bucket.header.upload")}
           />
 

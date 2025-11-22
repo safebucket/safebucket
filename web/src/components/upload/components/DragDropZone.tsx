@@ -197,10 +197,10 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   const createFolders = useCallback(
     async (
       folderPaths: Array<string>,
-      parentFolderId: string | undefined,
-    ): Promise<Map<string, string | undefined>> => {
-      const pathToIdMap = new Map<string, string | undefined>();
-      // Map empty path to the current folder ID (or undefined for root)
+      parentFolderId: string | null,
+    ): Promise<Map<string, string | null>> => {
+      const pathToIdMap = new Map<string, string | null>();
+      // Map empty path to the current folder ID (or null for root)
       pathToIdMap.set("", parentFolderId);
 
       for (const folderPath of folderPaths) {
@@ -208,8 +208,8 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
         const folderName = pathParts[pathParts.length - 1];
         const parentPath = pathParts.slice(0, -1).join("/");
 
-        // Get parent ID from map (undefined means root level)
-        const parentId = pathToIdMap.get(parentPath);
+        // Get parent ID from map (null means root level)
+        const parentId = pathToIdMap.get(parentPath) ?? null;
 
         try {
           const folder: IFolder = await createFolderMutationFn({
@@ -242,7 +242,6 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       setDragCounter(0);
 
       const items = e.dataTransfer.items;
-      const currentFolderId = folderId ?? undefined;
 
       if (items.length > 0) {
         try {
@@ -259,10 +258,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
           if (hasNestedFiles) {
             // Extract and create folder structure
             const folderPaths = extractFolderPaths(filesWithPaths);
-            const pathToIdMap = await createFolders(
-              folderPaths,
-              currentFolderId,
-            );
+            const pathToIdMap = await createFolders(folderPaths, folderId);
 
             // Upload each file to its corresponding folder
             for (const { file, relativePath } of filesWithPaths) {
@@ -283,7 +279,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
                 length: 1,
                 item: (index: number) => (index === 0 ? file : null),
               }) as FileList;
-              startUpload(fileList, bucketId, currentFolderId);
+              startUpload(fileList, bucketId, folderId);
             }
           }
         } catch (error) {
@@ -295,7 +291,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       // Fallback for simple file drops (no directory structure)
       const files = e.dataTransfer.files;
       if (files.length > 0) {
-        startUpload(files, bucketId, currentFolderId);
+        startUpload(files, bucketId, folderId);
       }
     },
     [
