@@ -48,8 +48,8 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
 
   const startUpload = (
     files: FileList,
-    folderId: string | undefined,
     bucketId: string,
+    folderId?: string,
   ) => {
     const file = files[0];
     const uploadId = generateRandomString(12);

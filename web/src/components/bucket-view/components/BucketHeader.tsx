@@ -75,7 +75,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
             description={t("bucket.header.upload_and_share")}
             fields={shareFileFields}
             onSubmit={(data) =>
-              startUpload(data.files, currentFolderId, bucket.id)
+                startUpload(data.files, bucket.id, currentFolderId)
             }
             confirmLabel={t("bucket.header.upload")}
           />

@@ -187,7 +187,7 @@ func (e *TrashExpiration) deleteChildFiles(params *EventParams, childFiles []mod
 	var storagePaths []string
 	for _, child := range childFiles {
 		childPath := path.Join(
-			"bucket",
+			"buckets",
 			e.Payload.BucketID.String(),
 			child.ID.String(),
 		)

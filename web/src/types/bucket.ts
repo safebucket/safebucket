@@ -16,6 +16,8 @@ export interface IBucket {
   updated_at: string;
 }
 
+export type BucketItem = IFile | IFolder;
+
 export const bucketGroups = [
   { id: "viewer", name: "Viewer", description: "Can view and download files" },
   {

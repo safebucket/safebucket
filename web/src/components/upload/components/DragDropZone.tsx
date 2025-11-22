@@ -274,7 +274,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
                 item: (index: number) => (index === 0 ? file : null),
               }) as FileList;
 
-              startUpload(fileList, targetFolderId, bucketId);
+              startUpload(fileList, bucketId, targetFolderId);
             }
           } else {
             // No folder structure, upload directly to current folder
@@ -283,7 +283,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
                 length: 1,
                 item: (index: number) => (index === 0 ? file : null),
               }) as FileList;
-              startUpload(fileList, currentFolderId, bucketId);
+              startUpload(fileList, bucketId, currentFolderId);
             }
           }
         } catch (error) {
@@ -295,7 +295,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       // Fallback for simple file drops (no directory structure)
       const files = e.dataTransfer.files;
       if (files.length > 0) {
-        startUpload(files, currentFolderId, bucketId);
+        startUpload(files, bucketId, currentFolderId);
       }
     },
     [
