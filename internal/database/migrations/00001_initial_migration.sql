@@ -12,20 +12,21 @@ CREATE TYPE role_type AS ENUM ('admin', 'user', 'guest');
 
 -- Users table
 CREATE TABLE users
-(
-    id              uuid
-        PRIMARY KEY                        DEFAULT gen_random_uuid(),
-    first_name      TEXT,
-    last_name       TEXT email TEXT NOT NULL,
-    hashed_password TEXT,
-    is_initialized  BOOLEAN       NOT NULL DEFAULT FALSE,
-    provider_type   provider_type NOT NULL,
-    provider_key    TEXT          NOT NULL,
-    role            role_type     NOT NULL DEFAULT 'user',
-    created_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at      TIMESTAMP
-);
+    (
+        id uuid
+            PRIMARY KEY DEFAULT gen_random_uuid(),
+        first_name TEXT,
+        last_name TEXT,
+        email TEXT NOT NULL,
+        hashed_password TEXT,
+        is_initialized BOOLEAN NOT NULL DEFAULT FALSE,
+        provider_type provider_type NOT NULL,
+        provider_key TEXT NOT NULL,
+        role role_type NOT NULL DEFAULT 'user',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP
+    );
 
 -- Indexes for Users
 CREATE INDEX idx_users_email ON users (email);
@@ -34,41 +35,41 @@ CREATE UNIQUE INDEX idx_users_email_provider_key ON users (email, provider_key) 
 
 -- Buckets table
 CREATE TABLE buckets
-(
-    id         uuid
-        PRIMARY KEY               DEFAULT gen_random_uuid(),
-    name       TEXT      NOT NULL,
-    created_by uuid      NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP,
+    (
+        id uuid
+            PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        created_by uuid NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP,
 
-    -- Foreign Keys
-    CONSTRAINT fk_buckets_created_by
-        FOREIGN KEY (created_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
-);
+        -- Foreign Keys
+        CONSTRAINT fk_buckets_created_by
+            FOREIGN KEY (created_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
+    );
 
 -- Indexes for Buckets
 CREATE INDEX idx_buckets_created_by ON buckets (created_by);
 
 -- Memberships table
 CREATE TABLE memberships
-(
-    id         uuid
-        PRIMARY KEY                DEFAULT gen_random_uuid(),
-    user_id    uuid       NOT NULL,
-    bucket_id  uuid       NOT NULL,
-    "group"    group_type NOT NULL,
-    created_at TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP,
+    (
+        id uuid
+            PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id uuid NOT NULL,
+        bucket_id uuid NOT NULL,
+        "group" group_type NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP,
 
-    -- Foreign Keys
-    CONSTRAINT fk_memberships_user_id
-        FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_memberships_bucket_id
-        FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE
-);
+        -- Foreign Keys
+        CONSTRAINT fk_memberships_user_id
+            FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        CONSTRAINT fk_memberships_bucket_id
+            FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE
+    );
 
 -- Indexes for Memberships
 CREATE INDEX idx_memberships_user_id ON memberships (user_id);
@@ -78,27 +79,27 @@ CREATE UNIQUE INDEX idx_memberships_user_bucket ON memberships (user_id, bucket_
 
 -- Folders table
 CREATE TABLE folders
-(
-    id         uuid
-        PRIMARY KEY               DEFAULT gen_random_uuid(),
-    name       TEXT      NOT NULL,
-    status     file_status,
-    folder_id  uuid,
-    bucket_id  uuid      NOT NULL,
-    trashed_at TIMESTAMP,
-    trashed_by uuid,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP,
+    (
+        id uuid
+            PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        status file_status,
+        folder_id uuid,
+        bucket_id uuid NOT NULL,
+        trashed_at TIMESTAMP,
+        trashed_by uuid,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP,
 
 -- Foreign Keys
-    CONSTRAINT fk_folders_folder_id
-        FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE SET NULL,
-    CONSTRAINT fk_folders_bucket_id
-        FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_folders_trashed_by
-        FOREIGN KEY (trashed_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
-);
+        CONSTRAINT fk_folders_folder_id
+            FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE SET NULL,
+        CONSTRAINT fk_folders_bucket_id
+            FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        CONSTRAINT fk_folders_trashed_by
+            FOREIGN KEY (trashed_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
+    );
 
 -- Indexes for Folders
 -- Composite index for folder browsing (list folders in bucket at specific parent)
@@ -106,38 +107,38 @@ CREATE INDEX idx_folders_bucket_parent ON folders (bucket_id, folder_id) WHERE d
 -- Composite index for trash view (list trashed folders in bucket)
 CREATE INDEX idx_folders_bucket_trashed ON folders (bucket_id, trashed_at) WHERE trashed_at IS NOT NULL;
 -- Unique index for folder name uniqueness within same parent (using COALESCE to handle NULL folder_id)
-CREATE UNIQUE INDEX idx_folders_unique_name
-    ON folders (bucket_id, COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid), name) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX idx_folders_unique_name ON folders (bucket_id,
+                                                        COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid),
+                                                        name) WHERE deleted_at IS NULL;
 
 -- Files table
 CREATE TABLE files
-(
-    id         uuid
-        PRIMARY KEY               DEFAULT gen_random_uuid(),
-    name       TEXT      NOT NULL,
-    extension  TEXT,
-    status     file_status,
-    bucket_id  uuid      NOT NULL,
-    folder_id  uuid,
-    size       BIGINT,
-    trashed_at TIMESTAMP,
-    trashed_by uuid,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP,
+    (
+        id uuid
+            PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        extension TEXT,
+        status file_status,
+        bucket_id uuid NOT NULL,
+        folder_id uuid,
+        size BIGINT,
+        trashed_at TIMESTAMP,
+        trashed_by uuid,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP,
 
-    -- Foreign Keys
-    CONSTRAINT fk_files_bucket_id
-        FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_files_folder_id
-        FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE SET NULL,
-    CONSTRAINT fk_files_trashed_by
-        FOREIGN KEY (trashed_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
+        -- Foreign Keys
+        CONSTRAINT fk_files_bucket_id
+            FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        CONSTRAINT fk_files_folder_id
+            FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE SET NULL,
+        CONSTRAINT fk_files_trashed_by
+            FOREIGN KEY (trashed_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
 
-    -- Constraints
-    CONSTRAINT chk_files_size_positive
-        CHECK (size IS NULL OR size >= 0
-)
+        -- Constraints
+        CONSTRAINT chk_files_size_positive
+            CHECK (size IS NULL OR size >= 0 )
     );
 
 -- Indexes for Files
@@ -146,30 +147,31 @@ CREATE INDEX idx_files_bucket_folder ON files (bucket_id, folder_id) WHERE delet
 -- Composite index for trash view (list trashed files in bucket)
 CREATE INDEX idx_files_bucket_trashed ON files (bucket_id, trashed_at) WHERE trashed_at IS NOT NULL;
 -- Unique index for file name uniqueness within same folder (using COALESCE to handle NULL folder_id)
-CREATE UNIQUE INDEX idx_files_unique_name
-    ON files (bucket_id, COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid), name) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX idx_files_unique_name ON files (bucket_id,
+                                                    COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid),
+                                                    name) WHERE deleted_at IS NULL;
 
 -- Invites table
 CREATE TABLE invites
-(
-    id         uuid
-        PRIMARY KEY                DEFAULT gen_random_uuid(),
-    email      TEXT       NOT NULL,
-    "group"    group_type NOT NULL,
-    bucket_id  uuid       NOT NULL,
-    created_by uuid       NOT NULL,
-    created_at TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    (
+        id uuid
+            PRIMARY KEY DEFAULT gen_random_uuid(),
+        email TEXT NOT NULL,
+        "group" group_type NOT NULL,
+        bucket_id uuid NOT NULL,
+        created_by uuid NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    -- Foreign Keys
-    CONSTRAINT fk_invites_bucket_id
-        FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_invites_created_by
-        FOREIGN KEY (created_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        -- Foreign Keys
+        CONSTRAINT fk_invites_bucket_id
+            FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        CONSTRAINT fk_invites_created_by
+            FOREIGN KEY (created_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
 
-    -- Constraints
-    CONSTRAINT idx_invite_unique
-        UNIQUE (email, "group", bucket_id)
-);
+        -- Constraints
+        CONSTRAINT idx_invite_unique
+            UNIQUE (email, "group", bucket_id)
+    );
 
 -- Indexes for Invites
 CREATE INDEX idx_invites_bucket_id ON invites (bucket_id);
@@ -177,30 +179,30 @@ CREATE INDEX idx_invites_email ON invites (email);
 
 -- Challenges table
 CREATE TABLE challenges
-(
-    id            uuid
-        PRIMARY KEY                       DEFAULT gen_random_uuid(),
-    type          challenge_type NOT NULL,
-    hashed_secret TEXT           NOT NULL,
-    attempts_left INTEGER        NOT NULL DEFAULT 3,
-    expires_at    TIMESTAMP,
-    created_at    TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at    TIMESTAMP,
-    invite_id     uuid,
-    user_id       uuid,
+    (
+        id uuid
+            PRIMARY KEY DEFAULT gen_random_uuid(),
+        type challenge_type NOT NULL,
+        hashed_secret TEXT NOT NULL,
+        attempts_left INTEGER NOT NULL DEFAULT 3,
+        expires_at TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP,
+        invite_id uuid,
+        user_id uuid,
 
-    -- Foreign Keys
-    CONSTRAINT fk_challenges_invite_id
-        FOREIGN KEY (invite_id) REFERENCES invites (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_challenges_user_id
-        FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        -- Foreign Keys
+        CONSTRAINT fk_challenges_invite_id
+            FOREIGN KEY (invite_id) REFERENCES invites (id) ON UPDATE CASCADE ON DELETE CASCADE,
+        CONSTRAINT fk_challenges_user_id
+            FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
 
-    -- Constraints
-    CONSTRAINT chk_challenges_attempts_left
-        CHECK (attempts_left >= 0),
-    CONSTRAINT chk_challenges_mutual_exclusive
-        CHECK ( (invite_id IS NOT NULL AND user_id IS NULL) OR (invite_id IS NULL AND user_id IS NOT NULL) )
-);
+        -- Constraints
+        CONSTRAINT chk_challenges_attempts_left
+            CHECK (attempts_left >= 0),
+        CONSTRAINT chk_challenges_mutual_exclusive
+            CHECK ( (invite_id IS NOT NULL AND user_id IS NULL) OR (invite_id IS NULL AND user_id IS NOT NULL) )
+    );
 
 -- Indexes for Challenges
 CREATE INDEX idx_challenges_expires_at ON challenges (expires_at);
@@ -211,9 +213,8 @@ CREATE UNIQUE INDEX idx_challenge_user ON challenges (user_id) WHERE user_id IS 
 CREATE OR REPLACE FUNCTION update_updated_at_column() RETURNS TRIGGER AS
 $$
 BEGIN
-new.updated_at
-= CURRENT_TIMESTAMP;
-RETURN new;
+    new.updated_at = CURRENT_TIMESTAMP;
+    RETURN new;
 END;
 $$ LANGUAGE 'plpgsql';
 
@@ -240,7 +241,7 @@ CREATE TRIGGER update_folders_updated_at
     BEFORE UPDATE
     ON folders
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_files_updated_at
     BEFORE UPDATE
