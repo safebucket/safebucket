@@ -1,8 +1,8 @@
 import type { IFile } from "@/types/file.ts";
 import type { IFolder } from "@/types/folder.ts";
-import type {BucketItem} from "@/types/bucket.ts";
+import type { BucketItem } from "@/types/bucket.ts";
 
-export type {BucketItem};
+export type { BucketItem };
 
 // Type guards to distinguish between files and folders
 export const isFolder = (item: BucketItem): item is IFolder => {
