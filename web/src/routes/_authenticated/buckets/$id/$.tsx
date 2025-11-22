@@ -21,7 +21,7 @@ function BucketComponent() {
   const folderId = _splat && _splat.trim() !== "" ? _splat : null;
 
   return (
-      <BucketViewProvider folderId={folderId}>
+    <BucketViewProvider folderId={folderId}>
       <div className="w-full flex-1">
         <div className="m-6 mt-0 grid grid-cols-1 gap-8">
           <BucketView bucket={bucket} />

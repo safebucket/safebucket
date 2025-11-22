@@ -13,7 +13,7 @@ import {
 
 export const useFileActions = (): IFileActions => {
   const queryClient = useQueryClient();
-    const {bucketId, folderId} = useBucketViewContext();
+  const { bucketId, folderId } = useBucketViewContext();
 
   const createFolderMutation = useMutation({
     mutationFn: createFolderMutationFn,
@@ -38,7 +38,7 @@ export const useFileActions = (): IFileActions => {
   const createFolder = (name: string) => {
     createFolderMutation.mutate({
       name,
-        folderId: folderId ?? undefined,
+      folderId: folderId ?? undefined,
       bucketId,
     });
   };
@@ -49,8 +49,8 @@ export const useFileActions = (): IFileActions => {
     );
   };
 
-    const deleteFile = (fileId: string, filename: string, isFolder = false) => {
-        deleteFileMutation.mutate({bucketId, fileId, filename, isFolder});
+  const deleteFile = (fileId: string, filename: string, isFolder = false) => {
+    deleteFileMutation.mutate({ bucketId, fileId, filename, isFolder });
   };
 
   return {

@@ -21,7 +21,7 @@ interface IFileIconViewProps {
 export const FileIconView: FC<IFileIconViewProps> = ({
   className,
   extension,
-                                                       isFolder,
+  isFolder,
 }: IFileIconViewProps) => {
   if (isFolder) {
     return <FolderClosed className={className} />;

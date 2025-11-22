@@ -4,9 +4,9 @@ import type { FC } from "react";
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import {FileStatus} from "@/types/file.ts";
-import type {BucketItem} from "@/components/bucket-view/helpers/utils";
-import {isFolder} from "@/components/bucket-view/helpers/utils";
+import { FileStatus } from "@/types/file.ts";
+import type { BucketItem } from "@/components/bucket-view/helpers/utils";
+import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 
 const createColumns = (
-    t: (key: string) => string,
+  t: (key: string) => string,
 ): Array<ColumnDef<BucketItem>> => [
   {
     accessorKey: "name",
@@ -27,18 +27,18 @@ const createColumns = (
         title={t("bucket.list_view.name")}
       />
     ),
-    cell: ({row}) => {
+    cell: ({ row }) => {
       const item = row.original;
       const itemIsFolder = isFolder(item);
       return (
-          <div className="flex w-[350px] items-center space-x-2">
-            <FileIconView
-                className="text-primary h-5 w-5"
-                isFolder={itemIsFolder}
-                extension={!itemIsFolder ? item.extension : undefined}
-            />
-            <p>{row.getValue("name")}</p>
-          </div>
+        <div className="flex w-[350px] items-center space-x-2">
+          <FileIconView
+            className="text-primary h-5 w-5"
+            isFolder={itemIsFolder}
+            extension={!itemIsFolder ? item.extension : undefined}
+          />
+          <p>{row.getValue("name")}</p>
+        </div>
       );
     },
   },
@@ -50,7 +50,7 @@ const createColumns = (
         title={t("bucket.list_view.size")}
       />
     ),
-    cell: ({row}) => {
+    cell: ({ row }) => {
       const item = row.original;
       return isFolder(item) ? "-" : formatFileSize(item.size);
     },
@@ -66,7 +66,7 @@ const createColumns = (
         title={t("bucket.list_view.type")}
       />
     ),
-    cell: ({row}) => {
+    cell: ({ row }) => {
       const item = row.original;
       const itemType = isFolder(item) ? "folder" : item.extension;
       return <Badge variant="secondary">{itemType}</Badge>;
@@ -155,7 +155,7 @@ interface IBucketListViewProps {
 }
 
 export const BucketListView: FC<IBucketListViewProps> = ({
-                                                           items,
+  items,
   bucketId,
 }: IBucketListViewProps) => {
   const { t } = useTranslation();

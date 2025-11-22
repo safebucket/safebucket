@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import React, { type FC } from "react";
-import {useQuery} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import {
   Breadcrumb,
@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
-import {bucketDataQueryOptions} from "@/queries/bucket";
-import type {IFolder} from "@/types/folder";
+import { bucketDataQueryOptions } from "@/queries/bucket";
+import type { IFolder } from "@/types/folder";
 
 interface IAppSidebarInset {
   children: React.ReactNode;
@@ -34,7 +34,7 @@ export const AppSidebarInset: FC<IAppSidebarInset> = ({
   const folderId = isBucketRoute && path.length >= 3 ? path[2] : null;
 
   // Fetch bucket data if we're on a bucket route
-  const {data: bucket} = useQuery({
+  const { data: bucket } = useQuery({
     ...bucketDataQueryOptions(bucketId!),
     enabled: !!bucketId,
   });
@@ -49,8 +49,8 @@ export const AppSidebarInset: FC<IAppSidebarInset> = ({
     while (current) {
       trail.unshift(current);
       current = current.folder_id
-          ? bucket.folders.find((f) => f.id === current!.folder_id)
-          : undefined;
+        ? bucket.folders.find((f) => f.id === current!.folder_id)
+        : undefined;
     }
 
     return trail;
@@ -72,46 +72,46 @@ export const AppSidebarInset: FC<IAppSidebarInset> = ({
 
               {/* Show folder breadcrumbs for bucket routes */}
               {isBucketRoute && folderPath.length > 0 && (
-                  <>
-                    <BreadcrumbSeparator className="hidden md:block"/>
-                    {folderPath.map((folder, index) => {
-                      const isLast = index === folderPath.length - 1;
-                      const link = `/buckets/${bucketId}/${folder.id}`;
-                      return isLast ? (
-                          <BreadcrumbPage key={folder.id}>
-                            {folder.name}
-                          </BreadcrumbPage>
-                      ) : (
-                          <React.Fragment key={folder.id}>
-                            <BreadcrumbLink asChild>
-                              <Link to={link}>{folder.name}</Link>
-                            </BreadcrumbLink>
-                            <BreadcrumbSeparator className="hidden md:block"/>
-                          </React.Fragment>
-                      );
-                    })}
-                  </>
+                <>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  {folderPath.map((folder, index) => {
+                    const isLast = index === folderPath.length - 1;
+                    const link = `/buckets/${bucketId}/${folder.id}`;
+                    return isLast ? (
+                      <BreadcrumbPage key={folder.id}>
+                        {folder.name}
+                      </BreadcrumbPage>
+                    ) : (
+                      <React.Fragment key={folder.id}>
+                        <BreadcrumbLink asChild>
+                          <Link to={link}>{folder.name}</Link>
+                        </BreadcrumbLink>
+                        <BreadcrumbSeparator className="hidden md:block" />
+                      </React.Fragment>
+                    );
+                  })}
+                </>
               )}
 
               {/* Generic breadcrumbs for non-bucket routes */}
               {!isBucketRoute && pathShort.length > 0 && (
-                  <>
-                    <BreadcrumbSeparator className="hidden md:block"/>
-                    {pathShort.map((segment, index) => {
-                      const isLast = index === pathShort.length - 1;
-                      const link = "/" + path.slice(0, index + 3).join("/");
-                      return isLast ? (
-                          <BreadcrumbPage key={segment}>{segment}</BreadcrumbPage>
-                      ) : (
-                          <React.Fragment key={segment}>
-                            <BreadcrumbLink asChild>
-                              <Link to={link}>{segment}</Link>
-                            </BreadcrumbLink>
-                            <BreadcrumbSeparator className="hidden md:block"/>
-                          </React.Fragment>
-                      );
-                    })}
-                  </>
+                <>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  {pathShort.map((segment, index) => {
+                    const isLast = index === pathShort.length - 1;
+                    const link = "/" + path.slice(0, index + 3).join("/");
+                    return isLast ? (
+                      <BreadcrumbPage key={segment}>{segment}</BreadcrumbPage>
+                    ) : (
+                      <React.Fragment key={segment}>
+                        <BreadcrumbLink asChild>
+                          <Link to={link}>{segment}</Link>
+                        </BreadcrumbLink>
+                        <BreadcrumbSeparator className="hidden md:block" />
+                      </React.Fragment>
+                    );
+                  })}
+                </>
               )}
             </BreadcrumbList>
           </Breadcrumb>

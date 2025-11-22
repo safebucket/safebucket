@@ -1,5 +1,5 @@
 import type { ICreateFile } from "@/components/upload/helpers/types";
-import type {IFolder} from "@/types/folder";
+import type { IFolder } from "@/types/folder";
 import { api } from "@/lib/api";
 
 import { toast } from "@/components/ui/hooks/use-toast";
@@ -56,7 +56,7 @@ export const createFolderMutationFn = async (params: {
   folderId?: string;
   bucketId: string;
 }): Promise<IFolder> => {
-  const {name, folderId, bucketId} = params;
+  const { name, folderId, bucketId } = params;
   return api.post<IFolder>(`/buckets/${bucketId}/folders`, {
     name,
     folder_id: folderId,
@@ -69,7 +69,7 @@ export const deleteFileMutationFn = async (params: {
   filename?: string;
   isFolder?: boolean;
 }): Promise<{ filename?: string }> => {
-  const {bucketId, fileId, filename, isFolder = false} = params;
+  const { bucketId, fileId, filename, isFolder = false } = params;
 
   if (isFolder) {
     await api.delete(`/buckets/${bucketId}/folders/${fileId}`);

@@ -37,8 +37,8 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [uploads]);
 
-    const addUpload = (uploadId: string, filename: string, displayPath: string) =>
-        dispatch(actions.addUpload(uploadId, filename, displayPath));
+  const addUpload = (uploadId: string, filename: string, displayPath: string) =>
+    dispatch(actions.addUpload(uploadId, filename, displayPath));
 
   const updateProgress = (uploadId: string, progress: number) =>
     dispatch(actions.updateProgress(uploadId, progress));
@@ -46,16 +46,20 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const updateStatus = (uploadId: string, status: UploadStatus) =>
     dispatch(actions.updateStatus(uploadId, status));
 
-    const startUpload = (files: FileList, folderId: string | undefined, bucketId: string) => {
+  const startUpload = (
+    files: FileList,
+    folderId: string | undefined,
+    bucketId: string,
+  ) => {
     const file = files[0];
     const uploadId = generateRandomString(12);
 
-        // Display path for UI (just show filename for now, folder path can be added later if needed)
-        const displayPath = file.name;
+    // Display path for UI (just show filename for now, folder path can be added later if needed)
+    const displayPath = file.name;
 
-        addUpload(uploadId, file.name, displayPath);
+    addUpload(uploadId, file.name, displayPath);
 
-        api_createFile(file.name, bucketId, file.size, folderId).then(
+    api_createFile(file.name, bucketId, file.size, folderId).then(
       (presignedUpload) => {
         queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
         uploadToStorage(presignedUpload, file, uploadId, updateProgress).then(

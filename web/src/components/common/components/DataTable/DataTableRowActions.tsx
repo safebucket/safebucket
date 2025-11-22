@@ -9,10 +9,8 @@ interface DataTableRowActionsProps<TData> {
 }
 
 export function DataTableRowActions<
-    TData extends { id: string; name: string },
->({
-  row,
-}: DataTableRowActionsProps<TData>) {
+  TData extends { id: string; name: string },
+>({ row }: DataTableRowActionsProps<TData>) {
   return (
     <div onClick={(e) => e.stopPropagation()}>
       <FileActions file={row.original as any} type="dropdown">

@@ -1,5 +1,5 @@
 import type { IFile } from "@/types/file.ts";
-import type {IFolder} from "@/types/folder.ts";
+import type { IFolder } from "@/types/folder.ts";
 
 export interface Invites {
   email: string;

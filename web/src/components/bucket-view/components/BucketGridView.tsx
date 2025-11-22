@@ -2,7 +2,7 @@ import { FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
-import type {BucketItem} from "@/components/bucket-view/helpers/utils";
+import type { BucketItem } from "@/components/bucket-view/helpers/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { FileGridCard } from "@/components/bucket-view/components/FileGridCard";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
@@ -13,7 +13,7 @@ interface IBucketGridViewProps {
 }
 
 export const BucketGridView: FC<IBucketGridViewProps> = ({
-                                                           items,
+  items,
   bucketId,
 }: IBucketGridViewProps) => {
   const { t } = useTranslation();
@@ -43,8 +43,8 @@ export const BucketGridView: FC<IBucketGridViewProps> = ({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {items.map((item) => (
           <FileGridCard
-              key={item.id}
-              file={item}
+            key={item.id}
+            file={item}
             selected={selected}
             setSelected={setSelected}
             onDoubleClick={openFolder}

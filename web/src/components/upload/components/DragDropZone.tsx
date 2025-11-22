@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Upload } from "lucide-react";
 import type { DragEvent, FC } from "react";
-import {useQueryClient} from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 import type {
   FileSystemDirectoryEntry,
@@ -10,11 +10,11 @@ import type {
   FileSystemFileEntry,
 } from "@/components/upload/helpers/types";
 import { cn } from "@/lib/utils";
-import type {IFolder} from "@/types/folder";
+import type { IFolder } from "@/types/folder";
 
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
-import {createFolderMutationFn} from "@/components/upload/helpers/api";
+import { createFolderMutationFn } from "@/components/upload/helpers/api";
 
 interface IDragDropZoneProps {
   bucketId: string;
@@ -33,7 +33,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   const [_dragCounter, setDragCounter] = useState(0);
 
   const { startUpload } = useUploadContext();
-  const {folderId} = useBucketViewContext();
+  const { folderId } = useBucketViewContext();
 
   // Store files with their relative paths
   interface FileWithPath {
@@ -82,10 +82,10 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
 
   // Process file entry and track its relative path
   const processFileEntry = useCallback(
-      (
-          entry: FileSystemFileEntry,
-          currentPath: string,
-      ): Promise<FileWithPath | null> => {
+    (
+      entry: FileSystemFileEntry,
+      currentPath: string,
+    ): Promise<FileWithPath | null> => {
       return new Promise((resolve) => {
         entry.file((file) => {
           resolve({
@@ -100,26 +100,26 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
 
   // Process directory entry recursively, tracking paths
   const processDirectoryEntry = useCallback(
-      async (
-          entry: FileSystemEntry,
-          currentPath: string = "",
-      ): Promise<Array<FileWithPath>> => {
-        if (entry.isFile) {
-          const fileWithPath = await processFileEntry(
-              entry as FileSystemFileEntry,
-              currentPath,
-          );
-          return fileWithPath ? [fileWithPath] : [];
-        }
+    async (
+      entry: FileSystemEntry,
+      currentPath: string = "",
+    ): Promise<Array<FileWithPath>> => {
+      if (entry.isFile) {
+        const fileWithPath = await processFileEntry(
+          entry as FileSystemFileEntry,
+          currentPath,
+        );
+        return fileWithPath ? [fileWithPath] : [];
+      }
 
-        if (entry.isDirectory) {
-          const dirReader = (entry as FileSystemDirectoryEntry).createReader();
-          const allFiles: Array<FileWithPath> = [];
-          const newPath = currentPath
-              ? `${currentPath}/${entry.name}`
-              : entry.name;
+      if (entry.isDirectory) {
+        const dirReader = (entry as FileSystemDirectoryEntry).createReader();
+        const allFiles: Array<FileWithPath> = [];
+        const newPath = currentPath
+          ? `${currentPath}/${entry.name}`
+          : entry.name;
 
-          return new Promise((resolve) => {
+        return new Promise((resolve) => {
           const readEntries = () => {
             dirReader.readEntries(async (entries: Array<FileSystemEntry>) => {
               if (entries.length === 0) {
@@ -129,8 +129,8 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
 
               for (const childEntry of entries) {
                 const childFiles = await processDirectoryEntry(
-                    childEntry,
-                    newPath,
+                  childEntry,
+                  newPath,
                 );
                 allFiles.push(...childFiles);
               }
@@ -140,17 +140,17 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
           };
 
           readEntries();
-          });
-        }
+        });
+      }
 
-        return [];
+      return [];
     },
     [processFileEntry],
   );
 
   const processDroppedItems = useCallback(
-      async (items: DataTransferItemList): Promise<Array<FileWithPath>> => {
-        const allFiles: Array<FileWithPath> = [];
+    async (items: DataTransferItemList): Promise<Array<FileWithPath>> => {
+      const allFiles: Array<FileWithPath> = [];
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
@@ -170,67 +170,67 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
 
   // Extract unique folder paths from files and sort by depth
   const extractFolderPaths = useCallback(
-      (filesWithPaths: Array<FileWithPath>): Array<string> => {
-        const folderPathsSet = new Set<string>();
+    (filesWithPaths: Array<FileWithPath>): Array<string> => {
+      const folderPathsSet = new Set<string>();
 
-        filesWithPaths.forEach(({relativePath}) => {
-          if (relativePath) {
-            const pathParts = relativePath.split("/");
-            // Build all intermediate paths
-            let currentPath = "";
-            pathParts.forEach((part) => {
-              currentPath = currentPath ? `${currentPath}/${part}` : part;
-              folderPathsSet.add(currentPath);
-            });
-          }
-        });
+      filesWithPaths.forEach(({ relativePath }) => {
+        if (relativePath) {
+          const pathParts = relativePath.split("/");
+          // Build all intermediate paths
+          let currentPath = "";
+          pathParts.forEach((part) => {
+            currentPath = currentPath ? `${currentPath}/${part}` : part;
+            folderPathsSet.add(currentPath);
+          });
+        }
+      });
 
-        // Sort by depth (parent folders first)
-        return Array.from(folderPathsSet).sort(
-            (a, b) => a.split("/").length - b.split("/").length,
-        );
-      },
-      [],
+      // Sort by depth (parent folders first)
+      return Array.from(folderPathsSet).sort(
+        (a, b) => a.split("/").length - b.split("/").length,
+      );
+    },
+    [],
   );
 
   // Create folders hierarchically and return path->folderId mapping
   const createFolders = useCallback(
-      async (
-          folderPaths: Array<string>,
-          parentFolderId: string | undefined,
-      ): Promise<Map<string, string | undefined>> => {
-        const pathToIdMap = new Map<string, string | undefined>();
-        // Map empty path to the current folder ID (or undefined for root)
-        pathToIdMap.set("", parentFolderId);
+    async (
+      folderPaths: Array<string>,
+      parentFolderId: string | undefined,
+    ): Promise<Map<string, string | undefined>> => {
+      const pathToIdMap = new Map<string, string | undefined>();
+      // Map empty path to the current folder ID (or undefined for root)
+      pathToIdMap.set("", parentFolderId);
 
-        for (const folderPath of folderPaths) {
-          const pathParts = folderPath.split("/");
-          const folderName = pathParts[pathParts.length - 1];
-          const parentPath = pathParts.slice(0, -1).join("/");
+      for (const folderPath of folderPaths) {
+        const pathParts = folderPath.split("/");
+        const folderName = pathParts[pathParts.length - 1];
+        const parentPath = pathParts.slice(0, -1).join("/");
 
-          // Get parent ID from map (undefined means root level)
-          const parentId = pathToIdMap.get(parentPath);
+        // Get parent ID from map (undefined means root level)
+        const parentId = pathToIdMap.get(parentPath);
 
-          try {
-            const folder: IFolder = await createFolderMutationFn({
-              name: folderName,
-              folderId: parentId,
-              bucketId,
-            });
-            pathToIdMap.set(folderPath, folder.id);
-          } catch (error) {
-            console.error(`Failed to create folder ${folderPath}:`, error);
-            // If folder creation fails, stop the process
-            throw error;
-          }
+        try {
+          const folder: IFolder = await createFolderMutationFn({
+            name: folderName,
+            folderId: parentId,
+            bucketId,
+          });
+          pathToIdMap.set(folderPath, folder.id);
+        } catch (error) {
+          console.error(`Failed to create folder ${folderPath}:`, error);
+          // If folder creation fails, stop the process
+          throw error;
         }
+      }
 
-        // Invalidate queries to refresh bucket view
-        await queryClient.invalidateQueries({queryKey: ["buckets", bucketId]});
+      // Invalidate queries to refresh bucket view
+      await queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
 
-        return pathToIdMap;
-      },
-      [bucketId, queryClient],
+      return pathToIdMap;
+    },
+    [bucketId, queryClient],
   );
 
   const handleDrop = useCallback(
@@ -259,10 +259,13 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
           if (hasNestedFiles) {
             // Extract and create folder structure
             const folderPaths = extractFolderPaths(filesWithPaths);
-            const pathToIdMap = await createFolders(folderPaths, currentFolderId);
+            const pathToIdMap = await createFolders(
+              folderPaths,
+              currentFolderId,
+            );
 
             // Upload each file to its corresponding folder
-            for (const {file, relativePath} of filesWithPaths) {
+            for (const { file, relativePath } of filesWithPaths) {
               // relativePath already contains the parent folder path
               const targetFolderId = pathToIdMap.get(relativePath);
 
@@ -275,7 +278,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
             }
           } else {
             // No folder structure, upload directly to current folder
-            for (const {file} of filesWithPaths) {
+            for (const { file } of filesWithPaths) {
               const fileList = Object.assign([file], {
                 length: 1,
                 item: (index: number) => (index === 0 ? file : null),
@@ -295,14 +298,14 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
         startUpload(files, currentFolderId, bucketId);
       }
     },
-      [
-        processDroppedItems,
-        extractFolderPaths,
-        createFolders,
-        startUpload,
-        folderId,
-        bucketId,
-      ],
+    [
+      processDroppedItems,
+      extractFolderPaths,
+      createFolders,
+      startUpload,
+      folderId,
+      bucketId,
+    ],
   );
 
   return (

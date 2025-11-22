@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import { ArchiveRestore, Download, FolderPlus, Trash2 } from "lucide-react";
 import type { FC, ReactNode } from "react";
 
-import {FileStatus} from "@/types/file.ts";
-import type {BucketItem} from "@/components/bucket-view/helpers/utils";
-import {isFile} from "@/components/bucket-view/helpers/utils";
+import { FileStatus } from "@/types/file.ts";
+import type { BucketItem } from "@/components/bucket-view/helpers/utils";
+import { isFile } from "@/components/bucket-view/helpers/utils";
 import { useFileActions } from "@/components/FileActions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
