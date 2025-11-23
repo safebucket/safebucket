@@ -10,6 +10,7 @@ import (
 
 	"api/internal/models"
 
+	"api/internal/configuration"
 	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -37,7 +38,7 @@ func NewAccessToken(jwtSecret string, user *models.User, provider string) (strin
 		Role:     user.Role,
 		Aud:      "app:*", // Todo: make it a list ==> delete aud
 		Provider: provider,
-		Issuer:   "safebucket",
+		Issuer:   configuration.AppName,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt: &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{
@@ -78,7 +79,7 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string) (stri
 		UserID:   user.ID,
 		Role:     user.Role,
 		Aud:      "auth:refresh",
-		Issuer:   "safebucket",
+		Issuer:   configuration.AppName,
 		Provider: provider,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},

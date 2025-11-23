@@ -110,9 +110,9 @@ func (s BucketService) CreateBucket(
 
 		action := models.Activity{
 			Message: activity.BucketCreated,
+			Object:  newBucket,
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionCreate.String(),
-				"domain":      c.DefaultDomain,
 				"object_type": rbac.ResourceBucket.String(),
 				"bucket_id":   newBucket.ID.String(),
 				"user_id":     user.UserID.String(),
@@ -258,10 +258,10 @@ func (s BucketService) DeleteBucket(
 
 		action := models.Activity{
 			Message: activity.BucketDeleted,
+			Object:  bucket,
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionDelete.String(),
 				"bucket_id":   bucket.ID.String(),
-				"domain":      c.DefaultDomain,
 				"object_type": rbac.ResourceBucket.String(),
 				"user_id":     user.UserID.String(),
 			}),
@@ -298,7 +298,6 @@ func (s BucketService) GetActivity(
 
 	if len(bucketIDs) > 0 {
 		searchCriteria := map[string][]string{
-			"domain":      {c.DefaultDomain},
 			"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String()},
 			"bucket_id":   bucketIDs,
 		}
@@ -330,7 +329,6 @@ func (s BucketService) GetBucketActivity(
 	}
 
 	searchCriteria := map[string][]string{
-		"domain":      {c.DefaultDomain},
 		"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String()},
 		"bucket_id":   {bucket.ID.String()},
 	}

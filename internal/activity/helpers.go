@@ -1,6 +1,7 @@
 package activity
 
 import (
+	"encoding/json"
 	"reflect"
 	"sort"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 
 	"api/internal/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -20,6 +22,7 @@ var ToEnrich = map[string]ToEnrichValue{
 	"user_id":   {Name: "user", Object: models.User{}},
 	"bucket_id": {Name: "bucket", Object: models.Bucket{}},
 	"file_id":   {Name: "file", Object: models.File{}},
+	"folder_id": {Name: "folder", Object: models.Folder{}},
 }
 
 // NewLogFilter creates a LogFilter object with the specified criteria and the current timestamp in nanoseconds.
@@ -30,10 +33,17 @@ func NewLogFilter(criteria map[string]string) models.LogFilter {
 	}
 }
 
-// EnrichActivity returns a new slice of logs with specified fields enriched by fetching related objects from the DB.
+// EnrichActivity returns a new slice of logs with specified fields enriched by fetching related objects.
+// It uses a three-tier lookup strategy:
+// 1. Use object from Loki metadata (if present)
+// 2. Use cached DB result (if already queried)
+// 3. Query DB and cache the result
 // It does not mutate the original `activity` slice.
 func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string]interface{} {
 	enrichedActivity := make([]map[string]interface{}, 0, len(activity))
+
+	// Initialize unified DB query cache (only for DB results, NOT Loki data)
+	cache := make(map[uuid.UUID]interface{})
 
 	for _, log := range activity {
 		newLog := make(map[string]interface{})
@@ -41,11 +51,63 @@ func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string
 			newLog[k] = v
 		}
 
+		// Tier 1: Check if object exists in Loki metadata
+		objectType, _ := log["object_type"].(string)
+		if objectStr, ok := log["object"].(string); ok && objectStr != "" {
+			var parsedObject interface{}
+
+			switch objectType {
+			case "bucket":
+				var bucket models.Bucket
+				if err := json.Unmarshal([]byte(objectStr), &bucket); err == nil {
+					parsedObject = &bucket
+					newLog["bucket"] = parsedObject
+					delete(newLog, "bucket_id")
+				}
+			case "file":
+				var file models.File
+				if err := json.Unmarshal([]byte(objectStr), &file); err == nil {
+					parsedObject = &file
+					newLog["file"] = parsedObject
+					delete(newLog, "file_id")
+				}
+			case "folder":
+				var folder models.Folder
+				if err := json.Unmarshal([]byte(objectStr), &folder); err == nil {
+					parsedObject = &folder
+					newLog["folder"] = parsedObject
+					delete(newLog, "folder_id")
+				}
+			}
+		}
+
+		// Tier 2 & 3: For remaining ID fields, check cache then DB
 		for fieldName, enrichedField := range ToEnrich {
 			if val, ok := log[fieldName]; ok && val != "" {
-				object := reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
+				// Skip if already enriched from Loki
+				if _, alreadyEnriched := newLog[enrichedField.Name]; alreadyEnriched {
+					continue
+				}
 
-				db.Unscoped().Where("id = ?", val).First(object)
+				idStr, ok := val.(string)
+				if !ok {
+					continue
+				}
+
+				id, err := uuid.Parse(idStr)
+				if err != nil {
+					continue
+				}
+
+				var object interface{}
+
+				if cached, exists := cache[id]; exists {
+					object = cached
+				} else {
+					object = reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
+					db.Unscoped().Where("id = ?", id).First(object)
+					cache[id] = object
+				}
 
 				newLog[enrichedField.Name] = object
 				delete(newLog, fieldName)

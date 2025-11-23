@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"api/internal/activity"
-	c "api/internal/configuration"
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
@@ -101,11 +100,11 @@ func (s BucketFolderService) CreateFolder(
 
 	action := models.Activity{
 		Message: activity.FolderCreated,
+		Object:  folder,
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionCreate.String(),
 			"bucket_id":   bucketID.String(),
 			"folder_id":   folder.ID.String(),
-			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     user.UserID.String(),
 		}),
@@ -153,11 +152,11 @@ func (s BucketFolderService) UpdateFolder(
 
 	action := models.Activity{
 		Message: activity.FolderUpdated,
+		Object:  folder,
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionUpdate.String(),
 			"bucket_id":   bucketID.String(),
 			"folder_id":   folderID.String(),
-			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     user.UserID.String(),
 		}),
@@ -229,11 +228,11 @@ func (s BucketFolderService) TrashFolder(
 
 	action := models.Activity{
 		Message: activity.FolderTrashed,
+		Object:  folder,
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionErase.String(),
 			"bucket_id":   folder.BucketID.String(),
 			"folder_id":   folder.ID.String(),
-			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     user.UserID.String(),
 		}),
@@ -314,11 +313,11 @@ func (s BucketFolderService) RestoreFolder(
 
 	action := models.Activity{
 		Message: activity.FolderRestored,
+		Object:  folder,
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionRestore.String(),
 			"bucket_id":   bucketID.String(),
 			"folder_id":   folderID.String(),
-			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     user.UserID.String(),
 		}),
@@ -360,11 +359,11 @@ func (s BucketFolderService) PurgeFolder(
 
 	action := models.Activity{
 		Message: activity.FolderPurged,
+		Object:  folder,
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionPurge.String(),
 			"bucket_id":   bucketID.String(),
 			"folder_id":   folderID.String(),
-			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     user.UserID.String(),
 		}),

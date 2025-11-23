@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"api/internal/activity"
-	c "api/internal/configuration"
 	"api/internal/errors"
 	"api/internal/handlers"
 	m "api/internal/middlewares"
@@ -187,11 +186,11 @@ func (s BucketFileService) DownloadFile(
 
 	action := models.Activity{
 		Message: activity.FileDownloaded,
+		Object:  file,
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionDownload.String(),
 			"bucket_id":   bucketID.String(),
 			"file_id":     fileID.String(),
-			"domain":      c.DefaultDomain,
 			"object_type": rbac.ResourceFile.String(),
 			"user_id":     user.UserID.String(),
 		}),
@@ -247,11 +246,11 @@ func (s BucketFileService) TrashFile(logger *zap.Logger, user models.UserClaims,
 
 		action := models.Activity{
 			Message: activity.FileTrashed,
+			Object:  file,
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionErase.String(),
 				"bucket_id":   file.BucketID.String(),
 				"file_id":     file.ID.String(),
-				"domain":      c.DefaultDomain,
 				"object_type": rbac.ResourceFile.String(),
 				"user_id":     user.UserID.String(),
 			}),
@@ -330,11 +329,11 @@ func (s BucketFileService) RestoreFile(
 
 		action := models.Activity{
 			Message: activity.FileRestored,
+			Object:  file,
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionRestore.String(),
 				"bucket_id":   bucketID.String(),
 				"file_id":     fileID.String(),
-				"domain":      c.DefaultDomain,
 				"object_type": rbac.ResourceFile.String(),
 				"user_id":     user.UserID.String(),
 			}),
@@ -449,11 +448,11 @@ func (s BucketFileService) PurgeFile(logger *zap.Logger, user models.UserClaims,
 		// Log activity
 		action := models.Activity{
 			Message: activity.FilePurged,
+			Object:  file,
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionPurge.String(),
 				"bucket_id":   bucketID.String(),
 				"file_id":     fileID.String(),
-				"domain":      c.DefaultDomain,
 				"object_type": rbac.ResourceFile.String(),
 				"user_id":     user.UserID.String(),
 			}),
