@@ -129,13 +129,6 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	var activity []map[string]interface{}
 	for _, result := range parsedResp.Data.Result {
 		for _, log := range result.Values {
-			// Parse timestamp and message (required fields)
-			var timestamp, message string
-			if len(log) >= 2 {
-				json.Unmarshal(log[0], &timestamp)
-				json.Unmarshal(log[1], &message)
-			}
-
 			entry := map[string]interface{}{
 				"domain":              result.Stream["domain"],
 				"user_id":             result.Stream["user_id"],
@@ -145,26 +138,18 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 				"file_id":             result.Stream["file_id"],
 				"folder_id":           result.Stream["folder_id"],
 				"bucket_member_email": result.Stream["bucket_member_email"],
-				"timestamp":           timestamp,
-				"message":             message,
+				"timestamp":           log[0],
+				"message":             log[1],
 			}
 
-			// Parse structured metadata (3rd element) if present
-			if len(log) >= 3 {
-				var metadata map[string]interface{}
-				if err := json.Unmarshal(log[2], &metadata); err == nil {
-					// Extract the "object" field from structured metadata
-					if objectStr, ok := metadata["object"].(string); ok {
-						entry["object"] = objectStr
-					}
-					// Include other metadata fields as well
-					for k, v := range metadata {
-						if k != "object" { // object is already added
-							entry[k] = v
-						}
-					}
-				}
+			var object interface{}
+			if err := json.Unmarshal([]byte(result.Stream["object"]), &object); err != nil {
+				zap.L().Error("Failed to unmarshal object from Loki",
+					zap.Error(err),
+					zap.String("object", result.Stream["object"]))
+				return activity, err
 			}
+			entry["object"] = object
 
 			activity = append(activity, entry)
 		}
@@ -277,14 +262,16 @@ func generateORCriteria(criteria map[string][]string) []string {
 // Returns the generated LokiBody and any error encountered during its creation.
 func createLokiBody(activity models.Activity) (LokiBody, error) {
 	labels, metadata := splitMetadata(activity.Filter.Fields)
+	labels["service_name"] = configuration.AppName
 
+	// Add the object as a marshaled JSON string to labels (not structured metadata)
 	if isAuthorizedObject(activity.Filter.Fields["object_type"]) && activity.Object != nil {
 		jsonBytes, err := json.Marshal(activity.Object)
 		if err != nil {
 			zap.L().Error("Failed to marshal activity object", zap.Error(err))
 			return LokiBody{}, err
 		}
-		metadata["object"] = string(jsonBytes)
+		labels["object"] = string(jsonBytes)
 	}
 
 	labels["service_name"] = configuration.AppName

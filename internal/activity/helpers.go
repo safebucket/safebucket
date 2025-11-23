@@ -53,30 +53,29 @@ func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string
 
 		// Tier 1: Check if object exists in Loki metadata
 		objectType, _ := log["object_type"].(string)
-		if objectStr, ok := log["object"].(string); ok && objectStr != "" {
-			var parsedObject interface{}
+		if objectData, ok := log["object"]; ok && objectData != nil {
+			if objectMap, ok := objectData.(map[string]interface{}); ok {
+				jsonBytes, _ := json.Marshal(objectMap)
 
-			switch objectType {
-			case "bucket":
-				var bucket models.Bucket
-				if err := json.Unmarshal([]byte(objectStr), &bucket); err == nil {
-					parsedObject = &bucket
-					newLog["bucket"] = parsedObject
-					delete(newLog, "bucket_id")
-				}
-			case "file":
-				var file models.File
-				if err := json.Unmarshal([]byte(objectStr), &file); err == nil {
-					parsedObject = &file
-					newLog["file"] = parsedObject
-					delete(newLog, "file_id")
-				}
-			case "folder":
-				var folder models.Folder
-				if err := json.Unmarshal([]byte(objectStr), &folder); err == nil {
-					parsedObject = &folder
-					newLog["folder"] = parsedObject
-					delete(newLog, "folder_id")
+				switch objectType {
+				case "bucket":
+					var bucket models.Bucket
+					if json.Unmarshal(jsonBytes, &bucket) == nil {
+						newLog["bucket"] = &bucket
+						delete(newLog, "bucket_id")
+					}
+				case "file":
+					var file models.File
+					if json.Unmarshal(jsonBytes, &file) == nil {
+						newLog["file"] = &file
+						delete(newLog, "file_id")
+					}
+				case "folder":
+					var folder models.Folder
+					if json.Unmarshal(jsonBytes, &folder) == nil {
+						newLog["folder"] = &folder
+						delete(newLog, "folder_id")
+					}
 				}
 			}
 		}
