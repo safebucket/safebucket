@@ -1,7 +1,7 @@
-import type { FC } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ChevronDownIcon } from "lucide-react";
+import type { FC } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
-import { UploadStatus } from "@/components/upload/helpers/types";
 import {
   getStatusIcon,
   getStatusText,
@@ -22,14 +21,12 @@ export const UploadPopover: FC = () => {
   const { t } = useTranslation();
   const { uploads } = useUploadContext();
 
-  const activeUploads = uploads.filter(
-    (upload) => upload.status !== UploadStatus.success,
-  );
+  const activeUploads = uploads.filter((upload) => upload.status !== "success");
   const completedCount = uploads.filter(
-    (upload) => upload.status === UploadStatus.success,
+    (upload) => upload.status === "success",
   ).length;
   const failedCount = uploads.filter(
-    (upload) => upload.status === UploadStatus.failed,
+    (upload) => upload.status === "error",
   ).length;
 
   return (
@@ -98,7 +95,7 @@ export const UploadPopover: FC = () => {
                     {upload.path}
                   </div>
                   <div className="flex items-center gap-2">
-                    {upload.status === UploadStatus.uploading && (
+                    {upload.status === "uploading" && (
                       <Progress
                         value={upload.progress}
                         className="h-2 flex-1"

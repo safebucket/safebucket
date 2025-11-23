@@ -1,7 +1,7 @@
-import React, { useEffect, useReducer } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { useQueryClient } from "@tanstack/react-query";
-import * as actions from "../store/actions";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { IUpload } from "@/components/upload/helpers/types";
 import { generateRandomString } from "@/lib/utils";
 
 import { successToast } from "@/components/ui/hooks/use-toast";
@@ -9,21 +9,112 @@ import {
   api_createFile,
   uploadToStorage,
 } from "@/components/upload/helpers/api";
-import { UploadStatus } from "@/components/upload/helpers/types";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
-import { uploadsReducer } from "@/components/upload/store/reducer";
 
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
-  const [uploads, dispatch] = useReducer(uploadsReducer, []);
+  const [uploads, setUploads] = useState<Array<IUpload>>([]);
+  const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
-  // Add beforeunload warning when uploads are in progress
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      const hasActiveUploads = uploads.some(
-        (upload) => upload.status === UploadStatus.uploading,
+  const uploadMutation = useMutation({
+    mutationFn: async ({
+      file,
+      bucketId,
+      folderId,
+      uploadId,
+    }: {
+      file: File;
+      bucketId: string;
+      folderId: string | null;
+      uploadId: string;
+    }) => {
+      const abortController = new AbortController();
+      abortControllersRef.current.set(uploadId, abortController);
+
+      try {
+        const presignedUpload = await api_createFile(
+          file.name,
+          bucketId,
+          file.size,
+          folderId,
+        );
+
+        await uploadToStorage(
+          presignedUpload,
+          file,
+          (progress) => {
+            setUploads((prev) =>
+              prev.map((u) => (u.id === uploadId ? { ...u, progress } : u)),
+            );
+          },
+          abortController.signal,
+        );
+
+        return { uploadId, fileName: file.name, bucketId };
+      } finally {
+        abortControllersRef.current.delete(uploadId);
+      }
+    },
+    onSuccess: ({ uploadId, fileName, bucketId }) => {
+      setUploads((prev) =>
+        prev.map((u) => (u.id === uploadId ? { ...u, status: "success" } : u)),
       );
 
+      queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
+      successToast(`Upload completed for ${fileName}`);
+
+      setTimeout(() => {
+        setUploads((prev) => prev.filter((u) => u.id !== uploadId));
+      }, 3000);
+    },
+    onError: (error: Error, { uploadId }) => {
+      setUploads((prev) =>
+        prev.map((u) =>
+          u.id === uploadId ? { ...u, status: "error", error } : u,
+        ),
+      );
+    },
+  });
+
+  const startUpload = useCallback(
+    (files: FileList, bucketId: string, folderId: string | null) => {
+      Array.from(files).forEach((file) => {
+        const uploadId = generateRandomString(12);
+        const displayPath = file.name;
+
+        setUploads((prev) => [
+          ...prev,
+          {
+            id: uploadId,
+            name: file.name,
+            path: displayPath,
+            progress: 0,
+            status: "uploading",
+          },
+        ]);
+
+        uploadMutation.mutate({ file, bucketId, folderId, uploadId });
+      });
+    },
+    [uploadMutation],
+  );
+
+  const cancelUpload = useCallback((uploadId: string) => {
+    const abortController = abortControllersRef.current.get(uploadId);
+    if (abortController) {
+      abortController.abort();
+      abortControllersRef.current.delete(uploadId);
+    }
+
+    setUploads((prev) => prev.filter((u) => u.id !== uploadId));
+  }, []);
+
+  const hasActiveUploads = uploads.some(
+    (upload) => upload.status === "uploading",
+  );
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (hasActiveUploads) {
         event.preventDefault();
         return "";
@@ -35,55 +126,12 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [uploads]);
-
-  const addUpload = (uploadId: string, filename: string, displayPath: string) =>
-    dispatch(actions.addUpload(uploadId, filename, displayPath));
-
-  const updateProgress = (uploadId: string, progress: number) =>
-    dispatch(actions.updateProgress(uploadId, progress));
-
-  const updateStatus = (uploadId: string, status: UploadStatus) =>
-    dispatch(actions.updateStatus(uploadId, status));
-
-  const startUpload = (
-    files: FileList,
-    bucketId: string,
-    folderId: string | null,
-  ) => {
-    const file = files[0];
-    const uploadId = generateRandomString(12);
-
-    // Display path for UI (just show filename for now, folder path can be added later if needed)
-    const displayPath = file.name;
-
-    addUpload(uploadId, file.name, displayPath);
-
-    api_createFile(file.name, bucketId, file.size, folderId).then(
-      (presignedUpload) => {
-        queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-        uploadToStorage(presignedUpload, file, uploadId, updateProgress).then(
-          (success: boolean) => {
-            const status = success ? UploadStatus.success : UploadStatus.failed;
-            updateStatus(uploadId, status);
-
-            if (success) {
-              setTimeout(function () {
-                queryClient
-                  .invalidateQueries({ queryKey: ["buckets", bucketId] })
-                  .then(() =>
-                    successToast(`Upload completed for ${file.name}`),
-                  );
-              }, 2000);
-            }
-          },
-        );
-      },
-    );
-  };
+  }, [hasActiveUploads]);
 
   return (
-    <UploadContext.Provider value={{ uploads, startUpload }}>
+    <UploadContext.Provider
+      value={{ uploads, startUpload, cancelUpload, hasActiveUploads }}
+    >
       {children}
     </UploadContext.Provider>
   );

@@ -22,13 +22,11 @@ export interface IUploadContext {
     bucketId: string,
     folderId: string | null,
   ) => void;
+  cancelUpload: (uploadId: string) => void;
+  hasActiveUploads: boolean;
 }
 
-export enum UploadStatus {
-  uploading = "uploading",
-  success = "success",
-  failed = "failed",
-}
+export type UploadStatus = "uploading" | "success" | "error";
 
 export interface IUpload {
   id: string;
@@ -36,6 +34,7 @@ export interface IUpload {
   path: string;
   progress: number;
   status: UploadStatus;
+  error?: Error;
 }
 
 export type FileSystemEntry = {
