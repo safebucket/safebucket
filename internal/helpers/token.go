@@ -11,6 +11,7 @@ import (
 	"api/internal/models"
 
 	"api/internal/configuration"
+
 	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"
 )
