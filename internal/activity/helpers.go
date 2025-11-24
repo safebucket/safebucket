@@ -77,6 +77,7 @@ func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string
 						delete(newLog, "folder_id")
 					}
 				}
+				delete(newLog, "object")
 			}
 		}
 

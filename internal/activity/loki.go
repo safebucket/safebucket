@@ -44,8 +44,8 @@ type LokiQueryResponse struct {
 }
 
 type LokiResult struct {
-	Stream map[string]string   `json:"stream"` // dynamic label key-value pairs
-	Values [][]json.RawMessage `json:"values"` // each value is [timestamp, logLine, structuredMetadata?]
+	Stream map[string]string `json:"stream"` // dynamic label key-value pairs
+	Values [][]string        `json:"values"` // each value is [timestamp, logLine, structuredMetadata?]
 }
 
 // RawLogValue is a fixed-size array of 3 interface{} elements, typically representing [timestamp, message, metadata].
@@ -142,19 +142,11 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 				"timestamp":           log[0],
 			}
 
-			var logLineStr string
-			if err = json.Unmarshal(log[1], &logLineStr); err != nil {
-				zap.L().Error("Failed to unmarshal log line string from Loki",
-					zap.Error(err),
-					zap.String("log_line", string(log[1])))
-				return activity, err
-			}
-
 			var logLineData map[string]interface{}
-			if err = json.Unmarshal([]byte(logLineStr), &logLineData); err != nil {
+			if err = json.Unmarshal([]byte(log[1]), &logLineData); err != nil {
 				zap.L().Error("Failed to unmarshal log line data from Loki",
 					zap.Error(err),
-					zap.String("log_line_str", logLineStr))
+					zap.String("log_line_str", log[1]))
 				return activity, err
 			}
 
