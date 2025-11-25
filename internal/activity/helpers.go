@@ -33,6 +33,83 @@ func NewLogFilter(criteria map[string]string) models.LogFilter {
 	}
 }
 
+// enrichLogWithMetadata handles Tier 1 enrichment by extracting objects from log metadata.
+func enrichLogWithMetadata(log map[string]interface{}) map[string]interface{} {
+	newLog := log
+
+	objectType, _ := log["object_type"].(string)
+	if objectData, exists := log["object"]; exists && objectData != nil {
+		if objectMap, isMap := objectData.(map[string]interface{}); isMap {
+			jsonBytes, _ := json.Marshal(objectMap)
+
+			switch objectType {
+			case "bucket":
+				var bucket models.Bucket
+				if json.Unmarshal(jsonBytes, &bucket) == nil {
+					newLog["bucket"] = &bucket
+					delete(newLog, "bucket_id")
+				}
+			case "file":
+				var file models.File
+				if json.Unmarshal(jsonBytes, &file) == nil {
+					newLog["file"] = &file
+					delete(newLog, "file_id")
+				}
+			case "folder":
+				var folder models.Folder
+				if json.Unmarshal(jsonBytes, &folder) == nil {
+					newLog["folder"] = &folder
+					delete(newLog, "folder_id")
+				}
+			}
+			delete(newLog, "object")
+		}
+	}
+
+	return newLog
+}
+
+// enrichLogWithDatabase handles Tier 2/3 enrichment by querying the database with caching.
+func enrichLogWithDatabase(
+	db *gorm.DB,
+	log map[string]interface{},
+	cache map[uuid.UUID]interface{},
+) map[string]interface{} {
+	newLog := log
+
+	for fieldName, enrichedField := range ToEnrich {
+		if val, exists := log[fieldName]; exists && val != "" {
+			if _, alreadyEnriched := newLog[enrichedField.Name]; alreadyEnriched {
+				continue
+			}
+
+			idStr, isString := val.(string)
+			if !isString {
+				continue
+			}
+
+			id, err := uuid.Parse(idStr)
+			if err != nil {
+				continue
+			}
+
+			var object interface{}
+			if cached, inCache := cache[id]; inCache {
+				object = cached
+			} else {
+				object = reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
+				db.Unscoped().Where("id = ?", id).First(object)
+				cache[id] = object
+			}
+
+			newLog[enrichedField.Name] = object
+			delete(newLog, fieldName)
+		}
+	}
+
+	return newLog
+}
+
 // EnrichActivity returns a new slice of logs with specified fields enriched by fetching related objects.
 // It uses a three-tier lookup strategy:
 // 1. Use object from Loki metadata (if present)
@@ -41,75 +118,12 @@ func NewLogFilter(criteria map[string]string) models.LogFilter {
 // It does not mutate the original `activity` slice.
 func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string]interface{} {
 	enrichedActivity := make([]map[string]interface{}, 0, len(activity))
-
-	// Initialize unified DB query cache (only for DB results, NOT Loki data)
 	cache := make(map[uuid.UUID]interface{})
 
 	for _, log := range activity {
-		newLog := log
-
-		// Tier 1: Check if object exists in Loki metadata
-		objectType, _ := log["object_type"].(string)
-		if objectData, ok := log["object"]; ok && objectData != nil {
-			if objectMap, ok := objectData.(map[string]interface{}); ok {
-				jsonBytes, _ := json.Marshal(objectMap)
-
-				switch objectType {
-				case "bucket":
-					var bucket models.Bucket
-					if json.Unmarshal(jsonBytes, &bucket) == nil {
-						newLog["bucket"] = &bucket
-						delete(newLog, "bucket_id")
-					}
-				case "file":
-					var file models.File
-					if json.Unmarshal(jsonBytes, &file) == nil {
-						newLog["file"] = &file
-						delete(newLog, "file_id")
-					}
-				case "folder":
-					var folder models.Folder
-					if json.Unmarshal(jsonBytes, &folder) == nil {
-						newLog["folder"] = &folder
-						delete(newLog, "folder_id")
-					}
-				}
-				delete(newLog, "object")
-			}
-		}
-
-		// Tier 2 & 3: For remaining ID fields, check cache then DB
-		for fieldName, enrichedField := range ToEnrich {
-			if val, ok := log[fieldName]; ok && val != "" {
-				if _, alreadyEnriched := newLog[enrichedField.Name]; alreadyEnriched {
-					continue
-				}
-
-				idStr, ok := val.(string)
-				if !ok {
-					continue
-				}
-
-				id, err := uuid.Parse(idStr)
-				if err != nil {
-					continue
-				}
-
-				var object interface{}
-				if cached, exists := cache[id]; exists {
-					object = cached
-				} else {
-					object = reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
-					db.Unscoped().Where("id = ?", id).First(object)
-					cache[id] = object
-				}
-
-				newLog[enrichedField.Name] = object
-				delete(newLog, fieldName)
-			}
-		}
-
-		enrichedActivity = append(enrichedActivity, newLog)
+		enrichedLog := enrichLogWithMetadata(log)
+		enrichedLog = enrichLogWithDatabase(db, enrichedLog, cache)
+		enrichedActivity = append(enrichedActivity, enrichedLog)
 	}
 
 	return sortByTimestamp(enrichedActivity)
