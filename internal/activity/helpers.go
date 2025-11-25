@@ -46,10 +46,7 @@ func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string
 	cache := make(map[uuid.UUID]interface{})
 
 	for _, log := range activity {
-		newLog := make(map[string]interface{})
-		for k, v := range log {
-			newLog[k] = v
-		}
+		newLog := log
 
 		// Tier 1: Check if object exists in Loki metadata
 		objectType, _ := log["object_type"].(string)
@@ -84,7 +81,6 @@ func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string
 		// Tier 2 & 3: For remaining ID fields, check cache then DB
 		for fieldName, enrichedField := range ToEnrich {
 			if val, ok := log[fieldName]; ok && val != "" {
-				// Skip if already enriched from Loki
 				if _, alreadyEnriched := newLog[enrichedField.Name]; alreadyEnriched {
 					continue
 				}
@@ -100,7 +96,6 @@ func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string
 				}
 
 				var object interface{}
-
 				if cached, exists := cache[id]; exists {
 					object = cached
 				} else {
@@ -117,12 +112,16 @@ func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string
 		enrichedActivity = append(enrichedActivity, newLog)
 	}
 
-	sort.Slice(enrichedActivity, func(i, j int) bool {
-		ts1, ok1 := enrichedActivity[i]["timestamp"].(string)
+	return sortByTimestamp(enrichedActivity)
+}
+
+func sortByTimestamp(activity []map[string]interface{}) []map[string]interface{} {
+	sort.Slice(activity, func(i, j int) bool {
+		ts1, ok1 := activity[i]["timestamp"].(string)
 		if !ok1 {
 			return false
 		}
-		ts2, ok2 := enrichedActivity[j]["timestamp"].(string)
+		ts2, ok2 := activity[j]["timestamp"].(string)
 		if !ok2 {
 			return true
 		}
@@ -138,5 +137,5 @@ func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string
 		return t1 > t2
 	})
 
-	return enrichedActivity
+	return activity
 }
