@@ -200,7 +200,7 @@ func (e *FolderPurge) callback(params *EventParams) error {
 
 	action := models.Activity{
 		Message: activity.FolderPurged,
-		Object:  folder,
+		Object:  folder.ToActivity(),
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionPurge.String(),
 			"bucket_id":   e.Payload.BucketID.String(),

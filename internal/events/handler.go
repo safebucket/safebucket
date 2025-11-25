@@ -131,7 +131,7 @@ func HandleBucketEvents(
 
 				action := models.Activity{
 					Message: activity.FileUploaded,
-					Object:  file,
+					Object:  file.ToActivity(),
 					Filter: activity.NewLogFilter(map[string]string{
 						"action":      rbac.ActionCreate.String(),
 						"object_type": rbac.ResourceFile.String(),

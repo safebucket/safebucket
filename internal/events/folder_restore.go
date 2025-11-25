@@ -253,7 +253,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 
 	action := models.Activity{
 		Message: activity.FolderRestored,
-		Object:  folder,
+		Object:  folder.ToActivity(),
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionRestore.String(),
 			"bucket_id":   e.Payload.BucketID.String(),

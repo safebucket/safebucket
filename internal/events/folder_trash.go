@@ -257,7 +257,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 
 	action := models.Activity{
 		Message: activity.FolderTrashed,
-		Object:  folder,
+		Object:  folder.ToActivity(),
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionErase.String(),
 			"bucket_id":   e.Payload.BucketID.String(),

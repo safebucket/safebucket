@@ -186,7 +186,7 @@ func (s BucketFileService) DownloadFile(
 
 	action := models.Activity{
 		Message: activity.FileDownloaded,
-		Object:  file,
+		Object:  file.ToActivity(),
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionDownload.String(),
 			"bucket_id":   bucketID.String(),
@@ -246,7 +246,7 @@ func (s BucketFileService) TrashFile(logger *zap.Logger, user models.UserClaims,
 
 		action := models.Activity{
 			Message: activity.FileTrashed,
-			Object:  file,
+			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionErase.String(),
 				"bucket_id":   file.BucketID.String(),
@@ -329,7 +329,7 @@ func (s BucketFileService) RestoreFile(
 
 		action := models.Activity{
 			Message: activity.FileRestored,
-			Object:  file,
+			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionRestore.String(),
 				"bucket_id":   bucketID.String(),
@@ -448,7 +448,7 @@ func (s BucketFileService) PurgeFile(logger *zap.Logger, user models.UserClaims,
 		// Log activity
 		action := models.Activity{
 			Message: activity.FilePurged,
-			Object:  file,
+			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionPurge.String(),
 				"bucket_id":   bucketID.String(),

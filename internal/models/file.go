@@ -35,6 +35,18 @@ type File struct {
 	DeletedAt    gorm.DeletedAt `gorm:"index"                                          json:"-"`
 }
 
+type FileActivity struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (f *File) ToActivity() FileActivity {
+	return FileActivity{
+		ID:   f.ID,
+		Name: f.Name,
+	}
+}
+
 type FileTransferBody struct {
 	Name     string     `json:"name"      validate:"required,filename,max=255"`
 	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
