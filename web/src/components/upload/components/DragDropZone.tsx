@@ -1,16 +1,16 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Upload } from "lucide-react";
-import type { DragEvent, FC } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import type { DragEvent, FC } from "react";
 
 import type {
   FileSystemDirectoryEntry,
   FileSystemEntry,
   FileSystemFileEntry,
 } from "@/components/upload/helpers/types";
-import { cn } from "@/lib/utils";
 import type { IFolder } from "@/types/folder";
+import { cn } from "@/lib/utils";
 
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
@@ -30,7 +30,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isDragOver, setIsDragOver] = useState(false);
-  const [_dragCounter, setDragCounter] = useState(0);
+  const dragCounterRef = useRef(0);
 
   const { startUpload } = useUploadContext();
   const { folderId } = useBucketViewContext();
@@ -45,7 +45,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
     e.preventDefault();
     e.stopPropagation();
 
-    setDragCounter((prev) => prev + 1);
+    dragCounterRef.current += 1;
 
     // Show overlay for any drag operation that includes files
     if (e.dataTransfer.types.includes("Files")) {
@@ -57,28 +57,23 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
     e.preventDefault();
     e.stopPropagation();
 
-    setDragCounter((prev) => {
-      const newCount = prev - 1;
-      if (newCount <= 0) {
-        setIsDragOver(false);
-        return 0;
-      }
-      return newCount;
-    });
+    dragCounterRef.current -= 1;
+
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDragOver(false);
+    }
   }, []);
 
-  const handleDragOver = useCallback(
-    (e: DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-      // Ensure overlay stays visible during drag over
-      if (e.dataTransfer.types.includes("Files") && !isDragOver) {
-        setIsDragOver(true);
-      }
-    },
-    [isDragOver],
-  );
+    // Set the drop effect to indicate copy operation
+    if (e.dataTransfer.types.includes("Files")) {
+      e.dataTransfer.dropEffect = "copy";
+    }
+  }, []);
 
   // Process file entry and track its relative path
   const processFileEntry = useCallback(
@@ -239,7 +234,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       e.stopPropagation();
 
       setIsDragOver(false);
-      setDragCounter(0);
+      dragCounterRef.current = 0;
 
       const items = e.dataTransfer.items;
 
