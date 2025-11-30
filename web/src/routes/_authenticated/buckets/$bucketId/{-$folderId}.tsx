@@ -6,19 +6,18 @@ import { bucketDataQueryOptions } from "@/queries/bucket.ts";
 import { BucketView } from "@/components/bucket-view/BucketView";
 import { BucketViewProvider } from "@/components/bucket-view/context/BucketViewProvider";
 
-export const Route = createFileRoute("/_authenticated/buckets/$id/$")({
-  loader: ({ context: { queryClient }, params: { id } }) =>
-    queryClient.ensureQueryData(bucketDataQueryOptions(id)),
+export const Route = createFileRoute(
+  "/_authenticated/buckets/$bucketId/{-$folderId}",
+)({
+  loader: ({ context: { queryClient }, params: { bucketId } }) =>
+    queryClient.ensureQueryData(bucketDataQueryOptions(bucketId)),
   component: BucketComponent,
 });
 
 function BucketComponent() {
-  const { id, _splat } = Route.useParams();
-  const bucketQuery = useSuspenseQuery(bucketDataQueryOptions(id));
+  const { bucketId, folderId } = Route.useParams();
+  const bucketQuery = useSuspenseQuery(bucketDataQueryOptions(bucketId));
   const bucket = bucketQuery.data;
-
-  // The splat captures the folder ID if present, otherwise it's empty (root)
-  const folderId = _splat && _splat.trim() !== "" ? _splat : null;
 
   return (
     <BucketViewProvider folderId={folderId}>

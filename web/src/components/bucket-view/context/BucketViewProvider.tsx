@@ -2,19 +2,21 @@ import React, { useState } from "react";
 
 import { useNavigate, useParams } from "@tanstack/react-router";
 
+import type { BucketItem } from "@/types/bucket.ts";
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { BucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import type { BucketItem } from "@/types/bucket.ts";
 
 export const BucketViewProvider = ({
   children,
   folderId,
 }: {
   children: React.ReactNode;
-  folderId: string | null;
+  folderId: string | undefined;
 }) => {
-  const params = useParams({ from: "/_authenticated/buckets/$id/$" });
+  const params = useParams({
+    from: "/_authenticated/buckets/$bucketId/{-$folderId}",
+  });
   const navigate = useNavigate();
 
   const [view, setView] = useState<BucketViewMode>(BucketViewMode.List);
@@ -23,17 +25,14 @@ export const BucketViewProvider = ({
   const openFolder = (item: BucketItem) => {
     if (isFolder(item)) {
       // Navigate to /buckets/{bucketId}/{folderId}
-      navigate({
-        to: "/buckets/$id/$",
-        params: { id: params.id, _splat: item.id },
-      });
+      navigate({ to: `/buckets/${params.bucketId}/${item.id}` });
     }
   };
 
   return (
     <BucketViewContext.Provider
       value={{
-        bucketId: params.id,
+        bucketId: params.bucketId,
         folderId,
         view,
         setView,

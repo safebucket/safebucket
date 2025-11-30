@@ -5,7 +5,7 @@ import type { BucketItem } from "@/types/bucket.ts";
 
 export interface IBucketViewContext {
   bucketId: string;
-  folderId: string | null;
+  folderId: string | undefined;
   view: BucketViewMode;
   setView: (view: BucketViewMode) => void;
   selected: BucketItem | null;

@@ -20,7 +20,7 @@ import { Route as AuthenticatedActivityIndexRouteImport } from './routes/_authen
 import { Route as AuthResetPasswordIdIndexRouteImport } from './routes/auth/reset-password/$id/index'
 import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
 import { Route as AuthenticatedSettingsPreferencesIndexRouteImport } from './routes/_authenticated/settings/preferences/index'
-import { Route as AuthenticatedBucketsIdSplatRouteImport } from './routes/_authenticated/buckets/$id/$'
+import { Route as AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport } from './routes/_authenticated/buckets/$bucketId/{-$folderId}'
 import { Route as InvitesIdChallengesChallengeIdIndexRouteImport } from './routes/invites/$id/challenges/$challengeId/index'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -82,10 +82,10 @@ const AuthenticatedSettingsPreferencesIndexRoute =
     path: '/settings/preferences/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedBucketsIdSplatRoute =
-  AuthenticatedBucketsIdSplatRouteImport.update({
-    id: '/buckets/$id/$',
-    path: '/buckets/$id/$',
+const AuthenticatedBucketsBucketIdChar123FolderIdChar125Route =
+  AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport.update({
+    id: '/buckets/$bucketId/{-$folderId}',
+    path: '/buckets/$bucketId/{-$folderId}',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const InvitesIdChallengesChallengeIdIndexRoute =
@@ -103,7 +103,7 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
-  '/buckets/$id/$': typeof AuthenticatedBucketsIdSplatRoute
+  '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
@@ -117,7 +117,7 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
-  '/buckets/$id/$': typeof AuthenticatedBucketsIdSplatRoute
+  '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
@@ -133,7 +133,7 @@ export interface FileRoutesById {
   '/auth/login/': typeof AuthLoginIndexRoute
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
-  '/_authenticated/buckets/$id/$': typeof AuthenticatedBucketsIdSplatRoute
+  '/_authenticated/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/_authenticated/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
   '/auth/reset-password/$id/': typeof AuthResetPasswordIdIndexRoute
@@ -149,7 +149,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/reset-password'
     | '/invites/$id'
-    | '/buckets/$id/$'
+    | '/buckets/$bucketId/{-$folderId}'
     | '/settings/preferences'
     | '/settings/profile'
     | '/auth/reset-password/$id'
@@ -163,7 +163,7 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/reset-password'
     | '/invites/$id'
-    | '/buckets/$id/$'
+    | '/buckets/$bucketId/{-$folderId}'
     | '/settings/preferences'
     | '/settings/profile'
     | '/auth/reset-password/$id'
@@ -178,7 +178,7 @@ export interface FileRouteTypes {
     | '/auth/login/'
     | '/auth/reset-password/'
     | '/invites/$id/'
-    | '/_authenticated/buckets/$id/$'
+    | '/_authenticated/buckets/$bucketId/{-$folderId}'
     | '/_authenticated/settings/preferences/'
     | '/_authenticated/settings/profile/'
     | '/auth/reset-password/$id/'
@@ -274,11 +274,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsPreferencesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/buckets/$id/$': {
-      id: '/_authenticated/buckets/$id/$'
-      path: '/buckets/$id/$'
-      fullPath: '/buckets/$id/$'
-      preLoaderRoute: typeof AuthenticatedBucketsIdSplatRouteImport
+    '/_authenticated/buckets/$bucketId/{-$folderId}': {
+      id: '/_authenticated/buckets/$bucketId/{-$folderId}'
+      path: '/buckets/$bucketId/{-$folderId}'
+      fullPath: '/buckets/$bucketId/{-$folderId}'
+      preLoaderRoute: typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/invites/$id/challenges/$challengeId/': {
@@ -295,7 +295,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedActivityIndexRoute: typeof AuthenticatedActivityIndexRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
-  AuthenticatedBucketsIdSplatRoute: typeof AuthenticatedBucketsIdSplatRoute
+  AuthenticatedBucketsBucketIdChar123FolderIdChar125Route: typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   AuthenticatedSettingsPreferencesIndexRoute: typeof AuthenticatedSettingsPreferencesIndexRoute
   AuthenticatedSettingsProfileIndexRoute: typeof AuthenticatedSettingsProfileIndexRoute
 }
@@ -304,7 +304,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedActivityIndexRoute: AuthenticatedActivityIndexRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
-  AuthenticatedBucketsIdSplatRoute: AuthenticatedBucketsIdSplatRoute,
+  AuthenticatedBucketsBucketIdChar123FolderIdChar125Route:
+    AuthenticatedBucketsBucketIdChar123FolderIdChar125Route,
   AuthenticatedSettingsPreferencesIndexRoute:
     AuthenticatedSettingsPreferencesIndexRoute,
   AuthenticatedSettingsProfileIndexRoute:
