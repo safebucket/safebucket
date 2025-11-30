@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"api/internal/activity"
-	c "api/internal/configuration"
 	"api/internal/messaging"
 	"api/internal/models"
 	"api/internal/notifier"
@@ -132,10 +131,10 @@ func HandleBucketEvents(
 
 				action := models.Activity{
 					Message: activity.FileUploaded,
+					Object:  file.ToActivity(),
 					Filter: activity.NewLogFilter(map[string]string{
 						"action":      rbac.ActionCreate.String(),
-						"domain":      c.DefaultDomain,
-						"object_type": rbac.ResourceBucket.String(),
+						"object_type": rbac.ResourceFile.String(),
 						"file_id":     event.FileID,
 						"bucket_id":   event.BucketID,
 						"user_id":     event.UserID,

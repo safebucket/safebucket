@@ -1,5 +1,7 @@
 package configuration
 
+const AppName = "safebucket"
+
 const (
 	CacheMaxAppIdentityLifetime = 60
 	CacheAppIdentityKey         = "app:identity"
@@ -11,8 +13,6 @@ const (
 	EventsObjectDeletion = "object_deletion"
 	EventsBucketEvents   = "bucket_events"
 )
-
-const DefaultDomain = "04db8656-d4f6-4f27-a2bd-8fab66155b21"
 
 const UploadPolicyExpirationInMinutes = 15
 

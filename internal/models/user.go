@@ -31,6 +31,22 @@ type User struct {
 	DeletedAt      gorm.DeletedAt `gorm:"index"                                                    json:"-"`
 }
 
+type UserActivity struct {
+	ID        uuid.UUID `json:"id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Email     string    `json:"email"`
+}
+
+func (u *User) ToActivity() UserActivity {
+	return UserActivity{
+		ID:        u.ID,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Email:     u.Email,
+	}
+}
+
 type UserCreateBody struct {
 	FirstName string `json:"first_name" validate:"omitempty,max=100"`
 	LastName  string `json:"last_name"  validate:"omitempty,max=100"`

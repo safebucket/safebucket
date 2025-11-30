@@ -18,6 +18,18 @@ type Bucket struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"                                          json:"-"`
 }
 
+type BucketActivity struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (b *Bucket) ToActivity() BucketActivity {
+	return BucketActivity{
+		ID:   b.ID,
+		Name: b.Name,
+	}
+}
+
 type BucketCreateUpdateBody struct {
 	Name string `json:"name" validate:"required,max=100"`
 }

@@ -257,9 +257,9 @@ func (s BucketMemberService) addMember(
 
 		action := models.Activity{
 			Message: activity.BucketMemberCreated,
+			Object:  bucket.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":              rbac.ActionGrant.String(),
-				"domain":              configuration.DefaultDomain,
 				"object_type":         rbac.ResourceBucket.String(),
 				"bucket_id":           bucket.ID.String(),
 				"user_id":             user.UserID.String(),
@@ -309,9 +309,9 @@ func (s BucketMemberService) updateMember(
 
 		action := models.Activity{
 			Message: activity.BucketMemberUpdated,
+			Object:  bucket.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":              rbac.ActionGrant.String(),
-				"domain":              configuration.DefaultDomain,
 				"object_type":         rbac.ResourceBucket.String(),
 				"bucket_id":           bucket.ID.String(),
 				"user_id":             user.UserID.String(),
@@ -361,9 +361,9 @@ func (s BucketMemberService) deleteMember(
 
 		action := models.Activity{
 			Message: activity.BucketMemberDeleted,
+			Object:  bucket.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":              rbac.ActionGrant.String(),
-				"domain":              configuration.DefaultDomain,
 				"object_type":         rbac.ResourceBucket.String(),
 				"bucket_id":           bucket.ID.String(),
 				"user_id":             user.UserID.String(),

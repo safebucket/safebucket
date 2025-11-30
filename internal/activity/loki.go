@@ -9,11 +9,15 @@ import (
 
 	"api/internal/models"
 
+	"api/internal/configuration"
+	"api/internal/rbac"
+
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
 )
 
-var authorizedLabels = [3]string{"domain", "object_type", "action"}
+var authorizedLabels = [2]string{"object_type", "action"}
+var authorizedObjects = [3]rbac.Resource{rbac.ResourceBucket, rbac.ResourceFile, rbac.ResourceFolder}
 
 const (
 	lokiPushURI   = "/loki/api/v1/push"
@@ -41,7 +45,7 @@ type LokiQueryResponse struct {
 
 type LokiResult struct {
 	Stream map[string]string `json:"stream"` // dynamic label key-value pairs
-	Values [][2]string       `json:"values"` // each value is a [timestamp, logLine]
+	Values [][]string        `json:"values"` // each value is [timestamp, logLine, structuredMetadata?]
 }
 
 // RawLogValue is a fixed-size array of 3 interface{} elements, typically representing [timestamp, message, metadata].
@@ -55,7 +59,10 @@ type LokiClient struct {
 }
 
 func (s *LokiClient) Send(activity models.Activity) error {
-	lokiBody := createLokiBody(activity)
+	lokiBody, err := createLokiBody(activity)
+	if err != nil {
+		return err
+	}
 
 	resp, err := s.Client.R().
 		SetHeader("Content-Type", "application/json").
@@ -67,8 +74,10 @@ func (s *LokiClient) Send(activity models.Activity) error {
 	}
 
 	if resp.StatusCode() != 204 {
-		zap.L().Error("Failed to send data to loki ", zap.Int("status_code", resp.StatusCode()))
-		return err
+		zap.L().Error("Failed to send data to loki ",
+			zap.Int("status_code", resp.StatusCode()),
+			zap.String("response_body", string(resp.Body())))
+		return fmt.Errorf("loki returned status %d: %s", resp.StatusCode(), string(resp.Body()))
 	}
 
 	return nil
@@ -128,9 +137,24 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 				"object_type":         result.Stream["object_type"],
 				"bucket_id":           result.Stream["bucket_id"],
 				"file_id":             result.Stream["file_id"],
+				"folder_id":           result.Stream["folder_id"],
 				"bucket_member_email": result.Stream["bucket_member_email"],
 				"timestamp":           log[0],
-				"message":             log[1],
+			}
+
+			var logLineData map[string]interface{}
+			if err = json.Unmarshal([]byte(log[1]), &logLineData); err != nil {
+				zap.L().Error("Failed to unmarshal log line data from Loki",
+					zap.Error(err),
+					zap.String("log_line_str", log[1]))
+				return activity, err
+			}
+
+			if message, ok := logLineData["message"]; ok {
+				entry["message"] = message
+			}
+			if object, ok := logLineData["object"]; ok {
+				entry["object"] = object
 			}
 
 			activity = append(activity, entry)
@@ -190,6 +214,16 @@ func isAuthorized(label string) bool {
 	return false
 }
 
+// isAuthorizedObject checks if the given object type is part of the predefined authorizedObjects array and returns true if matched.
+func isAuthorizedObject(objectType string) bool {
+	for _, item := range authorizedObjects {
+		if objectType == item.String() {
+			return true
+		}
+	}
+	return false
+}
+
 // splitMetadata separates a map into labels and metadata based on specific authorization criteria.
 // Returns two maps: labels containing authorized keys and metadata containing unauthorized keys.
 func splitMetadata[T interface{}](structuredMetadata map[string]T) (map[string]T, map[string]T) {
@@ -232,9 +266,25 @@ func generateORCriteria(criteria map[string][]string) []string {
 // createLokiBody transforms a LogMessage into a LokiBody structure, separating metadata into labels and additional fields.
 // It constructs a Loki-compatible log entry stream with the message and associated metadata.
 // Returns the generated LokiBody and any error encountered during its creation.
-func createLokiBody(activity models.Activity) LokiBody {
+func createLokiBody(activity models.Activity) (LokiBody, error) {
 	labels, metadata := splitMetadata(activity.Filter.Fields)
-	entry := RawLogValue{activity.Filter.Timestamp, activity.Message, metadata}
+	labels["service_name"] = configuration.AppName
+
+	logLine := map[string]interface{}{
+		"message": activity.Message,
+	}
+
+	if isAuthorizedObject(activity.Filter.Fields["object_type"]) {
+		logLine["object"] = activity.Object
+	}
+
+	logLineJSON, err := json.Marshal(logLine)
+	if err != nil {
+		zap.L().Error("Failed to marshal log line", zap.Error(err))
+		return LokiBody{}, err
+	}
+
+	entry := RawLogValue{activity.Filter.Timestamp, string(logLineJSON), metadata}
 	stream := StreamEntry{
 		Stream: labels,
 		Values: []RawLogValue{entry},
@@ -242,5 +292,5 @@ func createLokiBody(activity models.Activity) LokiBody {
 
 	return LokiBody{
 		Streams: []StreamEntry{stream},
-	}
+	}, nil
 }

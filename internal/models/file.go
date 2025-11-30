@@ -29,10 +29,22 @@ type File struct {
 	Size         int            `gorm:"type:bigint;default:null"                       json:"size"`
 	TrashedAt    *time.Time     `gorm:"default:null;index"                             json:"trashed_at,omitempty"`
 	TrashedBy    *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"trashed_by,omitempty"`
-	TrashedUser  User           `gorm:"foreignKey:TrashedBy"                           json:"trashed_user,omitempty"`
+	TrashedUser  *User          `gorm:"foreignKey:TrashedBy"                           json:"-"`
 	CreatedAt    time.Time      `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index"                                          json:"-"`
+}
+
+type FileActivity struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (f *File) ToActivity() FileActivity {
+	return FileActivity{
+		ID:   f.ID,
+		Name: f.Name,
+	}
 }
 
 type FileTransferBody struct {

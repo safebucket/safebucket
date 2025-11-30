@@ -23,6 +23,18 @@ type Folder struct {
 	DeletedAt    gorm.DeletedAt `gorm:"index"                                          json:"-"`
 }
 
+type FolderActivity struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+func (f *Folder) ToActivity() FolderActivity {
+	return FolderActivity{
+		ID:   f.ID,
+		Name: f.Name,
+	}
+}
+
 type FolderCreateBody struct {
 	Name     string     `json:"name"      validate:"required,foldername,max=255"`
 	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
