@@ -4,7 +4,7 @@
 SELECT 'up SQL query';
 
 -- Create custom ENUM types
-CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting', 'trashed', 'restoring', 'deleted');
+CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting', 'trashed', 'restoring');
 CREATE TYPE provider_type AS ENUM ('local', 'oidc');
 CREATE TYPE challenge_type AS ENUM ('invite', 'password_reset');
 CREATE TYPE group_type AS ENUM ('owner', 'contributor', 'viewer');
@@ -86,7 +86,7 @@ CREATE TABLE folders
         status file_status,
         folder_id uuid,
         bucket_id uuid NOT NULL,
-        trashed_by uuid,
+        deleted_by uuid,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP,
@@ -96,15 +96,15 @@ CREATE TABLE folders
             FOREIGN KEY (folder_id) REFERENCES folders (id) ON UPDATE CASCADE ON DELETE SET NULL,
         CONSTRAINT fk_folders_bucket_id
             FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
-        CONSTRAINT fk_folders_trashed_by
-            FOREIGN KEY (trashed_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
+        CONSTRAINT fk_folders_deleted_by
+            FOREIGN KEY (deleted_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
     );
 
 -- Indexes for Folders
 -- Composite index for folder browsing (list folders in bucket at specific parent)
 CREATE INDEX idx_folders_bucket_parent ON folders (bucket_id, folder_id) WHERE deleted_at IS NULL;
 -- Index for audit trail queries
-CREATE INDEX idx_folders_trashed_by ON folders (trashed_by) WHERE trashed_by IS NOT NULL;
+CREATE INDEX idx_folders_deleted_by ON folders (deleted_by) WHERE deleted_by IS NOT NULL;
 -- Unique index for folder name uniqueness within same parent (using COALESCE to handle NULL folder_id)
 CREATE UNIQUE INDEX idx_folders_unique_name ON folders (bucket_id,
                                                         COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid),
@@ -121,7 +121,7 @@ CREATE TABLE files
         bucket_id uuid NOT NULL,
         folder_id uuid,
         size BIGINT,
-        trashed_by uuid,
+        deleted_by uuid,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP,

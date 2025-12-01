@@ -301,9 +301,8 @@ func (s BucketFileService) RestoreFile(
 ) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		var file models.File
-		// Use Unscoped() to query soft-deleted (trashed) files
 		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND bucket_id = ?", fileID, bucketID).
+			Where("id = ? AND bucket_id = ? AND status = 'trashed' ", fileID, bucketID).
 			First(&file)
 
 		if result.Error != nil {
