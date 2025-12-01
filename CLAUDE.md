@@ -300,12 +300,12 @@ docker compose up -d    # Start all services locally
 - **Files** (`internal/models/file.go`):
   - Fields: name, extension, size, bucket_id (FK), folder_id (nullable FK)
   - Status: uploading, uploaded, deleting, trashed, restoring, deleted
-  - Trash metadata: Uses GORM soft delete (deleted_at) for timestamp, trashed_by (FK to users) for audit trail
+  - Trash metadata: Uses GORM soft delete (deleted_at) for timestamp, deleted_by (FK to users) for audit trail
   - **Storage path**: `buckets/{bucket_id}/{file_id}` (UUID-based, not path-based)
 - **Folders** (`internal/models/folder.go`):
   - Fields: name, bucket_id (FK), folder_id (nullable self-referencing FK for parent)
   - Status: uploaded, trashed, restoring, deleted
-  - Trash metadata: Uses GORM soft delete (deleted_at) for timestamp, trashed_by (FK to users) for audit trail
+  - Trash metadata: Uses GORM soft delete (deleted_at) for timestamp, deleted_by (FK to users) for audit trail
   - **Self-referencing**: NULL folder_id = root level, otherwise nested
 - **Memberships**: user-bucket relationship with group (owner/contributor/viewer)
 - **Invites**: email invitation system with challenge codes
