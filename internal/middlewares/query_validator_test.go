@@ -81,7 +81,15 @@ func runMiddleware[T any](_ *testing.T, queryString string) (*httptest.ResponseR
 	handler := ValidateQuery[T](customHandler)
 	handler.ServeHTTP(recorder, req)
 
-	return recorder, <-ctxChan
+	// Only read from channel if handler was called (status 2xx or 3xx)
+	var ctx context.Context
+	if recorder.Code >= 200 && recorder.Code < 400 {
+		ctx = <-ctxChan
+	} else {
+		ctx = context.Background()
+	}
+
+	return recorder, ctx
 }
 
 func TestValidateQueryBasicTypes(t *testing.T) {
