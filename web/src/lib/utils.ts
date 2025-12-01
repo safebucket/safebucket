@@ -7,7 +7,10 @@ export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(timestamp: string) {
+export function formatDate(timestamp: string | undefined | null) {
+  if (!timestamp) {
+    return "-";
+  }
   const parsedDate = parseISO(timestamp);
   return format(parsedDate, "dd MMMM yyyy HH:mm");
 }

@@ -1,6 +1,10 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
 	"path"
 	"time"
 
@@ -31,24 +35,43 @@ type BucketFolderService struct {
 func (s BucketFolderService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	// Create folder endpoint is mounted on bucket route
 	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 		With(m.Validate[models.FolderCreateBody]).
 		Post("/", handlers.CreateHandler(s.CreateFolder))
 
 	r.Route("/{id1}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
+			Patch("/", s.patchFolderHandler)
+
+		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			Delete("/", handlers.DeleteHandler(s.DeleteFolder))
-
-		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
-			With(m.Validate[models.FolderUpdateBody]).
-			Patch("/", handlers.UpdateHandler(s.UpdateFolder))
-
-		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
-			Post("/restore", handlers.DeleteHandler(s.RestoreFolder))
 	})
 
 	return r
+}
+
+// patchFolderHandler routes between name update and trash operations based on request body.
+func (s BucketFolderService) patchFolderHandler(w http.ResponseWriter, r *http.Request) {
+	// Try to parse as FolderPatchBody first
+	var patchBody models.FolderPatchBody
+	if err := json.NewDecoder(r.Body).Decode(&patchBody); err == nil && patchBody.Status != "" {
+		// Reset body for validation middleware
+		bodyBytes, _ := json.Marshal(patchBody)
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		// Use trash operation handler
+		handler := m.Validate[models.FolderPatchBody](
+			handlers.UpdateHandler(s.PatchFolder),
+		)
+		handler.ServeHTTP(w, r)
+		return
+	}
+
+	// Otherwise, treat as FolderUpdateBody (name change)
+	handler := m.Validate[models.FolderUpdateBody](
+		handlers.UpdateHandler(s.UpdateFolder),
+	)
+	handler.ServeHTTP(w, r)
 }
 
 func (s BucketFolderService) CreateFolder(
@@ -169,6 +192,34 @@ func (s BucketFolderService) UpdateFolder(
 	return nil
 }
 
+// PatchFolder handles PATCH requests for trash/restore operations on folders.
+func (s BucketFolderService) PatchFolder(
+	logger *zap.Logger,
+	user models.UserClaims,
+	ids uuid.UUIDs,
+	body models.FolderPatchBody,
+) error {
+	bucketID, folderID := ids[0], ids[1]
+
+	var folder models.Folder
+	result := s.DB.Unscoped().Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
+	if result.RowsAffected == 0 {
+		return errors.NewAPIError(404, "FOLDER_NOT_FOUND")
+	}
+
+	switch body.Status {
+	case models.FileStatusTrashed:
+		return s.TrashFolder(logger, user, folder)
+	case models.FileStatusUploaded:
+		return s.RestoreFolder(logger, user, folder)
+	case models.FileStatusUploading, models.FileStatusDeleting, models.FileStatusRestoring, models.FileStatusDeleted:
+		return errors.NewAPIError(400, "INVALID_STATUS")
+	default:
+		return errors.NewAPIError(400, "INVALID_STATUS")
+	}
+}
+
+// DeleteFolder handles DELETE requests for permanent folder deletion (purge).
 func (s BucketFolderService) DeleteFolder(
 	logger *zap.Logger,
 	user models.UserClaims,
@@ -177,53 +228,65 @@ func (s BucketFolderService) DeleteFolder(
 	bucketID, folderID := ids[0], ids[1]
 
 	var folder models.Folder
-	result := s.DB.Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
+	result := s.DB.Unscoped().Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
 	if result.RowsAffected == 0 {
 		return errors.NewAPIError(404, "FOLDER_NOT_FOUND")
 	}
 
-	return s.TrashFolder(logger, user, folder)
+	return s.PurgeFolder(logger, user, folder)
 }
 
-// TrashFolder moves a folder and all its contents to trash (async).
+// TrashFolder moves a folder and all its contents to trash (async) with atomic status transition.
 func (s BucketFolderService) TrashFolder(
 	logger *zap.Logger,
 	user models.UserClaims,
 	folder models.Folder,
 ) error {
-	// Don't allow trashing already-trashed folders
-	if folder.Status == models.FileStatusTrashed {
-		return errors.NewAPIError(400, errors.ErrFolderAlreadyTrashed)
-	}
-
-	now := time.Now()
-
-	// Update folder to trashed status immediately
+	// Update folder to trashed status and set trashed_by for audit trail
 	updates := map[string]interface{}{
 		"status":     models.FileStatusTrashed,
-		"trashed_at": now,
 		"trashed_by": user.UserID,
 	}
+	result := s.DB.Model(&folder).
+		Where("status IS NULL OR status = ?", models.FileStatusUploaded).
+		Updates(updates)
 
-	if err := s.DB.Model(&folder).Updates(updates).Error; err != nil {
-		logger.Error("Failed to update folder status to trashed", zap.Error(err))
+	if result.Error != nil {
+		logger.Error("Failed to update folder status to trashed", zap.Error(result.Error))
 		return errors.NewAPIError(500, "UPDATE_FAILED")
 	}
 
+	// Check if any rows were updated (atomic conflict detection)
+	if result.RowsAffected == 0 {
+		// Re-fetch to get current status
+		var currentFolder models.Folder
+		fetchResult := s.DB.Unscoped().Where("id = ?", folder.ID).Find(&currentFolder)
+		if fetchResult.RowsAffected > 0 {
+			if currentFolder.Status == models.FileStatusTrashed {
+				return errors.NewAPIError(409, "FOLDER_ALREADY_TRASHED")
+			}
+			if currentFolder.Status == models.FileStatusRestoring {
+				return errors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
+			}
+		}
+		return errors.NewAPIError(409, "INVALID_FOLDER_STATUS_TRANSITION")
+	}
+
+	// Soft delete folder using GORM (sets deleted_at)
+	if err := s.DB.Delete(&folder).Error; err != nil {
+		logger.Error("Failed to soft delete folder", zap.Error(err))
+		return errors.NewAPIError(500, "DELETE_FAILED")
+	}
+
 	// Create trash marker for folder
-	objectPath := path.Join("folder", folder.BucketID.String(), folder.ID.String())
-	if err := s.Storage.MarkFileAsTrashed(objectPath, models.TrashMetadata{
-		TrashedAt: now,
-		TrashedBy: user.UserID,
-		ObjectID:  folder.ID,
-		IsFolder:  true,
-	}); err != nil {
+	objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
+	if err := s.Storage.MarkAsTrashed(objectPath, folder); err != nil {
 		logger.Warn("Failed to create trash marker for folder", zap.Error(err))
 		// Continue - folder exists only in database
 	}
 
 	// Trigger async trash event to handle children
-	event := events.NewFolderTrash(s.Publisher, folder.BucketID, folder.ID, user.UserID, now)
+	event := events.NewFolderTrash(s.Publisher, folder.BucketID, folder.ID, user.UserID)
 	event.Trigger()
 
 	action := models.Activity{
@@ -249,28 +312,15 @@ func (s BucketFolderService) TrashFolder(
 	return nil
 }
 
-// RestoreFolder recovers a folder and all its contents from trash (async).
+// RestoreFolder recovers a folder and all its contents from trash (async) with atomic status transition.
 func (s BucketFolderService) RestoreFolder(
 	logger *zap.Logger,
 	user models.UserClaims,
-	ids uuid.UUIDs,
+	folder models.Folder,
 ) error {
-	bucketID, folderID := ids[0], ids[1]
-
-	var folder models.Folder
-	result := s.DB.Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
-	if result.RowsAffected == 0 {
-		return errors.NewAPIError(404, "FOLDER_NOT_FOUND")
-	}
-
-	// Validate folder is in trash
-	if folder.Status != models.FileStatusTrashed {
-		return errors.NewAPIError(400, errors.ErrFolderNotInTrash)
-	}
-
 	// Check if expired (extra safety check)
 	retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
-	if folder.TrashedAt != nil && time.Since(*folder.TrashedAt) > retentionPeriod {
+	if folder.DeletedAt.Valid && time.Since(folder.DeletedAt.Time) > retentionPeriod {
 		return errors.NewAPIError(410, errors.ErrFolderTrashExpired)
 	}
 
@@ -278,7 +328,7 @@ func (s BucketFolderService) RestoreFolder(
 	var existingFolder models.Folder
 	query := s.DB.Where(
 		"bucket_id = ? AND name = ? AND status != ? AND status != ?",
-		bucketID,
+		folder.BucketID,
 		folder.Name,
 		models.FileStatusTrashed,
 		models.FileStatusRestoring,
@@ -288,27 +338,47 @@ func (s BucketFolderService) RestoreFolder(
 	} else {
 		query = query.Where("folder_id IS NULL")
 	}
-	result = query.First(&existingFolder)
+	result := query.Find(&existingFolder)
 
 	if result.RowsAffected > 0 {
 		return errors.NewAPIError(409, errors.ErrFolderNameConflict)
 	}
 
-	// Set folder to restoring status
-	if err := s.DB.Model(&folder).Update("status", models.FileStatusRestoring).Error; err != nil {
-		logger.Error("Failed to set folder to restoring status", zap.Error(err))
+	// Set folder to restoring status with atomic transition
+	result = s.DB.Unscoped().Model(&folder).
+		Where("status = ?", models.FileStatusTrashed).
+		Update("status", models.FileStatusRestoring)
+
+	if result.Error != nil {
+		logger.Error("Failed to set folder to restoring status", zap.Error(result.Error))
 		return errors.NewAPIError(500, "UPDATE_FAILED")
 	}
 
+	// Check if any rows were updated (atomic conflict detection)
+	if result.RowsAffected == 0 {
+		// Re-fetch to get current status
+		var currentFolder models.Folder
+		fetchResult := s.DB.Unscoped().Where("id = ?", folder.ID).Find(&currentFolder)
+		if fetchResult.RowsAffected > 0 {
+			if currentFolder.Status == models.FileStatusRestoring {
+				return errors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
+			}
+			if currentFolder.Status != models.FileStatusTrashed {
+				return errors.NewAPIError(409, "FOLDER_NOT_IN_TRASH")
+			}
+		}
+		return errors.NewAPIError(409, "INVALID_FOLDER_STATUS_TRANSITION")
+	}
+
 	// Remove trash marker
-	objectPath := path.Join("folder", bucketID.String(), folderID.String())
-	if err := s.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
+	objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
+	if err := s.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
 		logger.Warn("Failed to remove trash marker for folder", zap.Error(err))
 		// Continue - marker might not exist or already removed
 	}
 
 	// Trigger async restore event
-	event := events.NewFolderRestore(s.Publisher, bucketID, folderID, user.UserID)
+	event := events.NewFolderRestore(s.Publisher, folder.BucketID, folder.ID, user.UserID)
 	event.Trigger()
 
 	action := models.Activity{
@@ -316,8 +386,8 @@ func (s BucketFolderService) RestoreFolder(
 		Object:  folder.ToActivity(),
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionRestore.String(),
-			"bucket_id":   bucketID.String(),
-			"folder_id":   folderID.String(),
+			"bucket_id":   folder.BucketID.String(),
+			"folder_id":   folder.ID.String(),
 			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     user.UserID.String(),
 		}),
@@ -334,27 +404,24 @@ func (s BucketFolderService) RestoreFolder(
 	return nil
 }
 
-// PurgeFolder permanently deletes a folder and all its contents from trash (async).
+// PurgeFolder permanently deletes a folder and all its contents from trash (async) with atomic status check.
 func (s BucketFolderService) PurgeFolder(
 	logger *zap.Logger,
 	user models.UserClaims,
-	ids uuid.UUIDs,
+	folder models.Folder,
 ) error {
-	bucketID, folderID := ids[0], ids[1]
+	// Atomic status check: only allow purging trashed folders
+	var currentFolder models.Folder
+	result := s.DB.Unscoped().Where("id = ? AND bucket_id = ? AND status = ?",
+		folder.ID, folder.BucketID, models.FileStatusTrashed).
+		First(&currentFolder)
 
-	var folder models.Folder
-	result := s.DB.Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
-	if result.RowsAffected == 0 {
-		return errors.NewAPIError(404, "FOLDER_NOT_FOUND")
-	}
-
-	// Validate folder is in trash
-	if folder.Status != models.FileStatusTrashed {
-		return errors.NewAPIError(400, errors.ErrFolderNotInTrash)
+	if result.Error != nil || result.RowsAffected == 0 {
+		return errors.NewAPIError(409, "FOLDER_NOT_IN_TRASH")
 	}
 
 	// Trigger async purge event
-	event := events.NewFolderPurge(s.Publisher, bucketID, folderID, user.UserID)
+	event := events.NewFolderPurge(s.Publisher, folder.BucketID, folder.ID, user.UserID)
 	event.Trigger()
 
 	action := models.Activity{
@@ -362,8 +429,8 @@ func (s BucketFolderService) PurgeFolder(
 		Object:  folder.ToActivity(),
 		Filter: activity.NewLogFilter(map[string]string{
 			"action":      rbac.ActionPurge.String(),
-			"bucket_id":   bucketID.String(),
-			"folder_id":   folderID.String(),
+			"bucket_id":   folder.BucketID.String(),
+			"folder_id":   folder.ID.String(),
 			"object_type": rbac.ResourceFolder.String(),
 			"user_id":     user.UserID.String(),
 		}),
@@ -387,17 +454,14 @@ func (s BucketFolderService) ListTrashedFolders(
 	ids uuid.UUIDs,
 ) []models.Folder {
 	var folders []models.Folder
-	retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
-	cutoffDate := time.Now().Add(-retentionPeriod)
-	result := s.DB.
-		Preload("TrashedUser").
+	// Use Unscoped to query soft-deleted (trashed) folders
+	result := s.DB.Unscoped().
 		Where(
-			"bucket_id = ? AND status = ? AND trashed_at > ?",
+			"bucket_id = ? AND status = ? AND deleted_at IS NOT NULL",
 			ids[0],
 			models.FileStatusTrashed,
-			cutoffDate,
 		).
-		Order("trashed_at DESC").
+		Order("deleted_at DESC").
 		Find(&folders)
 
 	if result.Error != nil {

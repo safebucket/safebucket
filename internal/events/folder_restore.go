@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"path"
-	"time"
 
 	"api/internal/activity"
 	c "api/internal/configuration"
@@ -68,91 +67,66 @@ func (e *FolderRestore) Trigger() {
 	}
 }
 
+//nolint:gocognit,funlen // Complex event handler logic with multiple validation steps
 func (e *FolderRestore) callback(params *EventParams) error {
 	zap.L().Info("Starting folder restore",
 		zap.String("bucket_id", e.Payload.BucketID.String()),
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
-	var folder models.Folder
-	result := params.DB.Where("id = ? AND bucket_id = ?",
-		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
-
-	if result.Error != nil {
-		zap.L().Error("Folder not found", zap.Error(result.Error))
-		return result.Error
-	}
-
-	if folder.Status != models.FileStatusRestoring {
-		zap.L().Warn("Folder not in restoring status, skipping",
-			zap.String("current_status", string(folder.Status)))
-		return nil
-	}
-
-	retentionPeriod := time.Duration(params.TrashRetentionDays) * 24 * time.Hour
-	if folder.TrashedAt != nil && time.Since(*folder.TrashedAt) > retentionPeriod {
-		zap.L().Error("Folder trash expired",
-			zap.String("folder_id", folder.ID.String()),
-			zap.Time("trashed_at", *folder.TrashedAt))
-
-		params.DB.Model(&folder).Update("status", models.FileStatusTrashed)
-		return errors.New("folder trash expired")
-	}
-
-	// Check for naming conflicts
-	var existingFolder models.Folder
-	query := params.DB.Where(
-		"bucket_id = ? AND name = ? AND (status IS NULL OR (status != ? AND status != ?))",
-		e.Payload.BucketID,
-		folder.Name,
-		models.FileStatusTrashed,
-		models.FileStatusRestoring,
-	)
-	if folder.FolderID != nil {
-		query = query.Where("folder_id = ?", folder.FolderID)
-	} else {
-		query = query.Where("folder_id IS NULL")
-	}
-	conflictResult := query.First(&existingFolder)
-
-	if conflictResult.RowsAffected > 0 {
-		zap.L().Error("Folder name conflict detected",
-			zap.String("folder_name", folder.Name))
-
-		params.DB.Model(&folder).Update("status", models.FileStatusTrashed)
-		return errors.New("folder name conflict")
-	}
+	var childFiles []models.File
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		updates := map[string]interface{}{
-			"status":     nil,
-			"trashed_at": nil,
-			"trashed_by": nil,
+		// Fetch folder inside transaction (use Unscoped to query soft-deleted folders)
+		var folder models.Folder
+		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
+			e.Payload.FolderID, e.Payload.BucketID).First(&folder)
+
+		if result.Error != nil {
+			zap.L().Error("Folder not found", zap.Error(result.Error))
+			return result.Error
 		}
 
-		if err := tx.Model(&folder).Updates(updates).Error; err != nil {
-			zap.L().Error("Failed to restore folder status", zap.Error(err))
-			return err
+		if folder.Status != models.FileStatusRestoring {
+			zap.L().Warn("Folder not in restoring status, skipping",
+				zap.String("current_status", string(folder.Status)))
+			return nil
 		}
 
-		// Unmark folder from storage
-		objectPath := path.Join("folder", e.Payload.BucketID.String(), folder.ID.String())
-		if err := params.Storage.UnmarkFileAsTrashed(objectPath); err != nil {
-			zap.L().Warn("Failed to unmark folder as trashed",
-				zap.Error(err),
-				zap.String("path", objectPath),
-				zap.String("folder_id", e.Payload.FolderID.String()))
-			// Continue - folders exist only in DB
+		// Check for naming conflicts
+		var existingFolder models.Folder
+		query := tx.Where(
+			"bucket_id = ? AND name = ? AND (status IS NULL OR (status != ? AND status != ?)) AND id != ?",
+			e.Payload.BucketID,
+			folder.Name,
+			models.FileStatusTrashed,
+			models.FileStatusRestoring,
+			folder.ID,
+		)
+		if folder.FolderID != nil {
+			query = query.Where("folder_id = ?", folder.FolderID)
+		} else {
+			query = query.Where("folder_id IS NULL")
+		}
+		conflictResult := query.Find(&existingFolder)
+
+		if conflictResult.RowsAffected > 0 {
+			zap.L().Error("Folder name conflict detected",
+				zap.String("folder_name", folder.Name))
+
+			if err := tx.Model(&folder).Update("status", models.FileStatusTrashed).Error; err != nil {
+				zap.L().Error("Failed to revert folder status to trashed", zap.Error(err))
+			}
+			return errors.New("folder name conflict")
 		}
 
-		// Restore child folders
+		// Restore child folders (use Unscoped to query soft-deleted folders)
 		var childFolders []models.Folder
-		if err := tx.Where(
-			"bucket_id = ? AND folder_id = ? AND status = ? AND trashed_at = ?",
+		if err := tx.Unscoped().Where(
+			"bucket_id = ? AND folder_id = ? AND status = ? AND deleted_at IS NOT NULL",
 			e.Payload.BucketID,
 			e.Payload.FolderID,
 			models.FileStatusTrashed,
-			folder.TrashedAt,
 		).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
 			zap.L().Error("Failed to find child folders for restore", zap.Error(err))
 			return err
@@ -168,22 +142,25 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				folderIDs = append(folderIDs, child.ID)
 			}
 
-			if err := tx.Model(&models.Folder{}).
+			// Clear soft delete and restore status
+			if err := tx.Unscoped().Model(&models.Folder{}).
 				Where("id IN ?", folderIDs).
-				Updates(updates).Error; err != nil {
+				Updates(map[string]interface{}{
+					"status":     nil,
+					"deleted_at": nil,
+					"trashed_by": nil,
+				}).Error; err != nil {
 				zap.L().Error("Failed to restore child folders", zap.Error(err))
 				return err
 			}
 		}
 
-		// Restore child files
-		var childFiles []models.File
-		if err := tx.Where(
-			"bucket_id = ? AND folder_id = ? AND status = ? AND trashed_at = ?",
+		// Restore child files (use Unscoped to query soft-deleted files)
+		if err := tx.Unscoped().Where(
+			"bucket_id = ? AND folder_id = ? AND status = ? AND deleted_at IS NOT NULL",
 			e.Payload.BucketID,
 			e.Payload.FolderID,
 			models.FileStatusTrashed,
-			folder.TrashedAt,
 		).Limit(c.BulkActionsLimit).Find(&childFiles).Error; err != nil {
 			zap.L().Error("Failed to find child files for restore", zap.Error(err))
 			return err
@@ -197,21 +174,15 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			var fileIDs []uuid.UUID
 			for _, child := range childFiles {
 				fileIDs = append(fileIDs, child.ID)
-
-				// Unmark each file from storage
-				filePath := path.Join("buckets", e.Payload.BucketID.String(), child.ID.String())
-				if err := params.Storage.UnmarkFileAsTrashed(filePath); err != nil {
-					zap.L().Warn("Failed to unmark file as trashed",
-						zap.Error(err),
-						zap.String("file_id", child.ID.String()))
-				}
 			}
 
-			if err := tx.Model(&models.File{}).
+			// Update file status and clear soft delete FIRST, before unmarking from storage
+			// This prevents race condition with trash_expiration handler
+			if err := tx.Unscoped().Model(&models.File{}).
 				Where("id IN ?", fileIDs).
 				Updates(map[string]interface{}{
 					"status":     models.FileStatusUploaded,
-					"trashed_at": nil,
+					"deleted_at": nil,
 					"trashed_by": nil,
 				}).Error; err != nil {
 				zap.L().Error("Failed to restore child files", zap.Error(err))
@@ -225,23 +196,34 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		return err
 	}
 
-	// Check if there are remaining items to restore
+	// Unmark files from storage AFTER transaction commits
+	// This ensures the file status is already updated when trash_expiration sees the marker deletion event
+	if len(childFiles) > 0 {
+		for _, child := range childFiles {
+			filePath := path.Join("buckets", e.Payload.BucketID.String(), child.ID.String())
+			if unmarkErr := params.Storage.UnmarkAsTrashed(filePath, child); unmarkErr != nil {
+				zap.L().Warn("Failed to unmark file as trashed",
+					zap.Error(unmarkErr),
+					zap.String("file_id", child.ID.String()))
+			}
+		}
+	}
+
+	// Check if there are remaining items to restore (use Unscoped to query soft-deleted items)
 	var remainingFolders int64
-	params.DB.Model(&models.Folder{}).Where(
-		"bucket_id = ? AND folder_id = ? AND status = ? AND trashed_at = ?",
+	params.DB.Unscoped().Model(&models.Folder{}).Where(
+		"bucket_id = ? AND folder_id = ? AND status = ? AND deleted_at IS NOT NULL",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
 		models.FileStatusTrashed,
-		folder.TrashedAt,
 	).Count(&remainingFolders)
 
 	var remainingFiles int64
-	params.DB.Model(&models.File{}).Where(
-		"bucket_id = ? AND folder_id = ? AND status = ? AND trashed_at = ?",
+	params.DB.Unscoped().Model(&models.File{}).Where(
+		"bucket_id = ? AND folder_id = ? AND status = ? AND deleted_at IS NOT NULL",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
 		models.FileStatusTrashed,
-		folder.TrashedAt,
 	).Count(&remainingFiles)
 
 	if remainingFolders > 0 || remainingFiles > 0 {
@@ -249,6 +231,51 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			zap.Int64("remaining_folders", remainingFolders),
 			zap.Int64("remaining_files", remainingFiles))
 		return errors.New("remaining items to restore")
+	}
+
+	// All children restored - now restore the folder itself
+	err = params.DB.Transaction(func(tx *gorm.DB) error {
+		var folder models.Folder
+		// Use Unscoped to query soft-deleted folder
+		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
+			e.Payload.FolderID, e.Payload.BucketID).First(&folder)
+
+		if result.Error != nil {
+			zap.L().Error("Folder not found for final restore", zap.Error(result.Error))
+			return result.Error
+		}
+
+		if folder.Status != models.FileStatusRestoring {
+			zap.L().Warn("Folder not in restoring status during final restore, skipping",
+				zap.String("current_status", string(folder.Status)))
+			// Already restored by another process, continue to log activity
+			return nil
+		}
+
+		// Clear soft delete and restore status
+		if updateErr := tx.Unscoped().Model(&folder).Updates(map[string]interface{}{
+			"status":     nil,
+			"deleted_at": nil,
+			"trashed_by": nil,
+		}).Error; updateErr != nil {
+			zap.L().Error("Failed to restore folder status", zap.Error(updateErr))
+			return updateErr
+		}
+
+		// Unmark folder from storage
+		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.ID.String())
+		if unmarkErr := params.Storage.UnmarkAsTrashed(objectPath, folder); unmarkErr != nil {
+			zap.L().Warn("Failed to unmark folder as trashed",
+				zap.Error(unmarkErr),
+				zap.String("path", objectPath),
+				zap.String("folder_id", e.Payload.FolderID.String()))
+			// Continue - folders exist only in DB
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	action := models.Activity{

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"api/internal/activity"
@@ -46,7 +47,8 @@ func (s BucketService) Routes() chi.Router {
 
 	r.Route("/{id0}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
-			Get("/", handlers.GetOneHandler(s.GetBucket))
+			With(m.ValidateQuery[models.BucketQueryParams]).
+			Get("/", handlers.GetOneWithQueryHandler(s.GetBucket))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupOwner, 0)).
 			With(m.Validate[models.BucketCreateUpdateBody]).
@@ -134,6 +136,36 @@ func (s BucketService) CreateBucket(
 	return newBucket, nil
 }
 
+// buildFilePath constructs the full folder path for a file using Unscoped queries
+// to handle trashed folders. Returns path in format "/Folder1/Folder2"
+func (s BucketService) buildFilePath(folderID *uuid.UUID) string {
+	if folderID == nil {
+		return "/"
+	}
+
+	var pathSegments []string
+	currentFolderID := folderID
+
+	// Traverse up the folder hierarchy (max 100 levels to prevent infinite loops)
+	for i := 0; i < 100 && currentFolderID != nil; i++ {
+		var folder models.Folder
+		// Use Unscoped to query trashed folders
+		if err := s.DB.Unscoped().Where("id = ?", currentFolderID).First(&folder).Error; err != nil {
+			break // Folder not found, stop traversal
+		}
+
+		// Prepend folder name to path
+		pathSegments = append([]string{folder.Name}, pathSegments...)
+		currentFolderID = folder.FolderID
+	}
+
+	if len(pathSegments) == 0 {
+		return "/"
+	}
+
+	return "/" + strings.Join(pathSegments, "/")
+}
+
 func (s BucketService) GetBucketList(
 	logger *zap.Logger,
 	user models.UserClaims,
@@ -173,9 +205,10 @@ func (s BucketService) GetBucketList(
 }
 
 func (s BucketService) GetBucket(
-	_ *zap.Logger,
+	logger *zap.Logger,
 	_ models.UserClaims,
 	ids uuid.UUIDs,
+	queryParams models.BucketQueryParams,
 ) (models.Bucket, error) {
 	bucketID := ids[0]
 	var bucket models.Bucket
@@ -187,34 +220,112 @@ func (s BucketService) GetBucket(
 		return bucket, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
-	// Get files (filter out expired files that haven't been uploaded yet)
-	// Also exclude trashed items from normal bucket view
+	// Determine the status filter based on query parameter
+	// Default behavior (empty or "uploaded") shows non-trashed items
+	status := queryParams.Status
+	if status == "" {
+		status = "uploaded"
+	}
+
 	var files []models.File
-	expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
-	result = s.DB.Where(
-		"bucket_id = ? AND (status IS NULL OR status != ?) AND (status = ? OR (status = ? AND created_at > ?))",
-		bucketID,
-		models.FileStatusTrashed,
-		models.FileStatusUploaded,
-		models.FileStatusUploading,
-		expirationTime,
-	).Find(&files)
-
-	if result.RowsAffected > 0 {
-		bucket.Files = files
-	}
-
-	// Get folders (exclude trashed folders)
 	var folders []models.Folder
-	result = s.DB.Where(
-		"bucket_id = ? AND (status IS NULL OR status != ?)",
-		bucketID,
-		models.FileStatusTrashed,
-	).Find(&folders)
 
-	if result.RowsAffected > 0 {
-		bucket.Folders = folders
+	switch status {
+	case "trashed":
+		// Show only trashed items (use Unscoped to query soft-deleted items)
+		fileResult := s.DB.Unscoped().
+			Where(
+				"bucket_id = ? AND status = ? AND deleted_at IS NOT NULL",
+				bucketID,
+				models.FileStatusTrashed,
+			).
+			Order("deleted_at DESC").
+			Find(&files)
+
+		if fileResult.Error != nil {
+			logger.Error("Failed to list trashed files", zap.Error(fileResult.Error))
+			files = []models.File{}
+		} else {
+			// Compute original path for each trashed file
+			for i := range files {
+				files[i].OriginalPath = s.buildFilePath(files[i].FolderID)
+			}
+		}
+
+		// Fetch trashed folders (use Unscoped to query soft-deleted items)
+		folderResult := s.DB.Unscoped().
+			Where(
+				"bucket_id = ? AND status = ? AND deleted_at IS NOT NULL",
+				bucketID,
+				models.FileStatusTrashed,
+			).
+			Order("deleted_at DESC").
+			Find(&folders)
+
+		if folderResult.Error != nil {
+			logger.Error("Failed to list trashed folders", zap.Error(folderResult.Error))
+			folders = []models.Folder{}
+		}
+
+	case "all":
+		// Show all items regardless of status
+		result = s.DB.Where("bucket_id = ?", bucketID).Find(&files)
+		if result.RowsAffected > 0 {
+			bucket.Files = files
+		}
+
+		result = s.DB.Where("bucket_id = ?", bucketID).Find(&folders)
+		if result.RowsAffected > 0 {
+			bucket.Folders = folders
+		}
+
+	case "uploading":
+		// Show only items being uploaded
+		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
+		result = s.DB.Where(
+			"bucket_id = ? AND status = ? AND created_at > ?",
+			bucketID,
+			models.FileStatusUploading,
+			expirationTime,
+		).Find(&files)
+
+		if result.RowsAffected > 0 {
+			bucket.Files = files
+		}
+
+	case "uploaded":
+		fallthrough
+	default:
+		// Show only uploaded items (filter out expired files that haven't been uploaded yet)
+		// Also exclude trashed items from normal bucket view
+		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
+		result = s.DB.Where(
+			"bucket_id = ? AND (status IS NULL OR status != ?) AND (status = ? OR (status = ? AND created_at > ?))",
+			bucketID,
+			models.FileStatusTrashed,
+			models.FileStatusUploaded,
+			models.FileStatusUploading,
+			expirationTime,
+		).Find(&files)
+
+		if result.RowsAffected > 0 {
+			bucket.Files = files
+		}
+
+		// Get folders (exclude trashed folders)
+		result = s.DB.Where(
+			"bucket_id = ? AND (status IS NULL OR status != ?)",
+			bucketID,
+			models.FileStatusTrashed,
+		).Find(&folders)
+
+		if result.RowsAffected > 0 {
+			bucket.Folders = folders
+		}
 	}
+
+	bucket.Files = files
+	bucket.Folders = folders
 
 	return bucket, nil
 }
@@ -271,8 +382,8 @@ func (s BucketService) DeleteBucket(
 			return err
 		}
 
-		// Trigger async file and folder deletion from root path
-		event := events.NewObjectDeletion(s.Publisher, bucket, "/")
+		// Trigger async bucket purge (files and folders)
+		event := events.NewBucketPurge(s.Publisher, bucket.ID, user.UserID)
 		event.Trigger()
 		return nil
 	})
@@ -323,7 +434,7 @@ func (s BucketService) GetBucketActivity(
 	user models.UserClaims,
 	ids uuid.UUIDs,
 ) (models.Page[map[string]interface{}], error) {
-	bucket, err := s.GetBucket(logger, user, ids)
+	bucket, err := s.GetBucket(logger, user, ids, models.BucketQueryParams{})
 	if err != nil {
 		return models.Page[map[string]interface{}]{}, err
 	}

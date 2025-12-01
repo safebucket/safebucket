@@ -15,6 +15,7 @@ const (
 	FileStatusDeleting  FileStatus = "deleting"
 	FileStatusTrashed   FileStatus = "trashed"
 	FileStatusRestoring FileStatus = "restoring"
+	FileStatusDeleted   FileStatus = "deleted"
 )
 
 type File struct {
@@ -27,9 +28,8 @@ type File struct {
 	FolderID     *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"folder_id,omitempty"`
 	ParentFolder *Folder        `gorm:"foreignKey:FolderID"                            json:"parent_folder,omitempty"`
 	Size         int            `gorm:"type:bigint;default:null"                       json:"size"`
-	TrashedAt    *time.Time     `gorm:"default:null;index"                             json:"trashed_at,omitempty"`
 	TrashedBy    *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"trashed_by,omitempty"`
-	TrashedUser  *User          `gorm:"foreignKey:TrashedBy"                           json:"-"`
+	OriginalPath string         `gorm:"-"                                              json:"original_path,omitempty"`
 	CreatedAt    time.Time      `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index"                                          json:"-"`
@@ -59,10 +59,7 @@ type FileTransferResponse struct {
 	Body map[string]string `json:"body"`
 }
 
-// TrashMetadata contains metadata for marking a file or folder as trashed.
-type TrashMetadata struct {
-	TrashedAt time.Time
-	TrashedBy uuid.UUID
-	ObjectID  uuid.UUID
-	IsFolder  bool
+// FilePatchBody represents a PATCH request to update file status.
+type FilePatchBody struct {
+	Status FileStatus `json:"status" validate:"required,oneof=trashed uploaded"`
 }

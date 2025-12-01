@@ -33,3 +33,12 @@ func (b *Bucket) ToActivity() BucketActivity {
 type BucketCreateUpdateBody struct {
 	Name string `json:"name" validate:"required,max=100"`
 }
+
+// BucketQueryParams defines query parameters for filtering bucket contents.
+// Use with the ValidateQuery middleware:
+//
+//	r.With(m.ValidateQuery[models.BucketQueryParams]).
+//	    Get("/", handler)
+type BucketQueryParams struct {
+	Status string `json:"status" validate:"omitempty,oneof=all trashed uploaded uploading"`
+}

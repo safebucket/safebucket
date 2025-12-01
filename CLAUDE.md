@@ -62,8 +62,8 @@ type IStorage interface {
     GetObjectTags(path string) (map[string]string, error)
     RemoveObjectTags(path string, tagsToRemove []string) error
     EnsureTrashLifecyclePolicy(retentionDays int) error
-    MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error
-    UnmarkFileAsTrashed(objectPath string) error
+    MarkAsTrashed(objectPath string, model interface{}) error      // Polymorphic - handles File or Folder
+    UnmarkAsTrashed(objectPath string, model interface{}) error    // Polymorphic - handles File or Folder
     IsTrashMarkerPath(path string) (isMarker bool, originalPath string)
     GetBucketName() string
 }
@@ -71,7 +71,11 @@ type IStorage interface {
 
 - **Implementations**: S3Storage (MinIO), GCPStorage, AWSStorage
 - **Factory**: `core.NewStorage()` initializes provider from config
-- **Trash System**: Lifecycle policies with configurable retention (1-365 days)
+- **Storage Structure**:
+  - Active files: `buckets/{bucket_id}/{file_id}`
+  - Trash markers (files): `trash/{bucket_id}/files/{file_id}`
+  - Trash markers (folders): `trash/{bucket_id}/folders/{folder_id}`
+- **Trash System**: Marker-based lifecycle policies with configurable retention (1-365 days)
 
 #### 2. Messaging Interface (`internal/messaging/interfaces.go`)
 
@@ -132,6 +136,25 @@ Koanf-based hierarchical config:
 - **Env Format**: Double underscore delimiters (e.g., `APP__LOG_LEVEL=debug`)
 - **Validation**: Automatic struct validation with go-playground/validator
 - **Array Parsing**: Supports complex nested configurations
+
+#### 7. Query Parameter Validation (`internal/middlewares/query_validator.go`)
+
+Reflection-based query parameter parsing and validation:
+
+```go
+// Middleware
+ValidateQuery[T any](next http.Handler) http.Handler
+
+// Usage in routes
+r.With(m.ValidateQuery[models.FileListQueryParams]).
+    Get("/files", handlers.GetListHandler(s.ListFiles))
+```
+
+- Parses URL query parameters into structs using reflection
+- Validates using go-playground/validator tags
+- Stores validated params in request context
+- Supports string, int, bool, pointer types
+- Retrieved via `helpers.GetQueryParams[T](context)`
 
 ### Frontend Patterns
 
@@ -273,12 +296,35 @@ docker compose up -d    # Start all services locally
 ### Core Models
 
 - **Users**: email, role (admin/user/guest), provider (oauth/local), hashed_password (Argon2id)
-- **Buckets**: name, created_by (user FK)
-- **Files**: bucket FK, path, type (file/folder), size
+- **Buckets**: name, created_by (user FK), has many files and folders
+- **Files** (`internal/models/file.go`):
+  - Fields: name, extension, size, bucket_id (FK), folder_id (nullable FK)
+  - Status: uploading, uploaded, deleting, trashed, restoring, deleted
+  - Trash metadata: Uses GORM soft delete (deleted_at) for timestamp, trashed_by (FK to users) for audit trail
+  - **Storage path**: `buckets/{bucket_id}/{file_id}` (UUID-based, not path-based)
+- **Folders** (`internal/models/folder.go`):
+  - Fields: name, bucket_id (FK), folder_id (nullable self-referencing FK for parent)
+  - Status: uploaded, trashed, restoring, deleted
+  - Trash metadata: Uses GORM soft delete (deleted_at) for timestamp, trashed_by (FK to users) for audit trail
+  - **Self-referencing**: NULL folder_id = root level, otherwise nested
 - **Memberships**: user-bucket relationship with group (owner/contributor/viewer)
 - **Invites**: email invitation system with challenge codes
 
 All models use UUID primary keys, timestamps (created_at, updated_at), and soft deletes (deleted_at).
+
+### File Status Lifecycle
+
+```
+uploading → uploaded ⇄ trashed → deleted (soft delete)
+                ↓
+            deleting (transition state)
+```
+
+- **uploading**: File record created, awaiting storage upload
+- **uploaded**: File successfully stored and active
+- **trashed**: File in trash bin (marker created, subject to lifecycle policy)
+- **restoring**: Transition state during folder restore operations
+- **deleted**: File permanently removed (soft delete for audit trail)
 
 ## Configuration
 
@@ -319,12 +365,130 @@ APP__STORAGE__MINIO__ENDPOINT=localhost:9000
 
 ## Special Considerations
 
-### Trash System
+### Trash System (PATCH-based with Marker Lifecycle)
 
-- Files marked with tags instead of immediate deletion
-- Lifecycle policies (1-365 days configurable retention)
-- `MarkFileAsTrashed()` and `UnmarkFileAsTrashed()` in IStorage
-- All providers implement `EnsureTrashLifecyclePolicy()`
+**Architecture**: Marker-based soft delete with lifecycle policy automation
+
+#### API Endpoints
+
+**Files** (`internal/services/bucket_file.go`):
+
+```
+POST   /buckets/{id}/files              - Upload file (accepts folder_id)
+PATCH  /buckets/{id}/files/{id}         - Trash or restore (sync)
+  Body: { "status": "trashed" }         - Move to trash
+  Body: { "status": "uploaded" }        - Restore from trash
+DELETE /buckets/{id}/files/{id}         - Purge permanently (sync)
+GET    /buckets/{id}/files/{id}/download - Download file
+```
+
+**Folders** (`internal/services/bucket_folder.go`):
+
+```
+POST   /buckets/{id}/folders            - Create folder (accepts folder_id for nesting)
+PATCH  /buckets/{id}/folders/{id}       - Update name OR trash/restore (async)
+  Body: { "name": "new_name" }          - Rename folder
+  Body: { "status": "trashed" }         - Move to trash (async)
+  Body: { "status": "uploaded" }        - Restore from trash (async)
+DELETE /buckets/{id}/folders/{id}       - Purge permanently (async)
+```
+
+**Buckets** (with query filtering):
+
+```
+GET /buckets/{id}                       - List files and folders (default: status=uploaded)
+GET /buckets/{id}?status=trashed        - List trashed items
+```
+
+#### Storage Marker System
+
+**Marker Paths**:
+
+- Files: `trash/{bucket_id}/files/{file_id}`
+- Folders: `trash/{bucket_id}/folders/{folder_id}`
+
+**Lifecycle Flow**:
+
+1. **Trash**: Creates empty marker object in trash prefix
+2. **Lifecycle Policy**: Deletes markers after retention period (1-365 days)
+3. **Event Triggered**: Marker deletion fires `TrashExpiration` event
+4. **Cleanup**: Event handler deletes actual file and soft-deletes DB record
+
+**Methods**:
+
+- `MarkAsTrashed(objectPath, model)` - Creates trash marker (polymorphic: File or Folder)
+- `UnmarkAsTrashed(objectPath, model)` - Removes trash marker (restore operation)
+- `IsTrashMarkerPath(path)` - Detects if deletion event is for a marker
+
+#### Processing Strategy
+
+**Files**: Synchronous (immediate response)
+
+- Database status update with row-level locking
+- Marker creation/deletion in same transaction
+- Direct storage operations
+
+**Folders**: Asynchronous via event queue (handles children recursively)
+
+- Parent folder status updated immediately
+- Event published to background queue
+- Worker processes children in batches
+- Prevents timeout on large folder structures
+
+#### Race Condition Prevention
+
+**Database-Level Protection**:
+
+```go
+// Row-level locking
+tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+  Where("id = ? AND bucket_id = ?", id, bucketID).
+  First(&file)
+
+// Atomic status transitions
+tx.Model(&file).
+  Where("status = ?", models.FileStatusUploaded).  // Only if uploaded
+  Updates(map[string]interface{}{
+    "status": models.FileStatusTrashed,
+  })
+
+// Optimistic concurrency check
+if result.RowsAffected == 0 {
+  return errors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
+}
+```
+
+**Valid Status Transitions**:
+
+- `uploaded → trashed` (trash operation)
+- `trashed → uploaded` (restore operation)
+- `trashed → deleted` (purge operation)
+- Invalid transitions return 409 Conflict
+
+**Transaction Rollback**:
+
+- Storage operations inside DB transactions
+- Marker creation failure rolls back DB changes
+- Ensures consistency between DB and storage
+
+#### Event Handlers (`internal/events/`)
+
+- **FolderTrash**: Recursively trash folder tree, update all descendant statuses
+- **FolderRestore**: Recursively restore, check for naming conflicts at each level
+- **FolderPurge**: Permanently delete folder and all contents from storage and DB
+- **TrashExpiration**: Handle lifecycle policy deletions, distinguish restore vs expiry
+
+#### Query Parameter Filtering
+
+Status-based filtering via middleware:
+
+```go
+// Example: Get only trashed items
+GET /buckets/{id}?status=trashed
+
+// Frontend query
+const { files, folders } = await api.get(`/buckets/${id}?status=trashed`)
+```
 
 ### Event-Driven Architecture
 
@@ -346,3 +510,217 @@ All cloud services are abstracted:
 - Query invalidation after mutations
 - Token refresh mechanism in fetchApi on 403 errors
 - Context providers for feature-level state (upload, bucket view, session)
+- **Files and Folders**: Separate arrays returned from bucket queries
+- **Type Safety**: `IFile` type (has `extension`, `folder_id`) vs `IFolder` type (has `folder_id` for parent)
+
+## Important Development Patterns
+
+### Working with Files and Folders
+
+**Always use IDs, never paths**:
+
+```go
+// ✅ Correct - ID-based
+filePath := path.Join("buckets", bucketID.String(), fileID.String())
+
+// ❌ Incorrect - Path-based (old system)
+filePath := path.Join("buckets", bucketID.String(), userPath, fileName)
+```
+
+**Folder operations are async**:
+
+```go
+// Files - synchronous, immediate response
+func (s BucketFileService) TrashFile(...) error
+
+// Folders - asynchronous, event-driven
+func (s BucketFolderService) TrashFolder(...) error {
+    // Update parent status immediately
+    // Trigger async event for children
+    event := events.NewFolderTrash(...)
+    event.Trigger()
+}
+```
+
+**Frontend must handle separate arrays**:
+
+```typescript
+// ✅ Correct - Separate arrays
+const { files, folders } = bucket;
+folders.forEach(folder => renderFolder(folder));
+files.forEach(file => renderFile(file));
+
+// ❌ Incorrect - Old unified approach
+const items = bucket.files; // files used to contain both
+items.forEach(item => {
+    if (item.type === FileType.folder) { ... } // FileType removed
+});
+```
+
+### Status Transitions
+
+**Always validate before transition**:
+
+```go
+// Check current status before changing
+if file.Status != models.FileStatusUploaded {
+    return errors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
+}
+```
+
+**Use atomic WHERE clauses**:
+
+```go
+// Only update if current status matches expected
+result := tx.Model(&file).
+    Where("status = ?", models.FileStatusUploaded).
+    Update("status", models.FileStatusTrashed)
+
+if result.RowsAffected == 0 {
+    // Status was changed by concurrent request
+    return errors.NewAPIError(409, "CONFLICT")
+}
+```
+
+### Storage Operations
+
+**Polymorphic trash methods**:
+
+```go
+// Works for both files and folders
+err := s.Storage.MarkAsTrashed(objectPath, file)   // Pass File model
+err := s.Storage.MarkAsTrashed(objectPath, folder) // Pass Folder model
+```
+
+**Transaction safety**:
+
+```go
+return s.DB.Transaction(func(tx *gorm.DB) error {
+    // Update database
+    if err := tx.Model(&file).Updates(...).Error; err != nil {
+        return err
+    }
+
+    // Update storage (rollback on failure)
+    if err := s.Storage.MarkAsTrashed(path, file); err != nil {
+        return err // Automatic rollback
+    }
+
+    return nil
+})
+```
+
+### Query Parameter Filtering
+
+**Use ValidateQuery middleware**:
+
+```go
+type FileListQueryParams struct {
+    Status  *string `json:"status" validate:"omitempty,oneof=uploaded trashed"`
+    Limit   *int    `json:"limit"  validate:"omitempty,min=1,max=1000"`
+}
+
+r.With(m.ValidateQuery[FileListQueryParams]).
+    Get("/files", handlers.GetListHandler(s.ListFiles))
+```
+
+**Retrieve in handler**:
+
+```go
+func (s Service) ListFiles(user models.UserClaims, ids uuid.UUIDs) ([]models.File, error) {
+    params, err := helpers.GetQueryParams[FileListQueryParams](r.Context())
+    if err != nil {
+        // Handle error
+    }
+
+    // Use params
+    if params.Status != nil && *params.Status == "trashed" {
+        // Filter trashed files
+    }
+}
+```
+
+### Frontend TypeScript Patterns
+
+**Type guards for files vs folders**:
+
+```typescript
+// Check if item is a folder
+function isFolder(item: IFile | IFolder): item is IFolder {
+    return 'folder_id' in item && !('extension' in item);
+}
+
+// Or handle separately from API
+const { files, folders } = bucket;
+```
+
+**Query filtering**:
+
+```typescript
+// Get trashed items
+const { files, folders } = await api.get<IBucket>(
+    `/buckets/${bucketId}?status=trashed`
+);
+
+// TanStack Query hook
+export const bucketTrashedFilesQueryOptions = (bucketId: string) =>
+  queryOptions({
+    queryKey: ["buckets", bucketId, "trash"],
+    queryFn: async () => {
+      const response = await api.get<IBucket>(
+        `/buckets/${bucketId}?status=trashed`
+      );
+      return {
+        files: response.files || [],
+        folders: response.folders || [],
+      };
+    },
+  });
+```
+
+### Migration Guide (Old → New)
+
+**File Upload**:
+
+```typescript
+// Old
+createFile({
+    name: "doc.pdf",
+    type: FileType.file,
+    path: "/folder1/subfolder"
+});
+
+// New
+createFile({
+    name: "doc.pdf",
+    folder_id: "uuid-of-parent-folder"
+});
+```
+
+**Folder Creation**:
+
+```typescript
+// Old
+createFolder({
+    name: "New Folder",
+    type: FileType.folder,
+    path: "/parent/path"
+});
+
+// New
+createFolder({
+    name: "New Folder",
+    folder_id: "uuid-of-parent-folder" // null for root
+});
+```
+
+**Trash Operations**:
+
+```typescript
+// Old
+deleteFile(fileId); // Immediate delete
+
+// New
+patchFile(fileId, { status: "trashed" }); // Trash (soft delete)
+deleteFile(fileId);                       // Purge (permanent)
+```

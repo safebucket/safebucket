@@ -21,3 +21,5 @@ func (u *UserClaims) Valid() bool {
 }
 
 type UserClaimKey struct{}
+
+type QueryKey struct{}

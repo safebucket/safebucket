@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"path"
-	"time"
 
 	"api/internal/activity"
 	c "api/internal/configuration"
@@ -25,11 +24,10 @@ const (
 )
 
 type FolderTrashPayload struct {
-	Type      string
-	BucketID  uuid.UUID
-	FolderID  uuid.UUID
-	UserID    uuid.UUID
-	TrashedAt time.Time
+	Type     string
+	BucketID uuid.UUID
+	FolderID uuid.UUID
+	UserID   uuid.UUID
 }
 
 type FolderTrash struct {
@@ -42,16 +40,14 @@ func NewFolderTrash(
 	bucketID uuid.UUID,
 	folderID uuid.UUID,
 	userID uuid.UUID,
-	trashedAt time.Time,
 ) FolderTrash {
 	return FolderTrash{
 		Publisher: publisher,
 		Payload: FolderTrashPayload{
-			Type:      FolderTrashName,
-			BucketID:  bucketID,
-			FolderID:  folderID,
-			UserID:    userID,
-			TrashedAt: trashedAt,
+			Type:     FolderTrashName,
+			BucketID: bucketID,
+			FolderID: folderID,
+			UserID:   userID,
 		},
 	}
 }
@@ -71,52 +67,40 @@ func (e *FolderTrash) Trigger() {
 	}
 }
 
+//nolint:gocognit // Complex event handler logic with multiple validation steps
 func (e *FolderTrash) callback(params *EventParams) error {
 	zap.L().Info("Starting folder trash",
 		zap.String("bucket_id", e.Payload.BucketID.String()),
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
-	var folder models.Folder
-	result := params.DB.Where("id = ? AND bucket_id = ?",
-		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
-
-	if result.Error != nil {
-		zap.L().Error("Folder not found", zap.Error(result.Error))
-		return result.Error
-	}
-
 	// Collect child folder IDs to trigger events after transaction
 	var childFolderIDs []uuid.UUID
+	var folderName string
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		// Mark current folder as trashed in database (idempotent - safe if already trashed)
-		if err := tx.Model(&models.Folder{}).
-			Where("id = ? AND bucket_id = ?", e.Payload.FolderID, e.Payload.BucketID).
-			Updates(map[string]interface{}{
-				"status":     models.FileStatusTrashed,
-				"trashed_at": e.Payload.TrashedAt,
-				"trashed_by": e.Payload.UserID,
-			}).Error; err != nil {
-			zap.L().Error("Failed to mark folder as trashed in database", zap.Error(err))
-			return err
+		// Fetch folder inside transaction to prevent race conditions
+		// Use Unscoped because folder is already soft-deleted by service before event triggers
+		var folder models.Folder
+		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
+			e.Payload.FolderID, e.Payload.BucketID).First(&folder)
+
+		if result.Error != nil {
+			zap.L().Error("Folder not found", zap.Error(result.Error))
+			return result.Error
 		}
 
-		// Mark folder itself as trashed in storage
-		objectPath := path.Join("folder", e.Payload.BucketID.String(), folder.ID.String())
-		if err := params.Storage.MarkFileAsTrashed(objectPath, models.TrashMetadata{
-			TrashedAt: e.Payload.TrashedAt,
-			TrashedBy: e.Payload.UserID,
-			ObjectID:  e.Payload.FolderID,
-			IsFolder:  true,
-		}); err != nil {
-			zap.L().Warn("Failed to mark folder as trashed in storage",
-				zap.Error(err),
-				zap.String("path", objectPath),
-				zap.String("folder_id", e.Payload.FolderID.String()))
-			// Continue - folders exist only in DB
+		// Capture folder name for logging outside transaction
+		folderName = folder.Name
+
+		// Verify folder is already trashed (service should have done this)
+		if folder.Status != models.FileStatusTrashed {
+			zap.L().Error("Folder not in trashed status, cannot process children",
+				zap.String("current_status", string(folder.Status)))
+			return errors.New("folder not trashed")
 		}
 
+		// Parent folder already processed by service - just handle children
 		// Get all child folders recursively
 		var childFolders []models.Folder
 		if err := tx.Where(
@@ -172,28 +156,28 @@ func (e *FolderTrash) callback(params *EventParams) error {
 				fileIDs = append(fileIDs, child.ID)
 
 				filePath := path.Join("buckets", e.Payload.BucketID.String(), child.ID.String())
-				if err := params.Storage.MarkFileAsTrashed(filePath, models.TrashMetadata{
-					TrashedAt: e.Payload.TrashedAt,
-					TrashedBy: e.Payload.UserID,
-					ObjectID:  child.ID,
-					IsFolder:  false,
-				}); err != nil {
+				if err := params.Storage.MarkAsTrashed(filePath, child); err != nil {
 					zap.L().Warn("Failed to mark file as trashed in storage",
 						zap.Error(err),
 						zap.String("file_id", child.ID.String()))
 				}
 			}
 
-			updates := map[string]interface{}{
+			// Update child files status to trashed and set trashed_by
+			fileUpdates := map[string]interface{}{
 				"status":     models.FileStatusTrashed,
-				"trashed_at": e.Payload.TrashedAt,
 				"trashed_by": e.Payload.UserID,
 			}
-
 			if err := tx.Model(&models.File{}).
 				Where("id IN ?", fileIDs).
-				Updates(updates).Error; err != nil {
-				zap.L().Error("Failed to trash child files", zap.Error(err))
+				Updates(fileUpdates).Error; err != nil {
+				zap.L().Error("Failed to update child files status", zap.Error(err))
+				return err
+			}
+
+			// Soft delete child files using GORM (sets deleted_at)
+			if err := tx.Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
+				zap.L().Error("Failed to soft delete child files", zap.Error(err))
 				return err
 			}
 		}
@@ -207,7 +191,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 	// Trigger trash events for child folders after transaction commits
 	if len(childFolderIDs) > 0 {
 		zap.L().Info("Triggering trash events for child folders (after transaction commit)",
-			zap.String("folder", folder.Name),
+			zap.String("folder", folderName),
 			zap.String("folder_id", e.Payload.FolderID.String()),
 			zap.Int("child_count", len(childFolderIDs)))
 
@@ -221,13 +205,12 @@ func (e *FolderTrash) callback(params *EventParams) error {
 				e.Payload.BucketID,
 				childID,
 				e.Payload.UserID,
-				e.Payload.TrashedAt,
 			)
 			childTrashEvent.Trigger()
 		}
 	} else {
 		zap.L().Info("No child folders to trigger events for",
-			zap.String("folder", folder.Name),
+			zap.String("folder", folderName),
 			zap.String("folder_id", e.Payload.FolderID.String()))
 	}
 

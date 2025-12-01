@@ -14,12 +14,13 @@ import (
 )
 
 type (
-	CreateTargetFunc[In any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
-	ListTargetFunc[Out any]           func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
-	GetOneTargetFunc[Out any]         func(*zap.Logger, models.UserClaims, uuid.UUIDs) (Out, error)
-	GetOneListTargetFunc[Out any]     func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
-	UpdateTargetFunc[In any]          func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) error
-	DeleteTargetFunc                  func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
+	CreateTargetFunc[In any, Out any]         func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
+	ListTargetFunc[Out any]                   func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
+	GetOneTargetFunc[Out any]                 func(*zap.Logger, models.UserClaims, uuid.UUIDs) (Out, error)
+	GetOneWithQueryTargetFunc[Q any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, Q) (Out, error)
+	GetOneListTargetFunc[Out any]             func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
+	UpdateTargetFunc[In any]                  func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) error
+	DeleteTargetFunc                          func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
 )
 
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
@@ -73,6 +74,33 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 		claims, _ := h.GetUserClaims(r.Context())
 		logger := m.GetLogger(r)
 		record, err := getOne(logger, claims, ids)
+		if err != nil {
+			strErrors := []string{err.Error()}
+			h.RespondWithError(w, http.StatusNotFound, strErrors)
+		} else {
+			h.RespondWithJSON(w, http.StatusOK, record)
+		}
+	}
+}
+
+func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, Out]) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+
+		claims, _ := h.GetUserClaims(r.Context())
+		logger := m.GetLogger(r)
+
+		query, ok := r.Context().Value(models.QueryKey{}).(Q)
+		if !ok {
+			logger.Error("Failed to extract query params from context")
+			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			return
+		}
+
+		record, err := getOne(logger, claims, ids, query)
 		if err != nil {
 			strErrors := []string{err.Error()}
 			h.RespondWithError(w, http.StatusNotFound, strErrors)

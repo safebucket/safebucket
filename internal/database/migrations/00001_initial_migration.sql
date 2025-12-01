@@ -4,7 +4,7 @@
 SELECT 'up SQL query';
 
 -- Create custom ENUM types
-CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting', 'trashed', 'restoring');
+CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting', 'trashed', 'restoring', 'deleted');
 CREATE TYPE provider_type AS ENUM ('local', 'oidc');
 CREATE TYPE challenge_type AS ENUM ('invite', 'password_reset');
 CREATE TYPE group_type AS ENUM ('owner', 'contributor', 'viewer');
@@ -86,7 +86,6 @@ CREATE TABLE folders
         status file_status,
         folder_id uuid,
         bucket_id uuid NOT NULL,
-        trashed_at TIMESTAMP,
         trashed_by uuid,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -104,8 +103,8 @@ CREATE TABLE folders
 -- Indexes for Folders
 -- Composite index for folder browsing (list folders in bucket at specific parent)
 CREATE INDEX idx_folders_bucket_parent ON folders (bucket_id, folder_id) WHERE deleted_at IS NULL;
--- Composite index for trash view (list trashed folders in bucket)
-CREATE INDEX idx_folders_bucket_trashed ON folders (bucket_id, trashed_at) WHERE trashed_at IS NOT NULL;
+-- Index for audit trail queries
+CREATE INDEX idx_folders_trashed_by ON folders (trashed_by) WHERE trashed_by IS NOT NULL;
 -- Unique index for folder name uniqueness within same parent (using COALESCE to handle NULL folder_id)
 CREATE UNIQUE INDEX idx_folders_unique_name ON folders (bucket_id,
                                                         COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid),
@@ -122,7 +121,6 @@ CREATE TABLE files
         bucket_id uuid NOT NULL,
         folder_id uuid,
         size BIGINT,
-        trashed_at TIMESTAMP,
         trashed_by uuid,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -144,8 +142,8 @@ CREATE TABLE files
 -- Indexes for Files
 -- Composite index for file browsing (list files in bucket at specific folder)
 CREATE INDEX idx_files_bucket_folder ON files (bucket_id, folder_id) WHERE deleted_at IS NULL;
--- Composite index for trash view (list trashed files in bucket)
-CREATE INDEX idx_files_bucket_trashed ON files (bucket_id, trashed_at) WHERE trashed_at IS NOT NULL;
+-- Index for audit trail queries
+CREATE INDEX idx_files_trashed_by ON files (trashed_by) WHERE trashed_by IS NOT NULL;
 -- Unique index for file name uniqueness within same folder (using COALESCE to handle NULL folder_id)
 CREATE UNIQUE INDEX idx_files_unique_name ON files (bucket_id,
                                                     COALESCE(folder_id, '00000000-0000-0000-0000-000000000000'::uuid),

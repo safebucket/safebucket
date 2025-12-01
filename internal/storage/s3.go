@@ -260,27 +260,68 @@ func (s S3Storage) RemoveObjectTags(path string, tagsToRemove []string) error {
 }
 
 // IsTrashMarkerPath checks if a deletion event is for a trash marker.
-// Pattern: trash/{bucket-id}/{rest} -> buckets/{bucket-id}/{rest}.
+// Patterns:
+//   - trash/{bucket-id}/files/{file-id} -> buckets/{bucket-id}/{file-id}
+//   - trash/{bucket-id}/folders/{folder-id} -> buckets/{bucket-id}/{folder-id}
 func (s S3Storage) IsTrashMarkerPath(path string) (bool, string) {
-	if strings.HasPrefix(path, trashPrefix) {
-		originalPath := bucketsPrefix + strings.TrimPrefix(path, trashPrefix)
-		return true, originalPath
+	if !strings.HasPrefix(path, trashPrefix) {
+		return false, ""
 	}
 
-	return false, ""
+	// Remove "trash/" prefix
+	remainder := strings.TrimPrefix(path, trashPrefix)
+	parts := strings.SplitN(remainder, "/", 3)
+
+	if len(parts) < 3 {
+		return false, ""
+	}
+
+	bucketID := parts[0]
+	resourceType := parts[1] // "files" or "folders"
+	resourceID := parts[2]
+
+	// Validate resource type
+	if resourceType != folderPath && resourceType != filePath {
+		return false, ""
+	}
+
+	// Reconstruct original path: buckets/{bucket-id}/{resource-id}
+	originalPath := bucketsPrefix + bucketID + "/" + resourceID
+	return true, originalPath
 }
 
-// getTrashMarkerPath converts buckets/{id}/path to trash/{id}/path.
-func (s S3Storage) getTrashMarkerPath(objectPath string) string {
-	return strings.Replace(objectPath, bucketsPrefix, trashPrefix, 1)
+// getTrashMarkerPath converts buckets/{bucket-id}/{id} to trash/{bucket-id}/files|folders/{id}.
+func (s S3Storage) getTrashMarkerPath(objectPath string, model interface{}) string {
+	// Remove "buckets/" prefix
+	remainder := strings.TrimPrefix(objectPath, bucketsPrefix)
+
+	var resourceType string
+	switch model.(type) {
+	case models.Folder:
+		resourceType = folderPath
+	case models.File:
+		resourceType = filePath
+	default:
+		return ""
+	}
+
+	parts := strings.SplitN(remainder, "/", 2)
+	if len(parts) < 2 {
+		return ""
+	}
+
+	bucketID := parts[0]
+	resourceID := parts[1]
+
+	// Pattern: trash/{bucket-id}/files|folders/{resource-id}
+	return fmt.Sprintf("%s%s/%s/%s", trashPrefix, bucketID, resourceType, resourceID)
 }
 
-func (s S3Storage) MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error {
+func (s S3Storage) MarkAsTrashed(objectPath string, object interface{}) error {
 	ctx := context.Background()
-	markerPath := s.getTrashMarkerPath(objectPath)
+	markerPath := s.getTrashMarkerPath(objectPath, object)
 
-	// Only verify object exists for files (not folders, which only exist in database)
-	if !metadata.IsFolder {
+	if _, ok := object.(models.File); ok {
 		_, err := s.storage.StatObject(ctx, s.BucketName, objectPath, minio.StatObjectOptions{})
 		if err != nil {
 			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
@@ -293,13 +334,12 @@ func (s S3Storage) MarkFileAsTrashed(objectPath string, metadata models.TrashMet
 	if err != nil {
 		return fmt.Errorf("failed to create marker: %w", err)
 	}
-
 	return nil
 }
 
-func (s S3Storage) UnmarkFileAsTrashed(objectPath string) error {
+func (s S3Storage) UnmarkAsTrashed(objectPath string, object interface{}) error {
 	ctx := context.Background()
-	markerPath := s.getTrashMarkerPath(objectPath)
+	markerPath := s.getTrashMarkerPath(objectPath, object)
 	err := s.storage.RemoveObject(ctx, s.BucketName, markerPath, minio.RemoveObjectOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to remove marker: %w", err)
