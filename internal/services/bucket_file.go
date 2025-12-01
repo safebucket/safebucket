@@ -244,10 +244,10 @@ func (s BucketFileService) TrashFile(
 			return apierrors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
 		}
 
-		// Update status to trashed and set trashed_by for audit trail
+		// Update status to trashed and set deleted_by for audit trail
 		updates := map[string]interface{}{
 			"status":     models.FileStatusTrashed,
-			"trashed_by": user.UserID,
+			"deleted_by": user.UserID,
 		}
 		if err := tx.Model(&file).Updates(updates).Error; err != nil {
 			logger.Error("Failed to update file status to trashed", zap.Error(err))
@@ -345,7 +345,7 @@ func (s BucketFileService) RestoreFile(
 		updates := map[string]interface{}{
 			"status":     models.FileStatusUploaded,
 			"deleted_at": nil,
-			"trashed_by": nil,
+			"deleted_by": nil,
 		}
 
 		if err := tx.Unscoped().Model(&file).Updates(updates).Error; err != nil {

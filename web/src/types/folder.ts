@@ -9,5 +9,5 @@ export interface IFolder {
   created_at: string;
   updated_at: string;
     deleted_at?: string;
-  trashed_by?: string;
+  deleted_by?: string;
 }

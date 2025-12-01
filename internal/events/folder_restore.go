@@ -148,7 +148,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				Updates(map[string]interface{}{
 					"status":     nil,
 					"deleted_at": nil,
-					"trashed_by": nil,
+					"deleted_by": nil,
 				}).Error; err != nil {
 				zap.L().Error("Failed to restore child folders", zap.Error(err))
 				return err
@@ -183,7 +183,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				Updates(map[string]interface{}{
 					"status":     models.FileStatusUploaded,
 					"deleted_at": nil,
-					"trashed_by": nil,
+					"deleted_by": nil,
 				}).Error; err != nil {
 				zap.L().Error("Failed to restore child files", zap.Error(err))
 				return err
@@ -256,7 +256,7 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		if updateErr := tx.Unscoped().Model(&folder).Updates(map[string]interface{}{
 			"status":     nil,
 			"deleted_at": nil,
-			"trashed_by": nil,
+			"deleted_by": nil,
 		}).Error; updateErr != nil {
 			zap.L().Error("Failed to restore folder status", zap.Error(updateErr))
 			return updateErr

@@ -28,7 +28,7 @@ type File struct {
 	FolderID     *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"folder_id,omitempty"`
 	ParentFolder *Folder        `gorm:"foreignKey:FolderID"                            json:"parent_folder,omitempty"`
 	Size         int            `gorm:"type:bigint;default:null"                       json:"size"`
-	TrashedBy    *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"trashed_by,omitempty"`
+	DeletedBy    *uuid.UUID     `gorm:"column:deleted_by;type:uuid;default:null"       json:"deleted_by,omitempty"`
 	OriginalPath string         `gorm:"-"                                              json:"original_path,omitempty"`
 	CreatedAt    time.Time      `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`

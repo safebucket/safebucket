@@ -242,10 +242,10 @@ func (s BucketFolderService) TrashFolder(
 	user models.UserClaims,
 	folder models.Folder,
 ) error {
-	// Update folder to trashed status and set trashed_by for audit trail
+	// Update folder to trashed status and set deleted_by for audit trail
 	updates := map[string]interface{}{
 		"status":     models.FileStatusTrashed,
-		"trashed_by": user.UserID,
+		"deleted_by": user.UserID,
 	}
 	result := s.DB.Model(&folder).
 		Where("status IS NULL OR status = ?", models.FileStatusUploaded).

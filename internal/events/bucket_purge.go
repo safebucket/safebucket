@@ -202,7 +202,7 @@ func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
 		params.DB.Unscoped().Model(&folder).Updates(map[string]interface{}{
 			"status":     models.FileStatusTrashed,
 			"deleted_at": time.Now(),
-			"trashed_by": e.Payload.UserID,
+			"deleted_by": e.Payload.UserID,
 		})
 
 		// Trigger FolderPurge event

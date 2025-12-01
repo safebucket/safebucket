@@ -163,10 +163,10 @@ func (e *FolderTrash) callback(params *EventParams) error {
 				}
 			}
 
-			// Update child files status to trashed and set trashed_by
+			// Update child files status to trashed and set deleted_by
 			fileUpdates := map[string]interface{}{
 				"status":     models.FileStatusTrashed,
-				"trashed_by": e.Payload.UserID,
+				"deleted_by": e.Payload.UserID,
 			}
 			if err := tx.Model(&models.File{}).
 				Where("id IN ?", fileIDs).

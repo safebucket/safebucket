@@ -15,7 +15,7 @@ type Folder struct {
 	ParentFolder *Folder        `gorm:"foreignKey:FolderID"                            json:"parent_folder,omitempty"`
 	BucketID     uuid.UUID      `gorm:"type:uuid;not null"                             json:"bucket_id"`
 	Bucket       Bucket         `                                                      json:"-"`
-	TrashedBy    *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"trashed_by,omitempty"`
+	DeletedBy    *uuid.UUID     `gorm:"column:deleted_by;type:uuid;default:null"       json:"deleted_by,omitempty"`
 	CreatedAt    time.Time      `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index"                                          json:"-"`
