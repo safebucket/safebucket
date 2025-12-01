@@ -256,7 +256,7 @@ func (e *BucketPurge) cleanupOrphanedStorage(params *EventParams) bool {
 		zap.Int("count", len(objects)),
 	)
 
-	if err := params.Storage.RemoveObjects(objects); err != nil {
+	if err = params.Storage.RemoveObjects(objects); err != nil {
 		zap.L().Error("Failed to delete orphaned storage objects", zap.Error(err))
 		return false
 	}

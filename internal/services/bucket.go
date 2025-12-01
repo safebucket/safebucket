@@ -137,7 +137,7 @@ func (s BucketService) CreateBucket(
 }
 
 // buildFilePath constructs the full folder path for a file using Unscoped queries
-// to handle trashed folders. Returns path in format "/Folder1/Folder2"
+// to handle trashed folders. Returns path in format "/Folder1/Folder2".
 func (s BucketService) buildFilePath(folderID *uuid.UUID) string {
 	if folderID == nil {
 		return "/"
