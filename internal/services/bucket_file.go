@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"api/internal/activity"
-	c "api/internal/configuration"
 	apierrors "api/internal/errors"
 	"api/internal/handlers"
 	m "api/internal/middlewares"
@@ -19,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type BucketFileService struct {
@@ -372,7 +372,6 @@ func (s BucketFileService) RestoreFile(
 				"action":      rbac.ActionRestore.String(),
 				"bucket_id":   file.BucketID.String(),
 				"file_id":     file.ID.String(),
-				"domain":      c.DefaultDomain,
 				"object_type": rbac.ResourceFile.String(),
 				"user_id":     user.UserID.String(),
 			}),

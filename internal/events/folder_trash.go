@@ -78,10 +78,10 @@ func (e *FolderTrash) callback(params *EventParams) error {
 	var childFolderIDs []uuid.UUID
 	var folderName string
 
+	var folder models.Folder
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		// Fetch folder inside transaction to prevent race conditions
 		// Use Unscoped because folder is already soft-deleted by service before event triggers
-		var folder models.Folder
 		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
 			e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 

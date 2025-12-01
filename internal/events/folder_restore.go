@@ -234,8 +234,8 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	}
 
 	// All children restored - now restore the folder itself
+	var folder models.Folder
 	err = params.DB.Transaction(func(tx *gorm.DB) error {
-		var folder models.Folder
 		// Use Unscoped to query soft-deleted folder
 		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
 			e.Payload.FolderID, e.Payload.BucketID).First(&folder)
