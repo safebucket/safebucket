@@ -18,7 +18,7 @@ type Folder struct {
 	DeletedBy    *uuid.UUID     `gorm:"column:deleted_by;type:uuid;default:null"       json:"deleted_by,omitempty"`
 	CreatedAt    time.Time      `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index"                                          json:"-"`
+	DeletedAt    gorm.DeletedAt `                                                      json:"deleted_at"`
 }
 
 type FolderActivity struct {

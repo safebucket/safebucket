@@ -32,7 +32,7 @@ type File struct {
 	OriginalPath string         `gorm:"-"                                              json:"original_path,omitempty"`
 	CreatedAt    time.Time      `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `gorm:"index"                                          json:"-"`
+	DeletedAt    gorm.DeletedAt `                                                      json:"deleted_at"`
 }
 
 type FileActivity struct {
