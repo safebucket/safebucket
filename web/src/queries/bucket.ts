@@ -44,13 +44,13 @@ export const bucketTrashedFilesQueryOptions = (bucketId: string) =>
   queryOptions({
     queryKey: ["buckets", bucketId, "trash"],
     queryFn: async () => {
-        const response = await api.get<IBucket>(
-            `/buckets/${bucketId}?status=trashed`,
-        );
-        return {
-            files: response.files || [],
-            folders: response.folders || [],
-        };
+      const response = await api.get<IBucket>(
+        `/buckets/${bucketId}?status=trashed`,
+      );
+      return {
+        files: response.files || [],
+        folders: response.folders || [],
+      };
     },
     enabled: !!bucketId,
   });

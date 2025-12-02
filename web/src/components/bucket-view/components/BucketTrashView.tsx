@@ -127,10 +127,14 @@ const createColumns = (
     ),
     cell: ({ row }) => {
       const item = row.original;
-        // Use original_path if available (for files), otherwise build from folders
-        if ("extension" in item && item.original_path) {
-            return <span className="text-sm text-muted-foreground">{item.original_path}</span>;
-        }
+      // Use original_path if available (for files), otherwise build from folders
+      if ("extension" in item && item.original_path) {
+        return (
+          <span className="text-sm text-muted-foreground">
+            {item.original_path}
+          </span>
+        );
+      }
       const folderId = "folder_id" in item ? item.folder_id : undefined;
       const path = buildFolderPath(folderId, bucket.folders);
       return <span className="text-sm text-muted-foreground">{path}</span>;
@@ -153,14 +157,14 @@ const createColumns = (
     },
   },
   {
-      accessorKey: "deleted_at",
+    accessorKey: "deleted_at",
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
         title={t("bucket.trash_view.deleted_at")}
       />
     ),
-      cell: ({row}) => formatDate(row.getValue("deleted_at")),
+    cell: ({ row }) => formatDate(row.getValue("deleted_at")),
   },
   {
     accessorKey: "status",
