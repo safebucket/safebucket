@@ -145,7 +145,7 @@ func (s *JetStreamSubscriber) GetBucketEventType(message *message.Message) strin
 			zap.L().Debug("Ignoring trash marker creation event",
 				zap.String("event_name", eventName),
 				zap.String("object_key", decodedKey))
-			return BucketEventTypeUnknown
+			return BucketEventTypeIgnore
 		}
 		return BucketEventTypeUpload
 	}
@@ -160,7 +160,7 @@ func (s *JetStreamSubscriber) GetBucketEventType(message *message.Message) strin
 		zap.String("event_name", eventName),
 		zap.String("raw_payload", string(message.Payload)))
 
-	return BucketEventTypeUnknown
+	return BucketEventTypeIgnore
 }
 
 func (s *JetStreamSubscriber) ParseBucketUploadEvents(
