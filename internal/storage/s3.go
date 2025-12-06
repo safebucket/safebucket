@@ -58,6 +58,38 @@ func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) I
 	}
 }
 
+func NewSeaweedFSStorage(config *models.SeaweedFSStorageConfiguration, bucketName string) IStorage {
+	minioClient, err := minio.New(config.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(config.ClientID, config.ClientSecret, ""),
+		Secure: false,
+	})
+	if err != nil {
+		zap.L().Error("Failed to connect to SeaweedFS", zap.Error(err))
+	}
+
+	exists, err := minioClient.BucketExists(context.Background(), bucketName)
+	if err != nil {
+		zap.L().Error("Failed to connect to SeaweedFS", zap.Error(err))
+	}
+
+	if !exists {
+		zap.L().Error("Failed to retrieve bucket from SeaweedFS",
+			zap.String("bucketName", bucketName), zap.Error(err))
+	}
+
+	externalEndpoint := config.ExternalEndpoint
+	if externalEndpoint == "" {
+		externalEndpoint = config.Endpoint
+	}
+
+	return S3Storage{
+		BucketName:       bucketName,
+		InternalEndpoint: config.Endpoint,
+		ExternalEndpoint: externalEndpoint,
+		storage:          minioClient,
+	}
+}
+
 // replaceEndpoint replaces the internal endpoint with the external endpoint in a URL.
 // It properly parses URLs to replace only the scheme and host, preserving path and query parameters.
 func (s S3Storage) replaceEndpoint(urlString string) string {

@@ -27,11 +27,11 @@ services:
       - CACHE__VALKEY__HOSTS=${CACHE__VALKEY__HOSTS}
       - CACHE__VALKEY__PASSWORD=${CACHE__VALKEY__PASSWORD}
       - STORAGE__TYPE=${STORAGE__TYPE}
-      - STORAGE__MINIO__BUCKET_NAME=${STORAGE__MINIO__BUCKET_NAME}
-      - STORAGE__MINIO__ENDPOINT=${STORAGE__MINIO__ENDPOINT}
-      - STORAGE__MINIO__EXTERNAL_ENDPOINT=${STORAGE__MINIO__EXTERNAL_ENDPOINT}
-      - STORAGE__MINIO__CLIENT_ID=${STORAGE__MINIO__CLIENT_ID}
-      - STORAGE__MINIO__CLIENT_SECRET=${STORAGE__MINIO__CLIENT_SECRET}
+      - STORAGE__SEAWEEDFS__BUCKET_NAME=${STORAGE__SEAWEEDFS__BUCKET_NAME}
+      - STORAGE__SEAWEEDFS__ENDPOINT=${STORAGE__SEAWEEDFS__ENDPOINT}
+      - STORAGE__SEAWEEDFS__EXTERNAL_ENDPOINT=${STORAGE__SEAWEEDFS__EXTERNAL_ENDPOINT}
+      - STORAGE__SEAWEEDFS__CLIENT_ID=${STORAGE__SEAWEEDFS__CLIENT_ID}
+      - STORAGE__SEAWEEDFS__CLIENT_SECRET=${STORAGE__SEAWEEDFS__CLIENT_SECRET}
       - EVENTS__TYPE=${EVENTS__TYPE}
       - EVENTS__QUEUES__NOTIFICATIONS__NAME=${EVENTS__QUEUES__NOTIFICATIONS__NAME}
       - EVENTS__QUEUES__BUCKET_EVENTS__NAME=${EVENTS__QUEUES__BUCKET_EVENTS__NAME}
@@ -63,93 +63,90 @@ services:
 
   bucket:
     container_name: bucket
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    image: chrislusf/seaweedfs:3.76
+    command: 'server -s3 -s3.config=/etc/seaweedfs/s3.json -s3.auditLogConfig=/etc/seaweedfs/audit.json -dir=/data'
     environment:
-      - MINIO_ROOT_USER=${STORAGE__MINIO__CLIENT_ID}
-      - MINIO_ROOT_PASSWORD=${STORAGE__MINIO__CLIENT_SECRET}
-    command: server /data --console-address ":9001"
+      - SEAWEEDFS_VOLUME_SIZE_LIMIT_MB=10000
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "8333:8333"  # S3 API
+      - "9333:9333"  # Admin/Master UI
+      - "8888:8888"  # Filer
     volumes:
-      - "minio_data:/data"
+      - "seaweedfs_data:/data"
+      - ./config/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+      - ./config/seaweedfs-audit.json:/etc/seaweedfs/audit.json:ro
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:9333/cluster/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
     depends_on:
       - nats
+      - fluentd
 
-  minio-events-config:
-    container_name: minio-events-config
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+  fluentd:
+    container_name: fluentd
+    build:
+      context: .
+      dockerfile: Dockerfile.fluentd
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    volumes:
+      - ./config/fluentd.conf:/fluentd/etc/fluent.conf:ro
+      - ./scripts/fluentd-nats-plugin.rb:/fluentd/plugins/out_nats.rb:ro
+    depends_on:
+      - nats
+    restart: unless-stopped
+
+  seaweedfs-setup:
+    container_name: seaweedfs-setup
+    image: amazon/aws-cli:2.15.17
     environment:
-      - MINIO_ROOT_USER=${STORAGE__MINIO__CLIENT_ID}
-      - MINIO_ROOT_PASSWORD=${STORAGE__MINIO__CLIENT_SECRET}
-    entrypoint: [ "/bin/sh", "-c" ]
+      - AWS_ACCESS_KEY_ID=${STORAGE__SEAWEEDFS__CLIENT_ID}
+      - AWS_SECRET_ACCESS_KEY=${STORAGE__SEAWEEDFS__CLIENT_SECRET}
+    entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        echo "Configuring MinIO bucket events for NATS JetStream..."
-
-        # Wait for MinIO to be ready using mc ping
-        echo "Waiting for MinIO to be ready..."
-        while ! mc alias set local http://bucket:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} 2>/dev/null; do
-          echo "MinIO not ready yet, waiting..."
+        echo "Waiting for SeaweedFS to be ready..."
+        while ! aws s3 ls --endpoint-url http://bucket:8333 2>/dev/null; do
           sleep 2
         done
 
-        echo "MinIO is ready. Creating required buckets..."
-        mc mb local/safebucket --ignore-existing
-        mc mb local/loki-data --ignore-existing
-        mc mb local/loki-ruler --ignore-existing
-        echo "Buckets created successfully."
+        echo "Creating buckets..."
+        aws s3 mb s3://safebucket --endpoint-url http://bucket:8333 || true
+        aws s3 mb s3://loki-data --endpoint-url http://bucket:8333 || true
+        aws s3 mb s3://loki-ruler --endpoint-url http://bucket:8333 || true
 
-        echo "Configuring NATS notification target..."
+        echo "Configuring lifecycle policy for trash..."
+        cat > /tmp/lifecycle.json <<'EOF'
+        {
+          "Rules": [
+            {
+              "ID": "safebucket-trash-retention",
+              "Status": "Enabled",
+              "Filter": {
+                "Prefix": "trash/"
+              },
+              "Expiration": {
+                "Days": 7
+              }
+            }
+          ]
+        }
+        EOF
 
-        mc admin config set local notify_nats:safebucket \
-          address="nats:4222" \
-          subject="safebucket-bucket-events" \
-          jetstream="off" \
-          tls="off" \
-          tls_skip_verify="off"
+        aws s3api put-bucket-lifecycle-configuration \
+          --bucket safebucket \
+          --lifecycle-configuration file:///tmp/lifecycle.json \
+          --endpoint-url http://bucket:8333 || echo "Warning: Lifecycle policy may not be supported"
 
-        # Restart MinIO to apply config
-        echo "Restarting MinIO to apply configuration..."
-        mc admin service restart local --json
-
-        echo "Waiting for MinIO to restart..."
-        sleep 15
-
-        # Wait for MinIO to be ready again using mc ping
-        while ! mc admin info local 2>/dev/null; do
-          echo "Waiting for MinIO to be ready after restart..."
-          sleep 3
-        done
-
-        echo "MinIO is ready after restart. Verifying NATS target configuration..."
-
-        # List notification targets to verify the NATS target was created
-        echo "Available notification targets:"
-        mc admin config get local notify_nats
-
-        echo "Removing any existing bucket notification events..."
-        mc event remove local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get 2>/dev/null || true
-
-        echo "Adding bucket notification events..."
-        mc event add local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get
-
-        echo "Verifying bucket notification configuration:"
-        mc event list local/safebucket
-
-        echo "MinIO bucket events configured successfully!"
-        echo "Events will be published to NATS subject: safebucket-bucket-events"
+        echo "SeaweedFS setup complete!"
     depends_on:
       bucket:
         condition: service_healthy
-      nats:
-        condition: service_started
     restart: "no"
 
   database:
@@ -231,7 +228,7 @@ services:
       retries: 5
 
 volumes:
-  minio_data:
+  seaweedfs_data:
   postgresql_data:
   mail_data:
   valkey_data:

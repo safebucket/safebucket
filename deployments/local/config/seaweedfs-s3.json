@@ -1,0 +1,21 @@
+{
+  "identities": [
+    {
+      "name": "safebucket",
+      "credentials": [
+        {
+          "accessKey": "seaweedfs-root-user",
+          "secretKey": "seaweedfs-root-password"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "Write",
+        "List",
+        "Tagging",
+        "DeleteBucket"
+      ]
+    }
+  ]
+}

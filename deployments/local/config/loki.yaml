@@ -10,11 +10,11 @@ common:
   replication_factor: 1
   storage:
     s3:
-      endpoint: bucket:9000
+      endpoint: bucket:8333
       insecure: true
       bucketnames: loki-data
-      access_key_id: minio-root-user
-      secret_access_key: minio-root-password
+      access_key_id: seaweedfs-root-user
+      secret_access_key: seaweedfs-root-password
       s3forcepathstyle: true
 
   ring:

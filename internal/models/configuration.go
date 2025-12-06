@@ -78,13 +78,22 @@ type ValkeyCacheConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	Type         string                     `mapstructure:"type"  validate:"required,oneof=minio gcp aws"`
-	Minio        *MinioStorageConfiguration `mapstructure:"minio" validate:"required_if=Type minio"`
-	CloudStorage *CloudStorage              `mapstructure:"gcp"   validate:"required_if=Type gcp"`
-	S3           *S3Configuration           `mapstructure:"aws"   validate:"required_if=Type aws"`
+	Type         string                         `mapstructure:"type"      validate:"required,oneof=minio seaweedfs gcp aws"`
+	Minio        *MinioStorageConfiguration     `mapstructure:"minio"     validate:"required_if=Type minio"`
+	SeaweedFS    *SeaweedFSStorageConfiguration `mapstructure:"seaweedfs" validate:"required_if=Type seaweedfs"`
+	CloudStorage *CloudStorage                  `mapstructure:"gcp"       validate:"required_if=Type gcp"`
+	S3           *S3Configuration               `mapstructure:"aws"       validate:"required_if=Type aws"`
 }
 
 type MinioStorageConfiguration struct {
+	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
+	Endpoint         string `mapstructure:"endpoint"          validate:"required"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
+	ClientID         string `mapstructure:"client_id"         validate:"required"`
+	ClientSecret     string `mapstructure:"client_secret"     validate:"required"`
+}
+
+type SeaweedFSStorageConfiguration struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
 	Endpoint         string `mapstructure:"endpoint"          validate:"required"`
 	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
@@ -110,6 +119,10 @@ func (s *StorageConfiguration) GetExternalURL() string {
 	case "minio":
 		if s.Minio != nil {
 			return s.Minio.ExternalEndpoint
+		}
+	case "seaweedfs":
+		if s.SeaweedFS != nil {
+			return s.SeaweedFS.ExternalEndpoint
 		}
 	case "gcp":
 		return ""

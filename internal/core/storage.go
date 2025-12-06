@@ -13,6 +13,8 @@ func NewStorage(config models.StorageConfiguration, trashRetentionDays int) stor
 	switch config.Type {
 	case ProviderMinio:
 		store = storage.NewS3Storage(config.Minio, config.Minio.BucketName)
+	case ProviderSeaweedFS:
+		store = storage.NewSeaweedFSStorage(config.SeaweedFS, config.SeaweedFS.BucketName)
 	case ProviderGCP:
 		store = storage.NewGCPStorage(config.CloudStorage.BucketName)
 	case ProviderAWS:
