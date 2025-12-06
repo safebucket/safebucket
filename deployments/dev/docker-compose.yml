@@ -3,7 +3,7 @@ name: safebucket
 services:
   bucket:
     container_name: bucket
-    image: chrislusf/seaweedfs:3.76
+    image: chrislusf/seaweedfs:4.01
     command: 'server -s3 -s3.config=/etc/seaweedfs/s3.json -s3.auditLogConfig=/etc/seaweedfs/audit.json -dir=/data'
     environment:
       - SEAWEEDFS_VOLUME_SIZE_LIMIT_MB=10000
@@ -13,8 +13,8 @@ services:
       - "8888:8888"  # Filer
     volumes:
       - "seaweedfs_data:/data"
-      - ./config/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
-      - ./config/seaweedfs-audit.json:/etc/seaweedfs/audit.json:ro
+      - ./config/seaweedfs-s3.json:/etc/seaweedfs/s3.json
+      - ./config/seaweedfs-audit.json:/etc/seaweedfs/audit.json
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://127.0.0.1:9333/cluster/status" ]
       interval: 10s

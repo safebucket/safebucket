@@ -1,11 +1,4 @@
 {
-  "fluent_host": "fluentd",
   "fluent_port": 24224,
-  "fluent_network": "tcp",
-  "tag_prefix": "s3.audit",
-  "buffer_limit": 8388608,
-  "timeout": 3000,
-  "retry_wait": 1000,
-  "max_retry": 3,
-  "max_retry_wait": 30000
+  "fluent_host": "fluentd"
 }
