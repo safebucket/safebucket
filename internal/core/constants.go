@@ -5,4 +5,5 @@ const (
 	ProviderMinio     = "minio"
 	ProviderGCP       = "gcp"
 	ProviderAWS       = "aws"
+	ProviderRustFS    = "rustfs"
 )

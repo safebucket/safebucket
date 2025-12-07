@@ -56,51 +56,48 @@ services:
       - "8080:8080"
     restart: on-failure:3
     depends_on:
-      bucket:
-        condition: service_healthy
       database:
         condition: service_healthy
 
   bucket:
     container_name: bucket
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    image: rustfs/rustfs:latest
     environment:
-      - MINIO_ROOT_USER=${STORAGE__MINIO__CLIENT_ID}
-      - MINIO_ROOT_PASSWORD=${STORAGE__MINIO__CLIENT_SECRET}
-    command: server /data --console-address ":9001"
+      - RUSTFS_ACCESS_KEY=rustfsadmin
+      - RUSTFS_SECRET_KEY=rustfsadmin
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - "minio_data:/data"
+      - "rustfs_data:/data"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test: [ "CMD", "sh", "-c", "curl -f http://localhost:9000/health && curl -f http://localhost:9001/rustfs/console/health" ]
       interval: 30s
-      timeout: 20s
+      timeout: 10s
       retries: 3
     restart: unless-stopped
     depends_on:
       - nats
 
-  minio-events-config:
-    container_name: minio-events-config
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+  bucket-events-config:
+    container_name: bucket-events-config
+    image: minio/mc:latest
     environment:
-      - MINIO_ROOT_USER=${STORAGE__MINIO__CLIENT_ID}
-      - MINIO_ROOT_PASSWORD=${STORAGE__MINIO__CLIENT_SECRET}
+      - RUSTFS_ACCESS_KEY=rustfsadmin
+      - RUSTFS_SECRET_KEY=rustfsadmin
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
-        echo "Configuring MinIO bucket events for NATS JetStream..."
+        echo "Configuring RustFS bucket events for NATS JetStream..."
 
-        # Wait for MinIO to be ready using mc ping
-        echo "Waiting for MinIO to be ready..."
-        while ! mc alias set local http://bucket:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} 2>/dev/null; do
-          echo "MinIO not ready yet, waiting..."
+        # Wait for RustFS to be ready using mc ping
+        echo "Waiting for RustFS to be ready..."
+        while ! mc alias set local http://bucket:9000 $${RUSTFS_ACCESS_KEY} $${RUSTFS_SECRET_KEY} 2>/dev/null; do
+          echo "RustFS not ready yet, waiting..."
           sleep 2
         done
 
-        echo "MinIO is ready. Creating required buckets..."
+        echo "RustFS is ready. Creating required buckets..."
         mc mb local/safebucket --ignore-existing
         mc mb local/loki-data --ignore-existing
         mc mb local/loki-ruler --ignore-existing
@@ -115,22 +112,22 @@ services:
           tls="off" \
           tls_skip_verify="off"
 
-        # Restart MinIO to apply config
-        echo "Restarting MinIO to apply configuration..."
+        # Restart RustFS to apply config
+        echo "Restarting RustFS to apply configuration..."
         mc admin service restart local --json
 
-        echo "Waiting for MinIO to restart..."
+        echo "Waiting for RustFS to restart..."
         sleep 15
 
-        # Wait for MinIO to be ready again using mc ping
+        # Wait for RustFS to be ready again
         while ! mc admin info local 2>/dev/null; do
-          echo "Waiting for MinIO to be ready after restart..."
+          echo "Waiting for RustFS to be ready after restart..."
           sleep 3
         done
 
-        echo "MinIO is ready after restart. Verifying NATS target configuration..."
+        echo "RustFS is ready after restart. Verifying NATS target configuration..."
 
-        # List notification targets to verify the NATS target was created
+        # List notification targets to verify
         echo "Available notification targets:"
         mc admin config get local notify_nats
 
@@ -143,7 +140,7 @@ services:
         echo "Verifying bucket notification configuration:"
         mc event list local/safebucket
 
-        echo "MinIO bucket events configured successfully!"
+        echo "RustFS bucket events configured successfully!"
         echo "Events will be published to NATS subject: safebucket-bucket-events"
     depends_on:
       bucket:
@@ -202,15 +199,18 @@ services:
     image: nats:2.12-alpine
     container_name: nats
     ports:
-      - "4222:4222"
+      - "4222:4222"   # NATS protocol
+      - "1883:1883"   # MQTT protocol
+      - "8222:8222"   # HTTP monitoring
     restart: unless-stopped
-    command: [ "-js", "-sd", "/data" ]
+    command: [ "-c", "/etc/nats/nats.conf" ]
     ulimits:
       nofile:
         soft: 65536
         hard: 65536
     volumes:
       - "nats_data:/data"
+      - ./config/nats.conf:/etc/nats/nats.conf:ro
 
   loki:
     container_name: loki
@@ -222,8 +222,6 @@ services:
       - "9095:9095"
     volumes:
       - ./config/loki.yaml:/etc/loki/config.yaml
-    depends_on:
-      - bucket
     healthcheck:
       test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1" ]
       interval: 10s
@@ -231,7 +229,7 @@ services:
       retries: 5
 
 volumes:
-  minio_data:
+  rustfs_data:
   postgresql_data:
   mail_data:
   valkey_data:

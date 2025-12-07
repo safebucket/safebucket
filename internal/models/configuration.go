@@ -78,10 +78,11 @@ type ValkeyCacheConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	Type         string                     `mapstructure:"type"  validate:"required,oneof=minio gcp aws"`
-	Minio        *MinioStorageConfiguration `mapstructure:"minio" validate:"required_if=Type minio"`
-	CloudStorage *CloudStorage              `mapstructure:"gcp"   validate:"required_if=Type gcp"`
-	S3           *S3Configuration           `mapstructure:"aws"   validate:"required_if=Type aws"`
+	Type         string                      `mapstructure:"type"   validate:"required,oneof=minio gcp aws rustfs"`
+	Minio        *MinioStorageConfiguration  `mapstructure:"minio"  validate:"required_if=Type minio"`
+	CloudStorage *CloudStorage               `mapstructure:"gcp"    validate:"required_if=Type gcp"`
+	S3           *S3Configuration            `mapstructure:"aws"    validate:"required_if=Type aws"`
+	RustFS       *RustFSStorageConfiguration `mapstructure:"rustfs" validate:"required_if=Type rustfs"`
 }
 
 type MinioStorageConfiguration struct {
@@ -102,6 +103,14 @@ type S3Configuration struct {
 	ExternalEndpoint string `mapstructure:"external_endpoint"`
 }
 
+type RustFSStorageConfiguration struct {
+	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
+	Endpoint         string `mapstructure:"endpoint"          validate:"required"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
+	AccessKey        string `mapstructure:"access_key"        validate:"required"`
+	SecretKey        string `mapstructure:"secret_key"        validate:"required"`
+}
+
 // GetExternalURL returns the external URL for the configured storage provider.
 // This URL is used for browser-accessible endpoints (e.g., for CSP headers).
 // Returns empty string if no external URL is configured or applicable.
@@ -110,6 +119,10 @@ func (s *StorageConfiguration) GetExternalURL() string {
 	case "minio":
 		if s.Minio != nil {
 			return s.Minio.ExternalEndpoint
+		}
+	case "rustfs":
+		if s.RustFS != nil {
+			return s.RustFS.ExternalEndpoint
 		}
 	case "gcp":
 		return ""
