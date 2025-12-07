@@ -15,7 +15,8 @@ type Folder struct {
 	ParentFolder *Folder        `gorm:"foreignKey:FolderID"                            json:"parent_folder,omitempty"`
 	BucketID     uuid.UUID      `gorm:"type:uuid;not null"                             json:"bucket_id"`
 	Bucket       Bucket         `                                                      json:"-"`
-	DeletedBy    *uuid.UUID     `gorm:"column:deleted_by;type:uuid;default:null"       json:"deleted_by,omitempty"`
+	DeletedBy    *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"deleted_by,omitempty"`
+	OriginalPath string         `gorm:"-"                                              json:"original_path,omitempty"`
 	CreatedAt    time.Time      `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `                                                      json:"deleted_at"`
@@ -43,5 +44,5 @@ type FolderUpdateBody struct {
 }
 
 type FolderPatchBody struct {
-	Status FileStatus `json:"status" validate:"required,oneof=trashed uploaded"`
+	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
 }

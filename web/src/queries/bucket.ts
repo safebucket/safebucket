@@ -45,7 +45,7 @@ export const bucketTrashedFilesQueryOptions = (bucketId: string) =>
     queryKey: ["buckets", bucketId, "trash"],
     queryFn: async () => {
       const response = await api.get<IBucket>(
-        `/buckets/${bucketId}?status=trashed`,
+        `/buckets/${bucketId}?status=deleted`,
       );
       return {
         files: response.files || [],

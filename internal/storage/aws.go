@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"path"
 	"strings"
 	"time"
 
@@ -315,7 +316,7 @@ func (a AWSStorage) getTrashMarkerPath(objectPath string, model interface{}) str
 	resourceID := parts[1]
 
 	// Pattern: trash/{bucket-id}/files|folders/{resource-id}
-	return fmt.Sprintf("%s%s/%s/%s", trashPrefix, bucketID, resourceType, resourceID)
+	return path.Join(trashPrefix, bucketID, resourceType, resourceID)
 }
 
 func (a AWSStorage) MarkAsTrashed(objectPath string, object interface{}) error {

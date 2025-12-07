@@ -13,9 +13,8 @@ const (
 	FileStatusUploading FileStatus = "uploading"
 	FileStatusUploaded  FileStatus = "uploaded"
 	FileStatusDeleting  FileStatus = "deleting"
-	FileStatusTrashed   FileStatus = "trashed"
-	FileStatusRestoring FileStatus = "restoring"
 	FileStatusDeleted   FileStatus = "deleted"
+	FileStatusRestoring FileStatus = "restoring"
 )
 
 type File struct {
@@ -28,7 +27,7 @@ type File struct {
 	FolderID     *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"folder_id,omitempty"`
 	ParentFolder *Folder        `gorm:"foreignKey:FolderID"                            json:"parent_folder,omitempty"`
 	Size         int            `gorm:"type:bigint;default:null"                       json:"size"`
-	DeletedBy    *uuid.UUID     `gorm:"column:deleted_by;type:uuid;default:null"       json:"deleted_by,omitempty"`
+	DeletedBy    *uuid.UUID     `gorm:"type:uuid;default:null"       json:"deleted_by,omitempty"`
 	OriginalPath string         `gorm:"-"                                              json:"original_path,omitempty"`
 	CreatedAt    time.Time      `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`
@@ -59,7 +58,7 @@ type FileTransferResponse struct {
 	Body map[string]string `json:"body"`
 }
 
-// FilePatchBody represents a PATCH request to update file status.
+// FilePatchBody represents a PATCH request for trash/restore operations.
 type FilePatchBody struct {
-	Status FileStatus `json:"status" validate:"required,oneof=trashed uploaded"`
+	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
 }

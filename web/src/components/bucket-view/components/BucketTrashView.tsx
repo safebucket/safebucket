@@ -127,14 +127,15 @@ const createColumns = (
     ),
     cell: ({ row }) => {
       const item = row.original;
-      // Use original_path if available (for files), otherwise build from folders
-      if ("extension" in item && item.original_path) {
+      // Use original_path if available (for both files and folders)
+      if (item.original_path) {
         return (
           <span className="text-sm text-muted-foreground">
             {item.original_path}
           </span>
         );
       }
+      // Fallback to building path from folder hierarchy
       const folderId = "folder_id" in item ? item.folder_id : undefined;
       const path = buildFolderPath(folderId, bucket.folders);
       return <span className="text-sm text-muted-foreground">{path}</span>;
@@ -178,7 +179,7 @@ const createColumns = (
       const status = row.getValue("status");
 
       switch (status) {
-        case FileStatus.trashed:
+        case FileStatus.deleted:
           return (
             <Badge className="bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800">
               <Trash2 className="h-3 w-3" />

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -314,7 +315,7 @@ func (s S3Storage) getTrashMarkerPath(objectPath string, model interface{}) stri
 	resourceID := parts[1]
 
 	// Pattern: trash/{bucket-id}/files|folders/{resource-id}
-	return fmt.Sprintf("%s%s/%s/%s", trashPrefix, bucketID, resourceType, resourceID)
+	return path.Join(trashPrefix, bucketID, resourceType, resourceID)
 }
 
 func (s S3Storage) MarkAsTrashed(objectPath string, object interface{}) error {

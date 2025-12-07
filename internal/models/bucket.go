@@ -40,5 +40,5 @@ type BucketCreateUpdateBody struct {
 //	r.With(m.ValidateQuery[models.BucketQueryParams]).
 //	    Get("/", handler)
 type BucketQueryParams struct {
-	Status string `json:"status" validate:"omitempty,oneof=all trashed uploaded uploading"`
+	Status string `json:"status" validate:"omitempty,oneof=all deleted uploaded uploading"`
 }

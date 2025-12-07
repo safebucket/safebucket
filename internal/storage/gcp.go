@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -253,7 +254,7 @@ func (g GCPStorage) getTrashMarkerPath(objectPath string, model interface{}) str
 	resourceID := parts[1]
 
 	// Pattern: trash/{bucket-id}/files|folders/{resource-id}
-	return fmt.Sprintf("%s%s/%s/%s", trashPrefix, bucketID, resourceType, resourceID)
+	return path.Join(trashPrefix, bucketID, resourceType, resourceID)
 }
 
 func (g GCPStorage) MarkAsTrashed(objectPath string, object interface{}) error {

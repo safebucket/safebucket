@@ -95,11 +95,11 @@ export const deleteFileMutationFn = async (params: {
 
   if (isFolder) {
     await api.patch(`/buckets/${bucketId}/folders/${fileId}`, {
-      status: "trashed",
+      status: "deleted",
     });
   } else {
     await api.patch(`/buckets/${bucketId}/files/${fileId}`, {
-      status: "trashed",
+      status: "deleted",
     });
   }
 

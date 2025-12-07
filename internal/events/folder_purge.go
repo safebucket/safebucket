@@ -83,9 +83,8 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return result.Error
 	}
 
-	if folder.Status != models.FileStatusTrashed {
-		zap.L().Warn("Folder not in trashed status, cannot purge",
-			zap.String("current_status", string(folder.Status)))
+	if !folder.DeletedAt.Valid {
+		zap.L().Warn("Folder not soft-deleted, cannot purge")
 		return errors.New("folder not in trash")
 	}
 
@@ -143,14 +142,12 @@ func (e *FolderPurge) callback(params *EventParams) error {
 				storagePaths = append(storagePaths, childPath)
 			}
 
-			// Delete files from storage
 			if len(storagePaths) > 0 {
 				if err := params.Storage.RemoveObjects(storagePaths); err != nil {
 					zap.L().Warn("Failed to delete some files from storage", zap.Error(err))
 				}
 			}
 
-			// Hard delete child files from database (permanent removal)
 			if err := tx.Unscoped().Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
 				zap.L().Error("Failed to hard delete child files", zap.Error(err))
 				return err
@@ -185,17 +182,14 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return errors.New("remaining items to purge")
 	}
 
-	// Delete folder marker from storage
 	objectPath := path.Join("buckets", e.Payload.BucketID.String(), e.Payload.FolderID.String())
 	folderModel := models.Folder{ID: e.Payload.FolderID, BucketID: e.Payload.BucketID}
 	if err = params.Storage.UnmarkAsTrashed(objectPath, folderModel); err != nil {
 		zap.L().Warn("Failed to delete folder marker from storage",
 			zap.Error(err),
 			zap.String("folder_id", e.Payload.FolderID.String()))
-		// Continue - marker might have been deleted by lifecycle policy already
 	}
 
-	// Hard delete folder from database (permanent removal)
 	if err = params.DB.Unscoped().Delete(&folder).Error; err != nil {
 		zap.L().Error("Failed to hard delete folder from database", zap.Error(err))
 		return err

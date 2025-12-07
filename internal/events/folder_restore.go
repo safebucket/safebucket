@@ -67,14 +67,16 @@ func (e *FolderRestore) Trigger() {
 	}
 }
 
-//nolint:gocognit,funlen // Complex event handler logic with multiple validation steps
 func (e *FolderRestore) callback(params *EventParams) error {
 	zap.L().Info("Starting folder restore",
 		zap.String("bucket_id", e.Payload.BucketID.String()),
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
+	// Collect child folder IDs to trigger events after transaction
+	var childFolderIDs []uuid.UUID
 	var childFiles []models.File
+	var folderName string
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		// Fetch folder inside transaction (use Unscoped to query soft-deleted folders)
@@ -87,20 +89,21 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			return result.Error
 		}
 
+		// Capture folder name for logging outside transaction
+		folderName = folder.Name
+
 		if folder.Status != models.FileStatusRestoring {
 			zap.L().Warn("Folder not in restoring status, skipping",
 				zap.String("current_status", string(folder.Status)))
 			return nil
 		}
 
-		// Check for naming conflicts
+		// Check for naming conflicts (only against active folders)
 		var existingFolder models.Folder
 		query := tx.Where(
-			"bucket_id = ? AND name = ? AND (status IS NULL OR (status != ? AND status != ?)) AND id != ?",
+			"bucket_id = ? AND name = ? AND id != ?",
 			e.Payload.BucketID,
 			folder.Name,
-			models.FileStatusTrashed,
-			models.FileStatusRestoring,
 			folder.ID,
 		)
 		if folder.FolderID != nil {
@@ -114,58 +117,67 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			zap.L().Error("Folder name conflict detected",
 				zap.String("folder_name", folder.Name))
 
-			if err := tx.Model(&folder).Update("status", models.FileStatusTrashed).Error; err != nil {
-				zap.L().Error("Failed to revert folder status to trashed", zap.Error(err))
+			// Revert status to deleted (folder remains soft-deleted in trash)
+			if err := tx.Unscoped().Model(&folder).Update("status", models.FileStatusDeleted).Error; err != nil {
+				zap.L().Error("Failed to revert folder status", zap.Error(err))
 			}
 			return errors.New("folder name conflict")
 		}
 
-		// Restore child folders (use Unscoped to query soft-deleted folders)
+		// Find child folders that are soft-deleted and not yet being restored
 		var childFolders []models.Folder
 		if err := tx.Unscoped().Where(
-			"bucket_id = ? AND folder_id = ? AND status = ? AND deleted_at IS NOT NULL",
+			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status = ?)",
 			e.Payload.BucketID,
 			e.Payload.FolderID,
-			models.FileStatusTrashed,
+			models.FileStatusDeleted,
 		).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
 			zap.L().Error("Failed to find child folders for restore", zap.Error(err))
 			return err
 		}
 
+		// Set child folders to restoring status (so their events can process)
 		if len(childFolders) > 0 {
-			zap.L().Info("Restoring child folders",
-				zap.String("folder", folder.Name),
-				zap.Int("child_count", len(childFolders)))
+			zap.L().Info("Setting child folders to restoring status",
+				zap.String("parent_folder", folder.Name),
+				zap.String("parent_id", e.Payload.FolderID.String()),
+				zap.Int("count", len(childFolders)))
 
 			var folderIDs []uuid.UUID
 			for _, child := range childFolders {
+				zap.L().Debug("Child folder details",
+					zap.String("child_id", child.ID.String()),
+					zap.String("child_name", child.Name),
+					zap.String("status", string(child.Status)))
 				folderIDs = append(folderIDs, child.ID)
+				childFolderIDs = append(childFolderIDs, child.ID)
 			}
 
-			// Clear soft delete and restore status
+			// Set status to restoring for child folders
 			if err := tx.Unscoped().Model(&models.Folder{}).
 				Where("id IN ?", folderIDs).
-				Updates(map[string]interface{}{
-					"status":     nil,
-					"deleted_at": nil,
-					"deleted_by": nil,
-				}).Error; err != nil {
-				zap.L().Error("Failed to restore child folders", zap.Error(err))
+				Update("status", models.FileStatusRestoring).Error; err != nil {
+				zap.L().Error("Failed to set child folders to restoring status", zap.Error(err))
 				return err
 			}
+		} else {
+			zap.L().Info("No child folders found to restore",
+				zap.String("parent_folder", folder.Name),
+				zap.String("parent_id", e.Payload.FolderID.String()))
 		}
 
-		// Restore child files (use Unscoped to query soft-deleted files)
+		// Find child files that are soft-deleted and not yet being restored
 		if err := tx.Unscoped().Where(
-			"bucket_id = ? AND folder_id = ? AND status = ? AND deleted_at IS NOT NULL",
+			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status = ?)",
 			e.Payload.BucketID,
 			e.Payload.FolderID,
-			models.FileStatusTrashed,
+			models.FileStatusDeleted,
 		).Limit(c.BulkActionsLimit).Find(&childFiles).Error; err != nil {
 			zap.L().Error("Failed to find child files for restore", zap.Error(err))
 			return err
 		}
 
+		// Set child files to restoring status, then restore them
 		if len(childFiles) > 0 {
 			zap.L().Info("Restoring child files",
 				zap.String("folder", folder.Name),
@@ -176,14 +188,22 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				fileIDs = append(fileIDs, child.ID)
 			}
 
-			// Update file status and clear soft delete FIRST, before unmarking from storage
+			// Set status to restoring first
+			if err := tx.Unscoped().Model(&models.File{}).
+				Where("id IN ?", fileIDs).
+				Update("status", models.FileStatusRestoring).Error; err != nil {
+				zap.L().Error("Failed to set child files to restoring status", zap.Error(err))
+				return err
+			}
+
+			// Then clear soft delete and set to uploaded
 			// This prevents race condition with trash_expiration handler
 			if err := tx.Unscoped().Model(&models.File{}).
 				Where("id IN ?", fileIDs).
 				Updates(map[string]interface{}{
-					"status":     models.FileStatusUploaded,
 					"deleted_at": nil,
 					"deleted_by": nil,
+					"status":     models.FileStatusUploaded,
 				}).Error; err != nil {
 				zap.L().Error("Failed to restore child files", zap.Error(err))
 				return err
@@ -194,6 +214,32 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	// Trigger restore events for child folders after transaction commits
+	if len(childFolderIDs) > 0 {
+		zap.L().Info("Triggering restore events for child folders (after transaction commit)",
+			zap.String("folder", folderName),
+			zap.String("folder_id", e.Payload.FolderID.String()),
+			zap.Int("child_count", len(childFolderIDs)))
+
+		for _, childID := range childFolderIDs {
+			zap.L().Info("Triggering child folder restore event",
+				zap.String("parent_id", e.Payload.FolderID.String()),
+				zap.String("child_id", childID.String()))
+
+			childRestoreEvent := NewFolderRestore(
+				params.Publisher,
+				e.Payload.BucketID,
+				childID,
+				e.Payload.UserID,
+			)
+			childRestoreEvent.Trigger()
+		}
+	} else {
+		zap.L().Info("No child folders to trigger events for",
+			zap.String("folder", folderName),
+			zap.String("folder_id", e.Payload.FolderID.String()))
 	}
 
 	// Unmark files from storage AFTER transaction commits
@@ -209,21 +255,21 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		}
 	}
 
-	// Check if there are remaining items to restore (use Unscoped to query soft-deleted items)
+	// Check if there are remaining items to restore (soft-deleted items not yet processed)
 	var remainingFolders int64
 	params.DB.Unscoped().Model(&models.Folder{}).Where(
-		"bucket_id = ? AND folder_id = ? AND status = ? AND deleted_at IS NOT NULL",
+		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status = ?)",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FileStatusTrashed,
+		models.FileStatusDeleted,
 	).Count(&remainingFolders)
 
 	var remainingFiles int64
 	params.DB.Unscoped().Model(&models.File{}).Where(
-		"bucket_id = ? AND folder_id = ? AND status = ? AND deleted_at IS NOT NULL",
+		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status = ?)",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FileStatusTrashed,
+		models.FileStatusDeleted,
 	).Count(&remainingFiles)
 
 	if remainingFolders > 0 || remainingFiles > 0 {
@@ -231,6 +277,21 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			zap.Int64("remaining_folders", remainingFolders),
 			zap.Int64("remaining_files", remainingFiles))
 		return errors.New("remaining items to restore")
+	}
+
+	// Check if child folders are still being restored (waiting for recursive completion)
+	var restoringFolders int64
+	params.DB.Unscoped().Model(&models.Folder{}).Where(
+		"bucket_id = ? AND folder_id = ? AND status = ?",
+		e.Payload.BucketID,
+		e.Payload.FolderID,
+		models.FileStatusRestoring,
+	).Count(&restoringFolders)
+
+	if restoringFolders > 0 {
+		zap.L().Info("Child folders still restoring, requeuing event",
+			zap.Int64("restoring_folders", restoringFolders))
+		return errors.New("child folders still restoring")
 	}
 
 	// All children restored - now restore the folder itself

@@ -68,17 +68,14 @@ func (e *BucketPurge) callback(params *EventParams) error {
 		zap.String("bucket_id", e.Payload.BucketID.String()),
 	)
 
-	// Phase 1: Delete root-level files
 	if !e.deleteRootFiles(params) {
 		return errors.New("remaining files to delete")
 	}
 
-	// Phase 2: Delete root-level folders (delegate to FolderPurge)
 	if !e.deleteRootFolders(params) {
 		return errors.New("remaining folders to delete")
 	}
 
-	// Phase 3: Cleanup orphaned storage objects
 	if !e.cleanupOrphanedStorage(params) {
 		return errors.New("remaining storage objects")
 	}
@@ -92,7 +89,6 @@ func (e *BucketPurge) callback(params *EventParams) error {
 
 // deleteRootFiles deletes all root-level files (folder_id IS NULL) for the bucket.
 func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
-	// Query root-level files only (not in any folder)
 	var files []models.File
 	result := params.DB.Unscoped().
 		Where("bucket_id = ? AND folder_id IS NULL", e.Payload.BucketID).
@@ -114,9 +110,7 @@ func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 		zap.Int("count", len(files)),
 	)
 
-	// Delete in transaction
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		// Build storage paths and collect file IDs
 		var storagePaths []string
 		var fileIDs []uuid.UUID
 		for _, file := range files {
@@ -125,7 +119,6 @@ func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 			storagePaths = append(storagePaths, filePath)
 		}
 
-		// Delete from storage first
 		if len(storagePaths) > 0 {
 			if err := params.Storage.RemoveObjects(storagePaths); err != nil {
 				zap.L().Warn("Failed to delete files from storage", zap.Error(err))
@@ -137,7 +130,6 @@ func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 			}
 		}
 
-		// Hard delete from database (Unscoped removes soft-deleted items permanently)
 		if err := tx.Unscoped().Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
 			zap.L().Error("Failed to delete files from database", zap.Error(err))
 			return err
@@ -155,7 +147,6 @@ func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 		return false
 	}
 
-	// Check if more files exist (batching)
 	var remainingCount int64
 	params.DB.Unscoped().Model(&models.File{}).
 		Where("bucket_id = ? AND folder_id IS NULL", e.Payload.BucketID).
@@ -165,7 +156,7 @@ func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 		zap.L().Info("More root files to delete, requeuing",
 			zap.Int64("remaining", remainingCount),
 		)
-		return false // Requeue event
+		return false
 	}
 
 	return true
@@ -173,7 +164,6 @@ func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 
 // deleteRootFolders delegates deletion of root-level folders to FolderPurge events.
 func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
-	// Query root-level folders only (not in any parent folder)
 	var folders []models.Folder
 	result := params.DB.Unscoped().
 		Where("bucket_id = ? AND folder_id IS NULL", e.Payload.BucketID).
@@ -195,17 +185,12 @@ func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
 		zap.Int("count", len(folders)),
 	)
 
-	// Trigger FolderPurge event for each root folder
 	for _, folder := range folders {
-		// Ensure folder is in trashed status (FolderPurge requirement)
-		// Use Unscoped to update soft-deleted records
 		params.DB.Unscoped().Model(&folder).Updates(map[string]interface{}{
-			"status":     models.FileStatusTrashed,
 			"deleted_at": time.Now(),
 			"deleted_by": e.Payload.UserID,
 		})
 
-		// Trigger FolderPurge event
 		purgeEvent := NewFolderPurge(
 			params.Publisher,
 			folder.BucketID,
@@ -220,7 +205,6 @@ func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
 		)
 	}
 
-	// Check if more folders exist (batching)
 	var remainingCount int64
 	params.DB.Unscoped().Model(&models.Folder{}).
 		Where("bucket_id = ? AND folder_id IS NULL", e.Payload.BucketID).
@@ -230,7 +214,7 @@ func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
 		zap.L().Info("More root folders to delete, requeuing",
 			zap.Int64("remaining", remainingCount),
 		)
-		return false // Requeue event
+		return false
 	}
 
 	return true

@@ -214,7 +214,6 @@ func (s UserService) GetUserStats(
 	s.DB.Model(&models.File{}).
 		Joins("INNER JOIN memberships ON files.bucket_id = memberships.bucket_id").
 		Where("memberships.user_id = ?", userID).
-		Where("files.status != ?", models.FileStatusTrashed).
 		Count(&totalFiles)
 
 	return models.UserStatsResponse{

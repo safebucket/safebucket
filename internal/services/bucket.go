@@ -231,13 +231,12 @@ func (s BucketService) GetBucket(
 	var folders []models.Folder
 
 	switch status {
-	case "trashed":
-		// Show only trashed items (use Unscoped to query soft-deleted items)
+	case "deleted":
 		fileResult := s.DB.Unscoped().
 			Where(
-				"bucket_id = ? AND status = ? AND deleted_at IS NOT NULL",
+				"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?)",
 				bucketID,
-				models.FileStatusTrashed,
+				models.FileStatusRestoring,
 			).
 			Order("deleted_at DESC").
 			Find(&files)
@@ -253,11 +252,12 @@ func (s BucketService) GetBucket(
 		}
 
 		// Fetch trashed folders (use Unscoped to query soft-deleted items)
+		// Trashed = deleted_at IS NOT NULL and status != restoring
 		folderResult := s.DB.Unscoped().
 			Where(
-				"bucket_id = ? AND status = ? AND deleted_at IS NOT NULL",
+				"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?)",
 				bucketID,
-				models.FileStatusTrashed,
+				models.FileStatusRestoring,
 			).
 			Order("deleted_at DESC").
 			Find(&folders)
@@ -265,6 +265,11 @@ func (s BucketService) GetBucket(
 		if folderResult.Error != nil {
 			logger.Error("Failed to list trashed folders", zap.Error(folderResult.Error))
 			folders = []models.Folder{}
+		} else {
+			// Compute original path for each trashed folder
+			for i := range folders {
+				folders[i].OriginalPath = s.buildFilePath(folders[i].FolderID)
+			}
 		}
 
 	case "all":
@@ -296,13 +301,13 @@ func (s BucketService) GetBucket(
 	case "uploaded":
 		fallthrough
 	default:
-		// Show only uploaded items (filter out expired files that haven't been uploaded yet)
-		// Also exclude trashed items from normal bucket view
+		// Show only active (non-soft-deleted) items
+		// Filter out expired files that haven't been uploaded yet
+		// GORM automatically excludes soft-deleted items (deleted_at IS NOT NULL)
 		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 		result = s.DB.Where(
-			"bucket_id = ? AND (status IS NULL OR status != ?) AND (status = ? OR (status = ? AND created_at > ?))",
+			"bucket_id = ? AND (status = ? OR (status = ? AND created_at > ?))",
 			bucketID,
-			models.FileStatusTrashed,
 			models.FileStatusUploaded,
 			models.FileStatusUploading,
 			expirationTime,
@@ -312,12 +317,8 @@ func (s BucketService) GetBucket(
 			bucket.Files = files
 		}
 
-		// Get folders (exclude trashed folders)
-		result = s.DB.Where(
-			"bucket_id = ? AND (status IS NULL OR status != ?)",
-			bucketID,
-			models.FileStatusTrashed,
-		).Find(&folders)
+		// Get folders (GORM automatically excludes soft-deleted items)
+		result = s.DB.Where("bucket_id = ?", bucketID).Find(&folders)
 
 		if result.RowsAffected > 0 {
 			bucket.Folders = folders

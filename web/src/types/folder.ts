@@ -10,4 +10,5 @@ export interface IFolder {
   updated_at: string;
   deleted_at?: string;
   deleted_by?: string;
+  original_path?: string;
 }

@@ -27,7 +27,7 @@ type BasicQueryParams struct {
 //nolint:golines // Test struct with validation tags
 type PointerQueryParams struct {
 	Name   *string `json:"name"`
-	Status *string `json:"status" validate:"omitempty,oneof=uploaded trashed"`
+	Status *string `json:"status" validate:"omitempty,oneof=uploaded deleted"`
 	Limit  *int    `json:"limit" validate:"omitempty,min=1,max=1000"`
 	Active *bool   `json:"active"`
 }
@@ -376,7 +376,7 @@ func TestValidateQueryEdgeCases(t *testing.T) {
 
 func TestValidateQueryMultipleValues(t *testing.T) {
 	t.Run("Multiple values for same parameter - BUG", func(t *testing.T) {
-		recorder, ctx := runMiddleware[PointerQueryParams](t, "?status=uploaded&status=trashed")
+		recorder, ctx := runMiddleware[PointerQueryParams](t, "?status=uploaded&status=deleted")
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
 		params, err := helpers.GetQueryParams[PointerQueryParams](ctx)

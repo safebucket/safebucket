@@ -2,7 +2,7 @@ export enum FileStatus {
   uploading = "uploading",
   uploaded = "uploaded",
   deleting = "deleting",
-  trashed = "trashed",
+  deleted = "deleted",
   restoring = "restoring",
 }
 

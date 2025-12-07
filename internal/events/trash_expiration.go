@@ -148,11 +148,9 @@ func (e *TrashExpiration) findTrashedFile(params *EventParams, pathInfo parsedPa
 
 	file := &files[0]
 
-	// Skip if file is not in trashed status (file may have been restored or purged)
-	if file.Status != models.FileStatusTrashed {
-		zap.L().Debug("File not in trashed status, skipping expiration",
+	if !file.DeletedAt.Valid {
+		zap.L().Debug("File not soft-deleted, skipping expiration",
 			zap.String("file_id", fileID.String()),
-			zap.String("status", string(file.Status)),
 		)
 		return nil, nil
 	}
@@ -168,12 +166,6 @@ func (e *TrashExpiration) handleFileDeletion(params *EventParams, file *models.F
 			zap.String("file_id", file.ID.String()),
 			zap.Error(err),
 		)
-		if updateErr := params.DB.Model(file).Update("status", models.FileStatusTrashed).Error; updateErr != nil {
-			zap.L().Error("Failed to revert file status",
-				zap.String("file_id", file.ID.String()),
-				zap.Error(updateErr),
-			)
-		}
 		return err
 	}
 	zap.L().Info("Deleted file from storage",
@@ -210,20 +202,18 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		return nil
 	}
 
-	// At this point, file is guaranteed to be:
-	// - Not soft-deleted (deleted_at IS NULL)
-	// - In trashed status (validated in findTrashedFile)
+	// At this point, file is guaranteed to be soft-deleted (deleted_at IS NOT NULL).
 	//
 	// However, there's a race condition: if a user restores the file,
 	// UnmarkAsTrashed deletes the trash marker, which triggers this event.
-	// The restore handler updates the DB status to 'uploaded', but this event
-	// may process before or after that DB update completes.
+	// The restore handler clears deleted_at, but this event may process
+	// before or after that DB update completes.
 	//
-	// Solution: Re-check the file status to distinguish:
-	// - Status='trashed' → Lifecycle policy expiration, delete permanently
-	// - Status='uploaded' → User restore in progress, skip deletion
+	// Solution: Re-check the file's deleted_at to distinguish:
+	// - deleted_at IS NOT NULL → Lifecycle policy expiration, delete permanently
+	// - deleted_at IS NULL → User restore in progress, skip deletion
 
-	// Reload file from DB to get latest status (handles race condition)
+	// Reload file from DB to get latest state (handles race condition)
 	// Use Unscoped to query soft-deleted files
 	var currentFile models.File
 	if reloadErr := params.DB.Unscoped().First(&currentFile, "id = ?", file.ID).Error; reloadErr != nil {
@@ -234,13 +224,11 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		return reloadErr
 	}
 
-	// Check if file is still in trashed status
-	if currentFile.Status != models.FileStatusTrashed {
+	// Check if file is still soft-deleted (in trash)
+	if !currentFile.DeletedAt.Valid {
 		zap.L().Info(
-			"Trash marker deleted but file not in trash status - user restore in progress, skipping permanent deletion",
+			"Trash marker deleted but file not soft-deleted - user restore in progress, skipping permanent deletion",
 			zap.String("file_id", file.ID.String()),
-			zap.String("current_status", string(currentFile.Status)),
-			zap.String("expected_status", string(models.FileStatusTrashed)),
 		)
 		return nil
 	}

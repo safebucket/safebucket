@@ -80,8 +80,6 @@ func (e *FolderTrash) callback(params *EventParams) error {
 
 	var folder models.Folder
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		// Fetch folder inside transaction to prevent race conditions
-		// Use Unscoped because folder is already soft-deleted by service before event triggers
 		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
 			e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
@@ -90,42 +88,61 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			return result.Error
 		}
 
-		// Capture folder name for logging outside transaction
 		folderName = folder.Name
 
-		// Verify folder is already trashed (service should have done this)
-		if folder.Status != models.FileStatusTrashed {
-			zap.L().Error("Folder not in trashed status, cannot process children",
-				zap.String("current_status", string(folder.Status)))
+		if !folder.DeletedAt.Valid {
+			zap.L().Error("Folder not soft-deleted, cannot process children")
 			return errors.New("folder not trashed")
 		}
 
-		// Parent folder already processed by service - just handle children
-		// Get all child folders recursively
 		var childFolders []models.Folder
 		if err := tx.Where(
-			"bucket_id = ? AND folder_id = ? AND status != ?",
+			"bucket_id = ? AND folder_id = ?",
 			e.Payload.BucketID,
 			e.Payload.FolderID,
-			models.FileStatusTrashed,
 		).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
 			zap.L().Error("Failed to find child folders", zap.Error(err))
 			return err
 		}
 
-		// Collect child folder IDs for event triggering after transaction commits
+		// Trash child folders (soft-delete them so their events can process)
 		if len(childFolders) > 0 {
-			zap.L().Info("Found child folders in transaction",
+			zap.L().Info("Trashing child folders",
 				zap.String("parent_folder", folder.Name),
 				zap.String("parent_id", e.Payload.FolderID.String()),
 				zap.Int("count", len(childFolders)))
 
+			var folderIDs []uuid.UUID
 			for _, child := range childFolders {
 				zap.L().Debug("Child folder details",
 					zap.String("child_id", child.ID.String()),
 					zap.String("child_name", child.Name),
 					zap.String("status", string(child.Status)))
+				folderIDs = append(folderIDs, child.ID)
 				childFolderIDs = append(childFolderIDs, child.ID)
+
+				folderPath := path.Join("buckets", e.Payload.BucketID.String(), child.ID.String())
+				if err := params.Storage.MarkAsTrashed(folderPath, child); err != nil {
+					zap.L().Warn("Failed to mark child folder as trashed in storage",
+						zap.Error(err),
+						zap.String("folder_id", child.ID.String()))
+				}
+			}
+
+			folderUpdates := map[string]interface{}{
+				"status":     models.FileStatusDeleted,
+				"deleted_by": e.Payload.UserID,
+			}
+			if err := tx.Model(&models.Folder{}).
+				Where("id IN ?", folderIDs).
+				Updates(folderUpdates).Error; err != nil {
+				zap.L().Error("Failed to update child folders for trashing", zap.Error(err))
+				return err
+			}
+
+			if err := tx.Where("id IN ?", folderIDs).Delete(&models.Folder{}).Error; err != nil {
+				zap.L().Error("Failed to soft delete child folders", zap.Error(err))
+				return err
 			}
 		} else {
 			zap.L().Info("No child folders found",
@@ -133,19 +150,16 @@ func (e *FolderTrash) callback(params *EventParams) error {
 				zap.String("parent_id", e.Payload.FolderID.String()))
 		}
 
-		// Get all files in this folder
 		var childFiles []models.File
 		if err := tx.Where(
-			"bucket_id = ? AND folder_id = ? AND status != ?",
+			"bucket_id = ? AND folder_id = ?",
 			e.Payload.BucketID,
 			e.Payload.FolderID,
-			models.FileStatusTrashed,
 		).Limit(c.BulkActionsLimit).Find(&childFiles).Error; err != nil {
 			zap.L().Error("Failed to find child files", zap.Error(err))
 			return err
 		}
 
-		// Trash child files
 		if len(childFiles) > 0 {
 			zap.L().Info("Trashing child files",
 				zap.String("folder", folder.Name),
@@ -163,19 +177,17 @@ func (e *FolderTrash) callback(params *EventParams) error {
 				}
 			}
 
-			// Update child files status to trashed and set deleted_by
-			fileUpdates := map[string]interface{}{
-				"status":     models.FileStatusTrashed,
+			updates := map[string]interface{}{
+				"status":     models.FileStatusDeleted,
 				"deleted_by": e.Payload.UserID,
 			}
 			if err := tx.Model(&models.File{}).
 				Where("id IN ?", fileIDs).
-				Updates(fileUpdates).Error; err != nil {
-				zap.L().Error("Failed to update child files status", zap.Error(err))
+				Updates(updates).Error; err != nil {
+				zap.L().Error("Failed to update child files for trashing", zap.Error(err))
 				return err
 			}
 
-			// Soft delete child files using GORM (sets deleted_at)
 			if err := tx.Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
 				zap.L().Error("Failed to soft delete child files", zap.Error(err))
 				return err
@@ -214,21 +226,19 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			zap.String("folder_id", e.Payload.FolderID.String()))
 	}
 
-	// Check if there are remaining items to trash
+	// Check if there are remaining items to trash (items not yet soft-deleted)
 	var remainingFolders int64
 	params.DB.Model(&models.Folder{}).Where(
-		"bucket_id = ? AND folder_id = ? AND status != ?",
+		"bucket_id = ? AND folder_id = ?",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FileStatusTrashed,
 	).Count(&remainingFolders)
 
 	var remainingFiles int64
 	params.DB.Model(&models.File{}).Where(
-		"bucket_id = ? AND folder_id = ? AND status != ?",
+		"bucket_id = ? AND folder_id = ?",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FileStatusTrashed,
 	).Count(&remainingFiles)
 
 	if remainingFolders > 0 || remainingFiles > 0 {

@@ -4,7 +4,7 @@
 SELECT 'up SQL query';
 
 -- Create custom ENUM types
-CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting', 'trashed', 'restoring');
+CREATE TYPE file_status AS ENUM ('uploading', 'uploaded', 'deleting', 'deleted', 'restoring');
 CREATE TYPE provider_type AS ENUM ('local', 'oidc');
 CREATE TYPE challenge_type AS ENUM ('invite', 'password_reset');
 CREATE TYPE group_type AS ENUM ('owner', 'contributor', 'viewer');
