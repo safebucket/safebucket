@@ -74,7 +74,6 @@ func (e *FolderTrash) callback(params *EventParams) error {
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
-	// Collect child folder IDs to trigger events after transaction
 	var childFolderIDs []uuid.UUID
 	var folderName string
 
@@ -105,7 +104,6 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			return err
 		}
 
-		// Trash child folders (soft-delete them so their events can process)
 		if len(childFolders) > 0 {
 			zap.L().Info("Trashing child folders",
 				zap.String("parent_folder", folder.Name),
@@ -200,7 +198,6 @@ func (e *FolderTrash) callback(params *EventParams) error {
 		return err
 	}
 
-	// Trigger trash events for child folders after transaction commits
 	if len(childFolderIDs) > 0 {
 		zap.L().Info("Triggering trash events for child folders (after transaction commit)",
 			zap.String("folder", folderName),
@@ -226,7 +223,6 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			zap.String("folder_id", e.Payload.FolderID.String()))
 	}
 
-	// Check if there are remaining items to trash (items not yet soft-deleted)
 	var remainingFolders int64
 	params.DB.Model(&models.Folder{}).Where(
 		"bucket_id = ? AND folder_id = ?",

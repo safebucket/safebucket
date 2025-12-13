@@ -113,7 +113,6 @@ func (e *TrashExpiration) parseObjectPath(params *EventParams) parsedPathInfo {
 
 // findTrashedFile queries the database for a trashed file.
 func (e *TrashExpiration) findTrashedFile(params *EventParams, pathInfo parsedPathInfo) (*models.File, error) {
-	// Parse file ID from the object path (files are now stored by ID, not path)
 	fileID, err := uuid.Parse(pathInfo.filename)
 	if err != nil {
 		zap.L().Warn("Invalid file ID in object path, skipping cleanup",
@@ -125,7 +124,6 @@ func (e *TrashExpiration) findTrashedFile(params *EventParams, pathInfo parsedPa
 	}
 
 	var files []models.File
-	// Use Unscoped to also check soft-deleted records
 	result := params.DB.Unscoped().Where(
 		"bucket_id = ? AND id = ?",
 		e.Payload.BucketID,
@@ -141,7 +139,6 @@ func (e *TrashExpiration) findTrashedFile(params *EventParams, pathInfo parsedPa
 		return nil, result.Error
 	}
 
-	// No results found - file never existed
 	if len(files) == 0 {
 		return nil, nil
 	}
@@ -185,16 +182,10 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 
 	file, err := e.findTrashedFile(params, pathInfo)
 	if err != nil {
-		// Database error occurred
 		return err
 	}
 
 	if file == nil {
-		// File not found is expected when:
-		// - File was already restored (status changed to uploaded)
-		// - File was already purged
-		// - Event is a duplicate
-		// This is not an error condition - the cleanup is already done
 		zap.L().Debug("File not in trash, skipping expiration - likely already cleaned up",
 			zap.String("bucket_id", e.Payload.BucketID.String()),
 			zap.String("object_key", e.Payload.ObjectKey),
@@ -213,8 +204,6 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 	// - deleted_at IS NOT NULL → Lifecycle policy expiration, delete permanently
 	// - deleted_at IS NULL → User restore in progress, skip deletion
 
-	// Reload file from DB to get latest state (handles race condition)
-	// Use Unscoped to query soft-deleted files
 	var currentFile models.File
 	if reloadErr := params.DB.Unscoped().First(&currentFile, "id = ?", file.ID).Error; reloadErr != nil {
 		zap.L().Error("Failed to reload file for status check",
@@ -224,7 +213,6 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		return reloadErr
 	}
 
-	// Check if file is still soft-deleted (in trash)
 	if !currentFile.DeletedAt.Valid {
 		zap.L().Info(
 			"Trash marker deleted but file not soft-deleted - user restore in progress, skipping permanent deletion",
@@ -240,14 +228,12 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 	)
 
 	if pathInfo.isMarker && params.Storage != nil {
-		// Files only - folders are handled separately via FolderPurge events
 		err = e.handleFileDeletion(params, file, pathInfo.originalPath)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Hard delete file from database (permanent removal)
 	err = params.DB.Unscoped().Delete(file).Error
 	if err != nil {
 		zap.L().Error("Failed to hard delete file from database",

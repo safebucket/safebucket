@@ -69,7 +69,6 @@ func (s BucketFolderService) CreateFolder(
 		return models.Folder{}, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
-	// Check if parent folder exists (if folder_id is provided)
 	if body.FolderID != nil {
 		var parentFolder models.Folder
 		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucketID).Find(&parentFolder)
@@ -78,7 +77,6 @@ func (s BucketFolderService) CreateFolder(
 		}
 	}
 
-	// Check for duplicate folder name in the same parent
 	var existingFolder models.Folder
 	query := s.DB.Where("bucket_id = ? AND name = ?", bucketID, body.Name)
 	if body.FolderID != nil {
@@ -135,7 +133,6 @@ func (s BucketFolderService) UpdateFolder(
 		return errors.NewAPIError(404, "FOLDER_NOT_FOUND")
 	}
 
-	// Check for duplicate folder name in the same parent (excluding current folder)
 	var existingFolder models.Folder
 	query := s.DB.Where("bucket_id = ? AND name = ? AND id != ?", bucketID, body.Name, folderID)
 	if folder.FolderID != nil {
@@ -221,17 +218,14 @@ func (s BucketFolderService) TrashFolder(
 	user models.UserClaims,
 	folder models.Folder,
 ) error {
-	// Check that folder is not already soft-deleted
 	if folder.DeletedAt.Valid {
 		return errors.NewAPIError(409, "FOLDER_ALREADY_TRASHED")
 	}
 
-	// Check if folder is in restoring state
 	if folder.Status == models.FileStatusRestoring {
 		return errors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
 	}
 
-	// Update status to deleted and set deleted_by for audit trail
 	updates := map[string]interface{}{
 		"status":     models.FileStatusDeleted,
 		"deleted_by": user.UserID,
@@ -241,20 +235,16 @@ func (s BucketFolderService) TrashFolder(
 		return errors.NewAPIError(500, "UPDATE_FAILED")
 	}
 
-	// Soft delete folder using GORM (sets deleted_at)
 	if err := s.DB.Delete(&folder).Error; err != nil {
 		logger.Error("Failed to soft delete folder", zap.Error(err))
 		return errors.NewAPIError(500, "DELETE_FAILED")
 	}
 
-	// Create trash marker for folder
 	objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
 	if err := s.Storage.MarkAsTrashed(objectPath, folder); err != nil {
 		logger.Warn("Failed to create trash marker for folder", zap.Error(err))
-		// Continue - folder exists only in database
 	}
 
-	// Trigger async trash event to handle children
 	event := events.NewFolderTrash(s.Publisher, folder.BucketID, folder.ID, user.UserID)
 	event.Trigger()
 
@@ -296,7 +286,6 @@ func (s BucketFolderService) restoreParentFolders(
 		return nil, nil
 	}
 
-	// Collect all trashed parent folder IDs first (from immediate parent to root)
 	var trashedFolderIDs []uuid.UUID
 	currentFolderID := folderID
 
@@ -307,7 +296,6 @@ func (s BucketFolderService) restoreParentFolders(
 			break // Parent folder doesn't exist, stop traversal
 		}
 
-		// If folder is trashed (soft-deleted), add to list
 		if folder.DeletedAt.Valid {
 			trashedFolderIDs = append(trashedFolderIDs, folder.ID)
 		}
@@ -316,10 +304,9 @@ func (s BucketFolderService) restoreParentFolders(
 	}
 
 	if len(trashedFolderIDs) == 0 {
-		return nil, nil // No trashed parent folders
+		return nil, nil
 	}
 
-	// Now lock and fetch all trashed folders with FOR UPDATE to prevent concurrent modifications
 	var trashedFolders []models.Folder
 	result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("id IN ?", trashedFolderIDs).
@@ -328,7 +315,6 @@ func (s BucketFolderService) restoreParentFolders(
 		return nil, result.Error
 	}
 
-	// Build a map for quick lookup and maintain order (root to leaf)
 	folderMap := make(map[uuid.UUID]models.Folder)
 	for _, f := range trashedFolders {
 		folderMap[f.ID] = f
@@ -336,20 +322,16 @@ func (s BucketFolderService) restoreParentFolders(
 
 	var restoredFolders []models.Folder
 
-	// Restore folders from root to leaf (reverse order of trashedFolderIDs)
-	// This ensures parent folders exist before restoring child folders
 	for i := len(trashedFolderIDs) - 1; i >= 0; i-- {
 		folder, exists := folderMap[trashedFolderIDs[i]]
 		if !exists {
-			continue // Folder was deleted between initial scan and lock
+			continue
 		}
 
-		// Skip if already being restored or no longer trashed
 		if folder.Status == models.FileStatusRestoring || !folder.DeletedAt.Valid {
 			continue
 		}
 
-		// Check for naming conflicts (only against active folders)
 		var existingFolder models.Folder
 		query := tx.Where(
 			"bucket_id = ? AND name = ? AND id != ?",
@@ -364,7 +346,6 @@ func (s BucketFolderService) restoreParentFolders(
 			return nil, errors.NewAPIError(409, "PARENT_FOLDER_NAME_CONFLICT")
 		}
 
-		// Restore the folder in database
 		updates := map[string]interface{}{
 			"deleted_at": nil,
 			"deleted_by": nil,
@@ -377,7 +358,6 @@ func (s BucketFolderService) restoreParentFolders(
 			return nil, err
 		}
 
-		// Add to list of restored folders (will unmark from storage after DB commit)
 		restoredFolders = append(restoredFolders, folder)
 
 		logger.Info("Restored parent folder",
@@ -398,7 +378,6 @@ func (s BucketFolderService) unmarkRestoredFolders(logger *zap.Logger, folders [
 			logger.Warn("Failed to unmark parent folder as trashed",
 				zap.Error(err),
 				zap.String("folder_id", folder.ID.String()))
-			// Continue - folders exist only in DB
 		}
 	}
 }
@@ -409,7 +388,6 @@ func (s BucketFolderService) RestoreFolder(
 	user models.UserClaims,
 	folder models.Folder,
 ) error {
-	// Collect restored folders to unmark from storage after transaction commits
 	var restoredParentFolders []models.Folder
 	var restoredFolder models.Folder
 
@@ -446,7 +424,6 @@ func (s BucketFolderService) RestoreFolder(
 		}
 		restoredParentFolders = parentFolders
 
-		// Check for naming conflicts at the folder level (only against active folders)
 		var existingFolder models.Folder
 		query := tx.Where(
 			"bucket_id = ? AND name = ? AND id != ?",

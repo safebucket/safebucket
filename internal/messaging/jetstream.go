@@ -174,7 +174,6 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 
 	var uploadEvents []BucketUploadEvent
 	for _, record := range event.Records {
-		// Debug: Log all available metadata keys to diagnose mismatch
 		zap.L().Debug("MinIO upload event metadata",
 			zap.String("event_name", record.EventName),
 			zap.Any("user_metadata", record.S3.Object.UserMetadata))
@@ -182,17 +181,6 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 		bucketID := record.S3.Object.UserMetadata["X-Amz-Meta-Bucket-Id"]
 		fileID := record.S3.Object.UserMetadata["X-Amz-Meta-File-Id"]
 		userID := record.S3.Object.UserMetadata["X-Amz-Meta-User-Id"]
-
-		// Try lowercase variant if capitalized version is empty
-		if bucketID == "" {
-			bucketID = record.S3.Object.UserMetadata["X-Amz-Meta-bucket-id"]
-		}
-		if fileID == "" {
-			fileID = record.S3.Object.UserMetadata["X-Amz-Meta-file-id"]
-		}
-		if userID == "" {
-			userID = record.S3.Object.UserMetadata["X-Amz-Meta-user-id"]
-		}
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
 			BucketID: bucketID,

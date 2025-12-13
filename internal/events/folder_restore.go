@@ -73,13 +73,11 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
-	// Collect child folder IDs to trigger events after transaction
 	var childFolderIDs []uuid.UUID
 	var childFiles []models.File
 	var folderName string
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		// Fetch folder inside transaction (use Unscoped to query soft-deleted folders)
 		var folder models.Folder
 		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
 			e.Payload.FolderID, e.Payload.BucketID).First(&folder)
@@ -89,7 +87,6 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			return result.Error
 		}
 
-		// Capture folder name for logging outside transaction
 		folderName = folder.Name
 
 		if folder.Status != models.FileStatusRestoring {
@@ -98,7 +95,6 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			return nil
 		}
 
-		// Check for naming conflicts (only against active folders)
 		var existingFolder models.Folder
 		query := tx.Where(
 			"bucket_id = ? AND name = ? AND id != ?",
@@ -117,14 +113,12 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			zap.L().Error("Folder name conflict detected",
 				zap.String("folder_name", folder.Name))
 
-			// Revert status to deleted (folder remains soft-deleted in trash)
 			if err := tx.Unscoped().Model(&folder).Update("status", models.FileStatusDeleted).Error; err != nil {
 				zap.L().Error("Failed to revert folder status", zap.Error(err))
 			}
 			return errors.New("folder name conflict")
 		}
 
-		// Find child folders that are soft-deleted and not yet being restored
 		var childFolders []models.Folder
 		if err := tx.Unscoped().Where(
 			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status = ?)",
@@ -136,7 +130,6 @@ func (e *FolderRestore) callback(params *EventParams) error {
 			return err
 		}
 
-		// Set child folders to restoring status (so their events can process)
 		if len(childFolders) > 0 {
 			zap.L().Info("Setting child folders to restoring status",
 				zap.String("parent_folder", folder.Name),
@@ -153,7 +146,6 @@ func (e *FolderRestore) callback(params *EventParams) error {
 				childFolderIDs = append(childFolderIDs, child.ID)
 			}
 
-			// Set status to restoring for child folders
 			if err := tx.Unscoped().Model(&models.Folder{}).
 				Where("id IN ?", folderIDs).
 				Update("status", models.FileStatusRestoring).Error; err != nil {

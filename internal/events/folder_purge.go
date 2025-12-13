@@ -74,7 +74,6 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	)
 
 	var folder models.Folder
-	// Use Unscoped to query soft-deleted (trashed) folders
 	result := params.DB.Unscoped().Where("id = ? AND bucket_id = ?",
 		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
@@ -89,7 +88,6 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	}
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		// Purge child folders (use Unscoped to query soft-deleted folders)
 		var childFolders []models.Folder
 		if err := tx.Unscoped().Where(
 			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
@@ -110,14 +108,12 @@ func (e *FolderPurge) callback(params *EventParams) error {
 				folderIDs = append(folderIDs, child.ID)
 			}
 
-			// Hard delete child folders (permanent removal)
 			if err := tx.Unscoped().Where("id IN ?", folderIDs).Delete(&models.Folder{}).Error; err != nil {
 				zap.L().Error("Failed to hard delete child folders", zap.Error(err))
 				return err
 			}
 		}
 
-		// Purge child files (use Unscoped to query soft-deleted files)
 		var childFiles []models.File
 		if err := tx.Unscoped().Where(
 			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
@@ -160,7 +156,6 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return err
 	}
 
-	// Check if there are remaining items to purge (use Unscoped to query soft-deleted items)
 	var remainingFolders int64
 	params.DB.Unscoped().Model(&models.Folder{}).Where(
 		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",

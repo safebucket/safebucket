@@ -62,7 +62,6 @@ func (s BucketFileService) UploadFile(
 		return models.FileTransferResponse{}, apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
-	// Check if folder exists (if folder_id is provided)
 	if body.FolderID != nil {
 		var folder models.Folder
 		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucket.ID).Find(&folder)
@@ -71,7 +70,6 @@ func (s BucketFileService) UploadFile(
 		}
 	}
 
-	// Check for duplicate file name in the same folder
 	var existingFile models.File
 	query := s.DB.Where("bucket_id = ? AND name = ?", bucket.ID, body.Name)
 	if body.FolderID != nil {
@@ -175,7 +173,6 @@ func (s BucketFileService) DownloadFile(
 		return models.FileTransferResponse{}, err
 	}
 
-	// Check if file is soft-deleted (in trash)
 	if file.DeletedAt.Valid {
 		return models.FileTransferResponse{}, apierrors.NewAPIError(
 			403,
@@ -183,7 +180,6 @@ func (s BucketFileService) DownloadFile(
 		)
 	}
 
-	// Use new path structure: buckets/{bucket_id}/{file_id}
 	url, err := s.Storage.PresignedGetObject(
 		path.Join("buckets", file.BucketID.String(), file.ID.String()),
 	)
@@ -235,17 +231,14 @@ func (s BucketFileService) TrashFile(
 			return apierrors.NewAPIError(500, "FETCH_FAILED")
 		}
 
-		// Check that file is not already soft-deleted
 		if file.DeletedAt.Valid {
 			return apierrors.NewAPIError(409, "FILE_ALREADY_TRASHED")
 		}
 
-		// Only allow uploaded files to be trashed
 		if file.Status != models.FileStatusUploaded {
 			return apierrors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
 		}
 
-		// Update status to deleted and set deleted_by for audit trail
 		updates := map[string]interface{}{
 			"status":     models.FileStatusDeleted,
 			"deleted_by": user.UserID,
@@ -255,7 +248,6 @@ func (s BucketFileService) TrashFile(
 			return apierrors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
-		// Soft delete using GORM (sets deleted_at)
 		if err := tx.Delete(&file).Error; err != nil {
 			logger.Error("Failed to soft delete file", zap.Error(err))
 			return apierrors.NewAPIError(500, "DELETE_FAILED")
@@ -309,7 +301,6 @@ func (s BucketFileService) restoreParentFolders(
 		return nil, nil
 	}
 
-	// Collect all trashed parent folder IDs first (from immediate parent to root)
 	var trashedFolderIDs []uuid.UUID
 	currentFolderID := folderID
 
@@ -323,7 +314,6 @@ func (s BucketFileService) restoreParentFolders(
 			return nil, result.Error
 		}
 
-		// If folder is trashed (soft-deleted), add to list
 		if folder.DeletedAt.Valid {
 			trashedFolderIDs = append(trashedFolderIDs, folder.ID)
 		}
@@ -332,10 +322,9 @@ func (s BucketFileService) restoreParentFolders(
 	}
 
 	if len(trashedFolderIDs) == 0 {
-		return nil, nil // No trashed parent folders
+		return nil, nil
 	}
 
-	// Now lock and fetch all trashed folders with FOR UPDATE to prevent concurrent modifications
 	var trashedFolders []models.Folder
 	result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("id IN ?", trashedFolderIDs).
@@ -344,7 +333,6 @@ func (s BucketFileService) restoreParentFolders(
 		return nil, result.Error
 	}
 
-	// Build a map for quick lookup and maintain order (root to leaf)
 	folderMap := make(map[uuid.UUID]models.Folder)
 	for _, f := range trashedFolders {
 		folderMap[f.ID] = f
@@ -352,20 +340,16 @@ func (s BucketFileService) restoreParentFolders(
 
 	var restoredFolders []models.Folder
 
-	// Restore folders from root to leaf (reverse order of trashedFolderIDs)
-	// This ensures parent folders exist before restoring child folders
 	for i := len(trashedFolderIDs) - 1; i >= 0; i-- {
 		folder, exists := folderMap[trashedFolderIDs[i]]
 		if !exists {
-			continue // Folder was deleted between initial scan and lock
+			continue
 		}
 
-		// Skip if already being restored or no longer trashed
 		if folder.Status == models.FileStatusRestoring || !folder.DeletedAt.Valid {
 			continue
 		}
 
-		// Check for naming conflicts (only against active folders)
 		var existingFolder models.Folder
 		query := tx.Where(
 			"bucket_id = ? AND name = ? AND id != ?",
@@ -380,7 +364,6 @@ func (s BucketFileService) restoreParentFolders(
 			return nil, apierrors.NewAPIError(409, "PARENT_FOLDER_NAME_CONFLICT")
 		}
 
-		// Restore the folder in database
 		updates := map[string]interface{}{
 			"deleted_at": nil,
 			"deleted_by": nil,
@@ -392,7 +375,6 @@ func (s BucketFileService) restoreParentFolders(
 			return nil, err
 		}
 
-		// Add to list of restored folders (will unmark from storage after transaction commits)
 		restoredFolders = append(restoredFolders, folder)
 
 		logger.Info("Restored parent folder",
@@ -423,13 +405,11 @@ func (s BucketFileService) RestoreFile(
 	user models.UserClaims,
 	bucketID, fileID uuid.UUID,
 ) error {
-	// Collect restored folders to unmark from storage after transaction commits
 	var restoredFolders []models.Folder
 	var restoredFile models.File
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		var file models.File
-		// Query soft-deleted files (deleted_at IS NOT NULL)
 		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ? AND deleted_at IS NOT NULL", fileID, bucketID).
 			First(&file)
@@ -442,19 +422,16 @@ func (s BucketFileService) RestoreFile(
 			return apierrors.NewAPIError(500, "FETCH_FAILED")
 		}
 
-		// Check if file is being restored by a folder restore operation
 		if file.Status == models.FileStatusRestoring {
 			return apierrors.NewAPIError(409, "FILE_RESTORE_IN_PROGRESS")
 		}
 
-		// Restore parent folders if they are trashed (database only, defer storage unmark)
 		folders, err := s.restoreParentFolders(tx, logger, file.FolderID, bucketID)
 		if err != nil {
 			return err
 		}
 		restoredFolders = folders
 
-		// Check for naming conflicts in the same folder (only against active files)
 		var existingFile models.File
 		query := tx.Where(
 			"bucket_id = ? AND name = ? AND id != ?",
@@ -471,7 +448,6 @@ func (s BucketFileService) RestoreFile(
 			return apierrors.NewAPIError(409, "FILE_NAME_CONFLICT")
 		}
 
-		// Clear soft delete and restore status (use Unscoped to update soft-deleted record)
 		updates := map[string]interface{}{
 			"deleted_at": nil,
 			"deleted_by": nil,
@@ -483,7 +459,6 @@ func (s BucketFileService) RestoreFile(
 			return apierrors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
-		// Store file for unmarking after transaction commits
 		restoredFile = file
 
 		action := models.Activity{
@@ -508,11 +483,8 @@ func (s BucketFileService) RestoreFile(
 		return err
 	}
 
-	// After transaction commits, unmark all restored items from storage
-	// This ensures the trash expiration handler sees the committed state
 	s.unmarkRestoredFolders(logger, restoredFolders)
 
-	// Unmark the file from storage
 	objectPath := path.Join("buckets", restoredFile.BucketID.String(), restoredFile.ID.String())
 	if err := s.Storage.UnmarkAsTrashed(objectPath, restoredFile); err != nil {
 		logger.Warn(
