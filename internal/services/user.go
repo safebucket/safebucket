@@ -3,7 +3,7 @@ package services
 import (
 	"errors"
 
-	customerrors "api/internal/errors"
+	apierrors "api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
@@ -71,7 +71,7 @@ func (s UserService) CreateUser(
 
 		err = sql.CreateUserWithInvites(logger, s.DB, &newUser)
 		if err != nil {
-			return models.User{}, customerrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return models.User{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 
 		return newUser, nil
@@ -183,7 +183,7 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 		return nil
 	})
 	if err != nil {
-		return customerrors.ErrInternalServer
+		return apierrors.ErrInternalServer
 	}
 
 	logger.Info(

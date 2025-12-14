@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	customErr "api/internal/errors"
+	apierrors "api/internal/errors"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
 	"api/internal/models"
@@ -131,7 +131,7 @@ func UpdateHandler[In any](update UpdateTargetFunc[In]) http.HandlerFunc {
 		if err != nil {
 			strErrors := []string{err.Error()}
 
-			var apiErr *customErr.APIError
+			var apiErr *apierrors.APIError
 			if errors.As(err, &apiErr) {
 				h.RespondWithError(w, apiErr.Code, strErrors)
 			} else {

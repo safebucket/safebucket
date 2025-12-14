@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	customErr "api/internal/errors"
+	apierrors "api/internal/errors"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
 
@@ -82,7 +82,7 @@ func OpenIDCallbackHandler(webURL string, openidCallback OpenIDCallbackFunc) htt
 		)
 		if err != nil {
 			strErrors := []string{err.Error()}
-			var apiErr *customErr.APIError
+			var apiErr *apierrors.APIError
 			if errors.As(err, &apiErr) {
 				h.RespondWithError(w, apiErr.Code, strErrors)
 			} else {

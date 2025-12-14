@@ -1,4 +1,3 @@
-//nolint:golines // Test file with long query strings in test cases
 package middlewares
 
 import (
@@ -16,19 +15,16 @@ import (
 )
 
 // Test structs for various scenarios.
-//
-//nolint:golines // Test struct with validation tags
 type BasicQueryParams struct {
-	Name   string `json:"name" validate:"required"`
+	Name   string `json:"name"   validate:"required"`
 	Status string `json:"status" validate:"omitempty,oneof=active inactive"`
-	Limit  int    `json:"limit" validate:"omitempty,min=1,max=100"`
+	Limit  int    `json:"limit"  validate:"omitempty,min=1,max=100"`
 }
 
-//nolint:golines // Test struct with validation tags
 type PointerQueryParams struct {
 	Name   *string `json:"name"`
 	Status *string `json:"status" validate:"omitempty,oneof=uploaded deleted"`
-	Limit  *int    `json:"limit" validate:"omitempty,min=1,max=1000"`
+	Limit  *int    `json:"limit"  validate:"omitempty,min=1,max=1000"`
 	Active *bool   `json:"active"`
 }
 
@@ -246,7 +242,10 @@ func TestValidateQueryAllTypes(t *testing.T) {
 	})
 
 	t.Run("Negative numbers", func(t *testing.T) {
-		recorder, ctx := runMiddleware[AllTypesQueryParams](t, "?int_field=-42&int32_field=-32&int64_field=-64&float64_field=-3.14")
+		recorder, ctx := runMiddleware[AllTypesQueryParams](
+			t,
+			"?int_field=-42&int32_field=-32&int64_field=-64&float64_field=-3.14",
+		)
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
 		params, err := helpers.GetQueryParams[AllTypesQueryParams](ctx)

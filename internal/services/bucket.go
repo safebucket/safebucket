@@ -7,7 +7,7 @@ import (
 
 	"api/internal/activity"
 	c "api/internal/configuration"
-	"api/internal/errors"
+	apierrors "api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
 	"api/internal/messaging"
@@ -130,7 +130,7 @@ func (s BucketService) CreateBucket(
 		return nil
 	})
 	if err != nil {
-		return models.Bucket{}, errors.ErrCreateFailed
+		return models.Bucket{}, apierrors.ErrCreateFailed
 	}
 
 	return newBucket, nil
@@ -217,7 +217,7 @@ func (s BucketService) GetBucket(
 
 	result := s.DB.Where("id = ?", bucketID).First(&bucket)
 	if result.RowsAffected == 0 {
-		return bucket, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return bucket, apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
 	// Determine the status filter based on query parameter
@@ -340,7 +340,7 @@ func (s BucketService) UpdateBucket(
 	bucket := models.Bucket{ID: ids[0]}
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {
-		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 	return nil
 }
@@ -355,7 +355,7 @@ func (s BucketService) DeleteBucket(
 		result := tx.Where("id = ?", ids[0]).First(&bucket)
 
 		if result.RowsAffected == 0 {
-			return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+			return apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
 		}
 
 		// Soft delete bucket (memberships will be cascade deleted by foreign key constraint)
@@ -390,7 +390,7 @@ func (s BucketService) DeleteBucket(
 	})
 	if err != nil {
 		logger.Error("Failed to delete bucket", zap.Error(err))
-		return errors.ErrDeleteFailed
+		return apierrors.ErrDeleteFailed
 	}
 
 	return nil

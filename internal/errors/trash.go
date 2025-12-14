@@ -1,4 +1,4 @@
-package errors
+package apierrors
 
 // Trash error codes - HTTP 400 Bad Request.
 const (

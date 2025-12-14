@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"api/internal/errors"
+	apierrors "api/internal/errors"
 	"api/internal/models"
 
 	"github.com/google/uuid"
@@ -79,7 +79,7 @@ func RestoreParentFolders(
 			query = query.Where("folder_id IS NULL")
 		}
 		if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
-			return nil, errors.NewAPIError(409, "PARENT_FOLDER_NAME_CONFLICT")
+			return nil, apierrors.NewAPIError(409, "PARENT_FOLDER_NAME_CONFLICT")
 		}
 
 		updates := map[string]interface{}{

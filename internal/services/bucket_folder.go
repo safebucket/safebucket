@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"api/internal/activity"
-	"api/internal/errors"
+	apierrors "api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
@@ -67,14 +67,14 @@ func (s BucketFolderService) CreateFolder(
 	var bucket models.Bucket
 	result := s.DB.Where("id = ?", bucketID).Find(&bucket)
 	if result.RowsAffected == 0 {
-		return models.Folder{}, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return models.Folder{}, apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
 	if body.FolderID != nil {
 		var parentFolder models.Folder
 		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucketID).Find(&parentFolder)
 		if result.RowsAffected == 0 {
-			return models.Folder{}, errors.NewAPIError(404, "PARENT_FOLDER_NOT_FOUND")
+			return models.Folder{}, apierrors.NewAPIError(404, "PARENT_FOLDER_NOT_FOUND")
 		}
 	}
 
@@ -87,7 +87,7 @@ func (s BucketFolderService) CreateFolder(
 	}
 	result = query.Find(&existingFolder)
 	if result.RowsAffected > 0 {
-		return models.Folder{}, errors.NewAPIError(409, "FOLDER_ALREADY_EXISTS")
+		return models.Folder{}, apierrors.NewAPIError(409, "FOLDER_ALREADY_EXISTS")
 	}
 
 	folder := models.Folder{
@@ -98,7 +98,7 @@ func (s BucketFolderService) CreateFolder(
 
 	if err := s.DB.Create(&folder).Error; err != nil {
 		logger.Error("Failed to create folder", zap.Error(err))
-		return models.Folder{}, errors.ErrCreateFailed
+		return models.Folder{}, apierrors.ErrCreateFailed
 	}
 
 	action := models.Activity{
@@ -131,7 +131,7 @@ func (s BucketFolderService) UpdateFolder(
 	var folder models.Folder
 	result := s.DB.Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
 	if result.RowsAffected == 0 {
-		return errors.NewAPIError(404, "FOLDER_NOT_FOUND")
+		return apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
 	}
 
 	var existingFolder models.Folder
@@ -143,13 +143,13 @@ func (s BucketFolderService) UpdateFolder(
 	}
 	result = query.Find(&existingFolder)
 	if result.RowsAffected > 0 {
-		return errors.NewAPIError(409, "FOLDER_NAME_CONFLICT")
+		return apierrors.NewAPIError(409, "FOLDER_NAME_CONFLICT")
 	}
 
 	folder.Name = body.Name
 	if err := s.DB.Save(&folder).Error; err != nil {
 		logger.Error("Failed to update folder", zap.Error(err))
-		return errors.NewAPIError(500, "UPDATE_FAILED")
+		return apierrors.NewAPIError(500, "UPDATE_FAILED")
 	}
 
 	action := models.Activity{
@@ -183,7 +183,7 @@ func (s BucketFolderService) PatchFolder(
 	var folder models.Folder
 	result := s.DB.Unscoped().Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
 	if result.RowsAffected == 0 {
-		return errors.NewAPIError(404, "FOLDER_NOT_FOUND")
+		return apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
 	}
 
 	switch body.Status {
@@ -192,7 +192,7 @@ func (s BucketFolderService) PatchFolder(
 	case string(models.FileStatusUploaded):
 		return s.RestoreFolder(logger, user, folder)
 	default:
-		return errors.NewAPIError(400, "INVALID_STATUS")
+		return apierrors.NewAPIError(400, "INVALID_STATUS")
 	}
 }
 
@@ -207,7 +207,7 @@ func (s BucketFolderService) DeleteFolder(
 	var folder models.Folder
 	result := s.DB.Unscoped().Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
 	if result.RowsAffected == 0 {
-		return errors.NewAPIError(404, "FOLDER_NOT_FOUND")
+		return apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
 	}
 
 	return s.PurgeFolder(logger, user, folder)
@@ -220,11 +220,11 @@ func (s BucketFolderService) TrashFolder(
 	folder models.Folder,
 ) error {
 	if folder.DeletedAt.Valid {
-		return errors.NewAPIError(409, "FOLDER_ALREADY_TRASHED")
+		return apierrors.NewAPIError(409, "FOLDER_ALREADY_TRASHED")
 	}
 
 	if folder.Status == models.FileStatusRestoring {
-		return errors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
+		return apierrors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
 	}
 
 	updates := map[string]interface{}{
@@ -233,12 +233,12 @@ func (s BucketFolderService) TrashFolder(
 	}
 	if err := s.DB.Model(&folder).Updates(updates).Error; err != nil {
 		logger.Error("Failed to update folder for trashing", zap.Error(err))
-		return errors.NewAPIError(500, "UPDATE_FAILED")
+		return apierrors.NewAPIError(500, "UPDATE_FAILED")
 	}
 
 	if err := s.DB.Delete(&folder).Error; err != nil {
 		logger.Error("Failed to soft delete folder", zap.Error(err))
-		return errors.NewAPIError(500, "DELETE_FAILED")
+		return apierrors.NewAPIError(500, "DELETE_FAILED")
 	}
 
 	objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
@@ -312,22 +312,22 @@ func (s BucketFolderService) RestoreFolder(
 			First(&lockedFolder)
 
 		if result.Error != nil {
-			return errors.NewAPIError(404, "FOLDER_NOT_FOUND")
+			return apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
 		}
 
 		// Re-check conditions after acquiring lock (state may have changed)
 		if !lockedFolder.DeletedAt.Valid {
-			return errors.NewAPIError(409, "FOLDER_NOT_IN_TRASH")
+			return apierrors.NewAPIError(409, "FOLDER_NOT_IN_TRASH")
 		}
 
 		if lockedFolder.Status == models.FileStatusRestoring {
-			return errors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
+			return apierrors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
 		}
 
 		// Check if expired (extra safety check)
 		retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
 		if time.Since(lockedFolder.DeletedAt.Time) > retentionPeriod {
-			return errors.NewAPIError(410, errors.ErrFolderTrashExpired)
+			return apierrors.NewAPIError(410, apierrors.ErrFolderTrashExpired)
 		}
 
 		// Restore parent folders if they are trashed (database only, defer storage unmark)
@@ -350,13 +350,13 @@ func (s BucketFolderService) RestoreFolder(
 			query = query.Where("folder_id IS NULL")
 		}
 		if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
-			return errors.NewAPIError(409, errors.ErrFolderNameConflict)
+			return apierrors.NewAPIError(409, apierrors.ErrFolderNameConflict)
 		}
 
 		// Set folder to restoring status
 		if updateErr := tx.Unscoped().Model(&lockedFolder).Update("status", models.FileStatusRestoring).Error; updateErr != nil {
 			logger.Error("Failed to set folder to restoring status", zap.Error(updateErr))
-			return errors.NewAPIError(500, "UPDATE_FAILED")
+			return apierrors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
 		// Store folder for unmarking after transaction commits
@@ -413,7 +413,7 @@ func (s BucketFolderService) PurgeFolder(
 ) error {
 	// Only allow purging soft-deleted folders (in trash)
 	if !folder.DeletedAt.Valid {
-		return errors.NewAPIError(409, "FOLDER_NOT_IN_TRASH")
+		return apierrors.NewAPIError(409, "FOLDER_NOT_IN_TRASH")
 	}
 
 	// Trigger async purge event
