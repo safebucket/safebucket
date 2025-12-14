@@ -8,6 +8,7 @@ import (
 	"api/internal/activity"
 	apierrors "api/internal/errors"
 	"api/internal/handlers"
+	h "api/internal/helpers"
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
@@ -141,9 +142,9 @@ func (s BucketFileService) PatchFile(
 	bucketID, fileID := ids[0], ids[1]
 
 	switch body.Status {
-	case "deleted":
+	case string(models.FileStatusDeleted):
 		return s.TrashFile(logger, user, bucketID, fileID)
-	case "uploaded":
+	case string(models.FileStatusUploaded):
 		return s.RestoreFile(logger, user, bucketID, fileID)
 	default:
 		return apierrors.NewAPIError(400, "INVALID_STATUS")
@@ -286,103 +287,13 @@ func (s BucketFileService) TrashFile(
 	})
 }
 
-// restoreParentFolders restores all trashed parent folders in the hierarchy.
-// It traverses from the given folder up to the root, collecting trashed folders,
-// then restores them from root to leaf to avoid naming conflicts.
-// Returns the list of restored folders so their trash markers can be removed
-// AFTER the transaction commits (to avoid race conditions with trash expiration).
 func (s BucketFileService) restoreParentFolders(
 	tx *gorm.DB,
 	logger *zap.Logger,
 	folderID *uuid.UUID,
 	bucketID uuid.UUID,
 ) ([]models.Folder, error) {
-	if folderID == nil {
-		return nil, nil
-	}
-
-	var trashedFolderIDs []uuid.UUID
-	currentFolderID := folderID
-
-	for currentFolderID != nil {
-		var folder models.Folder
-		result := tx.Unscoped().Where("id = ? AND bucket_id = ?", currentFolderID, bucketID).First(&folder)
-		if result.Error != nil {
-			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-				break // Parent folder doesn't exist, stop traversal
-			}
-			return nil, result.Error
-		}
-
-		if folder.DeletedAt.Valid {
-			trashedFolderIDs = append(trashedFolderIDs, folder.ID)
-		}
-
-		currentFolderID = folder.FolderID
-	}
-
-	if len(trashedFolderIDs) == 0 {
-		return nil, nil
-	}
-
-	var trashedFolders []models.Folder
-	result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id IN ?", trashedFolderIDs).
-		Find(&trashedFolders)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	folderMap := make(map[uuid.UUID]models.Folder)
-	for _, f := range trashedFolders {
-		folderMap[f.ID] = f
-	}
-
-	var restoredFolders []models.Folder
-
-	for i := len(trashedFolderIDs) - 1; i >= 0; i-- {
-		folder, exists := folderMap[trashedFolderIDs[i]]
-		if !exists {
-			continue
-		}
-
-		if folder.Status == models.FileStatusRestoring || !folder.DeletedAt.Valid {
-			continue
-		}
-
-		var existingFolder models.Folder
-		query := tx.Where(
-			"bucket_id = ? AND name = ? AND id != ?",
-			folder.BucketID, folder.Name, folder.ID,
-		)
-		if folder.FolderID != nil {
-			query = query.Where("folder_id = ?", folder.FolderID)
-		} else {
-			query = query.Where("folder_id IS NULL")
-		}
-		if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
-			return nil, apierrors.NewAPIError(409, "PARENT_FOLDER_NAME_CONFLICT")
-		}
-
-		updates := map[string]interface{}{
-			"deleted_at": nil,
-			"deleted_by": nil,
-			"status":     nil,
-		}
-		if err := tx.Unscoped().Model(&folder).Updates(updates).Error; err != nil {
-			logger.Error("Failed to restore parent folder", zap.Error(err),
-				zap.String("folder_id", folder.ID.String()))
-			return nil, err
-		}
-
-		restoredFolders = append(restoredFolders, folder)
-
-		logger.Info("Restored parent folder",
-			zap.String("folder_name", folder.Name),
-			zap.String("folder_id", folder.ID.String()))
-	}
-
-	return restoredFolders, nil
+	return h.RestoreParentFolders(tx, logger, folderID, bucketID)
 }
 
 // unmarkRestoredFolders removes trash markers for restored folders.
@@ -454,8 +365,8 @@ func (s BucketFileService) RestoreFile(
 			"status":     models.FileStatusUploaded,
 		}
 
-		if err := tx.Unscoped().Model(&file).Updates(updates).Error; err != nil {
-			logger.Error("Failed to restore file", zap.Error(err))
+		if updateErr := tx.Unscoped().Model(&file).Updates(updates).Error; updateErr != nil {
+			logger.Error("Failed to restore file", zap.Error(updateErr))
 			return apierrors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
@@ -472,9 +383,9 @@ func (s BucketFileService) RestoreFile(
 				"user_id":     user.UserID.String(),
 			}),
 		}
-		if err := s.ActivityLogger.Send(action); err != nil {
-			logger.Error("Failed to log restore activity", zap.Error(err))
-			return err
+		if activityErr := s.ActivityLogger.Send(action); activityErr != nil {
+			logger.Error("Failed to log restore activity", zap.Error(activityErr))
+			return activityErr
 		}
 		return nil
 	})
@@ -486,10 +397,10 @@ func (s BucketFileService) RestoreFile(
 	s.unmarkRestoredFolders(logger, restoredFolders)
 
 	objectPath := path.Join("buckets", restoredFile.BucketID.String(), restoredFile.ID.String())
-	if err := s.Storage.UnmarkAsTrashed(objectPath, restoredFile); err != nil {
+	if storageErr := s.Storage.UnmarkAsTrashed(objectPath, restoredFile); storageErr != nil {
 		logger.Warn(
 			"Failed to unmark file as trashed (file already restored in DB)",
-			zap.Error(err),
+			zap.Error(storageErr),
 			zap.String("path", objectPath),
 			zap.String("file_id", restoredFile.ID.String()),
 		)

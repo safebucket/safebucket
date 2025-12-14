@@ -8,6 +8,7 @@ import (
 	"api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
+	h "api/internal/helpers"
 	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
@@ -186,9 +187,9 @@ func (s BucketFolderService) PatchFolder(
 	}
 
 	switch body.Status {
-	case "deleted":
+	case string(models.FileStatusDeleted):
 		return s.TrashFolder(logger, user, folder)
-	case "uploaded":
+	case string(models.FileStatusUploaded):
 		return s.RestoreFolder(logger, user, folder)
 	default:
 		return errors.NewAPIError(400, "INVALID_STATUS")
@@ -271,101 +272,13 @@ func (s BucketFolderService) TrashFolder(
 	return nil
 }
 
-// restoreParentFolders restores all trashed parent folders in the hierarchy.
-// It traverses from the given folder up to the root, collecting trashed folders,
-// then restores them from root to leaf to avoid naming conflicts.
-// Returns the list of restored folders so their trash markers can be removed
-// AFTER the database updates are committed.
 func (s BucketFolderService) restoreParentFolders(
 	tx *gorm.DB,
 	logger *zap.Logger,
 	folderID *uuid.UUID,
 	bucketID uuid.UUID,
 ) ([]models.Folder, error) {
-	if folderID == nil {
-		return nil, nil
-	}
-
-	var trashedFolderIDs []uuid.UUID
-	currentFolderID := folderID
-
-	for currentFolderID != nil {
-		var folder models.Folder
-		result := tx.Unscoped().Where("id = ? AND bucket_id = ?", currentFolderID, bucketID).First(&folder)
-		if result.Error != nil {
-			break // Parent folder doesn't exist, stop traversal
-		}
-
-		if folder.DeletedAt.Valid {
-			trashedFolderIDs = append(trashedFolderIDs, folder.ID)
-		}
-
-		currentFolderID = folder.FolderID
-	}
-
-	if len(trashedFolderIDs) == 0 {
-		return nil, nil
-	}
-
-	var trashedFolders []models.Folder
-	result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("id IN ?", trashedFolderIDs).
-		Find(&trashedFolders)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	folderMap := make(map[uuid.UUID]models.Folder)
-	for _, f := range trashedFolders {
-		folderMap[f.ID] = f
-	}
-
-	var restoredFolders []models.Folder
-
-	for i := len(trashedFolderIDs) - 1; i >= 0; i-- {
-		folder, exists := folderMap[trashedFolderIDs[i]]
-		if !exists {
-			continue
-		}
-
-		if folder.Status == models.FileStatusRestoring || !folder.DeletedAt.Valid {
-			continue
-		}
-
-		var existingFolder models.Folder
-		query := tx.Where(
-			"bucket_id = ? AND name = ? AND id != ?",
-			folder.BucketID, folder.Name, folder.ID,
-		)
-		if folder.FolderID != nil {
-			query = query.Where("folder_id = ?", folder.FolderID)
-		} else {
-			query = query.Where("folder_id IS NULL")
-		}
-		if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
-			return nil, errors.NewAPIError(409, "PARENT_FOLDER_NAME_CONFLICT")
-		}
-
-		updates := map[string]interface{}{
-			"deleted_at": nil,
-			"deleted_by": nil,
-			"status":     nil,
-		}
-		if err := tx.Unscoped().Model(&folder).Updates(updates).Error; err != nil {
-			logger.Error("Failed to restore parent folder",
-				zap.Error(err),
-				zap.String("folder_id", folder.ID.String()))
-			return nil, err
-		}
-
-		restoredFolders = append(restoredFolders, folder)
-
-		logger.Info("Restored parent folder",
-			zap.String("folder_name", folder.Name),
-			zap.String("folder_id", folder.ID.String()))
-	}
-
-	return restoredFolders, nil
+	return h.RestoreParentFolders(tx, logger, folderID, bucketID)
 }
 
 // unmarkRestoredFolders removes trash markers for restored folders.
@@ -441,8 +354,8 @@ func (s BucketFolderService) RestoreFolder(
 		}
 
 		// Set folder to restoring status
-		if err := tx.Unscoped().Model(&lockedFolder).Update("status", models.FileStatusRestoring).Error; err != nil {
-			logger.Error("Failed to set folder to restoring status", zap.Error(err))
+		if updateErr := tx.Unscoped().Model(&lockedFolder).Update("status", models.FileStatusRestoring).Error; updateErr != nil {
+			logger.Error("Failed to set folder to restoring status", zap.Error(updateErr))
 			return errors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
@@ -462,11 +375,10 @@ func (s BucketFolderService) RestoreFolder(
 
 	// Unmark this folder from storage
 	objectPath := path.Join("buckets", restoredFolder.BucketID.String(), restoredFolder.ID.String())
-	if err := s.Storage.UnmarkAsTrashed(objectPath, restoredFolder); err != nil {
-		logger.Warn("Failed to remove trash marker for folder", zap.Error(err))
+	if storageErr := s.Storage.UnmarkAsTrashed(objectPath, restoredFolder); storageErr != nil {
+		logger.Warn("Failed to remove trash marker for folder", zap.Error(storageErr))
 	}
 
-	// Trigger async restore event
 	event := events.NewFolderRestore(s.Publisher, restoredFolder.BucketID, restoredFolder.ID, user.UserID)
 	event.Trigger()
 
@@ -482,8 +394,8 @@ func (s BucketFolderService) RestoreFolder(
 		}),
 	}
 
-	if err := s.ActivityLogger.Send(action); err != nil {
-		logger.Error("Failed to log restore activity", zap.Error(err))
+	if activityErr := s.ActivityLogger.Send(action); activityErr != nil {
+		logger.Error("Failed to log restore activity", zap.Error(activityErr))
 	}
 
 	logger.Info("Folder restore initiated (async)",
