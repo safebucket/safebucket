@@ -56,7 +56,7 @@ export const FileActions: FC<IFileActionsProps> = ({
   const Separator =
     type === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
 
-  const isFileTrashed = file.status === FileStatus.trashed;
+  const isFileTrashed = file.status === FileStatus.deleted;
 
   return (
     <>
