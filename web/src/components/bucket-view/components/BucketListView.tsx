@@ -121,7 +121,7 @@ const createColumns = (
               {t("bucket.list_view.deleting")}
             </Badge>
           );
-        case FileStatus.trashed:
+        case FileStatus.deleted:
           return (
             <Badge className="bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800">
               <Trash2 className="h-3 w-3" />

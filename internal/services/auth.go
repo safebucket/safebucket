@@ -9,7 +9,7 @@ import (
 
 	"api/internal/activity"
 	"api/internal/configuration"
-	customerr "api/internal/errors"
+	apierrors "api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
@@ -69,12 +69,12 @@ func (s AuthService) Login(
 ) (models.AuthLoginResponse, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
-		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
 		logger.Debug("Domain not allowed")
-		return models.AuthLoginResponse{}, customerr.NewAPIError(403, "FORBIDDEN")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	searchUser := models.User{
@@ -95,7 +95,7 @@ func (s AuthService) Login(
 			string(models.LocalProviderType),
 		)
 		if err != nil {
-			return models.AuthLoginResponse{}, customerr.ErrGenerateAccessTokenFailed
+			return models.AuthLoginResponse{}, apierrors.ErrGenerateAccessTokenFailed
 		}
 
 		refreshToken, err := h.NewRefreshToken(
@@ -104,7 +104,7 @@ func (s AuthService) Login(
 			string(models.LocalProviderType),
 		)
 		if err != nil {
-			return models.AuthLoginResponse{}, customerr.ErrGenerateRefreshTokenFailed
+			return models.AuthLoginResponse{}, apierrors.ErrGenerateRefreshTokenFailed
 		}
 
 		return models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
@@ -205,7 +205,7 @@ func (s AuthService) OpenIDCallback(
 
 	if !h.IsDomainAllowed(userInfo.Email, s.Providers[providerKey].Domains) {
 		logger.Debug("Domain not allowed")
-		return "", "", customerr.NewAPIError(403, "FORBIDDEN")
+		return "", "", apierrors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	searchUser := models.User{
@@ -219,18 +219,18 @@ func (s AuthService) OpenIDCallback(
 
 		err = sql.CreateUserWithInvites(logger, s.DB, &searchUser)
 		if err != nil {
-			return "", "", customerr.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return "", "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 	}
 
 	accessToken, err := h.NewAccessToken(s.JWTSecret, &searchUser, providerKey)
 	if err != nil {
-		return "", "", customerr.ErrGenerateAccessTokenFailed
+		return "", "", apierrors.ErrGenerateAccessTokenFailed
 	}
 
 	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &searchUser, providerKey)
 	if err != nil {
-		return "", "", customerr.ErrGenerateRefreshTokenFailed
+		return "", "", apierrors.ErrGenerateRefreshTokenFailed
 	}
 
 	return accessToken, refreshToken, nil
@@ -250,17 +250,17 @@ func (s AuthService) ValidatePasswordReset(
 		First(&challenge)
 
 	if result.RowsAffected == 0 {
-		return models.AuthLoginResponse{}, customerr.NewAPIError(404, "CHALLENGE_NOT_FOUND")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
 	}
 
 	if challenge.User == nil {
 		logger.Error("Challenge has no associated user")
-		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
 		s.DB.Delete(&challenge)
-		return models.AuthLoginResponse{}, customerr.NewAPIError(410, "CHALLENGE_EXPIRED")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(410, "CHALLENGE_EXPIRED")
 	}
 
 	match, err := argon2id.ComparePasswordAndHash(
@@ -276,20 +276,20 @@ func (s AuthService) ValidatePasswordReset(
 				zap.String("user_id", challenge.UserID.String()),
 				zap.Int("attempts_left", challenge.AttemptsLeft))
 			s.DB.Delete(&challenge)
-			return models.AuthLoginResponse{}, customerr.NewAPIError(403, "CHALLENGE_LOCKED")
+			return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "CHALLENGE_LOCKED")
 		}
 
 		if updateErr := s.DB.Model(&challenge).Update("failed_attempts", challenge.AttemptsLeft).Error; updateErr != nil {
 			logger.Error("Failed to update attempts counter", zap.Error(updateErr))
 		}
 
-		return models.AuthLoginResponse{}, customerr.NewAPIError(401, "WRONG_CODE")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "WRONG_CODE")
 	}
 
 	hashedPassword, err := h.CreateHash(body.NewPassword)
 	if err != nil {
 		logger.Error("Failed to hash new password", zap.Error(err))
-		return models.AuthLoginResponse{}, customerr.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
 	}
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
@@ -297,14 +297,14 @@ func (s AuthService) ValidatePasswordReset(
 		if updateResult.Error != nil {
 			logger.Error("Failed to update password", zap.Error(updateResult.Error))
 			tx.Rollback()
-			return customerr.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
+			return apierrors.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
 		}
 
 		deleteResult := tx.Delete(&challenge)
 		if deleteResult.Error != nil {
 			logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
 			tx.Rollback()
-			return customerr.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
+			return apierrors.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
 		}
 
 		return nil
@@ -329,7 +329,7 @@ func (s AuthService) ValidatePasswordReset(
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
-		return models.AuthLoginResponse{}, customerr.NewAPIError(
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(
 			500,
 			"GENERATE_ACCESS_TOKEN_FAILED",
 		)
@@ -342,7 +342,7 @@ func (s AuthService) ValidatePasswordReset(
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return models.AuthLoginResponse{}, customerr.NewAPIError(
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(
 			500,
 			"GENERATE_REFRESH_TOKEN_FAILED",
 		)
@@ -370,12 +370,12 @@ func (s AuthService) RequestPasswordReset(
 
 	secret, err := h.GenerateSecret()
 	if err != nil {
-		return nil, customerr.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+		return nil, apierrors.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
 	}
 
 	hashedSecret, err := h.CreateHash(secret)
 	if err != nil {
-		return nil, customerr.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+		return nil, apierrors.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
 	}
 
 	// Delete any existing password reset challenges for this user
@@ -394,7 +394,7 @@ func (s AuthService) RequestPasswordReset(
 
 	result = s.DB.Create(&challenge)
 	if result.Error != nil {
-		return nil, customerr.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+		return nil, apierrors.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
 	}
 
 	// Send password reset email

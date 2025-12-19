@@ -1,4 +1,4 @@
-import type { FileStatus, IUser } from "./file";
+import type { FileStatus } from "./file";
 
 export interface IFolder {
   id: string;
@@ -8,7 +8,7 @@ export interface IFolder {
   status: FileStatus | null;
   created_at: string;
   updated_at: string;
-  trashed_at?: string;
-  trashed_by?: string;
-  trashed_user?: IUser;
+  deleted_at?: string;
+  deleted_by?: string;
+  original_path?: string;
 }

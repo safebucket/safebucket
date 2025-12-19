@@ -58,9 +58,13 @@ export const useTrashActions = (): ITrashActions => {
       itemType: "file" | "folder";
     }) => {
       if (itemType === "file") {
-        return api.post<null>(`/buckets/${bucketId}/trash/${itemId}/restore`);
+        return api.patch(`/buckets/${bucketId}/files/${itemId}`, {
+          status: "uploaded",
+        });
       } else {
-        return api.post<null>(`/buckets/${bucketId}/folders/${itemId}/restore`);
+        return api.patch(`/buckets/${bucketId}/folders/${itemId}`, {
+          status: "uploaded",
+        });
       }
     },
     onSuccess: (_, variables) => {
@@ -87,7 +91,7 @@ export const useTrashActions = (): ITrashActions => {
       itemType: "file" | "folder";
     }) => {
       if (itemType === "file") {
-        return api.delete(`/buckets/${bucketId}/trash/${itemId}`);
+        return api.delete(`/buckets/${bucketId}/files/${itemId}`);
       } else {
         return api.delete(`/buckets/${bucketId}/folders/${itemId}`);
       }

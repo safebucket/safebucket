@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -199,27 +200,68 @@ func (g GCPStorage) RemoveObjectTags(path string, tagsToRemove []string) error {
 }
 
 // IsTrashMarkerPath checks if a deletion event is for a trash marker.
-// Pattern: trash/{bucket-id}/{rest} -> buckets/{bucket-id}/{rest}.
+// Patterns:
+//   - trash/{bucket-id}/files/{file-id} -> buckets/{bucket-id}/{file-id}
+//   - trash/{bucket-id}/folders/{folder-id} -> buckets/{bucket-id}/{folder-id}
 func (g GCPStorage) IsTrashMarkerPath(path string) (bool, string) {
-	if strings.HasPrefix(path, trashPrefix) {
-		originalPath := bucketsPrefix + strings.TrimPrefix(path, trashPrefix)
-		return true, originalPath
+	if !strings.HasPrefix(path, trashPrefix) {
+		return false, ""
 	}
 
-	return false, ""
+	// Remove "trash/" prefix
+	remainder := strings.TrimPrefix(path, trashPrefix)
+	parts := strings.SplitN(remainder, "/", 3)
+
+	if len(parts) < 3 {
+		return false, ""
+	}
+
+	bucketID := parts[0]
+	resourceType := parts[1] // "files" or "folders"
+	resourceID := parts[2]
+
+	// Validate resource type
+	if resourceType != "files" && resourceType != "folders" {
+		return false, ""
+	}
+
+	// Reconstruct original path: buckets/{bucket-id}/{resource-id}
+	originalPath := bucketsPrefix + bucketID + "/" + resourceID
+	return true, originalPath
 }
 
-// getTrashMarkerPath converts buckets/{id}/path to trash/{id}/path.
-func (g GCPStorage) getTrashMarkerPath(objectPath string) string {
-	return strings.Replace(objectPath, bucketsPrefix, trashPrefix, 1)
+// getTrashMarkerPath converts buckets/{bucket-id}/{id} to trash/{bucket-id}/files|folders/{id}.
+func (g GCPStorage) getTrashMarkerPath(objectPath string, model interface{}) string {
+	// Remove "buckets/" prefix
+	remainder := strings.TrimPrefix(objectPath, bucketsPrefix)
+
+	var resourceType string
+	switch model.(type) {
+	case models.Folder:
+		resourceType = folderPath
+	case models.File:
+		resourceType = filePath
+	default:
+		return ""
+	}
+
+	parts := strings.SplitN(remainder, "/", 2)
+	if len(parts) < 2 {
+		return ""
+	}
+
+	bucketID := parts[0]
+	resourceID := parts[1]
+
+	// Pattern: trash/{bucket-id}/files|folders/{resource-id}
+	return path.Join(trashPrefix, bucketID, resourceType, resourceID)
 }
 
-func (g GCPStorage) MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error {
+func (g GCPStorage) MarkAsTrashed(objectPath string, object interface{}) error {
 	ctx := context.Background()
-	markerPath := g.getTrashMarkerPath(objectPath)
+	markerPath := g.getTrashMarkerPath(objectPath, object)
 
-	// Only verify object exists for files (not folders, which only exist in database)
-	if !metadata.IsFolder {
+	if _, ok := object.(models.File); ok {
 		obj := g.storage.Bucket(g.BucketName).Object(objectPath)
 		if _, err := obj.Attrs(ctx); err != nil {
 			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
@@ -242,9 +284,9 @@ func (g GCPStorage) MarkFileAsTrashed(objectPath string, metadata models.TrashMe
 	return nil
 }
 
-func (g GCPStorage) UnmarkFileAsTrashed(objectPath string) error {
+func (g GCPStorage) UnmarkAsTrashed(objectPath string, object interface{}) error {
 	ctx := context.Background()
-	markerPath := g.getTrashMarkerPath(objectPath)
+	markerPath := g.getTrashMarkerPath(objectPath, object)
 
 	markerObj := g.storage.Bucket(g.BucketName).Object(markerPath)
 	if err := markerObj.Delete(ctx); err != nil {

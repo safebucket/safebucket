@@ -5,7 +5,7 @@ import (
 
 	"api/internal/activity"
 	"api/internal/configuration"
-	"api/internal/errors"
+	apierrors "api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
 	"api/internal/helpers"
@@ -110,17 +110,17 @@ func (s BucketMemberService) UpdateBucketMembers(
 
 	providerCfg, ok = s.Providers[user.Provider]
 	if !ok {
-		return errors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
+		return apierrors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
 	}
 	if !providerCfg.SharingOptions.Allowed {
-		return errors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
+		return apierrors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
 	}
 
 	var bucket models.Bucket
 	result := s.DB.Where("id = ?", bucketID).First(&bucket)
 
 	if result.RowsAffected == 0 {
-		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
 	members := s.GetBucketMembers(logger, user, ids)

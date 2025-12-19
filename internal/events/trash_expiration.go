@@ -113,107 +113,46 @@ func (e *TrashExpiration) parseObjectPath(params *EventParams) parsedPathInfo {
 
 // findTrashedFile queries the database for a trashed file.
 func (e *TrashExpiration) findTrashedFile(params *EventParams, pathInfo parsedPathInfo) (*models.File, error) {
-	var file models.File
-	result := params.DB.Where(
-		"bucket_id = ? AND path = ? AND name = ? AND status = ?",
+	fileID, err := uuid.Parse(pathInfo.filename)
+	if err != nil {
+		zap.L().Warn("Invalid file ID in object path, skipping cleanup",
+			zap.String("bucket_id", e.Payload.BucketID.String()),
+			zap.String("filename", pathInfo.filename),
+			zap.Error(err),
+		)
+		return nil, err
+	}
+
+	var files []models.File
+	result := params.DB.Unscoped().Where(
+		"bucket_id = ? AND id = ?",
 		e.Payload.BucketID,
-		pathInfo.directory,
-		pathInfo.filename,
-		models.FileStatusTrashed,
-	).First(&file)
+		fileID,
+	).Find(&files)
 
 	if result.Error != nil {
-		zap.L().Warn("File not found in trash, skipping cleanup",
+		zap.L().Warn("Database error while looking up file",
 			zap.String("bucket_id", e.Payload.BucketID.String()),
-			zap.String("path", pathInfo.directory),
-			zap.String("name", pathInfo.filename),
+			zap.String("file_id", fileID.String()),
 			zap.Error(result.Error),
 		)
 		return nil, result.Error
 	}
 
-	return &file, nil
-}
-
-// handleFolderDeletion processes deletion of a folder and all its children.
-func (e *TrashExpiration) handleFolderDeletion(params *EventParams, file *models.File, originalPath string) error {
-	zap.L().Info("Processing folder marker expiration",
-		zap.String("folder_id", file.ID.String()),
-		zap.String("folder_path", originalPath))
-
-	// Note: This function is called for folder markers, but folders are now in separate table
-	// For now, just remove the marker - the actual folder cleanup is handled by FolderPurge event
-	var childFiles []models.File
-
-	// Find child files directly in this folder (single level, recursive handled by events)
-	if err := params.DB.Where(
-		"bucket_id = ? AND folder_id = ?",
-		e.Payload.BucketID,
-		file.ID,
-	).Find(&childFiles).Error; err != nil {
-		zap.L().Error("Failed to find children",
-			zap.String("folder_id", file.ID.String()),
-			zap.Error(err))
-		return err
+	if len(files) == 0 {
+		return nil, nil
 	}
 
-	zap.L().Info("Found children for folder deletion",
-		zap.String("folder_id", file.ID.String()),
-		zap.Int("total_children", len(childFiles)))
+	file := &files[0]
 
-	if len(childFiles) > 0 {
-		if err := e.deleteChildFiles(params, childFiles); err != nil {
-			return err
-		}
-	}
-
-	if err := params.Storage.RemoveObject(originalPath); err != nil {
-		zap.L().Error("Failed to delete folder from storage",
-			zap.String("folder_path", originalPath),
-			zap.String("folder_id", file.ID.String()),
-			zap.Error(err))
-		return err
-	}
-
-	zap.L().Info("Deleted folder from storage",
-		zap.String("folder_path", originalPath),
-		zap.String("folder_id", file.ID.String()))
-
-	return nil
-}
-
-// deleteChildFiles deletes child files from storage and database.
-func (e *TrashExpiration) deleteChildFiles(params *EventParams, childFiles []models.File) error {
-	var storagePaths []string
-	for _, child := range childFiles {
-		childPath := path.Join(
-			"buckets",
-			e.Payload.BucketID.String(),
-			child.ID.String(),
+	if !file.DeletedAt.Valid {
+		zap.L().Debug("File not soft-deleted, skipping expiration",
+			zap.String("file_id", fileID.String()),
 		)
-		storagePaths = append(storagePaths, childPath)
+		return nil, nil
 	}
 
-	if err := params.Storage.RemoveObjects(storagePaths); err != nil {
-		zap.L().Error("Failed to delete child files from storage",
-			zap.Error(err))
-		return err
-	}
-
-	var childIDs []uuid.UUID
-	for _, child := range childFiles {
-		childIDs = append(childIDs, child.ID)
-	}
-	if err := params.DB.Where("id IN ?", childIDs).Delete(&models.File{}).Error; err != nil {
-		zap.L().Error("Failed to delete child files from database",
-			zap.Error(err))
-		return err
-	}
-
-	zap.L().Info("Deleted child files",
-		zap.Int("count", len(childFiles)))
-
-	return nil
+	return file, nil
 }
 
 // handleFileDeletion processes deletion of a single file.
@@ -224,12 +163,6 @@ func (e *TrashExpiration) handleFileDeletion(params *EventParams, file *models.F
 			zap.String("file_id", file.ID.String()),
 			zap.Error(err),
 		)
-		if updateErr := params.DB.Model(file).Update("status", models.FileStatusTrashed).Error; updateErr != nil {
-			zap.L().Error("Failed to revert file status",
-				zap.String("file_id", file.ID.String()),
-				zap.Error(updateErr),
-			)
-		}
 		return err
 	}
 	zap.L().Info("Deleted file from storage",
@@ -240,7 +173,7 @@ func (e *TrashExpiration) handleFileDeletion(params *EventParams, file *models.F
 }
 
 func (e *TrashExpiration) callback(params *EventParams) error {
-	zap.L().Info("Processing trash expiration event",
+	zap.L().Debug("Processing trash expiration event",
 		zap.String("bucket_id", e.Payload.BucketID.String()),
 		zap.String("object_key", e.Payload.ObjectKey),
 	)
@@ -252,6 +185,42 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		return err
 	}
 
+	if file == nil {
+		zap.L().Debug("File not in trash, skipping expiration - likely already cleaned up",
+			zap.String("bucket_id", e.Payload.BucketID.String()),
+			zap.String("object_key", e.Payload.ObjectKey),
+		)
+		return nil
+	}
+
+	// At this point, file is guaranteed to be soft-deleted (deleted_at IS NOT NULL).
+	//
+	// However, there's a race condition: if a user restores the file,
+	// UnmarkAsTrashed deletes the trash marker, which triggers this event.
+	// The restore handler clears deleted_at, but this event may process
+	// before or after that DB update completes.
+	//
+	// Solution: Re-check the file's deleted_at to distinguish:
+	// - deleted_at IS NOT NULL → Lifecycle policy expiration, delete permanently
+	// - deleted_at IS NULL → User restore in progress, skip deletion
+
+	var currentFile models.File
+	if reloadErr := params.DB.Unscoped().First(&currentFile, "id = ?", file.ID).Error; reloadErr != nil {
+		zap.L().Error("Failed to reload file for status check",
+			zap.String("file_id", file.ID.String()),
+			zap.Error(reloadErr),
+		)
+		return reloadErr
+	}
+
+	if !currentFile.DeletedAt.Valid {
+		zap.L().Info(
+			"Trash marker deleted but file not soft-deleted - user restore in progress, skipping permanent deletion",
+			zap.String("file_id", file.ID.String()),
+		)
+		return nil
+	}
+
 	zap.L().Info("Processing file deletion from trash",
 		zap.String("file_id", file.ID.String()),
 		zap.String("file_name", file.Name),
@@ -259,16 +228,15 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 	)
 
 	if pathInfo.isMarker && params.Storage != nil {
-		// Files only - folders are handled separately via FolderPurge events
 		err = e.handleFileDeletion(params, file, pathInfo.originalPath)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = params.DB.Delete(file).Error
+	err = params.DB.Unscoped().Delete(file).Error
 	if err != nil {
-		zap.L().Error("Failed to soft delete file from database",
+		zap.L().Error("Failed to hard delete file from database",
 			zap.String("file_id", file.ID.String()),
 			zap.Error(err),
 		)

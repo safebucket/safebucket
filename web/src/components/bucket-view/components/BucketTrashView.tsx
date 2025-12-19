@@ -127,6 +127,15 @@ const createColumns = (
     ),
     cell: ({ row }) => {
       const item = row.original;
+      // Use original_path if available (for both files and folders)
+      if (item.original_path) {
+        return (
+          <span className="text-sm text-muted-foreground">
+            {item.original_path}
+          </span>
+        );
+      }
+      // Fallback to building path from folder hierarchy
       const folderId = "folder_id" in item ? item.folder_id : undefined;
       const path = buildFolderPath(folderId, bucket.folders);
       return <span className="text-sm text-muted-foreground">{path}</span>;
@@ -149,30 +158,14 @@ const createColumns = (
     },
   },
   {
-    accessorKey: "trashed_at",
+    accessorKey: "deleted_at",
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
         title={t("bucket.trash_view.deleted_at")}
       />
     ),
-    cell: ({ row }) => formatDate(row.getValue("trashed_at")),
-  },
-  {
-    accessorKey: "trashed_user",
-    header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title={t("bucket.trash_view.deleted_by")}
-      />
-    ),
-    cell: ({ row }) => {
-      const user = row.original.trashed_user;
-      if (!user) return "-";
-      return user.first_name && user.last_name
-        ? `${user.first_name} ${user.last_name}`
-        : user.email;
-    },
+    cell: ({ row }) => formatDate(row.getValue("deleted_at")),
   },
   {
     accessorKey: "status",
@@ -186,7 +179,7 @@ const createColumns = (
       const status = row.getValue("status");
 
       switch (status) {
-        case FileStatus.trashed:
+        case FileStatus.deleted:
           return (
             <Badge className="bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800">
               <Trash2 className="h-3 w-3" />

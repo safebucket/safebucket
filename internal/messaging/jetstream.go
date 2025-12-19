@@ -128,8 +128,25 @@ func (s *JetStreamSubscriber) GetBucketEventType(message *message.Message) strin
 
 	// Check the first record's event name to determine type
 	eventName := event.Records[0].EventName
+	objectKey := event.Records[0].S3.Object.Key
+
+	// Decode URL-encoded object key
+	decodedKey, err := url.QueryUnescape(objectKey)
+	if err != nil {
+		zap.L().Debug("Failed to URL decode object key, using raw key",
+			zap.String("raw_key", objectKey),
+			zap.Error(err))
+		decodedKey = objectKey
+	}
 
 	if eventName == "s3:ObjectCreated:Post" || eventName == "s3:ObjectCreated:Put" {
+		// Exclude trash marker creation events - they lack metadata and should not be processed as uploads
+		if strings.HasPrefix(decodedKey, "trash/") {
+			zap.L().Debug("Ignoring trash marker creation event",
+				zap.String("event_name", eventName),
+				zap.String("object_key", decodedKey))
+			return BucketEventTypeIgnore
+		}
 		return BucketEventTypeUpload
 	}
 
@@ -138,7 +155,12 @@ func (s *JetStreamSubscriber) GetBucketEventType(message *message.Message) strin
 		return BucketEventTypeDeletion
 	}
 
-	return BucketEventTypeUnknown
+	// Log unhandled event types for debugging
+	zap.L().Debug("Unrecognized S3 event type",
+		zap.String("event_name", eventName),
+		zap.String("raw_payload", string(message.Payload)))
+
+	return BucketEventTypeIgnore
 }
 
 func (s *JetStreamSubscriber) ParseBucketUploadEvents(
@@ -152,6 +174,10 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 
 	var uploadEvents []BucketUploadEvent
 	for _, record := range event.Records {
+		zap.L().Debug("MinIO upload event metadata",
+			zap.String("event_name", record.EventName),
+			zap.Any("user_metadata", record.S3.Object.UserMetadata))
+
 		bucketID := record.S3.Object.UserMetadata["X-Amz-Meta-Bucket-Id"]
 		fileID := record.S3.Object.UserMetadata["X-Amz-Meta-File-Id"]
 		userID := record.S3.Object.UserMetadata["X-Amz-Meta-User-Id"]
@@ -207,8 +233,16 @@ func (s *JetStreamSubscriber) ParseBucketDeletionEvents(
 
 		var bucketID string
 
-		// Handle both "buckets/" and "trash/" prefixes
-		if strings.HasPrefix(objectKey, "buckets/") || strings.HasPrefix(objectKey, "trash/") {
+		// Handle different path patterns:
+		// - buckets/{bucket-id}/{resource-id}
+		// - trash/{bucket-id}/files/{file-id}
+		// - trash/{bucket-id}/folders/{folder-id}
+		if strings.HasPrefix(objectKey, "buckets/") {
+			parts := strings.Split(objectKey, "/")
+			if len(parts) >= 2 {
+				bucketID = parts[1]
+			}
+		} else if strings.HasPrefix(objectKey, "trash/") {
 			parts := strings.Split(objectKey, "/")
 			if len(parts) >= 2 {
 				bucketID = parts[1]

@@ -74,7 +74,7 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	)
 
 	var folder models.Folder
-	result := params.DB.Where("id = ? AND bucket_id = ?",
+	result := params.DB.Unscoped().Where("id = ? AND bucket_id = ?",
 		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
 	if result.Error != nil {
@@ -82,17 +82,15 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return result.Error
 	}
 
-	if folder.Status != models.FileStatusTrashed {
-		zap.L().Warn("Folder not in trashed status, cannot purge",
-			zap.String("current_status", string(folder.Status)))
+	if !folder.DeletedAt.Valid {
+		zap.L().Warn("Folder not soft-deleted, cannot purge")
 		return errors.New("folder not in trash")
 	}
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		// Purge child folders
 		var childFolders []models.Folder
-		if err := tx.Where(
-			"bucket_id = ? AND folder_id = ?",
+		if err := tx.Unscoped().Where(
+			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
 			e.Payload.BucketID,
 			e.Payload.FolderID,
 		).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
@@ -110,16 +108,15 @@ func (e *FolderPurge) callback(params *EventParams) error {
 				folderIDs = append(folderIDs, child.ID)
 			}
 
-			if err := tx.Where("id IN ?", folderIDs).Delete(&models.Folder{}).Error; err != nil {
-				zap.L().Error("Failed to delete child folders", zap.Error(err))
+			if err := tx.Unscoped().Where("id IN ?", folderIDs).Delete(&models.Folder{}).Error; err != nil {
+				zap.L().Error("Failed to hard delete child folders", zap.Error(err))
 				return err
 			}
 		}
 
-		// Purge child files
 		var childFiles []models.File
-		if err := tx.Where(
-			"bucket_id = ? AND folder_id = ?",
+		if err := tx.Unscoped().Where(
+			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
 			e.Payload.BucketID,
 			e.Payload.FolderID,
 		).Limit(c.BulkActionsLimit).Find(&childFiles).Error; err != nil {
@@ -141,16 +138,14 @@ func (e *FolderPurge) callback(params *EventParams) error {
 				storagePaths = append(storagePaths, childPath)
 			}
 
-			// Delete files from storage
 			if len(storagePaths) > 0 {
 				if err := params.Storage.RemoveObjects(storagePaths); err != nil {
 					zap.L().Warn("Failed to delete some files from storage", zap.Error(err))
 				}
 			}
 
-			// Soft delete from database
-			if err := tx.Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
-				zap.L().Error("Failed to delete child files", zap.Error(err))
+			if err := tx.Unscoped().Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
+				zap.L().Error("Failed to hard delete child files", zap.Error(err))
 				return err
 			}
 		}
@@ -161,17 +156,16 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return err
 	}
 
-	// Check if there are remaining items to purge
 	var remainingFolders int64
-	params.DB.Model(&models.Folder{}).Where(
-		"bucket_id = ? AND folder_id = ?",
+	params.DB.Unscoped().Model(&models.Folder{}).Where(
+		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
 	).Count(&remainingFolders)
 
 	var remainingFiles int64
-	params.DB.Model(&models.File{}).Where(
-		"bucket_id = ? AND folder_id = ?",
+	params.DB.Unscoped().Model(&models.File{}).Where(
+		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
 	).Count(&remainingFiles)
@@ -183,18 +177,16 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return errors.New("remaining items to purge")
 	}
 
-	// Delete folder marker from storage
-	objectPath := path.Join("folder", e.Payload.BucketID.String(), e.Payload.FolderID.String())
-	if err = params.Storage.RemoveObject(objectPath); err != nil {
+	objectPath := path.Join("buckets", e.Payload.BucketID.String(), e.Payload.FolderID.String())
+	folderModel := models.Folder{ID: e.Payload.FolderID, BucketID: e.Payload.BucketID}
+	if err = params.Storage.UnmarkAsTrashed(objectPath, folderModel); err != nil {
 		zap.L().Warn("Failed to delete folder marker from storage",
 			zap.Error(err),
-			zap.String("path", objectPath))
-		// Continue - folder exists only in DB
+			zap.String("folder_id", e.Payload.FolderID.String()))
 	}
 
-	// Soft delete folder from database
-	if err = params.DB.Delete(&folder).Error; err != nil {
-		zap.L().Error("Failed to delete folder from database", zap.Error(err))
+	if err = params.DB.Unscoped().Delete(&folder).Error; err != nil {
+		zap.L().Error("Failed to hard delete folder from database", zap.Error(err))
 		return err
 	}
 

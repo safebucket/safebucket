@@ -94,9 +94,13 @@ export const deleteFileMutationFn = async (params: {
   const { bucketId, fileId, filename, isFolder = false } = params;
 
   if (isFolder) {
-    await api.delete(`/buckets/${bucketId}/folders/${fileId}`);
+    await api.patch(`/buckets/${bucketId}/folders/${fileId}`, {
+      status: "deleted",
+    });
   } else {
-    await api.delete(`/buckets/${bucketId}/files/${fileId}`);
+    await api.patch(`/buckets/${bucketId}/files/${fileId}`, {
+      status: "deleted",
+    });
   }
 
   return { filename };

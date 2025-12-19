@@ -39,8 +39,8 @@ func TestValidateMiddleware(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
-			name:           "No filename validation for folders",
-			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "folder", "filename": "folder1"}`,
+			name:           "Valid filename with spaces",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "my file.txt"}`,
 			expectedStatus: http.StatusOK,
 		},
 		{
@@ -67,8 +67,16 @@ func TestValidateMiddleware(t *testing.T) {
 			},
 		},
 		{
-			name:           "Invalid filename format",
-			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "file with space.txt"}`,
+			name:           "Invalid filename - no extension",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "filenoext"}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedErrors: []string{
+				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
+			},
+		},
+		{
+			name:           "Invalid filename - prohibited characters",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "file/path.txt"}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedErrors: []string{
 				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",

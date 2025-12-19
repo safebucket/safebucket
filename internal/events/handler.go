@@ -171,8 +171,11 @@ func HandleBucketEvents(
 				}
 			}
 
+		case messaging.BucketEventTypeIgnore:
+			zap.L().Debug("ignoring event", zap.String("raw_payload", string(msg.Payload)))
+
 		default:
-			zap.L().Warn("Unknown bucket event type", zap.String("event_type", eventType))
+			zap.L().Warn("Unknown bucket event type", zap.String("payload", string(msg.Payload)))
 		}
 
 		msg.Ack()

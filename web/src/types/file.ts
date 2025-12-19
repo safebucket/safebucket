@@ -2,7 +2,7 @@ export enum FileStatus {
   uploading = "uploading",
   uploaded = "uploaded",
   deleting = "deleting",
-  trashed = "trashed",
+  deleted = "deleted",
   restoring = "restoring",
 }
 
@@ -21,7 +21,7 @@ export interface IFile {
   folder_id?: string;
   status: FileStatus | null;
   created_at: string;
-  trashed_at?: string;
-  trashed_by?: string;
-  trashed_user?: IUser;
+  deleted_at?: string;
+  deleted_by?: string;
+  original_path?: string;
 }

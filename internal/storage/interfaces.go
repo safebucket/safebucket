@@ -1,10 +1,10 @@
 package storage
 
-import "api/internal/models"
-
 const (
 	bucketsPrefix = "buckets/"
 	trashPrefix   = "trash/"
+	folderPath    = "folders"
+	filePath      = "files"
 )
 
 type IStorage interface {
@@ -22,8 +22,8 @@ type IStorage interface {
 	GetObjectTags(path string) (map[string]string, error)
 	RemoveObjectTags(path string, tagsToRemove []string) error
 	EnsureTrashLifecyclePolicy(retentionDays int) error
-	MarkFileAsTrashed(objectPath string, metadata models.TrashMetadata) error
-	UnmarkFileAsTrashed(objectPath string) error
+	MarkAsTrashed(objectPath string, model interface{}) error
+	UnmarkAsTrashed(objectPath string, model interface{}) error
 	IsTrashMarkerPath(path string) (isMarker bool, originalPath string)
 	GetBucketName() string
 }

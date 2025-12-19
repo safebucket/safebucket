@@ -2,11 +2,12 @@ package services
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"api/internal/activity"
 	c "api/internal/configuration"
-	"api/internal/errors"
+	apierrors "api/internal/errors"
 	"api/internal/events"
 	"api/internal/handlers"
 	"api/internal/messaging"
@@ -46,7 +47,8 @@ func (s BucketService) Routes() chi.Router {
 
 	r.Route("/{id0}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
-			Get("/", handlers.GetOneHandler(s.GetBucket))
+			With(m.ValidateQuery[models.BucketQueryParams]).
+			Get("/", handlers.GetOneWithQueryHandler(s.GetBucket))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupOwner, 0)).
 			With(m.Validate[models.BucketCreateUpdateBody]).
@@ -128,10 +130,40 @@ func (s BucketService) CreateBucket(
 		return nil
 	})
 	if err != nil {
-		return models.Bucket{}, errors.ErrCreateFailed
+		return models.Bucket{}, apierrors.ErrCreateFailed
 	}
 
 	return newBucket, nil
+}
+
+// buildFilePath constructs the full folder path for a file using Unscoped queries
+// to handle trashed folders. Returns path in format "/Folder1/Folder2".
+func (s BucketService) buildFilePath(folderID *uuid.UUID) string {
+	if folderID == nil {
+		return "/"
+	}
+
+	var pathSegments []string
+	currentFolderID := folderID
+
+	// Traverse up the folder hierarchy (max 100 levels to prevent infinite loops)
+	for i := 0; i < 100 && currentFolderID != nil; i++ {
+		var folder models.Folder
+		// Use Unscoped to query trashed folders
+		if err := s.DB.Unscoped().Where("id = ?", currentFolderID).First(&folder).Error; err != nil {
+			break // Folder not found, stop traversal
+		}
+
+		// Prepend folder name to path
+		pathSegments = append([]string{folder.Name}, pathSegments...)
+		currentFolderID = folder.FolderID
+	}
+
+	if len(pathSegments) == 0 {
+		return "/"
+	}
+
+	return "/" + strings.Join(pathSegments, "/")
 }
 
 func (s BucketService) GetBucketList(
@@ -173,9 +205,10 @@ func (s BucketService) GetBucketList(
 }
 
 func (s BucketService) GetBucket(
-	_ *zap.Logger,
+	logger *zap.Logger,
 	_ models.UserClaims,
 	ids uuid.UUIDs,
+	queryParams models.BucketQueryParams,
 ) (models.Bucket, error) {
 	bucketID := ids[0]
 	var bucket models.Bucket
@@ -184,37 +217,116 @@ func (s BucketService) GetBucket(
 
 	result := s.DB.Where("id = ?", bucketID).First(&bucket)
 	if result.RowsAffected == 0 {
-		return bucket, errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return bucket, apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 
-	// Get files (filter out expired files that haven't been uploaded yet)
-	// Also exclude trashed items from normal bucket view
+	// Determine the status filter based on query parameter
+	// Default behavior (empty or "uploaded") shows non-trashed items
+	status := queryParams.Status
+	if status == "" {
+		status = "uploaded"
+	}
+
 	var files []models.File
-	expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
-	result = s.DB.Where(
-		"bucket_id = ? AND (status IS NULL OR status != ?) AND (status = ? OR (status = ? AND created_at > ?))",
-		bucketID,
-		models.FileStatusTrashed,
-		models.FileStatusUploaded,
-		models.FileStatusUploading,
-		expirationTime,
-	).Find(&files)
-
-	if result.RowsAffected > 0 {
-		bucket.Files = files
-	}
-
-	// Get folders (exclude trashed folders)
 	var folders []models.Folder
-	result = s.DB.Where(
-		"bucket_id = ? AND (status IS NULL OR status != ?)",
-		bucketID,
-		models.FileStatusTrashed,
-	).Find(&folders)
 
-	if result.RowsAffected > 0 {
-		bucket.Folders = folders
+	switch status {
+	case "deleted":
+		fileResult := s.DB.Unscoped().
+			Where(
+				"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?)",
+				bucketID,
+				models.FileStatusRestoring,
+			).
+			Order("deleted_at DESC").
+			Find(&files)
+
+		if fileResult.Error != nil {
+			logger.Error("Failed to list trashed files", zap.Error(fileResult.Error))
+			files = []models.File{}
+		} else {
+			// Compute original path for each trashed file
+			for i := range files {
+				files[i].OriginalPath = s.buildFilePath(files[i].FolderID)
+			}
+		}
+
+		// Fetch trashed folders (use Unscoped to query soft-deleted items)
+		// Trashed = deleted_at IS NOT NULL and status != restoring
+		folderResult := s.DB.Unscoped().
+			Where(
+				"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?)",
+				bucketID,
+				models.FileStatusRestoring,
+			).
+			Order("deleted_at DESC").
+			Find(&folders)
+
+		if folderResult.Error != nil {
+			logger.Error("Failed to list trashed folders", zap.Error(folderResult.Error))
+			folders = []models.Folder{}
+		} else {
+			// Compute original path for each trashed folder
+			for i := range folders {
+				folders[i].OriginalPath = s.buildFilePath(folders[i].FolderID)
+			}
+		}
+
+	case "all":
+		// Show all items regardless of status
+		result = s.DB.Where("bucket_id = ?", bucketID).Find(&files)
+		if result.RowsAffected > 0 {
+			bucket.Files = files
+		}
+
+		result = s.DB.Where("bucket_id = ?", bucketID).Find(&folders)
+		if result.RowsAffected > 0 {
+			bucket.Folders = folders
+		}
+
+	case "uploading":
+		// Show only items being uploaded
+		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
+		result = s.DB.Where(
+			"bucket_id = ? AND status = ? AND created_at > ?",
+			bucketID,
+			models.FileStatusUploading,
+			expirationTime,
+		).Find(&files)
+
+		if result.RowsAffected > 0 {
+			bucket.Files = files
+		}
+
+	case "uploaded":
+		fallthrough
+	default:
+		// Show only active (non-soft-deleted) items
+		// Filter out expired files that haven't been uploaded yet
+		// GORM automatically excludes soft-deleted items (deleted_at IS NOT NULL)
+		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
+		result = s.DB.Where(
+			"bucket_id = ? AND (status = ? OR (status = ? AND created_at > ?))",
+			bucketID,
+			models.FileStatusUploaded,
+			models.FileStatusUploading,
+			expirationTime,
+		).Find(&files)
+
+		if result.RowsAffected > 0 {
+			bucket.Files = files
+		}
+
+		// Get folders (GORM automatically excludes soft-deleted items)
+		result = s.DB.Where("bucket_id = ?", bucketID).Find(&folders)
+
+		if result.RowsAffected > 0 {
+			bucket.Folders = folders
+		}
 	}
+
+	bucket.Files = files
+	bucket.Folders = folders
 
 	return bucket, nil
 }
@@ -228,7 +340,7 @@ func (s BucketService) UpdateBucket(
 	bucket := models.Bucket{ID: ids[0]}
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {
-		return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
 	}
 	return nil
 }
@@ -243,7 +355,7 @@ func (s BucketService) DeleteBucket(
 		result := tx.Where("id = ?", ids[0]).First(&bucket)
 
 		if result.RowsAffected == 0 {
-			return errors.NewAPIError(404, "BUCKET_NOT_FOUND")
+			return apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
 		}
 
 		// Soft delete bucket (memberships will be cascade deleted by foreign key constraint)
@@ -271,14 +383,14 @@ func (s BucketService) DeleteBucket(
 			return err
 		}
 
-		// Trigger async file and folder deletion from root path
-		event := events.NewObjectDeletion(s.Publisher, bucket, "/")
+		// Trigger async bucket purge (files and folders)
+		event := events.NewBucketPurge(s.Publisher, bucket.ID, user.UserID)
 		event.Trigger()
 		return nil
 	})
 	if err != nil {
 		logger.Error("Failed to delete bucket", zap.Error(err))
-		return errors.ErrDeleteFailed
+		return apierrors.ErrDeleteFailed
 	}
 
 	return nil
@@ -323,7 +435,7 @@ func (s BucketService) GetBucketActivity(
 	user models.UserClaims,
 	ids uuid.UUIDs,
 ) (models.Page[map[string]interface{}], error) {
-	bucket, err := s.GetBucket(logger, user, ids)
+	bucket, err := s.GetBucket(logger, user, ids, models.BucketQueryParams{})
 	if err != nil {
 		return models.Page[map[string]interface{}]{}, err
 	}

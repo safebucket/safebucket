@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	customErr "api/internal/errors"
+	apierrors "api/internal/errors"
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/tests"
@@ -368,7 +368,7 @@ func TestUpdateHandler_NotFoundWithAPIError(t *testing.T) {
 		mock.Anything,
 		uuid.UUIDs{testUUID},
 		mockInput,
-	).Return(customErr.NewAPIError(http.StatusNotFound, "NOT_FOUND"))
+	).Return(apierrors.NewAPIError(http.StatusNotFound, "NOT_FOUND"))
 
 	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()

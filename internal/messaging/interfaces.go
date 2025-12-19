@@ -9,6 +9,7 @@ const (
 	BucketEventTypeUpload   = "upload"
 	BucketEventTypeDeletion = "deletion"
 	BucketEventTypeUnknown  = "unknown"
+	BucketEventTypeIgnore   = "ignore"
 )
 
 // IPublisher defines a common interface for all publishers.
