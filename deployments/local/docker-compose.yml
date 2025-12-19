@@ -110,8 +110,8 @@ services:
 
         echo "Adding bucket notification events for MQTT target..."
         # The MQTT target 'primary' is configured via RUSTFS_NOTIFY_MQTT_* env vars
-        mc event remove local/safebucket arn:minio:sqs::primary:mqtt --event put,delete,get 2>/dev/null || true
-        mc event add local/safebucket arn:minio:sqs::primary:mqtt --event put,delete,get
+        mc event remove local/safebucket arn:rustfs:sqs:us-east-1:primary:mqtt --event put,delete,get 2>/dev/null || true
+        mc event add local/safebucket arn:rustfs:sqs:us-east-1:primary:mqtt --event put,delete,get
 
         echo "Verifying bucket notification configuration:"
         mc event list local/safebucket
