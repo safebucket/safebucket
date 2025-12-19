@@ -26,69 +26,72 @@ type S3Storage struct {
 	storage          *minio.Client
 }
 
-func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) IStorage {
-	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.ClientID, config.ClientSecret, ""),
+// s3Config holds common configuration for S3-compatible storage providers.
+type s3Config struct {
+	endpoint         string
+	externalEndpoint string
+	accessKey        string
+	secretKey        string
+	providerName     string
+}
+
+// newS3CompatibleStorage creates a new S3-compatible storage client.
+func newS3CompatibleStorage(cfg s3Config, bucketName string) IStorage {
+	minioClient, err := minio.New(cfg.endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.accessKey, cfg.secretKey, ""),
 		Secure: false,
 	})
 	if err != nil {
-		zap.L().Error("Failed to connect to storage", zap.Error(err))
+		zap.L().Error("Failed to connect to storage",
+			zap.String("provider", cfg.providerName),
+			zap.Error(err))
 	}
 
 	exists, err := minioClient.BucketExists(context.Background(), bucketName)
 	if err != nil {
-		zap.L().Error("Failed to connect to storage", zap.Error(err))
+		zap.L().Error("Failed to connect to storage",
+			zap.String("provider", cfg.providerName),
+			zap.Error(err))
 	}
 
 	if !exists {
-		zap.L().
-			Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
+		zap.L().Error("Failed to retrieve bucket",
+			zap.String("provider", cfg.providerName),
+			zap.String("bucketName", bucketName),
+			zap.Error(err))
 	}
 
-	// Use external endpoint for presigned URLs if provided, otherwise fall back to internal endpoint
-	externalEndpoint := config.ExternalEndpoint
+	externalEndpoint := cfg.externalEndpoint
 	if externalEndpoint == "" {
-		externalEndpoint = config.Endpoint
+		externalEndpoint = cfg.endpoint
 	}
 
 	return S3Storage{
 		BucketName:       bucketName,
-		InternalEndpoint: config.Endpoint,
+		InternalEndpoint: cfg.endpoint,
 		ExternalEndpoint: externalEndpoint,
 		storage:          minioClient,
 	}
 }
 
+func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) IStorage {
+	return newS3CompatibleStorage(s3Config{
+		endpoint:         config.Endpoint,
+		externalEndpoint: config.ExternalEndpoint,
+		accessKey:        config.ClientID,
+		secretKey:        config.ClientSecret,
+		providerName:     "MinIO",
+	}, bucketName)
+}
+
 func NewRustFSStorage(config *models.RustFSStorageConfiguration, bucketName string) IStorage {
-	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.AccessKey, config.SecretKey, ""),
-		Secure: false,
-	})
-	if err != nil {
-		zap.L().Error("Failed to connect to RustFS", zap.Error(err))
-	}
-
-	exists, err := minioClient.BucketExists(context.Background(), bucketName)
-	if err != nil {
-		zap.L().Error("Failed to connect to RustFS", zap.Error(err))
-	}
-
-	if !exists {
-		zap.L().Error("Failed to retrieve bucket from RustFS",
-			zap.String("bucketName", bucketName), zap.Error(err))
-	}
-
-	externalEndpoint := config.ExternalEndpoint
-	if externalEndpoint == "" {
-		externalEndpoint = config.Endpoint
-	}
-
-	return S3Storage{
-		BucketName:       bucketName,
-		InternalEndpoint: config.Endpoint,
-		ExternalEndpoint: externalEndpoint,
-		storage:          minioClient,
-	}
+	return newS3CompatibleStorage(s3Config{
+		endpoint:         config.Endpoint,
+		externalEndpoint: config.ExternalEndpoint,
+		accessKey:        config.AccessKey,
+		secretKey:        config.SecretKey,
+		providerName:     "RustFS",
+	}, bucketName)
 }
 
 // replaceEndpoint replaces the internal endpoint with the external endpoint in a URL.

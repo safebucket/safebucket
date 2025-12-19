@@ -209,7 +209,6 @@ func (s *JetStreamSubscriber) ParseBucketDeletionEvents(
 
 	var deletionEvents []BucketDeletionEvent
 	for _, record := range event.Records {
-
 		if record.Data.S3.Bucket.Name != expectedBucketName {
 			zap.L().Debug("ignoring event from different bucket",
 				zap.String("event_bucket", record.Data.S3.Bucket.Name),
