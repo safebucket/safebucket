@@ -12,20 +12,20 @@ type BucketDeletionEvent struct {
 	EventName string `json:"event_name"`
 }
 
-type MinioEvent struct {
-	EventName string             `json:"EventName"`
-	Key       string             `json:"Key"`
-	Records   []MinioEventRecord `json:"Records"`
+type RustFSEvent struct {
+	EventName string              `json:"EventName"`
+	Key       string              `json:"Key"`
+	Records   []RustFSEventRecord `json:"Records"`
 }
 
-type MinioEventRecord struct {
-	ObjectName string         `json:"object_name"`
-	BucketName string         `json:"bucket_name"`
-	EventName  string         `json:"event_name"`
-	Data       MinioEventData `json:"data"`
+type RustFSEventRecord struct {
+	ObjectName string          `json:"object_name"`
+	BucketName string          `json:"bucket_name"`
+	EventName  string          `json:"event_name"`
+	Data       RustFSEventData `json:"data"`
 }
 
-type MinioEventData struct {
+type RustFSEventData struct {
 	EventName string `json:"eventName"`
 	S3        struct {
 		Bucket struct {

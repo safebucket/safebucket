@@ -116,7 +116,7 @@ func (s *JetStreamSubscriber) Close() error {
 
 // GetBucketEventType determines the type of MinIO S3 event.
 func (s *JetStreamSubscriber) GetBucketEventType(message *message.Message) string {
-	var event MinioEvent
+	var event RustFSEvent
 	if err := json.Unmarshal(message.Payload, &event); err != nil {
 		zap.L().Error("Failed to unmarshal event to determine type", zap.Error(err))
 		return BucketEventTypeUnknown
@@ -166,7 +166,7 @@ func (s *JetStreamSubscriber) GetBucketEventType(message *message.Message) strin
 func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 	message *message.Message,
 ) []BucketUploadEvent {
-	var event MinioEvent
+	var event RustFSEvent
 	if err := json.Unmarshal(message.Payload, &event); err != nil {
 		zap.L().Error("event is unprocessable", zap.Error(err))
 		message.Ack()
@@ -200,7 +200,7 @@ func (s *JetStreamSubscriber) ParseBucketDeletionEvents(
 	message *message.Message,
 	expectedBucketName string,
 ) []BucketDeletionEvent {
-	var event MinioEvent
+	var event RustFSEvent
 	if err := json.Unmarshal(message.Payload, &event); err != nil {
 		zap.L().Error("deletion event is unprocessable", zap.Error(err))
 		message.Ack()
