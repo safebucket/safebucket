@@ -13,8 +13,8 @@ common:
       endpoint: bucket:9000
       insecure: true
       bucketnames: loki-data
-      access_key_id: minio-root-user
-      secret_access_key: minio-root-password
+      access_key_id: rustfsadmin
+      secret_access_key: rustfsadmin
       s3forcepathstyle: true
 
   ring:

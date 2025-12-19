@@ -128,7 +128,7 @@ func (s *JetStreamSubscriber) GetBucketEventType(message *message.Message) strin
 
 	// Check the first record's event name to determine type
 	eventName := event.Records[0].EventName
-	objectKey := event.Records[0].S3.Object.Key
+	objectKey := event.Records[0].Data.S3.Object.Key
 
 	// Decode URL-encoded object key
 	decodedKey, err := url.QueryUnescape(objectKey)
@@ -170,24 +170,26 @@ func (s *JetStreamSubscriber) ParseBucketUploadEvents(
 	if err := json.Unmarshal(message.Payload, &event); err != nil {
 		zap.L().Error("event is unprocessable", zap.Error(err))
 		message.Ack()
+		return nil
 	}
 
 	var uploadEvents []BucketUploadEvent
 	for _, record := range event.Records {
-		zap.L().Debug("MinIO upload event metadata",
-			zap.String("event_name", record.EventName),
-			zap.Any("user_metadata", record.S3.Object.UserMetadata))
+		metadata := record.Data.S3.Object.UserMetadata
 
-		bucketID := record.S3.Object.UserMetadata["X-Amz-Meta-Bucket-Id"]
-		fileID := record.S3.Object.UserMetadata["X-Amz-Meta-File-Id"]
-		userID := record.S3.Object.UserMetadata["X-Amz-Meta-User-Id"]
+		// RustFS uses lowercase keys without X-Amz-Meta- prefix
+		bucketID := metadata["bucket-id"]
+		fileID := metadata["file-id"]
+		userID := metadata["user-id"]
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
 			BucketID: bucketID,
 			FileID:   fileID,
 			UserID:   userID,
 		})
+	}
 
+	if len(uploadEvents) > 0 {
 		message.Ack()
 	}
 
@@ -207,19 +209,20 @@ func (s *JetStreamSubscriber) ParseBucketDeletionEvents(
 
 	var deletionEvents []BucketDeletionEvent
 	for _, record := range event.Records {
-		if record.S3.Bucket.Name != expectedBucketName {
+
+		if record.Data.S3.Bucket.Name != expectedBucketName {
 			zap.L().Debug("ignoring event from different bucket",
-				zap.String("event_bucket", record.S3.Bucket.Name),
+				zap.String("event_bucket", record.Data.S3.Bucket.Name),
 				zap.String("expected_bucket", expectedBucketName))
 			continue
 		}
 
-		objectKey, err := url.QueryUnescape(record.S3.Object.Key)
+		objectKey, err := url.QueryUnescape(record.Data.S3.Object.Key)
 		if err != nil {
 			zap.L().Warn("failed to URL decode object key",
-				zap.String("raw_key", record.S3.Object.Key),
+				zap.String("raw_key", record.Data.S3.Object.Key),
 				zap.Error(err))
-			objectKey = record.S3.Object.Key // Fall back to raw key
+			objectKey = record.Data.S3.Object.Key // Fall back to raw key
 		}
 
 		// Log the full event record for debugging (only for actual deletion/expiration events)
@@ -227,9 +230,9 @@ func (s *JetStreamSubscriber) ParseBucketDeletionEvents(
 			zap.String("event_name", record.EventName),
 			zap.String("object_key", objectKey),
 			zap.String("raw_payload", string(message.Payload)),
-			zap.Any("user_metadata", record.S3.Object.UserMetadata),
-			zap.String("bucket_name", record.S3.Bucket.Name),
-			zap.Int64("size", record.S3.Object.Size))
+			zap.Any("user_metadata", record.Data.S3.Object.UserMetadata),
+			zap.String("bucket_name", record.Data.S3.Bucket.Name),
+			zap.Int64("size", record.Data.S3.Object.Size))
 
 		var bucketID string
 

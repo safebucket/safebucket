@@ -7,6 +7,11 @@ services:
     environment:
       - RUSTFS_ACCESS_KEY=rustfsadmin
       - RUSTFS_SECRET_KEY=rustfsadmin
+      - RUSTFS_NOTIFY_MQTT_ENABLE_PRIMARY=true
+      - RUSTFS_NOTIFY_MQTT_BROKER_PRIMARY=mqtt://nats:1883
+      - RUSTFS_NOTIFY_MQTT_TOPIC_PRIMARY=safebucket-bucket-events
+      - RUSTFS_NOTIFY_MQTT_QOS_PRIMARY=2
+      - RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY=/data/.rustfs/events
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -30,9 +35,9 @@ services:
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
-        echo "Configuring RustFS bucket events for NATS JetStream..."
+        echo "Configuring RustFS buckets and events..."
 
-        # Wait for RustFS to be ready using mc ping
+        # Wait for RustFS to be ready
         echo "Waiting for RustFS to be ready..."
         while ! mc alias set local http://bucket:9000 $${RUSTFS_ACCESS_KEY} $${RUSTFS_SECRET_KEY} 2>/dev/null; do
           echo "RustFS not ready yet, waiting..."
@@ -45,45 +50,16 @@ services:
         mc mb local/loki-ruler --ignore-existing
         echo "Buckets created successfully."
 
-        echo "Configuring NATS notification target..."
-
-        mc admin config set local notify_nats:safebucket \
-          address="nats:4222" \
-          subject="safebucket-bucket-events" \
-          jetstream="off" \
-          tls="off" \
-          tls_skip_verify="off"
-
-        # Restart RustFS to apply config
-        echo "Restarting RustFS to apply configuration..."
-        mc admin service restart local --json
-
-        echo "Waiting for RustFS to restart..."
-        sleep 15
-
-        # Wait for RustFS to be ready again
-        while ! mc admin info local 2>/dev/null; do
-          echo "Waiting for RustFS to be ready after restart..."
-          sleep 3
-        done
-
-        echo "RustFS is ready after restart. Verifying NATS target configuration..."
-
-        # List notification targets to verify
-        echo "Available notification targets:"
-        mc admin config get local notify_nats
-
-        echo "Removing any existing bucket notification events..."
-        mc event remove local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get 2>/dev/null || true
-
-        echo "Adding bucket notification events..."
-        mc event add local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get
+        echo "Adding bucket notification events for MQTT target..."
+        # The MQTT target 'primary' is configured via RUSTFS_NOTIFY_MQTT_* env vars
+        mc event remove local/safebucket arn:minio:sqs::primary:mqtt --event put,delete,get 2>/dev/null || true
+        mc event add local/safebucket arn:minio:sqs::primary:mqtt --event put,delete,get
 
         echo "Verifying bucket notification configuration:"
         mc event list local/safebucket
 
         echo "RustFS bucket events configured successfully!"
-        echo "Events will be published to NATS subject: safebucket-bucket-events"
+        echo "Events will be published to MQTT topic: safebucket-bucket-events"
     depends_on:
       bucket:
         condition: service_healthy
