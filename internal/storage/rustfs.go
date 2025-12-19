@@ -65,16 +65,16 @@ func NewRustFSStorage(config *models.RustFSStorageConfiguration, bucketName stri
 		Secure: false,
 	})
 	if err != nil {
-		zap.L().Error("Failed to connect to SeaweedFS", zap.Error(err))
+		zap.L().Error("Failed to connect to RustFS", zap.Error(err))
 	}
 
 	exists, err := minioClient.BucketExists(context.Background(), bucketName)
 	if err != nil {
-		zap.L().Error("Failed to connect to SeaweedFS", zap.Error(err))
+		zap.L().Error("Failed to connect to RustFS", zap.Error(err))
 	}
 
 	if !exists {
-		zap.L().Error("Failed to retrieve bucket from SeaweedFS",
+		zap.L().Error("Failed to retrieve bucket from RustFS",
 			zap.String("bucketName", bucketName), zap.Error(err))
 	}
 
