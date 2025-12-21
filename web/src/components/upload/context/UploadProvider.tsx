@@ -25,7 +25,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     }: {
       file: File;
       bucketId: string;
-      folderId: string | null;
+      folderId: string | undefined;
       uploadId: string;
     }) => {
       const abortController = new AbortController();
@@ -77,7 +77,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const startUpload = useCallback(
-    (files: FileList, bucketId: string, folderId: string | null) => {
+    (files: FileList, bucketId: string, folderId: string | undefined) => {
       Array.from(files).forEach((file) => {
         const uploadId = generateRandomString(12);
         const displayPath = file.name;

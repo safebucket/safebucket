@@ -20,7 +20,7 @@ export interface IUploadContext {
   startUpload: (
     files: FileList,
     bucketId: string,
-    folderId: string | null,
+    folderId: string | undefined,
   ) => void;
   cancelUpload: (uploadId: string) => void;
   hasActiveUploads: boolean;

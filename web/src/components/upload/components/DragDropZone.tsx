@@ -192,9 +192,9 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   const createFolders = useCallback(
     async (
       folderPaths: Array<string>,
-      parentFolderId: string | null,
-    ): Promise<Map<string, string | null>> => {
-      const pathToIdMap = new Map<string, string | null>();
+      parentFolderId: string | undefined,
+    ): Promise<Map<string, string | undefined>> => {
+      const pathToIdMap = new Map<string, string | undefined>();
       // Map empty path to the current folder ID (or null for root)
       pathToIdMap.set("", parentFolderId);
 
@@ -204,7 +204,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
         const parentPath = pathParts.slice(0, -1).join("/");
 
         // Get parent ID from map (null means root level)
-        const parentId = pathToIdMap.get(parentPath) ?? null;
+        const parentId = pathToIdMap.get(parentPath) ?? undefined;
 
         try {
           const folder: IFolder = await createFolderMutationFn({
@@ -258,7 +258,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
             // Upload each file to its corresponding folder
             for (const { file, relativePath } of filesWithPaths) {
               // relativePath already contains the parent folder path
-              const targetFolderId = pathToIdMap.get(relativePath) ?? null;
+              const targetFolderId = pathToIdMap.get(relativePath) ?? undefined;
 
               const fileList = Object.assign([file], {
                 length: 1,

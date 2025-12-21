@@ -15,16 +15,15 @@ export const isFile = (item: BucketItem): item is IFile => {
 export const itemsToShow = (
   files: Array<IFile>,
   folders: Array<IFolder>,
-  folderId: string | null,
+  folderId: string | undefined,
 ): Array<BucketItem> => {
   const folderItems = folders.filter(
     (folder) =>
-      (folderId === null && !folder.folder_id) || folder.folder_id === folderId,
+      (!folderId && !folder.folder_id) || folder.folder_id === folderId,
   );
 
   const fileItems = files.filter(
-    (file) =>
-      (folderId === null && !file.folder_id) || file.folder_id === folderId,
+    (file) => (!folderId && !file.folder_id) || file.folder_id === folderId,
   );
 
   return [...folderItems, ...fileItems];
