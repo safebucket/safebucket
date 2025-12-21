@@ -27,7 +27,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/nats-io/nats.go v1.48.0
 	github.com/pressly/goose/v3 v3.26.0
-	github.com/redis/rueidis v1.0.68
+	github.com/redis/rueidis v1.0.69
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.1
 	golang.org/x/oauth2 v0.33.0
