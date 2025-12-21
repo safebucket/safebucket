@@ -25,7 +25,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.0
 	github.com/knadh/koanf/v2 v2.3.0
 	github.com/minio/minio-go/v7 v7.0.97
-	github.com/nats-io/nats.go v1.47.0
+	github.com/nats-io/nats.go v1.48.0
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/redis/rueidis v1.0.68
 	github.com/stretchr/testify v1.11.1
