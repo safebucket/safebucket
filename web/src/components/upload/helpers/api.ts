@@ -40,7 +40,7 @@ export const uploadToStorage = async (
 
     xhr.addEventListener("loadend", () => {
       if (xhr.readyState === 4) {
-        if (xhr.status === 204) {
+        if (xhr.status >= 200 && xhr.status < 300) {
           resolve();
         } else {
           reject(new Error(`Upload failed with status ${xhr.status}`));

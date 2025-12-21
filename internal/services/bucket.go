@@ -221,11 +221,8 @@ func (s BucketService) GetBucket(
 	}
 
 	// Determine the status filter based on query parameter
-	// Default behavior (empty or "uploaded") shows non-trashed items
+	// Default behavior (empty) shows active items (uploaded + uploading)
 	status := queryParams.Status
-	if status == "" {
-		status = "uploaded"
-	}
 
 	var files []models.File
 	var folders []models.Folder

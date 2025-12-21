@@ -39,6 +39,8 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           folderId,
         );
 
+        queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
+
         await uploadToStorage(
           presignedUpload,
           file,
@@ -60,8 +62,10 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
         prev.map((u) => (u.id === uploadId ? { ...u, status: "success" } : u)),
       );
 
-      queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-      successToast(`Upload completed for ${fileName}`);
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
+        successToast(`Upload completed for ${fileName}`);
+      }, 1000);
 
       setTimeout(() => {
         setUploads((prev) => prev.filter((u) => u.id !== uploadId));
