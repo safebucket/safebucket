@@ -98,9 +98,9 @@
       "create": "Créer"
     },
     "delete_dialog": {
-      "title": "Supprimer {{fileName}} ?",
-      "description": "Êtes-vous sûr de vouloir supprimer ce fichier ? Cette action ne peut pas être annulée.",
-      "confirm": "Supprimer"
+      "title": "Déplacer {{fileName}} vers la corbeille ?",
+      "description": "Ce fichier sera déplacé vers la corbeille et pourra être restauré dans un délai de 7 jours. Après 7 jours, il sera définitivement supprimé.",
+      "confirm": "Déplacer vers la corbeille"
     }
   },
   "navigation": {
