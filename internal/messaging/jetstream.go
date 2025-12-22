@@ -224,8 +224,7 @@ func (s *JetStreamSubscriber) ParseBucketDeletionEvents(
 			objectKey = record.Data.S3.Object.Key // Fall back to raw key
 		}
 
-		// Log the full event record for debugging (only for actual deletion/expiration events)
-		zap.L().Info("received deletion/expiration event",
+		zap.L().Debug("received deletion/expiration event",
 			zap.String("event_name", record.EventName),
 			zap.String("object_key", objectKey),
 			zap.String("raw_payload", string(message.Payload)),

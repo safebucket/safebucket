@@ -3,15 +3,15 @@ name: safebucket
 services:
   bucket:
     container_name: bucket
-    image: rustfs/rustfs:latest
+    image: rustfs/rustfs:1.0.0-alpha.76
     environment:
-      - RUSTFS_ACCESS_KEY=rustfsadmin
-      - RUSTFS_SECRET_KEY=rustfsadmin
-      - RUSTFS_NOTIFY_MQTT_ENABLE_PRIMARY=true
-      - RUSTFS_NOTIFY_MQTT_BROKER_PRIMARY=mqtt://nats:1883
-      - RUSTFS_NOTIFY_MQTT_TOPIC_PRIMARY=safebucket-bucket-events
-      - RUSTFS_NOTIFY_MQTT_QOS_PRIMARY=2
-      - RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY=/data/.rustfs/events
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
+      - RUSTFS_NOTIFY_MQTT_ENABLE_PRIMARY=${RUSTFS_NOTIFY_MQTT_ENABLE_PRIMARY}
+      - RUSTFS_NOTIFY_MQTT_BROKER_PRIMARY=${RUSTFS_NOTIFY_MQTT_BROKER_PRIMARY}
+      - RUSTFS_NOTIFY_MQTT_TOPIC_PRIMARY=${RUSTFS_NOTIFY_MQTT_TOPIC_PRIMARY}
+      - RUSTFS_NOTIFY_MQTT_QOS_PRIMARY=${RUSTFS_NOTIFY_MQTT_QOS_PRIMARY}
+      - RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY=${RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -30,8 +30,8 @@ services:
     container_name: bucket-events-config
     image: minio/mc:latest
     environment:
-      - RUSTFS_ACCESS_KEY=rustfsadmin
-      - RUSTFS_SECRET_KEY=rustfsadmin
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |

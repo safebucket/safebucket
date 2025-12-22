@@ -26,7 +26,7 @@ type S3Storage struct {
 	storage          *minio.Client
 }
 
-// s3Config holds common configuration for S3-compatible storage providers.
+// s3Config holds a common configuration for S3-compatible storage providers.
 type s3Config struct {
 	endpoint         string
 	externalEndpoint string
@@ -35,8 +35,8 @@ type s3Config struct {
 	providerName     string
 }
 
-// newS3CompatibleStorage creates a new S3-compatible storage client.
-func newS3CompatibleStorage(cfg s3Config, bucketName string) IStorage {
+// newS3Storage creates a new S3-compatible storage client.
+func newS3Storage(cfg s3Config, bucketName string) IStorage {
 	minioClient, err := minio.New(cfg.endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.accessKey, cfg.secretKey, ""),
 		Secure: false,
@@ -75,7 +75,7 @@ func newS3CompatibleStorage(cfg s3Config, bucketName string) IStorage {
 }
 
 func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) IStorage {
-	return newS3CompatibleStorage(s3Config{
+	return newS3Storage(s3Config{
 		endpoint:         config.Endpoint,
 		externalEndpoint: config.ExternalEndpoint,
 		accessKey:        config.ClientID,
@@ -85,7 +85,7 @@ func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) I
 }
 
 func NewRustFSStorage(config *models.RustFSStorageConfiguration, bucketName string) IStorage {
-	return newS3CompatibleStorage(s3Config{
+	return newS3Storage(s3Config{
 		endpoint:         config.Endpoint,
 		externalEndpoint: config.ExternalEndpoint,
 		accessKey:        config.AccessKey,
