@@ -55,7 +55,7 @@ jobs:
     outputs:
       digest-dockerhub: ${{ steps.build-dockerhub.outputs.digest }}
       digest-github: ${{ steps.build-github.outputs.digest }}
-      tags: ${{ steps.meta.outputs.tags }}
+      metadata: ${{ steps.meta.outputs.json }}
       version: ${{ steps.meta.outputs.version }}
     steps:
       - name: Checkout
@@ -207,29 +207,44 @@ jobs:
 
       - name: Create multi-arch manifests
         env:
-          TAGS: ${{ needs.build-amd64.outputs.tags }}
+          METADATA: ${{ needs.build-amd64.outputs.metadata }}
         run: |
-          # Parse tags from metadata action
-          echo "Creating manifests for tags: $TAGS"
+          set -euo pipefail
 
-          # Convert newline-separated tags to array
-          IFS=$'\n' read -rd '' -a tag_array <<<"$TAGS" || true
+          # Parse tags from metadata JSON
+          echo "Metadata: $METADATA"
 
-          for tag in "${tag_array[@]}"; do
-            echo "Processing tag: $tag"
+          if [[ -z "$METADATA" ]]; then
+            echo "Error: METADATA is empty"
+            exit 1
+          fi
 
-            # Extract registry and determine which digests to use
-            if [[ $tag == docker.io/* ]]; then
-              echo "Creating Docker Hub manifest for $tag"
-              docker buildx imagetools create \
-                --tag "$tag" \
-                docker.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-dockerhub }} \
-                docker.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-dockerhub }}
-            elif [[ $tag == ghcr.io/* ]]; then
-              echo "Creating GHCR manifest for $tag"
-              docker buildx imagetools create \
-                --tag "$tag" \
-                ghcr.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-github }} \
-                ghcr.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-github }}
-            fi
-          done
+          # Extract tags grouped by registry
+          dockerhub_tags=$(echo "$METADATA" | jq -r '.tags[] | select(startswith("docker.io/"))' || true)
+          ghcr_tags=$(echo "$METADATA" | jq -r '.tags[] | select(startswith("ghcr.io/"))' || true)
+
+          # Build Docker Hub manifest with all its tags
+          if [[ -n "$dockerhub_tags" ]]; then
+            echo "Creating Docker Hub manifest for: $dockerhub_tags"
+            tag_args=""
+            for tag in $dockerhub_tags; do
+              tag_args="$tag_args --tag $tag"
+            done
+            docker buildx imagetools create \
+              $tag_args \
+              docker.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-dockerhub }} \
+              docker.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-dockerhub }}
+          fi
+
+          # Build GHCR manifest with all its tags
+          if [[ -n "$ghcr_tags" ]]; then
+            echo "Creating GHCR manifest for: $ghcr_tags"
+            tag_args=""
+            for tag in $ghcr_tags; do
+              tag_args="$tag_args --tag $tag"
+            done
+            docker buildx imagetools create \
+              $tag_args \
+              ghcr.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-github }} \
+              ghcr.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-github }}
+          fi
