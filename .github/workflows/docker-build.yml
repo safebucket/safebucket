@@ -73,8 +73,6 @@ jobs:
           tags: |
             # Tag pattern for semantic versioning
             type=semver,pattern={{version}}
-            # Tag as latest for stable releases only (no pre-release suffix)
-            type=raw,value=latest,enable={{!contains(github.ref_name, '-')}}
             # For manual dispatch
             type=raw,value=${{ inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag != '' }}
             type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag == '' }}
