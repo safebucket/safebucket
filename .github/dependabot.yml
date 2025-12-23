@@ -29,7 +29,7 @@ updates:
       - dependency-name: "react-dom"
         update-types: [ "version-update:semver-major" ]
 
-  # Docker-compose stack
+  # Docker-compose stack (local)
   - package-ecosystem: "docker-compose"
     directory: "/deployments/local"
     schedule:
@@ -38,7 +38,19 @@ updates:
     target-branch: "main"
     open-pull-requests-limit: 5
     commit-message:
-      prefix: "[docker-compose]"
+      prefix: "[docker-compose:local]"
+      include: "scope"
+
+  # Docker-compose stack (dev)
+  - package-ecosystem: "docker-compose"
+    directory: "/deployments/dev"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+    target-branch: "main"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "[docker-compose:dev]"
       include: "scope"
 
   # GitHub Actions
