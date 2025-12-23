@@ -2,6 +2,8 @@
   <a href="https://safebucket.io"><img src="./assets/safebucket_banner.png" alt="SafeBucket"></a>
 </h1>
 
+## Introduction
+
 Safebucket is an open-source secure file sharing platform designed to share files in an easy and secure way, integrating
 with different cloud providers. Built for individuals and organizations that need to collaborate on files with robust
 security, flexible access controls, and seamless multi-cloud support across AWS S3, Google Cloud Storage, and MinIO.
@@ -58,5 +60,3 @@ This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file 
 ## Support
 
 - 🐛 Issues: [GitHub Issues](https://github.com/safebucket/safebucket/issues)
-
-#
