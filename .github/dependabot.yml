@@ -6,7 +6,7 @@ updates:
     schedule:
       interval: "daily"
       time: "09:00"
-    target-branch: "develop"
+    target-branch: "main"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "[deps]"
@@ -18,16 +18,16 @@ updates:
     schedule:
       interval: "daily"
       time: "09:00"
-    target-branch: "develop"
+    target-branch: "main"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "[deps]"
       include: "scope"
     ignore:
       - dependency-name: "react"
-        update-types: ["version-update:semver-major"]
+        update-types: [ "version-update:semver-major" ]
       - dependency-name: "react-dom"
-        update-types: ["version-update:semver-major"]
+        update-types: [ "version-update:semver-major" ]
 
   # Docker-compose stack
   - package-ecosystem: "docker-compose"
@@ -35,7 +35,7 @@ updates:
     schedule:
       interval: "daily"
       time: "09:00"
-    target-branch: "develop"
+    target-branch: "main"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "[docker-compose]"
@@ -47,7 +47,7 @@ updates:
     schedule:
       interval: "daily"
       time: "09:00"
-    target-branch: "develop"
+    target-branch: "main"
     open-pull-requests-limit: 3
     commit-message:
       prefix: "[actions]"
@@ -58,7 +58,7 @@ updates:
     schedule:
       interval: "daily"
       time: "09:00"
-    target-branch: "develop"
+    target-branch: "main"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "[terraform-aws]"
@@ -69,7 +69,7 @@ updates:
     schedule:
       interval: "daily"
       time: "09:00"
-    target-branch: "develop"
+    target-branch: "main"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "[docker]"
