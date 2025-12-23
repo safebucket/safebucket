@@ -173,10 +173,6 @@ resource "aws_ecs_task_definition" "safebucket" {
           value = "loki"
         },
         {
-          name  = "ACTIVITY__LEVEL"
-          value = "info"
-        },
-        {
           name  = "ACTIVITY__LOKI__ENDPOINT"
           value = "http://loki.${aws_service_discovery_private_dns_namespace.internal.name}:3100"
         },
