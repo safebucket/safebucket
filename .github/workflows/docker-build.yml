@@ -43,7 +43,7 @@ jobs:
           fi
 
   build-amd64:
-    needs: [check-branch]
+    needs: [ check-branch ]
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
@@ -121,7 +121,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=amd64
 
   build-arm64:
-    needs: [check-branch]
+    needs: [ check-branch ]
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
@@ -182,7 +182,7 @@ jobs:
 
   create-manifests:
     runs-on: ubuntu-latest
-    needs: [check-branch, build-amd64, build-arm64]
+    needs: [ check-branch, build-amd64, build-arm64 ]
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
