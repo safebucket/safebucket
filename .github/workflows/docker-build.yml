@@ -22,7 +22,7 @@ jobs:
       on-default-branch: ${{ steps.check.outputs.on-default-branch }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Fetch all history to check branch
           persist-credentials: false
