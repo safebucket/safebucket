@@ -1,11 +1,6 @@
 import type { IFile } from "@/types/file.ts";
 import type { IFolder } from "@/types/folder.ts";
 
-export interface Invites {
-  email: string;
-  group: string;
-}
-
 export interface IBucket {
   id: string;
   name: string;
@@ -17,6 +12,8 @@ export interface IBucket {
 }
 
 export type BucketItem = IFile | IFolder;
+
+export type BucketGroup = "owner" | "contributor" | "viewer";
 
 export const bucketGroups = [
   { id: "viewer", name: "Viewer", description: "Can view and download files" },

@@ -7,7 +7,7 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { BucketGroup } from "@/types/permissions";
+import type { BucketGroup } from "@/types/bucket";
 import type { IBucketMember } from "@/components/bucket-view/helpers/types";
 import { useSession } from "@/hooks/useAuth";
 import { bucketMembersQueryOptions } from "@/queries/bucket";
