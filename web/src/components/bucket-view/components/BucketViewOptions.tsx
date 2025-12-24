@@ -6,10 +6,12 @@ import {
   Trash2,
 } from "lucide-react";
 import { t } from "i18next";
+import { useMemo } from "react";
 import type { FC } from "react";
 
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
+import { useBucketPermissions } from "@/hooks/usePermissions";
 import { ButtonGroup } from "@/components/ui/button-group.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -48,11 +50,21 @@ const options = [
 ];
 
 export const BucketViewOptions: FC = () => {
-  const { view, setView } = useBucketViewContext();
+  const { view, setView, bucketId } = useBucketViewContext();
+  const { isOwner } = useBucketPermissions(bucketId);
+
+  const filteredOptions = useMemo(() => {
+    return options.filter((opt) => {
+      if (opt.key === BucketViewMode.Settings && !isOwner) {
+        return false;
+      }
+      return true;
+    });
+  }, [isOwner]);
 
   return (
     <ButtonGroup className="default">
-      {options.map((opt, i) => (
+      {filteredOptions.map((opt, i) => (
         <TooltipProvider key={i}>
           <Tooltip>
             <TooltipTrigger asChild>

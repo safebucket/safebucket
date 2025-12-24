@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import type { IBucket } from "@/types/bucket.ts";
 import { EMAIL_REGEX } from "@/types/bucket.ts";
 import { bucketMembersQueryOptions } from "@/queries/bucket";
@@ -21,6 +22,7 @@ export interface IMemberState {
 }
 
 export const useBucketMembersData = (bucket: IBucket) => {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     ...bucketMembersQueryOptions(bucket.id),
     enabled: !!bucket.id,
@@ -115,7 +117,7 @@ export const useBucketMembersData = (bucket: IBucket) => {
         queryClient.invalidateQueries({
           queryKey: ["buckets", bucket.id, "members"],
         });
-        successToast("Bucket members updated successfully");
+        successToast(t("bucket.settings.members.updated_successfully"));
       })
       .catch(errorToast)
       .finally(() => setIsSubmitting(false));

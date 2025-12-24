@@ -1,12 +1,20 @@
 import { useTranslation } from "react-i18next";
-import { ArchiveRestore, LoaderCircle, Trash2, Folder } from "lucide-react";
-import { type FC, useState, useMemo } from "react";
+import {
+  ArchiveRestore,
+  Folder,
+  LoaderCircle,
+  MoreHorizontal,
+  Trash2,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import type { FC } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import type { TrashedItem } from "@/components/bucket-view/hooks/useTrashActions";
 import type { IBucket } from "@/types/bucket.ts";
 import { FileStatus } from "@/types/file.ts";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
+import { useBucketPermissions } from "@/hooks/usePermissions";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { DataTableColumnHeader } from "@/components/common/components/DataTable/DataColumnHeader";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
@@ -29,7 +37,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal } from "lucide-react";
 
 interface BucketTrashViewProps {
   items: Array<TrashedItem>;
@@ -53,7 +60,7 @@ const buildFolderPath = (
 ): string => {
   if (!folderId) return "/";
 
-  const path: string[] = [];
+  const path: Array<string> = [];
   let currentId: string | undefined = folderId;
 
   while (currentId) {
@@ -69,6 +76,7 @@ const buildFolderPath = (
 const createColumns = (
   t: (key: string) => string,
   bucket: IBucket,
+  isContributor: boolean,
   onRestore: (
     itemId: string,
     itemName: string,
@@ -202,6 +210,11 @@ const createColumns = (
     id: "actions",
     cell: ({ row }) => {
       const item = row.original;
+
+      if (!isContributor) {
+        return null;
+      }
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -244,6 +257,7 @@ export const BucketTrashView: FC<BucketTrashViewProps> = ({
   onPermanentDelete,
 }: BucketTrashViewProps) => {
   const { t } = useTranslation();
+  const { isContributor } = useBucketPermissions(bucket.id);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
     id: string;
@@ -273,8 +287,15 @@ export const BucketTrashView: FC<BucketTrashViewProps> = ({
   };
 
   const columns = useMemo(
-    () => createColumns(t, bucket, onRestore, handleOpenDeleteDialog),
-    [t, bucket, onRestore],
+    () =>
+      createColumns(
+        t,
+        bucket,
+        isContributor,
+        onRestore,
+        handleOpenDeleteDialog,
+      ),
+    [t, bucket, isContributor, onRestore],
   );
 
   if (items.length === 0) {

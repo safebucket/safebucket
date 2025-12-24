@@ -164,7 +164,8 @@
       "grid_view": "Grid view",
       "activity": "Bucket activity",
       "trash": "Trash",
-      "settings": "Settings"
+      "settings": "Settings",
+      "view_only": "View-only access"
     },
     "list_view": {
       "name": "Name",
@@ -235,7 +236,8 @@
         "people_with_access": "People with access",
         "owner": "Owner",
         "you": "you",
-        "invited": "Invited"
+        "invited": "Invited",
+        "updated_successfully": "Bucket members updated successfully"
       }
     }
   },
@@ -254,7 +256,8 @@
     "drag_drop": {
       "drop_files": "Drop files or folders to upload",
       "drop_description": "Files and folders will be uploaded to the current directory"
-    }
+    },
+    "permission_denied": "You don't have permission to upload files to this bucket"
   },
   "settings": {
     "title": "Settings",

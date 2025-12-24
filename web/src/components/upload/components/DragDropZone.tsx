@@ -13,8 +13,10 @@ import type { IFolder } from "@/types/folder";
 import { cn } from "@/lib/utils";
 
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
+import { useBucketPermissions } from "@/hooks/usePermissions";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 import { createFolderMutationFn } from "@/components/upload/helpers/api";
+import { useToast } from "@/components/ui/hooks/use-toast.ts";
 
 interface IDragDropZoneProps {
   bucketId: string;
@@ -28,12 +30,14 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   className,
 }) => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
 
   const { startUpload } = useUploadContext();
   const { folderId } = useBucketViewContext();
+  const { isContributor } = useBucketPermissions(bucketId);
 
   // Store files with their relative paths
   interface FileWithPath {
@@ -236,6 +240,14 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       setIsDragOver(false);
       dragCounterRef.current = 0;
 
+      if (!isContributor) {
+        toast({
+          variant: "destructive",
+          description: t("upload.permission_denied"),
+        });
+        return;
+      }
+
       const items = e.dataTransfer.items;
 
       if (items.length > 0) {
@@ -290,6 +302,9 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       }
     },
     [
+      isContributor,
+      toast,
+      t,
       processDroppedItems,
       extractFolderPaths,
       createFolders,

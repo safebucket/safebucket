@@ -164,7 +164,8 @@
       "grid_view": "Vue grille",
       "activity": "Activité du bucket",
       "trash": "Corbeille",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "view_only": "Accès en lecture seule"
     },
     "list_view": {
       "name": "Nom",
@@ -235,7 +236,8 @@
         "people_with_access": "Personnes ayant accès",
         "owner": "Propriétaire",
         "you": "vous",
-        "invited": "Invité"
+        "invited": "Invité",
+        "updated_successfully": "Les membres du bucket ont été mis à jour avec succès"
       }
     }
   },
@@ -254,7 +256,8 @@
     "drag_drop": {
       "drop_files": "Déposez des fichiers ou dossiers à télécharger",
       "drop_description": "Les fichiers et dossiers seront téléchargés dans le répertoire actuel"
-    }
+    },
+    "permission_denied": "Vous n'avez pas la permission d'uploader des fichiers dans ce bucket"
   },
   "settings": {
     "title": "Paramètres",

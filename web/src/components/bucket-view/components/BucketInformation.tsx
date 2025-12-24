@@ -5,6 +5,7 @@ import type { FC } from "react";
 
 import type { IBucket } from "@/types/bucket.ts";
 import { useBucketInformation } from "@/components/bucket-view/hooks/useBucketInformation";
+import { useBucketPermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ interface IBucketInformationProps {
 
 export const BucketInformation: FC<IBucketInformationProps> = ({ bucket }) => {
   const { t } = useTranslation();
+  const { isOwner } = useBucketPermissions(bucket.id);
   const {
     isEditingName,
     setIsEditingName,
@@ -82,13 +84,15 @@ export const BucketInformation: FC<IBucketInformationProps> = ({ bucket }) => {
             ) : (
               <>
                 <Input value={bucket.name} disabled className="text-sm" />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsEditingName(true)}
-                >
-                  <Edit2 className="h-3 w-3" />
-                </Button>
+                {isOwner && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditingName(true)}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                )}
               </>
             )}
           </div>
