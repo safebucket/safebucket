@@ -2,7 +2,8 @@
   "common": {
     "logout": "Déconnexion",
     "save": "Enregistrer",
-    "create": "Créer"
+    "create": "Créer",
+    "cancel": "Annuler"
   },
   "auth": {
     "sign_in_title": "Connectez-vous à votre compte",
@@ -110,7 +111,9 @@
     "shared_buckets": "Buckets",
     "settings": "Paramètres",
     "profile": "Profil",
-    "preferences": "Préférences"
+    "preferences": "Préférences",
+    "administration": "Administration",
+    "users": "Utilisateurs"
   },
   "activity": {
     "title": "Flux d'activité",
@@ -342,6 +345,36 @@
       "error_confirm_password_required": "Veuillez confirmer votre mot de passe",
       "error_confirm_password_mismatch": "Les mots de passe ne correspondent pas",
       "footer_text": "Vous n'avez pas reçu le code ? Vérifiez votre dossier spam ou demandez-en un nouveau"
+    }
+  },
+  "admin": {
+    "users": {
+      "title": "Gestion des utilisateurs",
+      "description": "Gérer tous les utilisateurs du système",
+      "add_user": "Ajouter un utilisateur",
+      "no_users": "Aucun utilisateur trouvé.",
+      "columns": {
+        "email": "E-mail",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "role": "Rôle",
+        "provider": "Fournisseur",
+        "created": "Créé",
+        "actions": "Actions"
+      },
+      "add_user_dialog": {
+        "title": "Ajouter un nouvel utilisateur",
+        "description": "Créer un nouveau compte utilisateur",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "email": "E-mail",
+        "password": "Mot de passe"
+      },
+      "delete_dialog": {
+        "title": "Supprimer l'utilisateur",
+        "description": "Êtes-vous sûr de vouloir supprimer {{email}} ? Cette action est irréversible.",
+        "confirm": "Supprimer"
+      }
     }
   }
 }
