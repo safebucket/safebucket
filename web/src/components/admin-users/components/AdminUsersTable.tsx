@@ -63,7 +63,9 @@ export function AdminUsersTable({
                       )}
                 </TableHead>
               ))}
-              <TableHead className="w-[50px]">{t("admin.users.columns.actions")}</TableHead>
+              <TableHead className="w-[50px]">
+                {t("admin.users.columns.actions")}
+              </TableHead>
             </TableRow>
           ))}
         </TableHeader>
