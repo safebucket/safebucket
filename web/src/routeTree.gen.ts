@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as InvitesIdIndexRouteImport } from './routes/invites/$id/index'
 import { Route as AuthResetPasswordIndexRouteImport } from './routes/auth/reset-password/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
@@ -20,6 +21,7 @@ import { Route as AuthenticatedActivityIndexRouteImport } from './routes/_authen
 import { Route as AuthResetPasswordIdIndexRouteImport } from './routes/auth/reset-password/$id/index'
 import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
 import { Route as AuthenticatedSettingsPreferencesIndexRouteImport } from './routes/_authenticated/settings/preferences/index'
+import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
 import { Route as AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport } from './routes/_authenticated/buckets/$bucketId/{-$folderId}'
 import { Route as InvitesIdChallengesChallengeIdIndexRouteImport } from './routes/invites/$id/challenges/$challengeId/index'
 
@@ -30,6 +32,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const InvitesIdIndexRoute = InvitesIdIndexRouteImport.update({
@@ -82,6 +89,12 @@ const AuthenticatedSettingsPreferencesIndexRoute =
     path: '/settings/preferences/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminUsersIndexRoute =
+  AuthenticatedAdminUsersIndexRouteImport.update({
+    id: '/users/',
+    path: '/users/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedBucketsBucketIdChar123FolderIdChar125Route =
   AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport.update({
     id: '/buckets/$bucketId/{-$folderId}',
@@ -96,6 +109,7 @@ const InvitesIdChallengesChallengeIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/': typeof AuthenticatedIndexRoute
   '/activity': typeof AuthenticatedActivityIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
@@ -104,12 +118,14 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
+  '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
 export interface FileRoutesByTo {
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/': typeof AuthenticatedIndexRoute
   '/activity': typeof AuthenticatedActivityIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
@@ -118,6 +134,7 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
+  '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
@@ -126,6 +143,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/activity/': typeof AuthenticatedActivityIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -134,6 +152,7 @@ export interface FileRoutesById {
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
   '/_authenticated/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
+  '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/_authenticated/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
   '/auth/reset-password/$id/': typeof AuthResetPasswordIdIndexRoute
@@ -142,6 +161,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/admin'
     | '/'
     | '/activity'
     | '/settings'
@@ -150,12 +170,14 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/invites/$id'
     | '/buckets/$bucketId/{-$folderId}'
+    | '/admin/users'
     | '/settings/preferences'
     | '/settings/profile'
     | '/auth/reset-password/$id'
     | '/invites/$id/challenges/$challengeId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/admin'
     | '/'
     | '/activity'
     | '/settings'
@@ -164,6 +186,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/invites/$id'
     | '/buckets/$bucketId/{-$folderId}'
+    | '/admin/users'
     | '/settings/preferences'
     | '/settings/profile'
     | '/auth/reset-password/$id'
@@ -171,6 +194,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_authenticated'
+    | '/_authenticated/admin'
     | '/_authenticated/'
     | '/_authenticated/activity/'
     | '/_authenticated/settings/'
@@ -179,6 +203,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password/'
     | '/invites/$id/'
     | '/_authenticated/buckets/$bucketId/{-$folderId}'
+    | '/_authenticated/admin/users/'
     | '/_authenticated/settings/preferences/'
     | '/_authenticated/settings/profile/'
     | '/auth/reset-password/$id/'
@@ -209,6 +234,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/invites/$id/': {
@@ -274,6 +306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsPreferencesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/users/': {
+      id: '/_authenticated/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/buckets/$bucketId/{-$folderId}': {
       id: '/_authenticated/buckets/$bucketId/{-$folderId}'
       path: '/buckets/$bucketId/{-$folderId}'
@@ -291,7 +330,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminUsersIndexRoute: typeof AuthenticatedAdminUsersIndexRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminUsersIndexRoute: AuthenticatedAdminUsersIndexRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
 interface AuthenticatedRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedActivityIndexRoute: typeof AuthenticatedActivityIndexRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
@@ -301,6 +352,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedActivityIndexRoute: AuthenticatedActivityIndexRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,

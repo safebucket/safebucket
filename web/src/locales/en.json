@@ -2,7 +2,8 @@
   "common": {
     "logout": "Logout",
     "save": "Save",
-    "create": "Create"
+    "create": "Create",
+    "cancel": "Cancel"
   },
   "auth": {
     "sign_in_title": "Sign in to your account",
@@ -110,7 +111,9 @@
     "shared_buckets": "Buckets",
     "settings": "Settings",
     "profile": "Profile",
-    "preferences": "Preferences"
+    "preferences": "Preferences",
+    "administration": "Administration",
+    "users": "Users"
   },
   "activity": {
     "title": "Activity Feed",
@@ -342,6 +345,36 @@
       "error_confirm_password_required": "Please confirm your password",
       "error_confirm_password_mismatch": "Passwords do not match",
       "footer_text": "Didn't receive the code? Check your spam folder or request a new one"
+    }
+  },
+  "admin": {
+    "users": {
+      "title": "User Management",
+      "description": "Manage all users in the system",
+      "add_user": "Add User",
+      "no_users": "No users found.",
+      "columns": {
+        "email": "Email",
+        "first_name": "First Name",
+        "last_name": "Last Name",
+        "role": "Role",
+        "provider": "Provider",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "add_user_dialog": {
+        "title": "Add New User",
+        "description": "Create a new user account",
+        "first_name": "First Name",
+        "last_name": "Last Name",
+        "email": "Email",
+        "password": "Password"
+      },
+      "delete_dialog": {
+        "title": "Delete User",
+        "description": "Are you sure you want to delete {{email}}? This action cannot be undone.",
+        "confirm": "Delete"
+      }
     }
   }
 }
