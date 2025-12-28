@@ -36,9 +36,7 @@ export const AdminActivityView: FC = () => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>{t("admin.activity.title")}</CardTitle>
-            <CardDescription>
-              {t("admin.activity.description")}
-            </CardDescription>
+            <CardDescription>{t("admin.activity.description")}</CardDescription>
           </div>
           <Button
             type="button"
@@ -47,7 +45,9 @@ export const AdminActivityView: FC = () => {
             onClick={() => refetch()}
             disabled={isFetching}
           >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+            />
           </Button>
         </CardHeader>
         <CardContent>

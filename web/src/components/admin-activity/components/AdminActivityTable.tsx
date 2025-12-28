@@ -24,10 +24,7 @@ interface AdminActivityTableProps {
   data: Array<IActivity>;
 }
 
-export function AdminActivityTable({
-  columns,
-  data,
-}: AdminActivityTableProps) {
+export function AdminActivityTable({ columns, data }: AdminActivityTableProps) {
   const { t } = useTranslation();
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -74,10 +71,7 @@ export function AdminActivityTable({
             ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center"
-              >
+              <TableCell colSpan={columns.length} className="h-24 text-center">
                 {t("admin.activity.no_activity")}
               </TableCell>
             </TableRow>
