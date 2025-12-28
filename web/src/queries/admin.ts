@@ -47,3 +47,35 @@ export const useDeleteUserMutation = () => {
     onError: (error: Error) => errorToast(error),
   });
 };
+
+export interface RoleCount {
+  role: string;
+  count: number;
+}
+
+export interface ProviderCount {
+  provider: string;
+  count: number;
+}
+
+export interface TimeSeriesPoint {
+  date: string;
+  count: number;
+}
+
+export interface AdminStatsResponse {
+  total_users: number;
+  total_buckets: number;
+  total_files: number;
+  total_folders: number;
+  total_storage: number;
+  role_distribution: Array<RoleCount>;
+  provider_distribution: Array<ProviderCount>;
+  shared_files: Array<TimeSeriesPoint>;
+}
+
+export const adminStatsQueryOptions = (days: number = 90) =>
+  queryOptions({
+    queryKey: ["admin", "stats", days],
+    queryFn: () => api.get<AdminStatsResponse>(`/admin/stats?days=${days}`),
+  });

@@ -146,6 +146,10 @@ func main() {
 			Providers:      providers,
 			WebURL:         config.App.WebURL,
 		}.Routes())
+
+		apiRouter.Mount("/v1/admin", services.AdminService{
+			DB: db,
+		}.Routes())
 	})
 
 	// Initialize and mount static file service (if enabled)

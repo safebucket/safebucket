@@ -22,6 +22,7 @@ import { Route as AuthResetPasswordIdIndexRouteImport } from './routes/auth/rese
 import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
 import { Route as AuthenticatedSettingsPreferencesIndexRouteImport } from './routes/_authenticated/settings/preferences/index'
 import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
+import { Route as AuthenticatedAdminDashboardIndexRouteImport } from './routes/_authenticated/admin/dashboard/index'
 import { Route as AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport } from './routes/_authenticated/buckets/$bucketId/{-$folderId}'
 import { Route as InvitesIdChallengesChallengeIdIndexRouteImport } from './routes/invites/$id/challenges/$challengeId/index'
 
@@ -95,6 +96,12 @@ const AuthenticatedAdminUsersIndexRoute =
     path: '/users/',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminDashboardIndexRoute =
+  AuthenticatedAdminDashboardIndexRouteImport.update({
+    id: '/dashboard/',
+    path: '/dashboard/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedBucketsBucketIdChar123FolderIdChar125Route =
   AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport.update({
     id: '/buckets/$bucketId/{-$folderId}',
@@ -118,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
+  '/admin/dashboard': typeof AuthenticatedAdminDashboardIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
+  '/admin/dashboard': typeof AuthenticatedAdminDashboardIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
@@ -152,6 +161,7 @@ export interface FileRoutesById {
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
   '/_authenticated/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
+  '/_authenticated/admin/dashboard/': typeof AuthenticatedAdminDashboardIndexRoute
   '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/_authenticated/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/invites/$id'
     | '/buckets/$bucketId/{-$folderId}'
+    | '/admin/dashboard'
     | '/admin/users'
     | '/settings/preferences'
     | '/settings/profile'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/invites/$id'
     | '/buckets/$bucketId/{-$folderId}'
+    | '/admin/dashboard'
     | '/admin/users'
     | '/settings/preferences'
     | '/settings/profile'
@@ -203,6 +215,7 @@ export interface FileRouteTypes {
     | '/auth/reset-password/'
     | '/invites/$id/'
     | '/_authenticated/buckets/$bucketId/{-$folderId}'
+    | '/_authenticated/admin/dashboard/'
     | '/_authenticated/admin/users/'
     | '/_authenticated/settings/preferences/'
     | '/_authenticated/settings/profile/'
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/dashboard/': {
+      id: '/_authenticated/admin/dashboard/'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AuthenticatedAdminDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/buckets/$bucketId/{-$folderId}': {
       id: '/_authenticated/buckets/$bucketId/{-$folderId}'
       path: '/buckets/$bucketId/{-$folderId}'
@@ -331,10 +351,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminDashboardIndexRoute: typeof AuthenticatedAdminDashboardIndexRoute
   AuthenticatedAdminUsersIndexRoute: typeof AuthenticatedAdminUsersIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminDashboardIndexRoute: AuthenticatedAdminDashboardIndexRoute,
   AuthenticatedAdminUsersIndexRoute: AuthenticatedAdminUsersIndexRoute,
 }
 

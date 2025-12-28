@@ -113,6 +113,7 @@
     "profile": "Profil",
     "preferences": "Préférences",
     "administration": "Administration",
+    "dashboard": "Tableau de bord",
     "users": "Utilisateurs"
   },
   "activity": {
@@ -345,6 +346,68 @@
       "error_confirm_password_required": "Veuillez confirmer votre mot de passe",
       "error_confirm_password_mismatch": "Les mots de passe ne correspondent pas",
       "footer_text": "Vous n'avez pas reçu le code ? Vérifiez votre dossier spam ou demandez-en un nouveau"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "stats": {
+        "users": "Utilisateurs",
+        "buckets": "Buckets",
+        "files": "Fichiers",
+        "storage": "Stockage"
+      },
+      "shared_files_chart": {
+        "title": "Fichiers partagés",
+        "description": "Fichiers uploadés dans des buckets avec plusieurs membres",
+        "6_months": "6 derniers mois",
+        "3_months": "3 derniers mois",
+        "1_month": "Dernier mois"
+      },
+      "role_distribution_chart": {
+        "title": "Distribution des rôles",
+        "description": "Utilisateurs par rôle de plateforme"
+      },
+      "provider_distribution_chart": {
+        "title": "Distribution des fournisseurs",
+        "description": "Utilisateurs par méthode d'authentification"
+      },
+      "roles": {
+        "admin": "Admin",
+        "user": "Utilisateur",
+        "guest": "Invité"
+      },
+      "providers": {
+        "local": "Local",
+        "oidc": "SSO (OIDC)"
+      }
+    },
+    "users": {
+      "title": "Gestion des utilisateurs",
+      "description": "Gérer tous les utilisateurs du système",
+      "add_user": "Ajouter un utilisateur",
+      "no_users": "Aucun utilisateur trouvé.",
+      "columns": {
+        "email": "E-mail",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "role": "Rôle",
+        "provider": "Fournisseur",
+        "created": "Créé",
+        "actions": "Actions"
+      },
+      "add_user_dialog": {
+        "title": "Ajouter un nouvel utilisateur",
+        "description": "Créer un nouveau compte utilisateur",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "email": "E-mail",
+        "password": "Mot de passe"
+      },
+      "delete_dialog": {
+        "title": "Supprimer l'utilisateur",
+        "description": "Êtes-vous sûr de vouloir supprimer {{email}} ? Cette action est irréversible.",
+        "confirm": "Supprimer"
+      }
     }
   },
   "admin": {
