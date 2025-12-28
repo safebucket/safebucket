@@ -6,8 +6,6 @@ import (
 
 	"api/internal/handlers"
 
-	"api/internal/sql"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
