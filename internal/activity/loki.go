@@ -246,11 +246,13 @@ func generateSearchQuery(searchCriteria map[string][]string) string {
 	formattedLabels := generateORCriteria(labels)
 	formattedMetadata := generateORCriteria(metadata)
 
-	return fmt.Sprintf(
-		"{%s} | %s",
-		strings.Join(formattedLabels, ", "),
-		strings.Join(formattedMetadata, " | "),
-	)
+	query := fmt.Sprintf("{%s}", strings.Join(formattedLabels, ", "))
+
+	if len(formattedMetadata) > 0 {
+		query = fmt.Sprintf("%s | %s", query, strings.Join(formattedMetadata, " | "))
+	}
+
+	return query
 }
 
 func generateORCriteria(criteria map[string][]string) []string {

@@ -31,4 +31,5 @@ const (
 	ResourceBucket = Resource("bucket")
 	ResourceFile   = Resource("file")
 	ResourceFolder = Resource("folder")
+	ResourceUser   = Resource("user")
 )

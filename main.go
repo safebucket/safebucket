@@ -148,7 +148,8 @@ func main() {
 		}.Routes())
 
 		apiRouter.Mount("/v1/admin", services.AdminService{
-			DB: db,
+			DB:             db,
+			ActivityLogger: activity,
 		}.Routes())
 	})
 

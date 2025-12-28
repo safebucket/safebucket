@@ -47,6 +47,11 @@ func AuthorizeGroup(
 				return
 			}
 
+			if userClaims.Role == models.RoleAdmin {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			ids, ok := h.ParseUUIDs(w, r)
 			if !ok {
 				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})

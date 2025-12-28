@@ -1,4 +1,5 @@
 import {
+  Activity,
   Home,
   LayoutDashboard,
   LifeBuoy,
@@ -39,6 +40,11 @@ export const nav = {
           title: "navigation.dashboard",
           url: "/admin/dashboard",
           icon: LayoutDashboard,
+        },
+        {
+          title: "navigation.admin_activity",
+          url: "/admin/activity",
+          icon: Activity,
         },
         {
           title: "navigation.users",

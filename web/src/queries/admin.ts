@@ -4,6 +4,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { IUser } from "@/components/auth-view/types/session";
+import type { IActivity } from "@/types/activity";
 import { api } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 
@@ -78,4 +79,11 @@ export const adminStatsQueryOptions = (days: number = 90) =>
   queryOptions({
     queryKey: ["admin", "stats", days],
     queryFn: () => api.get<AdminStatsResponse>(`/admin/stats?days=${days}`),
+  });
+
+export const adminActivityQueryOptions = () =>
+  queryOptions({
+    queryKey: ["admin", "activity"],
+    queryFn: () => api.get<{ data: Array<IActivity> }>("/admin/activity"),
+    select: (data) => data.data,
   });

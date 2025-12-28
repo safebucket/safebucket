@@ -114,7 +114,8 @@
     "preferences": "Preferences",
     "administration": "Administration",
     "dashboard": "Dashboard",
-    "users": "Users"
+    "users": "Users",
+    "admin_activity": "Activity"
   },
   "activity": {
     "title": "Activity Feed",
@@ -399,6 +400,19 @@
         "title": "Delete User",
         "description": "Are you sure you want to delete {{email}}? This action cannot be undone.",
         "confirm": "Delete"
+      }
+    },
+    "activity": {
+      "title": "Platform Activity",
+      "description": "View all activity across the platform",
+      "no_activity": "No activity found.",
+      "columns": {
+        "user": "User",
+        "action": "Action",
+        "resource_type": "Type",
+        "resource_name": "Resource",
+        "bucket": "Bucket",
+        "timestamp": "Time"
       }
     }
   }

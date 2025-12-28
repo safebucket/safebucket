@@ -1,11 +1,14 @@
 package services
 
 import (
+	"api/internal/activity"
+	"api/internal/handlers"
 	m "api/internal/middlewares"
 	"api/internal/models"
 
-	"api/internal/handlers"
+	"api/internal/sql"
 
+	"api/internal/rbac"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -13,7 +16,8 @@ import (
 )
 
 type AdminService struct {
-	DB *gorm.DB
+	DB             *gorm.DB
+	ActivityLogger activity.IActivityLogger
 }
 
 func (s AdminService) Routes() chi.Router {
@@ -22,6 +26,9 @@ func (s AdminService) Routes() chi.Router {
 	r.With(m.AuthorizeRole(models.RoleAdmin)).
 		With(m.ValidateQuery[models.AdminStatsQueryParams]).
 		Get("/stats", handlers.GetOneWithQueryHandler(s.GetStats))
+
+	r.With(m.AuthorizeRole(models.RoleAdmin)).
+		Get("/activity", handlers.GetListHandler(s.GetActivity))
 
 	return r
 }
@@ -56,4 +63,26 @@ func (s AdminService) GetStats(
 	response.SharedFiles = sql.GetSharedFilesByDay(s.DB, queryParams.Days)
 
 	return response, nil
+}
+
+func (s AdminService) GetActivity(
+	_ *zap.Logger,
+	_ models.UserClaims,
+	_ uuid.UUIDs,
+) []map[string]interface{} {
+	searchCriteria := map[string][]string{
+		"object_type": {
+			rbac.ResourceBucket.String(),
+			rbac.ResourceFile.String(),
+			rbac.ResourceFolder.String(),
+			rbac.ResourceUser.String(),
+		},
+	}
+
+	activities, err := s.ActivityLogger.Search(searchCriteria)
+	if err != nil {
+		return []map[string]interface{}{}
+	}
+
+	return activity.EnrichActivity(s.DB, activities)
 }

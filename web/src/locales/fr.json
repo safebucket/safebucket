@@ -114,7 +114,8 @@
     "preferences": "Préférences",
     "administration": "Administration",
     "dashboard": "Tableau de bord",
-    "users": "Utilisateurs"
+    "users": "Utilisateurs",
+    "admin_activity": "Activité"
   },
   "activity": {
     "title": "Flux d'activité",
@@ -399,6 +400,19 @@
         "title": "Supprimer l'utilisateur",
         "description": "Êtes-vous sûr de vouloir supprimer {{email}} ? Cette action est irréversible.",
         "confirm": "Supprimer"
+      }
+    },
+    "activity": {
+      "title": "Activité de la plateforme",
+      "description": "Voir toute l'activité de la plateforme",
+      "no_activity": "Aucune activité trouvée.",
+      "columns": {
+        "user": "Utilisateur",
+        "action": "Action",
+        "resource_type": "Type",
+        "resource_name": "Ressource",
+        "bucket": "Bucket",
+        "timestamp": "Heure"
       }
     }
   }
