@@ -358,18 +358,10 @@
       },
       "shared_files_chart": {
         "title": "Shared Files",
-        "description": "Files uploaded to buckets with multiple members",
+        "description": "Files uploaded to buckets over time",
         "6_months": "Last 6 months",
         "3_months": "Last 3 months",
         "1_month": "Last month"
-      },
-      "role_distribution_chart": {
-        "title": "Role Distribution",
-        "description": "Users by platform role"
-      },
-      "provider_distribution_chart": {
-        "title": "Auth Provider Distribution",
-        "description": "Users by authentication method"
       },
       "roles": {
         "admin": "Admin",

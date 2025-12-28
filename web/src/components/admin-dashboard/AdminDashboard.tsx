@@ -4,18 +4,9 @@ import { useTranslation } from "react-i18next";
 import { useAdminDashboardData } from "./hooks/useAdminDashboardData";
 import { StatCard } from "./components/StatCard";
 import { SharedFilesChart } from "./components/SharedFilesChart";
-import { RoleDistributionChart } from "./components/RoleDistributionChart";
-import { AuthProviderChart } from "./components/AuthProviderChart";
 import type { FC } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
+import { formatFileSize } from "@/lib/utils.ts";
 
 export const AdminDashboard: FC = () => {
   const { t } = useTranslation();
@@ -48,6 +39,7 @@ export const AdminDashboard: FC = () => {
           title={t("admin.dashboard.stats.users")}
           value={stats?.total_users ?? 0}
           icon={Users}
+          href="/admin/users"
         />
         <StatCard
           title={t("admin.dashboard.stats.buckets")}
@@ -61,14 +53,9 @@ export const AdminDashboard: FC = () => {
         />
         <StatCard
           title={t("admin.dashboard.stats.storage")}
-          value={formatBytes(stats?.total_storage ?? 0)}
+          value={formatFileSize(stats?.total_storage ?? 0)}
           icon={HardDrive}
         />
-      </div>
-
-      <div className="mb-6 grid gap-4 md:grid-cols-2">
-        <RoleDistributionChart data={stats?.role_distribution ?? []} />
-        <AuthProviderChart data={stats?.provider_distribution ?? []} />
       </div>
 
       <SharedFilesChart

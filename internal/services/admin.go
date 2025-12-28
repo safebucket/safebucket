@@ -55,20 +55,6 @@ func (s AdminService) GetStats(
 		response.TotalStorageBytes = *totalStorage
 	}
 
-	var roleDistribution []models.RoleCount
-	s.DB.Model(&models.User{}).
-		Select("role, COUNT(*) as count").
-		Group("role").
-		Scan(&roleDistribution)
-	response.RoleDistribution = roleDistribution
-
-	var providerDistribution []models.ProviderCount
-	s.DB.Model(&models.User{}).
-		Select("provider_type as provider, COUNT(*) as count").
-		Group("provider_type").
-		Scan(&providerDistribution)
-	response.ProviderDistribution = providerDistribution
-
 	response.SharedFiles = s.getSharedFilesByDay(queryParams.Days)
 
 	return response, nil
