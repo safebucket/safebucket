@@ -1,13 +1,12 @@
 package services
 
 import (
-	"time"
-
 	m "api/internal/middlewares"
 	"api/internal/models"
 
 	"api/internal/handlers"
 
+	"api/internal/sql"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -55,24 +54,7 @@ func (s AdminService) GetStats(
 		response.TotalStorageBytes = *totalStorage
 	}
 
-	response.SharedFiles = s.getSharedFilesByDay(queryParams.Days)
+	response.SharedFiles = sql.GetSharedFilesByDay(s.DB, queryParams.Days)
 
 	return response, nil
-}
-
-func (s AdminService) getSharedFilesByDay(days int) []models.TimeSeriesPoint {
-	var result []models.TimeSeriesPoint
-
-	startDate := time.Now().AddDate(0, 0, -days)
-
-	// Get files from shared buckets grouped by day
-	s.DB.Model(&models.File{}).
-		Select("TO_CHAR(files.created_at, 'YYYY-MM-DD') as date, COUNT(*) as count").
-		Where("status = ?", models.FileStatusUploaded).
-		Where("files.created_at >= ?", startDate).
-		Group("TO_CHAR(files.created_at, 'YYYY-MM-DD')").
-		Order("date ASC").
-		Scan(&result)
-
-	return result
 }

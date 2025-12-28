@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"time"
 )
 
 func GetFileByID(db *gorm.DB, bucketID uuid.UUID, fileID uuid.UUID) (models.File, error) {
@@ -21,4 +22,21 @@ func GetFileByID(db *gorm.DB, bucketID uuid.UUID, fileID uuid.UUID) (models.File
 	}
 
 	return file, nil
+}
+
+func GetSharedFilesByDay(db *gorm.DB, days int) []models.TimeSeriesPoint {
+	var result []models.TimeSeriesPoint
+
+	startDate := time.Now().AddDate(0, 0, -days)
+
+	// Get files from shared buckets grouped by day
+	db.Model(&models.File{}).
+		Select("TO_CHAR(files.created_at, 'YYYY-MM-DD') as date, COUNT(*) as count").
+		Where("status = ?", models.FileStatusUploaded).
+		Where("files.created_at >= ?", startDate).
+		Group("TO_CHAR(files.created_at, 'YYYY-MM-DD')").
+		Order("date ASC").
+		Scan(&result)
+
+	return result
 }
