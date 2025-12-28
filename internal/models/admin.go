@@ -15,18 +15,6 @@ type AdminStatsResponse struct {
 	SharedFiles       []TimeSeriesPoint `json:"shared_files"`
 }
 
-// RoleCount represents the count of users per role.
-type RoleCount struct {
-	Role  string `json:"role"`
-	Count int64  `json:"count"`
-}
-
-// ProviderCount represents the count of users per auth provider.
-type ProviderCount struct {
-	Provider string `json:"provider"`
-	Count    int64  `json:"count"`
-}
-
 // TimeSeriesPoint represents a data point in a time series chart.
 type TimeSeriesPoint struct {
 	Date  string `json:"date"`
