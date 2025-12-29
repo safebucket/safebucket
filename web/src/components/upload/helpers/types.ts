@@ -21,12 +21,18 @@ export interface IUploadContext {
     files: FileList,
     bucketId: string,
     folderId: string | undefined,
+    settings?: IUploadSettings,
   ) => void;
   cancelUpload: (uploadId: string) => void;
   hasActiveUploads: boolean;
 }
 
 export type UploadStatus = "uploading" | "success" | "error";
+
+export interface IUploadSettings {
+  expiresAt?: Date;
+  maxDownloads?: number;
+}
 
 export interface IUpload {
   id: string;
@@ -35,6 +41,7 @@ export interface IUpload {
   progress: number;
   status: UploadStatus;
   error?: Error;
+  settings?: IUploadSettings;
 }
 
 export type FileSystemEntry = {

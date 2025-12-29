@@ -1,34 +1,29 @@
-export const shareFileFields = [
-  { id: "files", label: "File", type: "file" as const, required: true },
-  // TODO(YLB): Uncomment when needed
-  // {
-  //   id: "password",
-  //   label: "Password",
-  //   type: "text" as const,
-  //   defaultValue: "0UymxETG$wc)7k8",
-  // },
-  // {
-  //   id: "maxDownloads",
-  //   label: "Max downloads",
-  //   type: "select" as const,
-  //   options: [
-  //     { value: "unlimited", label: "Unlimited" },
-  //     { value: "1", label: "1" },
-  //     { value: "3", label: "3" },
-  //     { value: "5", label: "5" },
-  //   ],
-  //   defaultValue: "unlimited",
-  // },
-  // {
-  //   id: "expiresAt",
-  //   label: "Expires at",
-  //   type: "switch" as const,
-  //   defaultValue: false,
-  // },
-  // {
-  //   id: "expiresAtDate",
-  //   label: "Date",
-  //   type: "datepicker" as const,
-  //   condition: (values: FieldValues) => !!values.expiresAt,
-  // },
+// Get tomorrow's date as minimum for expiration
+const getTomorrowDate = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split("T")[0];
+};
+
+export const getShareFileFields = (t: (key: string) => string) => [
+  { id: "files", label: t("bucket.header.file_label"), type: "file" as const, required: true },
+  {
+    id: "sharingOptionsSection",
+    label: t("upload.settings.section_title"),
+    type: "section" as const,
+  },
+  {
+    id: "expiresAt",
+    label: t("upload.settings.expiration_label"),
+    type: "date" as const,
+    min: getTomorrowDate(),
+  },
+  {
+    id: "maxDownloads",
+    label: t("upload.settings.max_downloads_label"),
+    type: "number" as const,
+    placeholder: t("upload.settings.max_downloads_placeholder"),
+    min: 1,
+    max: 10000,
+  },
 ];

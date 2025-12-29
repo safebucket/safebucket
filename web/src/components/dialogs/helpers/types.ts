@@ -10,11 +10,16 @@ export interface IFormField {
     | "select"
     | "switch"
     | "datepicker"
-    | "otp";
+    | "otp"
+    | "date"
+    | "number"
+    | "section";
   placeholder?: string;
   required?: boolean;
   options?: Array<{ value: string; label: string }>;
-  defaultValue?: string | boolean;
+  defaultValue?: string | boolean | number;
   condition?: (values: FieldValues) => boolean;
   maxLength?: number;
+  min?: string | number;
+  max?: string | number;
 }

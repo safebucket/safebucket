@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { IUpload } from "@/components/upload/helpers/types";
+import type { IUpload, IUploadSettings } from "@/components/upload/helpers/types";
 import { generateRandomString } from "@/lib/utils";
 
 import { successToast } from "@/components/ui/hooks/use-toast";
@@ -22,11 +22,13 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
       bucketId,
       folderId,
       uploadId,
+      settings,
     }: {
       file: File;
       bucketId: string;
       folderId: string | undefined;
       uploadId: string;
+      settings?: IUploadSettings;
     }) => {
       const abortController = new AbortController();
       abortControllersRef.current.set(uploadId, abortController);
@@ -37,6 +39,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           bucketId,
           file.size,
           folderId,
+          settings,
         );
 
         queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
@@ -81,7 +84,12 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const startUpload = useCallback(
-    (files: FileList, bucketId: string, folderId: string | undefined) => {
+    (
+      files: FileList,
+      bucketId: string,
+      folderId: string | undefined,
+      settings?: IUploadSettings,
+    ) => {
       Array.from(files).forEach((file) => {
         const uploadId = generateRandomString(12);
         const displayPath = file.name;
@@ -94,10 +102,11 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
             path: displayPath,
             progress: 0,
             status: "uploading",
+            settings,
           },
         ]);
 
-        uploadMutation.mutate({ file, bucketId, folderId, uploadId });
+        uploadMutation.mutate({ file, bucketId, folderId, uploadId, settings });
       });
     },
     [uploadMutation],

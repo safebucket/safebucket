@@ -1,4 +1,7 @@
-import type { ICreateFile } from "@/components/upload/helpers/types";
+import type {
+  ICreateFile,
+  IUploadSettings,
+} from "@/components/upload/helpers/types";
 import type { IFolder } from "@/types/folder";
 import { api } from "@/lib/api";
 
@@ -9,12 +12,23 @@ export const api_createFile = (
   bucketId: string,
   size: number,
   folderId: string | undefined,
-) =>
-  api.post<ICreateFile>(`/buckets/${bucketId}/files`, {
+  settings?: IUploadSettings,
+) => {
+  const sharingOptions =
+    settings?.expiresAt || settings?.maxDownloads
+      ? {
+          expires_at: settings.expiresAt?.toISOString(),
+          max_downloads: settings.maxDownloads,
+        }
+      : undefined;
+
+  return api.post<ICreateFile>(`/buckets/${bucketId}/files`, {
     name,
     size,
     folder_id: folderId,
+    sharing_options: sharingOptions,
   });
+};
 
 export const uploadToStorage = async (
   presignedUpload: ICreateFile,

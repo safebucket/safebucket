@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
+import { CheckCircle, Clock, Download, LoaderCircle, Trash2 } from "lucide-react";
 import type { FC } from "react";
 
 import { FileStatus } from "@/types/file.ts";
@@ -9,6 +9,11 @@ import { FileActions } from "@/components/FileActions/FileActions";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { BucketItem } from "@/types/bucket.ts";
 
 interface IFileGridCardProps {
@@ -72,6 +77,82 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
     }
   };
 
+  const renderSharingIndicators = () => {
+    // Only show for files (not folders) that have sharing options
+    if (isFolder(file) || !("sharing_options" in file) || !file.sharing_options) {
+      return null;
+    }
+
+    const sharingOptions = file.sharing_options;
+    const indicators = [];
+
+    // Expiration indicator
+    if (sharingOptions.expires_at) {
+      const expiresAt = new Date(sharingOptions.expires_at);
+      const isExpired = expiresAt < new Date();
+
+      indicators.push(
+        <Tooltip key="expiration">
+          <TooltipTrigger asChild>
+            <Clock
+              className={cn(
+                "h-3.5 w-3.5",
+                isExpired ? "text-red-500" : "text-blue-500",
+                isSelected && "text-primary-foreground"
+              )}
+            />
+          </TooltipTrigger>
+          <TooltipContent>
+            {isExpired
+              ? t("file.sharing.expired")
+              : t("file.sharing.expires_at", { date: formatDate(sharingOptions.expires_at) })}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    // Download limit indicator
+    if (sharingOptions.max_downloads) {
+      const remaining = sharingOptions.max_downloads - sharingOptions.download_count;
+      const isLimitReached = remaining <= 0;
+
+      indicators.push(
+        <Tooltip key="downloads">
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-0.5">
+              <Download
+                className={cn(
+                  "h-3.5 w-3.5",
+                  isLimitReached ? "text-red-500" : "text-purple-500",
+                  isSelected && "text-primary-foreground"
+                )}
+              />
+              <span
+                className={cn(
+                  "text-xs",
+                  isLimitReached ? "text-red-500" : "text-purple-500",
+                  isSelected && "text-primary-foreground"
+                )}
+              >
+                {remaining}
+              </span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {t("file.sharing.downloads_remaining", {
+              count: remaining,
+              max: sharingOptions.max_downloads,
+            })}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return indicators.length > 0 ? (
+      <div className="flex items-center gap-2">{indicators}</div>
+    ) : null;
+  };
+
   return (
     <FileActions file={file} type="context">
       <Card
@@ -118,7 +199,10 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
               >
                 {itemIsFolder ? "-" : formatFileSize(file.size)}
               </p>
-              {renderStatusBadge()}
+              <div className="flex items-center gap-2">
+                {renderStatusBadge()}
+                {renderSharingIndicators()}
+              </div>
             </div>
           </div>
         </div>

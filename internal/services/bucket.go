@@ -230,6 +230,7 @@ func (s BucketService) GetBucket(
 	switch status {
 	case "deleted":
 		fileResult := s.DB.Unscoped().
+			Preload("SharingOptions").
 			Where(
 				"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?)",
 				bucketID,
@@ -271,7 +272,7 @@ func (s BucketService) GetBucket(
 
 	case "all":
 		// Show all items regardless of status
-		result = s.DB.Where("bucket_id = ?", bucketID).Find(&files)
+		result = s.DB.Preload("SharingOptions").Where("bucket_id = ?", bucketID).Find(&files)
 		if result.RowsAffected > 0 {
 			bucket.Files = files
 		}
@@ -284,7 +285,7 @@ func (s BucketService) GetBucket(
 	case "uploading":
 		// Show only items being uploaded
 		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
-		result = s.DB.Where(
+		result = s.DB.Preload("SharingOptions").Where(
 			"bucket_id = ? AND status = ? AND created_at > ?",
 			bucketID,
 			models.FileStatusUploading,
@@ -302,7 +303,7 @@ func (s BucketService) GetBucket(
 		// Filter out expired files that haven't been uploaded yet
 		// GORM automatically excludes soft-deleted items (deleted_at IS NOT NULL)
 		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
-		result = s.DB.Where(
+		result = s.DB.Preload("SharingOptions").Where(
 			"bucket_id = ? AND (status = ? OR (status = ? AND created_at > ?))",
 			bucketID,
 			models.FileStatusUploaded,

@@ -166,6 +166,7 @@
       "upload_file": "Uploader un fichier",
       "upload_and_share": "Uploadez un fichier et partagez-le en toute sécurité",
       "upload": "Uploader",
+      "file_label": "Fichier",
       "list_view": "Vue liste",
       "grid_view": "Vue grille",
       "activity": "Activité du bucket",
@@ -263,7 +264,33 @@
       "drop_files": "Déposez des fichiers ou dossiers à télécharger",
       "drop_description": "Les fichiers et dossiers seront téléchargés dans le répertoire actuel"
     },
-    "permission_denied": "Vous n'avez pas la permission d'uploader des fichiers dans ce bucket"
+    "permission_denied": "Vous n'avez pas la permission d'uploader des fichiers dans ce bucket",
+    "settings": {
+      "title": "Options de partage",
+      "section_title": "Options de partage (optionnel)",
+      "description": "Configurer les paramètres optionnels pour {{count}} fichier(s)",
+      "set_expiration": "Définir une date d'expiration",
+      "expiration_label": "Date d'expiration",
+      "limit_downloads": "Limiter les téléchargements",
+      "max_downloads_label": "Téléchargements max",
+      "max_downloads_placeholder": "ex. 10",
+      "skip": "Ignorer",
+      "confirm": "Uploader"
+    }
+  },
+  "download": {
+    "error": {
+      "title": "Erreur de téléchargement",
+      "file_expired": "Ce fichier a expiré et n'est plus disponible au téléchargement.",
+      "limit_reached": "La limite de téléchargements a été atteinte pour ce fichier."
+    }
+  },
+  "file": {
+    "sharing": {
+      "expired": "Expiré",
+      "expires_at": "Expire le : {{date}}",
+      "downloads_remaining": "{{count}}/{{max}} téléchargements restants"
+    }
   },
   "settings": {
     "title": "Paramètres",

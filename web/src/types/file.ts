@@ -1,3 +1,5 @@
+import type { ISharingOptions } from "./sharing-options";
+
 export enum FileStatus {
   uploading = "uploading",
   uploaded = "uploaded",
@@ -24,4 +26,5 @@ export interface IFile {
   deleted_at?: string;
   deleted_by?: string;
   original_path?: string;
+  sharing_options?: ISharingOptions;
 }

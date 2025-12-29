@@ -1,10 +1,11 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDownIcon, FolderPlus, PlusCircle } from "lucide-react";
 import type { FC } from "react";
 
 import type { IBucket } from "@/types/bucket.ts";
 import { BucketViewOptions } from "@/components/bucket-view/components/BucketViewOptions";
-import { shareFileFields } from "@/components/bucket-view/helpers/constants";
+import { getShareFileFields } from "@/components/bucket-view/helpers/constants";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
@@ -37,6 +38,23 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   const { folderId } = useBucketViewContext();
   const { startUpload } = useUploadContext();
   const { createFolder } = useFileActions();
+
+  const shareFileFields = useMemo(() => getShareFileFields(t), [t]);
+
+  const handleUpload = (data: Record<string, unknown>) => {
+    const files = data.files as FileList;
+    const settings: { expiresAt?: Date; maxDownloads?: number } = {};
+
+    if (data.expiresAt) {
+      settings.expiresAt = new Date(data.expiresAt as string);
+    }
+
+    if (data.maxDownloads) {
+      settings.maxDownloads = Number(data.maxDownloads);
+    }
+
+    startUpload(files, bucket.id, folderId, settings);
+  };
 
   return (
     <div className="flex-1">
@@ -76,9 +94,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
                 title={t("bucket.header.upload_file")}
                 description={t("bucket.header.upload_and_share")}
                 fields={shareFileFields}
-                onSubmit={(data) =>
-                  startUpload(data.files, bucket.id, folderId)
-                }
+                onSubmit={handleUpload}
                 confirmLabel={t("bucket.header.upload")}
               />
 

@@ -40,6 +40,61 @@ export const FormField: FC<IFormFieldProps> = ({
   errors,
 }: IFormFieldProps) => {
   switch (field.type) {
+    case "section":
+      return (
+        <div key={field.id} className="pt-2">
+          <h4 className="text-muted-foreground text-sm font-medium">
+            {field.label}
+          </h4>
+        </div>
+      );
+    case "date":
+      return (
+        <div key={field.id} className="grid grid-cols-12 items-center gap-4">
+          <Label htmlFor={field.id} className="col-span-4">
+            {field.label}
+          </Label>
+          <div className="col-span-8">
+            <Input
+              id={field.id}
+              type="date"
+              min={field.min as string}
+              max={field.max as string}
+              {...register(field.id, { required: field.required })}
+            />
+            {errors[field.id] && (
+              <div className="text-destructive mt-2 text-xs">
+                {errors[field.id]?.message?.toString() ||
+                  `${field.label} is required`}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    case "number":
+      return (
+        <div key={field.id} className="grid grid-cols-12 items-center gap-4">
+          <Label htmlFor={field.id} className="col-span-4">
+            {field.label}
+          </Label>
+          <div className="col-span-8">
+            <Input
+              id={field.id}
+              type="number"
+              placeholder={field.placeholder}
+              min={field.min as number}
+              max={field.max as number}
+              {...register(field.id, { required: field.required })}
+            />
+            {errors[field.id] && (
+              <div className="text-destructive mt-2 text-xs">
+                {errors[field.id]?.message?.toString() ||
+                  `${field.label} is required`}
+              </div>
+            )}
+          </div>
+        </div>
+      );
     case "otp":
       return (
         <div key={field.id} className="grid grid-cols-12 items-center gap-4">

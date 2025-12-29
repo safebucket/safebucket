@@ -166,6 +166,7 @@
       "upload_file": "Upload a file",
       "upload_and_share": "Upload a file and share it safely",
       "upload": "Upload",
+      "file_label": "File",
       "list_view": "List view",
       "grid_view": "Grid view",
       "activity": "Bucket activity",
@@ -263,7 +264,33 @@
       "drop_files": "Drop files or folders to upload",
       "drop_description": "Files and folders will be uploaded to the current directory"
     },
-    "permission_denied": "You don't have permission to upload files to this bucket"
+    "permission_denied": "You don't have permission to upload files to this bucket",
+    "settings": {
+      "title": "Sharing Options",
+      "section_title": "Sharing Options (optional)",
+      "description": "Configure optional settings for {{count}} file(s)",
+      "set_expiration": "Set expiration date",
+      "expiration_label": "Expiration date",
+      "limit_downloads": "Limit downloads",
+      "max_downloads_label": "Max downloads",
+      "max_downloads_placeholder": "e.g. 10",
+      "skip": "Skip",
+      "confirm": "Upload"
+    }
+  },
+  "download": {
+    "error": {
+      "title": "Download Error",
+      "file_expired": "This file has expired and is no longer available for download.",
+      "limit_reached": "Download limit has been reached for this file."
+    }
+  },
+  "file": {
+    "sharing": {
+      "expired": "Expired",
+      "expires_at": "Expires: {{date}}",
+      "downloads_remaining": "{{count}}/{{max}} downloads remaining"
+    }
   },
   "settings": {
     "title": "Settings",

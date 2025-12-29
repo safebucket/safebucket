@@ -27,9 +27,10 @@ type File struct {
 	FolderID     *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"folder_id,omitempty"`
 	ParentFolder *Folder        `gorm:"foreignKey:FolderID"                            json:"parent_folder,omitempty"`
 	Size         int            `gorm:"type:bigint;default:null"                       json:"size"`
-	DeletedBy    *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"deleted_by,omitempty"`
-	OriginalPath string         `gorm:"-"                                              json:"original_path,omitempty"`
-	CreatedAt    time.Time      `                                                      json:"created_at"`
+	DeletedBy      *uuid.UUID      `gorm:"type:uuid;default:null"                         json:"deleted_by,omitempty"`
+	OriginalPath   string          `gorm:"-"                                              json:"original_path,omitempty"`
+	SharingOptions *SharingOptions `gorm:"foreignKey:FileID"                              json:"sharing_options,omitempty"`
+	CreatedAt      time.Time       `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `                                                      json:"deleted_at"`
 }
@@ -47,9 +48,10 @@ func (f *File) ToActivity() FileActivity {
 }
 
 type FileTransferBody struct {
-	Name     string     `json:"name"      validate:"required,filename,max=255"`
-	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
-	Size     int        `json:"size"      validate:"required,max=1099511627776"`
+	Name           string              `json:"name"            validate:"required,filename,max=255"`
+	FolderID       *uuid.UUID          `json:"folder_id"       validate:"omitempty,uuid"`
+	Size           int                 `json:"size"            validate:"required,max=1099511627776"`
+	SharingOptions *SharingOptionsBody `json:"sharing_options" validate:"omitempty"`
 }
 
 type FileTransferResponse struct {

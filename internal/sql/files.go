@@ -15,7 +15,7 @@ import (
 func GetFileByID(db *gorm.DB, bucketID uuid.UUID, fileID uuid.UUID) (models.File, error) {
 	var file models.File
 
-	if err := db.Where("id = ? AND bucket_id = ?", fileID, bucketID).First(&file).Error; err != nil {
+	if err := db.Preload("SharingOptions").Where("id = ? AND bucket_id = ?", fileID, bucketID).First(&file).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return models.File{}, apierrors.NewAPIError(404, "FILE_NOT_FOUND")
 		}

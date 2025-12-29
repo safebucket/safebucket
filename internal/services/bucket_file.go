@@ -4,6 +4,7 @@ import (
 	"errors"
 	"path"
 	"path/filepath"
+	"time"
 
 	"api/internal/activity"
 	apierrors "api/internal/errors"
@@ -106,6 +107,19 @@ func (s BucketFileService) UploadFile(
 			return res.Error
 		}
 
+		// Create sharing options if provided
+		if body.SharingOptions.HasOptions() {
+			sharingOpts := &models.SharingOptions{
+				FileID:       file.ID,
+				ExpiresAt:    body.SharingOptions.ExpiresAt,
+				MaxDownloads: body.SharingOptions.MaxDownloads,
+			}
+			if err := tx.Create(sharingOpts).Error; err != nil {
+				logger.Error("Failed to create sharing options", zap.Error(err))
+				return err
+			}
+		}
+
 		url, formData, err = s.Storage.PresignedPostPolicy(
 			path.Join("buckets", bucket.ID.String(), file.ID.String()),
 			body.Size,
@@ -179,6 +193,26 @@ func (s BucketFileService) DownloadFile(
 			403,
 			apierrors.ErrCannotDownloadTrashed,
 		)
+	}
+
+	// Check sharing options (expiration and download limits)
+	if file.SharingOptions != nil {
+		// Check expiration
+		if file.SharingOptions.ExpiresAt != nil && time.Now().After(*file.SharingOptions.ExpiresAt) {
+			return models.FileTransferResponse{}, apierrors.NewAPIError(403, apierrors.ErrFileExpired)
+		}
+
+		// Check download limit
+		if file.SharingOptions.MaxDownloads != nil &&
+			file.SharingOptions.DownloadCount >= *file.SharingOptions.MaxDownloads {
+			return models.FileTransferResponse{}, apierrors.NewAPIError(403, apierrors.ErrDownloadLimitReached)
+		}
+
+		// Increment download count
+		if err := sql.IncrementDownloadCount(s.DB, file.ID); err != nil {
+			logger.Error("Failed to increment download count", zap.Error(err))
+			// Don't fail the download, just log the error
+		}
 	}
 
 	url, err := s.Storage.PresignedGetObject(
