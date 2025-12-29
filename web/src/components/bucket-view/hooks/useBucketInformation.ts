@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IBucket } from "@/types/bucket.ts";
 import {
   errorToast,
-  successToast,
   toast,
 } from "@/components/ui/hooks/use-toast";
 import { api } from "@/lib/api.ts";
@@ -24,6 +24,7 @@ export interface IBucketInformationData {
 export const useBucketInformation = (
   bucket: IBucket,
 ): IBucketInformationData => {
+  const { t } = useTranslation();
   const [isEditingName, setIsEditingName] = useState(false);
   const [bucketName, setBucketName] = useState(bucket.name);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -38,7 +39,11 @@ export const useBucketInformation = (
     mutationFn: () => api.patch(`/buckets/${bucket.id}`, { name: bucketName }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
-      successToast("Bucket name updated successfully");
+      toast({
+        variant: "success",
+        title: t("common.success"),
+        description: t("toast.bucket_name_updated"),
+      });
       setIsEditingName(false);
     },
     onError: (error: Error) => errorToast(error),
@@ -49,7 +54,11 @@ export const useBucketInformation = (
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedField(field);
-      successToast(`${field} has been copied.`);
+      toast({
+        variant: "success",
+        title: t("common.success"),
+        description: t("toast.copied", { field }),
+      });
       setTimeout(() => setCopiedField(null), 2000);
     });
   };
@@ -58,8 +67,8 @@ export const useBucketInformation = (
     if (!bucketName.trim()) {
       toast({
         variant: "destructive",
-        title: "Invalid name",
-        description: "Bucket name cannot be empty",
+        title: t("toast.invalid_name"),
+        description: t("toast.bucket_name_empty"),
       });
       return;
     }

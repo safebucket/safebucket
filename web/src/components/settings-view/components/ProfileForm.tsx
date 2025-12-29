@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card.tsx";
 import { EditableField } from "@/components/settings-view/components/EditableField.tsx";
 import { EditablePasswordField } from "@/components/settings-view/components/EditablePasswordField.tsx";
+import { MFASetupCard } from "@/components/settings-view/components/MFASetupCard.tsx";
 
 interface ProfileFormProps {
   user: IUser;
@@ -27,6 +28,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
   };
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
@@ -73,5 +75,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
         )}
       </CardContent>
     </Card>
+
+    {isLocalProvider && <MFASetupCard user={user} />}
+    </>
   );
 }

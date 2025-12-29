@@ -72,7 +72,20 @@ function Login() {
 
     const result = await loginLocal(data);
 
-    if (result.success) {
+    if (result.mfaRequired && result.mfaToken) {
+      // Store devices in sessionStorage for MFA page to access
+      if (result.devices && result.devices.length > 0) {
+        sessionStorage.setItem("mfa_devices", JSON.stringify(result.devices));
+      }
+      // Redirect to MFA verification
+      navigate({
+        to: "/auth/mfa",
+        search: { mfa_token: result.mfaToken, redirect },
+      });
+    } else if (result.mfaSetupRequired) {
+      // Redirect to MFA setup (admin requires MFA but not set up)
+      navigate({ to: "/auth/mfa/setup-required", search: { redirect } });
+    } else if (result.success) {
       // Navigate to redirect or home
       navigate({ to: redirect || "/" });
     } else {

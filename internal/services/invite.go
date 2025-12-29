@@ -24,13 +24,15 @@ import (
 )
 
 type InviteService struct {
-	DB             *gorm.DB
-	Storage        storage.IStorage
-	JWTSecret      string
-	Publisher      messaging.IPublisher
-	Providers      configuration.Providers
-	ActivityLogger activity.IActivityLogger
-	WebURL         string
+	DB                 *gorm.DB
+	Storage            storage.IStorage
+	JWTSecret          string
+	AccessTokenExpiry  int
+	RefreshTokenExpiry int
+	Publisher          messaging.IPublisher
+	Providers          configuration.Providers
+	ActivityLogger     activity.IActivityLogger
+	WebURL             string
 }
 
 func (s InviteService) Routes() chi.Router {
@@ -235,13 +237,18 @@ func (s InviteService) ValidateInviteChallenge(
 	)
 	welcomeEvent.Trigger()
 
-	accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
+	accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, string(models.LocalProviderType), s.AccessTokenExpiry)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
-	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &newUser, string(models.LocalProviderType))
+	refreshToken, err := h.NewRefreshToken(
+		s.JWTSecret,
+		&newUser,
+		string(models.LocalProviderType),
+		s.RefreshTokenExpiry,
+	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")

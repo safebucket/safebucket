@@ -14,6 +14,7 @@ type UserClaims struct {
 	Issuer   string    `json:"iss"`
 	Aud      string    `json:"aud"`
 	Provider string    `json:"provider"`
+	MFA      bool      `json:"mfa"`
 }
 
 func (u *UserClaims) Valid() bool {

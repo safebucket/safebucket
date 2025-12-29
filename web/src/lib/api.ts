@@ -52,13 +52,28 @@ export async function fetchApi<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  if (response.status === 403 && retry) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      return fetchApi<T>(url, options, false);
-    } else {
-      authLogout();
+  if (response.status === 403) {
+    const res = await response.json();
+    const errorCode = res.error?.[0];
+
+    // Handle MFA setup required - redirect to MFA setup page (if not already there)
+    if (errorCode === "MFA_SETUP_REQUIRED") {
+      if (!window.location.pathname.startsWith("/auth/mfa/setup-required")) {
+        window.location.href = "/auth/mfa/setup-required";
+      }
+      throw new Error(errorCode);
     }
+
+    // Try to refresh token for other 403 errors
+    if (retry) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        return fetchApi<T>(url, options, false);
+      } else {
+        authLogout();
+      }
+    }
+    throw new Error(errorCode);
   }
 
   if (!response.ok) {
@@ -93,7 +108,7 @@ export const api = {
   patch(url: string, body?: object, options?: RequestOptions): Promise<null> {
     return fetchApi(url, { ...options, method: "PATCH", body });
   },
-  delete(url: string, options?: RequestOptions): Promise<null> {
-    return fetchApi(url, { ...options, method: "DELETE" });
+  delete(url: string, body?: object, options?: RequestOptions): Promise<null> {
+    return fetchApi(url, { ...options, method: "DELETE", body });
   },
 };

@@ -12,6 +12,7 @@ type ChallengeType string
 const (
 	ChallengeTypeInvite        ChallengeType = "invite"
 	ChallengeTypePasswordReset ChallengeType = "password_reset"
+	ChallengeTypeMFAReset      ChallengeType = "mfa_reset"
 )
 
 // Challenge is a unified table for all challenge types (invites and password resets).

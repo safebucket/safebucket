@@ -69,7 +69,7 @@ export const useBucketMembersData = (bucket: IBucket) => {
     if (existingMember) {
       toast({
         variant: "destructive",
-        description: "User is already a member of this bucket",
+        description: t("toast.user_already_member"),
       });
       return;
     }

@@ -5,6 +5,7 @@ import type {
   IJWTPayload,
   ILoginForm,
   ILoginResponse,
+  IMFADevice,
   Session,
 } from "@/components/auth-view/types/session";
 import { getApiUrl } from "@/hooks/useConfig";
@@ -134,19 +135,83 @@ export const loginWithProvider = (provider: string): void => {
   window.location.href = `${apiUrl}/auth/providers/${provider}/begin`;
 };
 
+export interface LoginResult {
+  success: boolean;
+  error?: string;
+  mfaRequired?: boolean;
+  mfaToken?: string;
+  mfaSetupRequired?: boolean;
+  devices?: IMFADevice[];
+}
+
 export const loginWithCredentials = async (
   credentials: ILoginForm,
-): Promise<{ success: boolean; error?: string }> => {
+): Promise<LoginResult> => {
   try {
     const response = await api.post<ILoginResponse>("/auth/login", credentials);
 
-    authCookies.setAll(response.access_token, response.refresh_token, "local");
+    // Check if MFA is required
+    if (response.mfa_required && response.mfa_token) {
+      return {
+        success: false,
+        mfaRequired: true,
+        mfaToken: response.mfa_token,
+        devices: response.devices,
+      };
+    }
+
+    // Check if MFA setup is required (admin enforced but not set up)
+    if (response.mfa_setup_required) {
+      if (response.access_token && response.refresh_token) {
+        authCookies.setAll(response.access_token, response.refresh_token, "local");
+      }
+      return {
+        success: true,
+        mfaSetupRequired: true,
+      };
+    }
+
+    // Normal login success
+    if (response.access_token && response.refresh_token) {
+      authCookies.setAll(response.access_token, response.refresh_token, "local");
+    }
 
     return { success: true };
   } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Login failed",
+    };
+  }
+};
+
+/**
+ * Verify MFA code during login
+ * @param mfaToken - The MFA token from login response
+ * @param code - The TOTP code from authenticator app
+ * @param deviceId - Optional device ID to verify against (uses primary if not provided)
+ */
+export const verifyMFALogin = async (
+  mfaToken: string,
+  code: string,
+  deviceId?: string,
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const response = await api.post<ILoginResponse>("/auth/mfa/verify", {
+      mfa_token: mfaToken,
+      code,
+      ...(deviceId && { device_id: deviceId }),
+    });
+
+    if (response.access_token && response.refresh_token) {
+      authCookies.setAll(response.access_token, response.refresh_token, "local");
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "MFA verification failed",
     };
   }
 };
@@ -179,6 +244,9 @@ export const refreshAccessToken = async (): Promise<boolean> => {
       }
 
       const apiUrl = getApiUrl();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(`${apiUrl}/auth/refresh`, {
         method: "POST",
         headers: {
@@ -187,7 +255,10 @@ export const refreshAccessToken = async (): Promise<boolean> => {
         body: JSON.stringify({
           refresh_token: refreshToken,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         return false;

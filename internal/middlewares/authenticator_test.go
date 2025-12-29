@@ -142,7 +142,7 @@ func TestAuthenticate(t *testing.T) {
 			}
 			recorder := httptest.NewRecorder()
 
-			handler := Authenticate(testJWTSecret)(http.HandlerFunc(mockAuthenticatedNextHandler))
+			handler := Authenticate(testJWTSecret, false)(http.HandlerFunc(mockAuthenticatedNextHandler))
 			handler.ServeHTTP(recorder, req)
 
 			assert.Equal(t, tt.expectedStatus, recorder.Code)
@@ -239,7 +239,7 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 				_, _ = w.Write([]byte("OK"))
 			})
 
-			handler := Authenticate(testJWTSecret)(simpleHandler)
+			handler := Authenticate(testJWTSecret, false)(simpleHandler)
 			handler.ServeHTTP(recorder, req)
 
 			assert.Equal(t, tt.expectedStatus, recorder.Code, tt.description)
@@ -346,7 +346,7 @@ func TestAuthenticate_UserClaimsInContext(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+validToken)
 	recorder := httptest.NewRecorder()
 
-	handler := Authenticate(testJWTSecret)(testHandler)
+	handler := Authenticate(testJWTSecret, false)(testHandler)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -389,7 +389,7 @@ func TestAuthenticate_ContextPropagation(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 
-	handler := Authenticate(testJWTSecret)(testHandler)
+	handler := Authenticate(testJWTSecret, false)(testHandler)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)

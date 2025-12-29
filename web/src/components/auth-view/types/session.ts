@@ -24,6 +24,8 @@ export interface IUser {
   email: string;
   provider_type: string;
   role: "admin" | "user" | "guest";
+  mfa_enabled: boolean;
+  mfa_enabled_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -47,7 +49,39 @@ export interface ILoginForm {
   password: string;
 }
 
+// MFA Device Types
+export type MFADeviceType = "totp";
+
+export interface IMFADevice {
+  id: string;
+  name: string;
+  type: MFADeviceType;
+  is_primary: boolean;
+  is_verified: boolean;
+  created_at: string;
+  verified_at?: string;
+  last_used_at?: string;
+}
+
+export interface IMFADevicesResponse {
+  devices: IMFADevice[];
+  mfa_enabled: boolean;
+  device_count: number;
+  max_devices: number;
+}
+
+export interface IMFADeviceSetupResponse {
+  device_id: string;
+  secret: string;
+  qr_code_uri: string;
+  issuer: string;
+}
+
 export interface ILoginResponse {
-  access_token: string;
-  refresh_token: string;
+  access_token?: string;
+  refresh_token?: string;
+  mfa_required: boolean;
+  mfa_token?: string;
+  mfa_setup_required?: boolean;
+  devices?: IMFADevice[];
 }

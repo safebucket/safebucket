@@ -7,6 +7,8 @@ import {
   loginWithCredentials,
   loginWithProvider,
   logout as authLogout,
+  verifyMFALogin as authVerifyMFA,
+  type LoginResult,
 } from "@/lib/auth-service";
 
 /**
@@ -31,10 +33,33 @@ export function useLogin() {
   }, []);
 
   const loginLocal = useCallback(
-    async (
-      credentials: ILoginForm,
-    ): Promise<{ success: boolean; error?: string }> => {
+    async (credentials: ILoginForm): Promise<LoginResult> => {
       const result = await loginWithCredentials(credentials);
+
+      if (result.success && !result.mfaRequired) {
+        // Update router context with new session
+        // This includes mfaSetupRequired case where tokens are set but MFA setup is needed
+        const session = getCurrentSession();
+        router.update({
+          context: {
+            queryClient,
+            session,
+          },
+        });
+      }
+
+      return result;
+    },
+    [router, queryClient],
+  );
+
+  const verifyMFA = useCallback(
+    async (
+      mfaToken: string,
+      code: string,
+      deviceId?: string,
+    ): Promise<{ success: boolean; error?: string }> => {
+      const result = await authVerifyMFA(mfaToken, code, deviceId);
 
       if (result.success) {
         // Update router context with new session
@@ -55,6 +80,7 @@ export function useLogin() {
   return {
     loginOAuth,
     loginLocal,
+    verifyMFA,
   };
 }
 

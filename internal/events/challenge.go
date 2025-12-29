@@ -209,6 +209,70 @@ func (e *PasswordResetSuccessEvent) callback(params *EventParams) error {
 }
 
 const (
+	MFAResetChallengeName        = "MFAResetChallenge"
+	MFAResetChallengePayloadName = "MFAResetChallengePayload"
+)
+
+type MFAResetChallengePayload struct {
+	Type         string
+	Secret       string
+	To           string
+	WebURL       string
+	ChallengeURL string
+}
+
+type MFAResetChallengeEvent struct {
+	Publisher messaging.IPublisher
+	Payload   MFAResetChallengePayload
+}
+
+func NewMFAResetChallenge(
+	publisher messaging.IPublisher,
+	secret string,
+	to string,
+	challengeID string,
+	webURL string,
+) MFAResetChallengeEvent {
+	challengeURL := fmt.Sprintf("%s/auth/mfa-reset/%s", webURL, challengeID)
+	return MFAResetChallengeEvent{
+		Publisher: publisher,
+		Payload: MFAResetChallengePayload{
+			Type:         MFAResetChallengeName,
+			Secret:       secret,
+			To:           to,
+			WebURL:       webURL,
+			ChallengeURL: challengeURL,
+		},
+	}
+}
+
+func (e *MFAResetChallengeEvent) Trigger() {
+	payload, err := json.Marshal(e.Payload)
+	if err != nil {
+		zap.L().Error("Error marshalling event payload", zap.Error(err))
+		return
+	}
+
+	msg := message.NewMessage(watermill.NewUUID(), payload)
+	msg.Metadata.Set("type", e.Payload.Type)
+	err = e.Publisher.Publish(msg)
+	if err != nil {
+		zap.L().Error("failed to trigger event", zap.Error(err))
+	}
+}
+
+func (e *MFAResetChallengeEvent) callback(params *EventParams) error {
+	e.Payload.WebURL = params.WebURL
+	subject := "MFA Device Reset Request"
+	err := params.Notifier.NotifyFromTemplate(e.Payload.To, subject, "mfa_reset", e.Payload)
+	if err != nil {
+		zap.L().Error("failed to notify", zap.Any("event", e), zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+const (
 	UserWelcomeName        = "UserWelcome"
 	UserWelcomePayloadName = "UserWelcomePayload"
 )

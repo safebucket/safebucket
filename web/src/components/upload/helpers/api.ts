@@ -1,3 +1,4 @@
+import i18n from "i18next";
 import type { ICreateFile } from "@/components/upload/helpers/types";
 import type { IFolder } from "@/types/folder";
 import { api } from "@/lib/api";
@@ -67,8 +68,8 @@ export const uploadToStorage = async (
 
     toast({
       variant: "success",
-      title: "Uploading",
-      description: `Upload started for ${file.name}`,
+      title: i18n.t("toast.uploading"),
+      description: i18n.t("toast.upload_started", { filename: file.name }),
     });
   });
 };

@@ -1,5 +1,9 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
+import {
+  Outlet,
+  createRootRouteWithContext,
+  useLocation,
+} from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 
@@ -23,10 +27,15 @@ export const Route = createRootRouteWithContext<{
 function RootComponent() {
   const { session } = Route.useRouteContext();
   const config = useConfig();
+  const location = useLocation();
+
+  // Hide sidebar on auth routes (login, MFA setup required, etc.)
+  const isAuthRoute = location.pathname.startsWith("/auth");
+  const showSidebar = session && !isAuthRoute;
 
   return (
     <div className="flex h-svh max-h-svh w-full">
-      {session && <AppSidebar />}
+      {showSidebar && <AppSidebar />}
       <AppSidebarInset>
         <Outlet />
       </AppSidebarInset>

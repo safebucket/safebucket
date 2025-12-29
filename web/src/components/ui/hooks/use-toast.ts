@@ -2,6 +2,7 @@
 
 // Inspired by react-hot-toast library
 import * as React from "react";
+import i18n from "i18next";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 
@@ -191,7 +192,7 @@ function useToast() {
 function successToast(message: string) {
   toast({
     variant: "success",
-    title: "Success",
+    title: i18n.t("common.success"),
     description: message,
   });
 }
@@ -199,7 +200,7 @@ function successToast(message: string) {
 function errorToast(error: Error) {
   toast({
     variant: "destructive",
-    title: "Error",
+    title: i18n.t("common.error"),
     description: error.message,
   });
 }

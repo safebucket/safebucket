@@ -1,3 +1,4 @@
+import i18n from "i18next";
 import type { IDownloadFileResponse } from "@/components/bucket-view/helpers/types";
 import { api } from "@/lib/api";
 
@@ -28,7 +29,7 @@ export const downloadFromStorage = (url: string, filename: string) => {
 
   toast({
     variant: "success",
-    title: "Success",
-    description: `Download started for file ${filename}`,
+    title: i18n.t("common.success"),
+    description: i18n.t("toast.download_started", { filename }),
   });
 };

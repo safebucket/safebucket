@@ -32,19 +32,18 @@ func CreateHash(password string) (string, error) {
 	return hash, nil
 }
 
-func NewAccessToken(jwtSecret string, user *models.User, provider string) (string, error) {
+func NewAccessToken(jwtSecret string, user *models.User, provider string, expiryMinutes int) (string, error) {
 	claims := models.UserClaims{
 		Email:    user.Email,
 		UserID:   user.ID,
 		Role:     user.Role,
-		Aud:      "app:*", // Todo: make it a list ==> delete aud
+		Aud:      "app:*",
 		Provider: provider,
 		Issuer:   configuration.AppName,
+		MFA:      user.MFAEnabled,
 		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt: &jwt.NumericDate{Time: time.Now()},
-			ExpiresAt: &jwt.NumericDate{
-				Time: time.Now().Add(time.Minute * 60),
-			}, // TODO: make it configurable
+			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * time.Duration(expiryMinutes))},
 		},
 	}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -74,7 +73,7 @@ func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, 
 	return *claims, err
 }
 
-func NewRefreshToken(jwtSecret string, user *models.User, provider string) (string, error) {
+func NewRefreshToken(jwtSecret string, user *models.User, provider string, expiryMinutes int) (string, error) {
 	claims := models.UserClaims{
 		Email:    user.Email,
 		UserID:   user.ID,
@@ -82,9 +81,10 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string) (stri
 		Aud:      "auth:refresh",
 		Issuer:   configuration.AppName,
 		Provider: provider,
+		MFA:      user.MFAEnabled,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour * 10)},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * time.Duration(expiryMinutes))},
 		},
 	}
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -131,4 +131,50 @@ func GenerateSecret() (string, error) {
 		secret[i] = charset[n.Int64()]
 	}
 	return string(secret), nil
+}
+
+// NewMFAToken creates a short-lived JWT token for MFA verification during login.
+// This token is issued after successful password authentication but before MFA verification.
+// It can only be used to complete the MFA verification step.
+func NewMFAToken(jwtSecret string, user *models.User, expiryMinutes int) (string, error) {
+	claims := models.UserClaims{
+		Email:    user.Email,
+		UserID:   user.ID,
+		Role:     user.Role,
+		Aud:      "auth:mfa",
+		Issuer:   configuration.AppName,
+		Provider: string(user.ProviderType),
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * time.Duration(expiryMinutes))},
+		},
+	}
+	mfaToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return mfaToken.SignedString([]byte(jwtSecret))
+}
+
+// ParseMFAToken validates and parses an MFA token.
+// Returns the user claims if the token is valid and has the correct audience.
+func ParseMFAToken(jwtSecret string, mfaToken string) (models.UserClaims, error) {
+	claims := &models.UserClaims{}
+
+	_, err := jwt.ParseWithClaims(
+		mfaToken,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, errors.New("unexpected signing method")
+			}
+			return []byte(jwtSecret), nil
+		},
+	)
+	if err != nil {
+		return models.UserClaims{}, errors.New("invalid MFA token")
+	}
+
+	if claims.Aud != "auth:mfa" {
+		return models.UserClaims{}, errors.New("invalid MFA token audience")
+	}
+
+	return *claims, nil
 }

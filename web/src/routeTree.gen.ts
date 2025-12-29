@@ -13,11 +13,13 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as InvitesIdIndexRouteImport } from './routes/invites/$id/index'
 import { Route as AuthResetPasswordIndexRouteImport } from './routes/auth/reset-password/index'
+import { Route as AuthMfaIndexRouteImport } from './routes/auth/mfa/index'
 import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
 import { Route as AuthCompleteIndexRouteImport } from './routes/auth/complete/index'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedActivityIndexRouteImport } from './routes/_authenticated/activity/index'
 import { Route as AuthResetPasswordIdIndexRouteImport } from './routes/auth/reset-password/$id/index'
+import { Route as AuthMfaSetupRequiredIndexRouteImport } from './routes/auth/mfa/setup-required/index'
 import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
 import { Route as AuthenticatedSettingsPreferencesIndexRouteImport } from './routes/_authenticated/settings/preferences/index'
 import { Route as AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport } from './routes/_authenticated/buckets/$bucketId/{-$folderId}'
@@ -40,6 +42,11 @@ const InvitesIdIndexRoute = InvitesIdIndexRouteImport.update({
 const AuthResetPasswordIndexRoute = AuthResetPasswordIndexRouteImport.update({
   id: '/auth/reset-password/',
   path: '/auth/reset-password/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthMfaIndexRoute = AuthMfaIndexRouteImport.update({
+  id: '/auth/mfa/',
+  path: '/auth/mfa/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
@@ -68,6 +75,12 @@ const AuthResetPasswordIdIndexRoute =
   AuthResetPasswordIdIndexRouteImport.update({
     id: '/auth/reset-password/$id/',
     path: '/auth/reset-password/$id/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthMfaSetupRequiredIndexRoute =
+  AuthMfaSetupRequiredIndexRouteImport.update({
+    id: '/auth/mfa/setup-required/',
+    path: '/auth/mfa/setup-required/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedSettingsProfileIndexRoute =
@@ -101,11 +114,13 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
+  '/auth/mfa': typeof AuthMfaIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
+  '/auth/mfa/setup-required': typeof AuthMfaSetupRequiredIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
@@ -115,11 +130,13 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/auth/complete': typeof AuthCompleteIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
+  '/auth/mfa': typeof AuthMfaIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
+  '/auth/mfa/setup-required': typeof AuthMfaSetupRequiredIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
@@ -131,11 +148,13 @@ export interface FileRoutesById {
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/auth/complete/': typeof AuthCompleteIndexRoute
   '/auth/login/': typeof AuthLoginIndexRoute
+  '/auth/mfa/': typeof AuthMfaIndexRoute
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
   '/_authenticated/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/_authenticated/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
+  '/auth/mfa/setup-required/': typeof AuthMfaSetupRequiredIndexRoute
   '/auth/reset-password/$id/': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId/': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
@@ -147,11 +166,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/complete'
     | '/auth/login'
+    | '/auth/mfa'
     | '/auth/reset-password'
     | '/invites/$id'
     | '/buckets/$bucketId/{-$folderId}'
     | '/settings/preferences'
     | '/settings/profile'
+    | '/auth/mfa/setup-required'
     | '/auth/reset-password/$id'
     | '/invites/$id/challenges/$challengeId'
   fileRoutesByTo: FileRoutesByTo
@@ -161,11 +182,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/complete'
     | '/auth/login'
+    | '/auth/mfa'
     | '/auth/reset-password'
     | '/invites/$id'
     | '/buckets/$bucketId/{-$folderId}'
     | '/settings/preferences'
     | '/settings/profile'
+    | '/auth/mfa/setup-required'
     | '/auth/reset-password/$id'
     | '/invites/$id/challenges/$challengeId'
   id:
@@ -176,11 +199,13 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/'
     | '/auth/complete/'
     | '/auth/login/'
+    | '/auth/mfa/'
     | '/auth/reset-password/'
     | '/invites/$id/'
     | '/_authenticated/buckets/$bucketId/{-$folderId}'
     | '/_authenticated/settings/preferences/'
     | '/_authenticated/settings/profile/'
+    | '/auth/mfa/setup-required/'
     | '/auth/reset-password/$id/'
     | '/invites/$id/challenges/$challengeId/'
   fileRoutesById: FileRoutesById
@@ -189,8 +214,10 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthCompleteIndexRoute: typeof AuthCompleteIndexRoute
   AuthLoginIndexRoute: typeof AuthLoginIndexRoute
+  AuthMfaIndexRoute: typeof AuthMfaIndexRoute
   AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
   InvitesIdIndexRoute: typeof InvitesIdIndexRoute
+  AuthMfaSetupRequiredIndexRoute: typeof AuthMfaSetupRequiredIndexRoute
   AuthResetPasswordIdIndexRoute: typeof AuthResetPasswordIdIndexRoute
   InvitesIdChallengesChallengeIdIndexRoute: typeof InvitesIdChallengesChallengeIdIndexRoute
 }
@@ -223,6 +250,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/reset-password'
       fullPath: '/auth/reset-password'
       preLoaderRoute: typeof AuthResetPasswordIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/mfa/': {
+      id: '/auth/mfa/'
+      path: '/auth/mfa'
+      fullPath: '/auth/mfa'
+      preLoaderRoute: typeof AuthMfaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/login/': {
@@ -258,6 +292,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/reset-password/$id'
       fullPath: '/auth/reset-password/$id'
       preLoaderRoute: typeof AuthResetPasswordIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/mfa/setup-required/': {
+      id: '/auth/mfa/setup-required/'
+      path: '/auth/mfa/setup-required'
+      fullPath: '/auth/mfa/setup-required'
+      preLoaderRoute: typeof AuthMfaSetupRequiredIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings/profile/': {
@@ -320,8 +361,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthCompleteIndexRoute: AuthCompleteIndexRoute,
   AuthLoginIndexRoute: AuthLoginIndexRoute,
+  AuthMfaIndexRoute: AuthMfaIndexRoute,
   AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,
   InvitesIdIndexRoute: InvitesIdIndexRoute,
+  AuthMfaSetupRequiredIndexRoute: AuthMfaSetupRequiredIndexRoute,
   AuthResetPasswordIdIndexRoute: AuthResetPasswordIdIndexRoute,
   InvitesIdChallengesChallengeIdIndexRoute:
     InvitesIdChallengesChallengeIdIndexRoute,
