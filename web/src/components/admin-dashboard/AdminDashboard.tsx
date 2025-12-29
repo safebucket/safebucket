@@ -6,6 +6,7 @@ import { StatCard } from "./components/StatCard";
 import { SharedFilesChart } from "./components/SharedFilesChart";
 import type { FC } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatFileSize } from "@/lib/utils.ts";
 
 export const AdminDashboard: FC = () => {
   const { t } = useTranslation();
