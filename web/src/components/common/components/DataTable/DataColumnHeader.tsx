@@ -1,8 +1,8 @@
 import React from "react";
 
-import { cn } from "@/lib/utils";
-import type { Column } from "@tanstack/table-core";
 import { ArrowDownIcon, ArrowUpIcon, SortAscIcon } from "lucide-react";
+import type { Column } from "@tanstack/table-core";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
