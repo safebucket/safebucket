@@ -1,7 +1,7 @@
-import type { FC } from "react";
-import type { LucideIcon } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import type { FC } from "react";
+import type { LucideIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface StatCardProps {
