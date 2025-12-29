@@ -45,6 +45,7 @@ export const AdminDashboard: FC = () => {
           title={t("admin.dashboard.stats.buckets")}
           value={stats?.total_buckets ?? 0}
           icon={FolderOpen}
+          href="/admin/buckets"
         />
         <StatCard
           title={t("admin.dashboard.stats.files")}

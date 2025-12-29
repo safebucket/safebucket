@@ -87,3 +87,41 @@ export const adminActivityQueryOptions = () =>
     queryFn: () => api.get<{ data: Array<IActivity> }>("/admin/activity"),
     select: (data) => data.data,
   });
+
+export interface IAdminBucket {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  creator: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  member_count: number;
+  file_count: number;
+  size: number;
+}
+
+export const adminBucketsQueryOptions = () =>
+  queryOptions({
+    queryKey: ["admin", "buckets"],
+    queryFn: () => api.get<{ data: Array<IAdminBucket> }>("/admin/buckets"),
+    select: (data) => data.data,
+    staleTime: 60 * 1000,
+  });
+
+export const useDeleteAdminBucketMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (bucketId: string) => api.delete(`/buckets/${bucketId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "buckets"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
+      successToast("Bucket deleted successfully");
+    },
+    onError: (error: Error) => errorToast(error),
+  });
+};

@@ -1,5 +1,6 @@
 import {
   Activity,
+  FolderOpen,
   Home,
   LayoutDashboard,
   LifeBuoy,
@@ -50,6 +51,11 @@ export const nav = {
           title: "navigation.users",
           url: "/admin/users",
           icon: Users,
+        },
+        {
+          title: "navigation.buckets",
+          url: "/admin/buckets",
+          icon: FolderOpen,
         },
       ],
     },

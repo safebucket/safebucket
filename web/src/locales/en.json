@@ -115,6 +115,7 @@
     "administration": "Administration",
     "dashboard": "Dashboard",
     "users": "Users",
+    "buckets": "Buckets",
     "admin_activity": "Activity"
   },
   "activity": {
@@ -399,6 +400,25 @@
       "delete_dialog": {
         "title": "Delete User",
         "description": "Are you sure you want to delete {{email}}? This action cannot be undone.",
+        "confirm": "Delete"
+      }
+    },
+    "buckets": {
+      "title": "Bucket Management",
+      "description": "Manage all buckets in the system",
+      "no_buckets": "No buckets found.",
+      "columns": {
+        "name": "Name",
+        "creator": "Creator",
+        "members": "Members",
+        "files": "Files",
+        "size": "Size",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "delete_dialog": {
+        "title": "Delete Bucket",
+        "description": "Are you sure you want to delete {{name}}? This will permanently delete all files and cannot be undone.",
         "confirm": "Delete"
       }
     },

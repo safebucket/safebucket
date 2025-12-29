@@ -115,6 +115,7 @@
     "administration": "Administration",
     "dashboard": "Tableau de bord",
     "users": "Utilisateurs",
+    "buckets": "Buckets",
     "admin_activity": "Activité"
   },
   "activity": {
@@ -399,6 +400,25 @@
       "delete_dialog": {
         "title": "Supprimer l'utilisateur",
         "description": "Êtes-vous sûr de vouloir supprimer {{email}} ? Cette action est irréversible.",
+        "confirm": "Supprimer"
+      }
+    },
+    "buckets": {
+      "title": "Gestion des buckets",
+      "description": "Gérer tous les buckets du système",
+      "no_buckets": "Aucun bucket trouvé.",
+      "columns": {
+        "name": "Nom",
+        "creator": "Créateur",
+        "members": "Membres",
+        "files": "Fichiers",
+        "size": "Taille",
+        "created": "Créé",
+        "actions": "Actions"
+      },
+      "delete_dialog": {
+        "title": "Supprimer le bucket",
+        "description": "Êtes-vous sûr de vouloir supprimer {{name}} ? Cela supprimera définitivement tous les fichiers et cette action est irréversible.",
         "confirm": "Supprimer"
       }
     },

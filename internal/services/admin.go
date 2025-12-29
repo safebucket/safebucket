@@ -31,6 +31,9 @@ func (s AdminService) Routes() chi.Router {
 	r.With(m.AuthorizeRole(models.RoleAdmin)).
 		Get("/activity", handlers.GetListHandler(s.GetActivity))
 
+	r.With(m.AuthorizeRole(models.RoleAdmin)).
+		Get("/buckets", handlers.GetListHandler(s.GetBucketList))
+
 	return r
 }
 
@@ -86,4 +89,53 @@ func (s AdminService) GetActivity(
 	}
 
 	return activity.EnrichActivity(s.DB, activities)
+}
+
+func (s AdminService) GetBucketList(
+	_ *zap.Logger,
+	_ models.UserClaims,
+	_ uuid.UUIDs,
+) []models.AdminBucketListItem {
+	var buckets []models.Bucket
+	s.DB.Find(&buckets)
+
+	result := make([]models.AdminBucketListItem, 0, len(buckets))
+	for _, bucket := range buckets {
+		var creator models.User
+		s.DB.Where("id = ?", bucket.CreatedBy).First(&creator)
+
+		var memberCount int64
+		s.DB.Model(&models.Membership{}).
+			Where("bucket_id = ?", bucket.ID).
+			Count(&memberCount)
+
+		var fileCount int64
+		s.DB.Model(&models.File{}).
+			Where("bucket_id = ? AND status = ?", bucket.ID, models.FileStatusUploaded).
+			Count(&fileCount)
+
+		var size *int64
+		s.DB.Model(&models.File{}).
+			Where("bucket_id = ? AND status = ?", bucket.ID, models.FileStatusUploaded).
+			Select("COALESCE(SUM(size), 0)").
+			Scan(&size)
+
+		item := models.AdminBucketListItem{
+			ID:          bucket.ID,
+			Name:        bucket.Name,
+			CreatedAt:   bucket.CreatedAt,
+			UpdatedAt:   bucket.UpdatedAt,
+			Creator:     creator.ToActivity(),
+			MemberCount: memberCount,
+			FileCount:   fileCount,
+		}
+
+		if size != nil {
+			item.Size = *size
+		}
+
+		result = append(result, item)
+	}
+
+	return result
 }
