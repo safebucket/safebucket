@@ -247,8 +247,8 @@ func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([
 				continue
 			}
 
-			count, err := strconv.ParseInt(countStr, 10, 64)
-			if err != nil {
+			count, err2 := strconv.ParseInt(countStr, 10, 64)
+			if err2 != nil {
 				continue
 			}
 
@@ -268,7 +268,7 @@ func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([
 	}
 
 	// Sort by date ascending
-	for i := 0; i < len(result)-1; i++ {
+	for i := range len(result) - 1 {
 		for j := i + 1; j < len(result); j++ {
 			if result[i].Date > result[j].Date {
 				result[i], result[j] = result[j], result[i]
