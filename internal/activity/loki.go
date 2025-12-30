@@ -246,8 +246,8 @@ func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([
 			continue
 		}
 
-		count, err := strconv.ParseInt(countStr, 10, 64)
-		if err != nil {
+		count, err2 := strconv.ParseInt(countStr, 10, 64)
+		if err2 != nil {
 			continue
 		}
 
