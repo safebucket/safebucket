@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { IAdminBucket } from "@/queries/admin";
+
+import type { IAdminBucket } from "@/types/admin.ts";
 import {
   adminBucketsQueryOptions,
   useDeleteAdminBucketMutation,

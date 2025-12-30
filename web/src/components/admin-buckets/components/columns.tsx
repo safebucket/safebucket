@@ -2,7 +2,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Link } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { IAdminBucket } from "@/queries/admin";
+import type { IAdminBucket } from "@/types/admin.ts";
 import { formatFileSize } from "@/lib/utils";
 
 export const createColumns = (t: TFunction): Array<ColumnDef<IAdminBucket>> => [

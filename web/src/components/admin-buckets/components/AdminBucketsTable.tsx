@@ -10,7 +10,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { BucketRowActions } from "./BucketRowActions";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
-import type { IAdminBucket } from "@/queries/admin";
+import type { IAdminBucket } from "@/types/admin.ts";
 import {
   Table,
   TableBody,
