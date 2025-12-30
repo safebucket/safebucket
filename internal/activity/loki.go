@@ -3,6 +3,7 @@ package activity
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -181,8 +182,7 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 // CountByDay returns the count of log entries per day matching the search criteria.
 func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
 	baseQuery := generateSearchQuery(searchCriteria)
-
-	countQuery := fmt.Sprintf("count_over_time(%s[1d])", baseQuery)
+	countQuery := fmt.Sprintf("sum(count_over_time(%s[1d]))", baseQuery)
 
 	startTime := time.Now().AddDate(0, 0, -days)
 	endTime := time.Now()
@@ -194,13 +194,12 @@ func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([
 		"step":  "1d",
 	}
 
-	zap.L().Info("Search query", zap.String("query", countQuery), zap.Any("params", params))
+	zap.L().Debug("Search query", zap.String("query", countQuery), zap.Any("params", params))
 
 	resp, err := s.Client.R().
 		SetQueryParams(params).
 		SetHeader("Accept", "application/json").
 		Get(s.searchURL)
-
 	if err != nil {
 		zap.L().Error("Failed to query Loki for count by day", zap.Any("error", err))
 		return nil, err
@@ -226,55 +225,44 @@ func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([
 		return nil, err
 	}
 
-	// Aggregate results by date across all streams
-	dateCountMap := make(map[string]int64)
-
-	for _, result := range parsedResp.Data.Result {
-		for _, value := range result.Values {
-			if len(value) < 2 {
-				continue
-			}
-
-			// Parse timestamp (Unix seconds as float64)
-			timestamp, ok := value[0].(float64)
-			if !ok {
-				continue
-			}
-
-			// Parse count value (string)
-			countStr, ok := value[1].(string)
-			if !ok {
-				continue
-			}
-
-			count, err2 := strconv.ParseInt(countStr, 10, 64)
-			if err2 != nil {
-				continue
-			}
-
-			// Convert timestamp to date string (YYYY-MM-DD)
-			date := time.Unix(int64(timestamp), 0).Format("2006-01-02")
-			dateCountMap[date] += count
-		}
+	if len(parsedResp.Data.Result) == 0 {
+		return []models.TimeSeriesPoint{}, nil
 	}
 
-	// Convert map to sorted slice of TimeSeriesPoint
-	var result []models.TimeSeriesPoint
-	for date, count := range dateCountMap {
+	values := parsedResp.Data.Result[0].Values
+	result := make([]models.TimeSeriesPoint, 0, len(values))
+	for _, value := range values {
+		if len(value) < 2 {
+			continue
+		}
+
+		timestamp, ok := value[0].(float64)
+		if !ok {
+			continue
+		}
+
+		countStr, ok := value[1].(string)
+		if !ok {
+			continue
+		}
+
+		count, err := strconv.ParseInt(countStr, 10, 64)
+		if err != nil {
+			continue
+		}
+
+		// Loki returns the END of the bucket as timestamp, subtract 1 day to get the actual date
+		dateStr := time.Unix(int64(timestamp), 0).UTC().AddDate(0, 0, -1).Format("2006-01-02")
+
 		result = append(result, models.TimeSeriesPoint{
-			Date:  date,
+			Date:  dateStr,
 			Count: count,
 		})
 	}
 
-	// Sort by date ascending
-	for i := range len(result) - 1 {
-		for j := i + 1; j < len(result); j++ {
-			if result[i].Date > result[j].Date {
-				result[i], result[j] = result[j], result[i]
-			}
-		}
-	}
+	slices.SortFunc(result, func(a, b models.TimeSeriesPoint) int {
+		return strings.Compare(a.Date, b.Date)
+	})
 
 	return result, nil
 }
