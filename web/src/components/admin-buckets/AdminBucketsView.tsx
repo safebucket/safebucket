@@ -4,7 +4,7 @@ import { useAdminBucketsData } from "./hooks/useAdminBucketsData";
 import { createColumns } from "./components/columns";
 import { AdminBucketsTable } from "./components/AdminBucketsTable";
 import type { FC } from "react";
-import type { IAdminBucket } from "@/queries/admin";
+import type { IAdminBucket } from "@/types/admin.ts";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import {

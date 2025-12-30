@@ -51,6 +51,20 @@ type LokiResult struct {
 // RawLogValue is a fixed-size array of 3 interface{} elements, typically representing [timestamp, message, metadata].
 type RawLogValue [3]interface{}
 
+// LokiMatrixResponse represents the response from Loki's range query endpoint for matrix results.
+type LokiMatrixResponse struct {
+	Data struct {
+		ResultType string             `json:"resultType"`
+		Result     []LokiMatrixResult `json:"result"`
+	} `json:"data"`
+}
+
+// LokiMatrixResult represents a single matrix result stream from a Loki range query.
+type LokiMatrixResult struct {
+	Metric map[string]string `json:"metric"`
+	Values [][]interface{}   `json:"values"` // [[timestamp, "count_value"], ...]
+}
+
 // LokiClient provides methods to interact with a Loki logging endpoint, including sending logs and searching for logs.
 type LokiClient struct {
 	Client    *resty.Client
@@ -162,6 +176,107 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	}
 
 	return activity, nil
+}
+
+// CountByDay returns the count of log entries per day matching the search criteria.
+func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
+	baseQuery := generateSearchQuery(searchCriteria)
+
+	countQuery := fmt.Sprintf("count_over_time(%s[1d])", baseQuery)
+
+	startTime := time.Now().AddDate(0, 0, -days)
+	endTime := time.Now()
+
+	params := map[string]string{
+		"query": countQuery,
+		"start": strconv.FormatInt(startTime.Unix(), 10),
+		"end":   strconv.FormatInt(endTime.Unix(), 10),
+		"step":  "1d",
+	}
+
+	zap.L().Info("Search query", zap.String("query", countQuery), zap.Any("params", params))
+
+	resp, err := s.Client.R().
+		SetQueryParams(params).
+		SetHeader("Accept", "application/json").
+		Get(s.searchURL)
+
+	if err != nil {
+		zap.L().Error("Failed to query Loki for count by day", zap.Any("error", err))
+		return nil, err
+	}
+
+	if resp.StatusCode() != 200 {
+		zap.L().Error("Failed to get count by day from Loki",
+			zap.String("query", countQuery),
+			zap.Int("status_code", resp.StatusCode()),
+			zap.String("response_body", string(resp.Body())),
+		)
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	}
+
+	var parsedResp LokiMatrixResponse
+	if err = json.Unmarshal(resp.Body(), &parsedResp); err != nil {
+		zap.L().Error("Failed to parse Loki matrix response",
+			zap.String("query", countQuery),
+			zap.Int("status_code", resp.StatusCode()),
+			zap.String("response_body", string(resp.Body())),
+			zap.Error(err),
+		)
+		return nil, err
+	}
+
+	// Aggregate results by date across all streams
+	dateCountMap := make(map[string]int64)
+
+	for _, result := range parsedResp.Data.Result {
+		for _, value := range result.Values {
+			if len(value) < 2 {
+				continue
+			}
+
+			// Parse timestamp (Unix seconds as float64)
+			timestamp, ok := value[0].(float64)
+			if !ok {
+				continue
+			}
+
+			// Parse count value (string)
+			countStr, ok := value[1].(string)
+			if !ok {
+				continue
+			}
+
+			count, err := strconv.ParseInt(countStr, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			// Convert timestamp to date string (YYYY-MM-DD)
+			date := time.Unix(int64(timestamp), 0).Format("2006-01-02")
+			dateCountMap[date] += count
+		}
+	}
+
+	// Convert map to sorted slice of TimeSeriesPoint
+	var result []models.TimeSeriesPoint
+	for date, count := range dateCountMap {
+		result = append(result, models.TimeSeriesPoint{
+			Date:  date,
+			Count: count,
+		})
+	}
+
+	// Sort by date ascending
+	for i := 0; i < len(result)-1; i++ {
+		for j := i + 1; j < len(result); j++ {
+			if result[i].Date > result[j].Date {
+				result[i], result[j] = result[j], result[i]
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // NewLokiClient initializes and returns a new LokiClient instance based on the provided log configuration.

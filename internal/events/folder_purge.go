@@ -191,10 +191,10 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	}
 
 	action := models.Activity{
-		Message: activity.FolderPurged,
+		Message: activity.FolderDeleted,
 		Object:  folder.ToActivity(),
 		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionPurge.String(),
+			"action":      rbac.ActionDelete.String(),
 			"bucket_id":   e.Payload.BucketID.String(),
 			"folder_id":   e.Payload.FolderID.String(),
 			"object_type": rbac.ResourceFolder.String(),

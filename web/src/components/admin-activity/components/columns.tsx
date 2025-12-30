@@ -3,8 +3,19 @@ import { Database, File, Folder, User } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { ActivityMessage, IActivity } from "@/types/activity";
 import type { ElementType } from "react";
+import type { IActivity } from "@/types/activity";
+import { ActivityMessage } from "@/types/activity";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+const DELETED_MESSAGES = new Set([
+  ActivityMessage.BUCKET_DELETED,
+  ActivityMessage.FILE_DELETED,
+]);
 
 interface ResourceTypeConfig {
   icon: ElementType;
@@ -51,7 +62,15 @@ const getResourceName = (activity: IActivity): string => {
   return "-";
 };
 
+const isResourceDeleted = (activity: IActivity): boolean => {
+  return DELETED_MESSAGES.has(activity.message);
+};
+
 const getResourceLink = (activity: IActivity): string | null => {
+  if (isResourceDeleted(activity)) {
+    return null;
+  }
+
   const bucketId = activity.bucket_id || activity.bucket?.id;
 
   if (activity.file && bucketId) {
@@ -128,6 +147,7 @@ export const createColumns = (t: TFunction): Array<ColumnDef<IActivity>> => [
       const activity = row.original;
       const name = getResourceName(activity);
       const link = getResourceLink(activity);
+      const deleted = isResourceDeleted(activity);
 
       if (link && name !== "-") {
         return (
@@ -137,6 +157,21 @@ export const createColumns = (t: TFunction): Array<ColumnDef<IActivity>> => [
           >
             {name}
           </Link>
+        );
+      }
+
+      if (deleted && name !== "-") {
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-muted-foreground cursor-default">
+                {name}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              {t("admin.activity.tooltip.object_deleted")}
+            </TooltipContent>
+          </Tooltip>
         );
       }
 

@@ -421,10 +421,10 @@ func (s BucketFolderService) PurgeFolder(
 	event.Trigger()
 
 	action := models.Activity{
-		Message: activity.FolderPurged,
+		Message: activity.FolderDeleted,
 		Object:  folder.ToActivity(),
 		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionPurge.String(),
+			"action":      rbac.ActionDelete.String(),
 			"bucket_id":   folder.BucketID.String(),
 			"folder_id":   folder.ID.String(),
 			"object_type": rbac.ResourceFolder.String(),

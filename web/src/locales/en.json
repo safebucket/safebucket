@@ -123,13 +123,13 @@
     "no_activity_yet": "No activity yet.",
     "messages": {
       "bucket_created": "Created a bucket '%%BUCKET_NAME%%' and shared it with you.",
+      "bucket_deleted": "Permanently deleted a bucket '%%BUCKET_NAME%%'.",
       "file_uploaded": "Uploaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
       "file_downloaded": "Downloaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
       "file_updated": "Updated a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
-      "file_deleted": "Deleted a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
       "file_trashed": "Moved a file '%%FILE_NAME%%' to trash on the bucket '%%BUCKET_NAME%%'.",
       "file_restored": "Restored a file '%%FILE_NAME%%' from trash on the bucket '%%BUCKET_NAME%%'.",
-      "file_purged": "Permanently deleted a file '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
+      "file_deleted": "Permanently deleted a file '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
       "folder_trashed": "Moved a folder '%%FILE_NAME%%' to trash on the bucket '%%BUCKET_NAME%%'.",
       "folder_restored": "Restored a folder '%%FILE_NAME%%' from trash on the bucket '%%BUCKET_NAME%%'.",
       "folder_purged": "Permanently deleted a folder '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
@@ -433,6 +433,9 @@
         "resource_name": "Resource",
         "bucket": "Bucket",
         "timestamp": "Time"
+      },
+      "tooltip": {
+        "object_deleted": "This object has been deleted"
       }
     }
   }

@@ -12,7 +12,7 @@ type AdminStatsResponse struct {
 	TotalFiles        int64             `json:"total_files"`
 	TotalFolders      int64             `json:"total_folders"`
 	TotalStorageBytes int64             `json:"total_storage"`
-	SharedFiles       []TimeSeriesPoint `json:"shared_files"`
+	SharedFilesPerDay []TimeSeriesPoint `json:"shared_files_per_day"`
 }
 
 // TimeSeriesPoint represents a data point in a time series chart.

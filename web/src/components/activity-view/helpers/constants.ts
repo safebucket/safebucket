@@ -20,6 +20,12 @@ export const messageMap = {
     iconColor: "text-green-500",
     iconBg: "bg-green-100",
   },
+  BUCKET_DELETED: {
+    messageKey: "activity.messages.bucket_deleted",
+    icon: Share2,
+    iconColor: "text-red-500",
+    iconBg: "bg-red-100",
+  },
   FILE_UPLOADED: {
     messageKey: "activity.messages.file_uploaded",
     icon: FileUp,
@@ -56,12 +62,6 @@ export const messageMap = {
     iconColor: "text-blue-500",
     iconBg: "bg-blue-100",
   },
-  FILE_PURGED: {
-    messageKey: "activity.messages.file_purged",
-    icon: FileMinus,
-    iconColor: "text-red-600",
-    iconBg: "bg-red-100",
-  },
   FOLDER_TRASHED: {
     messageKey: "activity.messages.folder_trashed",
     icon: Trash2,
@@ -74,8 +74,8 @@ export const messageMap = {
     iconColor: "text-blue-500",
     iconBg: "bg-blue-100",
   },
-  FOLDER_PURGED: {
-    messageKey: "activity.messages.folder_purged",
+  FOLDER_DELETED: {
+    messageKey: "activity.messages.folder_deleted",
     icon: FolderMinus,
     iconColor: "text-red-600",
     iconBg: "bg-red-100",

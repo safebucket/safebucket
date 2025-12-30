@@ -122,14 +122,14 @@
     "title": "Flux d'activité",
     "no_activity_yet": "Aucune activité pour le moment.",
     "messages": {
-      "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
+      "bucket_created": "A définitivement supprimé un bucket '%%BUCKET_NAME%%'.",
+      "bucket_deleted": "A supprimé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
       "file_uploaded": "A partagé un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_downloaded": "A téléchargé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "file_updated": "A modifié un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
-      "file_deleted": "A supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "file_trashed": "A déplacé un fichier '%%FILE_NAME%%' vers la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "file_restored": "A restauré un fichier '%%FILE_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
-      "file_purged": "A définitivement supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
+      "file_deleted": "A définitivement supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "folder_trashed": "A déplacé un dossier '%%FILE_NAME%%' vers la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "folder_restored": "A restauré un dossier '%%FILE_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "folder_purged": "A définitivement supprimé un dossier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
@@ -433,6 +433,9 @@
         "resource_name": "Ressource",
         "bucket": "Bucket",
         "timestamp": "Heure"
+      },
+      "tooltip": {
+        "object_deleted": "Cet objet a été supprimé"
       }
     }
   }

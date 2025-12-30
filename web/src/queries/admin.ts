@@ -5,15 +5,13 @@ import {
 } from "@tanstack/react-query";
 import type { IUser } from "@/components/auth-view/types/session";
 import type { IActivity } from "@/types/activity";
+import type {
+  AdminStatsResponse,
+  CreateUserPayload,
+  IAdminBucket,
+} from "@/types/admin.ts";
 import { api } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
-
-export interface CreateUserPayload {
-  first_name: string;
-  last_name: string;
-  email: string;
-  password: string;
-}
 
 export const usersQueryOptions = () =>
   queryOptions({
@@ -49,32 +47,6 @@ export const useDeleteUserMutation = () => {
   });
 };
 
-export interface RoleCount {
-  role: string;
-  count: number;
-}
-
-export interface ProviderCount {
-  provider: string;
-  count: number;
-}
-
-export interface TimeSeriesPoint {
-  date: string;
-  count: number;
-}
-
-export interface AdminStatsResponse {
-  total_users: number;
-  total_buckets: number;
-  total_files: number;
-  total_folders: number;
-  total_storage: number;
-  role_distribution: Array<RoleCount>;
-  provider_distribution: Array<ProviderCount>;
-  shared_files: Array<TimeSeriesPoint>;
-}
-
 export const adminStatsQueryOptions = (days: number = 90) =>
   queryOptions({
     queryKey: ["admin", "stats", days],
@@ -87,22 +59,6 @@ export const adminActivityQueryOptions = () =>
     queryFn: () => api.get<{ data: Array<IActivity> }>("/admin/activity"),
     select: (data) => data.data,
   });
-
-export interface IAdminBucket {
-  id: string;
-  name: string;
-  created_at: string;
-  updated_at: string;
-  creator: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
-  member_count: number;
-  file_count: number;
-  size: number;
-}
 
 export const adminBucketsQueryOptions = () =>
   queryOptions({

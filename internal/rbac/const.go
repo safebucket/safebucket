@@ -15,7 +15,6 @@ const (
 	ActionErase    = Action("erase")
 	ActionRestore  = Action("restore")
 	ActionGrant    = Action("grant")
-	ActionPurge    = Action("purge")
 	ActionUpdate   = Action("update")
 )
 

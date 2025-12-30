@@ -64,7 +64,18 @@ func (s AdminService) GetStats(
 		response.TotalStorageBytes = *totalStorage
 	}
 
-	response.SharedFiles = sql.GetSharedFilesByDay(s.DB, queryParams.Days)
+	searchCriteria := map[string][]string{
+		"action":      {rbac.ActionCreate.String()},
+		"object_type": {rbac.ResourceFile.String()},
+	}
+
+	timeSeries, err := s.ActivityLogger.CountByDay(searchCriteria, queryParams.Days)
+	if err != nil {
+		zap.L().Error("Failed to get uploads per day from Loki, falling back to DB", zap.Error(err))
+		response.SharedFilesPerDay = sql.GetSharedFilesByDay(s.DB, queryParams.Days)
+	} else {
+		response.SharedFilesPerDay = timeSeries
+	}
 
 	return response, nil
 }
