@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import type { FC } from "react";
-import type { TimeSeriesPoint } from "@/queries/admin";
 import type { ChartConfig } from "@/components/ui/chart";
+import type { TimeSeriesPoint } from "@/types/admin.ts";
 import {
   ChartContainer,
   ChartTooltip,
