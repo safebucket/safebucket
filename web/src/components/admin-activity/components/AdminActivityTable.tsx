@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
@@ -9,6 +8,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import type { IActivity } from "@/types/activity";
 import {
   Table,

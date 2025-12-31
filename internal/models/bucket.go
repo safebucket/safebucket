@@ -15,7 +15,7 @@ type Bucket struct {
 	CreatedAt time.Time      `                                                      json:"created_at"`
 	CreatedBy uuid.UUID      `gorm:"type:uuid;not null"                             json:"-"`
 	UpdatedAt time.Time      `                                                      json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index"                                          json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index"                                          json:"deleted_at"`
 }
 
 type BucketActivity struct {

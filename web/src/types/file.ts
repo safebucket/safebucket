@@ -21,7 +21,7 @@ export interface IFile {
   folder_id?: string;
   status: FileStatus | null;
   created_at: string;
-  deleted_at?: string;
+  deleted_at: string | null;
   deleted_by?: string;
   original_path?: string;
 }

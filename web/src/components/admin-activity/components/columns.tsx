@@ -4,18 +4,12 @@ import { Link } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { ElementType } from "react";
-import type { IActivity } from "@/types/activity";
-import { ActivityMessage } from "@/types/activity";
+import type { ActivityMessage, IActivity } from "@/types/activity";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-const DELETED_MESSAGES = new Set([
-  ActivityMessage.BUCKET_DELETED,
-  ActivityMessage.FILE_DELETED,
-]);
 
 interface ResourceTypeConfig {
   icon: ElementType;
@@ -63,7 +57,9 @@ const getResourceName = (activity: IActivity): string => {
 };
 
 const isResourceDeleted = (activity: IActivity): boolean => {
-  return DELETED_MESSAGES.has(activity.message);
+  return (
+    activity.file?.deleted_at !== null || activity.bucket?.deleted_at !== null
+  );
 };
 
 const getResourceLink = (activity: IActivity): string | null => {
