@@ -1,14 +1,15 @@
 package models
 
 type Configuration struct {
-	App      AppConfiguration      `mapstructure:"app"      validate:"required"`
-	Database DatabaseConfiguration `mapstructure:"database" validate:"required"`
-	Auth     AuthConfiguration     `mapstructure:"auth"     validate:"required"`
-	Cache    CacheConfiguration    `mapstructure:"cache"    validate:"required"`
-	Storage  StorageConfiguration  `mapstructure:"storage"  validate:"required"`
-	Events   EventsConfiguration   `mapstructure:"events"   validate:"required"`
-	Notifier NotifierConfiguration `mapstructure:"notifier" validate:"required"`
-	Activity ActivityConfiguration `mapstructure:"activity" validate:"required"`
+	Profile  string                `mapstructure:"profile"`
+	App      AppConfiguration      `mapstructure:"app"`
+	Database DatabaseConfiguration `mapstructure:"database"`
+	Auth     AuthConfiguration     `mapstructure:"auth"`
+	Cache    CacheConfiguration    `mapstructure:"cache"`
+	Storage  StorageConfiguration  `mapstructure:"storage"`
+	Events   EventsConfiguration   `mapstructure:"events"`
+	Notifier NotifierConfiguration `mapstructure:"notifier"`
+	Activity ActivityConfiguration `mapstructure:"activity"`
 }
 
 type AppConfiguration struct {

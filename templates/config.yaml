@@ -1,3 +1,8 @@
+# Profile determines which components run
+# Options: full, api, worker, worker:notifications, worker:trash, migrate
+# Default: full (all components enabled)
+profile: full
+
 app:
   log_level: info
   api_url: http://localhost:8080

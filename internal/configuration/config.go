@@ -15,6 +15,61 @@ import (
 	"go.uber.org/zap"
 )
 
+// validateConfigForProfile validates configuration sections based on the active profile.
+func validateConfigForProfile(profile models.Profile, config *models.Configuration) error {
+	validate := validator.New()
+
+	// Database always required
+	if err := validate.Struct(config.Database); err != nil {
+		return fmt.Errorf("database config required: %w", err)
+	}
+
+	// App config validation for HTTP server
+	if profile.HTTPServer {
+		if err := validate.Struct(config.App); err != nil {
+			return fmt.Errorf("app config required for profile %s: %w", profile.Name, err)
+		}
+	}
+
+	if profile.NeedsCache() {
+		if err := validate.Struct(config.Cache); err != nil {
+			return fmt.Errorf("cache config required for profile %s: %w", profile.Name, err)
+		}
+	}
+
+	if profile.NeedsStorage() {
+		if err := validate.Struct(config.Storage); err != nil {
+			return fmt.Errorf("storage config required for profile %s: %w", profile.Name, err)
+		}
+	}
+
+	if profile.NeedsEvents() {
+		if err := validate.Struct(config.Events); err != nil {
+			return fmt.Errorf("events config required for profile %s: %w", profile.Name, err)
+		}
+	}
+
+	if profile.NeedsNotifier() {
+		if err := validate.Struct(config.Notifier); err != nil {
+			return fmt.Errorf("notifier config required for profile %s: %w", profile.Name, err)
+		}
+	}
+
+	if profile.NeedsAuth() {
+		if err := validate.Struct(config.Auth); err != nil {
+			return fmt.Errorf("auth config required for profile %s: %w", profile.Name, err)
+		}
+	}
+
+	if profile.NeedsActivity() {
+		if err := validate.Struct(config.Activity); err != nil {
+			return fmt.Errorf("activity config required for profile %s: %w", profile.Name, err)
+		}
+	}
+
+	return nil
+}
+
 func parseArrayFields(k *koanf.Koanf) {
 	for _, field := range ArrayConfigFields {
 		if stringVal := k.String(field); stringVal != "" {
@@ -112,7 +167,7 @@ func readFileConfig(k *koanf.Koanf) {
 	}
 }
 
-func Read() models.Configuration {
+func Read() (models.Configuration, models.Profile) {
 	k := koanf.New(".")
 
 	readFileConfig(k)
@@ -124,10 +179,19 @@ func Read() models.Configuration {
 		zap.L().Fatal("Unable to decode config into struct", zap.Error(err))
 	}
 
-	validate := validator.New()
-	if err = validate.Struct(config); err != nil {
-		zap.L().Fatal("Invalid configuration", zap.Error(err))
+	// Get profile (defaults to "full" if not specified)
+	profile, ok := GetProfile(config.Profile)
+	if !ok {
+		zap.L().Fatal("Unknown profile", zap.String("profile", config.Profile))
 	}
 
-	return config
+	// Validate config sections based on profile requirements
+	if err = validateConfigForProfile(profile, &config); err != nil {
+		zap.L().Fatal("Invalid configuration for profile",
+			zap.String("profile", profile.Name),
+			zap.Error(err))
+	}
+
+	zap.L().Info("Loaded profile", zap.String("profile", profile.Name))
+	return config, profile
 }
