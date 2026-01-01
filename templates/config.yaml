@@ -1,7 +1,7 @@
 # Profile determines which components run
-# Options: full, api, worker
-# Default: full (all components enabled)
-profile: full
+# Options: default, api, worker
+# Default: default (all components enabled)
+profile: default
 
 app:
   log_level: info
