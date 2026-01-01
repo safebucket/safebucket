@@ -41,12 +41,12 @@ func (s BucketFolderService) Routes() chi.Router {
 		// PUT for name updates (RESTful full resource update)
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			With(m.Validate[models.FolderUpdateBody]).
-			Put("/", handlers.UpdateHandler(s.UpdateFolder))
+			Put("/", handlers.BodyHandler(s.UpdateFolder))
 
 		// PATCH for status updates (trash/restore) - consistent with files
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			With(m.Validate[models.FolderPatchBody]).
-			Patch("/", handlers.UpdateHandler(s.PatchFolder))
+			Patch("/", handlers.BodyHandler(s.PatchFolder))
 
 		// DELETE for permanent deletion
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).

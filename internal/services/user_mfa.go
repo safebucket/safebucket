@@ -53,11 +53,11 @@ func (s UserMFAService) Routes() chi.Router {
 
 			r.With(m.AuthorizeSelfOrAdmin(0)).
 				With(m.Validate[models.MFADeviceUpdateBody]).
-				Patch("/", handlers.UpdateHandler(s.UpdateDevice))
+				Patch("/", handlers.BodyHandler(s.UpdateDevice))
 
 			r.With(m.AuthorizeSelfOrAdmin(0)).
 				With(m.Validate[models.MFADeviceRemoveBody]).
-				Delete("/", handlers.DeleteWithBodyHandler(s.RemoveDevice))
+				Delete("/", handlers.BodyHandler(s.RemoveDevice))
 
 			r.With(m.AuthorizeSelfOrAdmin(0)).
 				With(m.Validate[models.MFADeviceVerifyBody]).

@@ -52,7 +52,7 @@ func (s BucketService) Routes() chi.Router {
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupOwner, 0)).
 			With(m.Validate[models.BucketCreateUpdateBody]).
-			Patch("/", handlers.UpdateHandler(s.UpdateBucket))
+			Patch("/", handlers.BodyHandler(s.UpdateBucket))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupOwner, 0)).
 			Delete("/", handlers.DeleteHandler(s.DeleteBucket))

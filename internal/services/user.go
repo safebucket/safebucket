@@ -46,7 +46,7 @@ func (s UserService) Routes() chi.Router {
 			Get("/", handlers.GetOneHandler(s.GetUser))
 
 		r.With(m.AuthorizeSelfOrAdmin(0)).
-			With(m.Validate[models.UserUpdateBody]).Patch("/", handlers.UpdateHandler(s.UpdateUser))
+			With(m.Validate[models.UserUpdateBody]).Patch("/", handlers.BodyHandler(s.UpdateUser))
 
 		r.With(m.AuthorizeRole(models.RoleAdmin)).
 			Delete("/", handlers.DeleteHandler(s.DeleteUser))

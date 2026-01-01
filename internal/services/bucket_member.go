@@ -36,7 +36,7 @@ func (s BucketMemberService) Routes() chi.Router {
 
 	r.With(m.AuthorizeGroup(s.DB, models.GroupOwner, 0)).
 		With(m.Validate[models.UpdateMembersBody]).
-		Put("/", handlers.UpdateHandler(s.UpdateBucketMembers))
+		Put("/", handlers.BodyHandler(s.UpdateBucketMembers))
 
 	return r
 }

@@ -297,8 +297,8 @@ func TestGetOneHandler_InvalidUUID(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
 
-// TestUpdateHandler tests successful update of a resource.
-func TestUpdateHandler(t *testing.T) {
+// TestBodyHandler tests successful update of a resource.
+func TestBodyHandler(t *testing.T) {
 	testUUID := uuid.New()
 	mockInput := models.BucketCreateUpdateBody{Name: "updated-bucket"}
 
@@ -325,15 +325,15 @@ func TestUpdateHandler(t *testing.T) {
 	ctx = context.WithValue(ctx, m.BodyKey{}, mockInput)
 	req = req.WithContext(ctx)
 
-	handler := UpdateHandler(mockUpdate.Update)
+	handler := BodyHandler(mockUpdate.Update)
 	handler(recorder, req)
 
 	mockUpdate.AssertExpectations(t)
 	tests.AssertJSONResponse(t, recorder, http.StatusNoContent, nil)
 }
 
-// TestUpdateHandler_InvalidUUID tests update with invalid UUID.
-func TestUpdateHandler_InvalidUUID(t *testing.T) {
+// TestBodyHandler_InvalidUUID tests update with invalid UUID.
+func TestBodyHandler_InvalidUUID(t *testing.T) {
 	invalidUUID := "invalid-uuid"
 
 	mockUpdate := new(tests.MockUpdateFunc[models.BucketCreateUpdateBody])
@@ -349,15 +349,15 @@ func TestUpdateHandler_InvalidUUID(t *testing.T) {
 	ctx = context.WithValue(ctx, m.LoggerKey, logger)
 	req = req.WithContext(ctx)
 
-	handler := UpdateHandler(mockUpdate.Update)
+	handler := BodyHandler(mockUpdate.Update)
 	handler(recorder, req)
 
 	expected := models.Error{Status: http.StatusBadRequest, Error: []string{"INVALID_UUID"}}
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
 
-// TestUpdateHandler_NotFoundWithAPIError tests update with custom APIError.
-func TestUpdateHandler_NotFoundWithAPIError(t *testing.T) {
+// TestBodyHandler_NotFoundWithAPIError tests update with custom APIError.
+func TestBodyHandler_NotFoundWithAPIError(t *testing.T) {
 	testUUID := uuid.New()
 	mockInput := models.BucketCreateUpdateBody{Name: "updated-bucket"}
 
@@ -384,7 +384,7 @@ func TestUpdateHandler_NotFoundWithAPIError(t *testing.T) {
 	ctx = context.WithValue(ctx, m.BodyKey{}, mockInput)
 	req = req.WithContext(ctx)
 
-	handler := UpdateHandler(mockUpdate.Update)
+	handler := BodyHandler(mockUpdate.Update)
 	handler(recorder, req)
 
 	mockUpdate.AssertExpectations(t)
@@ -392,8 +392,8 @@ func TestUpdateHandler_NotFoundWithAPIError(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusNotFound, expected)
 }
 
-// TestUpdateHandler_GenericError tests update with generic error.
-func TestUpdateHandler_GenericError(t *testing.T) {
+// TestBodyHandler_GenericError tests update with generic error.
+func TestBodyHandler_GenericError(t *testing.T) {
 	testUUID := uuid.New()
 	mockInput := models.BucketCreateUpdateBody{Name: "updated-bucket"}
 
@@ -420,7 +420,7 @@ func TestUpdateHandler_GenericError(t *testing.T) {
 	ctx = context.WithValue(ctx, m.BodyKey{}, mockInput)
 	req = req.WithContext(ctx)
 
-	handler := UpdateHandler(mockUpdate.Update)
+	handler := BodyHandler(mockUpdate.Update)
 	handler(recorder, req)
 
 	mockUpdate.AssertExpectations(t)
@@ -428,8 +428,8 @@ func TestUpdateHandler_GenericError(t *testing.T) {
 	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
 }
 
-// TestUpdateHandler_BodyExtractionFailure tests update when body cannot be extracted.
-func TestUpdateHandler_BodyExtractionFailure(t *testing.T) {
+// TestBodyHandler_BodyExtractionFailure tests update when body cannot be extracted.
+func TestBodyHandler_BodyExtractionFailure(t *testing.T) {
 	testUUID := uuid.New()
 
 	mockUpdate := new(tests.MockUpdateFunc[models.BucketCreateUpdateBody])
@@ -448,7 +448,7 @@ func TestUpdateHandler_BodyExtractionFailure(t *testing.T) {
 	// Intentionally not adding body to context
 	req = req.WithContext(ctx)
 
-	handler := UpdateHandler(mockUpdate.Update)
+	handler := BodyHandler(mockUpdate.Update)
 	handler(recorder, req)
 
 	expected := models.Error{Status: http.StatusInternalServerError, Error: []string{"INTERNAL_SERVER_ERROR"}}

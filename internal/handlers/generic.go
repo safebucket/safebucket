@@ -19,9 +19,8 @@ type (
 	GetOneTargetFunc[Out any]                 func(*zap.Logger, models.UserClaims, uuid.UUIDs) (Out, error)
 	GetOneWithQueryTargetFunc[Q any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, Q) (Out, error)
 	GetOneListTargetFunc[Out any]             func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
-	UpdateTargetFunc[In any]                  func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) error
+	BodyTargetFunc[In any]                    func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) error
 	DeleteTargetFunc                          func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
-	DeleteWithBodyTargetFunc[In any]          func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) error
 )
 
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
@@ -146,9 +145,9 @@ func handleBodyRequest[In any](
 	}
 }
 
-func UpdateHandler[In any](update UpdateTargetFunc[In]) http.HandlerFunc {
+func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleBodyRequest(w, r, update)
+		handleBodyRequest(w, r, handler)
 	}
 }
 
@@ -168,11 +167,5 @@ func DeleteHandler(del DeleteTargetFunc) http.HandlerFunc {
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 		}
-	}
-}
-
-func DeleteWithBodyHandler[In any](del DeleteWithBodyTargetFunc[In]) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		handleBodyRequest(w, r, del)
 	}
 }

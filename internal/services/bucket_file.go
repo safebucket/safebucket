@@ -39,7 +39,7 @@ func (s BucketFileService) Routes() chi.Router {
 	r.Route("/files/{id1}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			With(m.Validate[models.FilePatchBody]).
-			Patch("/", handlers.UpdateHandler(s.PatchFile))
+			Patch("/", handlers.BodyHandler(s.PatchFile))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			Delete("/", handlers.DeleteHandler(s.DeleteFile))
