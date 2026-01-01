@@ -5,57 +5,25 @@ import "api/internal/models"
 // Profiles defines all available deployment profiles.
 var Profiles = map[string]models.Profile{
 	"full": {
-		Name:        "full",
-		HTTPServer:  true,
-		Migrations:  true,
-		CacheTicker: true,
+		Name:       "full",
+		HTTPServer: true,
 		Workers: models.WorkerConfig{
-			Notifications:  true,
 			ObjectDeletion: true,
 			BucketEvents:   true,
 		},
 	},
 	"api": {
-		Name:        "api",
-		HTTPServer:  true,
-		Migrations:  false,
-		CacheTicker: true,
-		Workers:     models.WorkerConfig{},
+		Name:       "api",
+		HTTPServer: true,
+		Workers:    models.WorkerConfig{},
 	},
 	"worker": {
-		Name:        "worker",
-		HTTPServer:  false,
-		Migrations:  false,
-		CacheTicker: false,
-		Workers: models.WorkerConfig{
-			Notifications:  true,
-			ObjectDeletion: true,
-			BucketEvents:   true,
-		},
-	},
-	"worker:notifications": {
-		Name:        "worker:notifications",
-		HTTPServer:  false,
-		Migrations:  false,
-		CacheTicker: false,
-		Workers: models.WorkerConfig{
-			Notifications: true,
-		},
-	},
-	"worker:trash": {
-		Name:        "worker:trash",
-		HTTPServer:  false,
-		Migrations:  false,
-		CacheTicker: false,
+		Name:       "worker",
+		HTTPServer: false,
 		Workers: models.WorkerConfig{
 			ObjectDeletion: true,
 			BucketEvents:   true,
 		},
-	},
-	"migrate": {
-		Name:          "migrate",
-		Migrations:    true,
-		ExitAfterInit: true,
 	},
 }
 
