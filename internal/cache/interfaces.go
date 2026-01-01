@@ -23,5 +23,14 @@ type ICache interface {
 	// ResetMFAAttempts clears the failed attempts counter (called on successful verification).
 	ResetMFAAttempts(userID string) error
 
+	// TryAcquireLock attempts to acquire a distributed lock. Returns true if acquired.
+	TryAcquireLock(key string, instanceID string, ttlSeconds int) (bool, error)
+
+	// RefreshLock extends the TTL of an existing lock if held by this instance.
+	RefreshLock(key string, instanceID string, ttlSeconds int) (bool, error)
+
+	// ReleaseLock releases the lock if held by this instance.
+	ReleaseLock(key string, instanceID string) error
+
 	Close() error
 }

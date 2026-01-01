@@ -78,7 +78,7 @@ func main() {
 
 	// Start workers based on profile
 	if profile.Workers.AnyEnabled() {
-		startWorkers(profile, eventsManager, db, store, activityLogger, notify, eventRouter, config)
+		startWorkers(profile, eventsManager, db, store, activityLogger, notify, eventRouter, config, cache, appIdentity)
 	}
 
 	if cache != nil {
@@ -125,6 +125,8 @@ func startWorkers(
 	notify notifier.INotifier,
 	eventRouter *core.EventRouter,
 	config models.Configuration,
+	cache c.ICache,
+	appIdentity string,
 ) {
 	eventParams := &events.EventParams{
 		WebURL:             config.App.WebURL,
@@ -141,16 +143,15 @@ func startWorkers(
 	go events.HandleEvents(eventParams, notifications)
 	zap.L().Info("Started notifications worker")
 
-	if profile.Workers.ObjectDeletion {
+	startWorker(profile.Workers.ObjectDeletion, "object_deletion", cache, appIdentity, func() {
 		deletionEvents := eventsManager.GetSubscriber(configuration.EventsObjectDeletion).Subscribe()
-		go events.HandleEvents(eventParams, deletionEvents)
-		zap.L().Info("Started object deletion worker")
-	}
+		events.HandleEvents(eventParams, deletionEvents)
+	})
 
-	if profile.Workers.BucketEvents {
+	startWorker(profile.Workers.BucketEvents, "bucket_events", cache, appIdentity, func() {
 		bucketEventsSubscriber := eventsManager.GetSubscriber(configuration.EventsBucketEvents)
 		bucketEvents := bucketEventsSubscriber.Subscribe()
-		go events.HandleBucketEvents(
+		events.HandleBucketEvents(
 			bucketEventsSubscriber,
 			db,
 			activityLogger,
@@ -158,7 +159,51 @@ func startWorkers(
 			config.App.TrashRetentionDays,
 			bucketEvents,
 		)
-		zap.L().Info("Started bucket events worker")
+	})
+}
+
+func startWorker(mode models.WorkerMode, workerName string, cache c.ICache, appIdentity string, runWorker func()) {
+	if mode == models.WorkerModeDisabled {
+		return
+	}
+
+	if mode == models.WorkerModeSingleton && cache != nil {
+		go startSingletonWorker(cache, appIdentity, workerName, runWorker)
+	} else {
+		go runWorker()
+		zap.L().Info("Started worker", zap.String("worker", workerName))
+	}
+}
+
+func startSingletonWorker(cache c.ICache, instanceID string, workerName string, runWorker func()) {
+	lockKey := configuration.WorkerLockKeyPrefix + workerName
+	ticker := time.NewTicker(time.Duration(configuration.WorkerLockRefresh) * time.Second)
+	defer ticker.Stop()
+
+	var isLeader bool
+	var workerStarted bool
+
+	for {
+		acquired, err := cache.TryAcquireLock(lockKey, instanceID, configuration.WorkerLockTTL)
+		if err != nil {
+			zap.L().Error("Failed to acquire worker lock", zap.String("worker", workerName), zap.Error(err))
+		}
+
+		if acquired && !workerStarted {
+			zap.L().Info("Acquired worker lock, starting worker", zap.String("worker", workerName))
+			isLeader = true
+			workerStarted = true
+			go runWorker()
+		} else if isLeader {
+			refreshed, err := cache.RefreshLock(lockKey, instanceID, configuration.WorkerLockTTL)
+			if err != nil || !refreshed {
+				zap.L().Warn("Lost worker lock", zap.String("worker", workerName))
+				isLeader = false
+				// Note: Worker goroutine continues but will be replaced by new leader
+			}
+		}
+
+		<-ticker.C
 	}
 }
 
