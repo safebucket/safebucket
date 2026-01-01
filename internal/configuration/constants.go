@@ -23,6 +23,12 @@ const (
 
 const BulkActionsLimit = 1000
 
+const (
+	WorkerLockKeyPrefix = "worker:lock:"
+	WorkerLockTTL       = 30
+	WorkerLockRefresh   = 10
+)
+
 var ArrayConfigFields = []string{
 	"app.trusted_proxies",
 	"cors.allowed_origins",

@@ -8,21 +8,24 @@ var Profiles = map[string]models.Profile{
 		Name:       "full",
 		HTTPServer: true,
 		Workers: models.WorkerConfig{
-			ObjectDeletion: true,
-			BucketEvents:   true,
+			ObjectDeletion: models.WorkerModeSingleton,
+			BucketEvents:   models.WorkerModeSingleton,
 		},
 	},
 	"api": {
 		Name:       "api",
 		HTTPServer: true,
-		Workers:    models.WorkerConfig{},
+		Workers: models.WorkerConfig{
+			ObjectDeletion: models.WorkerModeDisabled,
+			BucketEvents:   models.WorkerModeDisabled,
+		},
 	},
 	"worker": {
 		Name:       "worker",
 		HTTPServer: false,
 		Workers: models.WorkerConfig{
-			ObjectDeletion: true,
-			BucketEvents:   true,
+			ObjectDeletion: models.WorkerModeSingleton,
+			BucketEvents:   models.WorkerModeSingleton,
 		},
 	},
 }

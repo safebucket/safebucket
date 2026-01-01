@@ -105,6 +105,60 @@ func (r *RueidisCache) GetRateLimit(userIdentifier string, requestsPerMinute int
 	return 0, nil
 }
 
+// TryAcquireLock attempts to acquire a distributed lock using SET NX EX.
+// Returns true if lock was acquired, false if already held by another instance.
+func (r *RueidisCache) TryAcquireLock(key string, instanceID string, ttlSeconds int) (bool, error) {
+	ctx := context.Background()
+	// SET key value NX EX ttl - atomic set-if-not-exists with expiration
+	result, err := r.client.Do(ctx,
+		r.client.B().Set().Key(key).Value(instanceID).Nx().Ex(time.Duration(ttlSeconds) * time.Second).Build(),
+	).ToString()
+	if err != nil {
+		if rueidis.IsRedisNil(err) {
+			// Key already exists, lock not acquired
+			return false, nil
+		}
+		return false, err
+	}
+	return result == "OK", nil
+}
+
+// RefreshLock extends the TTL of an existing lock if held by this instance.
+// Returns true if refresh succeeded, false if lock is no longer held.
+func (r *RueidisCache) RefreshLock(key string, instanceID string, ttlSeconds int) (bool, error) {
+	ctx := context.Background()
+	// GET to verify we still hold the lock
+	current, err := r.client.Do(ctx, r.client.B().Get().Key(key).Build()).ToString()
+	if err != nil {
+		if rueidis.IsRedisNil(err) {
+			// Lock no longer exists
+			return false, nil
+		}
+		return false, err
+	}
+	if current != instanceID {
+		// Lock held by another instance
+		return false, nil
+	}
+	// EXPIRE to refresh TTL
+	err = r.client.Do(ctx,
+		r.client.B().Expire().Key(key).Seconds(int64(ttlSeconds)).Build(),
+	).Error()
+	return err == nil, err
+}
+
+// ReleaseLock releases the lock if held by this instance.
+// Uses Lua script for atomic check-and-delete.
+func (r *RueidisCache) ReleaseLock(key string, instanceID string) error {
+	ctx := context.Background()
+	// Only delete if we hold the lock (Lua script for atomicity)
+	script := `if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end`
+	_, err := r.client.Do(ctx,
+		r.client.B().Eval().Script(script).Numkeys(1).Key(key).Arg(instanceID).Build(),
+	).ToInt64()
+	return err
+}
+
 func (r *RueidisCache) Close() error {
 	r.client.Close()
 	return nil
