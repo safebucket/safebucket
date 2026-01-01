@@ -17,22 +17,18 @@ const (
 )
 
 type User struct {
-	ID             uuid.UUID    `gorm:"type:uuid;primarykey;default:gen_random_uuid()"           json:"id"`
-	FirstName      string       `gorm:"default:null"                                             json:"first_name"`
-	LastName       string       `gorm:"default:null"                                             json:"last_name"`
-	Email          string       `gorm:"not null;default:null;uniqueIndex:idx_email_provider_key" json:"email"`
-	HashedPassword string       `gorm:"default:null"                                             json:"-"`
-	IsInitialized  bool         `gorm:"not null;default:false"                                   json:"is_initialized"`
-	ProviderType   ProviderType `gorm:"not null;type:provider_type;"                             json:"provider_type"`
-	ProviderKey    string       `gorm:"not null;uniqueIndex:idx_email_provider_key"              json:"provider_key"`
-	Role           Role         `gorm:"type:role_type;not null;"                                 json:"role"`
-	// Deprecated: Use MFADevices relationship instead. Kept for backward compatibility during migration.
-	MFAEnabled         bool           `gorm:"not null;default:false"                                   json:"mfa_enabled"`
-	MFASecretEncrypted string         `gorm:"default:null"                                             json:"-"`
-	MFAEnabledAt       *time.Time     `                                                                json:"mfa_enabled_at,omitempty"`
-	CreatedAt          time.Time      `                                                                json:"created_at"`
-	UpdatedAt          time.Time      `                                                                json:"updated_at"`
-	DeletedAt          gorm.DeletedAt `gorm:"index"                                                    json:"-"`
+	ID             uuid.UUID      `gorm:"type:uuid;primarykey;default:gen_random_uuid()"           json:"id"`
+	FirstName      string         `gorm:"default:null"                                             json:"first_name"`
+	LastName       string         `gorm:"default:null"                                             json:"last_name"`
+	Email          string         `gorm:"not null;default:null;uniqueIndex:idx_email_provider_key" json:"email"`
+	HashedPassword string         `gorm:"default:null"                                             json:"-"`
+	IsInitialized  bool           `gorm:"not null;default:false"                                   json:"is_initialized"`
+	ProviderType   ProviderType   `gorm:"not null;type:provider_type;"                             json:"provider_type"`
+	ProviderKey    string         `gorm:"not null;uniqueIndex:idx_email_provider_key"              json:"provider_key"`
+	Role           Role           `gorm:"type:role_type;not null;"                                 json:"role"`
+	CreatedAt      time.Time      `                                                                json:"created_at"`
+	UpdatedAt      time.Time      `                                                                json:"updated_at"`
+	DeletedAt      gorm.DeletedAt `gorm:"index"                                                    json:"-"`
 
 	// MFADevices is the list of MFA devices associated with this user.
 	MFADevices []MFADevice `gorm:"foreignKey:UserID" json:"-"`
@@ -59,10 +55,10 @@ func (u *User) GetVerifiedDevices() []MFADevice {
 	return verified
 }
 
-// GetPrimaryDevice returns the primary MFA device if it exists.
-func (u *User) GetPrimaryDevice() *MFADevice {
+// GetDefaultDevice returns the default MFA device if it exists.
+func (u *User) GetDefaultDevice() *MFADevice {
 	for i := range u.MFADevices {
-		if u.MFADevices[i].IsPrimary && u.MFADevices[i].IsVerified {
+		if u.MFADevices[i].IsDefault && u.MFADevices[i].IsVerified {
 			return &u.MFADevices[i]
 		}
 	}

@@ -56,7 +56,7 @@ export interface IMFADevice {
   id: string;
   name: string;
   type: MFADeviceType;
-  is_primary: boolean;
+  is_default: boolean;
   is_verified: boolean;
   created_at: string;
   verified_at?: string;

@@ -1,7 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, CheckCircle, Shield, Smartphone, Star } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Shield,
+  Smartphone,
+  Star,
+} from "lucide-react";
 
 import type { IMFADevice } from "@/components/auth-view/types/session";
 import { useLogin } from "@/hooks/useAuth";
@@ -59,11 +65,12 @@ function MFAVerification() {
   }, []);
 
   const defaultDeviceId = useMemo(() => {
-    const primary = devices.find((d) => d.is_primary);
-    return primary?.id || devices[0]?.id || "";
+    const defaultDevice = devices.find((d) => d.is_default);
+    return defaultDevice?.id || devices[0]?.id || "";
   }, [devices]);
 
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>(defaultDeviceId);
+  const [selectedDeviceId, setSelectedDeviceId] =
+    useState<string>(defaultDeviceId);
 
   useEffect(() => {
     if (defaultDeviceId && !selectedDeviceId) {
@@ -167,10 +174,10 @@ function MFAVerification() {
                         <div className="flex items-center gap-2">
                           <Smartphone className="h-4 w-4" />
                           <span>{device.name}</span>
-                          {device.is_primary && (
+                          {device.is_default && (
                             <span className="ml-1 flex items-center gap-1 text-xs text-muted-foreground">
                               <Star className="h-3 w-3 fill-current" />
-                              {t("auth.mfa.device_primary")}
+                              {t("auth.mfa.device_default")}
                             </span>
                           )}
                         </div>
@@ -209,7 +216,9 @@ function MFAVerification() {
               className="w-full"
               disabled={isLoading || code.length !== 6}
             >
-              {isLoading ? t("auth.mfa.verifying") : t("auth.mfa.verify_button")}
+              {isLoading
+                ? t("auth.mfa.verifying")
+                : t("auth.mfa.verify_button")}
             </Button>
 
             <div className="text-center">

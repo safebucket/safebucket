@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"encoding/base64"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -184,10 +185,7 @@ func TestEncryptDecrypt_RoundTrip(t *testing.T) {
 
 	t.Run("should handle long strings", func(t *testing.T) {
 		// Generate a long string (1000 characters)
-		original := ""
-		for i := 0; i < 1000; i++ {
-			original += "a"
-		}
+		original := strings.Repeat("a", 1000)
 
 		encrypted, err := EncryptSecret(original, validKey)
 		require.NoError(t, err)

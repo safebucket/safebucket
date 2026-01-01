@@ -65,18 +65,6 @@ func (s UserMFAService) Routes() chi.Router {
 		})
 	})
 
-	// Admin-only: disable all MFA for a user
-	r.With(m.AuthorizeRole(models.RoleAdmin)).
-		Delete("/", handlers.DeleteHandler(s.DisableAllMFA))
-
-	// Legacy routes (kept for backward compatibility during transition)
-	r.With(m.AuthorizeSelfOrAdmin(0)).
-		Post("/setup", handlers.GetOneHandler(s.SetupMFA))
-
-	r.With(m.AuthorizeSelfOrAdmin(0)).
-		With(m.Validate[models.MFAVerifyBody]).
-		Post("/verify", handlers.CreateHandler(s.VerifyAndEnableMFA))
-
 	// Reset flow
 	r.Route("/reset", func(r chi.Router) {
 		r.With(m.AuthorizeSelfOrAdmin(0)).
@@ -101,7 +89,7 @@ func (s UserMFAService) ListDevices(
 
 	var devices []models.MFADevice
 	result := s.DB.Where("user_id = ?", userID).
-		Order("is_primary DESC, created_at ASC").
+		Order("is_default DESC, created_at ASC").
 		Find(&devices)
 	if result.Error != nil {
 		return models.MFADevicesListResponse{}, result.Error
@@ -140,6 +128,12 @@ func (s UserMFAService) AddDevice(
 		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(404, "USER_NOT_FOUND")
 	}
 
+	// Default device name if not provided
+	deviceName := body.Name
+	if deviceName == "" {
+		deviceName = "Authenticator"
+	}
+
 	// Check device limit
 	var count int64
 	s.DB.Model(&models.MFADevice{}).Where("user_id = ?", userID).Count(&count)
@@ -149,7 +143,7 @@ func (s UserMFAService) AddDevice(
 
 	// Check for duplicate name
 	var existing models.MFADevice
-	result = s.DB.Where("user_id = ? AND name = ?", userID, body.Name).Find(&existing)
+	result = s.DB.Where("user_id = ? AND name = ?", userID, deviceName).Find(&existing)
 	if result.RowsAffected > 0 {
 		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(409, "MFA_DEVICE_NAME_EXISTS")
 	}
@@ -168,19 +162,13 @@ func (s UserMFAService) AddDevice(
 		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(500, "MFA_SETUP_FAILED")
 	}
 
-	// Check if this should be the primary device (first verified device)
-	var verifiedCount int64
-	s.DB.Model(&models.MFADevice{}).
-		Where("user_id = ? AND is_verified = ?", userID, true).
-		Count(&verifiedCount)
-
-	// Create unverified device
+	// Create unverified device (is_default will be set when verified)
 	device := models.MFADevice{
 		UserID:          userID,
-		Name:            body.Name,
+		Name:            deviceName,
 		Type:            models.MFADeviceTypeTOTP,
 		SecretEncrypted: encryptedSecret,
-		IsPrimary:       verifiedCount == 0, // First device becomes primary when verified
+		IsDefault:       false, // Will be set to true when verified if no other default exists
 		IsVerified:      false,
 	}
 
@@ -192,7 +180,7 @@ func (s UserMFAService) AddDevice(
 	logger.Info("MFA device setup initiated",
 		zap.String("user_id", userID.String()),
 		zap.String("device_id", device.ID.String()),
-		zap.String("device_name", body.Name),
+		zap.String("device_name", deviceName),
 		zap.String("initiated_by", claims.UserID.String()))
 
 	return models.MFADeviceSetupResponse{
@@ -288,23 +276,25 @@ func (s UserMFAService) VerifyDevice(
 			return apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
 		}
 
+		// Check if there's already a verified default device
+		var existingDefaultCount int64
+		tx.Model(&models.MFADevice{}).
+			Where("user_id = ? AND is_verified = ? AND is_default = ? AND id != ?",
+				userID, true, true, deviceID).
+			Count(&existingDefaultCount)
+
+		// This device should be default only if no other verified default exists
+		shouldBeDefault := existingDefaultCount == 0
+
 		// Enable device
 		now := time.Now()
 		if err = tx.Model(&device).Updates(map[string]interface{}{
 			"is_verified":  true,
+			"is_default":   shouldBeDefault,
 			"verified_at":  now,
 			"last_used_at": now,
 		}).Error; err != nil {
 			return err
-		}
-
-		// Also update the legacy user.mfa_enabled flag for backward compatibility
-		if err = tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-			"mfa_enabled":    true,
-			"mfa_enabled_at": now,
-		}).Error; err != nil {
-			logger.Warn("Failed to update legacy MFA fields", zap.Error(err))
-			// Don't fail the transaction for this
 		}
 
 		return nil
@@ -314,8 +304,8 @@ func (s UserMFAService) VerifyDevice(
 		return nil, err
 	}
 
-	// Generate new tokens with MFA enabled
-	user.MFAEnabled = true
+	// Reload user with MFA devices for token generation
+	s.DB.Preload("MFADevices", "is_verified = ?", true).First(&user, userID)
 	provider := string(user.ProviderType)
 	accessToken, err = h.NewAccessToken(s.JWTSecret, &user, provider, s.AccessTokenExpiry)
 	if err != nil {
@@ -396,15 +386,15 @@ func (s UserMFAService) UpdateDevice(
 			updates["name"] = *body.Name
 		}
 
-		if body.IsPrimary != nil && *body.IsPrimary {
+		if body.IsDefault != nil && *body.IsDefault {
 			if !device.IsVerified {
-				return apierrors.NewAPIError(400, "UNVERIFIED_DEVICE_CANNOT_BE_PRIMARY")
+				return apierrors.NewAPIError(400, "UNVERIFIED_DEVICE_CANNOT_BE_DEFAULT")
 			}
-			// Clear other primaries
+			// Clear other defaults
 			tx.Model(&models.MFADevice{}).
 				Where("user_id = ? AND id != ?", userID, deviceID).
-				Update("is_primary", false)
-			updates["is_primary"] = true
+				Update("is_default", false)
+			updates["is_default"] = true
 		}
 
 		if len(updates) > 0 {
@@ -466,7 +456,7 @@ func (s UserMFAService) RemoveDevice(
 		// Store device name for notification
 		deviceName = device.Name
 
-		wasPrimary := device.IsPrimary
+		wasDefault := device.IsDefault
 		wasVerified := device.IsVerified
 
 		// Delete device
@@ -474,29 +464,15 @@ func (s UserMFAService) RemoveDevice(
 			return err
 		}
 
-		// If this was primary, promote another verified device
-		if wasPrimary {
-			var nextPrimaries []models.MFADevice
+		// If this was default, promote another verified device
+		if wasDefault && wasVerified {
+			var nextDefaults []models.MFADevice
 			tx.Where("user_id = ? AND is_verified = ?", userID, true).
 				Order("created_at ASC").
 				Limit(1).
-				Find(&nextPrimaries)
-			if len(nextPrimaries) > 0 {
-				tx.Model(&nextPrimaries[0]).Update("is_primary", true)
-			}
-		}
-
-		// Update legacy mfa_enabled flag if no verified devices remain
-		if wasVerified {
-			var remainingVerified int64
-			tx.Model(&models.MFADevice{}).
-				Where("user_id = ? AND is_verified = ?", userID, true).
-				Count(&remainingVerified)
-			if remainingVerified == 0 {
-				tx.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
-					"mfa_enabled":    false,
-					"mfa_enabled_at": nil,
-				})
+				Find(&nextDefaults)
+			if len(nextDefaults) > 0 {
+				tx.Model(&nextDefaults[0]).Update("is_default", true)
 			}
 		}
 
@@ -533,222 +509,6 @@ func (s UserMFAService) RemoveDevice(
 	return nil
 }
 
-// DisableAllMFA removes all MFA devices for a user (admin only).
-func (s UserMFAService) DisableAllMFA(
-	logger *zap.Logger,
-	claims models.UserClaims,
-	ids uuid.UUIDs,
-) error {
-	userID := ids[0]
-
-	var user models.User
-	result := s.DB.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).Find(&user)
-	if result.RowsAffected == 0 {
-		return apierrors.NewAPIError(404, "USER_NOT_FOUND")
-	}
-
-	return s.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("user_id = ?", userID).Delete(&models.MFADevice{}).Error; err != nil {
-			return err
-		}
-
-		// Update legacy flags
-		if err := tx.Model(&user).Updates(map[string]interface{}{
-			"mfa_enabled":          false,
-			"mfa_secret_encrypted": nil,
-			"mfa_enabled_at":       nil,
-		}).Error; err != nil {
-			return err
-		}
-
-		logger.Info("All MFA devices disabled for user by admin",
-			zap.String("user_id", userID.String()),
-			zap.String("admin_id", claims.UserID.String()))
-
-		return nil
-	})
-}
-
-// SetupMFA initiates MFA setup (legacy single-device flow).
-//
-// Deprecated: Use AddDevice for multi-device support.
-func (s UserMFAService) SetupMFA(
-	logger *zap.Logger,
-	claims models.UserClaims,
-	ids uuid.UUIDs,
-) (models.MFASetupResponse, error) {
-	userID := ids[0]
-
-	var user models.User
-	result := s.DB.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).First(&user)
-	if result.RowsAffected == 0 {
-		return models.MFASetupResponse{}, apierrors.NewAPIError(404, "USER_NOT_FOUND")
-	}
-
-	if user.MFAEnabled {
-		return models.MFASetupResponse{}, apierrors.NewAPIError(409, "MFA_ALREADY_ENABLED")
-	}
-
-	totpKey, err := h.GenerateTOTPSecret(user.Email)
-	if err != nil {
-		logger.Error("Failed to generate TOTP secret", zap.Error(err))
-		return models.MFASetupResponse{}, apierrors.NewAPIError(500, "MFA_SETUP_FAILED")
-	}
-
-	encryptedSecret, err := h.EncryptSecret(totpKey.Secret, []byte(s.MFAEncryptionKey))
-	if err != nil {
-		logger.Error("Failed to encrypt TOTP secret", zap.Error(err))
-		return models.MFASetupResponse{}, apierrors.NewAPIError(500, "MFA_SETUP_FAILED")
-	}
-
-	result = s.DB.Model(&user).Update("mfa_secret_encrypted", encryptedSecret)
-	if result.Error != nil {
-		logger.Error("Failed to store TOTP secret", zap.Error(result.Error))
-		return models.MFASetupResponse{}, apierrors.NewAPIError(500, "MFA_SETUP_FAILED")
-	}
-
-	logger.Info("MFA setup initiated (legacy)",
-		zap.String("user_id", userID.String()),
-		zap.String("initiated_by", claims.UserID.String()))
-
-	return models.MFASetupResponse{
-		Secret:    totpKey.Secret,
-		QRCodeURI: totpKey.URL,
-		Issuer:    configuration.AppName,
-	}, nil
-}
-
-// VerifyAndEnableMFA verifies TOTP and enables MFA (legacy single-device flow).
-//
-// Deprecated: Use VerifyDevice for multi-device support.
-func (s UserMFAService) VerifyAndEnableMFA(
-	logger *zap.Logger,
-	claims models.UserClaims,
-	ids uuid.UUIDs,
-	body models.MFAVerifyBody,
-) (interface{}, error) {
-	userID := ids[0]
-
-	var user models.User
-	result := s.DB.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).First(&user)
-	if result.RowsAffected == 0 {
-		return nil, apierrors.NewAPIError(404, "USER_NOT_FOUND")
-	}
-
-	if user.MFAEnabled {
-		return nil, apierrors.NewAPIError(409, "MFA_ALREADY_ENABLED")
-	}
-
-	if user.MFASecretEncrypted == "" {
-		return nil, apierrors.NewAPIError(400, "MFA_SETUP_NOT_STARTED")
-	}
-
-	secret, err := h.DecryptSecret(user.MFASecretEncrypted, []byte(s.MFAEncryptionKey))
-	if err != nil {
-		logger.Error("Failed to decrypt TOTP secret", zap.Error(err))
-		return nil, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
-	}
-
-	if !h.ValidateTOTPCode(secret, body.Code) {
-		logger.Warn("MFA verification failed - invalid code",
-			zap.String("user_id", userID.String()),
-			zap.String("verified_by", claims.UserID.String()))
-		return nil, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
-	}
-
-	// Use userID for legacy flow (backward compatible)
-	used, err := s.Cache.IsTOTPCodeUsed(userID.String(), body.Code)
-	if err != nil {
-		logger.Error("Failed to check TOTP code usage", zap.Error(err))
-		return nil, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
-	}
-	if used {
-		logger.Warn("TOTP code replay attempt detected",
-			zap.String("user_id", userID.String()))
-		return nil, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
-	}
-
-	if err = s.Cache.MarkTOTPCodeUsed(userID.String(), body.Code); err != nil {
-		logger.Error("Failed to mark TOTP code as used", zap.Error(err))
-		return nil, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
-	}
-
-	now := time.Now()
-	result = s.DB.Model(&user).Updates(map[string]interface{}{
-		"mfa_enabled":    true,
-		"mfa_enabled_at": now,
-	})
-	if result.Error != nil {
-		logger.Error("Failed to enable MFA", zap.Error(result.Error))
-		return nil, apierrors.NewAPIError(500, "MFA_ENABLE_FAILED")
-	}
-
-	// Check device limit before creating
-	var deviceCount int64
-	s.DB.Model(&models.MFADevice{}).Where("user_id = ?", userID).Count(&deviceCount)
-	if deviceCount >= int64(models.MaxMFADevicesPerUser) {
-		return nil, apierrors.NewAPIError(400, "MAX_MFA_DEVICES_REACHED")
-	}
-
-	// Also create a device record for consistency with new model
-	device := models.MFADevice{
-		UserID:          userID,
-		Name:            "Authenticator",
-		Type:            models.MFADeviceTypeTOTP,
-		SecretEncrypted: user.MFASecretEncrypted,
-		IsPrimary:       true,
-		IsVerified:      true,
-		VerifiedAt:      &now,
-		LastUsedAt:      &now,
-	}
-	if err = s.DB.Create(&device).Error; err != nil {
-		logger.Warn("Failed to create device record for legacy MFA", zap.Error(err))
-		// Don't fail - legacy fields are already updated
-	}
-
-	user.MFAEnabled = true
-
-	provider := string(user.ProviderType)
-	accessToken, err := h.NewAccessToken(s.JWTSecret, &user, provider, s.AccessTokenExpiry)
-	if err != nil {
-		logger.Error("Failed to generate access token", zap.Error(err))
-		return nil, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
-	}
-
-	refreshToken, err := h.NewRefreshToken(s.JWTSecret, &user, provider, s.RefreshTokenExpiry)
-	if err != nil {
-		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return nil, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
-	}
-
-	logger.Info("MFA enabled for user (legacy)",
-		zap.String("user_id", userID.String()),
-		zap.String("enabled_by", claims.UserID.String()))
-
-	// Send notification email
-	go func() {
-		if notifyErr := s.Notifier.NotifyFromTemplate(
-			user.Email,
-			"New MFA Device Enrolled - Safebucket",
-			"mfa_device_enrolled",
-			map[string]string{
-				"DeviceName": device.Name,
-				"WebURL":     s.WebURL,
-			},
-		); notifyErr != nil {
-			logger.Warn("Failed to send MFA device enrollment notification",
-				zap.Error(notifyErr),
-				zap.String("user_id", userID.String()),
-				zap.String("email", user.Email))
-		}
-	}()
-
-	return models.AuthLoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	}, nil
-}
-
 // RequestMFAReset initiates MFA reset by sending an email challenge.
 func (s UserMFAService) RequestMFAReset(
 	logger *zap.Logger,
@@ -766,7 +526,7 @@ func (s UserMFAService) RequestMFAReset(
 	}
 
 	// Check if user has any verified devices
-	if !user.HasMFAEnabled() && !user.MFAEnabled {
+	if !user.HasMFAEnabled() {
 		return models.MFAResetRequestResponse{}, apierrors.NewAPIError(409, "MFA_NOT_ENABLED")
 	}
 
@@ -880,17 +640,6 @@ func (s UserMFAService) VerifyMFAReset(
 		// Delete all MFA devices
 		if txErr := tx.Where("user_id = ?", userID).Delete(&models.MFADevice{}).Error; txErr != nil {
 			return txErr
-		}
-
-		// Update legacy user fields
-		updateResult := tx.Model(challenge.User).Updates(map[string]interface{}{
-			"mfa_enabled":          false,
-			"mfa_secret_encrypted": nil,
-			"mfa_enabled_at":       nil,
-		})
-		if updateResult.Error != nil {
-			logger.Error("Failed to disable MFA", zap.Error(updateResult.Error))
-			return apierrors.NewAPIError(500, "MFA_RESET_FAILED")
 		}
 
 		deleteResult := tx.Delete(&challenge)

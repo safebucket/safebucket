@@ -137,10 +137,10 @@ func (r *RueidisCache) GetMFAAttempts(userID string) (int, error) {
 	count, err := r.client.Do(ctx, r.client.B().Get().Key(key).Build()).AsInt64()
 	if err != nil {
 		// Key doesn't exist means 0 attempts
-		if r.client.Do(ctx, r.client.B().Exists().Key(key).Build()).Error() != nil {
+		if rueidis.IsRedisNil(err) {
 			return 0, nil
 		}
-		return 0, nil
+		return 0, err
 	}
 	return int(count), nil
 }

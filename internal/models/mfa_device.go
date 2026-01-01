@@ -11,21 +11,18 @@ type MFADeviceType string
 
 const (
 	MFADeviceTypeTOTP MFADeviceType = "totp"
-	// Future types: MFADeviceTypePasskey, MFADeviceTypeEmail.
 )
 
 // MaxMFADevicesPerUser is the maximum number of MFA devices allowed per user.
 const MaxMFADevicesPerUser = 5
 
 // TOTPCodeTTL is the time-to-live for TOTP code replay protection (in seconds).
-// This covers current window (30s) plus clock skew tolerance.
 const TOTPCodeTTL = 90
 
 // MFAMaxAttempts is the maximum number of failed MFA verification attempts before lockout.
 const MFAMaxAttempts = 5
 
 // MFALockoutSeconds is the lockout duration after max failed MFA attempts (in seconds).
-// 15 minutes = 900 seconds.
 const MFALockoutSeconds = 900
 
 // MFADevice represents an MFA device associated with a user.
@@ -35,7 +32,7 @@ type MFADevice struct {
 	Name            string        `gorm:"type:varchar(100);not null"                     json:"name"`
 	Type            MFADeviceType `gorm:"type:mfa_device_type;not null;default:'totp'"   json:"type"`
 	SecretEncrypted string        `gorm:"not null"                                       json:"-"`
-	IsPrimary       bool          `gorm:"not null;default:false"                         json:"is_primary"`
+	IsDefault       bool          `gorm:"column:is_default;not null;default:false"       json:"is_default"`
 	IsVerified      bool          `gorm:"not null;default:false"                         json:"is_verified"`
 	CreatedAt       time.Time     `                                                      json:"created_at"`
 	UpdatedAt       time.Time     `                                                      json:"updated_at"`
@@ -45,7 +42,7 @@ type MFADevice struct {
 
 // TableName returns the table name for the MFADevice model.
 func (*MFADevice) TableName() string {
-	return "user_mfa_devices"
+	return "mfa_devices"
 }
 
 // MFADeviceResponse is the public response for an MFA device (no secrets).
@@ -53,7 +50,7 @@ type MFADeviceResponse struct {
 	ID         uuid.UUID     `json:"id"`
 	Name       string        `json:"name"`
 	Type       MFADeviceType `json:"type"`
-	IsPrimary  bool          `json:"is_primary"`
+	IsDefault  bool          `json:"is_default"`
 	IsVerified bool          `json:"is_verified"`
 	CreatedAt  time.Time     `json:"created_at"`
 	VerifiedAt *time.Time    `json:"verified_at,omitempty"`
@@ -66,7 +63,7 @@ func (d *MFADevice) ToResponse() MFADeviceResponse {
 		ID:         d.ID,
 		Name:       d.Name,
 		Type:       d.Type,
-		IsPrimary:  d.IsPrimary,
+		IsDefault:  d.IsDefault,
 		IsVerified: d.IsVerified,
 		CreatedAt:  d.CreatedAt,
 		VerifiedAt: d.VerifiedAt,
@@ -84,7 +81,7 @@ type MFADevicesListResponse struct {
 
 // MFADeviceSetupBody is used when setting up a new MFA device.
 type MFADeviceSetupBody struct {
-	Name string `json:"name" validate:"required,min=1,max=100"`
+	Name string `json:"name" validate:"omitempty,max=100"`
 }
 
 // MFADeviceSetupResponse is returned when initiating device setup.
@@ -103,7 +100,7 @@ type MFADeviceVerifyBody struct {
 // MFADeviceUpdateBody is used to update device properties.
 type MFADeviceUpdateBody struct {
 	Name      *string `json:"name"       validate:"omitempty,min=1,max=100"`
-	IsPrimary *bool   `json:"is_primary" validate:"omitempty"`
+	IsDefault *bool   `json:"is_default" validate:"omitempty"`
 }
 
 // MFADeviceRemoveBody is used when removing an MFA device (requires password for security).

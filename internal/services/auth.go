@@ -105,9 +105,9 @@ func (s AuthService) Login(
 		return models.AuthLoginResponse{}, errors.New("invalid email / password combination")
 	}
 
-	// Check if user has verified MFA devices (new model) or legacy MFA enabled
+	// Check if user has verified MFA devices
 	verifiedDevices := searchUser.GetVerifiedDevices()
-	hasMFA := len(verifiedDevices) > 0 || searchUser.MFAEnabled
+	hasMFA := len(verifiedDevices) > 0
 
 	if hasMFA {
 		return s.handleMFALogin(logger, &searchUser, verifiedDevices)
@@ -200,37 +200,29 @@ func (s AuthService) generateTokens(user *models.User) (models.AuthLoginResponse
 }
 
 // getMFASecretAndDevice retrieves the MFA secret and device ID for verification.
-// Returns (secret, deviceID, targetDevice, error). targetDevice is nil for legacy MFA.
+// Returns (secret, deviceID, targetDevice, error).
 func (s AuthService) getMFASecretAndDevice(
 	logger *zap.Logger,
 	user *models.User,
 	verifiedDevices []models.MFADevice,
 	requestedDeviceID *uuid.UUID,
 ) (string, string, *models.MFADevice, error) {
-	// If user has verified devices, use device-based verification
-	if len(verifiedDevices) > 0 {
-		targetDevice, err := s.selectMFADevice(user, verifiedDevices, requestedDeviceID)
-		if err != nil {
-			return "", "", nil, err
-		}
-
-		secret, err := h.DecryptSecret(targetDevice.SecretEncrypted, []byte(s.MFAEncryptionKey))
-		if err != nil {
-			logger.Error("Failed to decrypt TOTP secret", zap.Error(err))
-			return "", "", nil, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
-		}
-
-		return secret, targetDevice.ID.String(), targetDevice, nil
+	if len(verifiedDevices) == 0 {
+		return "", "", nil, apierrors.NewAPIError(400, "MFA_NOT_ENABLED")
 	}
 
-	// Fallback to legacy user-based MFA secret
-	secret, err := h.DecryptSecret(user.MFASecretEncrypted, []byte(s.MFAEncryptionKey))
+	targetDevice, err := s.selectMFADevice(user, verifiedDevices, requestedDeviceID)
+	if err != nil {
+		return "", "", nil, err
+	}
+
+	secret, err := h.DecryptSecret(targetDevice.SecretEncrypted, []byte(s.MFAEncryptionKey))
 	if err != nil {
 		logger.Error("Failed to decrypt TOTP secret", zap.Error(err))
 		return "", "", nil, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
 	}
 
-	return secret, user.ID.String(), nil, nil
+	return secret, targetDevice.ID.String(), targetDevice, nil
 }
 
 // selectMFADevice selects the MFA device for verification.
@@ -248,8 +240,8 @@ func (s AuthService) selectMFADevice(
 		return nil, apierrors.NewAPIError(404, "MFA_DEVICE_NOT_FOUND")
 	}
 
-	// Use primary device or first verified device
-	if device := user.GetPrimaryDevice(); device != nil {
+	// Use default device or first verified device
+	if device := user.GetDefaultDevice(); device != nil {
 		return device, nil
 	}
 
@@ -319,9 +311,7 @@ func (s AuthService) VerifyMFALogin(
 	}
 
 	verifiedDevices := user.GetVerifiedDevices()
-	hasMFA := len(verifiedDevices) > 0 || user.MFAEnabled
-
-	if !hasMFA {
+	if len(verifiedDevices) == 0 {
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "MFA_NOT_ENABLED")
 	}
 

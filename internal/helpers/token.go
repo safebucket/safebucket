@@ -40,7 +40,7 @@ func NewAccessToken(jwtSecret string, user *models.User, provider string, expiry
 		Aud:      "app:*",
 		Provider: provider,
 		Issuer:   configuration.AppName,
-		MFA:      user.MFAEnabled,
+		MFA:      user.HasMFAEnabled(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * time.Duration(expiryMinutes))},
@@ -81,7 +81,7 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string, expir
 		Aud:      "auth:refresh",
 		Issuer:   configuration.AppName,
 		Provider: provider,
-		MFA:      user.MFAEnabled,
+		MFA:      user.HasMFAEnabled(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Minute * time.Duration(expiryMinutes))},

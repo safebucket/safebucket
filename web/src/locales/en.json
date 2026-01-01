@@ -8,7 +8,7 @@
     "loading": "Loading...",
     "success": "Success",
     "error": "Error",
-    "delete" : "Delete"
+    "delete": "Delete"
   },
   "toast": {
     "download_started": "Download started for file {{filename}}",
@@ -41,10 +41,10 @@
       "verify_subtitle": "Enter the code from your authenticator app",
       "select_device": "Select device",
       "select_device_description": "Choose which device to use for verification",
-      "device_primary": "Primary",
-      "primary": "Primary",
+      "device_default": "Default",
+      "default": "Default",
       "added_on": "Added on {{date}}",
-      "set_primary": "Set as Primary",
+      "set_default": "Set as Default",
       "devices_title": "MFA Devices",
       "devices_description": "You have {{count}} device(s) configured. Maximum {{max}} devices allowed.",
       "add_device": "Add Device",

@@ -71,7 +71,7 @@ export const useRequestMFAResetMutation = (userId: string) => {
 
 export const useVerifyMFAResetMutation = (
   userId: string,
-  challengeId: string
+  challengeId: string,
 ) => {
   const queryClient = useQueryClient();
 
@@ -116,7 +116,10 @@ export const useAddMFADeviceMutation = (userId: string) => {
   });
 };
 
-export const useVerifyMFADeviceMutation = (userId: string, deviceId: string) => {
+export const useVerifyMFADeviceMutation = (
+  userId: string,
+  deviceId: string,
+) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -137,8 +140,13 @@ export const useRemoveMFADeviceMutation = (userId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ deviceId, password }: { deviceId: string; password: string }) =>
-      api.delete(`/users/${userId}/mfa/devices/${deviceId}`, { password }),
+    mutationFn: ({
+      deviceId,
+      password,
+    }: {
+      deviceId: string;
+      password: string;
+    }) => api.delete(`/users/${userId}/mfa/devices/${deviceId}`, { password }),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["users", userId, "mfa", "devices"],
@@ -150,11 +158,14 @@ export const useRemoveMFADeviceMutation = (userId: string) => {
   });
 };
 
-export const useUpdateMFADeviceMutation = (userId: string, deviceId: string) => {
+export const useUpdateMFADeviceMutation = (
+  userId: string,
+  deviceId: string,
+) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { name?: string; is_primary?: boolean }) =>
+    mutationFn: (data: { name?: string; is_default?: boolean }) =>
       api.patch(`/users/${userId}/mfa/devices/${deviceId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({

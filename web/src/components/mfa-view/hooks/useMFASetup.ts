@@ -1,0 +1,137 @@
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
+
+import type {
+  IMFADeviceSetupResponse,
+  SetupStep,
+} from "@/components/mfa-view/helpers/types";
+import { authCookies } from "@/lib/auth-service";
+import {
+  MFA_CODE_LENGTH,
+  MFA_DEFAULT_DEVICE_NAME,
+} from "@/components/mfa-view/helpers/constants";
+import { useMFADevices } from "@/components/mfa-view/hooks/useMFADevices";
+
+export interface UseMFASetupReturn {
+  step: SetupStep;
+  deviceName: string;
+  setDeviceName: (name: string) => void;
+  setupData: IMFADeviceSetupResponse | null;
+  code: string;
+  setCode: (code: string) => void;
+  error: string | null;
+  isLoading: boolean;
+  startSetup: () => Promise<void>;
+  goToVerify: () => void;
+  goBack: () => void;
+  verifyCode: () => Promise<void>;
+  reset: () => void;
+}
+
+export function useMFASetup(userId: string): UseMFASetupReturn {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const { addDevice, verifyDevice, isAddingDevice, isVerifyingDevice } =
+    useMFADevices(userId);
+
+  const [step, setStep] = useState<SetupStep>("name");
+  const [deviceName, setDeviceName] = useState(MFA_DEFAULT_DEVICE_NAME);
+  const [setupData, setSetupData] = useState<IMFADeviceSetupResponse | null>(
+    null,
+  );
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const reset = useCallback(() => {
+    setStep("name");
+    setDeviceName(MFA_DEFAULT_DEVICE_NAME);
+    setSetupData(null);
+    setCode("");
+    setError(null);
+  }, []);
+
+  const goToVerify = useCallback(() => {
+    setStep("verify");
+  }, []);
+
+  const goBack = useCallback(() => {
+    if (step === "verify") {
+      setStep("qr");
+      setCode("");
+      setError(null);
+    }
+  }, [step]);
+
+  const startSetup = useCallback(async () => {
+    if (!deviceName.trim()) {
+      setError(t("auth.mfa.error_device_name_required"));
+      return;
+    }
+
+    setError(null);
+    try {
+      const response = await addDevice(deviceName.trim());
+      setSetupData(response);
+      setStep("qr");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "";
+      if (errorMessage.includes("MFA_DEVICE_NAME_EXISTS")) {
+        setError(t("auth.mfa.error_device_name_exists"));
+      } else if (errorMessage.includes("MAX_MFA_DEVICES_REACHED")) {
+        setError(t("auth.mfa.error_max_devices"));
+      } else {
+        setError(t("auth.mfa.setup_error"));
+      }
+    }
+  }, [deviceName, addDevice, t]);
+
+  const verifyCode = useCallback(async () => {
+    if (code.length !== MFA_CODE_LENGTH) {
+      setError(t("auth.mfa.error_code_length"));
+      return;
+    }
+
+    if (!setupData?.device_id) {
+      setError(t("auth.mfa.setup_error"));
+      return;
+    }
+
+    setError(null);
+    try {
+      const response = (await verifyDevice(setupData.device_id, code)) as {
+        access_token?: string;
+        refresh_token?: string;
+      };
+
+      // Save the new tokens with updated MFA claim
+      if (response.access_token) {
+        authCookies.setAccessToken(response.access_token);
+      }
+      if (response.refresh_token) {
+        authCookies.setRefreshToken(response.refresh_token);
+      }
+
+      setStep("success");
+      queryClient.invalidateQueries({ queryKey: ["users", userId] });
+    } catch {
+      setError(t("auth.mfa.verify_error"));
+    }
+  }, [code, setupData, verifyDevice, queryClient, userId, t]);
+
+  return {
+    step,
+    deviceName,
+    setDeviceName,
+    setupData,
+    code,
+    setCode,
+    error,
+    isLoading: isAddingDevice || isVerifyingDevice,
+    startSetup,
+    goToVerify,
+    goBack,
+    verifyCode,
+    reset,
+  };
+}

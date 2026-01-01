@@ -163,7 +163,11 @@ export const loginWithCredentials = async (
     // Check if MFA setup is required (admin enforced but not set up)
     if (response.mfa_setup_required) {
       if (response.access_token && response.refresh_token) {
-        authCookies.setAll(response.access_token, response.refresh_token, "local");
+        authCookies.setAll(
+          response.access_token,
+          response.refresh_token,
+          "local",
+        );
       }
       return {
         success: true,
@@ -173,7 +177,11 @@ export const loginWithCredentials = async (
 
     // Normal login success
     if (response.access_token && response.refresh_token) {
-      authCookies.setAll(response.access_token, response.refresh_token, "local");
+      authCookies.setAll(
+        response.access_token,
+        response.refresh_token,
+        "local",
+      );
     }
 
     return { success: true };
@@ -204,7 +212,11 @@ export const verifyMFALogin = async (
     });
 
     if (response.access_token && response.refresh_token) {
-      authCookies.setAll(response.access_token, response.refresh_token, "local");
+      authCookies.setAll(
+        response.access_token,
+        response.refresh_token,
+        "local",
+      );
     }
 
     return { success: true };
