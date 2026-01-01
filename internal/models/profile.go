@@ -2,29 +2,25 @@ package models
 
 // Profile defines which components run for a given deployment mode.
 type Profile struct {
-	Name          string
-	HTTPServer    bool
-	Migrations    bool
-	CacheTicker   bool
-	Workers       WorkerConfig
-	ExitAfterInit bool
+	Name       string
+	HTTPServer bool
+	Workers    WorkerConfig
 }
 
 // WorkerConfig defines which workers are enabled.
 type WorkerConfig struct {
-	Notifications  bool
 	ObjectDeletion bool
 	BucketEvents   bool
 }
 
 // AnyEnabled returns true if any worker is enabled.
 func (w WorkerConfig) AnyEnabled() bool {
-	return w.Notifications || w.ObjectDeletion || w.BucketEvents
+	return w.ObjectDeletion || w.BucketEvents
 }
 
 // NeedsCache returns true if the profile requires cache configuration.
 func (p Profile) NeedsCache() bool {
-	return p.HTTPServer || p.CacheTicker
+	return p.HTTPServer
 }
 
 // NeedsStorage returns true if the profile requires storage configuration.
@@ -39,7 +35,7 @@ func (p Profile) NeedsEvents() bool {
 
 // NeedsNotifier returns true if the profile requires notifier configuration.
 func (p Profile) NeedsNotifier() bool {
-	return p.Workers.Notifications
+	return p.HTTPServer
 }
 
 // NeedsAuth returns true if the profile requires auth configuration.

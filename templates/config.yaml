@@ -1,5 +1,5 @@
 # Profile determines which components run
-# Options: full, api, worker, worker:notifications, worker:trash, migrate
+# Options: full, api, worker
 # Default: full (all components enabled)
 profile: full
 

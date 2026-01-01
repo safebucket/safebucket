@@ -34,23 +34,10 @@ func main() {
 	config, profile := configuration.Read()
 	core.NewLogger(config.App.LogLevel)
 
-	logProfile(profile)
-
-	// Database is always initialized
-
 	db := database.InitDB(config.Database)
 
-	// Migrations (conditional based on profile)
-	if profile.Migrations {
-		if err := database.RunMigrations(db); err != nil {
-			zap.L().Fatal("migrations failed", zap.Error(err))
-		}
-	}
-
-	// Exit after init for migrate profile
-	if profile.ExitAfterInit {
-		zap.L().Info("Profile complete, exiting", zap.String("profile", profile.Name))
-		return
+	if err := database.RunMigrations(db); err != nil {
+		zap.L().Fatal("migrations failed", zap.Error(err))
 	}
 
 	// Initialize dependencies based on profile requirements
@@ -94,8 +81,7 @@ func main() {
 		startWorkers(profile, eventsManager, db, store, activityLogger, notify, eventRouter, config)
 	}
 
-	// Cache ticker
-	if profile.CacheTicker && cache != nil {
+	if cache != nil {
 		go cache.StartIdentityTicker(appIdentity)
 		zap.L().Info("Cache identity ticker started")
 	}
@@ -107,18 +93,6 @@ func main() {
 		zap.L().Info("Running in worker-only mode")
 		select {} // Block forever
 	}
-}
-
-func logProfile(profile models.Profile) {
-	zap.L().Info("=== SafeBucket Profile ===",
-		zap.String("name", profile.Name),
-		zap.Bool("http_server", profile.HTTPServer),
-		zap.Bool("migrations", profile.Migrations),
-		zap.Bool("cache_ticker", profile.CacheTicker),
-		zap.Bool("worker:notifications", profile.Workers.Notifications),
-		zap.Bool("worker:object_deletion", profile.Workers.ObjectDeletion),
-		zap.Bool("worker:bucket_events", profile.Workers.BucketEvents),
-	)
 }
 
 func createAdminUser(db *gorm.DB, config models.Configuration) {
@@ -162,11 +136,10 @@ func startWorkers(
 		TrashRetentionDays: config.App.TrashRetentionDays,
 	}
 
-	if profile.Workers.Notifications {
-		notifications := eventsManager.GetSubscriber(configuration.EventsNotifications).Subscribe()
-		go events.HandleEvents(eventParams, notifications)
-		zap.L().Info("Started notifications worker")
-	}
+	// Notifications worker always runs when workers are enabled
+	notifications := eventsManager.GetSubscriber(configuration.EventsNotifications).Subscribe()
+	go events.HandleEvents(eventParams, notifications)
+	zap.L().Info("Started notifications worker")
 
 	if profile.Workers.ObjectDeletion {
 		deletionEvents := eventsManager.GetSubscriber(configuration.EventsObjectDeletion).Subscribe()
