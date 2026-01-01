@@ -195,8 +195,8 @@ func startSingletonWorker(cache c.ICache, instanceID string, workerName string, 
 			workerStarted = true
 			go runWorker()
 		} else if isLeader {
-			refreshed, err := cache.RefreshLock(lockKey, instanceID, configuration.WorkerLockTTL)
-			if err != nil || !refreshed {
+			refreshed, err2 := cache.RefreshLock(lockKey, instanceID, configuration.WorkerLockTTL)
+			if err2 != nil || !refreshed {
 				zap.L().Warn("Lost worker lock", zap.String("worker", workerName))
 				isLeader = false
 				// Note: Worker goroutine continues but will be replaced by new leader

@@ -39,7 +39,8 @@ func (p Profile) NeedsCache() bool {
 
 // NeedsStorage returns true if the profile requires storage configuration.
 func (p Profile) NeedsStorage() bool {
-	return p.HTTPServer || p.Workers.ObjectDeletion != WorkerModeDisabled || p.Workers.BucketEvents != WorkerModeDisabled
+	return p.HTTPServer || p.Workers.ObjectDeletion != WorkerModeDisabled ||
+		p.Workers.BucketEvents != WorkerModeDisabled
 }
 
 // NeedsEvents returns true if the profile requires events configuration.

@@ -111,7 +111,7 @@ func (r *RueidisCache) TryAcquireLock(key string, instanceID string, ttlSeconds 
 	ctx := context.Background()
 	// SET key value NX EX ttl - atomic set-if-not-exists with expiration
 	result, err := r.client.Do(ctx,
-		r.client.B().Set().Key(key).Value(instanceID).Nx().Ex(time.Duration(ttlSeconds) * time.Second).Build(),
+		r.client.B().Set().Key(key).Value(instanceID).Nx().Ex(time.Duration(ttlSeconds)*time.Second).Build(),
 	).ToString()
 	if err != nil {
 		if rueidis.IsRedisNil(err) {
