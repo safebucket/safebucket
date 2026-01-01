@@ -29,7 +29,7 @@ func RunMigrations(db *gorm.DB) error {
 	if err != nil {
 		return fmt.Errorf("failed to get raw SQL database: %w", err)
 	}
-	if err := goose.Up(sqlDB, "internal/database/migrations"); err != nil {
+	if err = goose.Up(sqlDB, "internal/database/migrations"); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 	zap.L().Info("Database migrations completed successfully")
