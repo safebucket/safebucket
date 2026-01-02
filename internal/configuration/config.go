@@ -179,10 +179,12 @@ func Read() (models.Configuration, models.Profile) {
 		zap.L().Fatal("Unable to decode config into struct", zap.Error(err))
 	}
 
-	// Get profile (defaults to "full" if not specified)
+	// Get profile (defaults to "default" if not specified)
 	profile, ok := GetProfile(config.Profile)
 	if !ok {
-		zap.L().Fatal("Unknown profile", zap.String("profile", config.Profile))
+		zap.L().Fatal("Unknown profile",
+			zap.String("profile", config.Profile),
+			zap.Strings("available_profiles", []string{ProfileDefault, ProfileAPI, ProfileWorker}))
 	}
 
 	// Validate config sections based on profile requirements

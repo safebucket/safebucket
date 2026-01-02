@@ -143,12 +143,12 @@ func startWorkers(
 	go events.HandleEvents(eventParams, notifications)
 	zap.L().Info("Started notifications worker")
 
-	startWorker(profile.Workers.ObjectDeletion, "object_deletion", cache, appIdentity, func() {
+	startWorker(profile.Workers.ObjectDeletion, "object_deletion", cache, appIdentity, func(_ context.Context) {
 		deletionEvents := eventsManager.GetSubscriber(configuration.EventsObjectDeletion).Subscribe()
 		events.HandleEvents(eventParams, deletionEvents)
 	})
 
-	startWorker(profile.Workers.BucketEvents, "bucket_events", cache, appIdentity, func() {
+	startWorker(profile.Workers.BucketEvents, "bucket_events", cache, appIdentity, func(_ context.Context) {
 		bucketEventsSubscriber := eventsManager.GetSubscriber(configuration.EventsBucketEvents)
 		bucketEvents := bucketEventsSubscriber.Subscribe()
 		events.HandleBucketEvents(
@@ -162,7 +162,13 @@ func startWorkers(
 	})
 }
 
-func startWorker(mode models.WorkerMode, workerName string, cache c.ICache, appIdentity string, runWorker func()) {
+func startWorker(
+	mode models.WorkerMode,
+	workerName string,
+	cache c.ICache,
+	appIdentity string,
+	runWorker func(context.Context),
+) {
 	if mode == models.WorkerModeDisabled {
 		return
 	}
@@ -170,18 +176,19 @@ func startWorker(mode models.WorkerMode, workerName string, cache c.ICache, appI
 	if mode == models.WorkerModeSingleton && cache != nil {
 		go startSingletonWorker(cache, appIdentity, workerName, runWorker)
 	} else {
-		go runWorker()
+		go runWorker(context.Background())
 		zap.L().Info("Started worker", zap.String("worker", workerName))
 	}
 }
 
-func startSingletonWorker(cache c.ICache, instanceID string, workerName string, runWorker func()) {
+func startSingletonWorker(cache c.ICache, instanceID string, workerName string, runWorker func(context.Context)) {
 	lockKey := configuration.WorkerLockKeyPrefix + workerName
 	ticker := time.NewTicker(time.Duration(configuration.WorkerLockRefresh) * time.Second)
 	defer ticker.Stop()
 
 	var isLeader bool
 	var workerStarted bool
+	var cancelWorker context.CancelFunc
 
 	for {
 		acquired, err := cache.TryAcquireLock(lockKey, instanceID, configuration.WorkerLockTTL)
@@ -193,13 +200,22 @@ func startSingletonWorker(cache c.ICache, instanceID string, workerName string, 
 			zap.L().Info("Acquired worker lock, starting worker", zap.String("worker", workerName))
 			isLeader = true
 			workerStarted = true
-			go runWorker()
+
+			// Create cancellable context for this worker instance
+			var ctx context.Context
+			ctx, cancelWorker = context.WithCancel(context.Background())
+			go runWorker(ctx)
 		} else if isLeader {
 			refreshed, err2 := cache.RefreshLock(lockKey, instanceID, configuration.WorkerLockTTL)
 			if err2 != nil || !refreshed {
-				zap.L().Warn("Lost worker lock", zap.String("worker", workerName))
+				zap.L().Warn("Lost worker lock, stopping worker", zap.String("worker", workerName))
 				isLeader = false
-				// Note: Worker goroutine continues but will be replaced by new leader
+				workerStarted = false
+
+				if cancelWorker != nil {
+					cancelWorker()
+					cancelWorker = nil
+				}
 			}
 		}
 
