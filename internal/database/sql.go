@@ -5,33 +5,35 @@ import (
 
 	"api/internal/models"
 
+	"database/sql"
+
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-// InitDB connects to the database without running migrations.
 func InitDB(config models.DatabaseConfiguration) *gorm.DB {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
 		config.Host, config.User, config.Password, config.Name, config.Port, config.SSLMode,
 	)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		zap.L().Fatal("Failed to connect to database", zap.Error(err))
+		zap.L().Fatal("Failed to connect to database for migrations", zap.Error(err))
 	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		zap.L().Fatal("Failed to retrieve raw SQL database", zap.Error(err))
+	}
+
+	runMigrations(sqlDB)
+
 	return db
 }
 
-// RunMigrations runs database migrations using Goose.
-func RunMigrations(db *gorm.DB) error {
-	sqlDB, err := db.DB()
-	if err != nil {
-		return fmt.Errorf("failed to get raw SQL database: %w", err)
+func runMigrations(db *sql.DB) {
+	if err := goose.Up(db, "internal/database/migrations"); err != nil {
+		zap.L().Fatal("Failed to run migrations", zap.Error(err))
 	}
-	if err = goose.Up(sqlDB, "internal/database/migrations"); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
-	zap.L().Info("Database migrations completed successfully")
-	return nil
 }
