@@ -147,18 +147,6 @@ func (r *RueidisCache) RefreshLock(key string, instanceID string, ttlSeconds int
 	return err == nil, err
 }
 
-// ReleaseLock releases the lock if held by this instance.
-// Uses Lua script for atomic check-and-delete.
-func (r *RueidisCache) ReleaseLock(key string, instanceID string) error {
-	ctx := context.Background()
-	// Only delete if we hold the lock (Lua script for atomicity)
-	script := `if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end`
-	_, err := r.client.Do(ctx,
-		r.client.B().Eval().Script(script).Numkeys(1).Key(key).Arg(instanceID).Build(),
-	).ToInt64()
-	return err
-}
-
 func (r *RueidisCache) Close() error {
 	r.client.Close()
 	return nil
