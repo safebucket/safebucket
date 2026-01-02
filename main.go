@@ -36,10 +36,6 @@ func main() {
 
 	db := database.InitDB(config.Database)
 
-	if err := database.RunMigrations(db); err != nil {
-		zap.L().Fatal("migrations failed", zap.Error(err))
-	}
-
 	// Initialize dependencies based on profile requirements
 	var cache c.ICache
 	if profile.NeedsCache() {
