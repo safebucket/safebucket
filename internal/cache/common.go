@@ -110,9 +110,10 @@ func (r *RueidisCache) GetRateLimit(userIdentifier string, requestsPerMinute int
 func (r *RueidisCache) TryAcquireLock(key string, instanceID string, ttlSeconds int) (bool, error) {
 	ctx := context.Background()
 	// SET key value NX EX ttl - atomic set-if-not-exists with expiration
-	result, err := r.client.Do(ctx,
+	err := r.client.Do(ctx,
 		r.client.B().Set().Key(key).Value(instanceID).Nx().Ex(time.Duration(ttlSeconds)*time.Second).Build(),
-	).ToString()
+	).Error()
+
 	if err != nil {
 		if rueidis.IsRedisNil(err) {
 			// Key already exists, lock not acquired
@@ -120,7 +121,7 @@ func (r *RueidisCache) TryAcquireLock(key string, instanceID string, ttlSeconds 
 		}
 		return false, err
 	}
-	return result == "OK", nil
+	return true, nil
 }
 
 // RefreshLock extends the TTL of an existing lock if held by this instance.
@@ -129,6 +130,7 @@ func (r *RueidisCache) RefreshLock(key string, instanceID string, ttlSeconds int
 	ctx := context.Background()
 	// GET to verify we still hold the lock
 	current, err := r.client.Do(ctx, r.client.B().Get().Key(key).Build()).ToString()
+
 	if err != nil {
 		if rueidis.IsRedisNil(err) {
 			// Lock no longer exists
@@ -136,10 +138,12 @@ func (r *RueidisCache) RefreshLock(key string, instanceID string, ttlSeconds int
 		}
 		return false, err
 	}
+
 	if current != instanceID {
 		// Lock held by another instance
 		return false, nil
 	}
+
 	// EXPIRE to refresh TTL
 	err = r.client.Do(ctx,
 		r.client.B().Expire().Key(key).Seconds(int64(ttlSeconds)).Build(),
