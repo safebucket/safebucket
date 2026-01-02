@@ -182,8 +182,8 @@ func startWorker(
 }
 
 func startSingletonWorker(cache c.ICache, instanceID string, workerName string, runWorker func(context.Context)) {
-	lockKey := configuration.WorkerLockKeyPrefix + workerName
-	ticker := time.NewTicker(time.Duration(configuration.WorkerLockRefresh) * time.Second)
+	lockKey := fmt.Sprintf(configuration.CacheAppWorkerLockKey, workerName)
+	ticker := time.NewTicker(time.Duration(configuration.CacheAppWorkerLockRefresh) * time.Second)
 	defer ticker.Stop()
 
 	var isLeader bool
@@ -191,7 +191,7 @@ func startSingletonWorker(cache c.ICache, instanceID string, workerName string, 
 	var cancelWorker context.CancelFunc
 
 	for {
-		acquired, err := cache.TryAcquireLock(lockKey, instanceID, configuration.WorkerLockTTL)
+		acquired, err := cache.TryAcquireLock(lockKey, instanceID, configuration.CacheAppWorkerLockTTL)
 		if err != nil {
 			zap.L().Error("Failed to acquire worker lock", zap.String("worker", workerName), zap.Error(err))
 		}
@@ -206,7 +206,7 @@ func startSingletonWorker(cache c.ICache, instanceID string, workerName string, 
 			ctx, cancelWorker = context.WithCancel(context.Background())
 			go runWorker(ctx)
 		} else if isLeader {
-			refreshed, err2 := cache.RefreshLock(lockKey, instanceID, configuration.WorkerLockTTL)
+			refreshed, err2 := cache.RefreshLock(lockKey, instanceID, configuration.CacheAppWorkerLockTTL)
 			if err2 != nil || !refreshed {
 				zap.L().Warn("Lost worker lock, stopping worker", zap.String("worker", workerName))
 				isLeader = false

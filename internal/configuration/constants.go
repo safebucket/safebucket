@@ -21,6 +21,9 @@ const (
 	CacheMaxAppIdentityLifetime = 60
 	CacheAppIdentityKey         = "app:identity"
 	CacheAppRateLimitKey        = "app:ratelimit:%s"
+	CacheAppWorkerLockKey       = "app:worker:lock:%s" //nolint:gosec // not a credential
+	CacheAppWorkerLockTTL       = 60
+	CacheAppWorkerLockRefresh   = 55
 	CacheMFAAttemptsKey         = "mfa:attempts:%s"
 	CacheTOTPUsedKey            = "totp:used:%s:%s"
 )
@@ -50,12 +53,6 @@ const (
 )
 
 const BulkActionsLimit = 1000
-
-const (
-	WorkerLockKeyPrefix = "worker:lock:"
-	WorkerLockTTL       = 30
-	WorkerLockRefresh   = 10
-)
 
 var ArrayConfigFields = []string{
 	"app.trusted_proxies",
