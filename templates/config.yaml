@@ -1,5 +1,5 @@
 # Profile determines which components run
-# Options: default, api, worker
+# Options: full, default, api, worker
 # Default: default (all components enabled)
 profile: default
 

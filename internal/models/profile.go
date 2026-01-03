@@ -20,16 +20,21 @@ type Profile struct {
 type WorkerConfig struct {
 	ObjectDeletion WorkerMode
 	BucketEvents   WorkerMode
+	TrashCleanup   WorkerMode
 }
 
 // AnyEnabled returns true if any worker is enabled.
 func (w WorkerConfig) AnyEnabled() bool {
-	return w.ObjectDeletion != WorkerModeDisabled || w.BucketEvents != WorkerModeDisabled
+	return w.ObjectDeletion != WorkerModeDisabled ||
+		w.BucketEvents != WorkerModeDisabled ||
+		w.TrashCleanup != WorkerModeDisabled
 }
 
 // AnySingleton returns true if any worker is configured as singleton.
 func (w WorkerConfig) AnySingleton() bool {
-	return w.ObjectDeletion == WorkerModeSingleton || w.BucketEvents == WorkerModeSingleton
+	return w.ObjectDeletion == WorkerModeSingleton ||
+		w.BucketEvents == WorkerModeSingleton ||
+		w.TrashCleanup == WorkerModeSingleton
 }
 
 // NeedsCache returns true if the profile requires cache configuration.

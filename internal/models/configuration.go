@@ -1,7 +1,7 @@
 package models
 
 type Configuration struct {
-	Profile  string                `mapstructure:"profile"  validate:"oneof=default api worker" default:"default"`
+	Profile  string                `mapstructure:"profile"  validate:"oneof=default api worker full" default:"default"`
 	App      AppConfiguration      `mapstructure:"app"`
 	Database DatabaseConfiguration `mapstructure:"database"`
 	Auth     AuthConfiguration     `mapstructure:"auth"`
@@ -23,7 +23,7 @@ type AppConfiguration struct {
 	StaticFiles        StaticConfiguration `mapstructure:"static_files"`
 	TrustedProxies     []string            `mapstructure:"trusted_proxies"      validate:"required"`
 	WebURL             string              `mapstructure:"web_url"              validate:"required"`
-	TrashRetentionDays int                 `mapstructure:"trash_retention_days" validate:"gte=1,lte=365"                           default:"7"`
+	TrashRetentionDays int                 `mapstructure:"trash_retention_days"          validate:"gte=1,lte=365"                           default:"7"`
 }
 
 type DatabaseConfiguration struct {

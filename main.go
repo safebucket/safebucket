@@ -18,6 +18,7 @@ import (
 	"api/internal/notifier"
 	"api/internal/services"
 	"api/internal/storage"
+	"api/internal/workers"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -153,6 +154,18 @@ func startWorkers(
 			config.App.TrashRetentionDays,
 			bucketEvents,
 		)
+	})
+
+	// Trash cleanup worker - application-level trash expiration for storage providers
+	// that don't support bucket lifecycle policies (e.g., Storj)
+	startWorker(profile.Workers.TrashCleanup, "trash_cleanup", cache, appIdentity, func(ctx context.Context) {
+		worker := &workers.TrashCleanupWorker{
+			DB:                 db,
+			Publisher:          eventRouter,
+			TrashRetentionDays: config.App.TrashRetentionDays,
+			RunInterval:        24 * time.Hour,
+		}
+		worker.Start(ctx)
 	})
 }
 

@@ -6,6 +6,7 @@ const (
 	ProfileDefault = "default"
 	ProfileAPI     = "api"
 	ProfileWorker  = "worker"
+	ProfileFull    = "full"
 )
 
 // Profiles defines all available deployment profiles.
@@ -16,6 +17,16 @@ var Profiles = map[string]models.Profile{
 		Workers: models.WorkerConfig{
 			ObjectDeletion: models.WorkerModeAll,
 			BucketEvents:   models.WorkerModeAll,
+			TrashCleanup:   models.WorkerModeDisabled,
+		},
+	},
+	ProfileFull: {
+		Name:       ProfileFull,
+		HTTPServer: true,
+		Workers: models.WorkerConfig{
+			ObjectDeletion: models.WorkerModeAll,
+			BucketEvents:   models.WorkerModeAll,
+			TrashCleanup:   models.WorkerModeSingleton,
 		},
 	},
 	ProfileAPI: {
@@ -24,6 +35,7 @@ var Profiles = map[string]models.Profile{
 		Workers: models.WorkerConfig{
 			ObjectDeletion: models.WorkerModeDisabled,
 			BucketEvents:   models.WorkerModeDisabled,
+			TrashCleanup:   models.WorkerModeDisabled,
 		},
 	},
 	ProfileWorker: {
@@ -32,6 +44,7 @@ var Profiles = map[string]models.Profile{
 		Workers: models.WorkerConfig{
 			ObjectDeletion: models.WorkerModeSingleton,
 			BucketEvents:   models.WorkerModeSingleton,
+			TrashCleanup:   models.WorkerModeDisabled,
 		},
 	},
 }
