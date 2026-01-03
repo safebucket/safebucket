@@ -23,7 +23,7 @@ type AppConfiguration struct {
 	StaticFiles        StaticConfiguration `mapstructure:"static_files"`
 	TrustedProxies     []string            `mapstructure:"trusted_proxies"      validate:"required"`
 	WebURL             string              `mapstructure:"web_url"              validate:"required"`
-	TrashRetentionDays int                 `mapstructure:"trash_retention_days"          validate:"gte=1,lte=365"                           default:"7"`
+	TrashRetentionDays int                 `mapstructure:"trash_retention_days" validate:"gte=1,lte=365"                           default:"7"`
 }
 
 type DatabaseConfiguration struct {
