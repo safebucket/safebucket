@@ -16,7 +16,7 @@ import (
 	h "api/internal/helpers"
 	"api/internal/messaging"
 	"api/internal/mfa"
-	m "api/internal/middl
+	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/sql"
 

@@ -125,21 +125,6 @@ func Read() models.Configuration {
 	}
 
 	validate := validator.New()
-
-	// Register custom validation for MFA encryption key
-	_ = validate.RegisterValidation("mfa_key_required", func(fl validator.FieldLevel) bool {
-		parent := fl.Parent()
-		mfaRequired := parent.FieldByName("MFARequired").Bool()
-		keyValue := fl.Field().String()
-
-		// If MFA is required, key must be exactly 32 bytes
-		if mfaRequired {
-			return len(keyValue) == 32
-		}
-		// If MFA is not required, key can be empty or 32 bytes
-		return keyValue == "" || len(keyValue) == 32
-	})
-
 	if err = validate.Struct(config); err != nil {
 		zap.L().Fatal("Invalid configuration", zap.Error(err))
 	}

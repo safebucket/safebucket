@@ -1,13 +1,11 @@
 package services
 
 import (
-	"strings"
 	"time"
 
 	"api/internal/cache"
 	"api/internal/configuration"
 	apierrors "api/internal/errors"
-	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	"api/internal/messaging"
@@ -73,20 +71,6 @@ func (s UserMFAService) Routes() chi.Router {
 				Post("/verify", handlers.CreateHandler(s.VerifyDevice))
 		})
 	})
-
-	// Reset flow
-	/*
-		r.Route("/reset", func(r chi.Router) {
-			r.With(m.AuthorizeSelfOrAdmin(0)).
-				With(m.Validate[models.MFAResetRequestBody]).
-				Post("/", handlers.CreateHandler(s.RequestMFAReset))
-
-			r.With(m.AuthorizeSelfOrAdmin(0)).
-				With(m.Validate[models.MFAResetVerifyBody]).
-				Post("/{id1}", handlers.CreateHandler(s.VerifyMFAReset))
-		}
-	*/
-
 	return r
 }
 
@@ -553,156 +537,4 @@ func (s UserMFAService) RemoveDevice(
 	}()
 
 	return nil
-}
-
-// RequestMFAReset initiates MFA reset by sending an email challenge.
-func (s UserMFAService) RequestMFAReset(
-	logger *zap.Logger,
-	_ models.UserClaims,
-	ids uuid.UUIDs,
-	body models.MFAResetRequestBody,
-) (models.MFAResetRequestResponse, error) {
-	userID := ids[0]
-
-	var user models.User
-	result := s.DB.Preload("MFADevices", "is_verified = ?", true).
-		Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).First(&user)
-	if result.RowsAffected == 0 {
-		return models.MFAResetRequestResponse{}, apierrors.NewAPIError(404, "USER_NOT_FOUND")
-	}
-
-	// Check if user has any verified devices
-	if !user.HasMFAEnabled() {
-		return models.MFAResetRequestResponse{}, apierrors.NewAPIError(409, "MFA_NOT_ENABLED")
-	}
-
-	match, err := argon2id.ComparePasswordAndHash(body.Password, user.HashedPassword)
-	if err != nil || !match {
-		logger.Warn("MFA reset request failed - invalid password",
-			zap.String("user_id", userID.String()))
-		return models.MFAResetRequestResponse{}, apierrors.NewAPIError(401, "INVALID_PASSWORD")
-	}
-
-	secret, err := h.GenerateSecret()
-	if err != nil {
-		logger.Error("Failed to generate challenge secret", zap.Error(err))
-		return models.MFAResetRequestResponse{}, apierrors.NewAPIError(500, "MFA_RESET_REQUEST_FAILED")
-	}
-
-	hashedSecret, err := h.CreateHash(secret)
-	if err != nil {
-		logger.Error("Failed to hash challenge secret", zap.Error(err))
-		return models.MFAResetRequestResponse{}, apierrors.NewAPIError(500, "MFA_RESET_REQUEST_FAILED")
-	}
-
-	s.DB.Where("user_id = ? AND type = ?", user.ID, models.ChallengeTypeMFAReset).
-		Delete(&models.Challenge{})
-
-	expiresAt := time.Now().Add(configuration.SecurityChallengeExpirationMinutes * time.Minute)
-	challenge := models.Challenge{
-		Type:         models.ChallengeTypeMFAReset,
-		UserID:       &user.ID,
-		HashedSecret: hashedSecret,
-		ExpiresAt:    &expiresAt,
-		AttemptsLeft: configuration.SecurityChallengeMaxFailedAttempts,
-	}
-
-	result = s.DB.Create(&challenge)
-	if result.Error != nil {
-		logger.Error("Failed to create MFA reset challenge", zap.Error(result.Error))
-		return models.MFAResetRequestResponse{}, apierrors.NewAPIError(500, "MFA_RESET_REQUEST_FAILED")
-	}
-
-	event := events.NewMFAResetChallenge(
-		s.Publisher,
-		secret,
-		user.Email,
-		challenge.ID.String(),
-		s.AuthConfig.WebURL,
-	)
-	event.Trigger()
-
-	logger.Info("MFA reset requested",
-		zap.String("user_id", userID.String()),
-		zap.String("challenge_id", challenge.ID.String()))
-
-	return models.MFAResetRequestResponse{
-		ChallengeID: challenge.ID.String(),
-	}, nil
-}
-
-// VerifyMFAReset verifies the reset challenge and disables all MFA.
-func (s UserMFAService) VerifyMFAReset(
-	logger *zap.Logger,
-	claims models.UserClaims,
-	ids uuid.UUIDs,
-	body models.MFAResetVerifyBody,
-) (interface{}, error) {
-	userID := ids[0]
-	challengeID := ids[1]
-
-	var challenge models.Challenge
-	result := s.DB.Preload("User").
-		Where("id = ? AND type = ? AND user_id = ?", challengeID, models.ChallengeTypeMFAReset, userID).
-		First(&challenge)
-
-	if result.RowsAffected == 0 {
-		return nil, apierrors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
-	}
-
-	if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
-		s.DB.Delete(&challenge)
-		return nil, apierrors.NewAPIError(410, "CHALLENGE_EXPIRED")
-	}
-
-	match, err := argon2id.ComparePasswordAndHash(
-		strings.ToUpper(body.Code),
-		challenge.HashedSecret,
-	)
-	if err != nil || !match {
-		updateResult := s.DB.Model(&challenge).
-			Where("attempts_left > 0").
-			Update("attempts_left", gorm.Expr("attempts_left - 1"))
-
-		if updateResult.Error != nil {
-			logger.Error("Failed to update attempts counter", zap.Error(updateResult.Error))
-		}
-
-		var updatedChallenge models.Challenge
-		s.DB.First(&updatedChallenge, challenge.ID)
-
-		if updatedChallenge.AttemptsLeft <= 0 {
-			logger.Warn("MFA reset challenge deleted due to too many failed attempts",
-				zap.String("challenge_id", challenge.ID.String()),
-				zap.String("user_id", userID.String()))
-			s.DB.Delete(&challenge)
-			return nil, apierrors.NewAPIError(403, "CHALLENGE_LOCKED")
-		}
-
-		return nil, apierrors.NewAPIError(401, "INVALID_RESET_CODE")
-	}
-
-	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		// Delete all MFA devices
-		if txErr := tx.Where("user_id = ?", userID).Delete(&models.MFADevice{}).Error; txErr != nil {
-			return txErr
-		}
-
-		deleteResult := tx.Delete(&challenge)
-		if deleteResult.Error != nil {
-			logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
-			return apierrors.NewAPIError(500, "MFA_RESET_FAILED")
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	logger.Info("MFA reset completed - all devices removed",
-		zap.String("user_id", userID.String()),
-		zap.String("reset_by", claims.UserID.String()))
-
-	return nil, nil
 }
