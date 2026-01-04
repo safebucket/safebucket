@@ -128,8 +128,7 @@ func (r *RueidisCache) TryAcquireLock(key string, instanceID string, ttlSeconds 
 // Returns true if refresh succeeded, false if lock is no longer held.
 func (r *RueidisCache) RefreshLock(key string, instanceID string, ttlSeconds int) (bool, error) {
 	ctx := context.Background()
-	// GET to verify we still hold the lock
-	current, err := r.client.Do(ctx, r.client.B().Get().Key(key).Build()).ToString()
+	current, err := r.client.Do(ctx, r.client.B().Getex().Key(key).ExSeconds(int64(ttlSeconds)).Build()).ToString()
 
 	if err != nil {
 		if rueidis.IsRedisNil(err) {

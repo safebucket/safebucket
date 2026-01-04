@@ -27,37 +27,7 @@ func (w WorkerConfig) AnyEnabled() bool {
 	return w.ObjectDeletion != WorkerModeDisabled || w.BucketEvents != WorkerModeDisabled
 }
 
-// AnySingleton returns true if any worker is configured as singleton.
-func (w WorkerConfig) AnySingleton() bool {
-	return w.ObjectDeletion == WorkerModeSingleton || w.BucketEvents == WorkerModeSingleton
-}
-
-// NeedsCache returns true if the profile requires cache configuration.
-func (p Profile) NeedsCache() bool {
-	return p.HTTPServer || p.Workers.AnySingleton()
-}
-
-// NeedsStorage returns true if the profile requires storage configuration.
-func (p Profile) NeedsStorage() bool {
-	return p.HTTPServer || p.Workers.AnyEnabled()
-}
-
 // NeedsEvents returns true if the profile requires events configuration.
 func (p Profile) NeedsEvents() bool {
-	return p.HTTPServer || p.Workers.AnyEnabled()
-}
-
-// NeedsNotifier returns true if the profile requires notifier configuration.
-func (p Profile) NeedsNotifier() bool {
-	return p.HTTPServer
-}
-
-// NeedsAuth returns true if the profile requires auth configuration.
-func (p Profile) NeedsAuth() bool {
-	return p.HTTPServer
-}
-
-// NeedsActivity returns true if the profile requires activity logger configuration.
-func (p Profile) NeedsActivity() bool {
 	return p.HTTPServer || p.Workers.AnyEnabled()
 }

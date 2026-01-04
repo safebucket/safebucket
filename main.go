@@ -35,27 +35,10 @@ func main() {
 	core.NewLogger(config.App.LogLevel)
 
 	db := database.InitDB(config.Database)
-
-	// Initialize dependencies based on profile requirements
-	var cache c.ICache
-	if profile.NeedsCache() {
-		cache = core.NewCache(config.Cache)
-	}
-
-	var store storage.IStorage
-	if profile.NeedsStorage() {
-		store = core.NewStorage(config.Storage, config.App.TrashRetentionDays)
-	}
-
-	var notify notifier.INotifier
-	if profile.NeedsNotifier() {
-		notify = core.NewNotifier(config.Notifier)
-	}
-
-	var activityLogger activity.IActivityLogger
-	if profile.NeedsActivity() {
-		activityLogger = core.NewActivityLogger(config.Activity)
-	}
+	cache := core.NewCache(config.Cache)
+	store := core.NewStorage(config.Storage, config.App.TrashRetentionDays)
+	notify := core.NewNotifier(config.Notifier)
+	activityLogger := core.NewActivityLogger(config.Activity)
 
 	// Events infrastructure (needed for workers or HTTP server publishing)
 	var eventsManager *core.EventsManager
