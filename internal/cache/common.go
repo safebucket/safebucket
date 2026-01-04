@@ -62,6 +62,16 @@ func (r *RueidisCache) DeleteInactivePlatform() error {
 }
 
 func (r *RueidisCache) StartIdentityTicker(id string) {
+	err := r.RegisterPlatform(id)
+	if err != nil {
+		zap.L().Fatal("Failed to register platform", zap.String("platform", id), zap.Error(err))
+	}
+
+	err = r.DeleteInactivePlatform()
+	if err != nil {
+		zap.L().Fatal("Failed to delete platform", zap.String("platform", id), zap.Error(err))
+	}
+
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 	for range ticker.C {
