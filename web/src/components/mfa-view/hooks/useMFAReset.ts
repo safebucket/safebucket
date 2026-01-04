@@ -43,8 +43,13 @@ export function useMFAReset(userId: string): UseMFAResetReturn {
   });
 
   const verifyResetMutation = useMutation({
-    mutationFn: ({ challengeId, code }: { challengeId: string; code: string }) =>
-      api.post(`/users/${userId}/mfa/reset/${challengeId}`, { code }),
+    mutationFn: ({
+      challengeId,
+      code,
+    }: {
+      challengeId: string;
+      code: string;
+    }) => api.post(`/users/${userId}/mfa/reset/${challengeId}`, { code }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users", userId] });
       queryClient.invalidateQueries({

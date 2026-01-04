@@ -19,7 +19,10 @@ import { MFAVerifyInput } from "./MFAVerifyInput";
 import { MFAErrorAlert } from "./MFAErrorAlert";
 import { MFASetupSkeleton } from "./MFASetupSkeleton";
 import { MFASuccessState } from "./MFASuccessState";
-import { MFA_CODE_LENGTH, MFA_SUCCESS_REDIRECT_DELAY } from "../helpers/constants";
+import {
+  MFA_CODE_LENGTH,
+  MFA_SUCCESS_REDIRECT_DELAY,
+} from "../helpers/constants";
 
 export interface IMFASetupRequiredViewProps {
   redirectPath?: string;
@@ -31,8 +34,14 @@ export function MFASetupRequiredView({
   onLogout,
 }: IMFASetupRequiredViewProps) {
   const navigate = useNavigate();
-  const { viewMode, userId, mfaToken, handleSuccess, handleError, handleRetry } =
-    useSetupRequiredFlow();
+  const {
+    viewMode,
+    userId,
+    mfaToken,
+    handleSuccess,
+    handleError,
+    handleRetry,
+  } = useSetupRequiredFlow();
 
   useEffect(() => {
     if (viewMode === "success") {
@@ -212,9 +221,7 @@ function SetupFlowView({
                 <div className="space-y-2">
                   {!mfaToken && (
                     <>
-                      <Label htmlFor="password">
-                        {t("auth.password")}
-                      </Label>
+                      <Label htmlFor="password">{t("auth.password")}</Label>
                       <Input
                         id="password"
                         type="password"
@@ -230,19 +237,19 @@ function SetupFlowView({
                 <Button
                   className="w-full"
                   onClick={handleStartSetup}
-                  disabled={isLoading || !deviceName || (!password && !mfaToken)}
+                  disabled={
+                    isLoading || !deviceName || (!password && !mfaToken)
+                  }
                 >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                   {t("auth.continue")}
                 </Button>
               </div>
 
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={onLogout}
-                  className="flex-1"
-                >
+                <Button variant="outline" onClick={onLogout} className="flex-1">
                   <LogOut className="mr-2 h-4 w-4" />
                   {t("common.logout")}
                 </Button>
@@ -262,11 +269,7 @@ function SetupFlowView({
               />
 
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={onLogout}
-                  className="flex-1"
-                >
+                <Button variant="outline" onClick={onLogout} className="flex-1">
                   <LogOut className="mr-2 h-4 w-4" />
                   {t("common.logout")}
                 </Button>

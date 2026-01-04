@@ -31,7 +31,10 @@ export interface UseMFASetupReturn {
   reset: () => void;
 }
 
-export function useMFASetup(userId: string, mfaToken?: string): UseMFASetupReturn {
+export function useMFASetup(
+  userId: string,
+  mfaToken?: string,
+): UseMFASetupReturn {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { addDevice, verifyDevice, isAddingDevice, isVerifyingDevice } =
@@ -120,7 +123,11 @@ export function useMFASetup(userId: string, mfaToken?: string): UseMFASetupRetur
 
       // Save the new tokens with updated MFA claim
       if (response.access_token && response.refresh_token) {
-        authCookies.setAll(response.access_token, response.refresh_token, "local");
+        authCookies.setAll(
+          response.access_token,
+          response.refresh_token,
+          "local",
+        );
       }
 
       setStep("success");

@@ -15,7 +15,11 @@ export interface UseMFADevicesReturn {
   mfaEnabled: boolean;
   deviceCount: number;
   maxDevices: number;
-  addDevice: (name: string, password?: string, mfaToken?: string) => Promise<IMFADeviceSetupResponse>;
+  addDevice: (
+    name: string,
+    password?: string,
+    mfaToken?: string,
+  ) => Promise<IMFADeviceSetupResponse>;
   verifyDevice: (deviceId: string, code: string) => Promise<unknown>;
   removeDevice: (deviceId: string, password: string) => Promise<void>;
   setDefault: (deviceId: string) => Promise<void>;
@@ -24,26 +28,42 @@ export interface UseMFADevicesReturn {
   isRemovingDevice: boolean;
 }
 
-export function useMFADevices(userId: string, mfaToken?: string): UseMFADevicesReturn {
+export function useMFADevices(
+  userId: string,
+  mfaToken?: string,
+): UseMFADevicesReturn {
   const queryClient = useQueryClient();
 
   const devicesQuery = useQuery({
     queryKey: ["users", userId, "mfa", "devices"],
     queryFn: () =>
-      fetchApi<IMFADevicesResponse>(`/users/${userId}/mfa/devices`, mfaToken ? { headers: { Authorization: `Bearer ${mfaToken}` } } : {}),
+      fetchApi<IMFADevicesResponse>(
+        `/users/${userId}/mfa/devices`,
+        mfaToken ? { headers: { Authorization: `Bearer ${mfaToken}` } } : {},
+      ),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
   });
 
   const addDeviceMutation = useMutation({
-    mutationFn: ({ name, password, mfaToken }: { name: string; password?: string; mfaToken?: string }) =>
+    mutationFn: ({
+      name,
+      password,
+      mfaToken,
+    }: {
+      name: string;
+      password?: string;
+      mfaToken?: string;
+    }) =>
       api.post<IMFADeviceSetupResponse>(
         `/users/${userId}/mfa/devices`,
         {
           name,
           password,
         },
-        mfaToken ? { headers: { Authorization: `Bearer ${mfaToken}` } } : undefined,
+        mfaToken
+          ? { headers: { Authorization: `Bearer ${mfaToken}` } }
+          : undefined,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -55,7 +75,13 @@ export function useMFADevices(userId: string, mfaToken?: string): UseMFADevicesR
 
   const verifyDeviceMutation = useMutation({
     mutationFn: ({ deviceId, code }: { deviceId: string; code: string }) =>
-      api.post(`/users/${userId}/mfa/devices/${deviceId}/verify`, { code }, mfaToken ? { headers: { Authorization: `Bearer ${mfaToken}` } } : undefined),
+      api.post(
+        `/users/${userId}/mfa/devices/${deviceId}/verify`,
+        { code },
+        mfaToken
+          ? { headers: { Authorization: `Bearer ${mfaToken}` } }
+          : undefined,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["users", userId, "mfa", "devices"],

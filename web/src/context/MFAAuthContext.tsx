@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
 import type { IMFADevice } from "@/components/mfa-view/helpers/types";
 
 interface IMFAAuthContext {
@@ -16,11 +23,14 @@ export function MFAAuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [devices, setDevices] = useState<IMFADevice[]>([]);
 
-  const setMFAAuth = useCallback((token: string, uid: string, deviceList: IMFADevice[]) => {
-    setMfaToken(token);
-    setUserId(uid);
-    setDevices(deviceList);
-  }, []);
+  const setMFAAuth = useCallback(
+    (token: string, uid: string, deviceList: IMFADevice[]) => {
+      setMfaToken(token);
+      setUserId(uid);
+      setDevices(deviceList);
+    },
+    [],
+  );
 
   const clearMFAAuth = useCallback(() => {
     setMfaToken(null);
@@ -30,16 +40,21 @@ export function MFAAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (mfaToken) {
-      const timeout = setTimeout(() => {
-        clearMFAAuth();
-      }, 15 * 60 * 1000);
+      const timeout = setTimeout(
+        () => {
+          clearMFAAuth();
+        },
+        15 * 60 * 1000,
+      );
 
       return () => clearTimeout(timeout);
     }
   }, [mfaToken, clearMFAAuth]);
 
   return (
-    <MFAAuthContext.Provider value={{ mfaToken, userId, devices, setMFAAuth, clearMFAAuth }}>
+    <MFAAuthContext.Provider
+      value={{ mfaToken, userId, devices, setMFAAuth, clearMFAAuth }}
+    >
       {children}
     </MFAAuthContext.Provider>
   );

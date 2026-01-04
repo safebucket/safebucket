@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import type { SetupRequiredViewMode, ISetupRequiredFlowState } from "../helpers/types";
+import type {
+  SetupRequiredViewMode,
+  ISetupRequiredFlowState,
+} from "../helpers/types";
 import { useMFAAuth } from "@/context/MFAAuthContext";
 
 export interface IUseSetupRequiredFlowReturn extends ISetupRequiredFlowState {
@@ -10,7 +13,8 @@ export interface IUseSetupRequiredFlowReturn extends ISetupRequiredFlowState {
 
 export function useSetupRequiredFlow(): IUseSetupRequiredFlowReturn {
   const navigate = useNavigate();
-  const { mfaToken: mfaTokenFromContext, userId: userIdFromContext } = useMFAAuth();
+  const { mfaToken: mfaTokenFromContext, userId: userIdFromContext } =
+    useMFAAuth();
   const [viewMode, setViewMode] = useState<SetupRequiredViewMode>("loading");
   const [sessionError, setSessionError] = useState(false);
   const setupStarted = useRef(false);

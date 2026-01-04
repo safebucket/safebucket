@@ -84,9 +84,7 @@ export function MFASetupDialog() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">
-                  {t("auth.password")}
-                </Label>
+                <Label htmlFor="password">{t("auth.password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -121,7 +119,10 @@ export function MFASetupDialog() {
               </DialogDescription>
             </DialogHeader>
 
-            <MFAQRCode qrCodeUri={setupData.qr_code_uri} secret={setupData.secret} />
+            <MFAQRCode
+              qrCodeUri={setupData.qr_code_uri}
+              secret={setupData.secret}
+            />
 
             <DialogFooter className="sm:justify-between">
               <Button variant="outline" onClick={handleClose}>
@@ -158,7 +159,9 @@ export function MFASetupDialog() {
                 onClick={verifyCode}
                 disabled={isLoading || code.length !== MFA_CODE_LENGTH}
               >
-                {isLoading ? t("auth.mfa.enabling") : t("auth.mfa.enable_button")}
+                {isLoading
+                  ? t("auth.mfa.enabling")
+                  : t("auth.mfa.enable_button")}
               </Button>
             </DialogFooter>
           </>

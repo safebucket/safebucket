@@ -80,10 +80,7 @@ export function MFAResetDialog() {
               <Button variant="outline" onClick={handleClose}>
                 {t("common.cancel")}
               </Button>
-              <Button
-                onClick={requestReset}
-                disabled={!password || isLoading}
-              >
+              <Button onClick={requestReset} disabled={!password || isLoading}>
                 {isLoading ? t("common.loading") : t("auth.continue")}
               </Button>
             </DialogFooter>
@@ -117,7 +114,9 @@ export function MFAResetDialog() {
                 onClick={verifyReset}
                 disabled={code.length !== MFA_CODE_LENGTH || isLoading}
               >
-                {isLoading ? t("common.loading") : t("auth.mfa.reset_verify_button")}
+                {isLoading
+                  ? t("common.loading")
+                  : t("auth.mfa.reset_verify_button")}
               </Button>
             </DialogFooter>
           </>

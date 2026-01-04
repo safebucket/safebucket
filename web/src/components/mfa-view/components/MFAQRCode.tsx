@@ -28,7 +28,9 @@ export function MFAQRCode({ qrCodeUri, secret }: MFAQRCodeProps) {
       </div>
 
       <div className="w-full space-y-2">
-        <p className="text-sm font-medium">{t("auth.mfa.manual_entry_title")}</p>
+        <p className="text-sm font-medium">
+          {t("auth.mfa.manual_entry_title")}
+        </p>
         <p className="text-muted-foreground text-xs">
           {t("auth.mfa.manual_entry_instruction")}
         </p>
