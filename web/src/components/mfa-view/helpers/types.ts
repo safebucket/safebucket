@@ -40,28 +40,23 @@ export type SetupRequiredViewMode =
   | "success";
 
 export interface IMFAViewContext {
-  // User
   userId: string;
 
-  // Data
   devices: Array<IMFADevice>;
   isLoading: boolean;
   mfaEnabled: boolean;
   deviceCount: number;
   maxDevices: number;
 
-  // Dialog states
   setupDialogOpen: boolean;
   deleteDeviceId: string | null;
   resetDialogOpen: boolean;
 
-  // Actions
   openSetupDialog: () => void;
   openDeleteDialog: (deviceId: string) => void;
   openResetDialog: () => void;
   closeAllDialogs: () => void;
 
-  // Device actions
   setDeviceDefault: (deviceId: string) => void;
 }
 
