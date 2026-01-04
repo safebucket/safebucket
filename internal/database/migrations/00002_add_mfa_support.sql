@@ -14,7 +14,7 @@ CREATE TABLE mfa_devices (
     type mfa_device_type NOT NULL DEFAULT 'totp',
 
     -- TOTP-specific fields
-    secret_encrypted TEXT NOT NULL,
+    encrypted_secret TEXT NOT NULL,
 
     -- Device management
     is_default BOOLEAN NOT NULL DEFAULT FALSE,

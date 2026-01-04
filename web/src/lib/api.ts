@@ -46,8 +46,8 @@ export async function fetchApi<T>(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...(headers["Authorization"] ? {} : (token ? { Authorization: `Bearer ${token}` } : {})),
       ...headers,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
   });

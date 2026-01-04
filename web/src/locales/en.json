@@ -1,4 +1,17 @@
 {
+  "errors": {
+    "INVALID_PASSWORD": "Invalid password. Please try again.",
+    "WRONG_CODE": "Invalid verification code. Please try again.",
+    "CHALLENGE_EXPIRED": "The verification code has expired. Please start over.",
+    "CHALLENGE_LOCKED": "Too many failed attempts. Please start over.",
+    "DEVICE_NAME_EXISTS": "A device with this name already exists.",
+    "MAX_DEVICES_REACHED": "Maximum number of devices reached.",
+    "INVALID_CODE": "Invalid verification code. Please try again.",
+    "FORBIDDEN": "You don't have permission to perform this action.",
+    "NOT_FOUND": "The requested resource was not found.",
+    "INTERNAL_SERVER_ERROR": "An unexpected error occurred. Please try again.",
+    "default": "An error occurred. Please try again."
+  },
   "common": {
     "logout": "Logout",
     "save": "Save",
@@ -64,6 +77,9 @@
       "error_device_name_required": "Device name is required",
       "error_device_name_exists": "A device with this name already exists",
       "error_max_devices": "Maximum number of devices reached",
+      "error_password_required": "Password is required",
+      "error_invalid_password": "Invalid password",
+      "password_placeholder": "Enter your password",
       "code_instruction": "Open your authenticator app and enter the 6-digit code",
       "verify_button": "Verify",
       "verifying": "Verifying...",

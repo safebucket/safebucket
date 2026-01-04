@@ -355,6 +355,12 @@ APP__STORAGE__MINIO__ENDPOINT=localhost:9000
 ## Security Patterns
 
 - **Authentication**: JWT with 60-minute access token, 10-hour refresh token
+- **JWT Audience Validation**: All JWT token parsing functions validate the `aud` (audience) claim to enforce strict token type boundaries and prevent token type confusion attacks:
+  - `ParseAccessToken` (`internal/helpers/token.go:53-79`): Only accepts tokens with `aud: "app:*"`
+  - `ParseMFAToken` (`internal/helpers/token.go:164-186`): Only accepts tokens with `aud: "auth:mfa"`
+  - `ParseRefreshToken` (`internal/helpers/token.go:100-118`): Only accepts tokens with `aud: "auth:refresh"`
+  - **Security Boundary**: MFA tokens cannot access protected API endpoints; they can only be used for MFA verification at `/api/v1/auth/mfa/verify`
+  - **Enforcement**: The `Authenticate` middleware (`internal/middlewares/authenticator.go:22`) calls `ParseAccessToken`, which rejects any token without the `"app:*"` audience
 - **Authorization**: Two-tier RBAC (platform roles + bucket groups with rank comparison)
 - **Passwords**: Argon2id hashing with salt
 - **Presigned URLs**: 15-minute expiration for uploads and downloads

@@ -27,6 +27,8 @@ export function MFASetupDialog() {
     step,
     deviceName,
     setDeviceName,
+    password,
+    setPassword,
     setupData,
     code,
     setCode,
@@ -80,6 +82,20 @@ export function MFASetupDialog() {
                   disabled={isLoading}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  {t("auth.password")}
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t("auth.mfa.password_placeholder")}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
             <DialogFooter className="sm:justify-between">
@@ -88,7 +104,7 @@ export function MFASetupDialog() {
               </Button>
               <Button
                 onClick={startSetup}
-                disabled={!deviceName.trim() || isLoading}
+                disabled={!deviceName.trim() || !password || isLoading}
               >
                 {isLoading ? t("common.loading") : t("auth.continue")}
               </Button>

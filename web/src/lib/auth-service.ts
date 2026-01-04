@@ -142,6 +142,7 @@ export interface LoginResult {
   mfaToken?: string;
   mfaSetupRequired?: boolean;
   devices?: IMFADevice[];
+  userId?: string;
 }
 
 export const loginWithCredentials = async (
@@ -152,26 +153,27 @@ export const loginWithCredentials = async (
 
     // Check if MFA is required
     if (response.mfa_required && response.mfa_token) {
+      // Decode MFA token to get user ID
+      const decoded = decodeToken(response.mfa_token);
       return {
         success: false,
         mfaRequired: true,
         mfaToken: response.mfa_token,
         devices: response.devices,
+        userId: decoded?.payload.user_id,
       };
     }
 
     // Check if MFA setup is required (admin enforced but not set up)
-    if (response.mfa_setup_required) {
-      if (response.access_token && response.refresh_token) {
-        authCookies.setAll(
-          response.access_token,
-          response.refresh_token,
-          "local",
-        );
-      }
+    // Note: No access/refresh tokens are issued until MFA setup is complete
+    if (response.mfa_setup_required && response.mfa_token) {
+      // Decode MFA token to get user ID
+      const decoded = decodeToken(response.mfa_token);
       return {
-        success: true,
+        success: false,
         mfaSetupRequired: true,
+        mfaToken: response.mfa_token,
+        userId: decoded?.payload.user_id,
       };
     }
 

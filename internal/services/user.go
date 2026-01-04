@@ -21,15 +21,11 @@ import (
 )
 
 type UserService struct {
-	DB                 *gorm.DB
-	Cache              cache.ICache
-	MFAEncryptionKey   string
-	JWTSecret          string
-	AccessTokenExpiry  int
-	RefreshTokenExpiry int
-	Publisher          messaging.IPublisher
-	WebURL             string
-	Notifier           notifier.INotifier
+	DB         *gorm.DB
+	Cache      cache.ICache
+	AuthConfig models.AuthConfig
+	Publisher  messaging.IPublisher
+	Notifier   notifier.INotifier
 }
 
 func (s UserService) Routes() chi.Router {
@@ -54,7 +50,7 @@ func (s UserService) Routes() chi.Router {
 		r.With(m.AuthorizeSelfOrAdmin(0)).
 			Get("/stats", handlers.GetOneHandler(s.GetUserStats))
 
-		r.Mount("/mfa", UserMFAService(s).Routes())
+		r.Mount("/mfa", NewUserMFAService(s).Routes())
 	})
 	return r
 }

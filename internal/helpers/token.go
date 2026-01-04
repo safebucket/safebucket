@@ -70,7 +70,12 @@ func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, 
 	if err != nil {
 		return models.UserClaims{}, errors.New("invalid access token")
 	}
-	return *claims, err
+
+	if claims.Aud != "app:*" {
+		return models.UserClaims{}, errors.New("invalid access token audience")
+	}
+
+	return *claims, nil
 }
 
 func NewRefreshToken(jwtSecret string, user *models.User, provider string, expiryMinutes int) (string, error) {

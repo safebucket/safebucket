@@ -49,7 +49,6 @@ export interface ILoginForm {
   password: string;
 }
 
-// MFA Device Types
 export type MFADeviceType = "totp";
 
 export interface IMFADevice {

@@ -17,6 +17,8 @@ export interface UseMFASetupReturn {
   step: SetupStep;
   deviceName: string;
   setDeviceName: (name: string) => void;
+  password: string;
+  setPassword: (password: string) => void;
   setupData: IMFADeviceSetupResponse | null;
   code: string;
   setCode: (code: string) => void;
@@ -29,11 +31,11 @@ export interface UseMFASetupReturn {
   reset: () => void;
 }
 
-export function useMFASetup(userId: string): UseMFASetupReturn {
+export function useMFASetup(userId: string, mfaToken?: string): UseMFASetupReturn {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { addDevice, verifyDevice, isAddingDevice, isVerifyingDevice } =
-    useMFADevices(userId);
+    useMFADevices(userId, mfaToken);
 
   const [step, setStep] = useState<SetupStep>("name");
   const [deviceName, setDeviceName] = useState(MFA_DEFAULT_DEVICE_NAME);
@@ -43,9 +45,12 @@ export function useMFASetup(userId: string): UseMFASetupReturn {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const [password, setPassword] = useState("");
+
   const reset = useCallback(() => {
     setStep("name");
     setDeviceName(MFA_DEFAULT_DEVICE_NAME);
+    setPassword("");
     setSetupData(null);
     setCode("");
     setError(null);
@@ -69,9 +74,14 @@ export function useMFASetup(userId: string): UseMFASetupReturn {
       return;
     }
 
+    if (!password && !mfaToken) {
+      setError(t("auth.mfa.error_password_required"));
+      return;
+    }
+
     setError(null);
     try {
-      const response = await addDevice(deviceName.trim());
+      const response = await addDevice(deviceName.trim(), password, mfaToken);
       setSetupData(response);
       setStep("qr");
     } catch (err) {
@@ -80,11 +90,15 @@ export function useMFASetup(userId: string): UseMFASetupReturn {
         setError(t("auth.mfa.error_device_name_exists"));
       } else if (errorMessage.includes("MAX_MFA_DEVICES_REACHED")) {
         setError(t("auth.mfa.error_max_devices"));
+      } else if (errorMessage.includes("INVALID_PASSWORD")) {
+        setError(t("auth.mfa.error_invalid_password"));
       } else {
         setError(t("auth.mfa.setup_error"));
       }
     }
-  }, [deviceName, addDevice, t]);
+  }, [deviceName, password, mfaToken, addDevice, t]);
+
+  // ... (verifyCode logic remains unchanged)
 
   const verifyCode = useCallback(async () => {
     if (code.length !== MFA_CODE_LENGTH) {
@@ -105,11 +119,8 @@ export function useMFASetup(userId: string): UseMFASetupReturn {
       };
 
       // Save the new tokens with updated MFA claim
-      if (response.access_token) {
-        authCookies.setAccessToken(response.access_token);
-      }
-      if (response.refresh_token) {
-        authCookies.setRefreshToken(response.refresh_token);
+      if (response.access_token && response.refresh_token) {
+        authCookies.setAll(response.access_token, response.refresh_token, "local");
       }
 
       setStep("success");
@@ -123,6 +134,8 @@ export function useMFASetup(userId: string): UseMFASetupReturn {
     step,
     deviceName,
     setDeviceName,
+    password,
+    setPassword,
     setupData,
     code,
     setCode,

@@ -30,6 +30,15 @@ export interface IMFAResetRequestResponse {
 export type SetupStep = "name" | "qr" | "verify" | "success";
 export type ResetStep = "password" | "email_sent" | "success";
 
+export type VerificationViewMode = "form" | "success";
+export type SetupRequiredViewMode =
+  | "loading"
+  | "error"
+  | "name"
+  | "qr"
+  | "verify"
+  | "success";
+
 export interface IMFAViewContext {
   // User
   userId: string;
@@ -54,4 +63,24 @@ export interface IMFAViewContext {
 
   // Device actions
   setDeviceDefault: (deviceId: string) => void;
+}
+
+export interface IVerificationFlowState {
+  code: string;
+  setCode: (code: string) => void;
+  selectedDeviceId: string;
+  setSelectedDeviceId: (deviceId: string) => void;
+  error: string | null;
+  isLoading: boolean;
+  isVerified: boolean;
+  handleSubmit: (e: React.FormEvent) => Promise<void>;
+  handleBackToLogin: () => void;
+}
+
+export interface ISetupRequiredFlowState {
+  viewMode: SetupRequiredViewMode;
+  sessionError: boolean;
+  handleSuccess: () => void;
+  handleError: () => void;
+  handleRetry: () => void;
 }

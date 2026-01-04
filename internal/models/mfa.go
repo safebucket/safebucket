@@ -2,22 +2,6 @@ package models
 
 import "github.com/google/uuid"
 
-// MFASetupResponse is returned when initiating MFA setup.
-//
-// Deprecated: Use MFADeviceSetupResponse for multi-device support.
-type MFASetupResponse struct {
-	Secret    string `json:"secret"`      // Base32 encoded secret for manual entry
-	QRCodeURI string `json:"qr_code_uri"` // otpauth:// URI for QR code generation
-	Issuer    string `json:"issuer"`      // Application name (SafeBucket)
-}
-
-// MFAVerifyBody is used to verify a TOTP code during MFA setup.
-//
-// Deprecated: Use MFADeviceVerifyBody for multi-device support.
-type MFAVerifyBody struct {
-	Code string `json:"code" validate:"required,len=6,numeric"`
-}
-
 // MFALoginVerifyBody is used to verify MFA during login.
 type MFALoginVerifyBody struct {
 	MFAToken string     `json:"mfa_token" validate:"required"`

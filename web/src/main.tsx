@@ -9,6 +9,7 @@ import { routeTree } from "./routeTree.gen";
 import { ThemeProvider } from "@/components/theme/context/ThemeProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
+import { MFAAuthProvider } from "@/context/MFAAuthContext.tsx";
 
 import "./lib/i18n";
 import "./styles.css";
@@ -65,7 +66,9 @@ async function initializeApp() {
           <ThemeProvider>
             <SidebarProvider>
               <UploadProvider>
-                <RouterProvider router={router} />
+                <MFAAuthProvider>
+                  <RouterProvider router={router} />
+                </MFAAuthProvider>
               </UploadProvider>
             </SidebarProvider>
           </ThemeProvider>

@@ -9,6 +9,7 @@ import type {
 import { api } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import { MFA_CODE_LENGTH } from "@/components/mfa-view/helpers/constants";
+import { getTranslatedError } from "@/components/mfa-view/helpers/utils";
 
 export interface UseMFAResetReturn {
   step: ResetStep;
@@ -64,7 +65,7 @@ export function useMFAReset(userId: string): UseMFAResetReturn {
 
   const requestReset = useCallback(async () => {
     if (!password) {
-      setError(t("auth.mfa.reset_invalid_password"));
+      setError(t("auth.mfa.error_password_required"));
       return;
     }
 
@@ -74,9 +75,8 @@ export function useMFAReset(userId: string): UseMFAResetReturn {
       setChallengeId(response.challenge_id);
       setStep("email_sent");
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "";
-      if (errorMessage.includes("INVALID_PASSWORD")) {
-        setError(t("auth.mfa.reset_invalid_password"));
+      if (err instanceof Error) {
+        setError(getTranslatedError(err, t, "auth.mfa.reset_request_error"));
       } else {
         setError(t("auth.mfa.reset_request_error"));
       }
@@ -99,13 +99,8 @@ export function useMFAReset(userId: string): UseMFAResetReturn {
       await verifyResetMutation.mutateAsync({ challengeId, code });
       setStep("success");
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "";
-      if (errorMessage.includes("WRONG_CODE")) {
-        setError(t("auth.mfa.reset_wrong_code"));
-      } else if (errorMessage.includes("CHALLENGE_EXPIRED")) {
-        setError(t("auth.mfa.reset_challenge_expired"));
-      } else if (errorMessage.includes("CHALLENGE_LOCKED")) {
-        setError(t("auth.mfa.reset_challenge_locked"));
+      if (err instanceof Error) {
+        setError(getTranslatedError(err, t, "auth.mfa.reset_verify_error"));
       } else {
         setError(t("auth.mfa.reset_verify_error"));
       }

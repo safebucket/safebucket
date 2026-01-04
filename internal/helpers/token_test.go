@@ -245,6 +245,79 @@ func TestParseAccessToken(t *testing.T) {
 		_, err = ParseAccessToken(jwtSecret, "Bearer "+signedToken)
 		require.NoError(t, err) // This one is valid
 	})
+
+	// Security fix tests: Validate audience claim to prevent token type confusion
+	t.Run("should reject MFA token as access token", func(t *testing.T) {
+		// Create an MFA token
+		mfaToken, err := NewMFAToken(jwtSecret, user, 5)
+		require.NoError(t, err)
+
+		// Try to parse it as an access token
+		_, err = ParseAccessToken(jwtSecret, "Bearer "+mfaToken)
+
+		// Should fail with audience error
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "audience", "should reject MFA token with audience error")
+	})
+
+	t.Run("should reject refresh token as access token", func(t *testing.T) {
+		// Create a refresh token
+		refreshToken, err := NewRefreshToken(jwtSecret, user, provider, 600)
+		require.NoError(t, err)
+
+		// Try to parse it as an access token
+		_, err = ParseAccessToken(jwtSecret, "Bearer "+refreshToken)
+
+		// Should fail with audience error
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "audience", "should reject refresh token with audience error")
+	})
+
+	t.Run("should reject token with invalid audience", func(t *testing.T) {
+		// Create a token with a custom invalid audience
+		claims := models.UserClaims{
+			Email:    user.Email,
+			UserID:   user.ID,
+			Role:     user.Role,
+			Aud:      "invalid:custom",
+			Provider: provider,
+			Issuer:   "safebucket",
+			RegisteredClaims: jwt.RegisteredClaims{
+				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour)},
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, err := token.SignedString([]byte(jwtSecret))
+		require.NoError(t, err)
+
+		// Should fail with audience error
+		_, err = ParseAccessToken(jwtSecret, "Bearer "+signedToken)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "audience")
+	})
+
+	t.Run("should accept only tokens with app:* audience", func(t *testing.T) {
+		claims := models.UserClaims{
+			Email:    user.Email,
+			UserID:   user.ID,
+			Role:     user.Role,
+			Aud:      "app:*",
+			Provider: provider,
+			Issuer:   "safebucket",
+			RegisteredClaims: jwt.RegisteredClaims{
+				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour)},
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, err := token.SignedString([]byte(jwtSecret))
+		require.NoError(t, err)
+
+		parsedClaims, err := ParseAccessToken(jwtSecret, "Bearer "+signedToken)
+		require.NoError(t, err)
+		assert.Equal(t, "app:*", parsedClaims.Aud)
+	})
 }
 
 // TestNewRefreshToken tests JWT refresh token generation.

@@ -110,44 +110,36 @@ func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, 
 	}
 }
 
-func handleBodyRequest[In any](
-	w http.ResponseWriter,
-	r *http.Request,
-	handler func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) error,
-) {
-	ids, ok := h.ParseUUIDs(w, r)
-	if !ok {
-		return
-	}
-
-	claims, _ := h.GetUserClaims(r.Context())
-	logger := m.GetLogger(r)
-
-	body, ok := r.Context().Value(m.BodyKey{}).(In)
-	if !ok {
-		logger.Error("Failed to extract body from context")
-		h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
-		return
-	}
-
-	err := handler(logger, claims, ids, body)
-	if err != nil {
-		strErrors := []string{err.Error()}
-
-		var apiErr *apierrors.APIError
-		if errors.As(err, &apiErr) {
-			h.RespondWithError(w, apiErr.Code, strErrors)
-		} else {
-			h.RespondWithError(w, http.StatusBadRequest, strErrors)
-		}
-	} else {
-		h.RespondWithJSON(w, http.StatusNoContent, nil)
-	}
-}
-
 func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleBodyRequest(w, r, handler)
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+
+		claims, _ := h.GetUserClaims(r.Context())
+		logger := m.GetLogger(r)
+
+		body, ok := r.Context().Value(m.BodyKey{}).(In)
+		if !ok {
+			logger.Error("Failed to extract body from context")
+			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			return
+		}
+
+		err := handler(logger, claims, ids, body)
+		if err != nil {
+			strErrors := []string{err.Error()}
+
+			var apiErr *apierrors.APIError
+			if errors.As(err, &apiErr) {
+				h.RespondWithError(w, apiErr.Code, strErrors)
+			} else {
+				h.RespondWithError(w, http.StatusBadRequest, strErrors)
+			}
+		} else {
+			h.RespondWithJSON(w, http.StatusNoContent, nil)
+		}
 	}
 }
 

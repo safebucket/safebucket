@@ -24,15 +24,12 @@ import (
 )
 
 type InviteService struct {
-	DB                 *gorm.DB
-	Storage            storage.IStorage
-	JWTSecret          string
-	AccessTokenExpiry  int
-	RefreshTokenExpiry int
-	Publisher          messaging.IPublisher
-	Providers          configuration.Providers
-	ActivityLogger     activity.IActivityLogger
-	WebURL             string
+	DB             *gorm.DB
+	Storage        storage.IStorage
+	AuthConfig     models.AuthConfig
+	Publisher      messaging.IPublisher
+	Providers      configuration.Providers
+	ActivityLogger activity.IActivityLogger
 }
 
 func (s InviteService) Routes() chi.Router {
@@ -117,7 +114,7 @@ func (s InviteService) CreateInviteChallenge(
 		invite.User.Email,
 		inviteID.String(),
 		challenge.ID.String(),
-		s.WebURL,
+		s.AuthConfig.WebURL,
 	)
 	event.Trigger()
 
@@ -233,21 +230,21 @@ func (s InviteService) ValidateInviteChallenge(
 	welcomeEvent := events.NewUserWelcome(
 		s.Publisher,
 		newUser.Email,
-		s.WebURL,
+		s.AuthConfig.WebURL,
 	)
 	welcomeEvent.Trigger()
 
-	accessToken, err := h.NewAccessToken(s.JWTSecret, &newUser, string(models.LocalProviderType), s.AccessTokenExpiry)
+	accessToken, err := h.NewAccessToken(s.AuthConfig.JWTSecret, &newUser, string(models.LocalProviderType), s.AuthConfig.AccessTokenExpiry)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	refreshToken, err := h.NewRefreshToken(
-		s.JWTSecret,
+		s.AuthConfig.JWTSecret,
 		&newUser,
 		string(models.LocalProviderType),
-		s.RefreshTokenExpiry,
+		s.AuthConfig.RefreshTokenExpiry,
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))

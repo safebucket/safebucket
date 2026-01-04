@@ -54,7 +54,6 @@ export const useUserStatsQuery = (userId: string) => {
   });
 };
 
-// MFA Reset mutations
 export interface MFAResetRequestResponse {
   challenge_id: string;
 }
@@ -86,8 +85,6 @@ export const useVerifyMFAResetMutation = (
     onError: (error: Error) => errorToast(error),
   });
 };
-
-// MFA Device Management Hooks
 
 export const useMFADevices = (userId: string) => {
   return useQuery({

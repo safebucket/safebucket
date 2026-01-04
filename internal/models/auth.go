@@ -13,12 +13,12 @@ type AuthLoginBody struct {
 }
 
 type AuthLoginResponse struct {
-	AccessToken      string              `json:"access_token,omitempty"`
-	RefreshToken     string              `json:"refresh_token,omitempty"`
-	MFARequired      bool                `json:"mfa_required"`
-	MFAToken         string              `json:"mfa_token,omitempty"`
-	MFASetupRequired bool                `json:"mfa_setup_required,omitempty"`
-	Devices          []MFADeviceResponse `json:"devices,omitempty"`
+	AccessToken      string      `json:"access_token,omitempty"`
+	RefreshToken     string      `json:"refresh_token,omitempty"`
+	MFARequired      bool        `json:"mfa_required"`
+	MFAToken         string      `json:"mfa_token,omitempty"`
+	MFASetupRequired bool        `json:"mfa_setup_required,omitempty"`
+	Devices          []MFADevice `json:"devices,omitempty"`
 }
 
 type AuthVerifyBody struct {

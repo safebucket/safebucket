@@ -21,6 +21,10 @@ func Authenticate(jwtSecret string, mfaRequired bool) func(next http.Handler) ht
 			accessToken := r.Header.Get("Authorization")
 			userClaims, err := helpers.ParseAccessToken(jwtSecret, accessToken)
 			if err != nil {
+				if isMFABypassPath(r.URL.Path, r.Method) {
+					next.ServeHTTP(w, r)
+					return
+				}
 				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
 				return
 			}

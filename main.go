@@ -29,11 +29,6 @@ func main() {
 	config := configuration.Read()
 	core.NewLogger(config.App.LogLevel)
 
-	// Validate MFA encryption key when MFA is required
-	if config.App.MFARequired && len(config.App.MFAEncryptionKey) != 32 {
-		zap.L().Fatal("MFA encryption key must be exactly 32 bytes when MFA is required")
-	}
-
 	db := database.InitDB(config.Database)
 	cache := core.NewCache(config.Cache)
 	storage := core.NewStorage(config.Storage, config.App.TrashRetentionDays)
@@ -116,20 +111,18 @@ func main() {
 	)
 
 	// API routes with auth middleware
+	authConfig := config.App.GetAuthConfig()
+
 	r.Route("/api", func(apiRouter chi.Router) {
-		apiRouter.Use(m.Authenticate(config.App.JWTSecret, config.App.MFARequired))
+		apiRouter.Use(m.Authenticate(authConfig.JWTSecret, authConfig.MFARequired))
 		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
 
 		userService := services.UserService{
-			DB:                 db,
-			Cache:              cache,
-			MFAEncryptionKey:   config.App.MFAEncryptionKey,
-			JWTSecret:          config.App.JWTSecret,
-			AccessTokenExpiry:  config.App.AccessTokenExpiry,
-			RefreshTokenExpiry: config.App.RefreshTokenExpiry,
-			Publisher:          eventRouter,
-			WebURL:             config.App.WebURL,
-			Notifier:           notifier,
+			DB:         db,
+			Cache:      cache,
+			AuthConfig: authConfig,
+			Publisher:  eventRouter,
+			Notifier:   notifier,
 		}
 
 		apiRouter.Mount("/v1/users", userService.Routes())
@@ -145,30 +138,21 @@ func main() {
 		}.Routes())
 
 		apiRouter.Mount("/v1/auth", services.AuthService{
-			DB:                 db,
-			Cache:              cache,
-			JWTSecret:          config.App.JWTSecret,
-			MFAEncryptionKey:   config.App.MFAEncryptionKey,
-			MFARequired:        config.App.MFARequired,
-			AccessTokenExpiry:  config.App.AccessTokenExpiry,
-			RefreshTokenExpiry: config.App.RefreshTokenExpiry,
-			MFATokenExpiry:     config.App.MFATokenExpiry,
-			Providers:          providers,
-			WebURL:             config.App.WebURL,
-			Publisher:          eventRouter,
-			ActivityLogger:     activity,
+			DB:             db,
+			Cache:          cache,
+			AuthConfig:     authConfig,
+			Providers:      providers,
+			Publisher:      eventRouter,
+			ActivityLogger: activity,
 		}.Routes())
 
 		apiRouter.Mount("/v1/invites", services.InviteService{
-			DB:                 db,
-			JWTSecret:          config.App.JWTSecret,
-			AccessTokenExpiry:  config.App.AccessTokenExpiry,
-			RefreshTokenExpiry: config.App.RefreshTokenExpiry,
-			Storage:            storage,
-			Publisher:          eventRouter,
-			ActivityLogger:     activity,
-			Providers:          providers,
-			WebURL:             config.App.WebURL,
+			DB:             db,
+			Storage:        storage,
+			AuthConfig:     authConfig,
+			Publisher:      eventRouter,
+			ActivityLogger: activity,
+			Providers:      providers,
 		}.Routes())
 	})
 
