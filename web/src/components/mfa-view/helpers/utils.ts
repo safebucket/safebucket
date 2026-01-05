@@ -1,39 +1,4 @@
-import type { TFunction } from "i18next";
-
 import type { IMFADevice } from "./types";
-
-/**
- * Extracts an error code from an API error message and returns the translated error.
- * Falls back to a default error message if no matching translation is found.
- */
-export function getTranslatedError(
-  error: Error,
-  t: TFunction,
-  fallbackKey = "errors.default",
-): string {
-  const errorMessage = error.message || "";
-
-  const errorCodes = [
-    "INVALID_PASSWORD",
-    "WRONG_CODE",
-    "CHALLENGE_EXPIRED",
-    "CHALLENGE_LOCKED",
-    "DEVICE_NAME_EXISTS",
-    "MAX_DEVICES_REACHED",
-    "INVALID_CODE",
-    "FORBIDDEN",
-    "NOT_FOUND",
-    "INTERNAL_SERVER_ERROR",
-  ];
-
-  for (const code of errorCodes) {
-    if (errorMessage.includes(code)) {
-      return t(`errors.${code}`);
-    }
-  }
-
-  return t(fallbackKey);
-}
 
 export function getDefaultDevice(
   devices: IMFADevice[],

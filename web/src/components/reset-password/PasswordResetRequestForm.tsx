@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-import { AlertCircle, Key, Mail } from "lucide-react";
+import { Key, Mail } from "lucide-react";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -80,12 +81,7 @@ export const PasswordResetRequestForm: FC = () => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-          {error && (
-            <div className="flex items-center space-x-2 rounded-md bg-red-50 p-3 text-red-600">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
+          <FormErrorAlert error={error} />
 
           <div className="space-y-2">
             <Label htmlFor="email">{t("auth.email")}</Label>

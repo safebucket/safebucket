@@ -1,7 +1,8 @@
 import type { FC } from "react";
 import { useState } from "react";
 
-import { AlertCircle, CheckCircle, Mail } from "lucide-react";
+import { CheckCircle, Mail } from "lucide-react";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -117,12 +118,7 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
             )}
 
             <form onSubmit={handleSubmit(handleContinue)} className="space-y-4">
-              {error && (
-                <div className="flex items-center space-x-2 rounded-md bg-red-50 p-3 text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  <span className="text-sm">{error}</span>
-                </div>
-              )}
+              <FormErrorAlert error={error} />
 
               <div className="space-y-2">
                 <Label htmlFor="email">

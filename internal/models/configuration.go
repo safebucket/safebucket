@@ -17,7 +17,7 @@ type AppConfiguration struct {
 	APIURL             string              `mapstructure:"api_url"              validate:"required"`
 	AllowedOrigins     []string            `mapstructure:"allowed_origins"      validate:"required"`
 	JWTSecret          string              `mapstructure:"jwt_secret"           validate:"required"`
-	MFAEncryptionKey   string              `mapstructure:"mfa_encryption_key"   validate:"len=3< y2"`
+	MFAEncryptionKey   string              `mapstructure:"mfa_encryption_key"   validate:"len=32"`
 	MFARequired        bool                `mapstructure:"mfa_required"                                                            default:"false"`
 	AccessTokenExpiry  int                 `mapstructure:"access_token_expiry"  validate:"gte=1,lte=1440"                          default:"60"`
 	RefreshTokenExpiry int                 `mapstructure:"refresh_token_expiry" validate:"gte=1,lte=720"                           default:"600"`

@@ -109,7 +109,7 @@ func (s AuthService) Login(
 
 	// Check if MFA is required but not set up for this user
 	if s.AuthConfig.MFARequired {
-		return mfa.GenerateTokensWithMFASetupRequired(s.AuthConfig, &searchUser)
+		return mfa.GenerateTokensWithMFASetupRequired(logger, s.AuthConfig, &searchUser)
 	}
 
 	return mfa.GenerateTokens(s.AuthConfig, &searchUser)

@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMFAViewContext } from "@/components/mfa-view/hooks/useMFAViewContext";
 import { useMFADevices } from "@/components/mfa-view/hooks/useMFADevices";
-import { MFAErrorAlert } from "@/components/mfa-view/components/MFAErrorAlert";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 
 export function MFADeleteDialog() {
   const { t } = useTranslation();
@@ -64,7 +64,7 @@ export function MFADeleteDialog() {
         </DialogHeader>
 
         <div className="space-y-4">
-          <MFAErrorAlert error={error} />
+          <FormErrorAlert error={error} />
 
           <div className="space-y-2">
             <Label htmlFor="delete-password">

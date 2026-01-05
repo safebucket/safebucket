@@ -41,16 +41,17 @@ export async function fetchApi<T>(
 
   const token = authCookies.getAccessToken();
 
+  const authHeader: Record<string, string> = {};
+  if (!headers["Authorization"] && token) {
+    authHeader["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(fullUrl, {
     method,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
-      ...(headers["Authorization"]
-        ? {}
-        : token
-          ? { Authorization: `Bearer ${token}` }
-          : {}),
+      ...authHeader,
       ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,

@@ -18,7 +18,7 @@ func HandleMFALogin(
 	mfaToken, err := h.NewMFAToken(authConfig.JWTSecret, user, authConfig.MFATokenExpiry)
 	if err != nil {
 		logger.Error("Failed to generate MFA token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "MFA_TOKEN_GENERATION_FAILED")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	return models.AuthLoginResponse{
@@ -32,11 +32,13 @@ func HandleMFALogin(
 // Access and refresh tokens are NOT issued until MFA setup is complete (via VerifyDevice).
 // This prevents token leakage before MFA is configured.
 func GenerateTokensWithMFASetupRequired(
+	logger *zap.Logger,
 	authConfig models.AuthConfig,
 	user *models.User,
 ) (models.AuthLoginResponse, error) {
 	mfaToken, err := h.NewMFAToken(authConfig.JWTSecret, user, authConfig.MFATokenExpiry)
 	if err != nil {
+		logger.Error("Failed to generate MFA token for setup required", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 

@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useMFAViewContext } from "@/components/mfa-view/hooks/useMFAViewContext";
 import { useMFAReset } from "@/components/mfa-view/hooks/useMFAReset";
 import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";
-import { MFAErrorAlert } from "@/components/mfa-view/components/MFAErrorAlert";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { MFA_CODE_LENGTH } from "@/components/mfa-view/helpers/constants";
 
 export function MFAResetDialog() {
@@ -59,7 +59,7 @@ export function MFAResetDialog() {
             </DialogHeader>
 
             <div className="space-y-4">
-              <MFAErrorAlert error={error} />
+              <FormErrorAlert error={error} />
 
               <div className="space-y-2">
                 <Label htmlFor="reset-password">
@@ -97,7 +97,7 @@ export function MFAResetDialog() {
             </DialogHeader>
 
             <div className="space-y-4">
-              <MFAErrorAlert error={error} />
+              <FormErrorAlert error={error} />
               <MFAVerifyInput
                 value={code}
                 onChange={setCode}
