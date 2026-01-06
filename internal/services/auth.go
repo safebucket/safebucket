@@ -197,7 +197,12 @@ func (s AuthService) Refresh(
 		return models.AuthRefreshResponse{}, apierrors.NewAPIError(401, "USER_NOT_FOUND")
 	}
 
-	accessToken, err := h.NewAccessToken(s.AuthConfig.JWTSecret, &user, refreshToken.Provider, s.AuthConfig.AccessTokenExpiry)
+	accessToken, err := h.NewAccessToken(
+		s.AuthConfig.JWTSecret,
+		&user,
+		refreshToken.Provider,
+		s.AuthConfig.AccessTokenExpiry,
+	)
 	if err != nil {
 		return models.AuthRefreshResponse{}, apierrors.ErrGenerateAccessTokenFailed
 	}
@@ -289,12 +294,22 @@ func (s AuthService) VerifyMFALogin(
 		logger.Warn("Failed to reset MFA attempts", zap.Error(resetErr))
 	}
 
-	accessToken, err := h.NewAccessToken(s.AuthConfig.JWTSecret, &user, string(models.LocalProviderType), s.AuthConfig.AccessTokenExpiry)
+	accessToken, err := h.NewAccessToken(
+		s.AuthConfig.JWTSecret,
+		&user,
+		string(models.LocalProviderType),
+		s.AuthConfig.AccessTokenExpiry,
+	)
 	if err != nil {
 		return models.AuthLoginResponse{}, apierrors.ErrGenerateAccessTokenFailed
 	}
 
-	refreshToken, err := h.NewRefreshToken(s.AuthConfig.JWTSecret, &user, string(models.LocalProviderType), s.AuthConfig.RefreshTokenExpiry)
+	refreshToken, err := h.NewRefreshToken(
+		s.AuthConfig.JWTSecret,
+		&user,
+		string(models.LocalProviderType),
+		s.AuthConfig.RefreshTokenExpiry,
+	)
 	if err != nil {
 		return models.AuthLoginResponse{}, apierrors.ErrGenerateRefreshTokenFailed
 	}
@@ -393,12 +408,22 @@ func (s AuthService) OpenIDCallback(
 		}
 	}
 
-	accessToken, err := h.NewAccessToken(s.AuthConfig.JWTSecret, &searchUser, providerKey, s.AuthConfig.AccessTokenExpiry)
+	accessToken, err := h.NewAccessToken(
+		s.AuthConfig.JWTSecret,
+		&searchUser,
+		providerKey,
+		s.AuthConfig.AccessTokenExpiry,
+	)
 	if err != nil {
 		return "", "", apierrors.ErrGenerateAccessTokenFailed
 	}
 
-	refreshToken, err := h.NewRefreshToken(s.AuthConfig.JWTSecret, &searchUser, providerKey, s.AuthConfig.RefreshTokenExpiry)
+	refreshToken, err := h.NewRefreshToken(
+		s.AuthConfig.JWTSecret,
+		&searchUser,
+		providerKey,
+		s.AuthConfig.RefreshTokenExpiry,
+	)
 	if err != nil {
 		return "", "", apierrors.ErrGenerateRefreshTokenFailed
 	}

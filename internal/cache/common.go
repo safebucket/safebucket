@@ -125,7 +125,10 @@ func (r *RueidisCache) MarkTOTPCodeUsed(deviceID string, code string) error {
 	ctx := context.Background()
 	key := fmt.Sprintf(configuration.CacheTOTPUsedKey, deviceID, code)
 
-	err := r.client.Do(ctx, r.client.B().Setex().Key(key).Seconds(int64(configuration.TOTPCodeTTL)).Value("1").Build()).Error()
+	err := r.client.Do(
+		ctx,
+		r.client.B().Setex().Key(key).Seconds(int64(configuration.TOTPCodeTTL)).Value("1").Build(),
+	).Error()
 	return err
 }
 
@@ -152,7 +155,10 @@ func (r *RueidisCache) IncrementMFAAttempts(userID string) error {
 		return err
 	}
 
-	err = r.client.Do(ctx, r.client.B().Expire().Key(key).Seconds(int64(configuration.MFALockoutSeconds)).Build()).Error()
+	err = r.client.Do(
+		ctx,
+		r.client.B().Expire().Key(key).Seconds(int64(configuration.MFALockoutSeconds)).Build(),
+	).Error()
 	return err
 }
 

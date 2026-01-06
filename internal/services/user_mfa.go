@@ -31,13 +31,7 @@ type UserMFAService struct {
 
 // NewUserMFAService creates a UserMFAService from a UserService.
 func NewUserMFAService(s UserService) UserMFAService {
-	return UserMFAService{
-		DB:         s.DB,
-		Cache:      s.Cache,
-		AuthConfig: s.AuthConfig,
-		Publisher:  s.Publisher,
-		Notifier:   s.Notifier,
-	}
+	return UserMFAService(s)
 }
 
 func (s UserMFAService) Routes() chi.Router {

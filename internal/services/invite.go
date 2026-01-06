@@ -234,7 +234,12 @@ func (s InviteService) ValidateInviteChallenge(
 	)
 	welcomeEvent.Trigger()
 
-	accessToken, err := h.NewAccessToken(s.AuthConfig.JWTSecret, &newUser, string(models.LocalProviderType), s.AuthConfig.AccessTokenExpiry)
+	accessToken, err := h.NewAccessToken(
+		s.AuthConfig.JWTSecret,
+		&newUser,
+		string(models.LocalProviderType),
+		s.AuthConfig.AccessTokenExpiry,
+	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
