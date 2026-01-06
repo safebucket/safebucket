@@ -461,12 +461,11 @@ func (s BucketFileService) PurgeFile(
 			return apierrors.ErrDeleteFailed
 		}
 
-		// Log activity
 		action := models.Activity{
-			Message: activity.FilePurged,
+			Message: activity.FileDeleted,
 			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionPurge.String(),
+				"action":      rbac.ActionDelete.String(),
 				"bucket_id":   file.BucketID.String(),
 				"file_id":     file.ID.String(),
 				"object_type": rbac.ResourceFile.String(),

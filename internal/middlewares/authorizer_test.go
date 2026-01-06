@@ -115,6 +115,7 @@ func TestAuthorizeGroup(t *testing.T) {
 
 	testCases := []struct {
 		name             string
+		userRole         models.Role
 		userGroup        models.Group
 		requiredGroup    models.Group
 		hasUserClaims    bool
@@ -127,7 +128,34 @@ func TestAuthorizeGroup(t *testing.T) {
 		setupMockQueries func(sqlmock.Sqlmock)
 	}{
 		{
+			name:           "Admin accessing bucket without membership",
+			userRole:       models.RoleAdmin,
+			requiredGroup:  models.GroupOwner,
+			hasUserClaims:  true,
+			bucketIDIndex:  0,
+			setupURLParams: true,
+			hasMembership:  false,
+			expectedStatus: http.StatusOK,
+			setupMockQueries: func(_ sqlmock.Sqlmock) {
+				// No DB query expected - admin bypasses the check
+			},
+		},
+		{
+			name:           "Admin accessing Owner-required endpoint",
+			userRole:       models.RoleAdmin,
+			requiredGroup:  models.GroupOwner,
+			hasUserClaims:  true,
+			bucketIDIndex:  0,
+			setupURLParams: true,
+			hasMembership:  false,
+			expectedStatus: http.StatusOK,
+			setupMockQueries: func(_ sqlmock.Sqlmock) {
+				// No DB query expected - admin bypasses the check
+			},
+		},
+		{
 			name:           "Owner accessing Viewer-required endpoint",
+			userRole:       models.RoleUser,
 			userGroup:      models.GroupOwner,
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  true,
@@ -145,6 +173,7 @@ func TestAuthorizeGroup(t *testing.T) {
 		},
 		{
 			name:           "Contributor accessing Contributor-required endpoint",
+			userRole:       models.RoleUser,
 			userGroup:      models.GroupContributor,
 			requiredGroup:  models.GroupContributor,
 			hasUserClaims:  true,
@@ -162,6 +191,7 @@ func TestAuthorizeGroup(t *testing.T) {
 		},
 		{
 			name:           "Viewer accessing Owner-required endpoint",
+			userRole:       models.RoleUser,
 			userGroup:      models.GroupViewer,
 			requiredGroup:  models.GroupOwner,
 			hasUserClaims:  true,
@@ -180,6 +210,7 @@ func TestAuthorizeGroup(t *testing.T) {
 		},
 		{
 			name:           "User with no membership",
+			userRole:       models.RoleUser,
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  true,
 			bucketIDIndex:  0,
@@ -195,6 +226,7 @@ func TestAuthorizeGroup(t *testing.T) {
 		},
 		{
 			name:           "Missing user claims",
+			userRole:       models.RoleUser,
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  false,
 			bucketIDIndex:  0,
@@ -206,6 +238,7 @@ func TestAuthorizeGroup(t *testing.T) {
 		},
 		{
 			name:           "Invalid bucket UUID in URL",
+			userRole:       models.RoleUser,
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  true,
 			bucketIDIndex:  0,
@@ -217,6 +250,7 @@ func TestAuthorizeGroup(t *testing.T) {
 		},
 		{
 			name:           "Database error",
+			userRole:       models.RoleUser,
 			requiredGroup:  models.GroupViewer,
 			hasUserClaims:  true,
 			bucketIDIndex:  0,
@@ -254,7 +288,7 @@ func TestAuthorizeGroup(t *testing.T) {
 				userClaims := models.UserClaims{
 					UserID: userID,
 					Email:  "test@example.com",
-					Role:   models.RoleUser,
+					Role:   tt.userRole,
 				}
 				ctx := context.WithValue(req.Context(), models.UserClaimKey{}, userClaims)
 				req = req.WithContext(ctx)

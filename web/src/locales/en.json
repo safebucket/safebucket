@@ -229,19 +229,24 @@
     "profile": "Profile",
     "preferences": "Preferences",
     "security": "Security"
+    "administration": "Administration",
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "buckets": "Buckets",
+    "admin_activity": "Activity"
   },
   "activity": {
     "title": "Activity Feed",
     "no_activity_yet": "No activity yet.",
     "messages": {
       "bucket_created": "Created a bucket '%%BUCKET_NAME%%' and shared it with you.",
+      "bucket_deleted": "Permanently deleted a bucket '%%BUCKET_NAME%%'.",
       "file_uploaded": "Uploaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
       "file_downloaded": "Downloaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
       "file_updated": "Updated a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
-      "file_deleted": "Deleted a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
       "file_trashed": "Moved a file '%%FILE_NAME%%' to trash on the bucket '%%BUCKET_NAME%%'.",
       "file_restored": "Restored a file '%%FILE_NAME%%' from trash on the bucket '%%BUCKET_NAME%%'.",
-      "file_purged": "Permanently deleted a file '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
+      "file_deleted": "Permanently deleted a file '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
       "folder_trashed": "Moved a folder '%%FILE_NAME%%' to trash on the bucket '%%BUCKET_NAME%%'.",
       "folder_restored": "Restored a folder '%%FILE_NAME%%' from trash on the bucket '%%BUCKET_NAME%%'.",
       "folder_purged": "Permanently deleted a folder '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
@@ -487,6 +492,95 @@
       "error_confirm_password_required": "Please confirm your password",
       "error_confirm_password_mismatch": "Passwords do not match",
       "footer_text": "Didn't receive the code? Check your spam folder or request a new one"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "stats": {
+        "users": "Total Users",
+        "buckets": "Total Buckets",
+        "files": "Total Files",
+        "storage": "Total Storage"
+      },
+      "shared_files_chart": {
+        "title": "Shared Files",
+        "description": "Files uploaded to buckets over time",
+        "6_months": "Last 6 months",
+        "3_months": "Last 3 months",
+        "1_month": "Last month"
+      },
+      "roles": {
+        "admin": "Admin",
+        "user": "User",
+        "guest": "Guest"
+      },
+      "providers": {
+        "local": "Local",
+        "oidc": "SSO (OIDC)"
+      }
+    },
+    "users": {
+      "title": "User Management",
+      "description": "Manage all users in the system",
+      "add_user": "Add User",
+      "no_users": "No users found.",
+      "columns": {
+        "email": "Email",
+        "first_name": "First Name",
+        "last_name": "Last Name",
+        "role": "Role",
+        "provider": "Provider",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "add_user_dialog": {
+        "title": "Add New User",
+        "description": "Create a new user account",
+        "first_name": "First Name",
+        "last_name": "Last Name",
+        "email": "Email",
+        "password": "Password"
+      },
+      "delete_dialog": {
+        "title": "Delete User",
+        "description": "Are you sure you want to delete {{email}}? This action cannot be undone.",
+        "confirm": "Delete"
+      }
+    },
+    "buckets": {
+      "title": "Bucket Management",
+      "description": "Manage all buckets in the system",
+      "no_buckets": "No buckets found.",
+      "columns": {
+        "name": "Name",
+        "creator": "Creator",
+        "members": "Members",
+        "files": "Files",
+        "size": "Size",
+        "created": "Created",
+        "actions": "Actions"
+      },
+      "delete_dialog": {
+        "title": "Delete Bucket",
+        "description": "Are you sure you want to delete {{name}}? This will permanently delete all files and cannot be undone.",
+        "confirm": "Delete"
+      }
+    },
+    "activity": {
+      "title": "Platform Activity",
+      "description": "View all activity across the platform",
+      "no_activity": "No activity found.",
+      "columns": {
+        "user": "User",
+        "action": "Action",
+        "resource_type": "Type",
+        "resource_name": "Resource",
+        "bucket": "Bucket",
+        "timestamp": "Time"
+      },
+      "tooltip": {
+        "object_deleted": "This object has been deleted"
+      }
     }
   }
 }

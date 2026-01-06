@@ -1,8 +1,8 @@
 import React from "react";
 
-import { cn } from "@/lib/utils";
-import type { Column } from "@tanstack/table-core";
 import { ArrowDownIcon, ArrowUpIcon, SortAscIcon } from "lucide-react";
+import type { Column } from "@tanstack/table-core";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,8 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface DataTableColumnHeaderProps<TData, TValue>
-  extends React.HTMLAttributes<HTMLDivElement> {
+interface DataTableColumnHeaderProps<
+  TData,
+  TValue,
+> extends React.HTMLAttributes<HTMLDivElement> {
   column: Column<TData, TValue>;
   title: string;
 }

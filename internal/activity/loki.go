@@ -3,6 +3,7 @@ package activity
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -50,6 +51,20 @@ type LokiResult struct {
 
 // RawLogValue is a fixed-size array of 3 interface{} elements, typically representing [timestamp, message, metadata].
 type RawLogValue [3]interface{}
+
+// LokiMatrixResponse represents the response from Loki's range query endpoint for matrix results.
+type LokiMatrixResponse struct {
+	Data struct {
+		ResultType string             `json:"resultType"`
+		Result     []LokiMatrixResult `json:"result"`
+	} `json:"data"`
+}
+
+// LokiMatrixResult represents a single matrix result stream from a Loki range query.
+type LokiMatrixResult struct {
+	Metric map[string]string `json:"metric"`
+	Values [][]interface{}   `json:"values"` // [[timestamp, "count_value"], ...]
+}
 
 // LokiClient provides methods to interact with a Loki logging endpoint, including sending logs and searching for logs.
 type LokiClient struct {
@@ -164,6 +179,94 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	return activity, nil
 }
 
+// CountByDay returns the count of log entries per day matching the search criteria.
+func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
+	baseQuery := generateSearchQuery(searchCriteria)
+	countQuery := fmt.Sprintf("sum(count_over_time(%s[1d]))", baseQuery)
+
+	startTime := time.Now().AddDate(0, 0, -days)
+	endTime := time.Now()
+
+	params := map[string]string{
+		"query": countQuery,
+		"start": strconv.FormatInt(startTime.Unix(), 10),
+		"end":   strconv.FormatInt(endTime.Unix(), 10),
+		"step":  "1d",
+	}
+
+	zap.L().Debug("Search query", zap.String("query", countQuery), zap.Any("params", params))
+
+	resp, err := s.Client.R().
+		SetQueryParams(params).
+		SetHeader("Accept", "application/json").
+		Get(s.searchURL)
+	if err != nil {
+		zap.L().Error("Failed to query Loki for count by day", zap.Any("error", err))
+		return nil, err
+	}
+
+	if resp.StatusCode() != 200 {
+		zap.L().Error("Failed to get count by day from Loki",
+			zap.String("query", countQuery),
+			zap.Int("status_code", resp.StatusCode()),
+			zap.String("response_body", string(resp.Body())),
+		)
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode())
+	}
+
+	var parsedResp LokiMatrixResponse
+	if err = json.Unmarshal(resp.Body(), &parsedResp); err != nil {
+		zap.L().Error("Failed to parse Loki matrix response",
+			zap.String("query", countQuery),
+			zap.Int("status_code", resp.StatusCode()),
+			zap.String("response_body", string(resp.Body())),
+			zap.Error(err),
+		)
+		return nil, err
+	}
+
+	if len(parsedResp.Data.Result) == 0 {
+		return []models.TimeSeriesPoint{}, nil
+	}
+
+	values := parsedResp.Data.Result[0].Values
+	result := make([]models.TimeSeriesPoint, 0, len(values))
+	for _, value := range values {
+		if len(value) < 2 {
+			continue
+		}
+
+		timestamp, ok := value[0].(float64)
+		if !ok {
+			continue
+		}
+
+		countStr, ok := value[1].(string)
+		if !ok {
+			continue
+		}
+
+		count, err2 := strconv.ParseInt(countStr, 10, 64)
+		if err2 != nil {
+			continue
+		}
+
+		// Loki returns the END of the bucket as timestamp, subtract 1 day to get the actual date
+		dateStr := time.Unix(int64(timestamp), 0).UTC().AddDate(0, 0, -1).Format("2006-01-02")
+
+		result = append(result, models.TimeSeriesPoint{
+			Date:  dateStr,
+			Count: count,
+		})
+	}
+
+	slices.SortFunc(result, func(a, b models.TimeSeriesPoint) int {
+		return strings.Compare(a.Date, b.Date)
+	})
+
+	return result, nil
+}
+
 // NewLokiClient initializes and returns a new LokiClient instance based on the provided log configuration.
 func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 	client := resty.New()
@@ -246,11 +349,13 @@ func generateSearchQuery(searchCriteria map[string][]string) string {
 	formattedLabels := generateORCriteria(labels)
 	formattedMetadata := generateORCriteria(metadata)
 
-	return fmt.Sprintf(
-		"{%s} | %s",
-		strings.Join(formattedLabels, ", "),
-		strings.Join(formattedMetadata, " | "),
-	)
+	query := fmt.Sprintf("{%s}", strings.Join(formattedLabels, ", "))
+
+	if len(formattedMetadata) > 0 {
+		query = fmt.Sprintf("%s | %s", query, strings.Join(formattedMetadata, " | "))
+	}
+
+	return query
 }
 
 func generateORCriteria(criteria map[string][]string) []string {

@@ -154,6 +154,11 @@ func main() {
 			ActivityLogger: activity,
 			Providers:      providers,
 		}.Routes())
+
+		apiRouter.Mount("/v1/admin", services.AdminService{
+			DB:             db,
+			ActivityLogger: activity,
+		}.Routes())
 	})
 
 	// Initialize and mount static file service (if enabled)

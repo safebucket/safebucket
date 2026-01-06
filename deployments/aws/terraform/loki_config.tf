@@ -67,7 +67,7 @@ compactor:
 limits_config:
   allow_structured_metadata: true
   discover_service_name: [ domain obj_type action ]
-  max_query_length: 31d
+  max_query_length: 0d
   split_queries_by_interval: 1d
 
 ruler:

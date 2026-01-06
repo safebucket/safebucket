@@ -88,6 +88,34 @@ export const AppSidebar: FC = () => {
               </SidebarMenuItem>
             ))}
           </SidebarGroup>
+          {user?.role === "admin" && (
+            <SidebarMenu>
+              <SidebarGroup>
+                {nav.admin.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild tooltip={t(item.title)}>
+                      <div>
+                        <item.icon />
+                        {t(item.title)}
+                      </div>
+                    </SidebarMenuButton>
+                    <SidebarMenuSub>
+                      {item.items.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location.pathname.startsWith(subItem.url)}
+                          >
+                            <Link to={subItem.url}>{t(subItem.title)}</Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarGroup>
+            </SidebarMenu>
+          )}
           <SidebarGroup>
             <SidebarMenuItem key="shared_buckets">
               <SidebarMenuButton

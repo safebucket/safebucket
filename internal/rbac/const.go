@@ -15,7 +15,6 @@ const (
 	ActionErase    = Action("erase")
 	ActionRestore  = Action("restore")
 	ActionGrant    = Action("grant")
-	ActionPurge    = Action("purge")
 	ActionUpdate   = Action("update")
 )
 
@@ -31,4 +30,5 @@ const (
 	ResourceBucket = Resource("bucket")
 	ResourceFile   = Resource("file")
 	ResourceFolder = Resource("folder")
+	ResourceUser   = Resource("user")
 )

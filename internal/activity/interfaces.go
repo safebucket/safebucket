@@ -6,4 +6,5 @@ import "api/internal/models"
 type IActivityLogger interface {
 	Search(searchCriteria map[string][]string) ([]map[string]interface{}, error)
 	Send(message models.Activity) error
+	CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error)
 }

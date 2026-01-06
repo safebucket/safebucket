@@ -22,6 +22,7 @@
     "bucket_deleted": "Le bucket {{name}} a été supprimé",
     "bucket_name_updated": "Le nom du bucket a été mis à jour avec succès",
     "copied": "{{field}} a été copié."
+    "cancel": "Annuler"
   },
   "auth": {
     "sign_in_title": "Connectez-vous à votre compte",
@@ -211,20 +212,25 @@
     "shared_buckets": "Buckets",
     "settings": "Paramètres",
     "profile": "Profil",
-    "preferences": "Préférences"
+    "preferences": "Préférences",
+    "administration": "Administration",
+    "dashboard": "Tableau de bord",
+    "users": "Utilisateurs",
+    "buckets": "Buckets",
+    "admin_activity": "Activité"
   },
   "activity": {
     "title": "Flux d'activité",
     "no_activity_yet": "Aucune activité pour le moment.",
     "messages": {
-      "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
+      "bucket_created": "A définitivement supprimé un bucket '%%BUCKET_NAME%%'.",
+      "bucket_deleted": "A supprimé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
       "file_uploaded": "A partagé un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_downloaded": "A téléchargé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "file_updated": "A modifié un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
-      "file_deleted": "A supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "file_trashed": "A déplacé un fichier '%%FILE_NAME%%' vers la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "file_restored": "A restauré un fichier '%%FILE_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
-      "file_purged": "A définitivement supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
+      "file_deleted": "A définitivement supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "folder_trashed": "A déplacé un dossier '%%FILE_NAME%%' vers la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "folder_restored": "A restauré un dossier '%%FILE_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "folder_purged": "A définitivement supprimé un dossier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
@@ -443,6 +449,95 @@
       "error_confirm_password_required": "Veuillez confirmer votre mot de passe",
       "error_confirm_password_mismatch": "Les mots de passe ne correspondent pas",
       "footer_text": "Vous n'avez pas reçu le code ? Vérifiez votre dossier spam ou demandez-en un nouveau"
+    }
+  },
+  "admin": {
+    "dashboard": {
+      "stats": {
+        "users": "Utilisateurs",
+        "buckets": "Buckets",
+        "files": "Fichiers",
+        "storage": "Stockage"
+      },
+      "shared_files_chart": {
+        "title": "Fichiers partagés",
+        "description": "Fichiers uploadés dans des buckets au fil du temps",
+        "6_months": "6 derniers mois",
+        "3_months": "3 derniers mois",
+        "1_month": "Dernier mois"
+      },
+      "roles": {
+        "admin": "Admin",
+        "user": "Utilisateur",
+        "guest": "Invité"
+      },
+      "providers": {
+        "local": "Local",
+        "oidc": "SSO (OIDC)"
+      }
+    },
+    "users": {
+      "title": "Gestion des utilisateurs",
+      "description": "Gérer tous les utilisateurs du système",
+      "add_user": "Ajouter un utilisateur",
+      "no_users": "Aucun utilisateur trouvé.",
+      "columns": {
+        "email": "E-mail",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "role": "Rôle",
+        "provider": "Fournisseur",
+        "created": "Créé",
+        "actions": "Actions"
+      },
+      "add_user_dialog": {
+        "title": "Ajouter un nouvel utilisateur",
+        "description": "Créer un nouveau compte utilisateur",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "email": "E-mail",
+        "password": "Mot de passe"
+      },
+      "delete_dialog": {
+        "title": "Supprimer l'utilisateur",
+        "description": "Êtes-vous sûr de vouloir supprimer {{email}} ? Cette action est irréversible.",
+        "confirm": "Supprimer"
+      }
+    },
+    "buckets": {
+      "title": "Gestion des buckets",
+      "description": "Gérer tous les buckets du système",
+      "no_buckets": "Aucun bucket trouvé.",
+      "columns": {
+        "name": "Nom",
+        "creator": "Créateur",
+        "members": "Membres",
+        "files": "Fichiers",
+        "size": "Taille",
+        "created": "Créé",
+        "actions": "Actions"
+      },
+      "delete_dialog": {
+        "title": "Supprimer le bucket",
+        "description": "Êtes-vous sûr de vouloir supprimer {{name}} ? Cela supprimera définitivement tous les fichiers et cette action est irréversible.",
+        "confirm": "Supprimer"
+      }
+    },
+    "activity": {
+      "title": "Activité de la plateforme",
+      "description": "Voir toute l'activité de la plateforme",
+      "no_activity": "Aucune activité trouvée.",
+      "columns": {
+        "user": "Utilisateur",
+        "action": "Action",
+        "resource_type": "Type",
+        "resource_name": "Ressource",
+        "bucket": "Bucket",
+        "timestamp": "Heure"
+      },
+      "tooltip": {
+        "object_deleted": "Cet objet a été supprimé"
+      }
     }
   }
 }

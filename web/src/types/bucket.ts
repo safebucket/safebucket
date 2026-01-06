@@ -9,6 +9,7 @@ export interface IBucket {
   created_by: string;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export type BucketItem = IFile | IFolder;

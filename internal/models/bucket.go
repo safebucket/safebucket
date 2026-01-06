@@ -15,7 +15,7 @@ type Bucket struct {
 	CreatedAt time.Time      `                                                      json:"created_at"`
 	CreatedBy uuid.UUID      `gorm:"type:uuid;not null"                             json:"-"`
 	UpdatedAt time.Time      `                                                      json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index"                                          json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index"                                          json:"deleted_at"`
 }
 
 type BucketActivity struct {
@@ -32,6 +32,18 @@ func (b *Bucket) ToActivity() BucketActivity {
 
 type BucketCreateUpdateBody struct {
 	Name string `json:"name" validate:"required,max=100"`
+}
+
+// AdminBucketListItem represents a bucket with enriched admin information.
+type AdminBucketListItem struct {
+	ID          uuid.UUID    `json:"id"`
+	Name        string       `json:"name"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
+	Creator     UserActivity `json:"creator"`
+	MemberCount int64        `json:"member_count"`
+	FileCount   int64        `json:"file_count"`
+	Size        int64        `json:"size"`
 }
 
 // BucketQueryParams defines query parameters for filtering bucket contents.

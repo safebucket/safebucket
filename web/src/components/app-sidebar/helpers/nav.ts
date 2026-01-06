@@ -1,4 +1,14 @@
-import { Home, LifeBuoy, Send, Settings2 } from "lucide-react";
+import {
+  Activity,
+  FolderOpen,
+  Home,
+  LayoutDashboard,
+  LifeBuoy,
+  Send,
+  Settings2,
+  Shield,
+  Users,
+} from "lucide-react";
 
 export const nav = {
   user: {
@@ -17,6 +27,35 @@ export const nav = {
         {
           title: "navigation.activity",
           url: "/activity",
+        },
+      ],
+    },
+  ],
+  admin: [
+    {
+      title: "navigation.administration",
+      url: "#",
+      icon: Shield,
+      items: [
+        {
+          title: "navigation.dashboard",
+          url: "/admin/dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          title: "navigation.admin_activity",
+          url: "/admin/activity",
+          icon: Activity,
+        },
+        {
+          title: "navigation.users",
+          url: "/admin/users",
+          icon: Users,
+        },
+        {
+          title: "navigation.buckets",
+          url: "/admin/buckets",
+          icon: FolderOpen,
         },
       ],
     },
