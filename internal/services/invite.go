@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type InviteService struct {
@@ -46,6 +48,160 @@ func (s InviteService) Routes() chi.Router {
 	})
 
 	return r
+}
+
+func (s InviteService) handleInviteChallengeFailedAttempt(
+	logger *zap.Logger,
+	tx *gorm.DB,
+	challenge *models.Challenge,
+	inviteID uuid.UUID,
+) error {
+	challenge.AttemptsLeft--
+
+	if challenge.AttemptsLeft <= 0 {
+		logger.Warn("Invite challenge soft deleted due to too many failed attempts",
+			zap.String("challenge_id", challenge.ID.String()),
+			zap.String("invite_id", challenge.InviteID.String()),
+			zap.Int("attempts_left", challenge.AttemptsLeft))
+		tx.Delete(challenge)
+
+		if s.ActivityLogger != nil {
+			action := models.Activity{
+				Message: activity.InviteChallengeLocked,
+				Object:  nil,
+				Filter: activity.NewLogFilter(map[string]string{
+					"action":       activity.InviteChallengeLocked,
+					"challenge_id": challenge.ID.String(),
+					"invite_id":    inviteID.String(),
+					"object_type":  "challenge",
+				}),
+			}
+			if logErr := s.ActivityLogger.Send(action); logErr != nil {
+				logger.Error("Failed to log invite challenge lockout", zap.Error(logErr))
+			}
+		}
+
+		return apierrors.NewAPIError(403, "CHALLENGE_LOCKED")
+	}
+
+	if updateErr := tx.Save(challenge).Error; updateErr != nil {
+		logger.Error("Failed to update attempts counter", zap.Error(updateErr))
+		return updateErr
+	}
+
+	if s.ActivityLogger != nil {
+		action := models.Activity{
+			Message: activity.InviteChallengeAttemptFailed,
+			Object:  nil,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":        activity.InviteChallengeAttemptFailed,
+				"challenge_id":  challenge.ID.String(),
+				"invite_id":     inviteID.String(),
+				"attempts_left": strconv.Itoa(challenge.AttemptsLeft),
+				"object_type":   "challenge",
+			}),
+		}
+		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+			logger.Error("Failed to log failed invite attempt", zap.Error(logErr))
+		}
+	}
+
+	return apierrors.NewAPIError(401, "WRONG_CODE")
+}
+
+func (s InviteService) createUserFromInvite(
+	logger *zap.Logger,
+	invite *models.Invite,
+	challenge *models.Challenge,
+	password string,
+	inviteID uuid.UUID,
+) (models.AuthLoginResponse, error) {
+	newUser := models.User{
+		Email:        invite.Email,
+		ProviderType: models.LocalProviderType,
+		ProviderKey:  string(models.LocalProviderType),
+	}
+
+	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
+	if result.RowsAffected > 0 {
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "USER_ALREADY_EXISTS")
+	}
+
+	hashedPassword, err := h.CreateHash(password)
+	if err != nil {
+		logger.Error("Failed to hash password", zap.Error(err))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "PASSWORD_HASH_FAILED")
+	}
+
+	newUser.HashedPassword = hashedPassword
+	newUser.Role = models.RoleGuest
+
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if err = sql.CreateUserWithInvites(logger, tx, &newUser); err != nil {
+			return apierrors.NewAPIError(500, "USER_CREATION_FAILED")
+		}
+
+		if deleteResult := tx.Delete(challenge); deleteResult.Error != nil {
+			logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
+			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		}
+
+		return nil
+	})
+	if err != nil {
+		logger.Error("Failed to commit transaction", zap.Error(err))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
+	welcomeEvent := events.NewUserWelcome(
+		s.Publisher,
+		newUser.Email,
+		s.AuthConfig.WebURL,
+	)
+	welcomeEvent.Trigger()
+
+	if s.ActivityLogger != nil {
+		action := models.Activity{
+			Message: activity.InviteAccepted,
+			Object:  newUser.ToActivity(),
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      activity.InviteAccepted,
+				"user_id":     newUser.ID.String(),
+				"invite_id":   inviteID.String(),
+				"object_type": "user",
+			}),
+		}
+		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+			logger.Error("Failed to log invite acceptance", zap.Error(logErr))
+		}
+	}
+
+	accessToken, err := h.NewAccessToken(
+		s.AuthConfig.JWTSecret,
+		&newUser,
+		string(models.LocalProviderType),
+		s.AuthConfig.AccessTokenExpiry,
+	)
+	if err != nil {
+		logger.Error("Failed to generate access token", zap.Error(err))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
+	refreshToken, err := h.NewRefreshToken(
+		s.AuthConfig.JWTSecret,
+		&newUser,
+		string(models.LocalProviderType),
+		s.AuthConfig.RefreshTokenExpiry,
+	)
+	if err != nil {
+		logger.Error("Failed to generate refresh token", zap.Error(err))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
+	return models.AuthLoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 func (s InviteService) CreateInviteChallenge(
@@ -137,127 +293,53 @@ func (s InviteService) ValidateInviteChallenge(
 	challengeID := ids[1]
 
 	var challenge models.Challenge
+	var invite *models.Invite
 
-	result := s.DB.Preload("Invite").
-		Where("id = ? AND invite_id = ? AND type = ?", challengeID, inviteID, models.ChallengeTypeInvite).
-		First(&challenge)
+	// Use transaction with row-level locking to prevent race conditions
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Preload("Invite").
+			Where("id = ? AND invite_id = ? AND type = ?", challengeID, inviteID, models.ChallengeTypeInvite).
+			First(&challenge)
 
-	if result.RowsAffected == 0 {
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
-	}
-
-	if challenge.Invite == nil {
-		logger.Error("Challenge has no associated invite")
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
-		s.DB.Delete(&challenge)
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(410, "CHALLENGE_EXPIRED")
-	}
-
-	if !h.IsDomainAllowed(
-		challenge.Invite.Email,
-		s.Providers[string(models.LocalProviderType)].Domains,
-	) {
-		logger.Debug("Domain not allowed")
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "FORBIDDEN")
-	}
-
-	match, err := argon2id.ComparePasswordAndHash(
-		strings.ToUpper(body.Code),
-		challenge.HashedSecret,
-	)
-	if err != nil || !match {
-		challenge.AttemptsLeft--
-
-		// Soft delete if max attempts reached
-		if challenge.AttemptsLeft <= 0 {
-			logger.Warn("Invite challenge soft deleted due to too many failed attempts",
-				zap.String("challenge_id", challenge.ID.String()),
-				zap.String("invite_id", challenge.InviteID.String()),
-				zap.Int("attempts_left", challenge.AttemptsLeft))
-			s.DB.Delete(&challenge)
-			return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "CHALLENGE_LOCKED")
+		if result.RowsAffected == 0 {
+			return apierrors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
 		}
 
-		// Update attempts counter
-		if updateErr := s.DB.Model(&challenge).Update("attempts_left", challenge.AttemptsLeft).Error; updateErr != nil {
-			logger.Error("Failed to update attempts counter", zap.Error(updateErr))
-		}
-
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "WRONG_CODE")
-	}
-
-	// Check if user already exists
-	newUser := models.User{
-		Email:        challenge.Invite.Email,
-		ProviderType: models.LocalProviderType,
-		ProviderKey:  string(models.LocalProviderType),
-	}
-
-	result = s.DB.Where("email = ?", newUser.Email).First(&newUser)
-	if result.RowsAffected > 0 {
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "USER_ALREADY_EXISTS")
-	}
-
-	hashedPassword, err := h.CreateHash(body.NewPassword)
-	if err != nil {
-		logger.Error("Failed to hash password", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "PASSWORD_HASH_FAILED")
-	}
-
-	newUser.HashedPassword = hashedPassword
-	newUser.Role = models.RoleGuest
-
-	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		if err = sql.CreateUserWithInvites(logger, tx, &newUser); err != nil {
-			return apierrors.NewAPIError(500, "USER_CREATION_FAILED")
-		}
-
-		if deleteResult := tx.Delete(&challenge); deleteResult.Error != nil {
-			logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
+		if challenge.Invite == nil {
+			logger.Error("Challenge has no associated invite")
 			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		}
+
+		invite = challenge.Invite
+
+		if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
+			tx.Delete(&challenge)
+			return apierrors.NewAPIError(410, "CHALLENGE_EXPIRED")
+		}
+
+		if !h.IsDomainAllowed(
+			challenge.Invite.Email,
+			s.Providers[string(models.LocalProviderType)].Domains,
+		) {
+			logger.Debug("Domain not allowed")
+			return apierrors.NewAPIError(403, "FORBIDDEN")
+		}
+
+		match, err := argon2id.ComparePasswordAndHash(
+			strings.ToUpper(body.Code),
+			challenge.HashedSecret,
+		)
+		if err != nil || !match {
+			return s.handleInviteChallengeFailedAttempt(logger, tx, &challenge, inviteID)
 		}
 
 		return nil
 	})
+
 	if err != nil {
-		logger.Error("Failed to commit transaction", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResponse{}, err
 	}
 
-	welcomeEvent := events.NewUserWelcome(
-		s.Publisher,
-		newUser.Email,
-		s.AuthConfig.WebURL,
-	)
-	welcomeEvent.Trigger()
-
-	accessToken, err := h.NewAccessToken(
-		s.AuthConfig.JWTSecret,
-		&newUser,
-		string(models.LocalProviderType),
-		s.AuthConfig.AccessTokenExpiry,
-	)
-	if err != nil {
-		logger.Error("Failed to generate access token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	refreshToken, err := h.NewRefreshToken(
-		s.AuthConfig.JWTSecret,
-		&newUser,
-		string(models.LocalProviderType),
-		s.AuthConfig.RefreshTokenExpiry,
-	)
-	if err != nil {
-		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	return models.AuthLoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	}, nil
+	return s.createUserFromInvite(logger, invite, &challenge, body.NewPassword, inviteID)
 }
