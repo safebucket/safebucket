@@ -30,8 +30,14 @@ export function MFASetupRequiredView({
 }: IMFASetupRequiredViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { viewMode, userId, mfaToken, handleSuccess, handleError, handleRetry } =
-    useSetupRequiredFlow();
+  const {
+    viewMode,
+    userId,
+    mfaToken,
+    handleSuccess,
+    handleError,
+    handleRetry,
+  } = useSetupRequiredFlow();
 
   useEffect(() => {
     if (viewMode === "success") {
