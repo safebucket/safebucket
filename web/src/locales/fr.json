@@ -21,7 +21,7 @@
     "bucket_name_empty": "Le nom du bucket ne peut pas être vide",
     "bucket_deleted": "Le bucket {{name}} a été supprimé",
     "bucket_name_updated": "Le nom du bucket a été mis à jour avec succès",
-    "copied": "{{field}} a été copié."
+    "copied": "{{field}} a été copié.",
     "cancel": "Annuler"
   },
   "auth": {
