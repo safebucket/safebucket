@@ -30,7 +30,6 @@ export interface IMFAResetRequestResponse {
 export type SetupStep = "name" | "qr" | "verify" | "success";
 export type ResetStep = "password" | "email_sent" | "success";
 
-export type VerificationViewMode = "form" | "success";
 export type SetupRequiredViewMode =
   | "loading"
   | "error"

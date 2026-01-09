@@ -1,6 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Shield } from "lucide-react";
+import { useVerificationFlow } from "../hooks/useVerificationFlow";
+import { MFADeviceSelector } from "./MFADeviceSelector";
+import { MFASuccessState } from "./MFASuccessState";
+import type { IMFADevice } from "../helpers/types";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,15 +19,11 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useVerificationFlow } from "../hooks/useVerificationFlow";
 import { useMFAAuth } from "@/context/MFAAuthContext";
-import { MFADeviceSelector } from "./MFADeviceSelector";
-import { MFASuccessState } from "./MFASuccessState";
-import type { IMFADevice } from "../helpers/types";
 
 export interface IMFAVerificationViewProps {
   mfaToken: string;
-  devices: IMFADevice[];
+  devices: Array<IMFADevice>;
   redirectPath?: string;
 }
 
@@ -78,15 +78,16 @@ export function MFAVerificationView({
             />
 
             <div className="space-y-2">
-              <p className="text-muted-foreground text-center text-sm">
-                {t("auth.mfa.code_instruction")}
-              </p>
               <div className="flex justify-center">
                 <InputOTP
                   maxLength={6}
                   value={code}
                   onChange={(value) => setCode(value)}
                   disabled={isLoading}
+                  autoComplete="one-time-code"
+                  name="totp"
+                  id="totp-code"
+                  aria-label="One-time code"
                 >
                   <InputOTPGroup>
                     <InputOTPSlot index={0} />

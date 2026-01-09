@@ -10,6 +10,19 @@
     "error": "Erreur",
     "delete": "Supprimer"
   },
+  "errors": {
+    "INVALID_PASSWORD": "Mot de passe invalide. Veuillez réessayer.",
+    "WRONG_CODE": "Code de vérification invalide. Veuillez réessayer.",
+    "CHALLENGE_EXPIRED": "Le code de vérification a expiré. Veuillez recommencer.",
+    "CHALLENGE_LOCKED": "Trop de tentatives échouées. Veuillez recommencer.",
+    "DEVICE_NAME_EXISTS": "Un appareil avec ce nom existe déjà.",
+    "MAX_DEVICES_REACHED": "Nombre maximum d'appareils atteint.",
+    "INVALID_CODE": "Code de vérification invalide. Veuillez réessayer.",
+    "FORBIDDEN": "Vous n'avez pas la permission d'effectuer cette action.",
+    "NOT_FOUND": "La ressource demandée n'a pas été trouvée.",
+    "INTERNAL_SERVER_ERROR": "Une erreur inattendue s'est produite. Veuillez réessayer.",
+    "default": "Une erreur s'est produite. Veuillez réessayer."
+  },
   "toast": {
     "download_started": "Téléchargement démarré pour le fichier {{filename}}",
     "upload_started": "Téléversement démarré pour {{filename}}",
@@ -65,7 +78,6 @@
       "error_device_name_required": "Le nom de l'appareil est requis",
       "error_device_name_exists": "Un appareil avec ce nom existe déjà",
       "error_max_devices": "Nombre maximum d'appareils atteint",
-      "code_instruction": "Ouvrez votre application d'authentification et saisissez le code à 6 chiffres",
       "verify_button": "Vérifier",
       "verifying": "Vérification...",
       "back_to_login": "Retour à la connexion",

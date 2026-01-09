@@ -29,6 +29,10 @@ export function MFAVerifyInput({
         value={value}
         onChange={handleChange}
         disabled={disabled}
+        autoComplete="one-time-code"
+        name="totp"
+        id="totp-code"
+        aria-label="One-time code"
       >
         <InputOTPGroup>
           <InputOTPSlot index={0} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type { IMFADevice, IVerificationFlowState } from "../helpers/types";
 import { useLogin } from "@/hooks/useAuth";
@@ -20,7 +20,7 @@ export function useVerificationFlow({
   onClearDevices,
 }: IUseVerificationFlowProps): IVerificationFlowState {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { verifyMFA } = useLogin();
 
   const [code, setCode] = useState("");
@@ -53,10 +53,11 @@ export function useVerificationFlow({
     const result = await verifyMFA(mfaToken, code, deviceId);
 
     if (result.success) {
-      onClearDevices();
       setIsVerified(true);
-      setTimeout(() => {
-        navigate({ to: redirectPath || "/" });
+      setTimeout(async () => {
+        onClearDevices();
+        await router.invalidate();
+        router.navigate({ to: redirectPath || "/", replace: true });
       }, MFA_VERIFICATION_SUCCESS_DELAY);
     } else {
       setError(result.error || t("auth.mfa.error_verification_failed"));

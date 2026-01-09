@@ -1,4 +1,15 @@
 {
+  "common": {
+    "logout": "Logout",
+    "save": "Save",
+    "create": "Create",
+    "cancel": "Cancel",
+    "close": "Close",
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "delete": "Delete"
+  },
   "errors": {
     "INVALID_PASSWORD": "Invalid password. Please try again.",
     "WRONG_CODE": "Invalid verification code. Please try again.",
@@ -11,17 +22,6 @@
     "NOT_FOUND": "The requested resource was not found.",
     "INTERNAL_SERVER_ERROR": "An unexpected error occurred. Please try again.",
     "default": "An error occurred. Please try again."
-  },
-  "common": {
-    "logout": "Logout",
-    "save": "Save",
-    "create": "Create",
-    "cancel": "Cancel",
-    "close": "Close",
-    "loading": "Loading...",
-    "success": "Success",
-    "error": "Error",
-    "delete": "Delete"
   },
   "toast": {
     "download_started": "Download started for file {{filename}}",
@@ -80,7 +80,6 @@
       "error_password_required": "Password is required",
       "error_invalid_password": "Invalid password",
       "password_placeholder": "Enter your password",
-      "code_instruction": "Open your authenticator app and enter the 6-digit code",
       "verify_button": "Verify",
       "verifying": "Verifying...",
       "back_to_login": "Back to login",
