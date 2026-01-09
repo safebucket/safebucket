@@ -65,20 +65,18 @@ func (s InviteService) handleInviteChallengeFailedAttempt(
 			zap.Int("attempts_left", challenge.AttemptsLeft))
 		tx.Delete(challenge)
 
-		if s.ActivityLogger != nil {
-			action := models.Activity{
-				Message: activity.InviteChallengeLocked,
-				Object:  nil,
-				Filter: activity.NewLogFilter(map[string]string{
-					"action":       activity.InviteChallengeLocked,
-					"challenge_id": challenge.ID.String(),
-					"invite_id":    inviteID.String(),
-					"object_type":  "challenge",
-				}),
-			}
-			if logErr := s.ActivityLogger.Send(action); logErr != nil {
-				logger.Error("Failed to log invite challenge lockout", zap.Error(logErr))
-			}
+		action := models.Activity{
+			Message: activity.InviteChallengeLocked,
+			Object:  nil,
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":       activity.InviteChallengeLocked,
+				"challenge_id": challenge.ID.String(),
+				"invite_id":    inviteID.String(),
+				"object_type":  "challenge",
+			}),
+		}
+		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+			logger.Error("Failed to log invite challenge lockout", zap.Error(logErr))
 		}
 
 		return apierrors.NewAPIError(403, "CHALLENGE_LOCKED")
@@ -89,21 +87,19 @@ func (s InviteService) handleInviteChallengeFailedAttempt(
 		return updateErr
 	}
 
-	if s.ActivityLogger != nil {
-		action := models.Activity{
-			Message: activity.InviteChallengeAttemptFailed,
-			Object:  nil,
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":        activity.InviteChallengeAttemptFailed,
-				"challenge_id":  challenge.ID.String(),
-				"invite_id":     inviteID.String(),
-				"attempts_left": strconv.Itoa(challenge.AttemptsLeft),
-				"object_type":   "challenge",
-			}),
-		}
-		if logErr := s.ActivityLogger.Send(action); logErr != nil {
-			logger.Error("Failed to log failed invite attempt", zap.Error(logErr))
-		}
+	action := models.Activity{
+		Message: activity.InviteChallengeAttemptFailed,
+		Object:  nil,
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":        activity.InviteChallengeAttemptFailed,
+			"challenge_id":  challenge.ID.String(),
+			"invite_id":     inviteID.String(),
+			"attempts_left": strconv.Itoa(challenge.AttemptsLeft),
+			"object_type":   "challenge",
+		}),
+	}
+	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		logger.Error("Failed to log failed invite attempt", zap.Error(logErr))
 	}
 
 	return apierrors.NewAPIError(401, "WRONG_CODE")
@@ -138,7 +134,8 @@ func (s InviteService) createUserFromInvite(
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if err = sql.CreateUserWithInvites(logger, tx, &newUser); err != nil {
-			return apierrors.NewAPIError(500, "USER_CREATION_FAILED")
+			logger.Error("Failed to create user with invites", zap.Error(err))
+			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 
 		if deleteResult := tx.Delete(challenge); deleteResult.Error != nil {
@@ -160,20 +157,18 @@ func (s InviteService) createUserFromInvite(
 	)
 	welcomeEvent.Trigger()
 
-	if s.ActivityLogger != nil {
-		action := models.Activity{
-			Message: activity.InviteAccepted,
-			Object:  newUser.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      activity.InviteAccepted,
-				"user_id":     newUser.ID.String(),
-				"invite_id":   inviteID.String(),
-				"object_type": "user",
-			}),
-		}
-		if logErr := s.ActivityLogger.Send(action); logErr != nil {
-			logger.Error("Failed to log invite acceptance", zap.Error(logErr))
-		}
+	action := models.Activity{
+		Message: activity.InviteAccepted,
+		Object:  newUser.ToActivity(),
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":      activity.InviteAccepted,
+			"user_id":     newUser.ID.String(),
+			"invite_id":   inviteID.String(),
+			"object_type": "user",
+		}),
+	}
+	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		logger.Error("Failed to log invite acceptance", zap.Error(logErr))
 	}
 
 	accessToken, err := h.NewAccessToken(
@@ -209,7 +204,7 @@ func (s InviteService) CreateInviteChallenge(
 	_ models.UserClaims,
 	ids uuid.UUIDs,
 	body models.InviteChallengeCreateBody,
-) (interface{}, error) {
+) (any, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
 		return nil, apierrors.NewAPIError(403, "FORBIDDEN")
@@ -240,12 +235,14 @@ func (s InviteService) CreateInviteChallenge(
 
 	secret, err := h.GenerateSecret()
 	if err != nil {
-		return nil, apierrors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
+		logger.Error("Failed to generate secret", zap.Error(err))
+		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	hashedSecret, err := h.CreateHash(secret)
 	if err != nil {
-		return nil, apierrors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
+		logger.Error("Failed to hash secret", zap.Error(err))
+		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	// Create challenge with expiration and attempt limiting
@@ -260,7 +257,8 @@ func (s InviteService) CreateInviteChallenge(
 
 	result = s.DB.Create(&challenge)
 	if result.Error != nil {
-		return nil, apierrors.NewAPIError(500, "INVITE_CHALLENGE_CREATION_FAILED")
+		logger.Error("Failed to create challenge", zap.Error(result.Error))
+		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	event := events.NewChallengeUserInvite(

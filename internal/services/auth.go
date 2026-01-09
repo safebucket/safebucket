@@ -118,19 +118,19 @@ func (s AuthService) Login(
 		return models.AuthLoginResponse{}, err
 	}
 
-	if s.ActivityLogger != nil {
-		action := models.Activity{
-			Message: activity.UserLoggedIn,
-			Object:  searchUser.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      activity.UserLoggedIn,
-				"user_id":     searchUser.ID.String(),
-				"object_type": "user",
-			}),
-		}
-		if logErr := s.ActivityLogger.Send(action); logErr != nil {
-			logger.Error("Failed to log login activity", zap.Error(logErr))
-		}
+	action := models.Activity{
+		Message: activity.UserLoggedIn,
+		Object:  searchUser.ToActivity(),
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":        activity.UserLoggedIn,
+			"user_id":       searchUser.ID.String(),
+			"object_type":   "user",
+			"provider_type": string(models.LocalProviderType),
+			"provider_name": s.Providers[string(models.LocalProviderType)].Name,
+		}),
+	}
+	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		logger.Error("Failed to log login activity", zap.Error(logErr))
 	}
 
 	return tokens, nil
@@ -425,6 +425,7 @@ func (s AuthService) OpenIDCallback(
 
 		err = sql.CreateUserWithInvites(logger, s.DB, &searchUser)
 		if err != nil {
+			logger.Error("Failed to create user with invites", zap.Error(err))
 			return "", "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 	}
@@ -436,7 +437,8 @@ func (s AuthService) OpenIDCallback(
 		s.AuthConfig.AccessTokenExpiry,
 	)
 	if err != nil {
-		return "", "", apierrors.ErrGenerateAccessTokenFailed
+		logger.Error("Failed to generate access token", zap.Error(err))
+		return "", "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	refreshToken, err := h.NewRefreshToken(
@@ -446,7 +448,23 @@ func (s AuthService) OpenIDCallback(
 		s.AuthConfig.RefreshTokenExpiry,
 	)
 	if err != nil {
-		return "", "", apierrors.ErrGenerateRefreshTokenFailed
+		logger.Error("Failed to generate refresh token", zap.Error(err))
+		return "", "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
+	action := models.Activity{
+		Message: activity.UserLoggedIn,
+		Object:  searchUser.ToActivity(),
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":        activity.UserLoggedIn,
+			"user_id":       searchUser.ID.String(),
+			"object_type":   "user",
+			"provider_type": string(models.OIDCProviderType),
+			"provider_name": provider.Name,
+		}),
+	}
+	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		logger.Error("Failed to log login activity", zap.Error(logErr))
 	}
 
 	return accessToken, refreshToken, nil
@@ -549,20 +567,18 @@ func (s AuthService) ValidatePasswordReset(
 	)
 	successEvent.Trigger()
 
-	if s.ActivityLogger != nil {
-		action := models.Activity{
-			Message: activity.PasswordResetCompleted,
-			Object:  user.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":       activity.PasswordResetCompleted,
-				"user_id":      user.ID.String(),
-				"challenge_id": challengeID.String(),
-				"object_type":  "user",
-			}),
-		}
-		if logErr := s.ActivityLogger.Send(action); logErr != nil {
-			logger.Error("Failed to log password reset completion", zap.Error(logErr))
-		}
+	action := models.Activity{
+		Message: activity.PasswordResetCompleted,
+		Object:  user.ToActivity(),
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":       activity.PasswordResetCompleted,
+			"user_id":      user.ID.String(),
+			"challenge_id": challengeID.String(),
+			"object_type":  "user",
+		}),
+	}
+	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		logger.Error("Failed to log password reset completion", zap.Error(logErr))
 	}
 
 	accessToken, err := h.NewAccessToken(
@@ -600,11 +616,11 @@ func (s AuthService) ValidatePasswordReset(
 }
 
 func (s AuthService) RequestPasswordReset(
-	_ *zap.Logger,
+	logger *zap.Logger,
 	_ models.UserClaims,
 	_ uuid.UUIDs,
 	body models.PasswordResetRequestBody,
-) (interface{}, error) {
+) (any, error) {
 	var user models.User
 	result := s.DB.Where("email = ? AND provider_type = ?", body.Email, models.LocalProviderType).
 		First(&user)
@@ -615,12 +631,14 @@ func (s AuthService) RequestPasswordReset(
 
 	secret, err := h.GenerateSecret()
 	if err != nil {
-		return nil, apierrors.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+		logger.Error("Failed to generate secret", zap.Error(err))
+		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	hashedSecret, err := h.CreateHash(secret)
 	if err != nil {
-		return nil, apierrors.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+		logger.Error("Failed to hash secret", zap.Error(err))
+		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	// Delete any existing password reset challenges for this user
@@ -639,7 +657,8 @@ func (s AuthService) RequestPasswordReset(
 
 	result = s.DB.Create(&challenge)
 	if result.Error != nil {
-		return nil, apierrors.NewAPIError(500, "PASSWORD_RESET_CREATION_FAILED")
+		logger.Error("Failed to create challenge", zap.Error(result.Error))
+		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	// Send password reset email
