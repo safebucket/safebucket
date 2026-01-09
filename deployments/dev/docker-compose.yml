@@ -3,7 +3,7 @@ name: safebucket
 services:
   bucket:
     container_name: bucket
-    image: rustfs/rustfs:1.0.0-alpha.76
+    image: rustfs/rustfs:1.0.0-alpha.79
     environment:
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
