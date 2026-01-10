@@ -13,15 +13,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useMFAViewContext } from "@/components/mfa-view/hooks/useMFAViewContext";
 import { useMFAReset } from "@/components/mfa-view/hooks/useMFAReset";
 import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { MFA_CODE_LENGTH } from "@/components/mfa-view/helpers/constants";
 
-export function MFAResetDialog() {
+interface MFAResetDialogProps {
+  userId: string;
+  open: boolean;
+  onClose: () => void;
+}
+
+export function MFAResetDialog({ userId, open, onClose }: MFAResetDialogProps) {
   const { t } = useTranslation();
-  const { userId, resetDialogOpen, closeAllDialogs } = useMFAViewContext();
   const {
     step,
     password,
@@ -37,17 +41,13 @@ export function MFAResetDialog() {
 
   // Reset when dialog closes
   useEffect(() => {
-    if (!resetDialogOpen) {
+    if (!open) {
       reset();
     }
-  }, [resetDialogOpen, reset]);
-
-  const handleClose = () => {
-    closeAllDialogs();
-  };
+  }, [open, reset]);
 
   return (
-    <Dialog open={resetDialogOpen} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         {step === "password" && (
           <>
@@ -77,7 +77,7 @@ export function MFAResetDialog() {
             </div>
 
             <DialogFooter className="sm:justify-between">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="outline" onClick={onClose}>
                 {t("common.cancel")}
               </Button>
               <Button onClick={requestReset} disabled={!password || isLoading}>
@@ -107,7 +107,7 @@ export function MFAResetDialog() {
             </div>
 
             <DialogFooter className="sm:justify-between">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="outline" onClick={onClose}>
                 {t("common.cancel")}
               </Button>
               <Button
@@ -139,7 +139,7 @@ export function MFAResetDialog() {
             </div>
 
             <DialogFooter>
-              <Button onClick={handleClose} className="w-full">
+              <Button onClick={onClose} className="w-full">
                 {t("common.close")}
               </Button>
             </DialogFooter>

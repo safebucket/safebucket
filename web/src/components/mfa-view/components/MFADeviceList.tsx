@@ -1,26 +1,26 @@
-import { useTranslation } from "react-i18next";
-
-import { useMFAViewContext } from "@/components/mfa-view/hooks/useMFAViewContext";
+import type { IMFADevice } from "@/components/mfa-view/helpers/types";
 import { MFADeviceRow } from "@/components/mfa-view/components/MFADeviceRow";
 
-export function MFADeviceList() {
-  const { t } = useTranslation();
-  const { devices, isLoading } = useMFAViewContext();
+interface MFADeviceListProps {
+  devices: Array<IMFADevice>;
+  onSetDefault: (deviceId: string) => void;
+  onDelete: (deviceId: string) => void;
+}
 
-  if (isLoading) {
-    return (
-      <div className="text-muted-foreground text-sm">{t("common.loading")}</div>
-    );
-  }
-
-  if (devices.length === 0) {
-    return null;
-  }
-
+export function MFADeviceList({
+  devices,
+  onSetDefault,
+  onDelete,
+}: MFADeviceListProps) {
   return (
     <div className="space-y-3">
       {devices.map((device) => (
-        <MFADeviceRow key={device.id} device={device} />
+        <MFADeviceRow
+          key={device.id}
+          device={device}
+          onSetDefault={onSetDefault}
+          onDelete={onDelete}
+        />
       ))}
     </div>
   );

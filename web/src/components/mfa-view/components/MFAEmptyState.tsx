@@ -2,11 +2,13 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useMFAViewContext } from "@/components/mfa-view/hooks/useMFAViewContext";
 
-export function MFAEmptyState() {
+interface MFAEmptyStateProps {
+  onSetup: () => void;
+}
+
+export function MFAEmptyState({ onSetup }: MFAEmptyStateProps) {
   const { t } = useTranslation();
-  const { openSetupDialog } = useMFAViewContext();
 
   return (
     <div className="flex items-center justify-between">
@@ -18,7 +20,7 @@ export function MFAEmptyState() {
           {t("auth.mfa.not_enabled_description")}
         </p>
       </div>
-      <Button onClick={openSetupDialog}>{t("auth.mfa.setup_button")}</Button>
+      <Button onClick={onSetup}>{t("auth.mfa.setup_button")}</Button>
     </div>
   );
 }

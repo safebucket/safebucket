@@ -2,8 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Shield } from "lucide-react";
 import { useVerificationFlow } from "../hooks/useVerificationFlow";
+import { MFA_CODE_LENGTH } from "../helpers/constants";
 import { MFADeviceSelector } from "./MFADeviceSelector";
 import { MFASuccessState } from "./MFASuccessState";
+import { MFAVerifyInput } from "./MFAVerifyInput";
 import type { IMFADevice } from "../helpers/types";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { Button } from "@/components/ui/button";
@@ -14,11 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 import { useMFAAuth } from "@/context/MFAAuthContext";
 
 export interface IMFAVerificationViewProps {
@@ -77,34 +74,16 @@ export function MFAVerificationView({
               disabled={isLoading}
             />
 
-            <div className="space-y-2">
-              <div className="flex justify-center">
-                <InputOTP
-                  maxLength={6}
-                  value={code}
-                  onChange={(value) => setCode(value)}
-                  disabled={isLoading}
-                  autoComplete="one-time-code"
-                  name="totp"
-                  id="totp-code"
-                  aria-label="One-time code"
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-            </div>
+            <MFAVerifyInput
+              value={code}
+              onChange={setCode}
+              disabled={isLoading}
+            />
 
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || code.length !== 6}
+              disabled={isLoading || code.length !== MFA_CODE_LENGTH}
             >
               {isLoading
                 ? t("auth.mfa.verifying")

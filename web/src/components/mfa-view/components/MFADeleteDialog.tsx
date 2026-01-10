@@ -12,13 +12,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useMFAViewContext } from "@/components/mfa-view/hooks/useMFAViewContext";
 import { useMFADevices } from "@/components/mfa-view/hooks/useMFADevices";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 
-export function MFADeleteDialog() {
+interface MFADeleteDialogProps {
+  userId: string;
+  deviceId: string | null;
+  onClose: () => void;
+}
+
+export function MFADeleteDialog({
+  userId,
+  deviceId,
+  onClose,
+}: MFADeleteDialogProps) {
   const { t } = useTranslation();
-  const { userId, deleteDeviceId, closeAllDialogs } = useMFAViewContext();
   const { removeDevice, isRemovingDevice } = useMFADevices(userId);
 
   const [password, setPassword] = useState("");
@@ -26,23 +34,19 @@ export function MFADeleteDialog() {
 
   // Reset when dialog closes
   useEffect(() => {
-    if (!deleteDeviceId) {
+    if (!deviceId) {
       setPassword("");
       setError(null);
     }
-  }, [deleteDeviceId]);
-
-  const handleClose = () => {
-    closeAllDialogs();
-  };
+  }, [deviceId]);
 
   const handleConfirmDelete = async () => {
-    if (!deleteDeviceId || !password) return;
+    if (!deviceId || !password) return;
 
     setError(null);
     try {
-      await removeDevice(deleteDeviceId, password);
-      handleClose();
+      await removeDevice(deviceId, password);
+      onClose();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "";
       if (errorMessage.includes("INVALID_PASSWORD")) {
@@ -54,7 +58,7 @@ export function MFADeleteDialog() {
   };
 
   return (
-    <Dialog open={!!deleteDeviceId} onOpenChange={handleClose}>
+    <Dialog open={!!deviceId} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("auth.mfa.delete_device_title")}</DialogTitle>
@@ -82,7 +86,7 @@ export function MFADeleteDialog() {
         </div>
 
         <DialogFooter className="sm:justify-between">
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={onClose}>
             {t("common.cancel")}
           </Button>
           <Button

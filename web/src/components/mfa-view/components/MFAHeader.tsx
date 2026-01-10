@@ -2,11 +2,19 @@ import { useTranslation } from "react-i18next";
 import { Shield, ShieldCheck } from "lucide-react";
 
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMFAViewContext } from "@/components/mfa-view/hooks/useMFAViewContext";
 
-export function MFAHeader() {
+interface MFAHeaderProps {
+  mfaEnabled: boolean;
+  deviceCount: number;
+  maxDevices: number;
+}
+
+export function MFAHeader({
+  mfaEnabled,
+  deviceCount,
+  maxDevices,
+}: MFAHeaderProps) {
   const { t } = useTranslation();
-  const { mfaEnabled, deviceCount, maxDevices } = useMFAViewContext();
 
   return (
     <CardHeader>

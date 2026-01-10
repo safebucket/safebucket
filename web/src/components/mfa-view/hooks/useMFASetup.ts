@@ -101,8 +101,6 @@ export function useMFASetup(
     }
   }, [deviceName, password, mfaToken, addDevice, t]);
 
-  // ... (verifyCode logic remains unchanged)
-
   const verifyCode = useCallback(async () => {
     if (code.length !== MFA_CODE_LENGTH) {
       setError(t("auth.mfa.error_code_length"));

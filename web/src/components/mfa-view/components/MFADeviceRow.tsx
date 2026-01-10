@@ -6,15 +6,19 @@ import { Smartphone, Star, Trash2 } from "lucide-react";
 import type { IMFADevice } from "@/components/mfa-view/helpers/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useMFAViewContext } from "@/components/mfa-view/hooks/useMFAViewContext";
 
 interface MFADeviceRowProps {
   device: IMFADevice;
+  onSetDefault: (deviceId: string) => void;
+  onDelete: (deviceId: string) => void;
 }
 
-export function MFADeviceRow({ device }: MFADeviceRowProps) {
+export function MFADeviceRow({
+  device,
+  onSetDefault,
+  onDelete,
+}: MFADeviceRowProps) {
   const { t, i18n } = useTranslation();
-  const { setDeviceDefault, openDeleteDialog } = useMFAViewContext();
   const dateLocale = i18n.language === "fr" ? fr : enUS;
 
   return (
@@ -47,7 +51,7 @@ export function MFADeviceRow({ device }: MFADeviceRowProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setDeviceDefault(device.id)}
+            onClick={() => onSetDefault(device.id)}
           >
             <Star className="mr-1 h-4 w-4" />
             {t("auth.mfa.set_default")}
@@ -57,7 +61,7 @@ export function MFADeviceRow({ device }: MFADeviceRowProps) {
           variant="ghost"
           size="sm"
           className="text-destructive hover:text-destructive"
-          onClick={() => openDeleteDialog(device.id)}
+          onClick={() => onDelete(device.id)}
         >
           <Trash2 className="h-4 w-4" />
         </Button>

@@ -13,16 +13,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useMFAViewContext } from "@/components/mfa-view/hooks/useMFAViewContext";
 import { useMFASetup } from "@/components/mfa-view/hooks/useMFASetup";
 import { MFAQRCode } from "@/components/mfa-view/components/MFAQRCode";
 import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { MFA_CODE_LENGTH } from "@/components/mfa-view/helpers/constants";
 
-export function MFASetupDialog() {
+interface MFASetupDialogProps {
+  userId: string;
+  open: boolean;
+  onClose: () => void;
+}
+
+export function MFASetupDialog({ userId, open, onClose }: MFASetupDialogProps) {
   const { t } = useTranslation();
-  const { userId, setupDialogOpen, closeAllDialogs } = useMFAViewContext();
   const {
     step,
     deviceName,
@@ -43,17 +47,13 @@ export function MFASetupDialog() {
 
   // Reset when dialog closes
   useEffect(() => {
-    if (!setupDialogOpen) {
+    if (!open) {
       reset();
     }
-  }, [setupDialogOpen, reset]);
-
-  const handleClose = () => {
-    closeAllDialogs();
-  };
+  }, [open, reset]);
 
   return (
-    <Dialog open={setupDialogOpen} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
         className="sm:max-w-md"
         showCloseButton={step !== "success"}
@@ -97,7 +97,7 @@ export function MFASetupDialog() {
             </div>
 
             <DialogFooter className="sm:justify-between">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="outline" onClick={onClose}>
                 {t("common.cancel")}
               </Button>
               <Button
@@ -125,7 +125,7 @@ export function MFASetupDialog() {
             />
 
             <DialogFooter className="sm:justify-between">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="outline" onClick={onClose}>
                 {t("auth.mfa.cancel_setup")}
               </Button>
               <Button onClick={goToVerify}>{t("auth.continue")}</Button>
@@ -184,7 +184,7 @@ export function MFASetupDialog() {
             </div>
 
             <DialogFooter>
-              <Button onClick={handleClose} className="w-full">
+              <Button onClick={onClose} className="w-full">
                 {t("common.close")}
               </Button>
             </DialogFooter>

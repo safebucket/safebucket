@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import type { IMFADevice, IVerificationFlowState } from "../helpers/types";
-import { useLogin } from "@/hooks/useAuth";
 import { getDefaultDeviceId, isCodeValid } from "../helpers/utils";
 import { MFA_VERIFICATION_SUCCESS_DELAY } from "../helpers/constants";
+import type { IMFADevice, IVerificationFlowState } from "../helpers/types";
+import { useLogin } from "@/hooks/useAuth";
 
 export interface IUseVerificationFlowProps {
   mfaToken: string;
   redirectPath?: string;
-  devices: IMFADevice[];
+  devices: Array<IMFADevice>;
   onClearDevices: () => void;
 }
 

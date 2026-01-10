@@ -1,7 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { Shield } from "lucide-react";
+import { Loader2, LogOut, Shield } from "lucide-react";
+import { useMFASetup } from "../hooks/useMFASetup";
+import {
+  MFA_CODE_LENGTH,
+  MFA_SUCCESS_REDIRECT_DELAY,
+} from "../helpers/constants";
+import { MFASetupSkeleton } from "./MFASetupSkeleton";
+import { MFASuccessState } from "./MFASuccessState";
+import { MFASetupErrorState } from "./MFASetupErrorState";
+import { MFAQRCode } from "./MFAQRCode";
+import { MFAVerifyInput } from "./MFAVerifyInput";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -9,15 +23,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useMFASetup } from "../hooks/useMFASetup";
-import { useSetupRequiredFlow } from "../hooks/useSetupRequiredFlow";
-import { MFASetupSkeleton } from "./MFASetupSkeleton";
-import { MFASuccessState } from "./MFASuccessState";
-import { MFASetupErrorState } from "./MFASetupErrorState";
-import { MFASetupNameStep } from "./MFASetupNameStep";
-import { MFASetupQRStep } from "./MFASetupQRStep";
-import { MFASetupVerifyStep } from "./MFASetupVerifyStep";
-import { MFA_SUCCESS_REDIRECT_DELAY } from "../helpers/constants";
+import { useMFAAuth } from "@/context/MFAAuthContext";
+
+type ViewMode = "loading" | "error" | "setup" | "success";
 
 export interface IMFASetupRequiredViewProps {
   redirectPath?: string;
@@ -30,64 +38,11 @@ export function MFASetupRequiredView({
 }: IMFASetupRequiredViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const {
-    viewMode,
-    userId,
-    mfaToken,
-    handleSuccess,
-    handleError,
-    handleRetry,
-  } = useSetupRequiredFlow();
+  const { mfaToken, userId } = useMFAAuth();
+  const setupStarted = useRef(false);
 
-  useEffect(() => {
-    if (viewMode === "success") {
-      setTimeout(() => {
-        navigate({ to: redirectPath || "/" });
-      }, MFA_SUCCESS_REDIRECT_DELAY);
-    }
-  }, [viewMode, navigate, redirectPath]);
+  const [viewMode, setViewMode] = useState<ViewMode>("loading");
 
-  if (viewMode === "loading") {
-    return <MFASetupSkeleton />;
-  }
-
-  if (viewMode === "error") {
-    return <MFASetupErrorState onLogout={onLogout} onRetry={handleRetry} />;
-  }
-
-  if (viewMode === "success") {
-    return <MFASuccessState title={t("auth.mfa.setup_success_title")} />;
-  }
-
-  if (!userId) {
-    return <MFASetupSkeleton />;
-  }
-
-  return (
-    <SetupFlowView
-      userId={userId}
-      mfaToken={mfaToken ?? undefined}
-      onLogout={onLogout}
-      onSuccess={handleSuccess}
-      onError={handleError}
-    />
-  );
-}
-
-function SetupFlowView({
-  userId,
-  mfaToken,
-  onLogout,
-  onSuccess,
-  onError,
-}: {
-  userId: string;
-  mfaToken?: string;
-  onLogout: () => void;
-  onSuccess: () => void;
-  onError: () => void;
-}) {
-  const { t } = useTranslation();
   const {
     step,
     deviceName,
@@ -103,70 +58,57 @@ function SetupFlowView({
     goToVerify,
     goBack,
     verifyCode,
-  } = useMFASetup(userId, mfaToken);
+  } = useMFASetup(userId ?? "", mfaToken ?? undefined);
+
+  useEffect(() => {
+    if (viewMode === "loading" && !setupStarted.current) {
+      if (userId && mfaToken) {
+        setupStarted.current = true;
+        setViewMode("setup");
+      } else {
+        navigate({ to: "/auth/login", search: { redirect: undefined } });
+      }
+    }
+  }, [viewMode, navigate, userId, mfaToken]);
 
   useEffect(() => {
     if (step === "success") {
-      onSuccess();
+      setViewMode("success");
     }
-  }, [step, onSuccess]);
+  }, [step]);
+
+  // Redirect after success
+  useEffect(() => {
+    if (viewMode === "success") {
+      setTimeout(() => {
+        navigate({ to: redirectPath || "/" });
+      }, MFA_SUCCESS_REDIRECT_DELAY);
+    }
+  }, [viewMode, navigate, redirectPath]);
 
   const handleStartSetup = async () => {
     try {
       await startSetup();
     } catch {
-      onError();
+      setViewMode("error");
     }
   };
 
-  const handleVerifyCode = async () => {
-    try {
-      await verifyCode();
-    } catch {
-      // Error is handled by the hook
-    }
+  const handleRetry = () => {
+    setViewMode("setup");
   };
 
-  const renderStepContent = () => {
-    switch (step) {
-      case "name":
-        return (
-          <MFASetupNameStep
-            deviceName={deviceName}
-            setDeviceName={setDeviceName}
-            password={password}
-            setPassword={setPassword}
-            mfaToken={mfaToken}
-            error={error}
-            isLoading={isLoading}
-            onStartSetup={handleStartSetup}
-            onLogout={onLogout}
-          />
-        );
-      case "qr":
-        return setupData ? (
-          <MFASetupQRStep
-            qrCodeUri={setupData.qr_code_uri}
-            secret={setupData.secret}
-            onContinue={goToVerify}
-            onLogout={onLogout}
-          />
-        ) : null;
-      case "verify":
-        return (
-          <MFASetupVerifyStep
-            code={code}
-            setCode={setCode}
-            error={error}
-            isLoading={isLoading}
-            onVerify={handleVerifyCode}
-            onBack={goBack}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  if (viewMode === "loading") {
+    return <MFASetupSkeleton />;
+  }
+
+  if (viewMode === "error") {
+    return <MFASetupErrorState onLogout={onLogout} onRetry={handleRetry} />;
+  }
+
+  if (viewMode === "success") {
+    return <MFASuccessState title={t("auth.mfa.setup_success_title")} />;
+  }
 
   return (
     <div className="m-6 flex h-full items-center justify-center">
@@ -180,7 +122,118 @@ function SetupFlowView({
             {t("auth.mfa.setup_required_subtitle")}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">{renderStepContent()}</CardContent>
+        <CardContent className="space-y-6">
+          {step === "name" && (
+            <>
+              <FormErrorAlert error={error} />
+
+              <div className="space-y-4">
+                <p className="text-muted-foreground text-center text-sm">
+                  {t("auth.mfa.add_device_description")}
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="device-name">
+                    {t("auth.mfa.device_name_label")}
+                  </Label>
+                  <Input
+                    id="device-name"
+                    value={deviceName}
+                    onChange={(e) => setDeviceName(e.target.value)}
+                    placeholder="Authenticator"
+                    disabled={isLoading}
+                  />
+                </div>
+                {!mfaToken && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">{t("auth.password")}</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder={t("auth.mfa.password_placeholder")}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                )}
+                <Button
+                  className="w-full"
+                  onClick={handleStartSetup}
+                  disabled={
+                    isLoading || !deviceName || (!password && !mfaToken)
+                  }
+                >
+                  {isLoading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {t("auth.continue")}
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onLogout} className="flex-1">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {t("common.logout")}
+                </Button>
+              </div>
+            </>
+          )}
+
+          {step === "qr" && setupData && (
+            <>
+              <p className="text-muted-foreground text-center text-sm">
+                {t("auth.mfa.qr_code_instruction")}
+              </p>
+
+              <MFAQRCode
+                qrCodeUri={setupData.qr_code_uri}
+                secret={setupData.secret}
+              />
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onLogout} className="flex-1">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {t("common.logout")}
+                </Button>
+                <Button onClick={goToVerify} className="flex-1">
+                  {t("auth.continue")}
+                </Button>
+              </div>
+            </>
+          )}
+
+          {step === "verify" && (
+            <>
+              <FormErrorAlert error={error} />
+
+              <div className="space-y-4">
+                <p className="text-muted-foreground text-center text-sm">
+                  {t("auth.mfa.verify_setup_instruction")}
+                </p>
+                <MFAVerifyInput
+                  value={code}
+                  onChange={setCode}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={goBack} className="flex-1">
+                  {t("auth.mfa.back_to_login")}
+                </Button>
+                <Button
+                  onClick={verifyCode}
+                  disabled={isLoading || code.length !== MFA_CODE_LENGTH}
+                  className="flex-1"
+                >
+                  {isLoading
+                    ? t("auth.mfa.enabling")
+                    : t("auth.mfa.enable_button")}
+                </Button>
+              </div>
+            </>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

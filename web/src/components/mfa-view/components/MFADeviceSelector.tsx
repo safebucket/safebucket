@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Smartphone, Star } from "lucide-react";
+import { hasMultipleDevices } from "../helpers/utils";
+import type { IMFADevice } from "../helpers/types";
 import {
   Select,
   SelectContent,
@@ -8,11 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import type { IMFADevice } from "../helpers/types";
-import { hasMultipleDevices } from "../helpers/utils";
 
 export interface IMFADeviceSelectorProps {
-  devices: IMFADevice[];
+  devices: Array<IMFADevice>;
   selectedDeviceId: string;
   onSelectDevice: (deviceId: string) => void;
   disabled?: boolean;
