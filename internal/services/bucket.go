@@ -361,7 +361,10 @@ func (s BucketService) DeleteBucket(
 		}
 
 		// Hard delete all invitations associated to the bucket
-		if _, err := gorm.G[models.Invite](tx).Where("bucket_id = ?", bucket.ID).Delete(context.Background()); err != nil {
+		if _, err := gorm.G[models.Invite](
+			tx,
+		).Where("bucket_id = ?", bucket.ID).
+			Delete(context.Background()); err != nil {
 			return err
 		}
 

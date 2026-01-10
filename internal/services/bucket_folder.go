@@ -354,7 +354,10 @@ func (s BucketFolderService) RestoreFolder(
 		}
 
 		// Set folder to restoring status
-		if updateErr := tx.Unscoped().Model(&lockedFolder).Update("status", models.FileStatusRestoring).Error; updateErr != nil {
+		if updateErr := tx.Unscoped().
+			Model(&lockedFolder).
+			Update("status", models.FileStatusRestoring).
+			Error; updateErr != nil {
 			logger.Error("Failed to set folder to restoring status", zap.Error(updateErr))
 			return apierrors.NewAPIError(500, "UPDATE_FAILED")
 		}
