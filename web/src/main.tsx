@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createRouter, RouterProvider } from "@tanstack/react-router";
+import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import reportWebVitals from "./reportWebVitals.ts";

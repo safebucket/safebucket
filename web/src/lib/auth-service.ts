@@ -141,7 +141,7 @@ export interface LoginResult {
   mfaRequired?: boolean;
   mfaToken?: string;
   mfaSetupRequired?: boolean;
-  devices?: IMFADevice[];
+  devices?: Array<IMFADevice>;
   userId?: string;
 }
 

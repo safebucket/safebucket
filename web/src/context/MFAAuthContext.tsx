@@ -1,18 +1,22 @@
 import {
   createContext,
-  useContext,
-  useState,
   useCallback,
+  useContext,
   useEffect,
-  type ReactNode,
+  useState,
 } from "react";
+import type { ReactNode } from "react";
 import type { IMFADevice } from "@/components/mfa-view/helpers/types";
 
 interface IMFAAuthContext {
   mfaToken: string | null;
   userId: string | null;
-  devices: IMFADevice[];
-  setMFAAuth: (token: string, userId: string, devices: IMFADevice[]) => void;
+  devices: Array<IMFADevice>;
+  setMFAAuth: (
+    token: string,
+    userId: string,
+    devices: Array<IMFADevice>,
+  ) => void;
   clearMFAAuth: () => void;
 }
 
@@ -21,10 +25,10 @@ const MFAAuthContext = createContext<IMFAAuthContext | null>(null);
 export function MFAAuthProvider({ children }: { children: ReactNode }) {
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [devices, setDevices] = useState<IMFADevice[]>([]);
+  const [devices, setDevices] = useState<Array<IMFADevice>>([]);
 
   const setMFAAuth = useCallback(
-    (token: string, uid: string, deviceList: IMFADevice[]) => {
+    (token: string, uid: string, deviceList: Array<IMFADevice>) => {
       setMfaToken(token);
       setUserId(uid);
       setDevices(deviceList);

@@ -1,13 +1,13 @@
-import type { FC } from "react";
 import { useState } from "react";
 
 import { CheckCircle, Shield } from "lucide-react";
-import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import type { FC } from "react";
 
 import type { IPasswordResetValidateFormData } from "@/components/auth-view/helpers/types.ts";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { api_validatePasswordReset } from "@/components/auth-view/helpers/api.ts";
 import { authCookies } from "@/lib/auth-service";
 import { useRefreshSession } from "@/hooks/useAuth";

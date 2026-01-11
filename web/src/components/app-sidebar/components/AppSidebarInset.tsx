@@ -1,7 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import React, { type FC } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
+import type { FC } from "react";
 
+import type { IFolder } from "@/types/folder";
 import {
   Breadcrumb,
   BreadcrumbLink,
@@ -12,7 +14,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { bucketDataQueryOptions } from "@/queries/bucket";
-import type { IFolder } from "@/types/folder";
 
 interface IAppSidebarInset {
   children: React.ReactNode;

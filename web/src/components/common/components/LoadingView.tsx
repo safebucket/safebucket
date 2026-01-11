@@ -1,6 +1,5 @@
-import type { FC } from "react";
-
 import { LoaderCircle } from "lucide-react";
+import type { FC } from "react";
 
 export const LoadingView: FC = () => {
   return (

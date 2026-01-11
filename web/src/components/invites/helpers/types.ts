@@ -1,7 +1,3 @@
-export interface IChallengeValidationFormData {
-  code: string;
-}
-
 export interface ICreateChallengeResponse {
   id: string;
 }

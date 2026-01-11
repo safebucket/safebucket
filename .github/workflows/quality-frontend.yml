@@ -30,5 +30,19 @@ jobs:
       - name: Run prettier
         run: npm run prettier
 
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Check dead code
+        run: npm run knip
+
+      - name: Check i18n translations
+        # Report translation status (informational, doesn't fail build)
+        # Remove || true once all translations are complete
+        run: npm run i18n:status || true
+
       - name: Build app
         run: npm run build

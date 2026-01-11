@@ -1,12 +1,12 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 
-import type { FormEvent } from "react";
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { LogIn } from "lucide-react";
-import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
+import type { FormEvent } from "react";
 import type { ILoginForm } from "@/components/auth-view/types/session";
 import { useLogin } from "@/hooks/useAuth";
 import { useMFAAuth } from "@/context/MFAAuthContext";

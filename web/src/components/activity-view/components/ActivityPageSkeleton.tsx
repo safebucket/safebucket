@@ -1,6 +1,6 @@
+import { ActivityViewSkeleton } from "./ActivityViewSkeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ActivityViewSkeleton } from "./ActivityViewSkeleton";
 
 export function ActivityPageSkeleton() {
   return (

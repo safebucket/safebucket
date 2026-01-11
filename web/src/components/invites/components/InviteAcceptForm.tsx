@@ -1,11 +1,11 @@
-import type { FC } from "react";
 import { useState } from "react";
 
 import { CheckCircle, Shield } from "lucide-react";
-import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import type { FC } from "react";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 
 import { api_validateChallenge } from "@/components/invites/helpers/api";
 import { authCookies } from "@/lib/auth-service";

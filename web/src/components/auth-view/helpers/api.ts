@@ -4,10 +4,6 @@ export interface IPasswordResetRequestData {
   email: string;
 }
 
-export interface IPasswordResetRequestResponse {
-  message: string;
-}
-
 export interface IPasswordResetValidateData {
   code: string;
   new_password: string;

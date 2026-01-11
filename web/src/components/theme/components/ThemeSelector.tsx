@@ -1,5 +1,5 @@
-import type { FC } from "react";
 import { Check } from "lucide-react";
+import type { FC } from "react";
 import type { ColorTheme } from "@/components/theme/helpers/themes";
 import { themes } from "@/components/theme/helpers/themes";
 import { ThemePreview } from "@/components/theme/components/ThemePreview";
@@ -16,7 +16,7 @@ export const ThemeSelector: FC<IThemeSelectorProps> = ({ value, onChange }) => {
 
   return (
     <div className="grid grid-cols-3 gap-3">
-      {(Object.keys(themes) as ColorTheme[]).map((themeKey) => {
+      {(Object.keys(themes) as Array<ColorTheme>).map((themeKey) => {
         const theme = themes[themeKey];
         const isSelected = value === themeKey;
 

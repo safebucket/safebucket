@@ -1,3 +1,4 @@
+import { Controller } from "react-hook-form";
 import type { FC } from "react";
 
 import type {
@@ -6,10 +7,9 @@ import type {
   FieldValues,
   UseFormRegister,
 } from "react-hook-form";
-import { Controller } from "react-hook-form";
 
-import { Datepicker } from "@/components/common/components/Datepicker";
 import type { IFormField } from "@/components/dialogs/helpers/types";
+import { Datepicker } from "@/components/common/components/Datepicker";
 import { Input } from "@/components/ui/input";
 import {
   InputOTP,

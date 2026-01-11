@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  IUser,
-  IMFADevicesResponse,
   IMFADeviceSetupResponse,
+  IMFADevicesResponse,
+  IUser,
 } from "@/components/auth-view/types/session";
 import { api, fetchApi } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
