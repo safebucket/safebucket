@@ -7,7 +7,7 @@
     "start": "vite --port 3000",
     "build": "vite build && tsc",
     "serve": "vite preview",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "lint": "eslint",
     "knip": "knip",
     "i18n:lint": "i18next-cli lint",
@@ -15,7 +15,7 @@
     "i18n:extract": "i18next-cli extract",
     "i18n:status": "i18next-cli status",
     "prettier": "prettier --config ./.prettierrc.json \"./**/*{.ts,.js,.tsx,.jsx,.json,.css,.scss}\" --check",
-    "fixup": "prettier --write ."
+    "fixup": "prettier --write . && eslint --fix --ext .ts,.tsx ."
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.2",

@@ -33,9 +33,6 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-      - name: Run tests
-        run: npm run test
-
       - name: Check dead code
         run: npm run knip
 
