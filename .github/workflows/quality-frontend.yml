@@ -40,9 +40,7 @@ jobs:
         run: npm run knip
 
       - name: Check i18n translations
-        # Report translation status (informational, doesn't fail build)
-        # Remove || true once all translations are complete
-        run: npm run i18n:status || true
+        run: npm run i18n:status
 
       - name: Build app
         run: npm run build
