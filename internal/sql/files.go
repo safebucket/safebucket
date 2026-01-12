@@ -28,7 +28,7 @@ func GetFileByID(db *gorm.DB, bucketID uuid.UUID, fileID uuid.UUID) (models.File
 func GetSharedFilesByDay(db *gorm.DB, days int) []models.TimeSeriesPoint {
 	var result []models.TimeSeriesPoint
 
-	startDate := time.Now().AddDate(0, 0, -days)
+	startDate := time.Now().AddDate(0, 0, -18)
 
 	// Get files from shared buckets grouped by day
 	db.Model(&models.File{}).
