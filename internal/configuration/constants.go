@@ -2,7 +2,7 @@ package configuration
 
 const AppName = "safebucket"
 
-// JWT Audience constants for token type separation
+// JWT Audience constants for token type separation.
 const (
 	AudienceAccessToken             = "app:*"
 	AudienceRefreshToken            = "auth:refresh"
@@ -11,7 +11,7 @@ const (
 	AudiencePasswordResetCompletion = "auth:password-reset"
 )
 
-// JWT Token expiry times (in minutes)
+// JWT Token expiry times (in minutes).
 const (
 	AccessTokenExpiry             = 60
 	RefreshTokenExpiry            = 600

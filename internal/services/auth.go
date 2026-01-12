@@ -222,7 +222,6 @@ func (s AuthService) Refresh(
 
 // VerifyMFALogin verifies TOTP code during login or password reset.
 // For login MFA (audience: auth:mfa:login): issues access/refresh tokens
-// For password reset MFA (audience: auth:mfa:password-reset): issues completion token
 func (s AuthService) VerifyMFALogin(
 	logger *zap.Logger,
 	_ models.UserClaims,

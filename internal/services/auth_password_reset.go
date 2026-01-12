@@ -175,24 +175,25 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	user := challenge.User
 
 	var userWithMFA models.User
-	if err := s.DB.Preload("MFADevices", "is_verified = ?", true).
+	if err = s.DB.Preload("MFADevices", "is_verified = ?", true).
 		Where("id = ?", user.ID).First(&userWithMFA).Error; err != nil {
 		logger.Error("Failed to load user with MFA devices", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	if userWithMFA.HasMFAEnabled() {
-		if err := s.DB.Model(&challenge).Update("status", models.ChallengeStatusValidated).Error; err != nil {
-			logger.Error("Failed to update challenge status", zap.Error(err))
+		updateErr := s.DB.Model(&challenge).Update("status", models.ChallengeStatusValidated).Error
+		if updateErr != nil {
+			logger.Error("Failed to update challenge status", zap.Error(updateErr))
 			return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 
-		mfaToken, err := h.NewPasswordResetMFAToken(
+		mfaToken, mfaErr := h.NewPasswordResetMFAToken(
 			s.AuthConfig.JWTSecret,
 			&userWithMFA,
 		)
-		if err != nil {
-			logger.Error("Failed to generate MFA token", zap.Error(err))
+		if mfaErr != nil {
+			logger.Error("Failed to generate MFA token", zap.Error(mfaErr))
 			return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "MFA_TOKEN_GENERATION_FAILED")
 		}
 
@@ -304,7 +305,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	user := challenge.User
 
 	var userWithMFA models.User
-	if err := s.DB.Preload("MFADevices", "is_verified = ?", true).
+	if err = s.DB.Preload("MFADevices", "is_verified = ?", true).
 		Where("id = ?", user.ID).First(&userWithMFA).Error; err != nil {
 		logger.Error("Failed to load user with MFA devices", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
@@ -318,12 +319,12 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	}
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(user).Update("hashed_password", hashedPassword).Error; err != nil {
-			logger.Error("Failed to update password", zap.Error(err))
+		if updateErr := tx.Model(user).Update("hashed_password", hashedPassword).Error; updateErr != nil {
+			logger.Error("Failed to update password", zap.Error(updateErr))
 			return apierrors.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
 		}
-		if err := tx.Delete(&challenge).Error; err != nil {
-			logger.Error("Failed to delete challenge", zap.Error(err))
+		if deleteErr := tx.Delete(&challenge).Error; deleteErr != nil {
+			logger.Error("Failed to delete challenge", zap.Error(deleteErr))
 			return apierrors.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
 		}
 		return nil

@@ -16,7 +16,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// tokenConfig holds configuration for creating a specific token type
+// tokenConfig holds configuration for creating a specific token type.
 type tokenConfig struct {
 	audience      string
 	provider      string
@@ -25,7 +25,7 @@ type tokenConfig struct {
 	expiryMinutes int  // From configuration constants
 }
 
-// parseTokenConfig holds configuration for parsing a specific token type
+// parseTokenConfig holds configuration for parsing a specific token type.
 type parseTokenConfig struct {
 	tokenString      string
 	expectedAudience string
@@ -228,7 +228,7 @@ func ParsePasswordResetMFAToken(jwtSecret string, mfaToken string) (models.UserC
 
 // NewPasswordResetCompletionToken creates a token that authorizes password change.
 // Issued after successful code verification (and MFA if enabled).
-// Audience: "auth:password-reset"
+// Audience: "auth:password-reset".
 func NewPasswordResetCompletionToken(jwtSecret string, user *models.User) (string, error) {
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      configuration.AudiencePasswordResetCompletion,
