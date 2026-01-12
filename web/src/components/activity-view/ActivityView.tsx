@@ -23,7 +23,9 @@ export function ActivityView({ activity }: ActivityViewProps) {
     <ItemGroup>
       {activity.map((item, index) => (
         <div key={index}>
-          <ActivityItem item={item} />{index < activity.length - 1 && <ItemSeparator />}</div>
+          <ActivityItem item={item} />
+          {index < activity.length - 1 && <ItemSeparator />}
+        </div>
       ))}
     </ItemGroup>
   );
