@@ -17,6 +17,7 @@ import { useMFAReset } from "@/components/mfa-view/hooks/useMFAReset";
 import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { MFA_CODE_LENGTH } from "@/components/mfa-view/helpers/constants";
+import { useRefreshSession } from "@/hooks/useAuth";
 
 interface MFAResetDialogProps {
   userId: string;
@@ -26,6 +27,7 @@ interface MFAResetDialogProps {
 
 export function MFAResetDialog({ userId, open, onClose }: MFAResetDialogProps) {
   const { t } = useTranslation();
+  const refreshSession = useRefreshSession();
   const {
     step,
     password,
@@ -45,6 +47,13 @@ export function MFAResetDialog({ userId, open, onClose }: MFAResetDialogProps) {
       reset();
     }
   }, [open, reset]);
+
+  // Refresh session when MFA is successfully reset
+  useEffect(() => {
+    if (step === "success") {
+      refreshSession();
+    }
+  }, [step, refreshSession]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

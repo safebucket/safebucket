@@ -18,6 +18,7 @@ import { MFAQRCode } from "@/components/mfa-view/components/MFAQRCode";
 import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { MFA_CODE_LENGTH } from "@/components/mfa-view/helpers/constants";
+import { useRefreshSession } from "@/hooks/useAuth";
 
 interface MFASetupDialogProps {
   userId: string;
@@ -27,6 +28,7 @@ interface MFASetupDialogProps {
 
 export function MFASetupDialog({ userId, open, onClose }: MFASetupDialogProps) {
   const { t } = useTranslation();
+  const refreshSession = useRefreshSession();
   const {
     step,
     deviceName,
@@ -51,6 +53,13 @@ export function MFASetupDialog({ userId, open, onClose }: MFASetupDialogProps) {
       reset();
     }
   }, [open, reset]);
+
+  // Refresh session when MFA device is successfully verified
+  useEffect(() => {
+    if (step === "success") {
+      refreshSession();
+    }
+  }, [step, refreshSession]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

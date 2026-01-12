@@ -34,7 +34,8 @@
     "bucket_name_empty": "Bucket name cannot be empty",
     "bucket_deleted": "Bucket {{name}} has been deleted",
     "bucket_name_updated": "Bucket name updated successfully",
-    "copied": "{{field}} has been copied."
+    "copied": "{{field}} has been copied.",
+    "cancel": "Cancel"
   },
   "auth": {
     "sign_in_title": "Sign in to your account",
@@ -52,6 +53,7 @@
     "mfa": {
       "verify_title": "Two-Factor Authentication",
       "verify_subtitle": "Enter the code from your authenticator app",
+      "code_instruction": "Enter the 6-digit code from your authenticator app",
       "select_device": "Select device",
       "select_device_description": "Choose which device to use for verification",
       "device_default": "Default",
@@ -138,15 +140,29 @@
       "subtitle": "Enter your email address and we'll send you a verification code to reset your password",
       "success_title": "Check your email",
       "success_message": "If an account with this email exists, we've sent a password reset code to your email address",
-      "success_description": "The email contains a 6-digit code and a link to reset your password. If you don't see it, check your spam folder.",
+      "success_description": "The email contains a 6-character code and a link to reset your password. If you don't see it, check your spam folder.",
       "send_reset_code": "Send reset code",
       "sending": "Sending...",
       "error_message": "Failed to send password reset email. Please try again.",
       "back_to_login": "Back to login",
+      "code": {
+        "title": "Verify Your Email",
+        "subtitle": "Enter the 6-character verification code from your email",
+        "verify_button": "Verify Code",
+        "verifying": "Verifying..."
+      },
+      "mfa": {
+        "title": "Two-Factor Authentication",
+        "subtitle": "Enter the code from your authenticator app to verify your identity"
+      },
+      "password": {
+        "title": "Create New Password",
+        "subtitle": "Your identity has been verified. Please enter your new password."
+      },
       "validate": {
         "title": "Reset your password",
-        "subtitle": "Enter the 6-digit verification code from your email and choose a new password",
-        "code_label": "6-digit verification code",
+        "subtitle": "Enter the 6-character verification code from your email and choose a new password",
+        "code_label": "6-character verification code",
         "new_password_label": "New password",
         "new_password_placeholder": "Enter new password",
         "confirm_password_label": "Confirm new password",
@@ -155,13 +171,14 @@
         "resetting": "Resetting password...",
         "success_title": "Password Reset Successful",
         "success_message": "Your password has been reset successfully. You are now logged in and will be redirected to the homepage.",
-        "error_code_length": "Verification code must be exactly 6 digits",
+        "error_code_length": "Verification code must be exactly 6 characters",
         "error_password_mismatch": "Passwords do not match",
         "error_validation_failed": "Invalid verification code or failed to reset password. Please try again.",
         "error_new_password_required": "New password is required",
         "error_new_password_min_length": "Password must be at least 8 characters",
         "error_confirm_password_required": "Please confirm your password",
         "error_confirm_password_mismatch": "Passwords do not match",
+        "error_session_expired": "Your session has expired. Please start the password reset process again.",
         "footer_text": "Didn't receive the code? Check your spam folder or request a new one"
       }
     }
@@ -469,12 +486,12 @@
       "footer_text": "By continuing, you accept this invitation and agree to create an account",
       "success_title": "Check your email",
       "success_message": "We've sent a verification code to your email address",
-      "success_description": "The email contains a 6-digit code and a link to accept the invitation. If you don't see it, check your spam folder."
+      "success_description": "The email contains a 6-character code and a link to accept the invitation. If you don't see it, check your spam folder."
     },
     "accept": {
       "title": "Accept Invitation",
-      "subtitle": "Enter the 6-digit verification code from your email and create your password",
-      "code_label": "6-digit verification code",
+      "subtitle": "Enter the 6-character verification code from your email and create your password",
+      "code_label": "6-character verification code",
       "new_password_label": "New password",
       "new_password_placeholder": "Enter new password",
       "confirm_password_label": "Confirm password",
@@ -483,7 +500,7 @@
       "accepting": "Creating account...",
       "success_title": "Welcome!",
       "success_message": "Your account has been created successfully. You are now logged in and will be redirected to the homepage.",
-      "error_code_length": "Verification code must be exactly 6 digits",
+      "error_code_length": "Verification code must be exactly 6 characters",
       "error_password_mismatch": "Passwords do not match",
       "error_validation_failed": "Invalid verification code or failed to create account. Please try again.",
       "error_new_password_required": "New password is required",

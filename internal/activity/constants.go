@@ -18,6 +18,8 @@ const (
 	BucketMemberUpdated          string = "BUCKET_MEMBER_UPDATED"
 	BucketMemberDeleted          string = "BUCKET_MEMBER_DELETED"
 	UserLoggedIn                 string = "USER_LOGGED_IN"
+	PasswordResetCodeVerified    string = "PASSWORD_RESET_CODE_VERIFIED"
+	PasswordResetMFAVerified     string = "PASSWORD_RESET_MFA_VERIFIED"
 	PasswordResetCompleted       string = "PASSWORD_RESET_COMPLETED"
 	InviteAccepted               string = "INVITE_ACCEPTED"
 	InviteChallengeAttemptFailed string = "INVITE_CHALLENGE_ATTEMPT_FAILED"

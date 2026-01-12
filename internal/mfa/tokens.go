@@ -15,7 +15,7 @@ func HandleMFALogin(
 	user *models.User,
 	verifiedDevices []models.MFADevice,
 ) (models.AuthLoginResponse, error) {
-	mfaToken, err := h.NewMFAToken(authConfig.JWTSecret, user, authConfig.MFATokenExpiry)
+	mfaToken, err := h.NewMFAToken(authConfig.JWTSecret, user)
 	if err != nil {
 		logger.Error("Failed to generate MFA token", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
@@ -36,7 +36,7 @@ func GenerateTokensWithMFASetupRequired(
 	authConfig models.AuthConfig,
 	user *models.User,
 ) (models.AuthLoginResponse, error) {
-	mfaToken, err := h.NewMFAToken(authConfig.JWTSecret, user, authConfig.MFATokenExpiry)
+	mfaToken, err := h.NewMFAToken(authConfig.JWTSecret, user)
 	if err != nil {
 		logger.Error("Failed to generate MFA token for setup required", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
@@ -57,7 +57,6 @@ func GenerateTokens(
 		authConfig.JWTSecret,
 		user,
 		string(models.LocalProviderType),
-		authConfig.AccessTokenExpiry,
 	)
 	if err != nil {
 		return models.AuthLoginResponse{}, apierrors.ErrGenerateAccessTokenFailed
@@ -67,7 +66,6 @@ func GenerateTokens(
 		authConfig.JWTSecret,
 		user,
 		string(models.LocalProviderType),
-		authConfig.RefreshTokenExpiry,
 	)
 	if err != nil {
 		return models.AuthLoginResponse{}, apierrors.ErrGenerateRefreshTokenFailed

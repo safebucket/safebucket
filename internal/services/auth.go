@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"api/internal/activity"
 	"api/internal/cache"
 	"api/internal/configuration"
 	apierrors "api/internal/errors"
-	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
 	"api/internal/messaging"
@@ -27,7 +25,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type AuthService struct {
@@ -50,14 +47,7 @@ func (s AuthService) Routes() chi.Router {
 			Post("/verify", handlers.CreateHandler(s.VerifyMFALogin))
 	})
 
-	r.Route("/reset-password", func(r chi.Router) {
-		r.With(m.Validate[models.PasswordResetRequestBody]).
-			Post("/", handlers.CreateHandler(s.RequestPasswordReset))
-		r.Route("/{id0}", func(r chi.Router) {
-			r.With(m.Validate[models.PasswordResetValidateBody]).
-				Post("/validate", handlers.CreateHandler(s.ValidatePasswordReset))
-		})
-	})
+	r.Mount("/reset-password", NewAuthPasswordResetService(s).Routes())
 
 	r.Route("/providers", func(r chi.Router) {
 		r.Get("/", handlers.GetListHandler(s.GetProviderList))
@@ -222,7 +212,6 @@ func (s AuthService) Refresh(
 		s.AuthConfig.JWTSecret,
 		&user,
 		refreshToken.Provider,
-		s.AuthConfig.AccessTokenExpiry,
 	)
 	if err != nil {
 		return models.AuthRefreshResponse{}, apierrors.ErrGenerateAccessTokenFailed
@@ -231,16 +220,25 @@ func (s AuthService) Refresh(
 	return models.AuthRefreshResponse{AccessToken: accessToken}, nil
 }
 
-// VerifyMFALogin verifies TOTP code during login and issues access/refresh tokens.
+// VerifyMFALogin verifies TOTP code during login or password reset.
+// For login MFA (audience: auth:mfa:login): issues access/refresh tokens
+// For password reset MFA (audience: auth:mfa:password-reset): issues completion token
 func (s AuthService) VerifyMFALogin(
 	logger *zap.Logger,
 	_ models.UserClaims,
 	_ uuid.UUIDs,
 	body models.MFALoginVerifyBody,
 ) (models.AuthLoginResponse, error) {
-	mfaClaims, err := h.ParseMFAToken(s.AuthConfig.JWTSecret, body.MFAToken)
-	if err != nil {
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "INVALID_MFA_TOKEN")
+	mfaClaims, loginMFAErr := h.ParseMFAToken(s.AuthConfig.JWTSecret, body.MFAToken)
+	isPasswordResetMFA := false
+
+	if loginMFAErr != nil {
+		var pwResetErr error
+		mfaClaims, pwResetErr = h.ParsePasswordResetMFAToken(s.AuthConfig.JWTSecret, body.MFAToken)
+		if pwResetErr != nil {
+			return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "INVALID_MFA_TOKEN")
+		}
+		isPasswordResetMFA = true
 	}
 
 	// Load user with verified MFA devices
@@ -269,31 +267,27 @@ func (s AuthService) VerifyMFALogin(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(429, "MFA_RATE_LIMITED")
 	}
 
-	// Get secret and device ID for verification
 	secret, deviceID, targetDevice, err := s.getMFASecretAndDevice(logger, &user, verifiedDevices, body.DeviceID)
 	if err != nil {
 		return models.AuthLoginResponse{}, err
 	}
 
-	// Update last_used_at for device-based verification
 	if targetDevice != nil {
 		s.DB.Model(targetDevice).Update("last_used_at", time.Now())
 	}
 
-	// Validate TOTP code
 	if !h.ValidateTOTPCode(secret, body.Code) {
-		// Increment failed attempts
 		if incErr := s.Cache.IncrementMFAAttempts(user.ID.String()); incErr != nil {
 			logger.Error("Failed to increment MFA attempts", zap.Error(incErr))
 		}
-		logger.Warn("MFA login verification failed",
+		logger.Warn("MFA verification failed",
 			zap.String("user_id", user.ID.String()),
 			zap.String("device_id", deviceID),
-			zap.String("email", user.Email))
+			zap.String("email", user.Email),
+			zap.Bool("password_reset_flow", isPasswordResetMFA))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
 	}
 
-	// Check replay protection (per device or user for legacy)
 	used, err := s.Cache.IsTOTPCodeUsed(deviceID, body.Code)
 	if err != nil {
 		logger.Error("Failed to check TOTP code usage", zap.Error(err))
@@ -315,11 +309,15 @@ func (s AuthService) VerifyMFALogin(
 		logger.Warn("Failed to reset MFA attempts", zap.Error(resetErr))
 	}
 
+	if isPasswordResetMFA {
+		passwordResetService := NewAuthPasswordResetService(s)
+		return passwordResetService.HandleMFAVerification(logger, &user, deviceID)
+	}
+
 	accessToken, err := h.NewAccessToken(
 		s.AuthConfig.JWTSecret,
 		&user,
 		string(models.LocalProviderType),
-		s.AuthConfig.AccessTokenExpiry,
 	)
 	if err != nil {
 		return models.AuthLoginResponse{}, apierrors.ErrGenerateAccessTokenFailed
@@ -329,7 +327,6 @@ func (s AuthService) VerifyMFALogin(
 		s.AuthConfig.JWTSecret,
 		&user,
 		string(models.LocalProviderType),
-		s.AuthConfig.RefreshTokenExpiry,
 	)
 	if err != nil {
 		return models.AuthLoginResponse{}, apierrors.ErrGenerateRefreshTokenFailed
@@ -434,7 +431,6 @@ func (s AuthService) OpenIDCallback(
 		s.AuthConfig.JWTSecret,
 		&searchUser,
 		providerKey,
-		s.AuthConfig.AccessTokenExpiry,
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
@@ -445,7 +441,6 @@ func (s AuthService) OpenIDCallback(
 		s.AuthConfig.JWTSecret,
 		&searchUser,
 		providerKey,
-		s.AuthConfig.RefreshTokenExpiry,
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
@@ -468,208 +463,4 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	return accessToken, refreshToken, nil
-}
-
-func (s AuthService) ValidatePasswordReset(
-	logger *zap.Logger,
-	_ models.UserClaims,
-	ids uuid.UUIDs,
-	body models.PasswordResetValidateBody,
-) (models.AuthLoginResponse, error) {
-	challengeID := ids[0]
-
-	var challenge models.Challenge
-	var user *models.User
-
-	// Use transaction with row-level locking to prevent race conditions
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Preload("User").
-			Where("id = ? AND type = ?", challengeID, models.ChallengeTypePasswordReset).
-			First(&challenge)
-
-		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
-		}
-
-		if challenge.User == nil {
-			logger.Error("Challenge has no associated user")
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-		}
-
-		user = challenge.User
-
-		if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
-			tx.Delete(&challenge)
-			return apierrors.NewAPIError(410, "CHALLENGE_EXPIRED")
-		}
-
-		match, err := argon2id.ComparePasswordAndHash(
-			strings.ToUpper(body.Code),
-			challenge.HashedSecret,
-		)
-		if err != nil || !match {
-			challenge.AttemptsLeft--
-
-			if challenge.AttemptsLeft <= 0 {
-				logger.Warn("Password reset challenge soft deleted due to too many failed attempts",
-					zap.String("challenge_id", challenge.ID.String()),
-					zap.String("user_id", challenge.UserID.String()),
-					zap.Int("attempts_left", challenge.AttemptsLeft))
-				tx.Delete(&challenge)
-
-				return apierrors.NewAPIError(403, "CHALLENGE_LOCKED")
-			}
-
-			if updateErr := tx.Save(&challenge).Error; updateErr != nil {
-				logger.Error("Failed to update attempts counter", zap.Error(updateErr))
-				return updateErr
-			}
-			return apierrors.NewAPIError(401, "WRONG_CODE")
-		}
-
-		return nil
-	})
-	if err != nil {
-		return models.AuthLoginResponse{}, err
-	}
-	hashedPassword, err := h.CreateHash(body.NewPassword)
-	if err != nil {
-		logger.Error("Failed to hash new password", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
-	}
-
-	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		updateResult := tx.Model(user).Update("hashed_password", hashedPassword)
-		if updateResult.Error != nil {
-			logger.Error("Failed to update password", zap.Error(updateResult.Error))
-			return apierrors.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
-		}
-
-		deleteResult := tx.Delete(&challenge)
-		if deleteResult.Error != nil {
-			logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
-			return apierrors.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
-		}
-
-		return nil
-	})
-	if err != nil {
-		return models.AuthLoginResponse{}, err
-	}
-
-	resetDate := time.Now().Format("January 2, 2006 at 3:04 PM MST")
-	successEvent := events.NewPasswordResetSuccess(
-		s.Publisher,
-		user.Email,
-		s.AuthConfig.WebURL,
-		resetDate,
-	)
-	successEvent.Trigger()
-
-	action := models.Activity{
-		Message: activity.PasswordResetCompleted,
-		Object:  user.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":       activity.PasswordResetCompleted,
-			"user_id":      user.ID.String(),
-			"challenge_id": challengeID.String(),
-			"object_type":  "user",
-		}),
-	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log password reset completion", zap.Error(logErr))
-	}
-
-	accessToken, err := h.NewAccessToken(
-		s.AuthConfig.JWTSecret,
-		user,
-		string(models.LocalProviderType),
-		s.AuthConfig.AccessTokenExpiry,
-	)
-	if err != nil {
-		logger.Error("Failed to generate access token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(
-			500,
-			"GENERATE_ACCESS_TOKEN_FAILED",
-		)
-	}
-
-	refreshToken, err := h.NewRefreshToken(
-		s.AuthConfig.JWTSecret,
-		user,
-		string(models.LocalProviderType),
-		s.AuthConfig.RefreshTokenExpiry,
-	)
-	if err != nil {
-		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(
-			500,
-			"GENERATE_REFRESH_TOKEN_FAILED",
-		)
-	}
-
-	return models.AuthLoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	}, nil
-}
-
-func (s AuthService) RequestPasswordReset(
-	logger *zap.Logger,
-	_ models.UserClaims,
-	_ uuid.UUIDs,
-	body models.PasswordResetRequestBody,
-) (any, error) {
-	var user models.User
-	result := s.DB.Where("email = ? AND provider_type = ?", body.Email, models.LocalProviderType).
-		First(&user)
-
-	if result.RowsAffected == 0 {
-		return nil, nil
-	}
-
-	secret, err := h.GenerateSecret()
-	if err != nil {
-		logger.Error("Failed to generate secret", zap.Error(err))
-		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	hashedSecret, err := h.CreateHash(secret)
-	if err != nil {
-		logger.Error("Failed to hash secret", zap.Error(err))
-		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	// Delete any existing password reset challenges for this user
-	s.DB.Where("user_id = ? AND type = ?", user.ID, models.ChallengeTypePasswordReset).
-		Delete(&models.Challenge{})
-
-	// Create a new password reset challenge with configurable expiration
-	expiresAt := time.Now().Add(configuration.SecurityChallengeExpirationMinutes * time.Minute)
-	challenge := models.Challenge{
-		Type:         models.ChallengeTypePasswordReset,
-		UserID:       &user.ID,
-		HashedSecret: hashedSecret,
-		ExpiresAt:    &expiresAt,
-		AttemptsLeft: configuration.SecurityChallengeMaxFailedAttempts,
-	}
-
-	result = s.DB.Create(&challenge)
-	if result.Error != nil {
-		logger.Error("Failed to create challenge", zap.Error(result.Error))
-		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	// Send password reset email
-	event := events.NewPasswordResetChallenge(
-		s.Publisher,
-		secret,
-		user.Email,
-		challenge.ID.String(),
-		s.AuthConfig.WebURL,
-	)
-	event.Trigger()
-
-	return nil, nil
 }

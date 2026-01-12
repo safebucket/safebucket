@@ -53,6 +53,7 @@
     "mfa": {
       "verify_title": "Authentification à deux facteurs",
       "verify_subtitle": "Saisissez le code de votre application d'authentification",
+      "code_instruction": "Saisissez le code à 6 chiffres de votre application d'authentification",
       "select_device": "Sélectionner l'appareil",
       "select_device_description": "Choisissez l'appareil à utiliser pour la vérification",
       "device_default": "Par défaut",
@@ -78,6 +79,9 @@
       "error_device_name_required": "Le nom de l'appareil est requis",
       "error_device_name_exists": "Un appareil avec ce nom existe déjà",
       "error_max_devices": "Nombre maximum d'appareils atteint",
+      "error_password_required": "Le mot de passe est requis",
+      "error_invalid_password": "Mot de passe invalide",
+      "password_placeholder": "Saisissez votre mot de passe",
       "verify_button": "Vérifier",
       "verifying": "Vérification...",
       "back_to_login": "Retour à la connexion",
@@ -136,15 +140,29 @@
       "subtitle": "Saisissez votre adresse e-mail et nous vous enverrons un code de vérification pour réinitialiser votre mot de passe",
       "success_title": "Vérifiez votre e-mail",
       "success_message": "Si un compte avec cette adresse e-mail existe, nous avons envoyé un code de réinitialisation de mot de passe à votre adresse e-mail",
-      "success_description": "L'e-mail contient un code à 6 chiffres et un lien pour réinitialiser votre mot de passe. Si vous ne le voyez pas, vérifiez votre dossier spam.",
+      "success_description": "L'e-mail contient un code de 6 caractères et un lien pour réinitialiser votre mot de passe. Si vous ne le voyez pas, vérifiez votre dossier spam.",
       "send_reset_code": "Envoyer le code de réinitialisation",
       "sending": "Envoi...",
       "error_message": "Échec de l'envoi de l'e-mail de réinitialisation de mot de passe. Veuillez réessayer.",
       "back_to_login": "Retour à la connexion",
+      "code": {
+        "title": "Vérifiez votre e-mail",
+        "subtitle": "Saisissez le code de vérification de 6 caractères de votre e-mail",
+        "verify_button": "Vérifier le code",
+        "verifying": "Vérification..."
+      },
+      "mfa": {
+        "title": "Authentification à deux facteurs",
+        "subtitle": "Saisissez le code de votre application d'authentification pour vérifier votre identité"
+      },
+      "password": {
+        "title": "Créer un nouveau mot de passe",
+        "subtitle": "Votre identité a été vérifiée. Veuillez saisir votre nouveau mot de passe."
+      },
       "validate": {
         "title": "Réinitialiser votre mot de passe",
-        "subtitle": "Saisissez le code de vérification à 6 chiffres de votre e-mail et choisissez un nouveau mot de passe",
-        "code_label": "Code de vérification à 6 chiffres",
+        "subtitle": "Saisissez le code de vérification de 6 caractères de votre e-mail et choisissez un nouveau mot de passe",
+        "code_label": "Code de vérification de 6 caractères",
         "new_password_label": "Nouveau mot de passe",
         "new_password_placeholder": "Saisir le nouveau mot de passe",
         "confirm_password_label": "Confirmer le nouveau mot de passe",
@@ -153,13 +171,14 @@
         "resetting": "Réinitialisation du mot de passe...",
         "success_title": "Mot de passe réinitialisé avec succès",
         "success_message": "Votre mot de passe a été réinitialisé avec succès. Vous êtes maintenant connecté et vous serez redirigé vers la page d'accueil.",
-        "error_code_length": "Le code de vérification doit contenir exactement 6 chiffres",
+        "error_code_length": "Le code de vérification doit contenir exactement 6 caractères",
         "error_password_mismatch": "Les mots de passe ne correspondent pas",
         "error_validation_failed": "Code de vérification invalide ou échec de la réinitialisation du mot de passe. Veuillez réessayer.",
         "error_new_password_required": "Le nouveau mot de passe est requis",
         "error_new_password_min_length": "Le mot de passe doit contenir au moins 8 caractères",
         "error_confirm_password_required": "Veuillez confirmer votre mot de passe",
         "error_confirm_password_mismatch": "Les mots de passe ne correspondent pas",
+        "error_session_expired": "Votre session a expiré. Veuillez recommencer le processus de réinitialisation du mot de passe.",
         "footer_text": "Vous n'avez pas reçu le code ? Vérifiez votre dossier spam ou demandez-en un nouveau"
       }
     }
@@ -225,6 +244,7 @@
     "settings": "Paramètres",
     "profile": "Profil",
     "preferences": "Préférences",
+    "security": "Sécurité",
     "administration": "Administration",
     "dashboard": "Tableau de bord",
     "users": "Utilisateurs",
@@ -235,8 +255,8 @@
     "title": "Flux d'activité",
     "no_activity_yet": "Aucune activité pour le moment.",
     "messages": {
-      "bucket_created": "A définitivement supprimé un bucket '%%BUCKET_NAME%%'.",
-      "bucket_deleted": "A supprimé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
+      "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
+      "bucket_deleted": "A définitivement supprimé un bucket '%%BUCKET_NAME%%'.",
       "file_uploaded": "A partagé un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_downloaded": "A téléchargé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "file_updated": "A modifié un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
@@ -423,6 +443,33 @@
       "description": "Sélectionnez votre langue préférée",
       "english": "Anglais",
       "french": "Français"
+    },
+    "security": {
+      "tab": "Sécurité",
+      "title": "Paramètres de sécurité",
+      "description": "Gérez les paramètres de sécurité de votre organisation",
+      "mfa_requirement": {
+        "title": "Authentification multi-facteurs",
+        "description": "Exiger que tous les utilisateurs locaux configurent l'authentification multi-facteurs avant d'accéder à l'application",
+        "label": "Exiger l'authentification multi-facteurs pour tous les utilisateurs locaux",
+        "enabled": "L'authentification multi-facteurs est requise pour tous les utilisateurs locaux",
+        "disabled": "L'authentification multi-facteurs est optionnelle pour les utilisateurs locaux"
+      },
+      "user_mfa_status": {
+        "title": "État de l'authentification multi-facteurs des utilisateurs",
+        "description": "Afficher et gérer l'état de l'authentification multi-facteurs pour tous les utilisateurs",
+        "user": "Utilisateur",
+        "provider": "Fournisseur",
+        "mfa_status": "État 2FA",
+        "enabled": "Activée",
+        "not_enabled": "Non activée",
+        "not_applicable": "N/A",
+        "disable_mfa": "Désactiver l'authentification multi-facteurs",
+        "disable_mfa_confirm_title": "Désactiver l'authentification multi-facteurs",
+        "disable_mfa_confirm_description": "Êtes-vous sûr de vouloir désactiver l'authentification multi-facteurs pour {{email}} ? Ils devront la configurer à nouveau.",
+        "disable_mfa_success": "L'authentification multi-facteurs a été désactivée pour {{email}}",
+        "disable_mfa_error": "Échec de la désactivation de l'authentification multi-facteurs pour {{email}}"
+      }
     }
   },
   "invites": {
@@ -439,12 +486,12 @@
       "footer_text": "En continuant, vous acceptez cette invitation et acceptez de créer un compte",
       "success_title": "Vérifiez votre e-mail",
       "success_message": "Nous avons envoyé un code de vérification à votre adresse e-mail",
-      "success_description": "L'e-mail contient un code à 6 chiffres et un lien pour accepter l'invitation. Si vous ne le voyez pas, vérifiez votre dossier spam."
+      "success_description": "L'e-mail contient un code de 6 caractères et un lien pour accepter l'invitation. Si vous ne le voyez pas, vérifiez votre dossier spam."
     },
     "accept": {
       "title": "Accepter l'invitation",
-      "subtitle": "Saisissez le code de vérification à 6 chiffres de votre e-mail et créez votre mot de passe",
-      "code_label": "Code de vérification à 6 chiffres",
+      "subtitle": "Saisissez le code de vérification de 6 caractères de votre e-mail et créez votre mot de passe",
+      "code_label": "Code de vérification de 6 caractères",
       "new_password_label": "Nouveau mot de passe",
       "new_password_placeholder": "Saisissez le nouveau mot de passe",
       "confirm_password_label": "Confirmer le mot de passe",
@@ -453,7 +500,7 @@
       "accepting": "Création du compte...",
       "success_title": "Bienvenue !",
       "success_message": "Votre compte a été créé avec succès. Vous êtes maintenant connecté et serez redirigé vers la page d'accueil.",
-      "error_code_length": "Le code de vérification doit contenir exactement 6 chiffres",
+      "error_code_length": "Le code de vérification doit contenir exactement 6 caractères",
       "error_password_mismatch": "Les mots de passe ne correspondent pas",
       "error_validation_failed": "Code de vérification invalide ou échec de la création du compte. Veuillez réessayer.",
       "error_new_password_required": "Le nouveau mot de passe est requis",

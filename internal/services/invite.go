@@ -175,7 +175,6 @@ func (s InviteService) createUserFromInvite(
 		s.AuthConfig.JWTSecret,
 		&newUser,
 		string(models.LocalProviderType),
-		s.AuthConfig.AccessTokenExpiry,
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
@@ -186,7 +185,6 @@ func (s InviteService) createUserFromInvite(
 		s.AuthConfig.JWTSecret,
 		&newUser,
 		string(models.LocalProviderType),
-		s.AuthConfig.RefreshTokenExpiry,
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))

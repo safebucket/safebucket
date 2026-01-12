@@ -115,7 +115,7 @@ func (s UserMFAService) AddDevice(
 		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(400, "MAX_MFA_DEVICES_REACHED")
 	}
 
-	if claims.Aud == "auth:mfa" {
+	if claims.Aud == configuration.AudienceMFALoginToken {
 		if claims.UserID != user.ID {
 			return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(403, "FORBIDDEN")
 		}
@@ -331,13 +331,13 @@ func (s UserMFAService) VerifyDevice(
 	// Reload user with MFA devices for token generation
 	s.DB.Preload("MFADevices", "is_verified = ?", true).First(&user, userID)
 	provider := string(user.ProviderType)
-	accessToken, err = h.NewAccessToken(s.AuthConfig.JWTSecret, &user, provider, s.AuthConfig.AccessTokenExpiry)
+	accessToken, err = h.NewAccessToken(s.AuthConfig.JWTSecret, &user, provider)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
 		return nil, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
 	}
 
-	refreshToken, err = h.NewRefreshToken(s.AuthConfig.JWTSecret, &user, provider, s.AuthConfig.RefreshTokenExpiry)
+	refreshToken, err = h.NewRefreshToken(s.AuthConfig.JWTSecret, &user, provider)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
 		return nil, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")

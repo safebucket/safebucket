@@ -24,6 +24,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useMFAAuth } from "@/context/MFAAuthContext";
+import { useRefreshSession } from "@/hooks/useAuth";
 
 type ViewMode = "loading" | "error" | "setup" | "success";
 
@@ -38,6 +39,7 @@ export function MFASetupRequiredView({
 }: IMFASetupRequiredViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const refreshSession = useRefreshSession();
   const { mfaToken, userId } = useMFAAuth();
   const setupStarted = useRef(false);
 
@@ -81,10 +83,11 @@ export function MFASetupRequiredView({
   useEffect(() => {
     if (viewMode === "success") {
       setTimeout(() => {
+        refreshSession();
         navigate({ to: redirectPath || "/" });
       }, MFA_SUCCESS_REDIRECT_DELAY);
     }
-  }, [viewMode, navigate, redirectPath]);
+  }, [viewMode, navigate, redirectPath, refreshSession]);
 
   const handleStartSetup = async () => {
     try {
