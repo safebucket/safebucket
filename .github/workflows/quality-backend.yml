@@ -2,6 +2,14 @@ name: Backend Quality
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/quality-backend.yml'
+  pull_request:
     paths:
       - '**.go'
       - 'go.mod'
