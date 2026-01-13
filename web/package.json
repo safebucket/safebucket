@@ -78,7 +78,7 @@
     "prettier-plugin-tailwindcss": "^0.7.2",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.0.16",
+    "vitest": "^4.0.17",
     "web-vitals": "^5.1.0"
   }
 }
