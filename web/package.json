@@ -38,7 +38,7 @@
     "@tanstack/react-router": "^1.146.2",
     "@tanstack/react-router-devtools": "^1.147.1",
     "@tanstack/react-table": "^8.20.5",
-    "@tanstack/router-plugin": "^1.146.3",
+    "@tanstack/router-plugin": "^1.149.3",
     "@tanstack/table-core": "^8.20.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
