@@ -20,15 +20,19 @@ import (
 type tokenConfig struct {
 	audience      string
 	provider      string
-	mfaEnabled    bool
-	includeMFA    bool // Whether to populate the MFA field
-	expiryMinutes int  // From configuration constants
+	mfa           *bool // nil = don't set (defaults to false), otherwise set to this value
+	expiryMinutes int   // From configuration constants
+}
+
+// boolPtr returns a pointer to the given bool value.
+func boolPtr(b bool) *bool {
+	return &b
 }
 
 // parseTokenConfig holds configuration for parsing a specific token type.
 type parseTokenConfig struct {
 	tokenString      string
-	expectedAudience string
+	allowedAudiences []string // One or more allowed audience values
 	requireBearer    bool
 	errorMessage     string
 	audienceError    string
@@ -51,9 +55,8 @@ func createToken(jwtSecret string, user *models.User, config tokenConfig) (strin
 		},
 	}
 
-	// Only populate MFA field for access and refresh tokens
-	if config.includeMFA {
-		claims.MFA = config.mfaEnabled
+	if config.mfa != nil {
+		claims.MFA = *config.mfa
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -91,7 +94,14 @@ func parseToken(jwtSecret string, config parseTokenConfig) (models.UserClaims, e
 	}
 
 	// Validate audience to prevent token type confusion attacks
-	if claims.Aud != config.expectedAudience {
+	audienceValid := false
+	for _, allowed := range config.allowedAudiences {
+		if claims.Aud == allowed {
+			audienceValid = true
+			break
+		}
+	}
+	if !audienceValid {
 		return models.UserClaims{}, errors.New(config.audienceError)
 	}
 
@@ -118,8 +128,7 @@ func NewAccessToken(jwtSecret string, user *models.User, provider string) (strin
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      configuration.AudienceAccessToken,
 		provider:      provider,
-		mfaEnabled:    user.HasMFAEnabled(),
-		includeMFA:    true,
+		mfa:           boolPtr(user.HasMFAEnabled()),
 		expiryMinutes: configuration.AccessTokenExpiry,
 	})
 }
@@ -127,7 +136,7 @@ func NewAccessToken(jwtSecret string, user *models.User, provider string) (strin
 func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, error) {
 	return parseToken(jwtSecret, parseTokenConfig{
 		tokenString:      accessToken,
-		expectedAudience: configuration.AudienceAccessToken,
+		allowedAudiences: []string{configuration.AudienceAccessToken},
 		requireBearer:    true,
 		errorMessage:     "invalid access token",
 		audienceError:    "invalid access token audience",
@@ -138,8 +147,7 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string) (stri
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      configuration.AudienceRefreshToken,
 		provider:      provider,
-		mfaEnabled:    user.HasMFAEnabled(),
-		includeMFA:    true,
+		mfa:           boolPtr(user.HasMFAEnabled()),
 		expiryMinutes: configuration.RefreshTokenExpiry,
 	})
 }
@@ -147,7 +155,7 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string) (stri
 func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims, error) {
 	return parseToken(jwtSecret, parseTokenConfig{
 		tokenString:      refreshToken,
-		expectedAudience: configuration.AudienceRefreshToken,
+		allowedAudiences: []string{configuration.AudienceRefreshToken},
 		requireBearer:    false,
 		errorMessage:     "invalid refresh token",
 		audienceError:    "invalid refresh token audience",
@@ -176,77 +184,31 @@ func GenerateSecret() (string, error) {
 	return string(secret), nil
 }
 
-// NewMFAToken creates a short-lived JWT token for MFA verification during login.
-// This token is issued after successful password authentication but before MFA verification.
-// It can only be used to complete the MFA verification step.
-func NewMFAToken(jwtSecret string, user *models.User) (string, error) {
+// NewRestrictedAccessToken creates a restricted access token for MFA flows.
+// This token grants limited access: only MFA device management and verification endpoints.
+// Used for both login MFA and password reset MFA flows.
+// Audience: "auth:mfa:login" or "auth:mfa:password-reset".
+func NewRestrictedAccessToken(jwtSecret string, user *models.User, audience string, mfaVerified bool) (string, error) {
 	return createToken(jwtSecret, user, tokenConfig{
-		audience:      configuration.AudienceMFALoginToken,
+		audience:      audience,
 		provider:      string(user.ProviderType),
-		mfaEnabled:    false,
-		includeMFA:    false,
+		mfa:           boolPtr(mfaVerified),
 		expiryMinutes: configuration.MFATokenExpiry,
 	})
 }
 
-// ParseMFAToken validates and parses an MFA token.
-// Returns the user claims if the token is valid and has the correct audience.
-func ParseMFAToken(jwtSecret string, mfaToken string) (models.UserClaims, error) {
-	return parseToken(jwtSecret, parseTokenConfig{
-		tokenString:      mfaToken,
-		expectedAudience: configuration.AudienceMFALoginToken,
-		requireBearer:    false,
-		errorMessage:     "invalid MFA token",
-		audienceError:    "invalid MFA token audience",
-	})
-}
-
-// NewPasswordResetMFAToken creates an MFA token for password reset flow.
-// Uses audience "auth:mfa:password-reset" to distinguish from login MFA.
-// The challenge ID is stored separately in cache, keyed by user ID.
-func NewPasswordResetMFAToken(jwtSecret string, user *models.User) (string, error) {
-	return createToken(jwtSecret, user, tokenConfig{
-		audience:      configuration.AudienceMFAPasswordResetToken,
-		provider:      string(user.ProviderType),
-		mfaEnabled:    false,
-		includeMFA:    false,
-		expiryMinutes: configuration.PasswordResetMFATokenExpiry,
-	})
-}
-
-// ParsePasswordResetMFAToken validates and parses a password reset MFA token.
-// Returns the user claims if the token is valid and has the correct audience.
-func ParsePasswordResetMFAToken(jwtSecret string, mfaToken string) (models.UserClaims, error) {
-	return parseToken(jwtSecret, parseTokenConfig{
-		tokenString:      mfaToken,
-		expectedAudience: configuration.AudienceMFAPasswordResetToken,
-		requireBearer:    false,
-		errorMessage:     "invalid password reset MFA token",
-		audienceError:    "invalid password reset MFA token audience",
-	})
-}
-
-// NewPasswordResetCompletionToken creates a token that authorizes password change.
-// Issued after successful code verification (and MFA if enabled).
-// Audience: "auth:password-reset".
-func NewPasswordResetCompletionToken(jwtSecret string, user *models.User) (string, error) {
-	return createToken(jwtSecret, user, tokenConfig{
-		audience:      configuration.AudiencePasswordResetCompletion,
-		provider:      string(user.ProviderType),
-		mfaEnabled:    false,
-		includeMFA:    false,
-		expiryMinutes: configuration.PasswordResetCompletionExpiry,
-	})
-}
-
-// ParsePasswordResetCompletionToken validates a password reset completion token.
-// Returns claims if valid, error otherwise.
-func ParsePasswordResetCompletionToken(jwtSecret string, token string) (models.UserClaims, error) {
+// ParseRestrictedAccessToken validates and parses a restricted access token.
+// Returns the user claims if the token is valid and has one of the allowed restricted audiences:
+// - auth:mfa:login (login MFA flow)
+// - auth:mfa:password-reset (password reset MFA flow)
+// Accepts Bearer prefix for consistency with regular access tokens.
+// Note: Callers should perform additional audience checks if flow-specific validation is needed.
+func ParseRestrictedAccessToken(jwtSecret string, token string) (models.UserClaims, error) {
 	return parseToken(jwtSecret, parseTokenConfig{
 		tokenString:      token,
-		expectedAudience: configuration.AudiencePasswordResetCompletion,
-		requireBearer:    false,
-		errorMessage:     "invalid password reset token",
-		audienceError:    "invalid password reset token audience",
+		allowedAudiences: []string{configuration.AudienceMFALogin, configuration.AudienceMFAReset},
+		requireBearer:    true,
+		errorMessage:     "invalid restricted access token",
+		audienceError:    "invalid restricted access token audience",
 	})
 }

@@ -244,17 +244,17 @@ func TestParseAccessToken(t *testing.T) {
 	})
 
 	// Security fix tests: Validate audience claim to prevent token type confusion
-	t.Run("should reject MFA token as access token", func(t *testing.T) {
-		// Create an MFA token
-		mfaToken, err := NewMFAToken(jwtSecret, user)
+	t.Run("should reject restricted access token as full access token", func(t *testing.T) {
+		// Create a restricted access token
+		restrictedToken, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
 		require.NoError(t, err)
 
-		// Try to parse it as an access token
-		_, err = ParseAccessToken(jwtSecret, "Bearer "+mfaToken)
+		// Try to parse it as a full access token
+		_, err = ParseAccessToken(jwtSecret, "Bearer "+restrictedToken)
 
 		// Should fail with audience error
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "audience", "should reject MFA token with audience error")
+		assert.Contains(t, err.Error(), "audience", "should reject restricted token with audience error")
 	})
 
 	t.Run("should reject refresh token as access token", func(t *testing.T) {
@@ -445,8 +445,8 @@ func TestParseRefreshToken(t *testing.T) {
 	})
 }
 
-// TestNewMFAToken tests MFA token generation.
-func TestNewMFAToken(t *testing.T) {
+// TestNewRestrictedAccessToken tests restricted access token generation.
+func TestNewRestrictedAccessToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
 		ID:    uuid.New(),
@@ -454,16 +454,16 @@ func TestNewMFAToken(t *testing.T) {
 		Role:  models.RoleUser,
 	}
 
-	t.Run("should create valid MFA token", func(t *testing.T) {
-		token, err := NewMFAToken(jwtSecret, user)
+	t.Run("should create valid restricted access token", func(t *testing.T) {
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
 		assert.True(t, strings.Count(token, ".") == 2)
 	})
 
-	t.Run("should have correct MFA audience", func(t *testing.T) {
-		token, err := NewMFAToken(jwtSecret, user)
+	t.Run("should have correct auth:mfa audience", func(t *testing.T) {
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -472,13 +472,13 @@ func TestNewMFAToken(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-		assert.Equal(t, "auth:mfa:login", claims.Aud)
+		assert.Equal(t, configuration.AudienceMFALogin, claims.Aud)
 		assert.Equal(t, user.Email, claims.Email)
 		assert.Equal(t, user.ID, claims.UserID)
 	})
 
 	t.Run("should expire in configured minutes", func(t *testing.T) {
-		token, err := NewMFAToken(jwtSecret, user)
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -495,7 +495,7 @@ func TestNewMFAToken(t *testing.T) {
 	})
 
 	t.Run("should use configuration constant for expiry", func(t *testing.T) {
-		token, err := NewMFAToken(jwtSecret, user)
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -512,8 +512,8 @@ func TestNewMFAToken(t *testing.T) {
 	})
 }
 
-// TestParseMFAToken tests MFA token parsing.
-func TestParseMFAToken(t *testing.T) {
+// TestParseRestrictedAccessToken tests restricted access token parsing.
+func TestParseRestrictedAccessToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
 		ID:    uuid.New(),
@@ -521,50 +521,50 @@ func TestParseMFAToken(t *testing.T) {
 		Role:  models.RoleUser,
 	}
 
-	t.Run("should parse valid MFA token", func(t *testing.T) {
-		token, err := NewMFAToken(jwtSecret, user)
+	t.Run("should parse valid restricted access token", func(t *testing.T) {
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
 		require.NoError(t, err)
 
-		claims, err := ParseMFAToken(jwtSecret, token)
+		claims, err := ParseRestrictedAccessToken(jwtSecret, "Bearer "+token)
 
 		require.NoError(t, err)
 		assert.Equal(t, user.Email, claims.Email)
 		assert.Equal(t, user.ID, claims.UserID)
-		assert.Equal(t, "auth:mfa:login", claims.Aud)
+		assert.Equal(t, configuration.AudienceMFALogin, claims.Aud)
 	})
 
-	t.Run("should reject access token as MFA token", func(t *testing.T) {
+	t.Run("should reject access token as restricted token", func(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, "local")
 		require.NoError(t, err)
 
-		_, err = ParseMFAToken(jwtSecret, token)
+		_, err = ParseRestrictedAccessToken(jwtSecret, "Bearer "+token)
 		assert.Error(t, err)
-		assert.Equal(t, "invalid MFA token audience", err.Error())
+		assert.Equal(t, "invalid restricted access token audience", err.Error())
 	})
 
-	t.Run("should reject refresh token as MFA token", func(t *testing.T) {
+	t.Run("should reject refresh token as restricted token", func(t *testing.T) {
 		token, err := NewRefreshToken(jwtSecret, user, "local")
 		require.NoError(t, err)
 
-		_, err = ParseMFAToken(jwtSecret, token)
+		_, err = ParseRestrictedAccessToken(jwtSecret, "Bearer "+token)
 		assert.Error(t, err)
-		assert.Equal(t, "invalid MFA token audience", err.Error())
+		assert.Equal(t, "invalid restricted access token audience", err.Error())
 	})
 
 	t.Run("should reject token with wrong secret", func(t *testing.T) {
-		token, err := NewMFAToken(jwtSecret, user)
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
 		require.NoError(t, err)
 
-		_, err = ParseMFAToken("wrong-secret", token)
+		_, err = ParseRestrictedAccessToken("wrong-secret", "Bearer "+token)
 		assert.Error(t, err)
 	})
 
-	t.Run("should reject expired MFA token", func(t *testing.T) {
+	t.Run("should reject expired restricted access token", func(t *testing.T) {
 		claims := models.UserClaims{
 			Email:    user.Email,
 			UserID:   user.ID,
 			Role:     user.Role,
-			Aud:      "auth:mfa:login",
+			Aud:      configuration.AudienceMFALogin,
 			Provider: "",
 			Issuer:   "safebucket",
 			RegisteredClaims: jwt.RegisteredClaims{
@@ -576,7 +576,16 @@ func TestParseMFAToken(t *testing.T) {
 		signedToken, err := token.SignedString([]byte(jwtSecret))
 		require.NoError(t, err)
 
-		_, err = ParseMFAToken(jwtSecret, signedToken)
+		_, err = ParseRestrictedAccessToken(jwtSecret, "Bearer "+signedToken)
+		assert.Error(t, err)
+	})
+
+	t.Run("should require Bearer prefix", func(t *testing.T) {
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
+		require.NoError(t, err)
+
+		// Without Bearer prefix should fail
+		_, err = ParseRestrictedAccessToken(jwtSecret, token)
 		assert.Error(t, err)
 	})
 }

@@ -1,12 +1,7 @@
 import { api } from "@/lib/api";
-import type { IMFADevice } from "@/components/mfa-view/helpers/types";
 
 export interface IPasswordResetRequestData {
   email: string;
-}
-
-export interface IPasswordResetRequestResponse {
-  message: string;
 }
 
 // Code verification only (no password in this step)
@@ -14,38 +9,34 @@ export interface IPasswordResetValidateData {
   code: string;
 }
 
-// Response from code verification - may require MFA or return completion token
+// Response from code verification - returns restricted access token
 export interface IPasswordResetValidateResponse {
+  access_token: string; // Restricted access token for password reset flow
   mfa_required: boolean;
-  mfa_token?: string;
-  devices?: IMFADevice[];
-  completion_token?: string;
 }
 
-// Password reset completion request (after code + MFA verification)
+// Password reset completion request (token in Authorization header)
 export interface IPasswordResetCompleteData {
-  completion_token: string;
   new_password: string;
 }
 
-// Response from password reset completion - returns auth tokens
+// Response from password reset completion - returns full auth tokens
 export interface IPasswordResetCompleteResponse {
   access_token: string;
   refresh_token: string;
 }
 
 // Response from MFA verification during password reset
+// Returns upgraded restricted token with MFA=true
 export interface IMFAVerifyPasswordResetResponse {
-  completion_token?: string;
-  password_reset?: boolean;
-  access_token?: string;
-  refresh_token?: string;
+  access_token: string; // Upgraded restricted token
+  mfa_required: boolean;
 }
 
 export const api_requestPasswordReset = (data: IPasswordResetRequestData) =>
   api.post<void>("/auth/reset-password", data);
 
-// Validate reset code - returns MFA token or completion token
+// Validate reset code - returns restricted access token
 export const api_validatePasswordReset = (
   challengeId: string,
   data: IPasswordResetValidateData,
@@ -55,24 +46,29 @@ export const api_validatePasswordReset = (
     data,
   );
 
-// Complete password reset with completion token
+// Complete password reset (requires restricted access token in header)
 export const api_completePasswordReset = (
   challengeId: string,
   data: IPasswordResetCompleteData,
+  restrictedToken: string,
 ) =>
   api.post<IPasswordResetCompleteResponse>(
     `/auth/reset-password/${challengeId}/complete`,
     data,
+    { headers: { Authorization: `Bearer ${restrictedToken}` } },
   );
 
-// Verify MFA code for password reset flow
+// Verify MFA code for password reset flow (requires restricted token in header)
 export const api_verifyMFAPasswordReset = (
-  mfaToken: string,
+  restrictedToken: string,
   code: string,
   deviceId?: string,
 ) =>
-  api.post<IMFAVerifyPasswordResetResponse>("/auth/mfa/verify", {
-    mfa_token: mfaToken,
-    code,
-    ...(deviceId && { device_id: deviceId }),
-  });
+  api.post<IMFAVerifyPasswordResetResponse>(
+    "/auth/mfa/verify",
+    {
+      code,
+      ...(deviceId && { device_id: deviceId }),
+    },
+    { headers: { Authorization: `Bearer ${restrictedToken}` } },
+  );

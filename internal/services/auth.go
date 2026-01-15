@@ -94,13 +94,10 @@ func (s AuthService) Login(
 	verifiedDevices := searchUser.GetVerifiedDevices()
 	hasMFA := len(verifiedDevices) > 0
 
-	if hasMFA {
-		return mfa.HandleMFALogin(logger, s.AuthConfig, &searchUser, verifiedDevices)
-	}
-
-	// Check if MFA is required but not set up for this user
-	if s.AuthConfig.MFARequired {
-		return mfa.GenerateTokensWithMFASetupRequired(logger, s.AuthConfig, &searchUser)
+	// If user has MFA enabled OR MFA is required by admin, return restricted token
+	// Frontend will fetch devices and determine if setup or verification is needed
+	if hasMFA || s.AuthConfig.MFARequired {
+		return mfa.HandleMFARequired(logger, s.AuthConfig, &searchUser)
 	}
 
 	tokens, err := mfa.GenerateTokens(s.AuthConfig, &searchUser)
@@ -220,30 +217,22 @@ func (s AuthService) Refresh(
 	return models.AuthRefreshResponse{AccessToken: accessToken}, nil
 }
 
-// VerifyMFALogin verifies TOTP code during login or password reset.
-// For login MFA (audience: auth:mfa:login): issues access/refresh tokens
+// VerifyMFALogin verifies TOTP code during login.
+// Token is extracted from Authorization header by middleware.
+// On success, issues full access and refresh tokens.
 func (s AuthService) VerifyMFALogin(
 	logger *zap.Logger,
-	_ models.UserClaims,
+	claims models.UserClaims,
 	_ uuid.UUIDs,
 	body models.MFALoginVerifyBody,
 ) (models.AuthLoginResponse, error) {
-	mfaClaims, loginMFAErr := h.ParseMFAToken(s.AuthConfig.JWTSecret, body.MFAToken)
-	isPasswordResetMFA := false
-
-	if loginMFAErr != nil {
-		var pwResetErr error
-		mfaClaims, pwResetErr = h.ParsePasswordResetMFAToken(s.AuthConfig.JWTSecret, body.MFAToken)
-		if pwResetErr != nil {
-			return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "INVALID_MFA_TOKEN")
-		}
-		isPasswordResetMFA = true
-	}
+	// Audience validation is handled by middleware via routeAudienceRules
+	// This endpoint accepts both AudienceMFALogin and AudienceMFAReset
 
 	// Load user with verified MFA devices
 	var user models.User
 	result := s.DB.Preload("MFADevices", "is_verified = ?", true).
-		Where("id = ? AND provider_type = ?", mfaClaims.UserID, models.LocalProviderType).
+		Where("id = ? AND provider_type = ?", claims.UserID, models.LocalProviderType).
 		First(&user)
 	if result.RowsAffected == 0 {
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(404, "USER_NOT_FOUND")
@@ -282,35 +271,25 @@ func (s AuthService) VerifyMFALogin(
 		logger.Warn("MFA verification failed",
 			zap.String("user_id", user.ID.String()),
 			zap.String("device_id", deviceID),
-			zap.String("email", user.Email),
-			zap.Bool("password_reset_flow", isPasswordResetMFA))
+			zap.String("email", user.Email))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
 	}
 
-	used, err := s.Cache.IsTOTPCodeUsed(deviceID, body.Code)
+	unused, err := s.Cache.MarkTOTPCodeUsed(deviceID, body.Code)
 	if err != nil {
-		logger.Error("Failed to check TOTP code usage", zap.Error(err))
+		logger.Error("Failed to atomically check/mark TOTP code", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
 	}
-	if used {
+
+	if !unused {
 		logger.Warn("TOTP code replay attempt detected",
 			zap.String("device_id", deviceID))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
 	}
 
-	if err = s.Cache.MarkTOTPCodeUsed(deviceID, body.Code); err != nil {
-		logger.Error("Failed to mark TOTP code as used", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
-	}
-
 	// Reset MFA attempts on successful verification
 	if resetErr := s.Cache.ResetMFAAttempts(user.ID.String()); resetErr != nil {
 		logger.Warn("Failed to reset MFA attempts", zap.Error(resetErr))
-	}
-
-	if isPasswordResetMFA {
-		passwordResetService := NewAuthPasswordResetService(s)
-		return passwordResetService.HandleMFAVerification(logger, &user, deviceID)
 	}
 
 	accessToken, err := h.NewAccessToken(
@@ -335,6 +314,26 @@ func (s AuthService) VerifyMFALogin(
 		zap.String("user_id", user.ID.String()),
 		zap.String("device_id", deviceID),
 		zap.String("email", user.Email))
+
+	// If audience is PasswordReset, return a new restricted token with MFA=true
+	// Do NOT issue full access tokens for password reset flow
+	if claims.Aud == configuration.AudienceMFAReset {
+		var restrictedToken string
+		restrictedToken, err = h.NewRestrictedAccessToken(
+			s.AuthConfig.JWTSecret,
+			&user,
+			configuration.AudienceMFAReset,
+			true, // Verified!
+		)
+		if err != nil {
+			return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
+		}
+
+		return models.AuthLoginResponse{
+			AccessToken: restrictedToken,
+			MFARequired: false, // MFA checks done
+		}, nil
+	}
 
 	return models.AuthLoginResponse{
 		AccessToken:  accessToken,

@@ -394,3 +394,130 @@ func TestAuthenticate_ContextPropagation(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
 }
+
+// TestRouteAudienceValidation tests the route-level audience validation
+// that prevents cross-flow attacks (e.g., login tokens accessing password reset endpoints).
+func TestRouteAudienceValidation(t *testing.T) {
+	t.Run("password reset completion rejects login MFA tokens", func(t *testing.T) {
+		allowed := isAudienceAllowedForRoute(
+			"auth:mfa:login",
+			"/api/v1/auth/reset-password/abc123/complete",
+			"POST",
+		)
+		assert.False(t, allowed, "Login MFA tokens should NOT be allowed for password reset completion")
+	})
+
+	t.Run("password reset completion accepts reset MFA tokens", func(t *testing.T) {
+		allowed := isAudienceAllowedForRoute(
+			"auth:mfa:password-reset",
+			"/api/v1/auth/reset-password/abc123/complete",
+			"POST",
+		)
+		assert.True(t, allowed, "Password reset MFA tokens SHOULD be allowed for password reset completion")
+	})
+
+	t.Run("MFA verify accepts login MFA tokens", func(t *testing.T) {
+		allowed := isAudienceAllowedForRoute(
+			"auth:mfa:login",
+			"/api/v1/auth/mfa/verify",
+			"POST",
+		)
+		assert.True(t, allowed, "Login MFA tokens SHOULD be allowed for MFA verification")
+	})
+
+	t.Run("MFA verify accepts reset MFA tokens", func(t *testing.T) {
+		allowed := isAudienceAllowedForRoute(
+			"auth:mfa:password-reset",
+			"/api/v1/auth/mfa/verify",
+			"POST",
+		)
+		assert.True(t, allowed, "Password reset MFA tokens SHOULD be allowed for MFA verification")
+	})
+
+	t.Run("MFA device list accepts both token types", func(t *testing.T) {
+		pathWithUUID := "/api/v1/users/550e8400-e29b-41d4-a716-446655440000/mfa/devices"
+
+		loginAllowed := isAudienceAllowedForRoute("auth:mfa:login", pathWithUUID, "GET")
+		resetAllowed := isAudienceAllowedForRoute("auth:mfa:password-reset", pathWithUUID, "GET")
+
+		assert.True(t, loginAllowed, "Login MFA tokens SHOULD be allowed for device listing")
+		assert.True(t, resetAllowed, "Password reset MFA tokens SHOULD be allowed for device listing")
+	})
+
+	t.Run("MFA device creation accepts both token types", func(t *testing.T) {
+		pathWithUUID := "/api/v1/users/550e8400-e29b-41d4-a716-446655440000/mfa/devices"
+
+		loginAllowed := isAudienceAllowedForRoute("auth:mfa:login", pathWithUUID, "POST")
+		resetAllowed := isAudienceAllowedForRoute("auth:mfa:password-reset", pathWithUUID, "POST")
+
+		assert.True(t, loginAllowed, "Login MFA tokens SHOULD be allowed for device creation")
+		assert.True(t, resetAllowed, "Password reset MFA tokens SHOULD be allowed for device creation")
+	})
+
+	t.Run("MFA device verify accepts both token types", func(t *testing.T) {
+		pathWithUUID := "/api/v1/users/550e8400-e29b-41d4-a716-446655440000/mfa/devices/123/verify"
+
+		loginAllowed := isAudienceAllowedForRoute("auth:mfa:login", pathWithUUID, "POST")
+		resetAllowed := isAudienceAllowedForRoute("auth:mfa:password-reset", pathWithUUID, "POST")
+
+		assert.True(t, loginAllowed, "Login MFA tokens SHOULD be allowed for device verification")
+		assert.True(t, resetAllowed, "Password reset MFA tokens SHOULD be allowed for device verification")
+	})
+
+	t.Run("unconfigured route rejects all restricted tokens", func(t *testing.T) {
+		// Routes without explicit rules should reject restricted tokens
+		loginAllowed := isAudienceAllowedForRoute("auth:mfa:login", "/api/v1/buckets", "GET")
+		resetAllowed := isAudienceAllowedForRoute("auth:mfa:password-reset", "/api/v1/buckets", "GET")
+
+		assert.False(t, loginAllowed, "Login MFA tokens should NOT access bucket endpoints")
+		assert.False(t, resetAllowed, "Password reset MFA tokens should NOT access bucket endpoints")
+	})
+
+	t.Run("wrong method is rejected", func(t *testing.T) {
+		// Password reset completion only allows POST
+		getNotAllowed := isAudienceAllowedForRoute(
+			"auth:mfa:password-reset",
+			"/api/v1/auth/reset-password/abc123/complete",
+			"GET",
+		)
+		assert.False(t, getNotAllowed, "GET method should NOT be allowed for password reset completion")
+	})
+
+	t.Run("access token audience is rejected for restricted endpoints", func(t *testing.T) {
+		// Full access tokens (app:*) should not match restricted token rules
+		allowed := isAudienceAllowedForRoute(
+			"app:*",
+			"/api/v1/auth/mfa/verify",
+			"POST",
+		)
+		assert.False(t, allowed, "Full access tokens should NOT match restricted endpoint rules")
+	})
+}
+
+// TestGetRouteAllowedAudiences tests the helper function that returns allowed audiences for a route.
+func TestGetRouteAllowedAudiences(t *testing.T) {
+	t.Run("returns audiences for configured route", func(t *testing.T) {
+		audiences := getRouteAllowedAudiences("/api/v1/auth/mfa/verify", "POST")
+		assert.NotNil(t, audiences)
+		assert.Len(t, audiences, 2)
+		assert.Contains(t, audiences, "auth:mfa:login")
+		assert.Contains(t, audiences, "auth:mfa:password-reset")
+	})
+
+	t.Run("returns single audience for password reset completion", func(t *testing.T) {
+		audiences := getRouteAllowedAudiences("/api/v1/auth/reset-password/123/complete", "POST")
+		assert.NotNil(t, audiences)
+		assert.Len(t, audiences, 1)
+		assert.Contains(t, audiences, "auth:mfa:password-reset")
+	})
+
+	t.Run("returns nil for unconfigured route", func(t *testing.T) {
+		audiences := getRouteAllowedAudiences("/api/v1/buckets", "GET")
+		assert.Nil(t, audiences)
+	})
+
+	t.Run("returns nil for wrong method", func(t *testing.T) {
+		audiences := getRouteAllowedAudiences("/api/v1/auth/mfa/verify", "GET")
+		assert.Nil(t, audiences)
+	})
+}

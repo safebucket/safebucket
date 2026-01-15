@@ -13,14 +13,9 @@ type AuthLoginBody struct {
 }
 
 type AuthLoginResponse struct {
-	AccessToken      string      `json:"access_token,omitempty"`
-	RefreshToken     string      `json:"refresh_token,omitempty"`
-	MFARequired      bool        `json:"mfa_required"`
-	MFAToken         string      `json:"mfa_token,omitempty"`
-	MFASetupRequired bool        `json:"mfa_setup_required,omitempty"`
-	Devices          []MFADevice `json:"devices,omitempty"`
-	CompletionToken  string      `json:"completion_token,omitempty"`
-	PasswordReset    bool        `json:"password_reset,omitempty"`
+	AccessToken  string `json:"access_token,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	MFARequired  bool   `json:"mfa_required"`
 }
 
 type AuthVerifyBody struct {
@@ -53,8 +48,7 @@ type PasswordResetValidateBody struct {
 }
 
 // PasswordResetCompleteBody is used for the final password reset step.
-// Requires a completion token (issued after code + MFA verification).
+// Authorization is handled via restricted access token in header.
 type PasswordResetCompleteBody struct {
-	CompletionToken string `json:"completion_token" validate:"required"`
-	NewPassword     string `json:"new_password"     validate:"required,min=8,max=72"`
+	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
 }

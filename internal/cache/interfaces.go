@@ -10,9 +10,10 @@ type ICache interface {
 	// IsTOTPCodeUsed checks if a TOTP code has been used for a specific device.
 	// The deviceID parameter identifies the MFA device (or user ID for legacy single-device users).
 	IsTOTPCodeUsed(deviceID string, code string) (bool, error)
-	// MarkTOTPCodeUsed marks a TOTP code as used for a specific device.
-	// Uses configuration.TOTPCodeTTL constant for TTL.
-	MarkTOTPCodeUsed(deviceID string, code string) error
+	// MarkTOTPCodeUsed atomically marks a TOTP code as used for a specific device.
+	// Returns true if the code was unused and is now marked (success).
+	// Returns false if the code was already used (replay attempt).
+	MarkTOTPCodeUsed(deviceID string, code string) (bool, error)
 
 	// GetMFAAttempts returns the current number of failed MFA attempts for a user.
 	GetMFAAttempts(userID string) (int, error)

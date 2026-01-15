@@ -40,7 +40,7 @@ export function MFASetupRequiredView({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const refreshSession = useRefreshSession();
-  const { mfaToken, userId } = useMFAAuth();
+  const { restrictedToken, userId } = useMFAAuth();
   const setupStarted = useRef(false);
 
   const [viewMode, setViewMode] = useState<ViewMode>("loading");
@@ -60,18 +60,18 @@ export function MFASetupRequiredView({
     goToVerify,
     goBack,
     verifyCode,
-  } = useMFASetup(userId ?? "", mfaToken ?? undefined);
+  } = useMFASetup(userId ?? "", restrictedToken ?? undefined);
 
   useEffect(() => {
     if (viewMode === "loading" && !setupStarted.current) {
-      if (userId && mfaToken) {
+      if (userId && restrictedToken) {
         setupStarted.current = true;
         setViewMode("setup");
       } else {
         navigate({ to: "/auth/login", search: { redirect: undefined } });
       }
     }
-  }, [viewMode, navigate, userId, mfaToken]);
+  }, [viewMode, navigate, userId, restrictedToken]);
 
   useEffect(() => {
     if (step === "success") {
@@ -146,7 +146,7 @@ export function MFASetupRequiredView({
                     disabled={isLoading}
                   />
                 </div>
-                {!mfaToken && (
+                {!restrictedToken && (
                   <div className="space-y-2">
                     <Label htmlFor="password">{t("auth.password")}</Label>
                     <Input
@@ -163,7 +163,7 @@ export function MFASetupRequiredView({
                   className="w-full"
                   onClick={handleStartSetup}
                   disabled={
-                    isLoading || !deviceName || (!password && !mfaToken)
+                    isLoading || !deviceName || (!password && !restrictedToken)
                   }
                 >
                   {isLoading && (

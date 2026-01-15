@@ -15,10 +15,3 @@ export interface IPasswordResetPasswordFormData {
 
 // Stage of the password reset flow
 export type PasswordResetStage = "code" | "mfa" | "password" | "success";
-
-// Legacy type for backwards compatibility
-export interface IPasswordResetValidateFormData {
-  code: string;
-  newPassword: string;
-  confirmPassword: string;
-}

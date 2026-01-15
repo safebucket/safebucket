@@ -38,9 +38,9 @@ func (s UserMFAService) Routes() chi.Router {
 	r := chi.NewRouter()
 
 	// Device management routes
+	// Authorization is handled by Authenticate middleware which accepts both
+	// full access tokens (app:*) and restricted tokens (auth:mfa)
 	r.Route("/devices", func(r chi.Router) {
-		r.Use(m.MFAAuthorize(s.AuthConfig.JWTSecret))
-
 		r.With(m.AuthorizeSelfOrAdmin(0)).
 			Get("/", handlers.GetOneHandler(s.ListDevices))
 
@@ -115,18 +115,24 @@ func (s UserMFAService) AddDevice(
 		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(400, "MAX_MFA_DEVICES_REACHED")
 	}
 
-	if claims.Aud == configuration.AudienceMFALoginToken {
+	// Check if using restricted access token (MFA setup flow)
+	// Note: Authorization is handled by middleware. This check is for business logic:
+	// - Restricted tokens (during login/reset flow) don't require password for first device setup
+	// - Full access tokens require password verification to add devices
+	isRestricted := claims.Aud == configuration.AudienceMFALogin || claims.Aud == configuration.AudienceMFAReset
+
+	if isRestricted {
 		if claims.UserID != user.ID {
 			return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(403, "FORBIDDEN")
 		}
 
-		// CRITICAL: MFA Token bypass is ONLY allowed for the very first device setup.
+		// CRITICAL: Restricted token bypass is ONLY allowed for the very first device setup.
 		// If the user already has VERIFIED devices, they MUST use password to add more.
 		// Unverified devices are ignored (incomplete setup attempts that can be retried).
 		var verifiedCount int64
 		s.DB.Model(&models.MFADevice{}).Where("user_id = ? AND is_verified = ?", userID, true).Count(&verifiedCount)
 		if verifiedCount > 0 {
-			logger.Warn("mfa token used for non-initial device setup",
+			logger.Warn("restricted token used for non-initial device setup",
 				zap.String("userID", claims.UserID.String()),
 				zap.Int64("verifiedDeviceCount", verifiedCount))
 			return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(403, "MFA_SETUP_RESTRICTED")
@@ -284,20 +290,16 @@ func (s UserMFAService) VerifyDevice(
 		}
 
 		// Check replay protection (per device)
-		used, err := s.Cache.IsTOTPCodeUsed(deviceID.String(), body.Code)
+		// Mark and check for replay protection atomically
+		unused, err := s.Cache.MarkTOTPCodeUsed(deviceID.String(), body.Code)
 		if err != nil {
-			logger.Error("Failed to check TOTP code usage", zap.Error(err))
+			logger.Error("Failed to mark TOTP code as used", zap.Error(err))
 			return apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
 		}
-		if used {
+		if !unused {
 			logger.Warn("TOTP code replay attempt detected",
 				zap.String("device_id", deviceID.String()))
 			return apierrors.NewAPIError(401, "INVALID_MFA_CODE")
-		}
-
-		if err = s.Cache.MarkTOTPCodeUsed(deviceID.String(), body.Code); err != nil {
-			logger.Error("Failed to mark TOTP code as used", zap.Error(err))
-			return apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
 		}
 
 		// Check if there's already a verified default device

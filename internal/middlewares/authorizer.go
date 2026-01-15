@@ -1,9 +1,7 @@
 package middlewares
 
 import (
-	"context"
 	"net/http"
-	"strings"
 
 	h "api/internal/helpers"
 	"api/internal/models"
@@ -121,41 +119,5 @@ func AuthorizeSelfOrAdmin(targetUserIDIndex int) func(next http.Handler) http.Ha
 
 			next.ServeHTTP(w, r)
 		})
-	}
-}
-
-// MFAAuthorize handles authorization for MFA setup endpoints.
-// It accepts either a standard Access Token (for already authenticated users)
-// OR an MFA Token (for users in the login flow who need to set up MFA).
-func MFAAuthorize(jwtSecret string) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
-				return
-			}
-
-			token := strings.TrimPrefix(authHeader, "Bearer ")
-
-			// 1. Try parsing as Access Token (ParseAccessToken expects "Bearer " prefix)
-			userClaims, err := h.ParseAccessToken(jwtSecret, authHeader)
-			if err == nil {
-				ctx := context.WithValue(r.Context(), models.UserClaimKey{}, userClaims)
-				next.ServeHTTP(w, r.WithContext(ctx))
-				return
-			}
-
-			// 2. Try parsing as MFA Token
-			userClaims, err = h.ParseMFAToken(jwtSecret, token)
-			if err == nil {
-				ctx := context.WithValue(r.Context(), models.UserClaimKey{}, userClaims)
-				next.ServeHTTP(w, r.WithContext(ctx))
-				return
-			}
-
-			h.RespondWithError(w, 403, []string{"FORBIDDEN"})
-		}
-		return http.HandlerFunc(fn)
 	}
 }

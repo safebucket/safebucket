@@ -63,7 +63,7 @@ export interface IMFADevice {
 }
 
 export interface IMFADevicesResponse {
-  devices: IMFADevice[];
+  devices: Array<IMFADevice>;
   mfa_enabled: boolean;
   device_count: number;
   max_devices: number;
@@ -80,7 +80,4 @@ export interface ILoginResponse {
   access_token?: string;
   refresh_token?: string;
   mfa_required: boolean;
-  mfa_token?: string;
-  mfa_setup_required?: boolean;
-  devices?: IMFADevice[];
 }

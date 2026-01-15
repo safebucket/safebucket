@@ -1,6 +1,7 @@
 package mfa
 
 import (
+	"api/internal/configuration"
 	apierrors "api/internal/errors"
 	h "api/internal/helpers"
 	"api/internal/models"
@@ -8,47 +9,36 @@ import (
 	"go.uber.org/zap"
 )
 
-// HandleMFALogin generates MFA token and device list for MFA verification.
-func HandleMFALogin(
+// HandleMFARequired generates a restricted access token for MFA flows.
+// Returns a token with limited access that can only be used for:
+// - Listing MFA devices
+// - Adding/verifying MFA devices (during setup)
+// - Completing MFA verification
+// Frontend determines setup vs verify state by checking if devices list is empty.
+func HandleMFARequired(
 	logger *zap.Logger,
 	authConfig models.AuthConfig,
 	user *models.User,
-	verifiedDevices []models.MFADevice,
 ) (models.AuthLoginResponse, error) {
-	mfaToken, err := h.NewMFAToken(authConfig.JWTSecret, user)
+	restrictedToken, err := h.NewRestrictedAccessToken(
+		authConfig.JWTSecret,
+		user,
+		configuration.AudienceMFALogin,
+		false,
+	)
 	if err != nil {
-		logger.Error("Failed to generate MFA token", zap.Error(err))
+		logger.Error("Failed to generate restricted access token", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	return models.AuthLoginResponse{
+		AccessToken: restrictedToken,
 		MFARequired: true,
-		MFAToken:    mfaToken,
-		Devices:     verifiedDevices,
 	}, nil
 }
 
-// GenerateTokensWithMFASetupRequired generates only MFA token for users who need to set up MFA.
-// Access and refresh tokens are NOT issued until MFA setup is complete (via VerifyDevice).
-// This prevents token leakage before MFA is configured.
-func GenerateTokensWithMFASetupRequired(
-	logger *zap.Logger,
-	authConfig models.AuthConfig,
-	user *models.User,
-) (models.AuthLoginResponse, error) {
-	mfaToken, err := h.NewMFAToken(authConfig.JWTSecret, user)
-	if err != nil {
-		logger.Error("Failed to generate MFA token for setup required", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	return models.AuthLoginResponse{
-		MFASetupRequired: true,
-		MFAToken:         mfaToken,
-	}, nil
-}
-
-// GenerateTokens generates access and refresh tokens for the user.
+// GenerateTokens generates full access and refresh tokens for the user.
+// Used after successful MFA verification or for users without MFA.
 func GenerateTokens(
 	authConfig models.AuthConfig,
 	user *models.User,

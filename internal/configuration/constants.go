@@ -4,20 +4,17 @@ const AppName = "safebucket"
 
 // JWT Audience constants for token type separation.
 const (
-	AudienceAccessToken             = "app:*"
-	AudienceRefreshToken            = "auth:refresh"
-	AudienceMFALoginToken           = "auth:mfa:login"
-	AudienceMFAPasswordResetToken   = "auth:mfa:password-reset"
-	AudiencePasswordResetCompletion = "auth:password-reset"
+	AudienceAccessToken  = "app:*"
+	AudienceRefreshToken = "auth:refresh"
+	AudienceMFALogin     = "auth:mfa:login"
+	AudienceMFAReset     = "auth:mfa:password-reset"
 )
 
 // JWT Token expiry times (in minutes).
 const (
-	AccessTokenExpiry             = 60
-	RefreshTokenExpiry            = 600
-	MFATokenExpiry                = 5
-	PasswordResetMFATokenExpiry   = 5
-	PasswordResetCompletionExpiry = 5
+	AccessTokenExpiry  = 60
+	RefreshTokenExpiry = 600
+	MFATokenExpiry     = 5 // For restricted access during MFA flow
 )
 
 const (

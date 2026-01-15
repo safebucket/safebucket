@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -110,8 +111,9 @@ func (s AuthPasswordResetService) RequestPasswordReset(
 	return nil, nil
 }
 
-// ValidatePasswordReset verifies the reset code and returns either an MFA token
-// (if user has MFA enabled) or a completion token (if no MFA).
+// ValidatePasswordReset verifies the reset code and returns a restricted access token.
+// If user has MFA enabled, frontend should verify MFA before completing password reset.
+// Frontend fetches devices and determines MFA state by checking if devices list is empty.
 func (s AuthPasswordResetService) ValidatePasswordReset(
 	logger *zap.Logger,
 	_ models.UserClaims,
@@ -181,65 +183,26 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
-	if userWithMFA.HasMFAEnabled() {
-		updateErr := s.DB.Model(&challenge).Update("status", models.ChallengeStatusValidated).Error
-		if updateErr != nil {
-			logger.Error("Failed to update challenge status", zap.Error(updateErr))
-			return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-		}
-
-		mfaToken, mfaErr := h.NewPasswordResetMFAToken(
-			s.AuthConfig.JWTSecret,
-			&userWithMFA,
-		)
-		if mfaErr != nil {
-			logger.Error("Failed to generate MFA token", zap.Error(mfaErr))
-			return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "MFA_TOKEN_GENERATION_FAILED")
-		}
-
-		devices := make([]models.MFADevice, 0)
-		for _, device := range userWithMFA.GetVerifiedDevices() {
-			devices = append(devices, models.MFADevice{
-				ID:        device.ID,
-				Name:      device.Name,
-				IsDefault: device.IsDefault,
-			})
-		}
-
-		action := models.Activity{
-			Message: activity.PasswordResetCodeVerified,
-			Object:  user.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":       activity.PasswordResetCodeVerified,
-				"user_id":      user.ID.String(),
-				"challenge_id": challengeID.String(),
-				"object_type":  "user",
-				"mfa_required": "true",
-			}),
-		}
-		if logErr := s.ActivityLogger.Send(action); logErr != nil {
-			logger.Error("Failed to log password reset code verification", zap.Error(logErr))
-		}
-
-		logger.Info("Password reset code verified, MFA required",
-			zap.String("user_id", user.ID.String()),
-			zap.String("challenge_id", challengeID.String()))
-
-		return models.AuthLoginResponse{
-			MFARequired: true,
-			MFAToken:    mfaToken,
-			Devices:     devices,
-		}, nil
+	// Mark challenge as validated (code verified, waiting for MFA or password completion)
+	updateErr := s.DB.Model(&challenge).Update("status", models.ChallengeStatusValidated).Error
+	if updateErr != nil {
+		logger.Error("Failed to update challenge status", zap.Error(updateErr))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
-	completionToken, err := h.NewPasswordResetCompletionToken(
+	// Generate restricted access token for password reset flow
+	restrictedToken, tokenErr := h.NewRestrictedAccessToken(
 		s.AuthConfig.JWTSecret,
 		&userWithMFA,
+		configuration.AudienceMFAReset,
+		false,
 	)
-	if err != nil {
-		logger.Error("Failed to generate completion token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "COMPLETION_TOKEN_GENERATION_FAILED")
+	if tokenErr != nil {
+		logger.Error("Failed to generate restricted access token", zap.Error(tokenErr))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
+
+	hasMFA := userWithMFA.HasMFAEnabled()
 
 	action := models.Activity{
 		Message: activity.PasswordResetCodeVerified,
@@ -249,83 +212,74 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 			"user_id":      user.ID.String(),
 			"challenge_id": challengeID.String(),
 			"object_type":  "user",
-			"mfa_required": "false",
+			"mfa_required": strconv.FormatBool(hasMFA),
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
 		logger.Error("Failed to log password reset code verification", zap.Error(logErr))
 	}
 
-	logger.Info("Password reset code verified, no MFA required",
+	logger.Info("Password reset code verified",
 		zap.String("user_id", user.ID.String()),
-		zap.String("challenge_id", challengeID.String()))
+		zap.String("challenge_id", challengeID.String()),
+		zap.Bool("mfa_required", hasMFA))
 
 	return models.AuthLoginResponse{
-		MFARequired:     false,
-		CompletionToken: completionToken,
+		AccessToken: restrictedToken,
+		MFARequired: hasMFA,
 	}, nil
 }
 
-// CompletePasswordReset applies the new password after verifying the completion token.
+// CompletePasswordReset applies the new password.
+// Authorization is handled via restricted access token in Authorization header.
+// For users with MFA, they must have verified MFA via /auth/mfa/verify first.
 func (s AuthPasswordResetService) CompletePasswordReset(
 	logger *zap.Logger,
-	_ models.UserClaims,
+	claims models.UserClaims,
 	ids uuid.UUIDs,
 	body models.PasswordResetCompleteBody,
 ) (models.AuthLoginResponse, error) {
 	challengeID := ids[0]
 
-	claims, err := h.ParsePasswordResetCompletionToken(s.AuthConfig.JWTSecret, body.CompletionToken)
+	// Find challenge for this user
+	challenge, err := s.getValidatedChallenge(logger, challengeID, claims.UserID)
 	if err != nil {
-		logger.Warn("Invalid completion token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "INVALID_COMPLETION_TOKEN")
-	}
-
-	var challenge models.Challenge
-	result := s.DB.Preload("User").
-		Where("id = ? AND type = ?", challengeID, models.ChallengeTypePasswordReset).
-		First(&challenge)
-
-	if result.RowsAffected == 0 {
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "INVALID_REQUEST")
-	}
-
-	if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
-		s.DB.Delete(&challenge)
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "INVALID_REQUEST")
-	}
-
-	if challenge.UserID == nil || *challenge.UserID != claims.UserID {
-		logger.Warn("User mismatch in password reset completion",
-			zap.String("token_user_id", claims.UserID.String()),
-			zap.String("challenge_user_id", challenge.UserID.String()))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "INVALID_REQUEST")
+		return models.AuthLoginResponse{}, err
 	}
 
 	user := challenge.User
 
 	var userWithMFA models.User
-	if err = s.DB.Preload("MFADevices", "is_verified = ?", true).
+	if err := s.DB.Preload("MFADevices", "is_verified = ?", true).
 		Where("id = ?", user.ID).First(&userWithMFA).Error; err != nil {
 		logger.Error("Failed to load user with MFA devices", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 	user = &userWithMFA
 
+	// CRITICAL: Prevent MFA bypass
+	// If user has MFA enabled, token MUST indicate MFA is verified
+	// Note: Audience validation (cross-flow attack prevention) is handled by middleware
+	if userWithMFA.HasMFAEnabled() && !claims.MFA {
+		logger.Warn("MFA bypass attempt in password reset",
+			zap.String("user_id", user.ID.String()))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "MFA_REQUIRED")
+	}
+
 	hashedPassword, err := h.CreateHash(body.NewPassword)
 	if err != nil {
 		logger.Error("Failed to hash new password", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "PASSWORD_HASH_FAILED")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if updateErr := tx.Model(user).Update("hashed_password", hashedPassword).Error; updateErr != nil {
 			logger.Error("Failed to update password", zap.Error(updateErr))
-			return apierrors.NewAPIError(500, "PASSWORD_UPDATE_FAILED")
+			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 		if deleteErr := tx.Delete(&challenge).Error; deleteErr != nil {
 			logger.Error("Failed to delete challenge", zap.Error(deleteErr))
-			return apierrors.NewAPIError(500, "CHALLENGE_CLEANUP_FAILED")
+			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 		return nil
 	})
@@ -363,7 +317,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "GENERATE_ACCESS_TOKEN_FAILED")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	refreshToken, err := h.NewRefreshToken(
@@ -373,7 +327,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "GENERATE_REFRESH_TOKEN_FAILED")
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	logger.Info("Password reset completed successfully",
@@ -386,60 +340,33 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	}, nil
 }
 
-// HandleMFAVerification handles MFA verification for password reset flow.
-func (s AuthPasswordResetService) HandleMFAVerification(
+func (s AuthPasswordResetService) getValidatedChallenge(
 	logger *zap.Logger,
-	user *models.User,
-	deviceID string,
-) (models.AuthLoginResponse, error) {
+	challengeID uuid.UUID,
+	userID uuid.UUID,
+) (*models.Challenge, error) {
 	var challenge models.Challenge
-	result := s.DB.Where("user_id = ? AND type = ? AND status = ?",
-		user.ID, models.ChallengeTypePasswordReset, models.ChallengeStatusValidated).
+	result := s.DB.Preload("User").
+		Where("id = ? AND type = ? AND user_id = ?",
+			challengeID, models.ChallengeTypePasswordReset, userID).
 		First(&challenge)
+
 	if result.RowsAffected == 0 {
-		logger.Warn("Validated password reset challenge not found",
-			zap.String("user_id", user.ID.String()))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "INVALID_REQUEST")
+		return nil, apierrors.NewAPIError(400, "INVALID_REQUEST")
 	}
 
 	if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
 		s.DB.Delete(&challenge)
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "INVALID_REQUEST")
+		return nil, apierrors.NewAPIError(400, "INVALID_REQUEST")
 	}
 
-	challengeID := challenge.ID
-
-	completionToken, err := h.NewPasswordResetCompletionToken(
-		s.AuthConfig.JWTSecret,
-		user,
-	)
-	if err != nil {
-		logger.Error("Failed to generate completion token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "COMPLETION_TOKEN_GENERATION_FAILED")
+	// Challenge must be validated (code verified)
+	if challenge.Status != models.ChallengeStatusValidated {
+		logger.Warn("Password reset challenge not validated",
+			zap.String("challenge_id", challengeID.String()),
+			zap.String("status", string(challenge.Status)))
+		return nil, apierrors.NewAPIError(400, "INVALID_REQUEST")
 	}
 
-	action := models.Activity{
-		Message: activity.PasswordResetMFAVerified,
-		Object:  user.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":       activity.PasswordResetMFAVerified,
-			"user_id":      user.ID.String(),
-			"challenge_id": challengeID.String(),
-			"device_id":    deviceID,
-			"object_type":  "user",
-		}),
-	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log password reset MFA verification", zap.Error(logErr))
-	}
-
-	logger.Info("Password reset MFA verification successful",
-		zap.String("user_id", user.ID.String()),
-		zap.String("device_id", deviceID),
-		zap.String("challenge_id", challengeID.String()))
-
-	return models.AuthLoginResponse{
-		CompletionToken: completionToken,
-		PasswordReset:   true,
-	}, nil
+	return &challenge, nil
 }

@@ -18,6 +18,9 @@ var AuthRuleExactMatchPath = map[string][]AuthRule{
 	"/invites": {
 		{Path: "/api/v1/invites", Method: "POST", RequireAuth: true},
 	},
+	"/api/v1/auth/mfa/verify": {
+		{Path: "/api/v1/auth/mfa/verify", Method: "POST", RequireAuth: true},
+	},
 }
 
 type MFABypassRule struct {
@@ -26,16 +29,10 @@ type MFABypassRule struct {
 	Method     string
 }
 
+// MFABypassRules allows full access tokens without MFA to access these endpoints.
+// Note: Users in MFA setup flow now use restricted tokens (auth:mfa audience) instead,
+// which have their own allowed endpoints in the Authenticate middleware.
 var MFABypassRules = []MFABypassRule{
-	// Legacy single-device MFA setup endpoints
-	{PathPrefix: "/api/v1/users/", PathSuffix: "/mfa/setup", Method: "POST"},
-	{PathPrefix: "/api/v1/users/", PathSuffix: "/mfa/verify", Method: "POST"},
-
-	// Multi-device MFA endpoints (for users setting up MFA)
-	{PathPrefix: "/api/v1/users/", PathSuffix: "/mfa/devices", Method: "GET"},
-	{PathPrefix: "/api/v1/users/", PathSuffix: "/mfa/devices", Method: "POST"},
-	{PathPrefix: "/api/v1/users/", PathSuffix: "/verify", Method: "POST"}, // Matches /mfa/devices/{id}/verify
-
-	// Logout
+	// Logout - always allowed
 	{PathPrefix: "/api/v1/auth/logout", PathSuffix: "", Method: "*"},
 }

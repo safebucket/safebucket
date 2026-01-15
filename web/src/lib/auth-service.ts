@@ -5,7 +5,6 @@ import type {
   IJWTPayload,
   ILoginForm,
   ILoginResponse,
-  IMFADevice,
   Session,
 } from "@/components/auth-view/types/session";
 import { getApiUrl } from "@/hooks/useConfig";
@@ -139,9 +138,7 @@ export interface LoginResult {
   success: boolean;
   error?: string;
   mfaRequired?: boolean;
-  mfaToken?: string;
-  mfaSetupRequired?: boolean;
-  devices?: IMFADevice[];
+  restrictedToken?: string;
   userId?: string;
 }
 
@@ -151,33 +148,19 @@ export const loginWithCredentials = async (
   try {
     const response = await api.post<ILoginResponse>("/auth/login", credentials);
 
-    // Check if MFA is required
-    if (response.mfa_required && response.mfa_token) {
-      // Decode MFA token to get user ID
-      const decoded = decodeToken(response.mfa_token);
+    // Check if MFA is required (user has MFA or admin requires MFA)
+    // Backend returns restricted access token - frontend fetches devices to determine setup vs verify
+    if (response.mfa_required && response.access_token) {
+      const decoded = decodeToken(response.access_token);
       return {
         success: false,
         mfaRequired: true,
-        mfaToken: response.mfa_token,
-        devices: response.devices,
+        restrictedToken: response.access_token,
         userId: decoded?.payload.user_id,
       };
     }
 
-    // Check if MFA setup is required (admin enforced but not set up)
-    // Note: No access/refresh tokens are issued until MFA setup is complete
-    if (response.mfa_setup_required && response.mfa_token) {
-      // Decode MFA token to get user ID
-      const decoded = decodeToken(response.mfa_token);
-      return {
-        success: false,
-        mfaSetupRequired: true,
-        mfaToken: response.mfa_token,
-        userId: decoded?.payload.user_id,
-      };
-    }
-
-    // Normal login success
+    // Normal login success (no MFA required)
     if (response.access_token && response.refresh_token) {
       authCookies.setAll(
         response.access_token,
@@ -197,21 +180,24 @@ export const loginWithCredentials = async (
 
 /**
  * Verify MFA code during login
- * @param mfaToken - The MFA token from login response
+ * @param restrictedToken - The restricted access token from login response
  * @param code - The TOTP code from authenticator app
  * @param deviceId - Optional device ID to verify against (uses primary if not provided)
  */
 export const verifyMFALogin = async (
-  mfaToken: string,
+  restrictedToken: string,
   code: string,
   deviceId?: string,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const response = await api.post<ILoginResponse>("/auth/mfa/verify", {
-      mfa_token: mfaToken,
-      code,
-      ...(deviceId && { device_id: deviceId }),
-    });
+    const response = await api.post<ILoginResponse>(
+      "/auth/mfa/verify",
+      {
+        code,
+        ...(deviceId && { device_id: deviceId }),
+      },
+      { headers: { Authorization: `Bearer ${restrictedToken}` } },
+    );
 
     if (response.access_token && response.refresh_token) {
       authCookies.setAll(

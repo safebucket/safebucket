@@ -3,8 +3,8 @@ package models
 import "github.com/google/uuid"
 
 // MFALoginVerifyBody is used to verify MFA during login.
+// Token is extracted from Authorization header by middleware.
 type MFALoginVerifyBody struct {
-	MFAToken string     `json:"mfa_token" validate:"required"`
 	DeviceID *uuid.UUID `json:"device_id" validate:"omitempty"`
 	Code     string     `json:"code"      validate:"required,len=6,numeric"`
 }

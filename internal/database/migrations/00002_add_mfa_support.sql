@@ -3,6 +3,9 @@
 
 ALTER TYPE challenge_type ADD VALUE 'mfa_reset';
 
+-- Add status column to challenges table for tracking challenge state
+ALTER TABLE challenges ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending';
+
 CREATE TYPE mfa_device_type AS ENUM ('totp');
 
 CREATE TABLE mfa_devices (
@@ -50,5 +53,7 @@ DROP INDEX IF EXISTS idx_mfa_devices_user_id;
 DROP INDEX IF EXISTS idx_mfa_devices_one_default_per_user;
 DROP TABLE IF EXISTS mfa_devices;
 DROP TYPE IF EXISTS mfa_device_type;
+
+ALTER TABLE challenges DROP COLUMN status;
 
 -- +goose StatementEnd

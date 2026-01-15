@@ -121,15 +121,25 @@ func (r *RueidisCache) IsTOTPCodeUsed(deviceID string, code string) (bool, error
 	return result > 0, nil
 }
 
-func (r *RueidisCache) MarkTOTPCodeUsed(deviceID string, code string) error {
+func (r *RueidisCache) MarkTOTPCodeUsed(deviceID string, code string) (bool, error) {
 	ctx := context.Background()
 	key := fmt.Sprintf(configuration.CacheTOTPUsedKey, deviceID, code)
 
+	// SET key value NX EX ttl
+	// Returns OK if set, nil (RedisNil) if not set (already exists)
 	err := r.client.Do(
 		ctx,
-		r.client.B().Setex().Key(key).Seconds(int64(configuration.TOTPCodeTTL)).Value("1").Build(),
+		r.client.B().Set().Key(key).Value("1").Nx().ExSeconds(int64(configuration.TOTPCodeTTL)).Build(),
 	).Error()
-	return err
+
+	if err != nil {
+		if rueidis.IsRedisNil(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (r *RueidisCache) GetMFAAttempts(userID string) (int, error) {

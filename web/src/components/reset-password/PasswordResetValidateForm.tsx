@@ -1,23 +1,24 @@
-import type { FC } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { CheckCircle, Shield, Smartphone } from "lucide-react";
-import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-
 import type {
   IPasswordResetPasswordFormData,
   PasswordResetStage,
 } from "@/components/auth-view/helpers/types";
-import type { IMFADevice } from "@/components/mfa-view/helpers/types";
+import type { FC } from "react";
+
+import type { IMFADevice, IMFADevicesResponse  } from "@/components/mfa-view/helpers/types";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import {
-  api_validatePasswordReset,
   api_completePasswordReset,
+  api_validatePasswordReset,
   api_verifyMFAPasswordReset,
 } from "@/components/auth-view/helpers/api";
-import { authCookies } from "@/lib/auth-service";
+import { authCookies, decodeToken } from "@/lib/auth-service";
+import { fetchApi } from "@/lib/api";
 import { useRefreshSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,13 +29,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { MFADeviceSelector } from "@/components/mfa-view/components/MFADeviceSelector";
+import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";
 
 export interface IPasswordResetValidateFormProps {
   challengeId: string;
@@ -55,14 +52,14 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
   // Code verification state
   const [code, setCode] = useState("");
 
+  // Restricted access token (from code validation, used for MFA and completion)
+  const [restrictedToken, setRestrictedToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
   // MFA state
-  const [mfaToken, setMfaToken] = useState<string | null>(null);
-  const [mfaDevices, setMfaDevices] = useState<IMFADevice[]>([]);
+  const [mfaDevices, setMfaDevices] = useState<Array<IMFADevice>>([]);
   const [mfaCode, setMfaCode] = useState("");
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
-
-  // Completion token state
-  const [completionToken, setCompletionToken] = useState<string | null>(null);
 
   // Password form
   const {
@@ -89,18 +86,20 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     try {
       const response = await api_validatePasswordReset(challengeId, { code });
 
-      if (response.mfa_required && response.mfa_token) {
-        // MFA required - move to MFA stage
-        setMfaToken(response.mfa_token);
-        setMfaDevices(response.devices || []);
-        if (response.devices && response.devices.length > 0) {
-          const defaultDevice = response.devices.find((d) => d.is_default);
-          setSelectedDeviceId(defaultDevice?.id || response.devices[0].id);
-        }
+      // Store the restricted access token
+      setRestrictedToken(response.access_token);
+
+      // Decode token to get user ID for device fetching
+      const decoded = decodeToken(response.access_token);
+      if (decoded) {
+        setUserId(decoded.payload.user_id);
+      }
+
+      if (response.mfa_required) {
+        // MFA required - will fetch devices in useEffect, then move to MFA stage
         setStage("mfa");
-      } else if (response.completion_token) {
+      } else {
         // No MFA - move directly to password stage
-        setCompletionToken(response.completion_token);
         setStage("password");
       }
     } catch {
@@ -109,6 +108,28 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Fetch MFA devices when entering MFA stage
+  useEffect(() => {
+    if (stage === "mfa" && userId && restrictedToken && mfaDevices.length === 0) {
+      const fetchDevices = async () => {
+        try {
+          const response = await fetchApi<IMFADevicesResponse>(
+            `/users/${userId}/mfa/devices`,
+            { headers: { Authorization: `Bearer ${restrictedToken}` } },
+          );
+          setMfaDevices(response.devices);
+          if (response.devices.length > 0) {
+            const defaultDevice = response.devices.find((d) => d.is_default);
+            setSelectedDeviceId(defaultDevice?.id ?? response.devices[0].id);
+          }
+        } catch {
+          setError(t("auth.mfa.error_loading_devices"));
+        }
+      };
+      fetchDevices();
+    }
+  }, [stage, userId, restrictedToken, mfaDevices.length, t]);
 
   // Stage 2: MFA verification
   const handleMFASubmit = async (e: React.FormEvent) => {
@@ -120,7 +141,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
       return;
     }
 
-    if (!mfaToken) {
+    if (!restrictedToken) {
       setError(t("auth.password_reset.validate.error_session_expired"));
       return;
     }
@@ -129,18 +150,14 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
 
     try {
       const response = await api_verifyMFAPasswordReset(
-        mfaToken,
+        restrictedToken,
         mfaCode,
         selectedDeviceId || undefined,
       );
 
-      if (response.password_reset && response.completion_token) {
-        // MFA verified - move to password stage
-        setCompletionToken(response.completion_token);
-        setStage("password");
-      } else {
-        setError(t("auth.mfa.error_verification_failed"));
-      }
+      // Update restricted token with MFA-verified version
+      setRestrictedToken(response.access_token);
+      setStage("password");
     } catch {
       setError(t("auth.mfa.error_verification_failed"));
     } finally {
@@ -157,7 +174,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
       return;
     }
 
-    if (!completionToken) {
+    if (!restrictedToken) {
       setError(t("auth.password_reset.validate.error_session_expired"));
       return;
     }
@@ -165,10 +182,11 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     setIsLoading(true);
 
     try {
-      const response = await api_completePasswordReset(challengeId, {
-        completion_token: completionToken,
-        new_password: data.newPassword,
-      });
+      const response = await api_completePasswordReset(
+        challengeId,
+        { new_password: data.newPassword },
+        restrictedToken,
+      );
 
       // Set authentication state
       authCookies.setAll(
@@ -240,23 +258,11 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
               <p className="text-muted-foreground text-center text-sm">
                 {t("auth.mfa.code_instruction")}
               </p>
-              <div className="flex justify-center">
-                <InputOTP
-                  maxLength={6}
-                  value={mfaCode}
-                  onChange={(value) => setMfaCode(value)}
-                  disabled={isLoading}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
+              <MFAVerifyInput
+                value={mfaCode}
+                onChange={setMfaCode}
+                disabled={isLoading}
+              />
             </div>
 
             <Button
@@ -386,23 +392,12 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
             <Label className="flex justify-center" htmlFor="code">
               {t("auth.password_reset.validate.code_label")}
             </Label>
-            <div className="flex justify-center">
-              <InputOTP
-                maxLength={6}
-                value={code}
-                onChange={(value) => setCode(value)}
-                disabled={isLoading}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
+            <MFAVerifyInput
+              value={code}
+              onChange={setCode}
+              disabled={isLoading}
+              uppercase
+            />
           </div>
 
           <Button
