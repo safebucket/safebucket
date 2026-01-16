@@ -250,9 +250,9 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	user := challenge.User
 
 	var userWithMFA models.User
-	if err := s.DB.Preload("MFADevices", "is_verified = ?", true).
-		Where("id = ?", user.ID).First(&userWithMFA).Error; err != nil {
-		logger.Error("Failed to load user with MFA devices", zap.Error(err))
+	if dbErr := s.DB.Preload("MFADevices", "is_verified = ?", true).
+		Where("id = ?", user.ID).First(&userWithMFA).Error; dbErr != nil {
+		logger.Error("Failed to load user with MFA devices", zap.Error(dbErr))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 	user = &userWithMFA
