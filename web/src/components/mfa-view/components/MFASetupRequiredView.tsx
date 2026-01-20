@@ -40,7 +40,7 @@ export function MFASetupRequiredView({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const refreshSession = useRefreshSession();
-  const { restrictedToken, userId } = useMFAAuth();
+  const { restrictedToken } = useMFAAuth();
   const setupStarted = useRef(false);
 
   const [viewMode, setViewMode] = useState<ViewMode>("loading");
@@ -60,18 +60,18 @@ export function MFASetupRequiredView({
     goToVerify,
     goBack,
     verifyCode,
-  } = useMFASetup(userId ?? "", restrictedToken ?? undefined);
+  } = useMFASetup(restrictedToken ?? undefined);
 
   useEffect(() => {
     if (viewMode === "loading" && !setupStarted.current) {
-      if (userId && restrictedToken) {
+      if (restrictedToken) {
         setupStarted.current = true;
         setViewMode("setup");
       } else {
         navigate({ to: "/auth/login", search: { redirect: undefined } });
       }
     }
-  }, [viewMode, navigate, userId, restrictedToken]);
+  }, [viewMode, navigate, restrictedToken]);
 
   useEffect(() => {
     if (step === "success") {

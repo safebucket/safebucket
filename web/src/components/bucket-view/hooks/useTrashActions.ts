@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import type { IFile } from "@/types/file.ts";
+import type { IFolder } from "@/types/folder.ts";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import { api } from "@/lib/api";
 import { bucketTrashedFilesQueryOptions } from "@/queries/bucket";
-import type { IFile } from "@/types/file.ts";
-import type { IFolder } from "@/types/folder.ts";
 
 // Union type for trashed items (can be file or folder)
 export type TrashedItem = (IFile | IFolder) & { itemType: "file" | "folder" };
 
 export interface ITrashActions {
-  trashedItems: TrashedItem[];
+  trashedItems: Array<TrashedItem>;
   isLoading: boolean;
   restoreItem: (
     itemId: string,
@@ -36,7 +36,7 @@ export const useTrashActions = (): ITrashActions => {
   );
 
   // Combine files and folders into a single array with type markers
-  const trashedItems: TrashedItem[] = [
+  const trashedItems: Array<TrashedItem> = [
     ...(data?.files || []).map((file) => ({
       ...file,
       itemType: "file" as const,

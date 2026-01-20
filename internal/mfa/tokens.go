@@ -25,6 +25,7 @@ func HandleMFARequired(
 		user,
 		configuration.AudienceMFALogin,
 		false,
+		nil,
 	)
 	if err != nil {
 		logger.Error("Failed to generate restricted access token", zap.Error(err))

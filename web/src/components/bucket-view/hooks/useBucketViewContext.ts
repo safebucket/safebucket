@@ -13,13 +13,11 @@ export interface IBucketViewContext {
   openFolder: (item: BucketItem) => void;
 }
 
-export const BucketViewContext = createContext<IBucketViewContext>(
-  {} as IBucketViewContext,
-);
+export const BucketViewContext = createContext<IBucketViewContext | null>(null);
 
 export function useBucketViewContext() {
   const ctx = useContext(BucketViewContext);
-  if (!ctx) {
+  if (ctx === null) {
     throw new Error("useBucketViewContext() called outside of context");
   }
   return ctx;

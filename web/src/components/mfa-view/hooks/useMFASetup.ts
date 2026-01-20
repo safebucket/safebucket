@@ -31,14 +31,11 @@ export interface UseMFASetupReturn {
   reset: () => void;
 }
 
-export function useMFASetup(
-  userId: string,
-  mfaToken?: string,
-): UseMFASetupReturn {
+export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { addDevice, verifyDevice, isAddingDevice, isVerifyingDevice } =
-    useMFADevices(userId, mfaToken);
+    useMFADevices(mfaToken);
 
   const [step, setStep] = useState<SetupStep>("name");
   const [deviceName, setDeviceName] = useState(MFA_DEFAULT_DEVICE_NAME);
@@ -129,11 +126,11 @@ export function useMFASetup(
       }
 
       setStep("success");
-      queryClient.invalidateQueries({ queryKey: ["users", userId] });
+      queryClient.invalidateQueries({ queryKey: ["mfa", "devices"] });
     } catch {
       setError(t("auth.mfa.verify_error"));
     }
-  }, [code, setupData, verifyDevice, queryClient, userId, t]);
+  }, [code, setupData, verifyDevice, queryClient, t]);
 
   return {
     step,

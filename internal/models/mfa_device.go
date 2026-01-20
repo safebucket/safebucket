@@ -21,19 +21,16 @@ type MFADevice struct {
 	Type            MFADeviceType `gorm:"type:mfa_device_type;not null;default:'totp'"   json:"type"`
 	EncryptedSecret string        `gorm:"not null"                                       json:"-"`
 	IsDefault       bool          `gorm:"column:is_default;not null;default:false"       json:"is_default"`
-	IsVerified      bool          `gorm:"not null;default:false"                         json:"is_verified"`
+	IsVerified      bool          `gorm:"not null;default:false"                         json:"-"`
 	CreatedAt       time.Time     `                                                      json:"created_at"`
 	UpdatedAt       time.Time     `                                                      json:"updated_at"`
 	VerifiedAt      *time.Time    `                                                      json:"verified_at,omitempty"`
 	LastUsedAt      *time.Time    `                                                      json:"last_used_at,omitempty"`
 }
 
-// MFADevicesListResponse wraps device list with user MFA status.
+// MFADevicesListResponse wraps device list.
 type MFADevicesListResponse struct {
-	Devices     []MFADevice `json:"devices"`
-	MFAEnabled  bool        `json:"mfa_enabled"`
-	DeviceCount int         `json:"device_count"`
-	MaxDevices  int         `json:"max_devices"`
+	Devices []MFADevice `json:"devices"`
 }
 
 // MFADeviceSetupBody is used to initiate MFA setup.

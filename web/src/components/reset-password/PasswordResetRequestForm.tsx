@@ -1,13 +1,13 @@
 import { useState } from "react";
 
 import { Key, Mail } from "lucide-react";
-import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
 import type { IPasswordResetRequestFormData } from "@/components/auth-view/helpers/types.ts";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { api_requestPasswordReset } from "@/components/auth-view/helpers/api.ts";
 import { Button } from "@/components/ui/button.tsx";
 import {

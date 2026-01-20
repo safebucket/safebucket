@@ -183,19 +183,14 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
-	// Mark challenge as validated (code verified, waiting for MFA or password completion)
-	updateErr := s.DB.Model(&challenge).Update("status", models.ChallengeStatusValidated).Error
-	if updateErr != nil {
-		logger.Error("Failed to update challenge status", zap.Error(updateErr))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
 	// Generate restricted access token for password reset flow
+	// Include challenge ID in token to validate later (replaces status column check)
 	restrictedToken, tokenErr := h.NewRestrictedAccessToken(
 		s.AuthConfig.JWTSecret,
 		&userWithMFA,
 		configuration.AudienceMFAReset,
 		false,
+		&challengeID,
 	)
 	if tokenErr != nil {
 		logger.Error("Failed to generate restricted access token", zap.Error(tokenErr))
@@ -241,8 +236,16 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 ) (models.AuthLoginResponse, error) {
 	challengeID := ids[0]
 
-	// Find challenge for this user
-	challenge, err := s.getValidatedChallenge(logger, challengeID, claims.UserID)
+	// Verify the JWT contains a challenge_id that matches the URL
+	// This proves the code was validated (JWT only issued after successful validation)
+	if claims.ChallengeID == nil || *claims.ChallengeID != challengeID {
+		logger.Warn("Challenge ID mismatch in password reset completion",
+			zap.String("url_challenge_id", challengeID.String()),
+			zap.Any("jwt_challenge_id", claims.ChallengeID))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "INVALID_REQUEST")
+	}
+
+	challenge, err := s.getChallenge(logger, challengeID, claims.UserID)
 	if err != nil {
 		return models.AuthLoginResponse{}, err
 	}
@@ -340,8 +343,10 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	}, nil
 }
 
-func (s AuthPasswordResetService) getValidatedChallenge(
-	logger *zap.Logger,
+// getChallenge retrieves a challenge for the given user.
+// Note: Status check is no longer needed - the JWT's challenge_id proves the code was validated.
+func (s AuthPasswordResetService) getChallenge(
+	_ *zap.Logger,
 	challengeID uuid.UUID,
 	userID uuid.UUID,
 ) (*models.Challenge, error) {
@@ -357,14 +362,6 @@ func (s AuthPasswordResetService) getValidatedChallenge(
 
 	if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
 		s.DB.Delete(&challenge)
-		return nil, apierrors.NewAPIError(400, "INVALID_REQUEST")
-	}
-
-	// Challenge must be validated (code verified)
-	if challenge.Status != models.ChallengeStatusValidated {
-		logger.Warn("Password reset challenge not validated",
-			zap.String("challenge_id", challengeID.String()),
-			zap.String("status", string(challenge.Status)))
 		return nil, apierrors.NewAPIError(400, "INVALID_REQUEST")
 	}
 

@@ -75,7 +75,6 @@ func (s AuthService) Login(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "FORBIDDEN")
 	}
 
-	// Load user with verified MFA devices
 	var searchUser models.User
 	result := s.DB.Preload("MFADevices", "is_verified = ?", true).
 		Where("email = ? AND provider_type = ? AND provider_key = ?",
@@ -149,7 +148,6 @@ func (s AuthService) getMFASecretAndDevice(
 	return secret, targetDevice.ID.String(), targetDevice, nil
 }
 
-// selectMFADevice selects the MFA device for verification.
 func (s AuthService) selectMFADevice(
 	user *models.User,
 	verifiedDevices []models.MFADevice,
@@ -164,7 +162,6 @@ func (s AuthService) selectMFADevice(
 		return nil, apierrors.NewAPIError(404, "MFA_DEVICE_NOT_FOUND")
 	}
 
-	// Use default device or first verified device
 	if device := user.GetDefaultDevice(); device != nil {
 		return device, nil
 	}
@@ -182,8 +179,16 @@ func (s AuthService) Verify(
 	_ uuid.UUIDs,
 	body models.AuthVerifyBody,
 ) (any, error) {
-	data, err := h.ParseAccessToken(s.AuthConfig.JWTSecret, body.AccessToken)
-	return data, err
+	claims, err := h.ParseToken(s.AuthConfig.JWTSecret, body.AccessToken, true)
+	if err != nil {
+		return models.UserClaims{}, errors.New("invalid access token")
+	}
+
+	if claims.Aud != configuration.AudienceAccessToken {
+		return models.UserClaims{}, errors.New("invalid access token audience")
+	}
+
+	return claims, nil
 }
 
 func (s AuthService) Refresh(
@@ -229,7 +234,6 @@ func (s AuthService) VerifyMFALogin(
 	// Audience validation is handled by middleware via routeAudienceRules
 	// This endpoint accepts both AudienceMFALogin and AudienceMFAReset
 
-	// Load user with verified MFA devices
 	var user models.User
 	result := s.DB.Preload("MFADevices", "is_verified = ?", true).
 		Where("id = ? AND provider_type = ?", claims.UserID, models.LocalProviderType).
@@ -243,10 +247,10 @@ func (s AuthService) VerifyMFALogin(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "MFA_NOT_ENABLED")
 	}
 
-	// Check MFA rate limiting
 	attempts, err := s.Cache.GetMFAAttempts(user.ID.String())
 	if err != nil {
-		logger.Error("Failed to get MFA attempts", zap.Error(err))
+		logger.Error("Rate limit check failed - denying request", zap.Error(err))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(503, "SERVICE_UNAVAILABLE")
 	}
 	if attempts >= configuration.MFAMaxAttempts {
 		logger.Warn("MFA rate limit exceeded",
@@ -287,27 +291,8 @@ func (s AuthService) VerifyMFALogin(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
 	}
 
-	// Reset MFA attempts on successful verification
 	if resetErr := s.Cache.ResetMFAAttempts(user.ID.String()); resetErr != nil {
 		logger.Warn("Failed to reset MFA attempts", zap.Error(resetErr))
-	}
-
-	accessToken, err := h.NewAccessToken(
-		s.AuthConfig.JWTSecret,
-		&user,
-		string(models.LocalProviderType),
-	)
-	if err != nil {
-		return models.AuthLoginResponse{}, apierrors.ErrGenerateAccessTokenFailed
-	}
-
-	refreshToken, err := h.NewRefreshToken(
-		s.AuthConfig.JWTSecret,
-		&user,
-		string(models.LocalProviderType),
-	)
-	if err != nil {
-		return models.AuthLoginResponse{}, apierrors.ErrGenerateRefreshTokenFailed
 	}
 
 	logger.Info("MFA login verification successful",
@@ -317,13 +302,14 @@ func (s AuthService) VerifyMFALogin(
 
 	// If audience is PasswordReset, return a new restricted token with MFA=true
 	// Do NOT issue full access tokens for password reset flow
+	// Preserve the challenge ID from the original token
 	if claims.Aud == configuration.AudienceMFAReset {
-		var restrictedToken string
-		restrictedToken, err = h.NewRestrictedAccessToken(
+		restrictedToken, err := h.NewRestrictedAccessToken(
 			s.AuthConfig.JWTSecret,
 			&user,
 			configuration.AudienceMFAReset,
-			true, // Verified!
+			true,               // Verified!
+			claims.ChallengeID, // Preserve challenge ID
 		)
 		if err != nil {
 			return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
@@ -335,10 +321,7 @@ func (s AuthService) VerifyMFALogin(
 		}, nil
 	}
 
-	return models.AuthLoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	}, nil
+	return mfa.GenerateTokens(s.AuthConfig, &user)
 }
 
 func (s AuthService) GetProviderList(

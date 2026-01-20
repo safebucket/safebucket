@@ -114,7 +114,9 @@ func main() {
 	authConfig := config.App.GetAuthConfig()
 
 	r.Route("/api", func(apiRouter chi.Router) {
-		apiRouter.Use(m.Authenticate(authConfig.JWTSecret, authConfig.MFARequired))
+		apiRouter.Use(m.Authenticate(authConfig.JWTSecret))
+		apiRouter.Use(m.AudienceValidate)
+		apiRouter.Use(m.MFAValidate(authConfig.MFARequired))
 		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
 
 		userService := services.UserService{
@@ -126,6 +128,14 @@ func main() {
 		}
 
 		apiRouter.Mount("/v1/users", userService.Routes())
+
+		apiRouter.Mount("/v1/mfa", services.MFAService{
+			DB:         db,
+			Cache:      cache,
+			AuthConfig: authConfig,
+			Publisher:  eventRouter,
+			Notifier:   notifier,
+		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
 			DB:                 db,

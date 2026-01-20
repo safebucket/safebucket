@@ -1,12 +1,11 @@
 import {
-  
   createContext,
   useCallback,
   useContext,
   useEffect,
-  useState
+  useState,
 } from "react";
-import type {ReactNode} from "react";
+import type { ReactNode } from "react";
 import type {
   IMFADevice,
   IMFADevicesResponse,
@@ -15,10 +14,9 @@ import { fetchApi } from "@/lib/api";
 
 interface IMFAAuthContext {
   restrictedToken: string | null;
-  userId: string | null;
   devices: Array<IMFADevice>;
   isLoadingDevices: boolean;
-  setMFAAuth: (token: string, userId: string) => void;
+  setMFAAuth: (token: string) => void;
   clearMFAAuth: () => void;
 }
 
@@ -26,33 +24,29 @@ const MFAAuthContext = createContext<IMFAAuthContext | null>(null);
 
 export function MFAAuthProvider({ children }: { children: ReactNode }) {
   const [restrictedToken, setRestrictedToken] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [devices, setDevices] = useState<Array<IMFADevice>>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
   const [devicesFetched, setDevicesFetched] = useState(false);
 
-  const setMFAAuth = useCallback((token: string, uid: string) => {
+  const setMFAAuth = useCallback((token: string) => {
     setRestrictedToken(token);
-    setUserId(uid);
     setDevices([]);
     setDevicesFetched(false);
   }, []);
 
   const clearMFAAuth = useCallback(() => {
     setRestrictedToken(null);
-    setUserId(null);
     setDevices([]);
     setDevicesFetched(false);
   }, []);
 
-  // Fetch devices when token and userId are set
   useEffect(() => {
-    if (restrictedToken && userId && !devicesFetched && !isLoadingDevices) {
+    if (restrictedToken && !devicesFetched && !isLoadingDevices) {
       const fetchDevices = async () => {
         setIsLoadingDevices(true);
         try {
           const response = await fetchApi<IMFADevicesResponse>(
-            `/users/${userId}/mfa/devices`,
+            `/mfa/devices`,
             { headers: { Authorization: `Bearer ${restrictedToken}` } },
           );
           setDevices(response.devices);
@@ -66,7 +60,7 @@ export function MFAAuthProvider({ children }: { children: ReactNode }) {
       };
       fetchDevices();
     }
-  }, [restrictedToken, userId, devicesFetched, isLoadingDevices]);
+  }, [restrictedToken, devicesFetched, isLoadingDevices]);
 
   // Auto-clear after 15 minutes
   useEffect(() => {
@@ -86,7 +80,6 @@ export function MFAAuthProvider({ children }: { children: ReactNode }) {
     <MFAAuthContext.Provider
       value={{
         restrictedToken,
-        userId,
         devices,
         isLoadingDevices,
         setMFAAuth,

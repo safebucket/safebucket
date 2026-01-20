@@ -7,15 +7,13 @@ import { MFAEmptyState } from "@/components/mfa-view/components/MFAEmptyState";
 import { MFAActions } from "@/components/mfa-view/components/MFAActions";
 import { MFASetupDialog } from "@/components/mfa-view/components/MFASetupDialog";
 import { MFADeleteDialog } from "@/components/mfa-view/components/MFADeleteDialog";
-import { MFAResetDialog } from "@/components/mfa-view/components/MFAResetDialog";
 import { useMFADevices } from "@/components/mfa-view/hooks/useMFADevices";
 
 interface MFAViewProps {
-  userId: string;
   className?: string;
 }
 
-export function MFAView({ userId, className }: MFAViewProps) {
+export function MFAView({ className }: MFAViewProps) {
   const {
     devices,
     isLoading,
@@ -23,16 +21,14 @@ export function MFAView({ userId, className }: MFAViewProps) {
     deviceCount,
     maxDevices,
     setDefault,
-  } = useMFADevices(userId);
+  } = useMFADevices();
 
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [deleteDeviceId, setDeleteDeviceId] = useState<string | null>(null);
-  const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   const closeAllDialogs = () => {
     setSetupDialogOpen(false);
     setDeleteDeviceId(null);
-    setResetDialogOpen(false);
   };
 
   const renderContent = () => {
@@ -55,7 +51,6 @@ export function MFAView({ userId, className }: MFAViewProps) {
           deviceCount={deviceCount}
           maxDevices={maxDevices}
           onAddDevice={() => setSetupDialogOpen(true)}
-          onReset={() => setResetDialogOpen(true)}
         />
       </>
     );
@@ -71,21 +66,8 @@ export function MFAView({ userId, className }: MFAViewProps) {
         />
         <CardContent className="space-y-4">{renderContent()}</CardContent>
       </Card>
-      <MFASetupDialog
-        userId={userId}
-        open={setupDialogOpen}
-        onClose={closeAllDialogs}
-      />
-      <MFADeleteDialog
-        userId={userId}
-        deviceId={deleteDeviceId}
-        onClose={closeAllDialogs}
-      />
-      <MFAResetDialog
-        userId={userId}
-        open={resetDialogOpen}
-        onClose={closeAllDialogs}
-      />
+      <MFASetupDialog open={setupDialogOpen} onClose={closeAllDialogs} />
+      <MFADeleteDialog deviceId={deleteDeviceId} onClose={closeAllDialogs} />
     </>
   );
 }

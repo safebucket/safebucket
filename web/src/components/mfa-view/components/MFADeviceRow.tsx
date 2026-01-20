@@ -47,7 +47,7 @@ export function MFADeviceRow({
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {!device.is_default && device.is_verified && (
+        {!device.is_default && (
           <Button
             variant="ghost"
             size="sm"

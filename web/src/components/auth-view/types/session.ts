@@ -56,7 +56,6 @@ export interface IMFADevice {
   name: string;
   type: MFADeviceType;
   is_default: boolean;
-  is_verified: boolean;
   created_at: string;
   verified_at?: string;
   last_used_at?: string;
@@ -64,9 +63,6 @@ export interface IMFADevice {
 
 export interface IMFADevicesResponse {
   devices: Array<IMFADevice>;
-  mfa_enabled: boolean;
-  device_count: number;
-  max_devices: number;
 }
 
 export interface IMFADeviceSetupResponse {

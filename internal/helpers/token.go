@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"api/internal/models"
-
 	"api/internal/configuration"
+	"api/internal/models"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 // tokenConfig holds configuration for creating a specific token type.
@@ -21,21 +21,12 @@ type tokenConfig struct {
 	audience      string
 	provider      string
 	mfa           *bool // nil = don't set (defaults to false), otherwise set to this value
-	expiryMinutes int   // From configuration constants
+	expiryMinutes int
+	challengeID   *uuid.UUID
 }
 
-// boolPtr returns a pointer to the given bool value.
 func boolPtr(b bool) *bool {
 	return &b
-}
-
-// parseTokenConfig holds configuration for parsing a specific token type.
-type parseTokenConfig struct {
-	tokenString      string
-	allowedAudiences []string // One or more allowed audience values
-	requireBearer    bool
-	errorMessage     string
-	audienceError    string
 }
 
 // createToken is a generic helper for creating JWT tokens with specified configuration.
@@ -59,20 +50,22 @@ func createToken(jwtSecret string, user *models.User, config tokenConfig) (strin
 		claims.MFA = *config.mfa
 	}
 
+	if config.challengeID != nil {
+		claims.ChallengeID = config.challengeID
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(jwtSecret))
 }
 
-// parseToken is a generic helper for parsing and validating JWT tokens.
-// This private function consolidates the common token parsing logic used by all public
-// token parsing functions (ParseAccessToken, ParseRefreshToken, etc.).
-func parseToken(jwtSecret string, config parseTokenConfig) (models.UserClaims, error) {
-	tokenString := config.tokenString
-
-	// Handle Bearer prefix if required
-	if config.requireBearer {
+// ParseToken parses and validates a JWT token without audience validation.
+// It validates signature, expiry, and issuer only.
+// Audience validation is delegated to the AudienceValidate middleware for route-specific rules.
+// The requireBearer parameter controls whether the "Bearer " prefix is required.
+func ParseToken(jwtSecret string, tokenString string, requireBearer bool) (models.UserClaims, error) {
+	if requireBearer {
 		if !strings.HasPrefix(tokenString, "Bearer ") {
-			return models.UserClaims{}, errors.New(config.errorMessage)
+			return models.UserClaims{}, errors.New("invalid token")
 		}
 		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 	}
@@ -90,19 +83,7 @@ func parseToken(jwtSecret string, config parseTokenConfig) (models.UserClaims, e
 		},
 	)
 	if err != nil {
-		return models.UserClaims{}, errors.New(config.errorMessage)
-	}
-
-	// Validate audience to prevent token type confusion attacks
-	audienceValid := false
-	for _, allowed := range config.allowedAudiences {
-		if claims.Aud == allowed {
-			audienceValid = true
-			break
-		}
-	}
-	if !audienceValid {
-		return models.UserClaims{}, errors.New(config.audienceError)
+		return models.UserClaims{}, errors.New("invalid token")
 	}
 
 	return *claims, nil
@@ -133,16 +114,6 @@ func NewAccessToken(jwtSecret string, user *models.User, provider string) (strin
 	})
 }
 
-func ParseAccessToken(jwtSecret string, accessToken string) (models.UserClaims, error) {
-	return parseToken(jwtSecret, parseTokenConfig{
-		tokenString:      accessToken,
-		allowedAudiences: []string{configuration.AudienceAccessToken},
-		requireBearer:    true,
-		errorMessage:     "invalid access token",
-		audienceError:    "invalid access token audience",
-	})
-}
-
 func NewRefreshToken(jwtSecret string, user *models.User, provider string) (string, error) {
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      configuration.AudienceRefreshToken,
@@ -152,14 +123,19 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string) (stri
 	})
 }
 
+// ParseRefreshToken validates and parses a refresh token.
+// Returns error if token is invalid or has wrong audience.
 func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims, error) {
-	return parseToken(jwtSecret, parseTokenConfig{
-		tokenString:      refreshToken,
-		allowedAudiences: []string{configuration.AudienceRefreshToken},
-		requireBearer:    false,
-		errorMessage:     "invalid refresh token",
-		audienceError:    "invalid refresh token audience",
-	})
+	claims, err := ParseToken(jwtSecret, refreshToken, false)
+	if err != nil {
+		return models.UserClaims{}, errors.New("invalid refresh token")
+	}
+
+	if claims.Aud != configuration.AudienceRefreshToken {
+		return models.UserClaims{}, errors.New("invalid refresh token audience")
+	}
+
+	return claims, nil
 }
 
 func GetUserClaims(c context.Context) (models.UserClaims, error) {
@@ -188,27 +164,13 @@ func GenerateSecret() (string, error) {
 // This token grants limited access: only MFA device management and verification endpoints.
 // Used for both login MFA and password reset MFA flows.
 // Audience: "auth:mfa:login" or "auth:mfa:password-reset".
-func NewRestrictedAccessToken(jwtSecret string, user *models.User, audience string, mfaVerified bool) (string, error) {
+// For password reset flow, challengeID should be provided to link the token to the challenge.
+func NewRestrictedAccessToken(jwtSecret string, user *models.User, audience string, mfaVerified bool, challengeID *uuid.UUID) (string, error) {
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      audience,
 		provider:      string(user.ProviderType),
 		mfa:           boolPtr(mfaVerified),
 		expiryMinutes: configuration.MFATokenExpiry,
-	})
-}
-
-// ParseRestrictedAccessToken validates and parses a restricted access token.
-// Returns the user claims if the token is valid and has one of the allowed restricted audiences:
-// - auth:mfa:login (login MFA flow)
-// - auth:mfa:password-reset (password reset MFA flow)
-// Accepts Bearer prefix for consistency with regular access tokens.
-// Note: Callers should perform additional audience checks if flow-specific validation is needed.
-func ParseRestrictedAccessToken(jwtSecret string, token string) (models.UserClaims, error) {
-	return parseToken(jwtSecret, parseTokenConfig{
-		tokenString:      token,
-		allowedAudiences: []string{configuration.AudienceMFALogin, configuration.AudienceMFAReset},
-		requireBearer:    true,
-		errorMessage:     "invalid restricted access token",
-		audienceError:    "invalid restricted access token audience",
+		challengeID:   challengeID,
 	})
 }

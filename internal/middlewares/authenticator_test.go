@@ -142,7 +142,7 @@ func TestAuthenticate(t *testing.T) {
 			}
 			recorder := httptest.NewRecorder()
 
-			handler := Authenticate(testJWTSecret, false)(http.HandlerFunc(mockAuthenticatedNextHandler))
+			handler := Authenticate(testJWTSecret)(http.HandlerFunc(mockAuthenticatedNextHandler))
 			handler.ServeHTTP(recorder, req)
 
 			assert.Equal(t, tt.expectedStatus, recorder.Code)
@@ -193,7 +193,7 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 		},
 		{
 			name:           "Excluded path - /api/v1/invites/* without token (GET)",
-			path:           "/api/v1/invites/123",
+			path:           "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000",
 			method:         http.MethodGet,
 			authHeader:     "",
 			expectedStatus: http.StatusOK,
@@ -239,7 +239,7 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 				_, _ = w.Write([]byte("OK"))
 			})
 
-			handler := Authenticate(testJWTSecret, false)(simpleHandler)
+			handler := Authenticate(testJWTSecret)(simpleHandler)
 			handler.ServeHTTP(recorder, req)
 
 			assert.Equal(t, tt.expectedStatus, recorder.Code, tt.description)
@@ -252,45 +252,100 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 	}
 }
 
-func TestIsExcluded(t *testing.T) {
+func TestIsAuthExcluded(t *testing.T) {
 	testCases := []struct {
 		name     string
 		path     string
 		method   string
 		expected bool
 	}{
+		// Auth login endpoint - only POST is excluded
 		{
-			name:     "Excluded - prefix match /api/v1/auth with GET",
-			path:     "/api/v1/auth/login",
-			method:   "GET",
-			expected: true,
-		},
-		{
-			name:     "Excluded - prefix match /api/v1/auth with POST",
+			name:     "Excluded - /api/v1/auth/login with POST",
 			path:     "/api/v1/auth/login",
 			method:   "POST",
 			expected: true,
 		},
 		{
-			name:     "Excluded - prefix match /api/v1/auth with wildcard",
-			path:     "/api/v1/auth/providers",
-			method:   "PUT",
-			expected: true,
+			name:     "Not excluded - /api/v1/auth/login with GET",
+			path:     "/api/v1/auth/login",
+			method:   "GET",
+			expected: false,
 		},
+		// Auth providers - wildcard method
 		{
-			name:     "Excluded - prefix match /api/v1/invites with GET",
-			path:     "/api/v1/invites/123",
+			name:     "Excluded - /api/v1/auth/providers with GET",
+			path:     "/api/v1/auth/providers",
 			method:   "GET",
 			expected: true,
 		},
 		{
-			name:     "Not excluded - /api/v1/buckets (RequireAuth: true)",
+			name:     "Excluded - /api/v1/auth/providers/google/begin with GET",
+			path:     "/api/v1/auth/providers/google/begin",
+			method:   "GET",
+			expected: true,
+		},
+		// Auth verify and refresh - only POST is excluded
+		{
+			name:     "Excluded - /api/v1/auth/verify with POST",
+			path:     "/api/v1/auth/verify",
+			method:   "POST",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/auth/refresh with POST",
+			path:     "/api/v1/auth/refresh",
+			method:   "POST",
+			expected: true,
+		},
+		// MFA verify - requires auth (not in exclusion list)
+		{
+			name:     "Not excluded - /api/v1/auth/mfa/verify requires auth",
+			path:     "/api/v1/auth/mfa/verify",
+			method:   "POST",
+			expected: false,
+		},
+		// Password reset paths
+		{
+			name:     "Excluded - /api/v1/auth/reset-password with POST (initiate)",
+			path:     "/api/v1/auth/reset-password",
+			method:   "POST",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/auth/reset-password/{id}/validate with POST",
+			path:     "/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/validate",
+			method:   "POST",
+			expected: true,
+		},
+		{
+			name:     "Not excluded - /api/v1/auth/reset-password/{id}/complete requires auth",
+			path:     "/api/v1/auth/reset-password/abc-123/complete",
+			method:   "POST",
+			expected: false,
+		},
+		// Invites - wildcard method but POST requires auth (exact path override)
+		{
+			name:     "Excluded - /api/v1/invites/123 with GET",
+			path:     "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000",
+			method:   "GET",
+			expected: true,
+		},
+		{
+			name:     "Not excluded - /api/v1/invites with POST (exact path override)",
+			path:     "/api/v1/invites",
+			method:   "POST",
+			expected: false,
+		},
+		// General paths - auth required by default
+		{
+			name:     "Not excluded - /api/v1/buckets (auth required by default)",
 			path:     "/api/v1/buckets",
 			method:   "GET",
 			expected: false,
 		},
 		{
-			name:     "Not excluded - /api/v1/users (RequireAuth: true)",
+			name:     "Not excluded - /api/v1/users (auth required by default)",
 			path:     "/api/v1/users",
 			method:   "GET",
 			expected: false,
@@ -313,11 +368,17 @@ func TestIsExcluded(t *testing.T) {
 			method:   "GET",
 			expected: false,
 		},
+		{
+			name:     "Not excluded - /api/v1/mfa requires auth",
+			path:     "/api/v1/mfa/devices",
+			method:   "GET",
+			expected: false,
+		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isExcluded(tt.path, tt.method)
+			result := isAuthExcluded(tt.path, tt.method)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -346,7 +407,7 @@ func TestAuthenticate_UserClaimsInContext(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+validToken)
 	recorder := httptest.NewRecorder()
 
-	handler := Authenticate(testJWTSecret, false)(testHandler)
+	handler := Authenticate(testJWTSecret)(testHandler)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -389,135 +450,8 @@ func TestAuthenticate_ContextPropagation(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 
-	handler := Authenticate(testJWTSecret, false)(testHandler)
+	handler := Authenticate(testJWTSecret)(testHandler)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
-}
-
-// TestRouteAudienceValidation tests the route-level audience validation
-// that prevents cross-flow attacks (e.g., login tokens accessing password reset endpoints).
-func TestRouteAudienceValidation(t *testing.T) {
-	t.Run("password reset completion rejects login MFA tokens", func(t *testing.T) {
-		allowed := isAudienceAllowedForRoute(
-			"auth:mfa:login",
-			"/api/v1/auth/reset-password/abc123/complete",
-			"POST",
-		)
-		assert.False(t, allowed, "Login MFA tokens should NOT be allowed for password reset completion")
-	})
-
-	t.Run("password reset completion accepts reset MFA tokens", func(t *testing.T) {
-		allowed := isAudienceAllowedForRoute(
-			"auth:mfa:password-reset",
-			"/api/v1/auth/reset-password/abc123/complete",
-			"POST",
-		)
-		assert.True(t, allowed, "Password reset MFA tokens SHOULD be allowed for password reset completion")
-	})
-
-	t.Run("MFA verify accepts login MFA tokens", func(t *testing.T) {
-		allowed := isAudienceAllowedForRoute(
-			"auth:mfa:login",
-			"/api/v1/auth/mfa/verify",
-			"POST",
-		)
-		assert.True(t, allowed, "Login MFA tokens SHOULD be allowed for MFA verification")
-	})
-
-	t.Run("MFA verify accepts reset MFA tokens", func(t *testing.T) {
-		allowed := isAudienceAllowedForRoute(
-			"auth:mfa:password-reset",
-			"/api/v1/auth/mfa/verify",
-			"POST",
-		)
-		assert.True(t, allowed, "Password reset MFA tokens SHOULD be allowed for MFA verification")
-	})
-
-	t.Run("MFA device list accepts both token types", func(t *testing.T) {
-		pathWithUUID := "/api/v1/users/550e8400-e29b-41d4-a716-446655440000/mfa/devices"
-
-		loginAllowed := isAudienceAllowedForRoute("auth:mfa:login", pathWithUUID, "GET")
-		resetAllowed := isAudienceAllowedForRoute("auth:mfa:password-reset", pathWithUUID, "GET")
-
-		assert.True(t, loginAllowed, "Login MFA tokens SHOULD be allowed for device listing")
-		assert.True(t, resetAllowed, "Password reset MFA tokens SHOULD be allowed for device listing")
-	})
-
-	t.Run("MFA device creation accepts both token types", func(t *testing.T) {
-		pathWithUUID := "/api/v1/users/550e8400-e29b-41d4-a716-446655440000/mfa/devices"
-
-		loginAllowed := isAudienceAllowedForRoute("auth:mfa:login", pathWithUUID, "POST")
-		resetAllowed := isAudienceAllowedForRoute("auth:mfa:password-reset", pathWithUUID, "POST")
-
-		assert.True(t, loginAllowed, "Login MFA tokens SHOULD be allowed for device creation")
-		assert.True(t, resetAllowed, "Password reset MFA tokens SHOULD be allowed for device creation")
-	})
-
-	t.Run("MFA device verify accepts both token types", func(t *testing.T) {
-		pathWithUUID := "/api/v1/users/550e8400-e29b-41d4-a716-446655440000/mfa/devices/123/verify"
-
-		loginAllowed := isAudienceAllowedForRoute("auth:mfa:login", pathWithUUID, "POST")
-		resetAllowed := isAudienceAllowedForRoute("auth:mfa:password-reset", pathWithUUID, "POST")
-
-		assert.True(t, loginAllowed, "Login MFA tokens SHOULD be allowed for device verification")
-		assert.True(t, resetAllowed, "Password reset MFA tokens SHOULD be allowed for device verification")
-	})
-
-	t.Run("unconfigured route rejects all restricted tokens", func(t *testing.T) {
-		// Routes without explicit rules should reject restricted tokens
-		loginAllowed := isAudienceAllowedForRoute("auth:mfa:login", "/api/v1/buckets", "GET")
-		resetAllowed := isAudienceAllowedForRoute("auth:mfa:password-reset", "/api/v1/buckets", "GET")
-
-		assert.False(t, loginAllowed, "Login MFA tokens should NOT access bucket endpoints")
-		assert.False(t, resetAllowed, "Password reset MFA tokens should NOT access bucket endpoints")
-	})
-
-	t.Run("wrong method is rejected", func(t *testing.T) {
-		// Password reset completion only allows POST
-		getNotAllowed := isAudienceAllowedForRoute(
-			"auth:mfa:password-reset",
-			"/api/v1/auth/reset-password/abc123/complete",
-			"GET",
-		)
-		assert.False(t, getNotAllowed, "GET method should NOT be allowed for password reset completion")
-	})
-
-	t.Run("access token audience is rejected for restricted endpoints", func(t *testing.T) {
-		// Full access tokens (app:*) should not match restricted token rules
-		allowed := isAudienceAllowedForRoute(
-			"app:*",
-			"/api/v1/auth/mfa/verify",
-			"POST",
-		)
-		assert.False(t, allowed, "Full access tokens should NOT match restricted endpoint rules")
-	})
-}
-
-// TestGetRouteAllowedAudiences tests the helper function that returns allowed audiences for a route.
-func TestGetRouteAllowedAudiences(t *testing.T) {
-	t.Run("returns audiences for configured route", func(t *testing.T) {
-		audiences := getRouteAllowedAudiences("/api/v1/auth/mfa/verify", "POST")
-		assert.NotNil(t, audiences)
-		assert.Len(t, audiences, 2)
-		assert.Contains(t, audiences, "auth:mfa:login")
-		assert.Contains(t, audiences, "auth:mfa:password-reset")
-	})
-
-	t.Run("returns single audience for password reset completion", func(t *testing.T) {
-		audiences := getRouteAllowedAudiences("/api/v1/auth/reset-password/123/complete", "POST")
-		assert.NotNil(t, audiences)
-		assert.Len(t, audiences, 1)
-		assert.Contains(t, audiences, "auth:mfa:password-reset")
-	})
-
-	t.Run("returns nil for unconfigured route", func(t *testing.T) {
-		audiences := getRouteAllowedAudiences("/api/v1/buckets", "GET")
-		assert.Nil(t, audiences)
-	})
-
-	t.Run("returns nil for wrong method", func(t *testing.T) {
-		audiences := getRouteAllowedAudiences("/api/v1/auth/mfa/verify", "GET")
-		assert.Nil(t, audiences)
-	})
 }

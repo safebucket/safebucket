@@ -147,8 +147,8 @@ func TestNewAccessToken(t *testing.T) {
 	})
 }
 
-// TestParseAccessToken tests JWT access token parsing.
-func TestParseAccessToken(t *testing.T) {
+// TestParseToken tests the generic JWT token parsing function.
+func TestParseToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
 		ID:    uuid.New(),
@@ -157,45 +157,55 @@ func TestParseAccessToken(t *testing.T) {
 	}
 	provider := "local"
 
-	t.Run("should parse valid access token", func(t *testing.T) {
+	t.Run("should parse valid token with Bearer prefix", func(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider)
 		require.NoError(t, err)
 
-		claims, err := ParseAccessToken(jwtSecret, "Bearer "+token)
+		claims, err := ParseToken(jwtSecret, "Bearer "+token, true)
 
 		require.NoError(t, err)
 		assert.Equal(t, user.Email, claims.Email)
 		assert.Equal(t, user.ID, claims.UserID)
 		assert.Equal(t, user.Role, claims.Role)
-		assert.Equal(t, provider, claims.Provider)
+		assert.Equal(t, "app:*", claims.Aud) // Audience is in claims, not validated
 	})
 
-	t.Run("should reject token without Bearer prefix", func(t *testing.T) {
+	t.Run("should parse valid token without Bearer prefix when not required", func(t *testing.T) {
+		token, err := NewRefreshToken(jwtSecret, user, provider)
+		require.NoError(t, err)
+
+		claims, err := ParseToken(jwtSecret, token, false)
+
+		require.NoError(t, err)
+		assert.Equal(t, user.Email, claims.Email)
+		assert.Equal(t, "auth:refresh", claims.Aud)
+	})
+
+	t.Run("should reject token without Bearer prefix when required", func(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider)
 		require.NoError(t, err)
 
-		_, err = ParseAccessToken(jwtSecret, token)
+		_, err = ParseToken(jwtSecret, token, true)
 		assert.Error(t, err)
-		assert.Equal(t, "invalid access token", err.Error())
+		assert.Equal(t, "invalid token", err.Error())
+	})
+
+	t.Run("should reject malformed token", func(t *testing.T) {
+		_, err := ParseToken(jwtSecret, "Bearer invalid.token.here", true)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid token", err.Error())
 	})
 
 	t.Run("should reject token with wrong secret", func(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider)
 		require.NoError(t, err)
 
-		_, err = ParseAccessToken("wrong-secret", "Bearer "+token)
+		_, err = ParseToken("wrong-secret", "Bearer "+token, true)
 		assert.Error(t, err)
-		assert.Equal(t, "invalid access token", err.Error())
-	})
-
-	t.Run("should reject malformed token", func(t *testing.T) {
-		_, err := ParseAccessToken(jwtSecret, "Bearer invalid.token.here")
-		assert.Error(t, err)
-		assert.Equal(t, "invalid access token", err.Error())
+		assert.Equal(t, "invalid token", err.Error())
 	})
 
 	t.Run("should reject expired token", func(t *testing.T) {
-		// Create a token with past expiration
 		claims := models.UserClaims{
 			Email:    user.Email,
 			UserID:   user.ID,
@@ -212,108 +222,28 @@ func TestParseAccessToken(t *testing.T) {
 		signedToken, err := token.SignedString([]byte(jwtSecret))
 		require.NoError(t, err)
 
-		_, err = ParseAccessToken(jwtSecret, "Bearer "+signedToken)
+		_, err = ParseToken(jwtSecret, "Bearer "+signedToken, true)
 		assert.Error(t, err)
 	})
 
-	t.Run("should reject token with wrong signing method", func(t *testing.T) {
-		// Create token with RS256 instead of HS256
-		claims := models.UserClaims{
-			Email:    user.Email,
-			UserID:   user.ID,
-			Role:     user.Role,
-			Aud:      "app:*",
-			Provider: provider,
-			Issuer:   "safebucket",
-			RegisteredClaims: jwt.RegisteredClaims{
-				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour)},
-			},
-		}
+	t.Run("should parse token with any audience (no audience validation)", func(t *testing.T) {
+		// Create tokens with different audiences
+		accessToken, _ := NewAccessToken(jwtSecret, user, provider)
+		refreshToken, _ := NewRefreshToken(jwtSecret, user, provider)
+		mfaToken, _ := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 
-		// Try to use HMAC with a different algorithm indicator (this is a simulation)
-		// In practice, this test verifies the signing method check works
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
-		require.NoError(t, err)
+		// ParseToken should accept all of them - audience validation is not its responsibility
+		claims1, err1 := ParseToken(jwtSecret, "Bearer "+accessToken, true)
+		claims2, err2 := ParseToken(jwtSecret, refreshToken, false)
+		claims3, err3 := ParseToken(jwtSecret, "Bearer "+mfaToken, true)
 
-		// This should pass, but if we modify the algorithm in the header, it should fail
-		// For now, verify that the function checks signing method
-		_, err = ParseAccessToken(jwtSecret, "Bearer "+signedToken)
-		require.NoError(t, err) // This one is valid
-	})
+		require.NoError(t, err1)
+		require.NoError(t, err2)
+		require.NoError(t, err3)
 
-	// Security fix tests: Validate audience claim to prevent token type confusion
-	t.Run("should reject restricted access token as full access token", func(t *testing.T) {
-		// Create a restricted access token
-		restrictedToken, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
-		require.NoError(t, err)
-
-		// Try to parse it as a full access token
-		_, err = ParseAccessToken(jwtSecret, "Bearer "+restrictedToken)
-
-		// Should fail with audience error
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "audience", "should reject restricted token with audience error")
-	})
-
-	t.Run("should reject refresh token as access token", func(t *testing.T) {
-		// Create a refresh token
-		refreshToken, err := NewRefreshToken(jwtSecret, user, provider)
-		require.NoError(t, err)
-
-		// Try to parse it as an access token
-		_, err = ParseAccessToken(jwtSecret, "Bearer "+refreshToken)
-
-		// Should fail with audience error
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "audience", "should reject refresh token with audience error")
-	})
-
-	t.Run("should reject token with invalid audience", func(t *testing.T) {
-		// Create a token with a custom invalid audience
-		claims := models.UserClaims{
-			Email:    user.Email,
-			UserID:   user.ID,
-			Role:     user.Role,
-			Aud:      "invalid:custom",
-			Provider: provider,
-			Issuer:   "safebucket",
-			RegisteredClaims: jwt.RegisteredClaims{
-				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour)},
-			},
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
-		require.NoError(t, err)
-
-		// Should fail with audience error
-		_, err = ParseAccessToken(jwtSecret, "Bearer "+signedToken)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "audience")
-	})
-
-	t.Run("should accept only tokens with app:* audience", func(t *testing.T) {
-		claims := models.UserClaims{
-			Email:    user.Email,
-			UserID:   user.ID,
-			Role:     user.Role,
-			Aud:      "app:*",
-			Provider: provider,
-			Issuer:   "safebucket",
-			RegisteredClaims: jwt.RegisteredClaims{
-				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour)},
-			},
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
-		require.NoError(t, err)
-
-		parsedClaims, err := ParseAccessToken(jwtSecret, "Bearer "+signedToken)
-		require.NoError(t, err)
-		assert.Equal(t, "app:*", parsedClaims.Aud)
+		assert.Equal(t, "app:*", claims1.Aud)
+		assert.Equal(t, "auth:refresh", claims2.Aud)
+		assert.Equal(t, configuration.AudienceMFALogin, claims3.Aud)
 	})
 }
 
@@ -455,7 +385,7 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 	}
 
 	t.Run("should create valid restricted access token", func(t *testing.T) {
-		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
@@ -463,7 +393,7 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 	})
 
 	t.Run("should have correct auth:mfa audience", func(t *testing.T) {
-		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -478,7 +408,7 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 	})
 
 	t.Run("should expire in configured minutes", func(t *testing.T) {
-		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -495,7 +425,7 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 	})
 
 	t.Run("should use configuration constant for expiry", func(t *testing.T) {
-		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -509,84 +439,6 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 
 		diff := actualExpiry.Sub(expectedExpiry).Abs()
 		assert.Less(t, diff, 5*time.Second)
-	})
-}
-
-// TestParseRestrictedAccessToken tests restricted access token parsing.
-func TestParseRestrictedAccessToken(t *testing.T) {
-	jwtSecret := "test-secret-key"
-	user := &models.User{
-		ID:    uuid.New(),
-		Email: "test@example.com",
-		Role:  models.RoleUser,
-	}
-
-	t.Run("should parse valid restricted access token", func(t *testing.T) {
-		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
-		require.NoError(t, err)
-
-		claims, err := ParseRestrictedAccessToken(jwtSecret, "Bearer "+token)
-
-		require.NoError(t, err)
-		assert.Equal(t, user.Email, claims.Email)
-		assert.Equal(t, user.ID, claims.UserID)
-		assert.Equal(t, configuration.AudienceMFALogin, claims.Aud)
-	})
-
-	t.Run("should reject access token as restricted token", func(t *testing.T) {
-		token, err := NewAccessToken(jwtSecret, user, "local")
-		require.NoError(t, err)
-
-		_, err = ParseRestrictedAccessToken(jwtSecret, "Bearer "+token)
-		assert.Error(t, err)
-		assert.Equal(t, "invalid restricted access token audience", err.Error())
-	})
-
-	t.Run("should reject refresh token as restricted token", func(t *testing.T) {
-		token, err := NewRefreshToken(jwtSecret, user, "local")
-		require.NoError(t, err)
-
-		_, err = ParseRestrictedAccessToken(jwtSecret, "Bearer "+token)
-		assert.Error(t, err)
-		assert.Equal(t, "invalid restricted access token audience", err.Error())
-	})
-
-	t.Run("should reject token with wrong secret", func(t *testing.T) {
-		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
-		require.NoError(t, err)
-
-		_, err = ParseRestrictedAccessToken("wrong-secret", "Bearer "+token)
-		assert.Error(t, err)
-	})
-
-	t.Run("should reject expired restricted access token", func(t *testing.T) {
-		claims := models.UserClaims{
-			Email:    user.Email,
-			UserID:   user.ID,
-			Role:     user.Role,
-			Aud:      configuration.AudienceMFALogin,
-			Provider: "",
-			Issuer:   "safebucket",
-			RegisteredClaims: jwt.RegisteredClaims{
-				IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-10 * time.Minute)},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-5 * time.Minute)},
-			},
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
-		require.NoError(t, err)
-
-		_, err = ParseRestrictedAccessToken(jwtSecret, "Bearer "+signedToken)
-		assert.Error(t, err)
-	})
-
-	t.Run("should require Bearer prefix", func(t *testing.T) {
-		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false)
-		require.NoError(t, err)
-
-		// Without Bearer prefix should fail
-		_, err = ParseRestrictedAccessToken(jwtSecret, token)
-		assert.Error(t, err)
 	})
 }
 

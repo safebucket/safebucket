@@ -44,24 +44,20 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
   const navigate = useNavigate();
   const refreshSession = useRefreshSession();
 
-  // Flow state
   const [stage, setStage] = useState<PasswordResetStage>("code");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Code verification state
   const [code, setCode] = useState("");
 
   // Restricted access token (from code validation, used for MFA and completion)
   const [restrictedToken, setRestrictedToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // MFA state
   const [mfaDevices, setMfaDevices] = useState<Array<IMFADevice>>([]);
   const [mfaCode, setMfaCode] = useState("");
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
 
-  // Password form
   const {
     register,
     handleSubmit,
@@ -71,7 +67,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
 
   const newPassword = watch("newPassword");
 
-  // Stage 1: Code verification
   const handleCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -86,20 +81,16 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     try {
       const response = await api_validatePasswordReset(challengeId, { code });
 
-      // Store the restricted access token
       setRestrictedToken(response.access_token);
 
-      // Decode token to get user ID for device fetching
       const decoded = decodeToken(response.access_token);
       if (decoded) {
         setUserId(decoded.payload.user_id);
       }
 
       if (response.mfa_required) {
-        // MFA required - will fetch devices in useEffect, then move to MFA stage
         setStage("mfa");
       } else {
-        // No MFA - move directly to password stage
         setStage("password");
       }
     } catch {
@@ -109,13 +100,12 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     }
   };
 
-  // Fetch MFA devices when entering MFA stage
   useEffect(() => {
     if (stage === "mfa" && userId && restrictedToken && mfaDevices.length === 0) {
       const fetchDevices = async () => {
         try {
           const response = await fetchApi<IMFADevicesResponse>(
-            `/users/${userId}/mfa/devices`,
+            `/mfa/devices`,
             { headers: { Authorization: `Bearer ${restrictedToken}` } },
           );
           setMfaDevices(response.devices);
@@ -131,7 +121,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     }
   }, [stage, userId, restrictedToken, mfaDevices.length, t]);
 
-  // Stage 2: MFA verification
   const handleMFASubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -155,7 +144,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
         selectedDeviceId || undefined,
       );
 
-      // Update restricted token with MFA-verified version
       setRestrictedToken(response.access_token);
       setStage("password");
     } catch {
@@ -165,7 +153,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     }
   };
 
-  // Stage 3: Password submission
   const handlePasswordSubmit = async (data: IPasswordResetPasswordFormData) => {
     setError(null);
 
@@ -188,7 +175,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
         restrictedToken,
       );
 
-      // Set authentication state
       authCookies.setAll(
         response.access_token,
         response.refresh_token,
@@ -197,7 +183,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
 
       setStage("success");
 
-      // Navigate to home after a short delay
       setTimeout(() => {
         refreshSession();
         navigate({ to: "/" });
@@ -209,7 +194,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     }
   };
 
-  // Success state
   if (stage === "success") {
     return (
       <Card className="mx-auto w-full max-w-md">
@@ -228,7 +212,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     );
   }
 
-  // MFA verification stage
   if (stage === "mfa") {
     return (
       <Card className="mx-auto w-full max-w-md">
@@ -280,7 +263,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     );
   }
 
-  // Password entry stage
   if (stage === "password") {
     return (
       <Card className="mx-auto w-full max-w-md">
@@ -372,7 +354,6 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     );
   }
 
-  // Code verification stage (default)
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">

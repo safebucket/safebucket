@@ -3,7 +3,6 @@ export interface IMFADevice {
   name: string;
   type: "totp";
   is_default: boolean;
-  is_verified: boolean;
   created_at: string;
   verified_at?: string;
   last_used_at?: string;
@@ -18,17 +17,9 @@ export interface IMFADeviceSetupResponse {
 
 export interface IMFADevicesResponse {
   devices: Array<IMFADevice>;
-  mfa_enabled: boolean;
-  device_count: number;
-  max_devices: number;
-}
-
-export interface IMFAResetRequestResponse {
-  challenge_id: string;
 }
 
 export type SetupStep = "name" | "qr" | "verify" | "success";
-export type ResetStep = "password" | "email_sent" | "success";
 
 export interface IVerificationFlowState {
   code: string;

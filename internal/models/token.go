@@ -8,13 +8,14 @@ import (
 type UserClaims struct {
 	jwt.RegisteredClaims
 
-	Email    string    `json:"email"`
-	UserID   uuid.UUID `json:"user_id"`
-	Role     Role      `json:"role"`
-	Issuer   string    `json:"iss"`
-	Aud      string    `json:"aud"`
-	Provider string    `json:"provider"`
-	MFA      bool      `json:"mfa"`
+	Email       string     `json:"email"`
+	UserID      uuid.UUID  `json:"user_id"`
+	Role        Role       `json:"role"`
+	Issuer      string     `json:"iss"`
+	Aud         string     `json:"aud"`
+	Provider    string     `json:"provider"`
+	MFA         bool       `json:"mfa"`
+	ChallengeID *uuid.UUID `json:"challenge_id,omitempty"`
 }
 
 func (u *UserClaims) Valid() bool {

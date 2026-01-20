@@ -16,18 +16,13 @@ import { useMFADevices } from "@/components/mfa-view/hooks/useMFADevices";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 
 interface MFADeleteDialogProps {
-  userId: string;
   deviceId: string | null;
   onClose: () => void;
 }
 
-export function MFADeleteDialog({
-  userId,
-  deviceId,
-  onClose,
-}: MFADeleteDialogProps) {
+export function MFADeleteDialog({ deviceId, onClose }: MFADeleteDialogProps) {
   const { t } = useTranslation();
-  const { removeDevice, isRemovingDevice } = useMFADevices(userId);
+  const { removeDevice, isRemovingDevice } = useMFADevices();
 
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

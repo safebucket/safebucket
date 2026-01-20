@@ -49,8 +49,6 @@ func (s UserService) Routes() chi.Router {
 
 		r.With(m.AuthorizeSelfOrAdmin(0)).
 			Get("/stats", handlers.GetOneHandler(s.GetUserStats))
-
-		r.Mount("/mfa", NewUserMFAService(s).Routes())
 	})
 	return r
 }

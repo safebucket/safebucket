@@ -16,7 +16,7 @@ export const Route = createFileRoute("/auth/mfa/")({
 function MFAVerification() {
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
-  const { restrictedToken, userId, devices, isLoadingDevices, clearMFAAuth } =
+  const { restrictedToken, devices, isLoadingDevices, clearMFAAuth } =
     useMFAAuth();
 
   const handleLogout = () => {
@@ -24,12 +24,11 @@ function MFAVerification() {
     navigate({ to: "/auth/login", search: { redirect: undefined } });
   };
 
-  if (!restrictedToken || !userId) {
+  if (!restrictedToken) {
     navigate({ to: "/auth/login", search: { redirect } });
     return null;
   }
 
-  // Show loading while fetching devices
   if (isLoadingDevices) {
     return (
       <div className="m-6 flex h-full items-center justify-center">
@@ -45,7 +44,6 @@ function MFAVerification() {
     );
   }
 
-  // Has devices - show verification flow
   return (
     <MFAVerificationView
       mfaToken={restrictedToken}

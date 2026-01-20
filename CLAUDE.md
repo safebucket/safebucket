@@ -216,6 +216,7 @@ internal/
 ├── storage/       # IStorage implementations
 ├── messaging/     # IPublisher/ISubscriber implementations
 ├── activity/      # Activity logger implementation
+├── mfa/           # MFA token helpers (GenerateTokens, HandleMFARequired)
 ├── rbac/          # Authorization rules and middleware
 ├── core/          # Factory functions for abstractions
 ├── helpers/       # JWT, JSON, validation utilities
@@ -355,12 +356,18 @@ APP__STORAGE__MINIO__ENDPOINT=localhost:9000
 ## Security Patterns
 
 - **Authentication**: JWT with 60-minute access token, 10-hour refresh token
-- **JWT Audience Validation**: All JWT token parsing functions validate the `aud` (audience) claim to enforce strict token type boundaries and prevent token type confusion attacks:
-  - `ParseAccessToken` (`internal/helpers/token.go:53-79`): Only accepts tokens with `aud: "app:*"`
-  - `ParseMFAToken` (`internal/helpers/token.go:164-186`): Only accepts tokens with `aud: "auth:mfa"`
-  - `ParseRefreshToken` (`internal/helpers/token.go:100-118`): Only accepts tokens with `aud: "auth:refresh"`
-  - **Security Boundary**: MFA tokens cannot access protected API endpoints; they can only be used for MFA verification at `/api/v1/auth/mfa/verify`
-  - **Enforcement**: The `Authenticate` middleware (`internal/middlewares/authenticator.go:22`) calls `ParseAccessToken`, which rejects any token without the `"app:*"` audience
+- **JWT Audience Validation**: Token parsing and audience validation are separated for flexibility:
+  - `ParseToken` (`internal/helpers/token.go:65-90`): Generic token parser that validates signature, expiry, and issuer only
+  - `ParseRefreshToken` (`internal/helpers/token.go:126-139`): Only accepts tokens with `aud: "auth:refresh"`
+  - `AudienceValidate` middleware (`internal/middlewares/audience.go`): Route-specific audience validation using `routeAudienceRules`
+  - **Token Types**:
+    - Access tokens: `aud: "app:*"` - Full API access
+    - Refresh tokens: `aud: "auth:refresh"` - Token refresh only
+    - MFA login tokens: `aud: "auth:mfa:login"` - MFA verification during login
+    - MFA password reset tokens: `aud: "auth:mfa:password-reset"` - MFA verification during password reset
+  - **Security Boundary**: Restricted tokens (MFA tokens) can only access specific endpoints; the `AudienceValidate` middleware enforces route-specific audience rules
+  - **Enforcement**: The `Authenticate` middleware parses tokens using `ParseToken`, then `AudienceValidate` middleware checks audience against route-specific rules
+- **MFA Rate Limiting**: Cache-based rate limiting (5 attempts, 15-min lockout) with fail-closed behavior - if cache is unavailable, requests are denied with 503
 - **Authorization**: Two-tier RBAC (platform roles + bucket groups with rank comparison)
 - **Passwords**: Argon2id hashing with salt
 - **Presigned URLs**: 15-minute expiration for uploads and downloads
