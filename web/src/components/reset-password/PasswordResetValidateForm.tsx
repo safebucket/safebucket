@@ -1,12 +1,22 @@
-import { CheckCircle, Shield, Smartphone } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { usePasswordResetFlow } from "./hooks/usePasswordResetFlow";
-import type { FC } from "react";
-
-import { FormErrorAlert } from "@/components/common/FormErrorAlert";
-import { MFADeviceSelector } from "@/components/mfa-view/components/MFADeviceSelector";
-import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";
-import { Button } from "@/components/ui/button";
+  import { CheckCircle, Shield, Smartphone } from "lucide-react";                                                                                                                   
+  import { useTranslation } from "react-i18next";                                                                                                                                   
+  import { usePasswordResetFlow } from "./hooks/usePasswordResetFlow";                                                                                                              
+  import type { FC } from "react";                                                                                                                                                  
+                                                                                                                                                                                    
+  import { FormErrorAlert } from "@/components/common/FormErrorAlert";                                                                                                              
+  import { MFADeviceSelector } from "@/components/mfa-view/components/MFADeviceSelector";                                                                                           
+  import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";                                                                                                 
+  import { Button } from "@/components/ui/button";                                                                                                                                  
+  import {                                                                                                                                                                          
+    Card,                                                                                                                                                                           
+    CardContent,                                                                                                                                                                    
+    CardDescription,                                                                                                                                                                
+    CardHeader,                                                                                                                                                                     
+    CardTitle,                                                                                                                                                                      
+  } from "@/components/ui/card";                                                                                                                                                    
+  import { Input } from "@/components/ui/input";                                                                                                                                    
+  import { Label } from "@/components/ui/label";                                                                                                                                    
+                                                    
 import {
   Card,
   CardContent,

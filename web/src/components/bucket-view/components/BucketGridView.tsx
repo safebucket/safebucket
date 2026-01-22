@@ -2,10 +2,10 @@ import { FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
+import type { BucketItem } from "@/types/bucket.ts";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { FileGridCard } from "@/components/bucket-view/components/FileGridCard";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
-import type { BucketItem } from "@/types/bucket.ts";
 
 interface IBucketGridViewProps {
   items: Array<BucketItem>;

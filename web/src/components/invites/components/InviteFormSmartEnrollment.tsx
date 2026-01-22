@@ -1,11 +1,11 @@
-import type { FC } from "react";
 import { useState } from "react";
 
 import { CheckCircle, Mail } from "lucide-react";
-import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import type { FC } from "react";
+import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 
 import { api_createChallenge } from "@/components/invites/helpers/api";
 import { Button } from "@/components/ui/button";

@@ -6,13 +6,6 @@ export enum FileStatus {
   restoring = "restoring",
 }
 
-export interface IUser {
-  id: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-}
-
 export interface IFile {
   id: string;
   name: string;

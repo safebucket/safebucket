@@ -98,7 +98,7 @@ func enrichLogWithDatabase(
 				object = cached
 			} else {
 				object = reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
-				db.Unscoped().Where("id = ?", id).First(object)
+				db.Unscoped().Where("id = ?", id).Find(object)
 				cache[id] = object
 			}
 

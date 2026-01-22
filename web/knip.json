@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/main.tsx"],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": ["src/routeTree.gen.ts"],
+  "ignoreDependencies": [
+    "tw-animate-css",
+    "tailwindcss",
+    "@trivago/prettier-plugin-sort-imports",
+    "prettier-plugin-tailwindcss",
+    "@testing-library/dom",
+    "@testing-library/react",
+    "@tanstack/eslint-config",
+    "eslint-plugin-i18next",
+    "eslint-plugin-jsx-a11y"
+  ],
+  "ignoreBinaries": ["eslint"],
+  "ignoreExportsUsedInFile": true,
+  "exclude": ["exports"],
+  "vite": {
+    "config": ["vite.config.ts"]
+  },
+  "vitest": {
+    "config": ["vite.config.ts"]
+  }
+}

@@ -2,6 +2,12 @@ name: Frontend Quality
 
 on:
   push:
+    branches:
+      - main
+    paths:
+      - 'web/**'
+      - '.github/workflows/quality-frontend.yml'
+  pull_request:
     paths:
       - 'web/**'
       - '.github/workflows/quality-frontend.yml'
@@ -29,6 +35,15 @@ jobs:
 
       - name: Run prettier
         run: npm run prettier
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check dead code
+        run: npm run knip
+
+      - name: Check i18n translations
+        run: npm run i18n:status
 
       - name: Build app
         run: npm run build

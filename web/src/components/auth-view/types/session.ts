@@ -1,5 +1,3 @@
-export type Status = "authenticated" | "loading" | "unauthenticated";
-
 export type Session = {
   userId: string;
   email: string;
@@ -30,20 +28,6 @@ export interface IUser {
   updated_at: string;
 }
 
-export interface ISessionContext {
-  login: (provider: string) => void;
-  logout: () => void;
-  setAuthenticationState: (
-    accessToken: string,
-    refreshToken: string,
-    provider: string,
-  ) => void;
-  refreshSession: () => void;
-
-  session: Session | null;
-  status: Status;
-}
-
 export interface ILoginForm {
   email: string;
   password: string;
@@ -63,6 +47,9 @@ export interface IMFADevice {
 
 export interface IMFADevicesResponse {
   devices: Array<IMFADevice>;
+  mfa_enabled: boolean;
+  device_count: number;
+  max_devices: number;
 }
 
 export interface IMFADeviceSetupResponse {
@@ -76,4 +63,6 @@ export interface ILoginResponse {
   access_token?: string;
   refresh_token?: string;
   mfa_required: boolean;
+  mfa_token?: string;
+  mfa_setup_required?: boolean;
 }

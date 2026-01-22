@@ -1,16 +1,16 @@
-import { useCallback } from "react";
-import { useRouteContext, useRouter } from "@tanstack/react-router";
-
-import type { ILoginForm, Session } from "@/components/auth-view/types/session";
-import type {LoginResult} from "@/lib/auth-service";
-import {
-  
-  logout as authLogout,
-  verifyMFALogin as authVerifyMFA,
-  getCurrentSession,
-  loginWithCredentials,
-  loginWithProvider
-} from "@/lib/auth-service";
+  import { useCallback } from "react";                                                                                                                                              
+  import { useRouteContext, useRouter } from "@tanstack/react-router";                                                                                                              
+                                                                                                                                                                                    
+  import type { ILoginForm, Session } from "@/components/auth-view/types/session";                                                                                                  
+  import type { LoginResult } from "@/lib/auth-service";                                                                                                                            
+  import {                                                                                                                                                                          
+    logout as authLogout,                                                                                                                                                           
+    verifyMFALogin as authVerifyMFA,                                                                                                                                                
+    getCurrentSession,                                                                                                                                                              
+    loginWithCredentials,                                                                                                                                                           
+    loginWithProvider,                                                                                                                                                              
+  } from "@/lib/auth-service";                                                                                                                                                      
+                                
 
 /**
  * Hook to access current session from router context
