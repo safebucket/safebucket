@@ -84,6 +84,7 @@
       "error_max_devices": "Maximum number of devices reached",
       "error_password_required": "Password is required",
       "error_invalid_password": "Invalid password",
+      "error_loading_devices": "Failed to load MFA devices. Please try again.",
       "password_placeholder": "Enter your password",
       "verify_button": "Verify",
       "verifying": "Verifying...",

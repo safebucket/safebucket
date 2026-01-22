@@ -84,6 +84,7 @@
       "error_max_devices": "Nombre maximum d'appareils atteint",
       "error_password_required": "Le mot de passe est requis",
       "error_invalid_password": "Mot de passe invalide",
+      "error_loading_devices": "Échec du chargement des appareils MFA. Veuillez réessayer.",
       "password_placeholder": "Saisissez votre mot de passe",
       "verify_button": "Vérifier",
       "verifying": "Vérification...",
