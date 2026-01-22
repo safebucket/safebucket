@@ -2,11 +2,6 @@ export interface IPasswordResetRequestFormData {
   email: string;
 }
 
-// Code verification step - code only
-export interface IPasswordResetCodeFormData {
-  code: string;
-}
-
 // Password entry step - new password
 export interface IPasswordResetPasswordFormData {
   newPassword: string;
