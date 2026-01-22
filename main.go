@@ -116,7 +116,7 @@ func main() {
 	r.Route("/api", func(apiRouter chi.Router) {
 		apiRouter.Use(m.Authenticate(authConfig.JWTSecret))
 		apiRouter.Use(m.AudienceValidate)
-		apiRouter.Use(m.MFAValidate(authConfig.MFARequired))
+		apiRouter.Use(m.MFAValidate(db, authConfig.MFARequired))
 		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
 
 		userService := services.UserService{

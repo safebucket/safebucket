@@ -24,21 +24,21 @@ import (
 type MockCache struct {
 }
 
-func (m *MockCache) RegisterPlatform(id string) error                  { return nil }
+func (m *MockCache) RegisterPlatform(_ string) error                   { return nil }
 func (m *MockCache) DeleteInactivePlatform() error                     { return nil }
-func (m *MockCache) StartIdentityTicker(id string)                     {}
-func (m *MockCache) GetRateLimit(u string, r int) (int, error)         { return 0, nil }
-func (m *MockCache) IsTOTPCodeUsed(d string, c string) (bool, error)   { return false, nil }
-func (m *MockCache) MarkTOTPCodeUsed(d string, c string) (bool, error) { return true, nil }
-func (m *MockCache) GetMFAAttempts(u string) (int, error)              { return 0, nil }
-func (m *MockCache) IncrementMFAAttempts(u string) error               { return nil }
-func (m *MockCache) ResetMFAAttempts(u string) error                   { return nil }
+func (m *MockCache) StartIdentityTicker(_ string)                      {}
+func (m *MockCache) GetRateLimit(_ string, _ int) (int, error)         { return 0, nil }
+func (m *MockCache) IsTOTPCodeUsed(_ string, _ string) (bool, error)   { return false, nil }
+func (m *MockCache) MarkTOTPCodeUsed(_ string, _ string) (bool, error) { return true, nil }
+func (m *MockCache) GetMFAAttempts(_ string) (int, error)              { return 0, nil }
+func (m *MockCache) IncrementMFAAttempts(_ string) error               { return nil }
+func (m *MockCache) ResetMFAAttempts(_ string) error                   { return nil }
 func (m *MockCache) Close() error                                      { return nil }
 
 type MockNotifier struct {
 }
 
-func (m *MockNotifier) NotifyFromTemplate(t string, s string, tm string, d interface{}) error {
+func (m *MockNotifier) NotifyFromTemplate(_ string, _ string, _ string, _ interface{}) error {
 	return nil
 }
 

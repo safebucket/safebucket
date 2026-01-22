@@ -304,7 +304,8 @@ func (s AuthService) VerifyMFALogin(
 	// Do NOT issue full access tokens for password reset flow
 	// Preserve the challenge ID from the original token
 	if claims.Aud == configuration.AudienceMFAReset {
-		restrictedToken, err := h.NewRestrictedAccessToken(
+		var restrictedToken string
+		restrictedToken, err = h.NewRestrictedAccessToken(
 			s.AuthConfig.JWTSecret,
 			&user,
 			configuration.AudienceMFAReset,

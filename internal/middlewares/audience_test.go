@@ -36,7 +36,7 @@ func TestAudienceValidate(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -51,7 +51,7 @@ func TestAudienceValidate(t *testing.T) {
 		recorder := httptest.NewRecorder()
 
 		// No claims set in context (simulates middleware chain error)
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -74,7 +74,7 @@ func TestAudienceValidate(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -85,7 +85,9 @@ func TestAudienceValidate(t *testing.T) {
 	})
 
 	t.Run("should reject restricted token for regular routes", func(t *testing.T) {
-		token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil)
+		token, err := helpers.NewRestrictedAccessToken(
+			audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
+		)
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
@@ -97,7 +99,7 @@ func TestAudienceValidate(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -107,7 +109,9 @@ func TestAudienceValidate(t *testing.T) {
 	})
 
 	t.Run("should allow restricted token for configured route", func(t *testing.T) {
-		token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil)
+		token, err := helpers.NewRestrictedAccessToken(
+			audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
+		)
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
@@ -121,7 +125,7 @@ func TestAudienceValidate(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -132,20 +136,24 @@ func TestAudienceValidate(t *testing.T) {
 	})
 
 	t.Run("should reject login MFA token for password reset completion", func(t *testing.T) {
-		token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil)
+		token, err := helpers.NewRestrictedAccessToken(
+			audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
+		)
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
 
 		// Password reset completion only allows AudienceMFAReset
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/complete", nil)
+		req := httptest.NewRequest(
+			http.MethodPost, "/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/complete", nil,
+		)
 		recorder := httptest.NewRecorder()
 
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -155,21 +163,25 @@ func TestAudienceValidate(t *testing.T) {
 	})
 
 	t.Run("should allow password reset MFA token for password reset completion", func(t *testing.T) {
-		token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFAReset, true, nil)
+		token, err := helpers.NewRestrictedAccessToken(
+			audienceTestJWTSecret, testUser, configuration.AudienceMFAReset, true, nil,
+		)
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
 
 		// Password reset completion allows AudienceMFAReset
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/complete", nil)
+		req := httptest.NewRequest(
+			http.MethodPost, "/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/complete", nil,
+		)
 		recorder := httptest.NewRecorder()
 
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -290,7 +302,9 @@ func TestGetRouteAllowedAudiences(t *testing.T) {
 	})
 
 	t.Run("returns single audience for password reset completion", func(t *testing.T) {
-		audiences := getRouteAllowedAudiences("/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/complete", "POST")
+		audiences := getRouteAllowedAudiences(
+			"/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/complete", "POST",
+		)
 		assert.NotNil(t, audiences)
 		assert.Len(t, audiences, 1)
 		assert.Contains(t, audiences, "auth:mfa:password-reset")
@@ -347,7 +361,7 @@ func TestAudienceValidate_RefreshToken(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -369,7 +383,7 @@ func TestAudienceValidate_RefreshToken(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -396,7 +410,9 @@ func TestAudienceValidate_UUIDPatternMatching(t *testing.T) {
 
 		for _, uuidStr := range validUUIDs {
 			t.Run("UUID: "+uuidStr, func(t *testing.T) {
-				token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFAReset, true, nil)
+				token, err := helpers.NewRestrictedAccessToken(
+					audienceTestJWTSecret, testUser, configuration.AudienceMFAReset, true, nil,
+				)
 				require.NoError(t, err)
 
 				claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
@@ -410,7 +426,7 @@ func TestAudienceValidate_UUIDPatternMatching(t *testing.T) {
 				req = req.WithContext(ctx)
 
 				var nextCalled bool
-				handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 					nextCalled = true
 					w.WriteHeader(http.StatusOK)
 				}))
@@ -438,7 +454,9 @@ func TestAudienceValidate_UUIDPatternMatching(t *testing.T) {
 
 		for _, tc := range invalidCases {
 			t.Run(tc.reason, func(t *testing.T) {
-				token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFAReset, true, nil)
+				token, err := helpers.NewRestrictedAccessToken(
+					audienceTestJWTSecret, testUser, configuration.AudienceMFAReset, true, nil,
+				)
 				require.NoError(t, err)
 
 				claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
@@ -451,7 +469,7 @@ func TestAudienceValidate_UUIDPatternMatching(t *testing.T) {
 				ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 				req = req.WithContext(ctx)
 
-				handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 					w.WriteHeader(http.StatusOK)
 				}))
 				handler.ServeHTTP(recorder, req)
@@ -463,7 +481,9 @@ func TestAudienceValidate_UUIDPatternMatching(t *testing.T) {
 	})
 
 	t.Run("should match valid UUID v4 in MFA device verification", func(t *testing.T) {
-		token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil)
+		token, err := helpers.NewRestrictedAccessToken(
+			audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
+		)
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
@@ -478,7 +498,7 @@ func TestAudienceValidate_UUIDPatternMatching(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -498,7 +518,9 @@ func TestAudienceValidate_URLEdgeCases(t *testing.T) {
 	}
 
 	t.Run("should be case-sensitive for paths", func(t *testing.T) {
-		token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil)
+		token, err := helpers.NewRestrictedAccessToken(
+			audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
+		)
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
@@ -510,7 +532,7 @@ func TestAudienceValidate_URLEdgeCases(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -520,7 +542,9 @@ func TestAudienceValidate_URLEdgeCases(t *testing.T) {
 	})
 
 	t.Run("should reject trailing slash", func(t *testing.T) {
-		token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil)
+		token, err := helpers.NewRestrictedAccessToken(
+			audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
+		)
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
@@ -532,7 +556,7 @@ func TestAudienceValidate_URLEdgeCases(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -542,7 +566,9 @@ func TestAudienceValidate_URLEdgeCases(t *testing.T) {
 	})
 
 	t.Run("should reject double slashes", func(t *testing.T) {
-		token, err := helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil)
+		token, err := helpers.NewRestrictedAccessToken(
+			audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
+		)
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
@@ -554,7 +580,7 @@ func TestAudienceValidate_URLEdgeCases(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -690,9 +716,13 @@ func TestAudienceValidate_ComprehensiveMatrix(t *testing.T) {
 			case configuration.AudienceAccessToken:
 				token, err = helpers.NewAccessToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType))
 			case configuration.AudienceMFALogin:
-				token, err = helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil)
+				token, err = helpers.NewRestrictedAccessToken(
+					audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
+				)
 			case configuration.AudienceMFAReset:
-				token, err = helpers.NewRestrictedAccessToken(audienceTestJWTSecret, testUser, configuration.AudienceMFAReset, true, nil)
+				token, err = helpers.NewRestrictedAccessToken(
+					audienceTestJWTSecret, testUser, configuration.AudienceMFAReset, true, nil,
+				)
 			case configuration.AudienceRefreshToken:
 				token, err = helpers.NewRefreshToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType))
 			}
@@ -713,7 +743,7 @@ func TestAudienceValidate_ComprehensiveMatrix(t *testing.T) {
 			req = req.WithContext(ctx)
 
 			var nextCalled bool
-			handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				nextCalled = true
 				w.WriteHeader(http.StatusOK)
 			}))

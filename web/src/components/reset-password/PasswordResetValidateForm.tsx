@@ -1,25 +1,11 @@
-import { useEffect, useState } from "react";
-
 import { CheckCircle, Shield, Smartphone } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
-import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import type {
-  IPasswordResetPasswordFormData,
-  PasswordResetStage,
-} from "@/components/auth-view/helpers/types";
+import { usePasswordResetFlow } from "./hooks/usePasswordResetFlow";
 import type { FC } from "react";
 
-import type { IMFADevice, IMFADevicesResponse  } from "@/components/mfa-view/helpers/types";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
-import {
-  api_completePasswordReset,
-  api_validatePasswordReset,
-  api_verifyMFAPasswordReset,
-} from "@/components/auth-view/helpers/api";
-import { authCookies, decodeToken } from "@/lib/auth-service";
-import { fetchApi } from "@/lib/api";
-import { useRefreshSession } from "@/hooks/useAuth";
+import { MFADeviceSelector } from "@/components/mfa-view/components/MFADeviceSelector";
+import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,8 +16,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MFADeviceSelector } from "@/components/mfa-view/components/MFADeviceSelector";
-import { MFAVerifyInput } from "@/components/mfa-view/components/MFAVerifyInput";
 
 export interface IPasswordResetValidateFormProps {
   challengeId: string;
@@ -41,158 +25,23 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
   challengeId,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const refreshSession = useRefreshSession();
-
-  const [stage, setStage] = useState<PasswordResetStage>("code");
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [code, setCode] = useState("");
-
-  // Restricted access token (from code validation, used for MFA and completion)
-  const [restrictedToken, setRestrictedToken] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  const [mfaDevices, setMfaDevices] = useState<Array<IMFADevice>>([]);
-  const [mfaCode, setMfaCode] = useState("");
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
 
   const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<IPasswordResetPasswordFormData>();
-
-  const newPassword = watch("newPassword");
-
-  const handleCodeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (code.length !== 6) {
-      setError(t("auth.password_reset.validate.error_code_length"));
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await api_validatePasswordReset(challengeId, { code });
-
-      setRestrictedToken(response.access_token);
-
-      const decoded = decodeToken(response.access_token);
-      if (decoded) {
-        setUserId(decoded.payload.user_id);
-      }
-
-      if (response.mfa_required) {
-        setStage("mfa");
-      } else {
-        setStage("password");
-      }
-    } catch {
-      setError(t("auth.password_reset.validate.error_validation_failed"));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (stage === "mfa" && userId && restrictedToken && mfaDevices.length === 0) {
-      const fetchDevices = async () => {
-        try {
-          const response = await fetchApi<IMFADevicesResponse>(
-            `/mfa/devices`,
-            { headers: { Authorization: `Bearer ${restrictedToken}` } },
-          );
-          setMfaDevices(response.devices);
-          if (response.devices.length > 0) {
-            const defaultDevice = response.devices.find((d) => d.is_default);
-            setSelectedDeviceId(defaultDevice?.id ?? response.devices[0].id);
-          }
-        } catch {
-          setError(t("auth.mfa.error_loading_devices"));
-        }
-      };
-      fetchDevices();
-    }
-  }, [stage, userId, restrictedToken, mfaDevices.length, t]);
-
-  const handleMFASubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (mfaCode.length !== 6) {
-      setError(t("auth.mfa.error_code_length"));
-      return;
-    }
-
-    if (!restrictedToken) {
-      setError(t("auth.password_reset.validate.error_session_expired"));
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await api_verifyMFAPasswordReset(
-        restrictedToken,
-        mfaCode,
-        selectedDeviceId || undefined,
-      );
-
-      setRestrictedToken(response.access_token);
-      setStage("password");
-    } catch {
-      setError(t("auth.mfa.error_verification_failed"));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (data: IPasswordResetPasswordFormData) => {
-    setError(null);
-
-    if (data.newPassword !== data.confirmPassword) {
-      setError(t("auth.password_reset.validate.error_password_mismatch"));
-      return;
-    }
-
-    if (!restrictedToken) {
-      setError(t("auth.password_reset.validate.error_session_expired"));
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await api_completePasswordReset(
-        challengeId,
-        { new_password: data.newPassword },
-        restrictedToken,
-      );
-
-      authCookies.setAll(
-        response.access_token,
-        response.refresh_token,
-        "local",
-      );
-
-      setStage("success");
-
-      setTimeout(() => {
-        refreshSession();
-        navigate({ to: "/" });
-      }, 2000);
-    } catch {
-      setError(t("auth.password_reset.validate.error_validation_failed"));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    stage,
+    error,
+    isLoading,
+    code,
+    setCode,
+    handleCodeSubmit,
+    mfaDevices,
+    mfaCode,
+    setMfaCode,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    handleMFASubmit,
+    passwordForm,
+    handlePasswordSubmit,
+  } = usePasswordResetFlow({ challengeId });
 
   if (stage === "success") {
     return (
@@ -277,7 +126,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
         </CardHeader>
         <CardContent>
           <form
-            onSubmit={handleSubmit(handlePasswordSubmit)}
+            onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
             className="space-y-4"
           >
             <FormErrorAlert error={error} />
@@ -292,7 +141,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
                 placeholder={t(
                   "auth.password_reset.validate.new_password_placeholder",
                 )}
-                {...register("newPassword", {
+                {...passwordForm.register("newPassword", {
                   required: t(
                     "auth.password_reset.validate.error_new_password_required",
                   ),
@@ -303,12 +152,12 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
                     ),
                   },
                 })}
-                className={errors.newPassword ? "border-red-500" : ""}
+                className={passwordForm.errors.newPassword ? "border-red-500" : ""}
                 disabled={isLoading}
               />
-              {errors.newPassword && (
+              {passwordForm.errors.newPassword && (
                 <p className="text-sm text-red-500">
-                  {errors.newPassword.message}
+                  {passwordForm.errors.newPassword.message}
                 </p>
               )}
             </div>
@@ -323,22 +172,22 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
                 placeholder={t(
                   "auth.password_reset.validate.confirm_password_placeholder",
                 )}
-                {...register("confirmPassword", {
+                {...passwordForm.register("confirmPassword", {
                   required: t(
                     "auth.password_reset.validate.error_confirm_password_required",
                   ),
                   validate: (value) =>
-                    value === newPassword ||
+                    value === passwordForm.newPassword ||
                     t(
                       "auth.password_reset.validate.error_confirm_password_mismatch",
                     ),
                 })}
-                className={errors.confirmPassword ? "border-red-500" : ""}
+                className={passwordForm.errors.confirmPassword ? "border-red-500" : ""}
                 disabled={isLoading}
               />
-              {errors.confirmPassword && (
+              {passwordForm.errors.confirmPassword && (
                 <p className="text-sm text-red-500">
-                  {errors.confirmPassword.message}
+                  {passwordForm.errors.confirmPassword.message}
                 </p>
               )}
             </div>

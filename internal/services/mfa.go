@@ -118,7 +118,9 @@ func (s MFAService) AddDevice(
 		// If the user already has VERIFIED devices, they MUST use password to add more.
 		// Unverified devices are ignored (incomplete setup attempts that can be retried).
 		var verifiedCount int64
-		result = s.DB.Model(&models.MFADevice{}).Where("user_id = ? AND is_verified = ?", userID, true).Count(&verifiedCount)
+		result = s.DB.Model(&models.MFADevice{}).
+			Where("user_id = ? AND is_verified = ?", userID, true).
+			Count(&verifiedCount)
 		if result.Error != nil {
 			logger.Error("Failed to count verified MFA devices", zap.Error(result.Error))
 			return models.MFADeviceSetupResponse{}, result.Error
@@ -327,7 +329,8 @@ func (s MFAService) VerifyDevice(
 	// If audience is PasswordReset, return a new restricted token with MFA=true
 	// CRITICAL: Do NOT issue full access tokens for password reset flow
 	if claims.Aud == configuration.AudienceMFAReset {
-		restrictedToken, err := h.NewRestrictedAccessToken(
+		var restrictedToken string
+		restrictedToken, err = h.NewRestrictedAccessToken(
 			s.AuthConfig.JWTSecret,
 			&user,
 			configuration.AudienceMFAReset,

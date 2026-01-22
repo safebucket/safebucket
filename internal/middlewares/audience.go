@@ -15,7 +15,7 @@ import (
 // Logic:
 // 1. Skip validation if auth was excluded
 // 2. For routes with explicit audience rules (AuthAudienceRules), validate against those rules
-// 3. For all other routes, require the full access token audience ("app:*")
+// 3. For all other routes, require the full access token audience ("app:*").
 func AudienceValidate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip if auth was excluded (context set by Authenticate)

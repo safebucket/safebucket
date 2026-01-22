@@ -165,7 +165,13 @@ func GenerateSecret() (string, error) {
 // Used for both login MFA and password reset MFA flows.
 // Audience: "auth:mfa:login" or "auth:mfa:password-reset".
 // For password reset flow, challengeID should be provided to link the token to the challenge.
-func NewRestrictedAccessToken(jwtSecret string, user *models.User, audience string, mfaVerified bool, challengeID *uuid.UUID) (string, error) {
+func NewRestrictedAccessToken(
+	jwtSecret string,
+	user *models.User,
+	audience string,
+	mfaVerified bool,
+	challengeID *uuid.UUID,
+) (string, error) {
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      audience,
 		provider:      string(user.ProviderType),
