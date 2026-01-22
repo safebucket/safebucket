@@ -9,7 +9,10 @@ import type {
   IPasswordResetPasswordFormData,
   PasswordResetStage,
 } from "@/components/auth-view/helpers/types";
-import type { IMFADevice, IMFADevicesResponse } from "@/components/mfa-view/helpers/types";
+import type {
+  IMFADevice,
+  IMFADevicesResponse,
+} from "@/components/mfa-view/helpers/types";
 import {
   api_completePasswordReset,
   api_validatePasswordReset,
@@ -23,7 +26,9 @@ const PASSWORD_RESET_SUCCESS_DELAY = 2000;
 
 export interface IPasswordFormState {
   register: UseFormRegister<IPasswordResetPasswordFormData>;
-  handleSubmit: ReturnType<typeof useForm<IPasswordResetPasswordFormData>>["handleSubmit"];
+  handleSubmit: ReturnType<
+    typeof useForm<IPasswordResetPasswordFormData>
+  >["handleSubmit"];
   errors: FieldErrors<IPasswordResetPasswordFormData>;
   newPassword: string | undefined;
 }
@@ -129,13 +134,17 @@ export function usePasswordResetFlow({
 
   // Fetch MFA devices when entering MFA stage
   useEffect(() => {
-    if (stage === "mfa" && userId && restrictedToken && mfaDevices.length === 0) {
+    if (
+      stage === "mfa" &&
+      userId &&
+      restrictedToken &&
+      mfaDevices.length === 0
+    ) {
       const fetchDevices = async () => {
         try {
-          const response = await fetchApi<IMFADevicesResponse>(
-            `/mfa/devices`,
-            { headers: { Authorization: `Bearer ${restrictedToken}` } },
-          );
+          const response = await fetchApi<IMFADevicesResponse>(`/mfa/devices`, {
+            headers: { Authorization: `Bearer ${restrictedToken}` },
+          });
           setMfaDevices(response.devices);
           if (response.devices.length > 0) {
             const defaultDevice = response.devices.find((d) => d.is_default);

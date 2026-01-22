@@ -134,13 +134,13 @@ export const loginWithProvider = (provider: string): void => {
   window.location.href = `${apiUrl}/auth/providers/${provider}/begin`;
 };
 
- export interface LoginResult {                                                                                                                                                    
-    success: boolean;                                                                                                                                                               
-    error?: string;                                                                                                                                                                 
-    mfaRequired?: boolean;                                                                                                                                                          
-    restrictedToken?: string;                                                                                                                                                       
-    userId?: string;                                                                                                                                                                
-  }   
+export interface LoginResult {
+  success: boolean;
+  error?: string;
+  mfaRequired?: boolean;
+  restrictedToken?: string;
+  userId?: string;
+}
 
 export const loginWithCredentials = async (
   credentials: ILoginForm,

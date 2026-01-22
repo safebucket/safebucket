@@ -1,44 +1,44 @@
-import {                                                                                                                                                                          
-  createContext,                                                                                                                                                                  
-  useCallback,                                                                                                                                                                    
-  useContext,                                                                                                                                                                     
-  useEffect,                                                                                                                                                                      
-  useState,                                                                                                                                                                       
-} from "react";                                                                                                                                                                   
-import type { ReactNode } from "react";                                                                                                                                           
-import type {                                                                                                                                                                     
-  IMFADevice,                                                                                                                                                                     
-  IMFADevicesResponse,                                                                                                                                                            
-} from "@/components/mfa-view/helpers/types";                                                                                                                                     
-import { fetchApi } from "@/lib/api";                                                                                                                                             
-                                                                                                                                                                                  
-interface IMFAAuthContext {                                                                                                                                                       
-  restrictedToken: string | null;                                                                                                                                                 
-  devices: Array<IMFADevice>;                                                                                                                                                     
-  isLoadingDevices: boolean;                                                                                                                                                      
-  setMFAAuth: (token: string) => void;                                                                                                                                            
-  clearMFAAuth: () => void; 
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import type { ReactNode } from "react";
+import type {
+  IMFADevice,
+  IMFADevicesResponse,
+} from "@/components/mfa-view/helpers/types";
+import { fetchApi } from "@/lib/api";
+
+interface IMFAAuthContext {
+  restrictedToken: string | null;
+  devices: Array<IMFADevice>;
+  isLoadingDevices: boolean;
+  setMFAAuth: (token: string) => void;
+  clearMFAAuth: () => void;
 }
 
-const MFAAuthContext = createContext<IMFAAuthContext | null>(null);                                                                                                               
-                                                                                                                                                                                    
-  export function MFAAuthProvider({ children }: { children: ReactNode }) {                                                                                                          
-    const [restrictedToken, setRestrictedToken] = useState<string | null>(null);                                                                                                    
-    const [devices, setDevices] = useState<Array<IMFADevice>>([]);                                                                                                                  
-    const [isLoadingDevices, setIsLoadingDevices] = useState(false);                                                                                                                
-    const [devicesFetched, setDevicesFetched] = useState(false);                                                                                                                    
-                                                                                                                                                                                    
-    const setMFAAuth = useCallback((token: string) => {                                                                                                                             
-      setRestrictedToken(token);                                                                                                                                                    
-      setDevices([]);                                                                                                                                                               
-      setDevicesFetched(false);                                                                                                                                                     
-    }, []);                                                                                                                                                                         
-                                                                                                                                                                                    
-    const clearMFAAuth = useCallback(() => {                                                                                                                                        
-      setRestrictedToken(null);                                                                                                                                                     
-      setDevices([]);                                                                                                                                                               
-      setDevicesFetched(false);                                                                                                                                                     
-    }, []);
+const MFAAuthContext = createContext<IMFAAuthContext | null>(null);
+
+export function MFAAuthProvider({ children }: { children: ReactNode }) {
+  const [restrictedToken, setRestrictedToken] = useState<string | null>(null);
+  const [devices, setDevices] = useState<Array<IMFADevice>>([]);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+  const [devicesFetched, setDevicesFetched] = useState(false);
+
+  const setMFAAuth = useCallback((token: string) => {
+    setRestrictedToken(token);
+    setDevices([]);
+    setDevicesFetched(false);
+  }, []);
+
+  const clearMFAAuth = useCallback(() => {
+    setRestrictedToken(null);
+    setDevices([]);
+    setDevicesFetched(false);
+  }, []);
 
   const clearMFAAuth = useCallback(() => {
     setRestrictedToken(null);
@@ -51,10 +51,9 @@ const MFAAuthContext = createContext<IMFAAuthContext | null>(null);
       const fetchDevices = async () => {
         setIsLoadingDevices(true);
         try {
-          const response = await fetchApi<IMFADevicesResponse>(
-            `/mfa/devices`,
-            { headers: { Authorization: `Bearer ${restrictedToken}` } },
-          );
+          const response = await fetchApi<IMFADevicesResponse>(`/mfa/devices`, {
+            headers: { Authorization: `Bearer ${restrictedToken}` },
+          });
           setDevices(response.devices);
         } catch {
           // If fetch fails, keep devices empty (will trigger setup flow)
