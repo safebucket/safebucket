@@ -1,6 +1,6 @@
 module api
 
-go 1.24.4
+go 1.24.9
 
 require (
 	cloud.google.com/go/storage v1.59.1
@@ -28,7 +28,7 @@ require (
 	github.com/nats-io/nats.go v1.48.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.26.0
-	github.com/redis/rueidis v1.0.69
+	github.com/redis/rueidis v1.0.70
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.1
 	golang.org/x/oauth2 v0.34.0
@@ -129,7 +129,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.3 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
