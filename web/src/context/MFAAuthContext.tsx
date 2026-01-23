@@ -40,12 +40,6 @@ export function MFAAuthProvider({ children }: { children: ReactNode }) {
     setDevicesFetched(false);
   }, []);
 
-  const clearMFAAuth = useCallback(() => {
-    setRestrictedToken(null);
-    setDevices([]);
-    setDevicesFetched(false);
-  }, []);
-
   useEffect(() => {
     if (restrictedToken && !devicesFetched && !isLoadingDevices) {
       const fetchDevices = async () => {
