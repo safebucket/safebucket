@@ -76,7 +76,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </CardContent>
       </Card>
 
-      {isLocalProvider && <MFAView userId={user.id} className="mt-2" />}
+      {isLocalProvider && <MFAView className="mt-2" />}
     </>
   );
 }
