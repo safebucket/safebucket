@@ -77,7 +77,7 @@ function Login() {
     if (result.mfaRequired && result.restrictedToken && result.userId) {
       // Store restricted token and user ID in context
       // Context will automatically fetch devices to determine setup vs verify
-      setMFAAuth(result.restrictedToken, result.userId);
+      setMFAAuth(result.restrictedToken);
       // Redirect to MFA page (will show setup or verify based on devices)
       navigate({
         to: "/auth/mfa",
