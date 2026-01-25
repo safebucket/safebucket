@@ -61,6 +61,12 @@ func enrichLogWithMetadata(log map[string]interface{}) map[string]interface{} {
 					newLog["folder"] = &folder
 					delete(newLog, "folder_id")
 				}
+			case "mfa_device":
+				var mfaDevice models.MFADeviceActivity
+				if json.Unmarshal(jsonBytes, &mfaDevice) == nil {
+					newLog["mfa_device"] = &mfaDevice
+					delete(newLog, "device_id")
+				}
 			}
 			delete(newLog, "object")
 		}

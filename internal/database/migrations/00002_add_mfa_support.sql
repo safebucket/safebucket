@@ -3,7 +3,7 @@
 
 ALTER TYPE challenge_type ADD VALUE 'mfa_reset';
 
-CREATE TYPE mfa_device_type AS ENUM ('totp');g
+CREATE TYPE mfa_device_type AS ENUM ('totp');
 
 CREATE TABLE mfa_devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

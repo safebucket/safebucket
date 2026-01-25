@@ -27,8 +27,9 @@ func (r Resource) String() string {
 
 // Predefined Resource constants for common resources.
 const (
-	ResourceBucket = Resource("bucket")
-	ResourceFile   = Resource("file")
-	ResourceFolder = Resource("folder")
-	ResourceUser   = Resource("user")
+	ResourceBucket    = Resource("bucket")
+	ResourceFile      = Resource("file")
+	ResourceFolder    = Resource("folder")
+	ResourceUser      = Resource("user")
+	ResourceMFADevice = Resource("mfa_device")
 )

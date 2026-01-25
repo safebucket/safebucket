@@ -62,3 +62,17 @@ type MFADeviceUpdateBody struct {
 type MFADeviceRemoveBody struct {
 	Password string `json:"password" validate:"required,min=1"`
 }
+
+// MFADeviceActivity is the activity log representation of an MFA device.
+type MFADeviceActivity struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+}
+
+// ToActivity converts an MFADevice to its activity log representation.
+func (d *MFADevice) ToActivity() MFADeviceActivity {
+	return MFADeviceActivity{
+		ID:   d.ID,
+		Name: d.Name,
+	}
+}

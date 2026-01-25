@@ -64,10 +64,11 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		// Dependencies
 		mockCache := &MockCache{}
 		service := MFAService{
-			DB:         gormDB,
-			Cache:      mockCache,
-			AuthConfig: config,
-			Notifier:   &MockNotifier{},
+			DB:             gormDB,
+			Cache:          mockCache,
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -203,10 +204,11 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 			require.NoError(t, err)
 
 			service := MFAService{
-				DB:         gormDB,
-				Cache:      &MockCache{},
-				AuthConfig: config,
-				Notifier:   &MockNotifier{},
+				DB:             gormDB,
+				Cache:          &MockCache{},
+				AuthConfig:     config,
+				Notifier:       &MockNotifier{},
+				ActivityLogger: &MockActivityLogger{},
 			}
 
 			userID := uuid.New()
@@ -284,10 +286,11 @@ func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:         gormDB,
-			Cache:      &MockCache{},
-			AuthConfig: config,
-			Notifier:   &MockNotifier{},
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -348,10 +351,11 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:         gormDB,
-			Cache:      &MockCache{},
-			AuthConfig: config,
-			Notifier:   &MockNotifier{},
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -423,10 +427,11 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:         gormDB,
-			Cache:      &MockCache{},
-			AuthConfig: config,
-			Notifier:   &MockNotifier{},
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -473,10 +478,11 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:         gormDB,
-			Cache:      &MockCache{},
-			AuthConfig: config,
-			Notifier:   &MockNotifier{},
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -526,10 +532,11 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:         gormDB,
-			Cache:      &MockCache{},
-			AuthConfig: config,
-			Notifier:   &MockNotifier{},
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -599,10 +606,11 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:         gormDB,
-			Cache:      &MockCache{},
-			AuthConfig: config,
-			Notifier:   &MockNotifier{},
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -642,10 +650,11 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:         gormDB,
-			Cache:      &MockCache{},
-			AuthConfig: config,
-			Notifier:   &MockNotifier{},
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -692,10 +701,11 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:         gormDB,
-			Cache:      &MockCache{},
-			AuthConfig: config,
-			Notifier:   &MockNotifier{},
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()

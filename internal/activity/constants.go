@@ -24,4 +24,8 @@ const (
 	InviteAccepted               string = "INVITE_ACCEPTED"
 	InviteChallengeAttemptFailed string = "INVITE_CHALLENGE_ATTEMPT_FAILED"
 	InviteChallengeLocked        string = "INVITE_CHALLENGE_LOCKED"
+	MFADeviceEnrolled            string = "MFA_DEVICE_ENROLLED"
+	MFADeviceVerified            string = "MFA_DEVICE_VERIFIED"
+	MFADeviceUpdated             string = "MFA_DEVICE_UPDATED"
+	MFADeviceRemoved             string = "MFA_DEVICE_REMOVED"
 )

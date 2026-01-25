@@ -8,6 +8,11 @@ export interface IUser {
   last_name: string;
 }
 
+export interface IMFADevice {
+  id: string;
+  name: string;
+}
+
 export interface IActivity {
   domain: string;
   user_id: string;
@@ -21,6 +26,7 @@ export interface IActivity {
   timestamp: string;
   message: ActivityMessage;
   bucket_member_email?: string;
+  mfa_device?: IMFADevice;
 }
 
 export enum ActivityMessage {
@@ -38,6 +44,10 @@ export enum ActivityMessage {
   BUCKET_MEMBER_CREATED = "BUCKET_MEMBER_CREATED",
   BUCKET_MEMBER_UPDATED = "BUCKET_MEMBER_UPDATED",
   BUCKET_MEMBER_DELETED = "BUCKET_MEMBER_DELETED",
+  MFA_DEVICE_ENROLLED = "MFA_DEVICE_ENROLLED",
+  MFA_DEVICE_VERIFIED = "MFA_DEVICE_VERIFIED",
+  MFA_DEVICE_UPDATED = "MFA_DEVICE_UPDATED",
+  MFA_DEVICE_REMOVED = "MFA_DEVICE_REMOVED",
 }
 
 export interface IListBucketActivity {

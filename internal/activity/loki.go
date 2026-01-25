@@ -18,7 +18,13 @@ import (
 )
 
 var authorizedLabels = [2]string{"object_type", "action"}
-var authorizedObjects = [3]rbac.Resource{rbac.ResourceBucket, rbac.ResourceFile, rbac.ResourceFolder}
+
+var authorizedObjects = [4]rbac.Resource{
+	rbac.ResourceBucket,
+	rbac.ResourceFile,
+	rbac.ResourceFolder,
+	rbac.ResourceMFADevice,
+}
 
 const (
 	lokiPushURI   = "/loki/api/v1/push"

@@ -3,6 +3,7 @@ package services
 import (
 	"time"
 
+	"api/internal/activity"
 	"api/internal/cache"
 	"api/internal/configuration"
 	apierrors "api/internal/errors"
@@ -23,11 +24,12 @@ import (
 )
 
 type MFAService struct {
-	DB         *gorm.DB
-	Cache      cache.ICache
-	AuthConfig models.AuthConfig
-	Publisher  messaging.IPublisher
-	Notifier   notifier.INotifier
+	DB             *gorm.DB
+	Cache          cache.ICache
+	AuthConfig     models.AuthConfig
+	Publisher      messaging.IPublisher
+	Notifier       notifier.INotifier
+	ActivityLogger activity.IActivityLogger
 }
 
 func (s MFAService) Routes() chi.Router {
@@ -180,6 +182,21 @@ func (s MFAService) AddDevice(
 		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(500, "MFA_SETUP_FAILED")
 	}
 
+	// Log activity
+	action := models.Activity{
+		Message: activity.MFADeviceEnrolled,
+		Object:  device.ToActivity(),
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":      activity.MFADeviceEnrolled,
+			"user_id":     userID.String(),
+			"object_type": "mfa_device",
+			"device_id":   device.ID.String(),
+		}),
+	}
+	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		logger.Error("Failed to log MFA device enrollment activity", zap.Error(logErr))
+	}
+
 	logger.Info("MFA device setup initiated",
 		zap.String("user_id", userID.String()),
 		zap.String("device_id", device.ID.String()),
@@ -323,6 +340,24 @@ func (s MFAService) VerifyDevice(
 		return nil, err
 	}
 
+	// Log activity
+	action := models.Activity{
+		Message: activity.MFADeviceVerified,
+		Object: models.MFADeviceActivity{
+			ID:   deviceID,
+			Name: deviceName,
+		},
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":      activity.MFADeviceVerified,
+			"user_id":     userID.String(),
+			"object_type": "mfa_device",
+			"device_id":   deviceID.String(),
+		}),
+	}
+	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		logger.Error("Failed to log MFA device verification activity", zap.Error(logErr))
+	}
+
 	// Reload user with MFA devices for token generation
 	s.DB.Preload("MFADevices", "is_verified = ?", true).First(&user, userID)
 
@@ -432,6 +467,21 @@ func (s MFAService) UpdateDevice(
 			}
 		}
 
+		// Log activity
+		action := models.Activity{
+			Message: activity.MFADeviceUpdated,
+			Object:  device.ToActivity(),
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      activity.MFADeviceUpdated,
+				"user_id":     userID.String(),
+				"object_type": "mfa_device",
+				"device_id":   deviceID.String(),
+			}),
+		}
+		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+			logger.Error("Failed to log MFA device update activity", zap.Error(logErr))
+		}
+
 		logger.Info("MFA device updated",
 			zap.String("user_id", userID.String()),
 			zap.String("device_id", deviceID.String()))
@@ -502,6 +552,21 @@ func (s MFAService) RemoveDevice(
 			if len(nextDefaults) > 0 {
 				tx.Model(&nextDefaults[0]).Update("is_default", true)
 			}
+		}
+
+		// Log activity
+		action := models.Activity{
+			Message: activity.MFADeviceRemoved,
+			Object:  device.ToActivity(),
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      activity.MFADeviceRemoved,
+				"user_id":     userID.String(),
+				"object_type": "mfa_device",
+				"device_id":   deviceID.String(),
+			}),
+		}
+		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+			logger.Error("Failed to log MFA device removal activity", zap.Error(logErr))
 		}
 
 		logger.Info("MFA device removed",

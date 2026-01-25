@@ -130,11 +130,12 @@ func main() {
 		apiRouter.Mount("/v1/users", userService.Routes())
 
 		apiRouter.Mount("/v1/mfa", services.MFAService{
-			DB:         db,
-			Cache:      cache,
-			AuthConfig: authConfig,
-			Publisher:  eventRouter,
-			Notifier:   notifier,
+			DB:             db,
+			Cache:          cache,
+			AuthConfig:     authConfig,
+			Publisher:      eventRouter,
+			Notifier:       notifier,
+			ActivityLogger: activity,
 		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
