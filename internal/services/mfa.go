@@ -151,7 +151,7 @@ func (s MFAService) AddDevice(
 	}
 
 	var existing models.MFADevice
-	result = s.DB.Where("user_id = ? AND name = ?", userID, body.Name).Find(&existing)
+	result = s.DB.Where("user_id = ? AND name = ? AND is_verified = ", userID, body.Name, true).Find(&existing)
 	if result.RowsAffected > 0 {
 		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(409, "MFA_DEVICE_NAME_EXISTS")
 	}
@@ -442,8 +442,8 @@ func (s MFAService) UpdateDevice(
 		if body.Name != nil {
 			// Check for duplicate name
 			var existing models.MFADevice
-			result = tx.Where("user_id = ? AND name = ? AND id != ?",
-				userID, *body.Name, deviceID).First(&existing)
+			result = tx.Where("user_id = ? AND name = ? AND id != ? AND is_verified = ?",
+				userID, *body.Name, deviceID, true).First(&existing)
 			if result.RowsAffected > 0 {
 				return apierrors.NewAPIError(409, "MFA_DEVICE_NAME_EXISTS")
 			}
