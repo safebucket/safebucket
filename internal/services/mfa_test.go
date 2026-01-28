@@ -240,7 +240,7 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 
 			// Mock name uniqueness check
 			mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
-				WithArgs(userID, "My First Device").
+				WithArgs(userID, "My First Device", true).
 				WillReturnRows(sqlmock.NewRows([]string{}))
 
 			// Mock device creation
@@ -384,7 +384,7 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 
 		// Mock name uniqueness check
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
-			WithArgs(userID, "New Device").
+			WithArgs(userID, "New Device", true).
 			WillReturnRows(sqlmock.NewRows([]string{}))
 
 		// Mock device creation
@@ -562,7 +562,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 
 		// Mock name uniqueness check
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
-			WithArgs(userID, "Second Device").
+			WithArgs(userID, "Second Device", true).
 			WillReturnRows(sqlmock.NewRows([]string{}))
 
 		// Mock device creation
@@ -736,7 +736,7 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		existingDeviceRow := sqlmock.NewRows([]string{"id", "name"}).
 			AddRow(uuid.New(), "My Device")
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
-			WithArgs(userID, "My Device").
+			WithArgs(userID, "My Device", true).
 			WillReturnRows(existingDeviceRow)
 
 		logger := zap.NewNop()
