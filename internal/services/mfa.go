@@ -151,7 +151,7 @@ func (s MFAService) AddDevice(
 	}
 
 	var existing models.MFADevice
-	result = s.DB.Where("user_id = ? AND name = ? AND is_verified = ", userID, body.Name, true).Find(&existing)
+	result = s.DB.Where("user_id = ? AND name = ? AND is_verified = ?", userID, body.Name, true).Find(&existing)
 	if result.RowsAffected > 0 {
 		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(409, "MFA_DEVICE_NAME_EXISTS")
 	}
