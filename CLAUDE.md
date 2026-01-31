@@ -10,7 +10,7 @@ comprehensive audit trails.
 
 ## Architecture Summary
 
-### Backend (Go 1.24)
+### Backend (Go 1.25)
 
 - **Framework**: Chi v5 HTTP router with composable middleware
 - **Database**: GORM with PostgreSQL (Goose SQL migrations in `internal/database/migrations/`)

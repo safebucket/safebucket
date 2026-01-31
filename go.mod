@@ -1,6 +1,6 @@
 module api
 
-go 1.24.4
+go 1.25.6
 
 require (
 	cloud.google.com/go/storage v1.59.2
