@@ -119,7 +119,6 @@ func (r *RueidisCache) GetRateLimit(userIdentifier string, requestsPerMinute int
 // Returns true if lock was acquired, false if already held by another instance.
 func (r *RueidisCache) TryAcquireLock(key string, instanceID string, ttlSeconds int) (bool, error) {
 	ctx := context.Background()
-	// SET key value NX EX ttl - atomic set-if-not-exists with expiration
 	err := r.client.Do(ctx,
 		r.client.B().Set().Key(key).Value(instanceID).Nx().Ex(time.Duration(ttlSeconds)*time.Second).Build(),
 	).Error()
@@ -153,10 +152,10 @@ func (r *RueidisCache) RefreshLock(key string, instanceID string, ttlSeconds int
 		return false, nil
 	}
 
-	// EXPIRE to refresh TTL
 	err = r.client.Do(ctx,
 		r.client.B().Expire().Key(key).Seconds(int64(ttlSeconds)).Build(),
 	).Error()
+
 	return err == nil, err
 }
 
