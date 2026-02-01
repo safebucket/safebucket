@@ -141,14 +141,12 @@ func (r *RueidisCache) RefreshLock(key string, instanceID string, ttlSeconds int
 
 	if err != nil {
 		if rueidis.IsRedisNil(err) {
-			// Lock no longer exists
 			return false, nil
 		}
 		return false, err
 	}
 
 	if current != instanceID {
-		// Lock held by another instance
 		return false, nil
 	}
 
