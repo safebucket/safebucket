@@ -40,7 +40,18 @@ func main() {
 	}
 
 	if profile.Workers.AnyEnabled() {
-		core.StartWorkers(profile, eventsManager, db, store, activityLogger, notify, eventRouter, config, cache, appIdentity)
+		core.StartWorkers(
+			profile,
+			eventsManager,
+			db,
+			store,
+			activityLogger,
+			notify,
+			eventRouter,
+			config,
+			cache,
+			appIdentity,
+		)
 	}
 
 	if profile.HTTPServer {
