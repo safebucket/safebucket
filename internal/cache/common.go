@@ -75,7 +75,7 @@ func (r *RueidisCache) StartIdentityTicker(id string) {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 	for range ticker.C {
-		err := r.RegisterPlatform(id)
+		err = r.RegisterPlatform(id)
 		if err != nil {
 			zap.L().Fatal("App identity ticker crashed", zap.Error(err))
 		}

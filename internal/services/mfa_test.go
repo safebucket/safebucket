@@ -24,16 +24,18 @@ import (
 type MockCache struct {
 }
 
-func (m *MockCache) RegisterPlatform(_ string) error                   { return nil }
-func (m *MockCache) DeleteInactivePlatform() error                     { return nil }
-func (m *MockCache) StartIdentityTicker(_ string)                      {}
-func (m *MockCache) GetRateLimit(_ string, _ int) (int, error)         { return 0, nil }
-func (m *MockCache) IsTOTPCodeUsed(_ string, _ string) (bool, error)   { return false, nil }
-func (m *MockCache) MarkTOTPCodeUsed(_ string, _ string) (bool, error) { return true, nil }
-func (m *MockCache) GetMFAAttempts(_ string) (int, error)              { return 0, nil }
-func (m *MockCache) IncrementMFAAttempts(_ string) error               { return nil }
-func (m *MockCache) ResetMFAAttempts(_ string) error                   { return nil }
-func (m *MockCache) Close() error                                      { return nil }
+func (m *MockCache) RegisterPlatform(_ string) error                        { return nil }
+func (m *MockCache) DeleteInactivePlatform() error                          { return nil }
+func (m *MockCache) StartIdentityTicker(_ string)                           {}
+func (m *MockCache) GetRateLimit(_ string, _ int) (int, error)              { return 0, nil }
+func (m *MockCache) IsTOTPCodeUsed(_ string, _ string) (bool, error)        { return false, nil }
+func (m *MockCache) MarkTOTPCodeUsed(_ string, _ string) (bool, error)      { return true, nil }
+func (m *MockCache) GetMFAAttempts(_ string) (int, error)                   { return 0, nil }
+func (m *MockCache) IncrementMFAAttempts(_ string) error                    { return nil }
+func (m *MockCache) ResetMFAAttempts(_ string) error                        { return nil }
+func (m *MockCache) TryAcquireLock(_ string, _ string, _ int) (bool, error) { return true, nil }
+func (m *MockCache) RefreshLock(_ string, _ string, _ int) (bool, error)    { return true, nil }
+func (m *MockCache) Close() error                                           { return nil }
 
 type MockNotifier struct {
 }
