@@ -111,7 +111,7 @@ func readFileConfig(k *koanf.Koanf) {
 	}
 }
 
-func Read() (models.Configuration, models.Profile) {
+func Read() models.Configuration {
 	k := koanf.New(".")
 
 	readFileConfig(k)
@@ -123,13 +123,5 @@ func Read() (models.Configuration, models.Profile) {
 		zap.L().Fatal("Unable to decode config into struct", zap.Error(err))
 	}
 
-	profile, ok := GetProfile(config.Profile)
-	if !ok {
-		zap.L().Fatal("Unknown profile",
-			zap.String("profile", config.Profile),
-			zap.Strings("available_profiles", []string{ProfileDefault, ProfileAPI, ProfileWorker}))
-	}
-
-	zap.L().Info("Loaded profile", zap.String("profile", profile.Name))
-	return config, profile
+	return config
 }

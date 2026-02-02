@@ -1,6 +1,10 @@
 package configuration
 
-import "api/internal/models"
+import (
+	"api/internal/models"
+
+	"go.uber.org/zap"
+)
 
 const (
 	ProfileDefault = "default"
@@ -38,11 +42,20 @@ var Profiles = map[string]models.Profile{
 
 // GetProfile returns the profile by name. Returns the default profile if name is empty.
 // Returns false if the profile name is not found.
-func GetProfile(name string) (models.Profile, bool) {
+func GetProfile(name string) models.Profile {
 	if name == "" {
 		name = ProfileDefault
 	}
 
 	profile, ok := Profiles[name]
-	return profile, ok
+
+	if !ok {
+		zap.L().Fatal("Unknown profile",
+			zap.String("profile", name),
+			zap.Strings("available_profiles", []string{ProfileDefault, ProfileAPI, ProfileWorker}))
+	}
+
+	zap.L().Info("Loaded profile", zap.String("profile", profile.Name))
+
+	return profile
 }

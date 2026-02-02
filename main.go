@@ -12,8 +12,10 @@ import (
 func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
 
-	config, profile := configuration.Read()
+	config := configuration.Read()
 	core.NewLogger(config.App.LogLevel)
+
+	profile := configuration.GetProfile(config.Profile)
 
 	db := database.InitDB(config.Database)
 	cache := core.NewCache(config.Cache)
