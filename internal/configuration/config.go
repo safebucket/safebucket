@@ -7,6 +7,7 @@ import (
 
 	"api/internal/models"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -121,6 +122,11 @@ func Read() models.Configuration {
 	err := k.UnmarshalWithConf("", &config, koanf.UnmarshalConf{Tag: "mapstructure"})
 	if err != nil {
 		zap.L().Fatal("Unable to decode config into struct", zap.Error(err))
+	}
+
+	validate := validator.New()
+	if err = validate.Struct(config); err != nil {
+		zap.L().Fatal("Invalid configuration", zap.Error(err))
 	}
 
 	return config
