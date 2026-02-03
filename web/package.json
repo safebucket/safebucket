@@ -73,7 +73,7 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "i18next-cli": "^1.41.1",
     "jsdom": "^27.4.0",
-    "knip": "^5.82.1",
+    "knip": "^5.83.0",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "typescript": "^5.9.3",
