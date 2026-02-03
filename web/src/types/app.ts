@@ -6,4 +6,5 @@ export enum EnvironmentType {
 export interface IConfig {
   apiUrl: string;
   environment: EnvironmentType;
+  requiresUploadConfirmation: boolean;
 }

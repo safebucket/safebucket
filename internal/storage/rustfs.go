@@ -15,7 +15,6 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/lifecycle"
-	"github.com/minio/minio-go/v7/pkg/tags"
 	"go.uber.org/zap"
 )
 
@@ -42,23 +41,22 @@ func newS3Storage(cfg s3Config, bucketName string) IStorage {
 		Secure: false,
 	})
 	if err != nil {
-		zap.L().Error("Failed to connect to storage",
+		zap.L().Fatal("Failed to create storage client",
 			zap.String("provider", cfg.providerName),
 			zap.Error(err))
 	}
 
 	exists, err := minioClient.BucketExists(context.Background(), bucketName)
 	if err != nil {
-		zap.L().Error("Failed to connect to storage",
+		zap.L().Fatal("Failed to connect to storage",
 			zap.String("provider", cfg.providerName),
 			zap.Error(err))
 	}
 
 	if !exists {
-		zap.L().Error("Failed to retrieve bucket",
+		zap.L().Fatal("Bucket does not exist",
 			zap.String("provider", cfg.providerName),
-			zap.String("bucketName", bucketName),
-			zap.Error(err))
+			zap.String("bucketName", bucketName))
 	}
 
 	externalEndpoint := cfg.externalEndpoint
@@ -128,7 +126,7 @@ func (s S3Storage) PresignedGetObject(path string) (string, error) {
 		context.Background(),
 		s.BucketName,
 		path,
-		time.Minute*15,
+		c.UploadPolicyExpirationInMinutes*time.Minute,
 		nil,
 	)
 	if err != nil {
@@ -231,68 +229,6 @@ func (s S3Storage) RemoveObjects(paths []string) error {
 	}
 
 	return nil
-}
-
-func (s S3Storage) SetObjectTags(path string, tagMap map[string]string) error {
-	objectTags, err := tags.MapToObjectTags(tagMap)
-	if err != nil {
-		return err
-	}
-
-	err = s.storage.PutObjectTagging(
-		context.Background(),
-		s.BucketName,
-		path,
-		objectTags,
-		minio.PutObjectTaggingOptions{},
-	)
-	return err
-}
-
-func (s S3Storage) GetObjectTags(path string) (map[string]string, error) {
-	currentTags, err := s.storage.GetObjectTagging(
-		context.Background(),
-		s.BucketName,
-		path,
-		minio.GetObjectTaggingOptions{},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return currentTags.ToMap(), nil
-}
-
-func (s S3Storage) RemoveObjectTags(path string, tagsToRemove []string) error {
-	currentTags, err := s.storage.GetObjectTagging(
-		context.Background(),
-		s.BucketName,
-		path,
-		minio.GetObjectTaggingOptions{},
-	)
-	if err != nil {
-		return err
-	}
-
-	tagMap := currentTags.ToMap()
-
-	for _, tagKey := range tagsToRemove {
-		delete(tagMap, tagKey)
-	}
-
-	filteredTags, err := tags.MapToObjectTags(tagMap)
-	if err != nil {
-		return err
-	}
-
-	err = s.storage.PutObjectTagging(
-		context.Background(),
-		s.BucketName,
-		path,
-		filteredTags,
-		minio.PutObjectTaggingOptions{},
-	)
-	return err
 }
 
 // IsTrashMarkerPath checks if a deletion event is for a trash marker.

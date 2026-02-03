@@ -25,13 +25,14 @@ type GCPStorage struct {
 func NewGCPStorage(bucketName string) IStorage {
 	client, err := gcs.NewClient(context.Background())
 	if err != nil {
-		zap.L().Error("Failed to connect to storage", zap.Error(err))
+		zap.L().Fatal("Failed to create storage client", zap.Error(err))
 	}
 
 	_, err = client.Bucket(bucketName).Attrs(context.Background())
 	if err != nil {
-		zap.L().
-			Error("Failed to retrieve bucket.", zap.String("bucketName", bucketName), zap.Error(err))
+		zap.L().Fatal("Failed to connect to storage or bucket does not exist",
+			zap.String("bucketName", bucketName),
+			zap.Error(err))
 	}
 
 	return &GCPStorage{
@@ -47,7 +48,7 @@ func (g GCPStorage) GetBucketName() string {
 func (g GCPStorage) PresignedGetObject(path string) (string, error) {
 	opts := &gcs.SignedURLOptions{
 		Method:  http.MethodGet,
-		Expires: time.Now().Add(15 * time.Minute),
+		Expires: time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
 	}
 
 	url, err := g.storage.Bucket(g.BucketName).SignedURL(path, opts)
@@ -134,69 +135,6 @@ func (g GCPStorage) ListObjects(prefix string, _ int32) ([]string, error) {
 	}
 
 	return objects, nil
-}
-
-func (g GCPStorage) SetObjectTags(path string, tags map[string]string) error {
-	obj := g.storage.Bucket(g.BucketName).Object(path)
-
-	attrs, err := obj.Attrs(context.Background())
-	if err != nil {
-		return err
-	}
-
-	if attrs.Metadata == nil {
-		attrs.Metadata = make(map[string]string)
-	}
-
-	for key, value := range tags {
-		attrs.Metadata[key] = value
-	}
-
-	_, err = obj.Update(context.Background(), gcs.ObjectAttrsToUpdate{
-		Metadata: attrs.Metadata,
-	})
-	return err
-}
-
-func (g GCPStorage) GetObjectTags(path string) (map[string]string, error) {
-	obj := g.storage.Bucket(g.BucketName).Object(path)
-
-	attrs, err := obj.Attrs(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	if attrs.Metadata == nil {
-		return make(map[string]string), nil
-	}
-
-	tagMap := make(map[string]string)
-	for key, value := range attrs.Metadata {
-		tagMap[key] = value
-	}
-
-	return tagMap, nil
-}
-
-func (g GCPStorage) RemoveObjectTags(path string, tagsToRemove []string) error {
-	obj := g.storage.Bucket(g.BucketName).Object(path)
-
-	attrs, err := obj.Attrs(context.Background())
-	if err != nil {
-		return err
-	}
-
-	if attrs.Metadata != nil {
-		for _, key := range tagsToRemove {
-			delete(attrs.Metadata, key)
-		}
-	}
-
-	_, err = obj.Update(context.Background(), gcs.ObjectAttrsToUpdate{
-		Metadata: attrs.Metadata,
-	})
-
-	return err
 }
 
 // IsTrashMarkerPath checks if a deletion event is for a trash marker.

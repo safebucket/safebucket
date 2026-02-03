@@ -86,6 +86,15 @@ export const createFolderMutationFn = async (params: {
   });
 };
 
+export const api_confirmUpload = async (
+  bucketId: string,
+  fileId: string,
+): Promise<void> => {
+  await api.patch(`/buckets/${bucketId}/files/${fileId}`, {
+    status: "uploaded",
+  });
+};
+
 export const deleteFileMutationFn = async (params: {
   bucketId: string;
   fileId: string;

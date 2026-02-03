@@ -141,14 +141,89 @@ func (s BucketFileService) PatchFile(
 ) error {
 	bucketID, fileID := ids[0], ids[1]
 
+	var file models.File
+	result := s.DB.Unscoped().
+		Where("id = ? AND bucket_id = ?", fileID, bucketID).
+		First(&file)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+		}
+		return apierrors.NewAPIError(500, "FETCH_FAILED")
+	}
+
 	switch body.Status {
 	case string(models.FileStatusDeleted):
-		return s.TrashFile(logger, user, bucketID, fileID)
+		return s.TrashFile(logger, user, file)
 	case string(models.FileStatusUploaded):
-		return s.RestoreFile(logger, user, bucketID, fileID)
+		if file.DeletedAt.Valid {
+			return s.RestoreFile(logger, user, file)
+		}
+		return s.HandleUploadedStatus(logger, user, file)
 	default:
 		return apierrors.NewAPIError(400, "INVALID_STATUS")
 	}
+}
+
+// HandleUploadedStatus confirms a file upload by transitioning from "uploading" to "uploaded".
+// This is required for S3 providers that don't support bucket notifications.
+// The client must call this after completing the upload via the presigned URL.
+func (s BucketFileService) HandleUploadedStatus(
+	logger *zap.Logger,
+	user models.UserClaims,
+	file models.File,
+) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		// Re-fetch with row lock inside transaction for concurrency safety
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND bucket_id = ?", file.ID, file.BucketID).
+			First(&file)
+
+		if result.Error != nil {
+			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+				return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+			}
+			return apierrors.NewAPIError(500, "FETCH_FAILED")
+		}
+
+		// Only handle files in 'uploading' status
+		if file.Status != models.FileStatusUploading {
+			return apierrors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
+		}
+
+		// Verify file exists in object storage
+		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
+		if _, err := s.Storage.StatObject(objectPath); err != nil {
+			logger.Error("File not found in storage",
+				zap.Error(err),
+				zap.String("path", objectPath),
+				zap.String("file_id", file.ID.String()))
+			return apierrors.NewAPIError(404, "FILE_NOT_IN_STORAGE")
+		}
+
+		// Update status to uploaded
+		if err := tx.Model(&file).Update("status", models.FileStatusUploaded).Error; err != nil {
+			logger.Error("Failed to update file status", zap.Error(err))
+			return apierrors.NewAPIError(500, "UPDATE_FAILED")
+		}
+
+		// Log activity
+		if err := s.ActivityLogger.Send(models.Activity{
+			Message: activity.FileUploaded,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionCreate.String(),
+				"bucket_id":   file.BucketID.String(),
+				"file_id":     file.ID.String(),
+				"object_type": rbac.ResourceFile.String(),
+				"user_id":     user.UserID.String(),
+			}),
+		}); err != nil {
+			logger.Warn("Failed to log upload activity", zap.Error(err))
+		}
+
+		return nil
+	})
 }
 
 // DeleteFile handles DELETE requests for permanent file deletion (purge).
@@ -215,13 +290,12 @@ func (s BucketFileService) DownloadFile(
 func (s BucketFileService) TrashFile(
 	logger *zap.Logger,
 	user models.UserClaims,
-	bucketID uuid.UUID,
-	fileID uuid.UUID,
+	file models.File,
 ) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		var file models.File
+		// Re-fetch with row lock inside transaction for concurrency safety
 		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND bucket_id = ?", fileID, bucketID).
+			Where("id = ? AND bucket_id = ?", file.ID, file.BucketID).
 			First(&file)
 
 		if result.Error != nil {
@@ -314,15 +388,15 @@ func (s BucketFileService) unmarkRestoredFolders(logger *zap.Logger, folders []m
 func (s BucketFileService) RestoreFile(
 	logger *zap.Logger,
 	user models.UserClaims,
-	bucketID, fileID uuid.UUID,
+	file models.File,
 ) error {
 	var restoredFolders []models.Folder
 	var restoredFile models.File
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		var file models.File
+		// Re-fetch with row lock inside transaction for concurrency safety
 		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND bucket_id = ? AND deleted_at IS NOT NULL", fileID, bucketID).
+			Where("id = ? AND bucket_id = ? AND deleted_at IS NOT NULL", file.ID, file.BucketID).
 			First(&file)
 
 		if result.Error != nil {
@@ -337,7 +411,7 @@ func (s BucketFileService) RestoreFile(
 			return apierrors.NewAPIError(409, "FILE_RESTORE_IN_PROGRESS")
 		}
 
-		folders, err := s.restoreParentFolders(tx, logger, file.FolderID, bucketID)
+		folders, err := s.restoreParentFolders(tx, logger, file.FolderID, file.BucketID)
 		if err != nil {
 			return err
 		}

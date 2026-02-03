@@ -13,18 +13,20 @@ import (
 )
 
 type StaticFileService struct {
-	staticPath         string
-	discoveredFiles    map[string]string
-	storageExternalURL string
+	staticPath                 string
+	discoveredFiles            map[string]string
+	storageExternalURL         string
+	requiresUploadConfirmation bool
 }
 
 // ConfigJSON represents the frontend configuration structure.
 type ConfigJSON struct {
-	APIURL      string `json:"apiUrl"`
-	Environment string `json:"environment"`
+	APIURL                     string `json:"apiUrl"`
+	Environment                string `json:"environment"`
+	RequiresUploadConfirmation bool   `json:"requiresUploadConfirmation"`
 }
 
-func NewStaticFileService(directory string, apiURL string, storageExternalURL string) (*StaticFileService, error) {
+func NewStaticFileService(directory string, apiURL string, storageExternalURL string, requiresUploadConfirmation bool) (*StaticFileService, error) {
 	var staticPath string
 
 	if !filepath.IsAbs(directory) {
@@ -35,9 +37,10 @@ func NewStaticFileService(directory string, apiURL string, storageExternalURL st
 	}
 
 	service := &StaticFileService{
-		staticPath:         staticPath,
-		discoveredFiles:    make(map[string]string),
-		storageExternalURL: storageExternalURL,
+		staticPath:                 staticPath,
+		discoveredFiles:            make(map[string]string),
+		storageExternalURL:         storageExternalURL,
+		requiresUploadConfirmation: requiresUploadConfirmation,
 	}
 
 	if err := service.createConfigFileIfNotExists(apiURL); err != nil {
@@ -64,8 +67,9 @@ func (s *StaticFileService) createConfigFileIfNotExists(apiURL string) error {
 	}
 
 	config := ConfigJSON{
-		APIURL:      apiURL,
-		Environment: "production",
+		APIURL:                     apiURL,
+		Environment:                "production",
+		RequiresUploadConfirmation: s.requiresUploadConfirmation,
 	}
 
 	configData, err := json.MarshalIndent(config, "", "  ")
@@ -82,7 +86,7 @@ func (s *StaticFileService) createConfigFileIfNotExists(apiURL string) error {
 	}
 
 	zap.L().
-		Info("created config.json", zap.String("path", configPath), zap.String("apiURL", apiURL), zap.String("environment", "production"))
+		Info("created config.json", zap.String("path", configPath), zap.String("apiURL", apiURL), zap.String("environment", "production"), zap.Bool("requiresUploadConfirmation", s.requiresUploadConfirmation))
 	return nil
 }
 

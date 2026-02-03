@@ -6,9 +6,11 @@ import { generateRandomString } from "@/lib/utils";
 
 import { successToast } from "@/components/ui/hooks/use-toast";
 import {
+  api_confirmUpload,
   api_createFile,
   uploadToStorage,
 } from "@/components/upload/helpers/api";
+import { configQueryOptions } from "@/queries/config";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
 
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
@@ -51,6 +53,12 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           },
           abortController.signal,
         );
+
+        // Confirm upload if required by storage provider (e.g., generic S3 without bucket notifications)
+        const config = await queryClient.ensureQueryData(configQueryOptions());
+        if (config.requiresUploadConfirmation) {
+          await api_confirmUpload(bucketId, presignedUpload.id);
+        }
 
         return { uploadId, fileName: file.name, bucketId };
       } finally {

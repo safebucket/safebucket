@@ -84,11 +84,12 @@ type ValkeyCacheConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	Type         string                      `mapstructure:"type"   validate:"required,oneof=minio gcp aws rustfs"`
+	Type         string                      `mapstructure:"type"   validate:"required,oneof=minio gcp aws rustfs s3"`
 	Minio        *MinioStorageConfiguration  `mapstructure:"minio"  validate:"required_if=Type minio"`
 	CloudStorage *CloudStorage               `mapstructure:"gcp"    validate:"required_if=Type gcp"`
-	S3           *S3Configuration            `mapstructure:"aws"    validate:"required_if=Type aws"`
+	AWS          *AWSConfiguration           `mapstructure:"aws"    validate:"required_if=Type aws"`
 	RustFS       *RustFSStorageConfiguration `mapstructure:"rustfs" validate:"required_if=Type rustfs"`
+	S3           *S3Configuration            `mapstructure:"s3"     validate:"required_if=Type s3"`
 }
 
 type MinioStorageConfiguration struct {
@@ -104,9 +105,24 @@ type CloudStorage struct {
 	ProjectID  string `mapstructure:"project_id"  validate:"required"`
 }
 
-type S3Configuration struct {
+// AWSConfiguration for AWS S3 storage.
+// Uses AWS SDK default credential chain (environment variables, shared credentials, IAM roles).
+type AWSConfiguration struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
 	ExternalEndpoint string `mapstructure:"external_endpoint"`
+}
+
+// S3Configuration for generic S3-compatible providers (Storj, Hetzner, Backblaze B2, Garage).
+// This provider assumes NO lifecycle policy or bucket notification support.
+type S3Configuration struct {
+	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
+	Endpoint         string `mapstructure:"endpoint"          validate:"required,url"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
+	AccessKey        string `mapstructure:"access_key"        validate:"required"`
+	SecretKey        string `mapstructure:"secret_key"        validate:"required"`
+	Region           string `mapstructure:"region"`
+	ForcePathStyle   bool   `mapstructure:"force_path_style"`
+	UseTLS           bool   `mapstructure:"use_tls"`
 }
 
 type RustFSStorageConfiguration struct {
@@ -133,10 +149,14 @@ func (s *StorageConfiguration) GetExternalURL() string {
 	case "gcp":
 		return ""
 	case "aws":
-		if s.S3 != nil && s.S3.ExternalEndpoint != "" {
-			return s.S3.ExternalEndpoint
+		if s.AWS != nil && s.AWS.ExternalEndpoint != "" {
+			return s.AWS.ExternalEndpoint
 		}
 		return ""
+	case "s3":
+		if s.S3 != nil {
+			return s.S3.ExternalEndpoint
+		}
 	}
 	return ""
 }
