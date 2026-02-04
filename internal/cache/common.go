@@ -125,7 +125,6 @@ func (r *RueidisCache) TryAcquireLock(key string, instanceID string, ttlSeconds 
 
 	if err != nil {
 		if rueidis.IsRedisNil(err) {
-			// Key already exists, lock not acquired
 			return false, nil
 		}
 		return false, err

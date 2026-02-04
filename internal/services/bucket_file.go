@@ -174,7 +174,6 @@ func (s BucketFileService) HandleUploadedStatus(
 	file models.File,
 ) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		// Re-fetch with row lock inside transaction for concurrency safety
 		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ?", file.ID, file.BucketID).
 			First(&file)
@@ -186,12 +185,10 @@ func (s BucketFileService) HandleUploadedStatus(
 			return apierrors.NewAPIError(500, "FETCH_FAILED")
 		}
 
-		// Only handle files in 'uploading' status
 		if file.Status != models.FileStatusUploading {
 			return apierrors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
 		}
 
-		// Verify file exists in object storage
 		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
 		if _, err := s.Storage.StatObject(objectPath); err != nil {
 			logger.Error("File not found in storage",
@@ -201,13 +198,11 @@ func (s BucketFileService) HandleUploadedStatus(
 			return apierrors.NewAPIError(404, "FILE_NOT_IN_STORAGE")
 		}
 
-		// Update status to uploaded
 		if err := tx.Model(&file).Update("status", models.FileStatusUploaded).Error; err != nil {
 			logger.Error("Failed to update file status", zap.Error(err))
 			return apierrors.NewAPIError(500, "UPDATE_FAILED")
 		}
 
-		// Log activity
 		if err := s.ActivityLogger.Send(models.Activity{
 			Message: activity.FileUploaded,
 			Object:  file.ToActivity(),
@@ -293,7 +288,6 @@ func (s BucketFileService) TrashFile(
 	file models.File,
 ) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		// Re-fetch with row lock inside transaction for concurrency safety
 		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ?", file.ID, file.BucketID).
 			First(&file)
@@ -394,7 +388,6 @@ func (s BucketFileService) RestoreFile(
 	var restoredFile models.File
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		// Re-fetch with row lock inside transaction for concurrency safety
 		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ? AND deleted_at IS NOT NULL", file.ID, file.BucketID).
 			First(&file)
@@ -491,7 +484,6 @@ func (s BucketFileService) PurgeFile(
 	bucketID, fileID uuid.UUID,
 ) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		// Fetch file inside transaction with row lock (use Unscoped to query soft-deleted files)
 		var file models.File
 		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ?", fileID, bucketID).
@@ -505,31 +497,24 @@ func (s BucketFileService) PurgeFile(
 			return apierrors.NewAPIError(500, "FETCH_FAILED")
 		}
 
-		// Only allow purging soft-deleted files (in trash)
 		if !file.DeletedAt.Valid {
 			return apierrors.NewAPIError(409, "FILE_NOT_IN_TRASH")
 		}
 
-		// Use new path structure: buckets/{bucket_id}/{file_id}
 		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
 
-		// Delete the trash marker first
 		if err := s.Storage.UnmarkAsTrashed(objectPath, file); err != nil {
 			logger.Warn("Failed to delete trash marker",
 				zap.Error(err),
 				zap.String("path", objectPath))
-			// Continue - marker might have been already deleted by lifecycle policy
 		}
 
-		// Delete the original file from storage
 		if err := s.Storage.RemoveObject(objectPath); err != nil {
 			logger.Warn("Failed to delete file from storage",
 				zap.Error(err),
 				zap.String("path", objectPath))
-			// Continue to database deletion even if storage fails
 		}
 
-		// Hard delete from database (permanent removal)
 		if err := tx.Unscoped().Delete(&file).Error; err != nil {
 			logger.Error("Failed to hard delete file from database", zap.Error(err))
 			return apierrors.ErrDeleteFailed

@@ -244,6 +244,7 @@ func StartHTTPServer(
 			config.App.StaticFiles.Directory,
 			config.App.APIURL,
 			config.Storage.GetExternalURL(),
+			RequiresUploadConfirmation(config.Storage.Type),
 		)
 		if err != nil {
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))
