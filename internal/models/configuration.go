@@ -120,9 +120,11 @@ type S3Configuration struct {
 	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
 	AccessKey        string `mapstructure:"access_key"        validate:"required"`
 	SecretKey        string `mapstructure:"secret_key"        validate:"required"`
-	Region           string `mapstructure:"region"`
-	ForcePathStyle   bool   `mapstructure:"force_path_style"`
-	UseTLS           bool   `mapstructure:"use_tls"`
+	Region           string `mapstructure:"region"                                         default:"us-east-1"`
+	// ForcePathStyle uses path-style URLs (endpoint/bucket/key) instead of virtual-hosted style (bucket.endpoint/key).
+	// Most S3-compatible providers require this to be true.
+	ForcePathStyle bool `mapstructure:"force_path_style" default:"true"`
+	UseTLS         bool `mapstructure:"use_tls"          default:"true"`
 }
 
 type RustFSStorageConfiguration struct {

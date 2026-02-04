@@ -144,12 +144,12 @@ func (s BucketFileService) PatchFile(
 	var file models.File
 	result := s.DB.Unscoped().
 		Where("id = ? AND bucket_id = ?", fileID, bucketID).
-		First(&file)
+		Find(&file)
 	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
-		}
-		return apierrors.NewAPIError(500, "FETCH_FAILED")
+		return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+	if result.RowsAffected == 0 {
+		return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
 	}
 
 	switch body.Status {
@@ -182,7 +182,7 @@ func (s BucketFileService) HandleUploadedStatus(
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 				return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
 			}
-			return apierrors.NewAPIError(500, "FETCH_FAILED")
+			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 
 		if file.Status != models.FileStatusUploading {
@@ -200,7 +200,7 @@ func (s BucketFileService) HandleUploadedStatus(
 
 		if err := tx.Model(&file).Update("status", models.FileStatusUploaded).Error; err != nil {
 			logger.Error("Failed to update file status", zap.Error(err))
-			return apierrors.NewAPIError(500, "UPDATE_FAILED")
+			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 		}
 
 		if err := s.ActivityLogger.Send(models.Activity{

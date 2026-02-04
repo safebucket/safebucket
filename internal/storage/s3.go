@@ -2,8 +2,6 @@ package storage
 
 import (
 	"context"
-	"net"
-	"net/http"
 	"net/url"
 	"time"
 
@@ -30,25 +28,10 @@ type GenericS3Storage struct {
 func NewGenericS3Storage(config *models.S3Configuration, bucketName string) IStorage {
 	endpoint := config.Endpoint
 
-	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		ResponseHeaderTimeout: 60 * time.Second,
-	}
-
 	minioOptions := &minio.Options{
-		Creds:     credentials.NewStaticV4(config.AccessKey, config.SecretKey, ""),
-		Secure:    config.UseTLS,
-		Region:    config.Region,
-		Transport: transport,
+		Creds:  credentials.NewStaticV4(config.AccessKey, config.SecretKey, ""),
+		Secure: config.UseTLS,
+		Region: config.Region,
 	}
 
 	if config.ForcePathStyle {

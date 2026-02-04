@@ -20,9 +20,6 @@ func NewStorage(config models.StorageConfiguration, trashRetentionDays int) stor
 	case ProviderRustFS:
 		store = storage.NewRustFSStorage(config.RustFS, config.RustFS.BucketName)
 	case ProviderS3:
-		if config.S3 == nil {
-			zap.L().Fatal("S3 configuration is required when using S3 provider")
-		}
 		store = storage.NewGenericS3Storage(config.S3, config.S3.BucketName)
 	default:
 		return nil

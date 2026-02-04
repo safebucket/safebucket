@@ -26,7 +26,12 @@ type ConfigJSON struct {
 	RequiresUploadConfirmation bool   `json:"requiresUploadConfirmation"`
 }
 
-func NewStaticFileService(directory string, apiURL string, storageExternalURL string, requiresUploadConfirmation bool) (*StaticFileService, error) {
+func NewStaticFileService(
+	directory string,
+	apiURL string,
+	storageExternalURL string,
+	requiresUploadConfirmation bool,
+) (*StaticFileService, error) {
 	var staticPath string
 
 	if !filepath.IsAbs(directory) {
