@@ -1,6 +1,6 @@
 # Profile determines which components run
 # Options: default, api, worker
-# Default: default (all components enabled)
+# Default: default (all components including trash worker if needed)
 profile: default
 
 app:

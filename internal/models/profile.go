@@ -20,6 +20,7 @@ type Profile struct {
 type WorkerConfig struct {
 	ObjectDeletion WorkerMode
 	BucketEvents   WorkerMode
+	TrashCleanup   WorkerMode
 }
 
 // AnyEnabled returns true if any worker is enabled.

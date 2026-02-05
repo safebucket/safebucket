@@ -16,6 +16,7 @@ import (
 	"api/internal/notifier"
 	"api/internal/services"
 	"api/internal/storage"
+	"api/internal/workers"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -71,6 +72,19 @@ func StartWorkers(
 	notifications := eventsManager.GetSubscriber(configuration.EventsNotifications).Subscribe()
 	go events.HandleEvents(eventParams, notifications)
 	zap.L().Info("Started notifications worker")
+
+	if RequiresUploadConfirmation(config.Storage.Type) {
+		startWorker(profile.Workers.TrashCleanup, "trash_cleanup", cache, appIdentity, func(ctx context.Context) {
+			worker := &workers.TrashCleanupWorker{
+				DB:                 db,
+				Publisher:          eventRouter,
+				TrashRetentionDays: config.App.TrashRetentionDays,
+				RunInterval:        time.Duration(config.App.TrashRetentionDays) * 24 * time.Hour / 7,
+				ActivityLogger:     activityLogger,
+			}
+			worker.Start(ctx)
+		})
+	}
 
 	startWorker(profile.Workers.ObjectDeletion, "object_deletion", cache, appIdentity, func(_ context.Context) {
 		deletionEvents := eventsManager.GetSubscriber(configuration.EventsObjectDeletion).Subscribe()

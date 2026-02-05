@@ -63,7 +63,7 @@ services:
 
   bucket:
     container_name: bucket
-    image: rustfs/rustfs:1.0.0-alpha.79
+    image: rustfs/rustfs:1.0.0-alpha.82
     environment:
       - RUSTFS_ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
