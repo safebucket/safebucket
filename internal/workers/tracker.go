@@ -47,14 +47,12 @@ func (t *RunTracker) CompleteRun(run *models.WorkerRun) {
 }
 
 // FailRun marks a run as failed, records the error, and pushes it to Loki.
-func (t *RunTracker) FailRun(run *models.WorkerRun, err error) {
+func (t *RunTracker) FailRun(run *models.WorkerRun) {
 	now := time.Now()
-	errMsg := err.Error()
 
 	if dbErr := t.DB.Model(run).Updates(map[string]interface{}{
-		"status":        models.WorkerRunStatusFailed,
-		"ended_at":      now,
-		"error_message": errMsg,
+		"status":   models.WorkerRunStatusFailed,
+		"ended_at": now,
 	}).Error; dbErr != nil {
 		zap.L().Error("Failed to mark worker run as failed",
 			zap.String("run_id", run.ID.String()),

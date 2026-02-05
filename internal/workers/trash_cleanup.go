@@ -85,12 +85,26 @@ func (w *TrashCleanupWorker) runCleanup(ctx context.Context) {
 	run, err := tracker.StartRun("trash_cleanup")
 	if err != nil {
 		zap.L().Error("Failed to start worker run tracking", zap.Error(err))
+		return
 	}
 
-	filesQueued := w.cleanupExpiredFiles(ctx)
-	foldersQueued := w.cleanupExpiredFolders(ctx)
+	var runFailed bool
 
-	if run != nil {
+	filesQueued, err := w.cleanupExpiredFiles(ctx)
+	if err != nil {
+		zap.L().Error("Failed to cleanup expired files", zap.Error(err))
+		runFailed = true
+	}
+
+	foldersQueued, err := w.cleanupExpiredFolders(ctx)
+	if err != nil {
+		zap.L().Error("Failed to cleanup expired folders", zap.Error(err))
+		runFailed = true
+	}
+
+	if runFailed {
+		tracker.FailRun(run)
+	} else {
 		tracker.CompleteRun(run)
 	}
 
@@ -103,13 +117,13 @@ func (w *TrashCleanupWorker) runCleanup(ctx context.Context) {
 // cleanupExpiredFiles finds root-level files (not in any folder) that have been
 // in trash longer than the retention period and triggers TrashExpiration events.
 // Files inside folders are cleaned up by FolderPurge when the parent folder expires.
-func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) int {
+func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) (int, error) {
 	expirationTime := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
 	totalQueued := 0
 
 	select {
 	case <-ctx.Done():
-		return totalQueued
+		return totalQueued, nil
 	default:
 	}
 
@@ -120,11 +134,11 @@ func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) int {
 		Find(&files)
 
 	if result.Error != nil {
-		zap.L().Error("Failed to query expired files", zap.Error(result.Error))
+		return 0, result.Error
 	}
 
 	if len(files) == 0 {
-		return 0
+		return 0, nil
 	}
 
 	zap.L().Debug("Processing expired files batch", zap.Int("count", len(files)))
@@ -143,12 +157,12 @@ func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) int {
 		totalQueued++
 	}
 
-	return totalQueued
+	return totalQueued, nil
 }
 
 // cleanupExpiredFolders finds root-level trashed folders that have expired
 // and triggers FolderPurge events to handle recursive deletion.
-func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) int {
+func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) (int, error) {
 	expirationTime := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
 	totalQueued := 0
 
@@ -161,12 +175,11 @@ func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) int {
 		Find(&folders)
 
 	if result.Error != nil {
-		zap.L().Error("Failed to query expired root folders", zap.Error(result.Error))
-		return 0
+		return 0, result.Error
 	}
 
 	if len(folders) == 0 {
-		return 0
+		return 0, nil
 	}
 
 	zap.L().Debug("Processing expired folders", zap.Int("count", len(folders)))
@@ -174,7 +187,7 @@ func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) int {
 	for _, folder := range folders {
 		select {
 		case <-ctx.Done():
-			return totalQueued
+			return totalQueued, nil
 		default:
 		}
 
@@ -188,14 +201,16 @@ func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) int {
 		totalQueued++
 	}
 
-	w.cleanupOrphanedFolders(ctx, expirationTime)
+	if err := w.cleanupOrphanedFolders(ctx, expirationTime); err != nil {
+		return totalQueued, err
+	}
 
-	return totalQueued
+	return totalQueued, nil
 }
 
 // cleanupOrphanedFolders finds and cleans up nested trashed folders
 // whose parent folders have already been deleted from the database.
-func (w *TrashCleanupWorker) cleanupOrphanedFolders(ctx context.Context, expirationTime time.Time) {
+func (w *TrashCleanupWorker) cleanupOrphanedFolders(ctx context.Context, expirationTime time.Time) error {
 	var folders []models.Folder
 	// Find trashed folders with a folder_id that no longer exists
 	result := w.DB.Unscoped().
@@ -205,14 +220,13 @@ func (w *TrashCleanupWorker) cleanupOrphanedFolders(ctx context.Context, expirat
 		Find(&folders)
 
 	if result.Error != nil {
-		zap.L().Error("Failed to query orphaned folders", zap.Error(result.Error))
-		return
+		return result.Error
 	}
 
 	for _, folder := range folders {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		default:
 		}
 
@@ -223,4 +237,6 @@ func (w *TrashCleanupWorker) cleanupOrphanedFolders(ctx context.Context, expirat
 			zap.String("folder_id", folder.ID.String()),
 			zap.String("folder_name", folder.Name))
 	}
+
+	return nil
 }
