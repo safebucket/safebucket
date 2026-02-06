@@ -1,6 +1,7 @@
 package core
 
 import (
+	"api/internal/configuration"
 	"api/internal/messaging"
 	"api/internal/models"
 	"api/internal/storage"
@@ -36,17 +37,17 @@ func (em *EventsManager) initializePublishers() {
 		var publisher messaging.IPublisher
 
 		switch em.config.Type {
-		case ProviderJetstream:
+		case configuration.ProviderJetstream:
 			publisher = messaging.NewJetStreamPublisher(&models.JetStreamEventsConfig{
 				Host: em.config.Jetstream.Host,
 				Port: em.config.Jetstream.Port,
 			}, topicConfig.Name)
-		case ProviderGCP:
+		case configuration.ProviderGCP:
 			publisher = messaging.NewGCPPublisher(&models.PubSubConfiguration{
 				ProjectID:          em.config.PubSub.ProjectID,
 				SubscriptionSuffix: em.config.PubSub.SubscriptionSuffix,
 			}, topicConfig.Name)
-		case ProviderAWS:
+		case configuration.ProviderAWS:
 			publisher = messaging.NewAWSPublisher(topicConfig.Name)
 		}
 
@@ -64,17 +65,17 @@ func (em *EventsManager) initializeSubscribers() {
 		var subscriber messaging.ISubscriber
 
 		switch em.config.Type {
-		case ProviderJetstream:
+		case configuration.ProviderJetstream:
 			subscriber = messaging.NewJetStreamSubscriber(&models.JetStreamEventsConfig{
 				Host: em.config.Jetstream.Host,
 				Port: em.config.Jetstream.Port,
 			}, topicConfig.Name)
-		case ProviderGCP:
+		case configuration.ProviderGCP:
 			subscriber = messaging.NewGCPSubscriber(&models.PubSubConfiguration{
 				ProjectID:          em.config.PubSub.ProjectID,
 				SubscriptionSuffix: em.config.PubSub.SubscriptionSuffix,
 			}, topicConfig.Name)
-		case ProviderAWS:
+		case configuration.ProviderAWS:
 			subscriber = messaging.NewAWSSubscriber(topicConfig.Name)
 		}
 
@@ -95,10 +96,6 @@ func (em *EventsManager) GetPublisher(topicKey string) messaging.IPublisher {
 		return nil
 	}
 	return publisher
-}
-
-func (em *EventsManager) GetBucketEventParser() messaging.IBucketEventParser {
-	return em.parser
 }
 
 func (em *EventsManager) GetSubscriber(topicKey string) messaging.ISubscriber {

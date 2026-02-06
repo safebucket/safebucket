@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"api/internal/configuration"
 	"api/internal/storage"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -14,15 +15,15 @@ import (
 // NewBucketEventParser returns the appropriate parser for the given storage provider type.
 func NewBucketEventParser(storageType string, store storage.IStorage) IBucketEventParser {
 	switch storageType {
-	case "rustfs":
+	case configuration.ProviderRustFS:
 		return &RustFSEventParser{}
-	case "minio":
+	case configuration.ProviderMinio:
 		return &MinIOEventParser{}
-	case "aws":
+	case configuration.ProviderAWS:
 		return &AWSEventParser{Storage: store}
-	case "gcp":
+	case configuration.ProviderGCP:
 		return &GCPEventParser{}
-	case "s3":
+	case configuration.ProviderS3:
 		return &MinIOEventParser{}
 	default:
 		return &RustFSEventParser{}
@@ -278,8 +279,6 @@ func (p *MinIOEventParser) ParseBucketDeletionEvents(
 
 	return deletionEvents
 }
-
-// --- AWS ---
 
 type AWSEventParser struct {
 	Storage storage.IStorage

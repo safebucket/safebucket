@@ -1,6 +1,7 @@
 package core
 
 import (
+	"api/internal/configuration"
 	"api/internal/models"
 	"api/internal/storage"
 
@@ -11,15 +12,15 @@ func NewStorage(config models.StorageConfiguration, trashRetentionDays int) stor
 	var store storage.IStorage
 
 	switch config.Type {
-	case ProviderMinio:
+	case configuration.ProviderMinio:
 		store = storage.NewS3Storage(config.Minio, config.Minio.BucketName)
-	case ProviderGCP:
+	case configuration.ProviderGCP:
 		store = storage.NewGCPStorage(config.CloudStorage.BucketName)
-	case ProviderAWS:
+	case configuration.ProviderAWS:
 		store = storage.NewAWSStorage(config.AWS.BucketName)
-	case ProviderRustFS:
+	case configuration.ProviderRustFS:
 		store = storage.NewRustFSStorage(config.RustFS, config.RustFS.BucketName)
-	case ProviderS3:
+	case configuration.ProviderS3:
 		store = storage.NewGenericS3Storage(config.S3, config.S3.BucketName)
 	default:
 		return nil

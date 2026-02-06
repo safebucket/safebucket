@@ -52,6 +52,16 @@ const (
 	MFALockoutSeconds = 900
 )
 
+// Storage and messaging provider types.
+const (
+	ProviderJetstream = "jetstream"
+	ProviderMinio     = "minio"
+	ProviderGCP       = "gcp"
+	ProviderAWS       = "aws"
+	ProviderRustFS    = "rustfs"
+	ProviderS3        = "s3"
+)
+
 const BulkActionsLimit = 1000
 
 var ArrayConfigFields = []string{

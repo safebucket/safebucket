@@ -95,7 +95,7 @@ func StartWorkers(
 		bucketEventsSubscriber := eventsManager.GetSubscriber(configuration.EventsBucketEvents)
 		bucketEvents := bucketEventsSubscriber.Subscribe()
 		events.HandleBucketEvents(
-			eventsManager.GetBucketEventParser(),
+			eventsManager.parser,
 			db,
 			activityLogger,
 			store,
