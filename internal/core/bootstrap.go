@@ -157,6 +157,8 @@ func StartHTTPServer(
 	notify notifier.INotifier,
 	eventRouter *EventRouter,
 ) {
+	m.InitValidator(config.App.MaxUploadSize)
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.Timeout(5 * time.Second))

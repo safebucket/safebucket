@@ -15,6 +15,16 @@ import (
 
 type BodyKey struct{}
 
+var maxUploadSize int64
+
+func InitValidator(maxSize int64) {
+	maxUploadSize = maxSize
+}
+
+func validateMaxUploadSize(fl validator.FieldLevel) bool {
+	return fl.Field().Int() <= maxUploadSize
+}
+
 func validateFilename(fl validator.FieldLevel) bool {
 	filename := fl.Field().String()
 
@@ -58,6 +68,7 @@ func Validate[T any](next http.Handler) http.Handler {
 		validate := validator.New()
 		_ = validate.RegisterValidation("filename", validateFilename)
 		_ = validate.RegisterValidation("foldername", validateFoldername)
+		_ = validate.RegisterValidation("maxuploadsize", validateMaxUploadSize)
 
 		err = validate.Struct(data)
 		if err != nil {

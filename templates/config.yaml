@@ -28,6 +28,7 @@ app:
   trash_retention_days: 7
   mfa_encryption_key: "ChangeMe32CharacterKeyForAES256!"
   mfa_required: true
+  max_upload_size: 5368709120 # 5 Gb
 
 database:
   host: localhost
@@ -88,7 +89,7 @@ auth:
       domains:
       sharing:
         allowed: true
-        domains: []
+        domains: [ ]
 #    okta:
 #      type: oidc
 #      name: Okta
