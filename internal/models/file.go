@@ -49,7 +49,7 @@ func (f *File) ToActivity() FileActivity {
 type FileTransferBody struct {
 	Name     string     `json:"name"      validate:"required,filename,max=255"`
 	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
-	Size     int        `json:"size"      validate:"required,gt=0,maxuploadsize"`
+	Size     int        `json:"size"      validate:"required,gte=1,maxuploadsize"`
 }
 
 type FileTransferResponse struct {

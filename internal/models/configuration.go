@@ -29,7 +29,7 @@ type AppConfiguration struct {
 	TrustedProxies     []string            `mapstructure:"trusted_proxies"      validate:"required"`
 	WebURL             string              `mapstructure:"web_url"              validate:"required"`
 	TrashRetentionDays int                 `mapstructure:"trash_retention_days" validate:"gte=1,lte=365"                           default:"7"`
-	MaxUploadSize      int64               `mapstructure:"max_upload_size"      validate:"gte=1"                                   default:"5368709120"`
+	MaxUploadSize      int64               `mapstructure:"max_upload_size"      validate:"gte=1"                                   default:"53687091200"`
 }
 
 type DatabaseConfiguration struct {

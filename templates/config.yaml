@@ -28,7 +28,7 @@ app:
   trash_retention_days: 7
   mfa_encryption_key: "ChangeMe32CharacterKeyForAES256!"
   mfa_required: true
-  max_upload_size: 5368709120 # 5 Gb
+  max_upload_size: 53687091200 # 50 Gb
 
 database:
   host: localhost
