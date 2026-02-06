@@ -11,13 +11,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// RunTracker records worker run status in the database and pushes details to Loki.
 type RunTracker struct {
 	DB             *gorm.DB
 	ActivityLogger activity.IActivityLogger
 }
 
-// StartRun creates a new WorkerRun record with status "running".
 func (t *RunTracker) StartRun(workerName string) (*models.WorkerRun, error) {
 	run := models.WorkerRun{
 		WorkerName: workerName,
@@ -32,7 +30,6 @@ func (t *RunTracker) StartRun(workerName string) (*models.WorkerRun, error) {
 	return &run, nil
 }
 
-// CompleteRun marks a run as completed and pushes run details to Loki.
 func (t *RunTracker) CompleteRun(run *models.WorkerRun) {
 	now := time.Now()
 
@@ -46,7 +43,6 @@ func (t *RunTracker) CompleteRun(run *models.WorkerRun) {
 	}
 }
 
-// FailRun marks a run as failed, records the error, and pushes it to Loki.
 func (t *RunTracker) FailRun(run *models.WorkerRun) {
 	now := time.Now()
 
