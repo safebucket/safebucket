@@ -16,7 +16,7 @@ type EventsManager struct {
 	parser      messaging.IBucketEventParser
 }
 
-func NewEventsManager(config models.EventsConfiguration, storage storage.IStorage, storageType string) *EventsManager {
+func NewEventsManager(config models.EventsConfiguration, storageType string, storage storage.IStorage) *EventsManager {
 	manager := &EventsManager{
 		publishers:  make(map[string]messaging.IPublisher),
 		subscribers: make(map[string]messaging.ISubscriber),

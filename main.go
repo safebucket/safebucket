@@ -19,14 +19,14 @@ func main() {
 
 	db := database.InitDB(config.Database)
 	cache := core.NewCache(config.Cache)
-	store := core.NewStorage(config.Storage, config.App.TrashRetentionDays)
+	storage := core.NewStorage(config.Storage, config.App.TrashRetentionDays)
 	notify := core.NewNotifier(config.Notifier)
 	activityLogger := core.NewActivityLogger(config.Activity)
 
 	var eventsManager *core.EventsManager
 	var eventRouter *core.EventRouter
 	if profile.NeedsEvents() {
-		eventsManager = core.NewEventsManager(config.Events, store, config.Storage.Type)
+		eventsManager = core.NewEventsManager(config.Events, config.Storage.Type, storage)
 		eventRouter = core.NewEventRouter(eventsManager)
 	}
 
@@ -46,7 +46,7 @@ func main() {
 			profile,
 			eventsManager,
 			db,
-			store,
+			storage,
 			activityLogger,
 			notify,
 			eventRouter,
@@ -57,7 +57,7 @@ func main() {
 	}
 
 	if profile.HTTPServer {
-		core.StartHTTPServer(config, db, cache, store, activityLogger, notify, eventRouter)
+		core.StartHTTPServer(config, db, cache, storage, activityLogger, notify, eventRouter)
 	} else if profile.Workers.AnyEnabled() {
 		zap.L().Info("Running in worker-only mode")
 		select {} // Block forever
