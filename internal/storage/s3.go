@@ -11,6 +11,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"go.uber.org/zap"
+	"strings"
 )
 
 // GenericS3Storage implements IStorage for generic S3-compatible providers
@@ -207,10 +208,27 @@ func (s *GenericS3Storage) RemoveObjects(paths []string) error {
 	return nil
 }
 
-// IsTrashMarkerPath always returns false for generic S3 providers.
-// This provider does not use trash markers since it doesn't support lifecycle policies.
-func (s *GenericS3Storage) IsTrashMarkerPath(_ string) (bool, string) {
-	return false, ""
+// IsTrashMarkerPath checks if the given path is a trash marker and returns the original object path.
+// Required because generic S3 providers lack lifecycle policies, so the trash worker triggers expiration manually.
+func (s *GenericS3Storage) IsTrashMarkerPath(path string) (bool, string) {
+	if !strings.HasPrefix(path, trashPrefix) {
+		return false, ""
+	}
+
+	// Remove "trash/" prefix
+	remainder := strings.TrimPrefix(path, trashPrefix)
+	parts := strings.SplitN(remainder, "/", 3)
+
+	if len(parts) < 3 {
+		return false, ""
+	}
+
+	bucketID := parts[0]
+	resourceID := parts[2]
+
+	// Reconstruct original path: buckets/{bucket-id}/{resource-id}
+	originalPath := bucketsPrefix + bucketID + "/" + resourceID
+	return true, originalPath
 }
 
 // MarkAsTrashed is a no-op for generic S3 providers.
