@@ -2,7 +2,6 @@ package messaging
 
 import (
 	"context"
-	"encoding/json"
 
 	"api/internal/models"
 
@@ -69,101 +68,4 @@ func (s *GCPSubscriber) Subscribe() <-chan *message.Message {
 
 func (s *GCPSubscriber) Close() error {
 	return s.subscriber.Close()
-}
-
-// GetBucketEventType determines the type of GCP Cloud Storage event.
-func (s *GCPSubscriber) GetBucketEventType(message *message.Message) string {
-	eventType := message.Metadata["eventType"]
-
-	if eventType == "OBJECT_FINALIZE" {
-		return BucketEventTypeUpload
-	}
-
-	if eventType == "OBJECT_DELETE" {
-		return BucketEventTypeDeletion
-	}
-
-	return BucketEventTypeUnknown
-}
-
-func (s *GCPSubscriber) ParseBucketUploadEvents(message *message.Message) []BucketUploadEvent {
-	var uploadEvents []BucketUploadEvent
-	if message.Metadata["eventType"] == "OBJECT_FINALIZE" {
-		var event GCPEvent
-		if err := json.Unmarshal(message.Payload, &event); err != nil {
-			zap.L().Error("event is unprocessable", zap.Error(err))
-			message.Ack()
-		}
-
-		bucketID := event.Metadata["bucket-id"]
-		fileID := event.Metadata["file-id"]
-		userID := event.Metadata["user-id"]
-
-		uploadEvents = append(uploadEvents, BucketUploadEvent{
-			BucketID: bucketID,
-			FileID:   fileID,
-			UserID:   userID,
-		})
-
-		message.Ack()
-	} else {
-		zap.L().Warn("event is not supported", zap.Any("event_type", message.Metadata["eventType"]))
-		message.Ack()
-	}
-	return uploadEvents
-}
-
-func (s *GCPSubscriber) ParseBucketDeletionEvents(
-	message *message.Message,
-	expectedBucketName string,
-) []BucketDeletionEvent {
-	var deletionEvents []BucketDeletionEvent
-
-	eventType := message.Metadata["eventType"]
-	if eventType == "OBJECT_DELETE" {
-		objectKey := message.Metadata["objectId"]
-		if objectKey == "" {
-			objectKey = message.Metadata["name"]
-		}
-
-		if objectKey == "" {
-			zap.L().Warn("deletion event missing object key",
-				zap.Any("metadata", message.Metadata))
-			message.Ack()
-			return nil
-		}
-
-		// Verify bucket name if available in metadata
-		if bucketName := message.Metadata["bucket"]; bucketName != "" && bucketName != expectedBucketName {
-			zap.L().Debug("ignoring event from different bucket",
-				zap.String("event_bucket", bucketName),
-				zap.String("expected_bucket", expectedBucketName))
-			message.Ack()
-			return nil
-		}
-
-		bucketID := message.Metadata["bucket-id"]
-
-		if bucketID == "" {
-			zap.L().Warn("unable to extract bucket ID from object key",
-				zap.String("object_key", objectKey))
-			message.Ack()
-			return nil
-		}
-
-		deletionEvents = append(deletionEvents, BucketDeletionEvent{
-			BucketID:  bucketID,
-			ObjectKey: objectKey,
-			EventName: eventType,
-		})
-
-		zap.L().Debug("parsed GCP deletion event",
-			zap.String("event_type", eventType),
-			zap.String("bucket_id", bucketID),
-			zap.String("object_key", objectKey))
-
-		message.Ack()
-	}
-
-	return deletionEvents
 }

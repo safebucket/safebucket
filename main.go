@@ -26,7 +26,7 @@ func main() {
 	var eventsManager *core.EventsManager
 	var eventRouter *core.EventRouter
 	if profile.NeedsEvents() {
-		eventsManager = core.NewEventsManager(config.Events, store)
+		eventsManager = core.NewEventsManager(config.Events, store, config.Storage.Type)
 		eventRouter = core.NewEventRouter(eventsManager)
 	}
 

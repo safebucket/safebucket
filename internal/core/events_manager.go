@@ -13,14 +13,16 @@ type EventsManager struct {
 	subscribers map[string]messaging.ISubscriber
 	config      models.EventsConfiguration
 	storage     storage.IStorage
+	parser      messaging.IBucketEventParser
 }
 
-func NewEventsManager(config models.EventsConfiguration, storage storage.IStorage) *EventsManager {
+func NewEventsManager(config models.EventsConfiguration, storage storage.IStorage, storageType string) *EventsManager {
 	manager := &EventsManager{
 		publishers:  make(map[string]messaging.IPublisher),
 		subscribers: make(map[string]messaging.ISubscriber),
 		config:      config,
 		storage:     storage,
+		parser:      messaging.NewBucketEventParser(storageType, storage),
 	}
 
 	manager.initializePublishers()
@@ -73,7 +75,7 @@ func (em *EventsManager) initializeSubscribers() {
 				SubscriptionSuffix: em.config.PubSub.SubscriptionSuffix,
 			}, topicConfig.Name)
 		case ProviderAWS:
-			subscriber = messaging.NewAWSSubscriber(topicConfig.Name, em.storage)
+			subscriber = messaging.NewAWSSubscriber(topicConfig.Name)
 		}
 
 		if subscriber != nil {
@@ -93,6 +95,10 @@ func (em *EventsManager) GetPublisher(topicKey string) messaging.IPublisher {
 		return nil
 	}
 	return publisher
+}
+
+func (em *EventsManager) GetBucketEventParser() messaging.IBucketEventParser {
+	return em.parser
 }
 
 func (em *EventsManager) GetSubscriber(topicKey string) messaging.ISubscriber {

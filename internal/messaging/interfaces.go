@@ -22,6 +22,10 @@ type IPublisher interface {
 type ISubscriber interface {
 	Subscribe() <-chan *message.Message
 	Close() error
+}
+
+// IBucketEventParser handles interpretation of bucket event payloads.
+type IBucketEventParser interface {
 	GetBucketEventType(*message.Message) string
 	ParseBucketUploadEvents(*message.Message) []BucketUploadEvent
 	ParseBucketDeletionEvents(*message.Message, string) []BucketDeletionEvent

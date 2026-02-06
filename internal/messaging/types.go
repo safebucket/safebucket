@@ -58,3 +58,21 @@ type AWSEvent struct {
 		} `json:"s3"`
 	} `json:"Records"`
 }
+
+type MinIOEvent struct {
+	Records []MinIOEventRecord `json:"Records"`
+}
+
+type MinIOEventRecord struct {
+	EventName string `json:"eventName"`
+	S3        struct {
+		Bucket struct {
+			Name string `json:"name"`
+		} `json:"bucket"`
+		Object struct {
+			Key          string            `json:"key"`
+			Size         int64             `json:"size"`
+			UserMetadata map[string]string `json:"userMetadata"`
+		} `json:"object"`
+	} `json:"s3"`
+}
