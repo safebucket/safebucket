@@ -10,10 +10,11 @@ import (
 
 	"strings"
 
+	"path"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"go.uber.org/zap"
-	"path"
 )
 
 // GenericS3Storage implements IStorage for generic S3-compatible providers
@@ -226,9 +227,9 @@ func (s *GenericS3Storage) IsTrashMarkerPath(markerPath string) (bool, string) {
 	}
 
 	bucketID := parts[0]
-	fileId := parts[2]
+	fileID := parts[2]
 
-	originalPath := path.Join("buckets", bucketID, fileId)
+	originalPath := path.Join("buckets", bucketID, fileID)
 	return true, originalPath
 }
 
