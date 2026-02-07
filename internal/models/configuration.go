@@ -1,7 +1,6 @@
 package models
 
 type Configuration struct {
-	Profile  string                `mapstructure:"profile"  validate:"oneof=default api worker" default:"default"`
 	App      AppConfiguration      `mapstructure:"app"      validate:"required"`
 	Database DatabaseConfiguration `mapstructure:"database" validate:"required"`
 	Auth     AuthConfiguration     `mapstructure:"auth"     validate:"required"`
@@ -13,28 +12,29 @@ type Configuration struct {
 }
 
 type AppConfiguration struct {
+	Profile            string              `mapstructure:"profile"  validate:"oneof=default api worker"`
 	AdminEmail         string              `mapstructure:"admin_email"          validate:"required,email"`
 	AdminPassword      string              `mapstructure:"admin_password"       validate:"required"`
 	APIURL             string              `mapstructure:"api_url"              validate:"required"`
 	AllowedOrigins     []string            `mapstructure:"allowed_origins"      validate:"required"`
 	JWTSecret          string              `mapstructure:"jwt_secret"           validate:"required"`
 	MFAEncryptionKey   string              `mapstructure:"mfa_encryption_key"   validate:"len=32"`
-	MFARequired        bool                `mapstructure:"mfa_required"                                                            default:"false"`
-	AccessTokenExpiry  int                 `mapstructure:"access_token_expiry"  validate:"gte=1,lte=1440"                          default:"60"`
-	RefreshTokenExpiry int                 `mapstructure:"refresh_token_expiry" validate:"gte=1,lte=720"                           default:"600"`
-	MFATokenExpiry     int                 `mapstructure:"mfa_token_expiry"     validate:"gte=1,lte=30"                            default:"5"`
-	LogLevel           string              `mapstructure:"log_level"            validate:"oneof=debug info warn error fatal panic" default:"info"`
-	Port               int                 `mapstructure:"port"                 validate:"gte=80,lte=65535"                        default:"8080"`
+	MFARequired        bool                `mapstructure:"mfa_required"`
+	AccessTokenExpiry  int                 `mapstructure:"access_token_expiry"  validate:"gte=1,lte=1440"`
+	RefreshTokenExpiry int                 `mapstructure:"refresh_token_expiry" validate:"gte=1,lte=720"`
+	MFATokenExpiry     int                 `mapstructure:"mfa_token_expiry"     validate:"gte=1,lte=30"`
+	LogLevel           string              `mapstructure:"log_level"            validate:"oneof=debug info warn error fatal panic"`
+	Port               int                 `mapstructure:"port"                 validate:"gte=80,lte=65535"`
 	StaticFiles        StaticConfiguration `mapstructure:"static_files"`
 	TrustedProxies     []string            `mapstructure:"trusted_proxies"      validate:"required"`
 	WebURL             string              `mapstructure:"web_url"              validate:"required"`
-	TrashRetentionDays int                 `mapstructure:"trash_retention_days" validate:"gte=1,lte=365"                           default:"7"`
-	MaxUploadSize      int64               `mapstructure:"max_upload_size"      validate:"gte=1"                                   default:"53687091200"`
+	TrashRetentionDays int                 `mapstructure:"trash_retention_days" validate:"gte=1,lte=365"`
+	MaxUploadSize      int64               `mapstructure:"max_upload_size"      validate:"gte=1"`
 }
 
 type DatabaseConfiguration struct {
 	Host     string `mapstructure:"host"     validate:"required"`
-	Port     int32  `mapstructure:"port"     validate:"gte=80,lte=65535" default:"5432"`
+	Port     int32  `mapstructure:"port"     validate:"gte=80,lte=65535"`
 	User     string `mapstructure:"user"     validate:"required"`
 	Password string `mapstructure:"password" validate:"required"`
 	Name     string `mapstructure:"name"     validate:"required"`
@@ -60,7 +60,7 @@ type OIDCConfiguration struct {
 }
 
 type SharingConfiguration struct {
-	Allowed bool     `mapstructure:"allowed" default:"true"`
+	Allowed bool     `mapstructure:"allowed"`
 	Domains []string `mapstructure:"domains"                validate:"dive"`
 }
 
@@ -121,9 +121,11 @@ type S3Configuration struct {
 	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
 	AccessKey        string `mapstructure:"access_key"        validate:"required"`
 	SecretKey        string `mapstructure:"secret_key"        validate:"required"`
-	Region           string `mapstructure:"region"                                         default:"us-east-1"`
-	ForcePathStyle   bool   `mapstructure:"force_path_style"                               default:"true"`
-	UseTLS           bool   `mapstructure:"use_tls"                                        default:"true"`
+	Region           string `mapstructure:"region"`
+	// ForcePathStyle uses path-style URLs (endpoint/bucket/key) instead of virtual-hosted style (bucket.endpoint/key).
+	// Most S3-compatible providers require this to be true.
+	ForcePathStyle bool `mapstructure:"force_path_style"`
+	UseTLS         bool `mapstructure:"use_tls"`
 }
 
 type RustFSStorageConfiguration struct {
@@ -175,7 +177,7 @@ type EventsConfiguration struct {
 
 type PubSubConfiguration struct {
 	ProjectID          string `mapstructure:"project_id"          validate:"required"`
-	SubscriptionSuffix string `mapstructure:"subscription_suffix"                     default:"-sub"`
+	SubscriptionSuffix string `mapstructure:"subscription_suffix"`
 }
 
 type JetStreamEventsConfig struct {
@@ -189,8 +191,8 @@ type MailerConfiguration struct {
 	Username      string `mapstructure:"username"`
 	Password      string `mapstructure:"password"`
 	Sender        string `mapstructure:"sender"          validate:"required"`
-	EnableTLS     bool   `mapstructure:"enable_tls"                          default:"true"`
-	SkipVerifyTLS bool   `mapstructure:"skip_verify_tls"                     default:"false"`
+	EnableTLS     bool   `mapstructure:"enable_tls"`
+	SkipVerifyTLS bool   `mapstructure:"skip_verify_tls"`
 }
 
 type NotifierConfiguration struct {
@@ -208,8 +210,8 @@ type LokiConfiguration struct {
 }
 
 type StaticConfiguration struct {
-	Enabled   bool   `mapstructure:"enabled"   default:"true"`
-	Directory string `mapstructure:"directory" default:"web/dist"`
+	Enabled   bool   `mapstructure:"enabled"`
+	Directory string `mapstructure:"directory"`
 }
 
 // AuthConfig groups authentication-related configuration for services.

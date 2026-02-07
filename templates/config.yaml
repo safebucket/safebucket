@@ -79,8 +79,8 @@ notifier:
     username: root
     password: root
     sender: notifications@safebucket.io
-    enable_ssl: false      # Set to true for production SMTP servers
-    skip_verify_ssl: true      # Set to false for production with valid certificates
+    enable_tls: false      # Set to true for production SMTP servers
+    skip_verify_tls: true      # Set to false for production with valid certificates
 
 auth:
   providers:

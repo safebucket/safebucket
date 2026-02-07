@@ -6,6 +6,7 @@ services:
     image: safebucket/safebucket:latest
     environment:
       - APP__LOG_LEVEL=${APP__LOG_LEVEL}
+      - APP__PROFILE=${APP__PROFILE}
       - APP__API_URL=${APP__API_URL}
       - APP__WEB_URL=${APP__WEB_URL}
       - APP__PORT=${APP__PORT}
@@ -93,8 +94,8 @@ services:
     container_name: bucket-events-config
     image: minio/mc:latest
     environment:
-      - RUSTFS_ACCESS_KEY=rustfsadmin
-      - RUSTFS_SECRET_KEY=rustfsadmin
+      - RUSTFS_ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |

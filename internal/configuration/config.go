@@ -7,9 +7,9 @@ import (
 
 	"api/internal/models"
 
-	"github.com/creasty/defaults"
 	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
@@ -113,20 +113,64 @@ func readFileConfig(k *koanf.Koanf) {
 	}
 }
 
+func loadDefaults(k *koanf.Koanf) {
+	defaults := map[string]interface{}{
+		"app.profile":                "default",
+		"app.access_token_expiry":    60,
+		"app.refresh_token_expiry":   600,
+		"app.mfa_token_expiry":       5,
+		"app.log_level":              "info",
+		"app.port":                   8080,
+		"app.trash_retention_days":   7,
+		"app.max_upload_size":        int64(53687091200),
+		"app.static_files.enabled":   true,
+		"app.static_files.directory": "web/dist",
+
+		"database.port": int32(5432),
+
+		"notifier.smtp.enable_tls":      false,
+		"notifier.smtp.skip_verify_tls": false,
+	}
+
+	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
+		zap.L().Fatal("Failed to load default configuration", zap.Error(err))
+	}
+}
+
+// setDefaultIfNotExists sets a default value for a key only if it hasn't been
+// set by any prior source (confmap, YAML file, or env vars).
+func setDefaultIfNotExists(k *koanf.Koanf, key string, value interface{}) {
+	if !k.Exists(key) {
+		_ = k.Set(key, value)
+	}
+}
+
+// loadConditionalDefaults applies defaults for optional provider configs (S3, PubSub)
+// only when those providers are actually in use. This runs after all sources are loaded
+// so that k.Exists() accurately reflects what the user has configured.
+func loadConditionalDefaults(k *koanf.Koanf) {
+	if k.String("storage.type") == "s3" {
+		setDefaultIfNotExists(k, "storage.s3.region", "us-east-1")
+		setDefaultIfNotExists(k, "storage.s3.force_path_style", true)
+		setDefaultIfNotExists(k, "storage.s3.use_tls", true)
+	}
+	if k.String("events.type") == "gcp" {
+		setDefaultIfNotExists(k, "events.gcp.subscription_suffix", "-sub")
+	}
+}
+
 func Read() models.Configuration {
 	k := koanf.New(".")
 
+	loadDefaults(k)
 	readFileConfig(k)
 	readEnvVars(k)
+	loadConditionalDefaults(k)
 
 	var config models.Configuration
 	err := k.UnmarshalWithConf("", &config, koanf.UnmarshalConf{Tag: "mapstructure"})
 	if err != nil {
 		zap.L().Fatal("Unable to decode config into struct", zap.Error(err))
-	}
-
-	if err = defaults.Set(&config); err != nil {
-		zap.L().Fatal("Failed to set configuration defaults", zap.Error(err))
 	}
 
 	validate := validator.New()

@@ -15,7 +15,7 @@ func main() {
 	config := configuration.Read()
 	core.NewLogger(config.App.LogLevel)
 
-	profile := configuration.GetProfile(config.Profile)
+	profile := configuration.GetProfile(config.App.Profile)
 
 	db := database.InitDB(config.Database)
 	cache := core.NewCache(config.Cache)
