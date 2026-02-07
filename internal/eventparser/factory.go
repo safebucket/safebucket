@@ -1,4 +1,4 @@
-package event_parser
+package eventparser
 
 import (
 	"strings"

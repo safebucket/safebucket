@@ -1,4 +1,4 @@
-package event_parser
+package eventparser
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"

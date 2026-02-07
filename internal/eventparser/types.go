@@ -1,4 +1,4 @@
-package event_parser
+package eventparser
 
 type BucketUploadEvent struct {
 	BucketID string `json:"bucket_id"`

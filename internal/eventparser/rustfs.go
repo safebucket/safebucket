@@ -1,4 +1,4 @@
-package event_parser
+package eventparser
 
 import (
 	"encoding/json"
@@ -9,10 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
-type MinIOEventParser struct{}
+type RustFSEventParser struct{}
 
-func (p *MinIOEventParser) GetBucketEventType(msg *message.Message) string {
-	var event MinIOEvent
+func (p *RustFSEventParser) GetBucketEventType(msg *message.Message) string {
+	var event RustFSEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		zap.L().Error("Failed to unmarshal event to determine type", zap.Error(err))
 		return BucketEventTypeUnknown
@@ -23,7 +23,7 @@ func (p *MinIOEventParser) GetBucketEventType(msg *message.Message) string {
 	}
 
 	eventName := event.Records[0].EventName
-	objectKey := event.Records[0].S3.Object.Key
+	objectKey := event.Records[0].Data.S3.Object.Key
 
 	decodedKey, err := url.QueryUnescape(objectKey)
 	if err != nil {
@@ -55,8 +55,8 @@ func (p *MinIOEventParser) GetBucketEventType(msg *message.Message) string {
 	return BucketEventTypeIgnore
 }
 
-func (p *MinIOEventParser) ParseBucketUploadEvents(msg *message.Message) []BucketUploadEvent {
-	var event MinIOEvent
+func (p *RustFSEventParser) ParseBucketUploadEvents(msg *message.Message) []BucketUploadEvent {
+	var event RustFSEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		zap.L().Error("event is unprocessable", zap.Error(err))
 		return nil
@@ -64,11 +64,11 @@ func (p *MinIOEventParser) ParseBucketUploadEvents(msg *message.Message) []Bucke
 
 	var uploadEvents []BucketUploadEvent
 	for _, record := range event.Records {
-		metadata := record.S3.Object.UserMetadata
+		metadata := record.Data.S3.Object.UserMetadata
 
-		bucketID := metadata["X-Amz-Meta-Bucket-Id"]
-		fileID := metadata["X-Amz-Meta-File-Id"]
-		userID := metadata["X-Amz-Meta-User-Id"]
+		bucketID := metadata["bucket-id"]
+		fileID := metadata["file-id"]
+		userID := metadata["user-id"]
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
 			BucketID: bucketID,
@@ -80,11 +80,11 @@ func (p *MinIOEventParser) ParseBucketUploadEvents(msg *message.Message) []Bucke
 	return uploadEvents
 }
 
-func (p *MinIOEventParser) ParseBucketDeletionEvents(
+func (p *RustFSEventParser) ParseBucketDeletionEvents(
 	msg *message.Message,
 	expectedBucketName string,
 ) []BucketDeletionEvent {
-	var event MinIOEvent
+	var event RustFSEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		zap.L().Error("deletion event is unprocessable", zap.Error(err))
 		return nil
@@ -92,20 +92,28 @@ func (p *MinIOEventParser) ParseBucketDeletionEvents(
 
 	var deletionEvents []BucketDeletionEvent
 	for _, record := range event.Records {
-		if record.S3.Bucket.Name != expectedBucketName {
+		if record.Data.S3.Bucket.Name != expectedBucketName {
 			zap.L().Debug("ignoring event from different bucket",
-				zap.String("event_bucket", record.S3.Bucket.Name),
+				zap.String("event_bucket", record.Data.S3.Bucket.Name),
 				zap.String("expected_bucket", expectedBucketName))
 			continue
 		}
 
-		objectKey, err := url.QueryUnescape(record.S3.Object.Key)
+		objectKey, err := url.QueryUnescape(record.Data.S3.Object.Key)
 		if err != nil {
 			zap.L().Warn("failed to URL decode object key",
-				zap.String("raw_key", record.S3.Object.Key),
+				zap.String("raw_key", record.Data.S3.Object.Key),
 				zap.Error(err))
-			objectKey = record.S3.Object.Key
+			objectKey = record.Data.S3.Object.Key
 		}
+
+		zap.L().Debug("received deletion/expiration event",
+			zap.String("event_name", record.EventName),
+			zap.String("object_key", objectKey),
+			zap.String("raw_payload", string(msg.Payload)),
+			zap.Any("user_metadata", record.Data.S3.Object.UserMetadata),
+			zap.String("bucket_name", record.Data.S3.Bucket.Name),
+			zap.Int64("size", record.Data.S3.Object.Size))
 
 		bucketID := ExtractBucketID(objectKey)
 		if bucketID == "" {
