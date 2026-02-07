@@ -137,25 +137,20 @@ func loadDefaults(k *koanf.Koanf) {
 	}
 }
 
-// setDefaultIfNotExists sets a default value for a key only if it hasn't been
-// set by any prior source (confmap, YAML file, or env vars).
-func setDefaultIfNotExists(k *koanf.Koanf, key string, value interface{}) {
+func setIfMissing(k *koanf.Koanf, key string, value interface{}) {
 	if !k.Exists(key) {
 		_ = k.Set(key, value)
 	}
 }
 
-// loadConditionalDefaults applies defaults for optional provider configs (S3, PubSub)
-// only when those providers are actually in use. This runs after all sources are loaded
-// so that k.Exists() accurately reflects what the user has configured.
 func loadConditionalDefaults(k *koanf.Koanf) {
 	if k.String("storage.type") == "s3" {
-		setDefaultIfNotExists(k, "storage.s3.region", "us-east-1")
-		setDefaultIfNotExists(k, "storage.s3.force_path_style", true)
-		setDefaultIfNotExists(k, "storage.s3.use_tls", true)
+		setIfMissing(k, "storage.s3.region", "us-east-1")
+		setIfMissing(k, "storage.s3.force_path_style", true)
+		setIfMissing(k, "storage.s3.use_tls", true)
 	}
 	if k.String("events.type") == "gcp" {
-		setDefaultIfNotExists(k, "events.gcp.subscription_suffix", "-sub")
+		setIfMissing(k, "events.gcp.subscription_suffix", "-sub")
 	}
 }
 
