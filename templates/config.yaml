@@ -50,13 +50,13 @@ cache:
   #   password: root
 
 storage:
-  type: rustfs
-  rustfs:
+  type: minio
+  minio:
     bucket_name: safebucket
     endpoint: localhost:9000
     external_endpoint: http://localhost:9000
-    access_key: rustfsadmin
-    secret_key: rustfsadmin
+    client_id: minio-root-user
+    client_secret: minio-root-password
 
 events:
   type: jetstream
