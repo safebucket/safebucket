@@ -12,7 +12,7 @@ type Configuration struct {
 }
 
 type AppConfiguration struct {
-	Profile            string              `mapstructure:"profile"  validate:"oneof=default api worker"`
+	Profile            string              `mapstructure:"profile"              validate:"oneof=default api worker"`
 	AdminEmail         string              `mapstructure:"admin_email"          validate:"required,email"`
 	AdminPassword      string              `mapstructure:"admin_password"       validate:"required"`
 	APIURL             string              `mapstructure:"api_url"              validate:"required"`
@@ -61,7 +61,7 @@ type OIDCConfiguration struct {
 
 type SharingConfiguration struct {
 	Allowed bool     `mapstructure:"allowed"`
-	Domains []string `mapstructure:"domains"                validate:"dive"`
+	Domains []string `mapstructure:"domains" validate:"dive"`
 }
 
 type CacheConfiguration struct {
