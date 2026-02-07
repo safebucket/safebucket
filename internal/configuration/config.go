@@ -7,6 +7,7 @@ import (
 
 	"api/internal/models"
 
+	"github.com/creasty/defaults"
 	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
@@ -122,6 +123,10 @@ func Read() models.Configuration {
 	err := k.UnmarshalWithConf("", &config, koanf.UnmarshalConf{Tag: "mapstructure"})
 	if err != nil {
 		zap.L().Fatal("Unable to decode config into struct", zap.Error(err))
+	}
+
+	if err = defaults.Set(&config); err != nil {
+		zap.L().Fatal("Failed to set configuration defaults", zap.Error(err))
 	}
 
 	validate := validator.New()
