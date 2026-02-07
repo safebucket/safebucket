@@ -2,6 +2,7 @@ package core
 
 import (
 	"api/internal/configuration"
+	"api/internal/event_parser"
 	"api/internal/messaging"
 	"api/internal/models"
 	"api/internal/storage"
@@ -14,7 +15,7 @@ type EventsManager struct {
 	subscribers map[string]messaging.ISubscriber
 	config      models.EventsConfiguration
 	storage     storage.IStorage
-	parser      messaging.IBucketEventParser
+	parser      event_parser.IBucketEventParser
 }
 
 func NewEventsManager(config models.EventsConfiguration, storageType string, storage storage.IStorage) *EventsManager {
@@ -23,7 +24,7 @@ func NewEventsManager(config models.EventsConfiguration, storageType string, sto
 		subscribers: make(map[string]messaging.ISubscriber),
 		config:      config,
 		storage:     storage,
-		parser:      messaging.NewBucketEventParser(storageType, storage),
+		parser:      event_parser.NewBucketEventParser(storageType, storage),
 	}
 
 	manager.initializePublishers()

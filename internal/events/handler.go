@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"api/internal/activity"
+	"api/internal/event_parser"
 	"api/internal/messaging"
 	"api/internal/models"
 	"api/internal/notifier"
@@ -90,7 +91,7 @@ func HandleEvents(params *EventParams, messages <-chan *message.Message) {
 }
 
 func HandleBucketEvents(
-	parser messaging.IBucketEventParser,
+	parser event_parser.IBucketEventParser,
 	db *gorm.DB,
 	activityLogger activity.IActivityLogger,
 	storage storage.IStorage,
@@ -104,7 +105,7 @@ func HandleBucketEvents(
 		eventType := parser.GetBucketEventType(msg)
 
 		switch eventType {
-		case messaging.BucketEventTypeUpload:
+		case event_parser.BucketEventTypeUpload:
 			uploadEvents := parser.ParseBucketUploadEvents(msg)
 
 			for _, event := range uploadEvents {
@@ -147,7 +148,7 @@ func HandleBucketEvents(
 				}
 			}
 
-		case messaging.BucketEventTypeDeletion:
+		case event_parser.BucketEventTypeDeletion:
 			deletionEvents := parser.ParseBucketDeletionEvents(msg, storage.GetBucketName())
 
 			for _, event := range deletionEvents {
@@ -171,7 +172,7 @@ func HandleBucketEvents(
 				}
 			}
 
-		case messaging.BucketEventTypeIgnore:
+		case event_parser.BucketEventTypeIgnore:
 			zap.L().Debug("ignoring event", zap.String("raw_payload", string(msg.Payload)))
 
 		default:
