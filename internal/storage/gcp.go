@@ -45,6 +45,11 @@ func (g GCPStorage) GetBucketName() string {
 	return g.BucketName
 }
 
+func (g GCPStorage) Ping() error {
+	_, err := g.storage.Bucket(g.BucketName).Attrs(context.Background())
+	return err
+}
+
 func (g GCPStorage) PresignedGetObject(path string) (string, error) {
 	opts := &gcs.SignedURLOptions{
 		Method:  http.MethodGet,

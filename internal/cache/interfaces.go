@@ -29,5 +29,6 @@ type ICache interface {
 	// RefreshLock extends the TTL of an existing lock if held by this instance.
 	RefreshLock(key string, instanceID string, ttlSeconds int) (bool, error)
 
+	Ping() error
 	Close() error
 }

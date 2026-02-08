@@ -23,4 +23,5 @@ type IStorage interface {
 	UnmarkAsTrashed(objectPath string, model interface{}) error
 	IsTrashMarkerPath(path string) (isMarker bool, originalPath string)
 	GetBucketName() string
+	Ping() error
 }

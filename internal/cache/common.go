@@ -156,6 +156,11 @@ func (r *RueidisCache) RefreshLock(key string, instanceID string, ttlSeconds int
 	return err == nil, err
 }
 
+func (r *RueidisCache) Ping() error {
+	ctx := context.Background()
+	return r.client.Do(ctx, r.client.B().Ping().Build()).Error()
+}
+
 func (r *RueidisCache) Close() error {
 	r.client.Close()
 	return nil

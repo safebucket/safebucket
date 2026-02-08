@@ -255,7 +255,10 @@ func StartHTTPServer(
 		}.Routes())
 
 		apiRouter.Mount("/v1/health", services.HealthService{
-			DB: db,
+			DB:             db,
+			Cache:          cache,
+			ActivityLogger: activityLogger,
+			Storage:        store,
 		}.Routes())
 	})
 
