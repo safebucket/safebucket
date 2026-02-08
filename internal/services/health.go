@@ -29,7 +29,7 @@ func (s HealthService) HealthCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := sqlDB.PingContext(r.Context()); err != nil {
+	if err = sqlDB.PingContext(r.Context()); err != nil {
 		helpers.RespondWithJSON(w, http.StatusServiceUnavailable, map[string]string{
 			"status": "unhealthy",
 			"error":  "database unreachable",
