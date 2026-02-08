@@ -5,8 +5,8 @@
 ## Introduction
 
 Safebucket is an open-source secure file sharing platform designed to share files in an easy and secure way, integrating
-with different cloud providers. Built for individuals and organizations that need to collaborate on files with robust
-security, flexible access controls, and seamless multi-cloud support across any S3-compatible provider (including AWS
+with different cloud providers. Built for individuals and organisations that need to collaborate on files with robust
+security, flexible access controls, and seamless support across any S3-compatible provider (including AWS
 S3, Google Cloud Storage and [more](https://docs.safebucket.io/docs/configuration/storage-providers)).
 
 ![SafeBucket Homepage](./assets/homepage.png)
@@ -15,7 +15,7 @@ S3, Google Cloud Storage and [more](https://docs.safebucket.io/docs/configuratio
 
 Safebucket eliminates the complexity of secure file sharing by providing a lightweight, stateless solution that
 integrates seamlessly with your existing infrastructure.
-Plug in your preferred auth providers and eliminate the need for local logins - your users can share files using their
+Plug in your preferred storage and auth providers and eliminate the need for local logins - your users can share files using their
 existing corporate identities.
 
 ## Features
@@ -37,19 +37,19 @@ existing corporate identities.
 
 ```bash
 git clone https://github.com/safebucket/safebucket.git
-cd ./deployments/local
+cd safebucket/deployments/local
 docker compose up -d
 ```
 
-## Contributing
+- Go to http://localhost:8080
+- Log in with:
+  - login: admin@safebucket.io
+  - password: ChangeMePlease
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=safebucket/safebucket&type=date&legend=top-left)](https://www.star-history.com/#safebucket/safebucket&type=date&legend=top-left)
 
 ## License
 
@@ -64,7 +64,3 @@ This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file 
 - Pub/sub integrations by [Watermill](https://watermill.io)
 - Configuration management by [Koanf](https://github.com/knadh/koanf)
 - Icons by [Lucide](https://lucide.dev)
-
-## Support
-
-- 🐛 Issues: [GitHub Issues](https://github.com/safebucket/safebucket/issues)
