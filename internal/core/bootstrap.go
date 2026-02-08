@@ -253,6 +253,10 @@ func StartHTTPServer(
 			DB:             db,
 			ActivityLogger: activityLogger,
 		}.Routes())
+
+		apiRouter.Mount("/v1/health", services.HealthService{
+			DB: db,
+		}.Routes())
 	})
 
 	if config.App.StaticFiles.Enabled {
