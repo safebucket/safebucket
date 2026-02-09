@@ -85,7 +85,7 @@ updates:
       include: "scope"
     groups:
       minor-and-patch:
-        update-types: [minor", "patch"]
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "terraform"
     directory: "/deployment/aws/terraform"
