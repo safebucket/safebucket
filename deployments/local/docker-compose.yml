@@ -83,9 +83,10 @@ services:
       - "rustfs_data:/data"
     healthcheck:
       test: [ "CMD", "sh", "-c", "curl -f http://localhost:9000/health && curl -f http://localhost:9001/rustfs/console/health" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 2s
     restart: unless-stopped
     depends_on:
       - nats
@@ -147,9 +148,9 @@ services:
     healthcheck:
       test: [ "CMD-SHELL", "psql -U ${DATABASE__USER} -d ${DATABASE__NAME} -c 'SELECT 1' || exit 1" ]
       interval: 2s
-      timeout: 5s
-      retries: 20
-      start_period: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
   valkey:
     container_name: valkey
@@ -206,9 +207,10 @@ services:
       - ./config/loki.yaml:/etc/loki/config.yaml
     healthcheck:
       test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1" ]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
 volumes:
   rustfs_data:
