@@ -4,19 +4,24 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 10
     commit-message:
       prefix: "[deps]"
       include: "scope"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
 
   # npm dependencies (frontend)
   - package-ecosystem: "npm"
     directory: "/web"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 10
@@ -28,61 +33,86 @@ updates:
         update-types: [ "version-update:semver-major" ]
       - dependency-name: "react-dom"
         update-types: [ "version-update:semver-major" ]
+    groups:
+      dev-dependencies:
+        dependency-type: "development"
+      minor-and-patch:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
 
   # Docker-compose stack (local)
   - package-ecosystem: "docker-compose"
     directory: "/deployments/local"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "[docker-compose:local]"
       include: "scope"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
 
   # Docker-compose stack (dev)
   - package-ecosystem: "docker-compose"
     directory: "/deployments/dev"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "[docker-compose:dev]"
       include: "scope"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
 
-  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 3
     commit-message:
       prefix: "[actions]"
       include: "scope"
+    groups:
+      minor-and-patch:
+        update-types: [minor", "patch"]
 
   - package-ecosystem: "terraform"
     directory: "/deployment/aws/terraform"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "[terraform-aws]"
       include: "scope"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 5
     commit-message:
       prefix: "[docker]"
       include: "scope"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
