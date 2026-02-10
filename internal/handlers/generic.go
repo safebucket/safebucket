@@ -76,7 +76,13 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 		record, err := getOne(logger, claims, ids)
 		if err != nil {
 			strErrors := []string{err.Error()}
-			h.RespondWithError(w, http.StatusNotFound, strErrors)
+
+			var apiErr *apierrors.APIError
+			if errors.As(err, &apiErr) {
+				h.RespondWithError(w, apiErr.Code, strErrors)
+			} else {
+				h.RespondWithError(w, http.StatusNotFound, strErrors)
+			}
 		} else {
 			h.RespondWithJSON(w, http.StatusOK, record)
 		}

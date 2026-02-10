@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -91,6 +92,17 @@ func (s *GenericS3Storage) replaceEndpoint(urlString string) string {
 
 func (s *GenericS3Storage) GetBucketName() string {
 	return s.BucketName
+}
+
+func (s *GenericS3Storage) Ping() error {
+	exists, err := s.storage.BucketExists(context.Background(), s.BucketName)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("bucket %s does not exist", s.BucketName)
+	}
+	return nil
 }
 
 func (s *GenericS3Storage) PresignedGetObject(objectPath string) (string, error) {

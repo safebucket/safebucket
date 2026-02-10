@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -16,6 +17,14 @@ const (
 	authenticatedRequestsPerMinute   = 200
 	unauthenticatedRequestsPerMinute = 20
 )
+
+type PathRateLimit struct {
+	RequestsPerMinute int
+}
+
+var RateLimitedPaths = map[string]PathRateLimit{
+	"/api/v1/health": {RequestsPerMinute: 5},
+}
 
 func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -41,7 +50,6 @@ func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 		}
 	}
 
-	// If not from trusted proxy, use remote address
 	if !isTrustedProxy {
 		return remoteIP, nil
 	}
@@ -85,6 +93,17 @@ func applyRateLimit(
 func RateLimit(cache cache.ICache, trustedProxies []string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
+			if limit, ok := RateLimitedPaths[r.URL.Path]; ok {
+				ipAddress, err := getClientIP(r, trustedProxies)
+				if err != nil {
+					zap.L().Error("error", zap.Error(err))
+					helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
+					return
+				}
+				applyRateLimit(next, w, r, cache, fmt.Sprintf("%s:%s", r.URL.Path, ipAddress), limit.RequestsPerMinute)
+				return
+			}
+
 			claims, err := helpers.GetUserClaims(r.Context())
 			if err != nil {
 				ipAddress, err2 := getClientIP(r, trustedProxies)

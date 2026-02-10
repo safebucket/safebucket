@@ -121,6 +121,17 @@ func (s S3Storage) GetBucketName() string {
 	return s.BucketName
 }
 
+func (s S3Storage) Ping() error {
+	exists, err := s.storage.BucketExists(context.Background(), s.BucketName)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("bucket %s does not exist", s.BucketName)
+	}
+	return nil
+}
+
 func (s S3Storage) PresignedGetObject(path string) (string, error) {
 	presignedURL, err := s.storage.PresignedGetObject(
 		context.Background(),

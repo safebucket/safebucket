@@ -35,6 +35,7 @@ func (m *MockCache) IncrementMFAAttempts(_ string) error                    { re
 func (m *MockCache) ResetMFAAttempts(_ string) error                        { return nil }
 func (m *MockCache) TryAcquireLock(_ string, _ string, _ int) (bool, error) { return true, nil }
 func (m *MockCache) RefreshLock(_ string, _ string, _ int) (bool, error)    { return true, nil }
+func (m *MockCache) Ping() error                                            { return nil }
 func (m *MockCache) Close() error                                           { return nil }
 
 type MockNotifier struct {

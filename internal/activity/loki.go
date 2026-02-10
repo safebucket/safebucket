@@ -77,6 +77,20 @@ type LokiClient struct {
 	Client    *resty.Client
 	pushURL   string
 	searchURL string
+	readyURL  string
+}
+
+func (s *LokiClient) Ping() error {
+	resp, err := s.Client.R().Get(s.readyURL)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != 200 {
+		return fmt.Errorf("loki not ready: status %d", resp.StatusCode())
+	}
+
+	return nil
 }
 
 func (s *LokiClient) Send(activity models.Activity) error {
@@ -310,6 +324,7 @@ func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 		Client:    client,
 		pushURL:   fmt.Sprintf("%s%s", config.Loki.Endpoint, lokiPushURI),
 		searchURL: fmt.Sprintf("%s%s", config.Loki.Endpoint, lokiSearchURI),
+		readyURL:  fmt.Sprintf("%s/ready", config.Loki.Endpoint),
 	}
 }
 

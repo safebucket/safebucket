@@ -51,6 +51,13 @@ func (a AWSStorage) GetBucketName() string {
 	return a.BucketName
 }
 
+func (a AWSStorage) Ping() error {
+	_, err := a.storage.HeadBucket(context.Background(), &s3.HeadBucketInput{
+		Bucket: aws.String(a.BucketName),
+	})
+	return err
+}
+
 func (a AWSStorage) PresignedGetObject(path string) (string, error) {
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(a.BucketName),
