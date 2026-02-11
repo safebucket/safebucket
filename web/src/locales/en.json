@@ -320,7 +320,8 @@
       "uploading": "Uploading",
       "deleting": "Deleting",
       "processing": "Processing",
-      "empty_folder": "Folder is empty"
+      "empty_folder": "Folder is empty",
+      "expired": "Expired"
     },
     "grid_view": {
       "empty_folder": "This folder is empty",
@@ -331,7 +332,9 @@
       "status": "Status",
       "uploaded": "Uploaded",
       "uploading": "Uploading",
-      "deleting": "Deleting"
+      "deleting": "Deleting",
+      "expired": "Expired",
+      "expires_at": "Expires {{date}}"
     },
     "trash_view": {
       "type": "Type",

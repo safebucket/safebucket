@@ -320,7 +320,8 @@
       "uploading": "Téléchargement",
       "deleting": "Suppression",
       "processing": "En cours",
-      "empty_folder": "Le dossier est vide"
+      "empty_folder": "Le dossier est vide",
+      "expired": "Expiré"
     },
     "grid_view": {
       "empty_folder": "Ce dossier est vide",
@@ -331,7 +332,9 @@
       "status": "Statut",
       "uploaded": "Partagé",
       "uploading": "Téléchargement",
-      "deleting": "Suppression"
+      "deleting": "Suppression",
+      "expired": "Expiré",
+      "expires_at": "Expire le {{date}}"
     },
     "trash_view": {
       "type": "Type",

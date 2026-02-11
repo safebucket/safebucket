@@ -224,6 +224,11 @@ func (s BucketService) GetBucket(
 	// Default behavior (empty) shows active items (uploaded + uploading)
 	status := queryParams.Status
 
+	s.DB.Model(&models.File{}).
+		Where("bucket_id = ? AND expires_at IS NOT NULL AND expires_at <= ? AND status = ?",
+			bucketID, time.Now(), models.FileStatusUploaded).
+		Update("status", models.FileStatusExpired)
+
 	var files []models.File
 	var folders []models.Folder
 
@@ -303,9 +308,10 @@ func (s BucketService) GetBucket(
 		// GORM automatically excludes soft-deleted items (deleted_at IS NOT NULL)
 		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 		result = s.DB.Where(
-			"bucket_id = ? AND (status = ? OR (status = ? AND created_at > ?))",
+			"bucket_id = ? AND (status IN (?, ?) OR (status = ? AND created_at > ?))",
 			bucketID,
 			models.FileStatusUploaded,
+			models.FileStatusExpired,
 			models.FileStatusUploading,
 			expirationTime,
 		).Find(&files)

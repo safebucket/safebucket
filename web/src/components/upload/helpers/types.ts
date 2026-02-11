@@ -21,6 +21,7 @@ export interface IUploadContext {
     files: FileList,
     bucketId: string,
     folderId: string | undefined,
+    expiresAt: string | null,
   ) => void;
   cancelUpload: (uploadId: string) => void;
   hasActiveUploads: boolean;

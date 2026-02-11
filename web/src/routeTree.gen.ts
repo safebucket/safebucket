@@ -143,25 +143,25 @@ const InvitesIdChallengesChallengeIdIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/': typeof AuthenticatedIndexRoute
-  '/activity': typeof AuthenticatedActivityIndexRoute
-  '/settings': typeof AuthenticatedSettingsIndexRoute
-  '/auth/complete': typeof AuthCompleteIndexRoute
-  '/auth/login': typeof AuthLoginIndexRoute
-  '/auth/mfa': typeof AuthMfaIndexRoute
-  '/auth/reset-password': typeof AuthResetPasswordIndexRoute
-  '/invites/$id': typeof InvitesIdIndexRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/activity/': typeof AuthenticatedActivityIndexRoute
+  '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/auth/complete/': typeof AuthCompleteIndexRoute
+  '/auth/login/': typeof AuthLoginIndexRoute
+  '/auth/mfa/': typeof AuthMfaIndexRoute
+  '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
+  '/invites/$id/': typeof InvitesIdIndexRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
-  '/admin/activity': typeof AuthenticatedAdminActivityIndexRoute
-  '/admin/buckets': typeof AuthenticatedAdminBucketsIndexRoute
-  '/admin/dashboard': typeof AuthenticatedAdminDashboardIndexRoute
-  '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
-  '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
-  '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
-  '/auth/mfa/setup-required': typeof AuthMfaSetupRequiredIndexRoute
-  '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
-  '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
+  '/admin/activity/': typeof AuthenticatedAdminActivityIndexRoute
+  '/admin/buckets/': typeof AuthenticatedAdminBucketsIndexRoute
+  '/admin/dashboard/': typeof AuthenticatedAdminDashboardIndexRoute
+  '/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
+  '/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
+  '/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
+  '/auth/mfa/setup-required/': typeof AuthMfaSetupRequiredIndexRoute
+  '/auth/reset-password/$id/': typeof AuthResetPasswordIdIndexRoute
+  '/invites/$id/challenges/$challengeId/': typeof InvitesIdChallengesChallengeIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -210,25 +210,25 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/admin'
     | '/'
-    | '/activity'
-    | '/settings'
-    | '/auth/complete'
-    | '/auth/login'
-    | '/auth/mfa'
-    | '/auth/reset-password'
-    | '/invites/$id'
+    | '/admin'
+    | '/activity/'
+    | '/settings/'
+    | '/auth/complete/'
+    | '/auth/login/'
+    | '/auth/mfa/'
+    | '/auth/reset-password/'
+    | '/invites/$id/'
     | '/buckets/$bucketId/{-$folderId}'
-    | '/admin/activity'
-    | '/admin/buckets'
-    | '/admin/dashboard'
-    | '/admin/users'
-    | '/settings/preferences'
-    | '/settings/profile'
-    | '/auth/mfa/setup-required'
-    | '/auth/reset-password/$id'
-    | '/invites/$id/challenges/$challengeId'
+    | '/admin/activity/'
+    | '/admin/buckets/'
+    | '/admin/dashboard/'
+    | '/admin/users/'
+    | '/settings/preferences/'
+    | '/settings/profile/'
+    | '/auth/mfa/setup-required/'
+    | '/auth/reset-password/$id/'
+    | '/invites/$id/challenges/$challengeId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/admin'
@@ -291,7 +291,7 @@ declare module '@tanstack/react-router' {
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -312,105 +312,105 @@ declare module '@tanstack/react-router' {
     '/invites/$id/': {
       id: '/invites/$id/'
       path: '/invites/$id'
-      fullPath: '/invites/$id'
+      fullPath: '/invites/$id/'
       preLoaderRoute: typeof InvitesIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/reset-password/': {
       id: '/auth/reset-password/'
       path: '/auth/reset-password'
-      fullPath: '/auth/reset-password'
+      fullPath: '/auth/reset-password/'
       preLoaderRoute: typeof AuthResetPasswordIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/mfa/': {
       id: '/auth/mfa/'
       path: '/auth/mfa'
-      fullPath: '/auth/mfa'
+      fullPath: '/auth/mfa/'
       preLoaderRoute: typeof AuthMfaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/login/': {
       id: '/auth/login/'
       path: '/auth/login'
-      fullPath: '/auth/login'
+      fullPath: '/auth/login/'
       preLoaderRoute: typeof AuthLoginIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/complete/': {
       id: '/auth/complete/'
       path: '/auth/complete'
-      fullPath: '/auth/complete'
+      fullPath: '/auth/complete/'
       preLoaderRoute: typeof AuthCompleteIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings/': {
       id: '/_authenticated/settings/'
       path: '/settings'
-      fullPath: '/settings'
+      fullPath: '/settings/'
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/activity/': {
       id: '/_authenticated/activity/'
       path: '/activity'
-      fullPath: '/activity'
+      fullPath: '/activity/'
       preLoaderRoute: typeof AuthenticatedActivityIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/auth/reset-password/$id/': {
       id: '/auth/reset-password/$id/'
       path: '/auth/reset-password/$id'
-      fullPath: '/auth/reset-password/$id'
+      fullPath: '/auth/reset-password/$id/'
       preLoaderRoute: typeof AuthResetPasswordIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/mfa/setup-required/': {
       id: '/auth/mfa/setup-required/'
       path: '/auth/mfa/setup-required'
-      fullPath: '/auth/mfa/setup-required'
+      fullPath: '/auth/mfa/setup-required/'
       preLoaderRoute: typeof AuthMfaSetupRequiredIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings/profile/': {
       id: '/_authenticated/settings/profile/'
       path: '/settings/profile'
-      fullPath: '/settings/profile'
+      fullPath: '/settings/profile/'
       preLoaderRoute: typeof AuthenticatedSettingsProfileIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings/preferences/': {
       id: '/_authenticated/settings/preferences/'
       path: '/settings/preferences'
-      fullPath: '/settings/preferences'
+      fullPath: '/settings/preferences/'
       preLoaderRoute: typeof AuthenticatedSettingsPreferencesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin/users/': {
       id: '/_authenticated/admin/users/'
       path: '/users'
-      fullPath: '/admin/users'
+      fullPath: '/admin/users/'
       preLoaderRoute: typeof AuthenticatedAdminUsersIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/dashboard/': {
       id: '/_authenticated/admin/dashboard/'
       path: '/dashboard'
-      fullPath: '/admin/dashboard'
+      fullPath: '/admin/dashboard/'
       preLoaderRoute: typeof AuthenticatedAdminDashboardIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/buckets/': {
       id: '/_authenticated/admin/buckets/'
       path: '/buckets'
-      fullPath: '/admin/buckets'
+      fullPath: '/admin/buckets/'
       preLoaderRoute: typeof AuthenticatedAdminBucketsIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/activity/': {
       id: '/_authenticated/admin/activity/'
       path: '/activity'
-      fullPath: '/admin/activity'
+      fullPath: '/admin/activity/'
       preLoaderRoute: typeof AuthenticatedAdminActivityIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
@@ -424,7 +424,7 @@ declare module '@tanstack/react-router' {
     '/invites/$id/challenges/$challengeId/': {
       id: '/invites/$id/challenges/$challengeId/'
       path: '/invites/$id/challenges/$challengeId'
-      fullPath: '/invites/$id/challenges/$challengeId'
+      fullPath: '/invites/$id/challenges/$challengeId/'
       preLoaderRoute: typeof InvitesIdChallengesChallengeIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }

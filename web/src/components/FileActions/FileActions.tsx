@@ -61,12 +61,13 @@ export const FileActions: FC<IFileActionsProps> = ({
     type === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
 
   const isFileTrashed = file.status === FileStatus.deleted;
+  const isFileExpired = file.status === FileStatus.expired;
 
   return (
     <>
       <Menu>
         <MenuTrigger asChild>{children}</MenuTrigger>
-        <MenuContent className={trashMode ? "w-[180px]" : "w-40"}>
+        <MenuContent className={trashMode ? "w-[180px]" : "w-48"}>
           {trashMode ? (
             <>
               {isContributor && (
@@ -92,9 +93,11 @@ export const FileActions: FC<IFileActionsProps> = ({
                 <>
                   <MenuItem
                     onClick={() =>
-                      !isFileTrashed && downloadFile(file.id, file.name)
+                      !isFileTrashed &&
+                      !isFileExpired &&
+                      downloadFile(file.id, file.name)
                     }
-                    disabled={isFileTrashed}
+                    disabled={isFileTrashed || isFileExpired}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     {t("file_actions.download")}

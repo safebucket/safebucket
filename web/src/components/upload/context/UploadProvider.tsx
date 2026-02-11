@@ -24,11 +24,13 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
       bucketId,
       folderId,
       uploadId,
+      expiresAt,
     }: {
       file: File;
       bucketId: string;
       folderId: string | undefined;
       uploadId: string;
+      expiresAt: string | null;
     }) => {
       const abortController = new AbortController();
       abortControllersRef.current.set(uploadId, abortController);
@@ -39,6 +41,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           bucketId,
           file.size,
           folderId,
+          expiresAt,
         );
 
         queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
@@ -89,7 +92,12 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const startUpload = useCallback(
-    (files: FileList, bucketId: string, folderId: string | undefined) => {
+    (
+      files: FileList,
+      bucketId: string,
+      folderId: string | undefined,
+      expiresAt: string | null,
+    ) => {
       Array.from(files).forEach((file) => {
         const uploadId = generateRandomString(12);
         const displayPath = file.name;
@@ -105,7 +113,13 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           },
         ]);
 
-        uploadMutation.mutate({ file, bucketId, folderId, uploadId });
+        uploadMutation.mutate({
+          file,
+          bucketId,
+          folderId,
+          uploadId,
+          expiresAt,
+        });
       });
     },
     [uploadMutation],

@@ -76,9 +76,13 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
                 title={t("bucket.header.upload_file")}
                 description={t("bucket.header.upload_and_share")}
                 fields={shareFileFields}
-                onSubmit={(data) =>
-                  startUpload(data.files, bucket.id, folderId)
-                }
+                onSubmit={(data) => {
+                  const expiresAt =
+                    data.expiresAt && data.expiresAtDate
+                      ? (data.expiresAtDate as Date).toISOString()
+                      : null;
+                  startUpload(data.files, bucket.id, folderId, expiresAt);
+                }}
                 confirmLabel={t("bucket.header.upload")}
               />
 

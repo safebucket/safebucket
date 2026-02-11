@@ -4,6 +4,7 @@ import (
 	"errors"
 	"path"
 	"path/filepath"
+	"time"
 
 	"api/internal/activity"
 	apierrors "api/internal/errors"
@@ -95,6 +96,7 @@ func (s BucketFileService) UploadFile(
 		BucketID:  bucket.ID,
 		FolderID:  body.FolderID,
 		Size:      body.Size,
+		ExpiresAt: body.ExpiresAt,
 	}
 
 	var url string
@@ -248,6 +250,13 @@ func (s BucketFileService) DownloadFile(
 		return models.FileTransferResponse{}, apierrors.NewAPIError(
 			403,
 			apierrors.ErrCannotDownloadTrashed,
+		)
+	}
+
+	if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
+		return models.FileTransferResponse{}, apierrors.NewAPIError(
+			403,
+			apierrors.ErrFileExpired,
 		)
 	}
 

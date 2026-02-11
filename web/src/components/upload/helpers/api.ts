@@ -10,11 +10,13 @@ export const api_createFile = (
   bucketId: string,
   size: number,
   folderId: string | undefined,
+  expiresAt: string | null,
 ) =>
   api.post<ICreateFile>(`/buckets/${bucketId}/files`, {
     name,
     size,
     folder_id: folderId,
+    expires_at: expiresAt,
   });
 
 export const uploadToStorage = async (

@@ -15,6 +15,7 @@ const (
 	FileStatusDeleting  FileStatus = "deleting"
 	FileStatusDeleted   FileStatus = "deleted"
 	FileStatusRestoring FileStatus = "restoring"
+	FileStatusExpired   FileStatus = "expired"
 )
 
 type File struct {
@@ -28,6 +29,7 @@ type File struct {
 	ParentFolder *Folder        `gorm:"foreignKey:FolderID"                            json:"parent_folder,omitempty"`
 	Size         int            `gorm:"type:bigint;default:null"                       json:"size"`
 	DeletedBy    *uuid.UUID     `gorm:"type:uuid;default:null"                         json:"deleted_by,omitempty"`
+	ExpiresAt    *time.Time     `gorm:"default:null"                                   json:"expires_at"`
 	OriginalPath string         `gorm:"-"                                              json:"original_path,omitempty"`
 	CreatedAt    time.Time      `                                                      json:"created_at"`
 	UpdatedAt    time.Time      `                                                      json:"updated_at"`
@@ -47,9 +49,10 @@ func (f *File) ToActivity() FileActivity {
 }
 
 type FileTransferBody struct {
-	Name     string     `json:"name"      validate:"required,filename,max=255"`
-	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
-	Size     int        `json:"size"      validate:"required,gte=1,maxuploadsize"`
+	Name      string     `json:"name"                 validate:"required,filename,max=255"`
+	FolderID  *uuid.UUID `json:"folder_id"            validate:"omitempty,uuid"`
+	Size      int        `json:"size"                 validate:"required,gte=1,maxuploadsize"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty" validate:"omitempty"`
 }
 
 type FileTransferResponse struct {
