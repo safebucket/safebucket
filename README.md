@@ -46,6 +46,12 @@ docker compose up -d
   - login: admin@safebucket.io
   - password: ChangeMePlease
 
+> **Note:** If you are accessing Safebucket from an external machine (e.g., Proxmox), you need to update the following environment variables in the .env file with your host's IP or domain:
+> - `STORAGE__RUSTFS__EXTERNAL_ENDPOINT`
+> - `APP__ALLOWED_ORIGINS`
+> - `APP__API_URL`
+> - `APP__WEB_URL`
+
 
 ## Star History
 
