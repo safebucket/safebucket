@@ -18,14 +18,18 @@ type Profile struct {
 
 // WorkerConfig defines which workers are enabled and their mode.
 type WorkerConfig struct {
-	ObjectDeletion WorkerMode
-	BucketEvents   WorkerMode
-	TrashCleanup   WorkerMode
+	ObjectDeletion   WorkerMode
+	BucketEvents     WorkerMode
+	TrashCleanup     WorkerMode
+	GarbageCollector WorkerMode
 }
 
 // AnyEnabled returns true if any worker is enabled.
 func (w WorkerConfig) AnyEnabled() bool {
-	return w.ObjectDeletion != WorkerModeDisabled || w.BucketEvents != WorkerModeDisabled
+	return w.ObjectDeletion != WorkerModeDisabled ||
+		w.BucketEvents != WorkerModeDisabled ||
+		w.TrashCleanup != WorkerModeDisabled ||
+		w.GarbageCollector != WorkerModeDisabled
 }
 
 // NeedsEvents returns true if the profile requires events configuration.

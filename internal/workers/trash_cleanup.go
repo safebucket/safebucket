@@ -52,66 +52,11 @@ type TrashCleanupWorker struct {
 // It runs an immediate cleanup on startup, then runs on the configured interval.
 // The worker respects context cancellation for graceful shutdown.
 func (w *TrashCleanupWorker) Start(ctx context.Context) {
-	zap.L().Info("Starting trash cleanup worker",
-		zap.Int("retention_days", w.TrashRetentionDays),
-		zap.Duration("interval", w.RunInterval))
-
-	w.runCleanup(ctx)
-
-	ticker := time.NewTicker(w.RunInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			zap.L().Info("Trash cleanup worker shutting down")
-			return
-		case <-ticker.C:
-			w.runCleanup(ctx)
-		}
-	}
-}
-
-// runCleanup performs a full cleanup cycle for expired files and folders.
-func (w *TrashCleanupWorker) runCleanup(ctx context.Context) {
-	startTime := time.Now()
-	zap.L().Info("Starting trash cleanup cycle")
-
-	tracker := &RunTracker{
-		DB:             w.DB,
-		ActivityLogger: w.ActivityLogger,
-	}
-
-	run, err := tracker.StartRun("trash_cleanup")
-	if err != nil {
-		zap.L().Error("Failed to start worker run tracking", zap.Error(err))
-		return
-	}
-
-	var runFailed bool
-
-	filesQueued, err := w.cleanupExpiredFiles(ctx)
-	if err != nil {
-		zap.L().Error("Failed to cleanup expired files", zap.Error(err))
-		runFailed = true
-	}
-
-	foldersQueued, err := w.cleanupExpiredFolders(ctx)
-	if err != nil {
-		zap.L().Error("Failed to cleanup expired folders", zap.Error(err))
-		runFailed = true
-	}
-
-	if runFailed {
-		tracker.FailRun(run)
-	} else {
-		tracker.CompleteRun(run)
-	}
-
-	zap.L().Info("Trash cleanup cycle complete",
-		zap.Int("files_queued", filesQueued),
-		zap.Int("folders_queued", foldersQueued),
-		zap.Duration("duration", time.Since(startTime)))
+	tracker := &RunTracker{DB: w.DB, ActivityLogger: w.ActivityLogger}
+	StartPeriodicWorker(ctx, tracker, "trash_cleanup", w.RunInterval, []WorkerTask{
+		{Name: "expired_files", Fn: w.cleanupExpiredFiles},
+		{Name: "expired_folders", Fn: w.cleanupExpiredFolders},
+	})
 }
 
 // cleanupExpiredFiles finds root-level files (not in any folder) that have been
