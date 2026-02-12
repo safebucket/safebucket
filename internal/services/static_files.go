@@ -57,7 +57,7 @@ func NewStaticFileService(
 	}
 	service.configJSON = configData
 
-	if err := service.discoverFiles(); err != nil {
+	if err2 := service.discoverFiles(); err2 != nil {
 		return nil, fmt.Errorf("failed to discover files: %w", err)
 	}
 	return service, nil
@@ -79,7 +79,7 @@ func (s *StaticFileService) buildConfigJSON() ([]byte, error) {
 	return data, nil
 }
 
-func (s *StaticFileService) serveConfigJSON(w http.ResponseWriter, r *http.Request) {
+func (s *StaticFileService) serveConfigJSON(w http.ResponseWriter, _ *http.Request) {
 	s.setSecurityHeaders(w, "config.json")
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
