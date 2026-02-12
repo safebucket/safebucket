@@ -15,6 +15,8 @@ import (
 type StaticFileService struct {
 	staticPath                 string
 	discoveredFiles            map[string]string
+	configJSON                 []byte
+	apiURL                     string
 	storageExternalURL         string
 	requiresUploadConfirmation bool
 }
@@ -44,13 +46,16 @@ func NewStaticFileService(
 	service := &StaticFileService{
 		staticPath:                 staticPath,
 		discoveredFiles:            make(map[string]string),
+		apiURL:                     apiURL,
 		storageExternalURL:         storageExternalURL,
 		requiresUploadConfirmation: requiresUploadConfirmation,
 	}
 
-	if err := service.createConfigFileIfNotExists(apiURL); err != nil {
-		return nil, fmt.Errorf("failed to create config file: %w", err)
+	configData, err := service.buildConfigJSON()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build config JSON: %w", err)
 	}
+	service.configJSON = configData
 
 	if err := service.discoverFiles(); err != nil {
 		return nil, fmt.Errorf("failed to discover files: %w", err)
@@ -58,41 +63,30 @@ func NewStaticFileService(
 	return service, nil
 }
 
-// createConfigFileIfNotExists creates a config.json file in the static directory if it doesn't exist.
-func (s *StaticFileService) createConfigFileIfNotExists(apiURL string) error {
-	configPath := filepath.Join(s.staticPath, "config.json")
-
-	// Check if config.json already exists
-	if _, err := os.Stat(configPath); err == nil {
-		zap.L().
-			Debug("config.json already exists, skipping creation", zap.String("path", configPath))
-		return nil
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("failed to check config file existence: %w", err)
-	}
-
+// buildConfigJSON serializes the frontend configuration to JSON bytes.
+func (s *StaticFileService) buildConfigJSON() ([]byte, error) {
 	config := ConfigJSON{
-		APIURL:                     apiURL,
+		APIURL:                     s.apiURL,
 		Environment:                "production",
 		RequiresUploadConfirmation: s.requiresUploadConfirmation,
 	}
 
-	configData, err := json.MarshalIndent(config, "", "  ")
+	data, err := json.Marshal(config)
 	if err != nil {
-		return fmt.Errorf("failed to marshal config to JSON: %w", err)
+		return nil, fmt.Errorf("failed to marshal config JSON: %w", err)
 	}
 
-	if err = os.MkdirAll(s.staticPath, 0o750); err != nil {
-		return fmt.Errorf("failed to create static directory: %w", err)
-	}
+	return data, nil
+}
 
-	if err = os.WriteFile(configPath, configData, 0o600); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
+func (s *StaticFileService) serveConfigJSON(w http.ResponseWriter, r *http.Request) {
+	s.setSecurityHeaders(w, "config.json")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	_, err := w.Write(s.configJSON)
+	if err != nil {
+		zap.L().Error("failed to write response", zap.Error(err))
 	}
-
-	zap.L().
-		Info("created config.json", zap.String("path", configPath), zap.String("apiURL", apiURL), zap.String("environment", "production"), zap.Bool("requiresUploadConfirmation", s.requiresUploadConfirmation))
-	return nil
 }
 
 func (s *StaticFileService) discoverFiles() error {
@@ -135,7 +129,7 @@ func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 			routePath := filepath.Join(urlPrefix, entry.Name())
 			routePath = "/" + strings.ReplaceAll(routePath, "\\", "/") // Normalize path separators
 
-			if s.isServeableFile(entry.Name()) {
+			if s.isServableFile(entry.Name()) {
 				relativePath := filepath.Join(urlPrefix, entry.Name())
 				s.discoveredFiles[routePath] = relativePath
 			}
@@ -146,7 +140,7 @@ func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 	return nil
 }
 
-func (s *StaticFileService) isServeableFile(fileName string) bool {
+func (s *StaticFileService) isServableFile(fileName string) bool {
 	// Serve all common static file types
 	staticExtensions := []string{
 		".ico", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
@@ -165,7 +159,13 @@ func (s *StaticFileService) isServeableFile(fileName string) bool {
 
 func (s *StaticFileService) Routes() chi.Router {
 	r := chi.NewRouter()
+
+	r.Get("/config.json", s.serveConfigJSON)
+
 	for routePath := range s.discoveredFiles {
+		if routePath == "/config.json" {
+			continue
+		}
 		r.Get(routePath, func(w http.ResponseWriter, req *http.Request) {
 			s.serveFile(w, req, req.URL.Path)
 		})
@@ -192,7 +192,6 @@ func (s *StaticFileService) serveFile(w http.ResponseWriter, r *http.Request, re
 }
 
 func (s *StaticFileService) serveSPAFallback(w http.ResponseWriter, r *http.Request) {
-	// Get relative path for index.html
 	relativePath := s.discoveredFiles["/index.html"]
 	fullPath := filepath.Join(s.staticPath, relativePath)
 	s.secureServeFile(w, r, fullPath)
@@ -212,7 +211,7 @@ func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath s
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	if strings.HasSuffix(filePath, ".html") {
-		connectSrc := fmt.Sprintf("'self' %s", s.storageExternalURL)
+		connectSrc := fmt.Sprintf("'self' %s %s", s.apiURL, s.storageExternalURL)
 
 		csp := fmt.Sprintf(
 			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src %s",
