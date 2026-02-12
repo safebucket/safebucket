@@ -22,6 +22,7 @@ func main() {
 	storage := core.NewStorage(config.Storage, config.App.TrashRetentionDays)
 	notify := core.NewNotifier(config.Notifier)
 	activityLogger := core.NewActivityLogger(config.Activity)
+	defer activityLogger.Close()
 
 	var eventsManager *core.EventsManager
 	var eventRouter *core.EventRouter

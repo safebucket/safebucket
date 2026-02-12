@@ -132,6 +132,7 @@ services:
 
   loki:
     container_name: loki
+    profiles: [ loki ]
     image: grafana/loki:3.6
     command: "-config.file=/etc/loki/config.yaml"
     ports:

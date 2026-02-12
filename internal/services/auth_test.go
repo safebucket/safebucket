@@ -30,6 +30,7 @@ func (m *MockActivityLogger) Search(_ map[string][]string) ([]map[string]any, er
 func (m *MockActivityLogger) CountByDay(_ map[string][]string, _ int) ([]models.TimeSeriesPoint, error) {
 	return nil, nil
 }
+func (m *MockActivityLogger) Close() error { return nil }
 
 var _ activity.IActivityLogger = (*MockActivityLogger)(nil)
 

@@ -201,8 +201,13 @@ type NotifierConfiguration struct {
 }
 
 type ActivityConfiguration struct {
-	Type string            `mapstructure:"type" validate:"required,oneof=loki"`
-	Loki LokiConfiguration `mapstructure:"loki" validate:"required_if=Type loki"`
+	Type  string                      `mapstructure:"type"  validate:"required,oneof=loki local"`
+	Loki  *LokiConfiguration          `mapstructure:"loki"  validate:"required_if=Type loki"`
+	Local *LocalActivityConfiguration `mapstructure:"local" validate:"required_if=Type local"`
+}
+
+type LocalActivityConfiguration struct {
+	Directory string `mapstructure:"directory" validate:"required"`
 }
 
 type LokiConfiguration struct {

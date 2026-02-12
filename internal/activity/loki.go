@@ -79,6 +79,10 @@ type LokiClient struct {
 	searchURL string
 }
 
+func (s *LokiClient) Close() error {
+	return nil
+}
+
 func (s *LokiClient) Send(activity models.Activity) error {
 	lokiBody, err := createLokiBody(activity)
 	if err != nil {

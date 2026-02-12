@@ -114,6 +114,9 @@ auth:
 #        domains: []
 
 activity:
-  type: loki
-  loki:
-    endpoint: http://localhost:3100
+  type: local
+  local:
+    directory: ./data/activity
+#   type: loki
+#   loki:
+#     endpoint: http://localhost:3100
