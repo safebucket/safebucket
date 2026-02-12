@@ -34,24 +34,24 @@ export const authCookies = {
 
   setAccessToken: (token: string): void => {
     Cookies.set(COOKIE_ACCESS_TOKEN, token, {
-      secure: true,
-      sameSite: "lax",
+      secure: window.location.protocol === "https:",
+      sameSite: "strict",
       path: "/",
     });
   },
 
   setRefreshToken: (token: string): void => {
     Cookies.set(COOKIE_REFRESH_TOKEN, token, {
-      secure: true,
-      sameSite: "lax",
+      secure: window.location.protocol === "https:",
+      sameSite: "strict",
       path: "/",
     });
   },
 
   setAuthProvider: (provider: string): void => {
     Cookies.set(COOKIE_AUTH_PROVIDER, provider, {
-      secure: true,
-      sameSite: "lax",
+      secure: window.location.protocol === "https:",
+      sameSite: "strict",
       path: "/",
     });
   },
