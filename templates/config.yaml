@@ -114,8 +114,8 @@ auth:
 #        domains: []
 
 activity:
-  type: local
-  local:
+  type: filesystem
+  filesystem:
     directory: ./data/activity
 #   type: loki
 #   loki:

@@ -11,21 +11,21 @@ import (
 	"github.com/blevesearch/bleve/v2"
 )
 
-func newTestLocalClient(t *testing.T) *LocalClient {
+func newTestFilesystemClient(t *testing.T) *FilesystemClient {
 	t.Helper()
 	dir := t.TempDir()
 	config := models.ActivityConfiguration{
-		Type: "local",
-		Local: &models.LocalActivityConfiguration{
+		Type: "filesystem",
+		Filesystem: &models.FilesystemActivityConfiguration{
 			Directory: dir,
 		},
 	}
-	client := NewLocalClient(config)
-	return client.(*LocalClient)
+	client := NewFilesystemClient(config)
+	return client.(*FilesystemClient)
 }
 
 func sendTestActivity(
-	t *testing.T, client *LocalClient,
+	t *testing.T, client *FilesystemClient,
 	action, objectType, userID, bucketID, message string, ts time.Time,
 ) {
 	t.Helper()
@@ -48,8 +48,8 @@ func sendTestActivity(
 	}
 }
 
-func TestLocalSendAndSearch(t *testing.T) {
-	client := newTestLocalClient(t)
+func TestFilesystemSendAndSearch(t *testing.T) {
+	client := newTestFilesystemClient(t)
 
 	now := time.Now()
 	sendTestActivity(
@@ -103,8 +103,8 @@ func TestLocalSendAndSearch(t *testing.T) {
 	}
 }
 
-func TestLocalSearchWithORCriteria(t *testing.T) {
-	client := newTestLocalClient(t)
+func TestFilesystemSearchWithORCriteria(t *testing.T) {
+	client := newTestFilesystemClient(t)
 
 	now := time.Now()
 	sendTestActivity(
@@ -138,8 +138,8 @@ func TestLocalSearchWithORCriteria(t *testing.T) {
 	}
 }
 
-func TestLocalCountByDay(t *testing.T) {
-	client := newTestLocalClient(t)
+func TestFilesystemCountByDay(t *testing.T) {
+	client := newTestFilesystemClient(t)
 
 	today := time.Now()
 	yesterday := today.AddDate(0, 0, -1)
@@ -170,8 +170,8 @@ func TestLocalCountByDay(t *testing.T) {
 	}
 }
 
-func TestLocalSearchRespectsTimeWindow(t *testing.T) {
-	client := newTestLocalClient(t)
+func TestFilesystemSearchRespectsTimeWindow(t *testing.T) {
+	client := newTestFilesystemClient(t)
 
 	// Index an event from 60 days ago (outside 30-day window)
 	oldTime := time.Now().AddDate(0, 0, -60)
@@ -200,7 +200,7 @@ func TestLocalSearchRespectsTimeWindow(t *testing.T) {
 	}
 }
 
-func TestLocalMigrateIndex(t *testing.T) {
+func TestFilesystemMigrateIndex(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "activity.bleve")
 
 	// Create an index with an old schema version.
@@ -217,7 +217,7 @@ func TestLocalMigrateIndex(t *testing.T) {
 
 	// Index some test documents.
 	now := time.Now()
-	docs := []LocalActivityEntry{
+	docs := []FilesystemActivityEntry{
 		{
 			Message:    "Created bucket",
 			Timestamp:  now,
@@ -251,14 +251,14 @@ func TestLocalMigrateIndex(t *testing.T) {
 		t.Fatalf("failed to close index: %v", err)
 	}
 
-	// Open via NewLocalClient — should detect version mismatch and migrate.
+	// Open via NewFilesystemClient — should detect version mismatch and migrate.
 	config := models.ActivityConfiguration{
-		Type: "local",
-		Local: &models.LocalActivityConfiguration{
+		Type: "filesystem",
+		Filesystem: &models.FilesystemActivityConfiguration{
 			Directory: dir,
 		},
 	}
-	client := NewLocalClient(config).(*LocalClient)
+	client := NewFilesystemClient(config).(*FilesystemClient)
 
 	// Verify schema version is updated.
 	storedVersion, err := client.index.GetInternal(schemaVersionKey)

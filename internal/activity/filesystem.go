@@ -20,8 +20,8 @@ const schemaVersion = "1"
 
 var schemaVersionKey = []byte("schema_version")
 
-// LocalActivityEntry is the document shape indexed in bleve.
-type LocalActivityEntry struct {
+// FilesystemActivityEntry is the document shape indexed in bleve.
+type FilesystemActivityEntry struct {
 	Message           string    `json:"message"`
 	Timestamp         time.Time `json:"timestamp"`
 	Action            string    `json:"action"`
@@ -35,28 +35,28 @@ type LocalActivityEntry struct {
 	Object            string    `json:"object"`
 }
 
-// LocalClient implements IActivityLogger using a local bleve index.
-type LocalClient struct {
+// FilesystemClient implements IActivityLogger using a local bleve index.
+type FilesystemClient struct {
 	index bleve.Index
 }
 
-// NewLocalClient creates a LocalClient backed by a bleve index at the configured directory.
+// NewFilesystemClient creates a FilesystemClient backed by a bleve index at the configured directory.
 // If an existing index has a different schema version, it is automatically migrated.
-func NewLocalClient(config models.ActivityConfiguration) IActivityLogger {
-	dir := config.Local.Directory
+func NewFilesystemClient(config models.ActivityConfiguration) IActivityLogger {
+	dir := config.Filesystem.Directory
 
 	index, err := bleve.Open(dir)
 	if err != nil {
 		indexMapping := buildIndexMapping()
 		index, err = bleve.New(dir, indexMapping)
 		if err != nil {
-			zap.L().Fatal("Failed to create local activity index", zap.Error(err))
+			zap.L().Fatal("Failed to create filesystem activity index", zap.Error(err))
 		}
 		err = index.SetInternal(schemaVersionKey, []byte(schemaVersion))
 		if err != nil {
 			zap.L().Fatal("Failed to set schema version", zap.Error(err))
 		}
-		return &LocalClient{index: index}
+		return &FilesystemClient{index: index}
 	}
 
 	storedVersion, err := index.GetInternal(schemaVersionKey)
@@ -87,7 +87,7 @@ func NewLocalClient(config models.ActivityConfiguration) IActivityLogger {
 		}
 	}
 
-	return &LocalClient{index: index}
+	return &FilesystemClient{index: index}
 }
 
 func buildIndexMapping() *mapping.IndexMappingImpl {
@@ -219,8 +219,8 @@ func migrateIndex(dir string) error {
 	return nil
 }
 
-func reconstructEntry(fields map[string]any) LocalActivityEntry {
-	var entry LocalActivityEntry
+func reconstructEntry(fields map[string]any) FilesystemActivityEntry {
+	var entry FilesystemActivityEntry
 	b, err := json.Marshal(fields)
 	if err != nil {
 		return entry
@@ -240,11 +240,11 @@ func parseTimestamp(fields map[string]any) time.Time {
 	return time.Time{}
 }
 
-func (c *LocalClient) Close() error {
+func (c *FilesystemClient) Close() error {
 	return c.index.Close()
 }
 
-func (c *LocalClient) Send(activity models.Activity) error {
+func (c *FilesystemClient) Send(activity models.Activity) error {
 	ts, err := strconv.ParseInt(activity.Filter.Timestamp, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse timestamp: %w", err)
@@ -261,7 +261,7 @@ func (c *LocalClient) Send(activity models.Activity) error {
 		objectJSON = string(b)
 	}
 
-	entry := LocalActivityEntry{
+	entry := FilesystemActivityEntry{
 		Message:           activity.Message,
 		Timestamp:         timestamp,
 		Action:            activity.Filter.Fields["action"],
@@ -284,7 +284,7 @@ func (c *LocalClient) Send(activity models.Activity) error {
 	return nil
 }
 
-func (c *LocalClient) Search(searchCriteria map[string][]string) ([]map[string]any, error) {
+func (c *FilesystemClient) Search(searchCriteria map[string][]string) ([]map[string]any, error) {
 	criteriaQuery := buildBleveQuery(searchCriteria)
 
 	now := time.Now()
@@ -345,7 +345,7 @@ func (c *LocalClient) Search(searchCriteria map[string][]string) ([]map[string]a
 	return activities, nil
 }
 
-func (c *LocalClient) CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
+func (c *FilesystemClient) CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
 	criteriaQuery := buildBleveQuery(searchCriteria)
 
 	now := time.Now()
