@@ -57,7 +57,7 @@ func NewStaticFileService(
 	}
 	service.configJSON = configData
 
-	if err2 := service.discoverFiles(); err2 != nil {
+	if err = service.discoverFiles(); err != nil {
 		return nil, fmt.Errorf("failed to discover files: %w", err)
 	}
 	return service, nil
@@ -211,7 +211,7 @@ func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath s
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	if strings.HasSuffix(filePath, ".html") {
-		connectSrc := fmt.Sprintf("'self' %s %s", s.apiURL, s.storageExternalURL)
+		connectSrc := fmt.Sprintf("'self' %s", s.storageExternalURL)
 
 		csp := fmt.Sprintf(
 			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src %s",

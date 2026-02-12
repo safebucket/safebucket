@@ -18,11 +18,7 @@ type AWSPublisher struct {
 func NewAWSPublisher(queueName string) IPublisher {
 	awsCfg, err := awsConfig.LoadDefaultConfig(context.Background())
 	if err != nil {
-		zap.L().Fatal("Unable to load SDK config.", zap.Error(err))
-	}
-
-	if err != nil {
-		zap.L().Error("Unable to retrieve AWS credentials.", zap.Error(err))
+		zap.L().Fatal("Failed to load SQS configuration", zap.Error(err))
 	}
 
 	publisher, err := sqs.NewPublisher(sqs.PublisherConfig{
