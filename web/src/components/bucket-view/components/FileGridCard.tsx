@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { CheckCircle, Clock, LoaderCircle, Trash2 } from "lucide-react";
+import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
 import type { FC } from "react";
 
 import type { BucketItem } from "@/types/bucket.ts";
@@ -67,13 +67,6 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
             {t("bucket.trash_view.restoring")}
           </Badge>
         );
-      case FileStatus.expired:
-        return (
-          <Badge className="gap-1 bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800">
-            <Clock className="h-3 w-3" />
-            {t("bucket.grid_view.expired")}
-          </Badge>
-        );
       default:
         return null;
     }
@@ -126,22 +119,6 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
                 {itemIsFolder ? "-" : formatFileSize(file.size)}
               </p>
               {renderStatusBadge()}
-              {"expires_at" in file &&
-                file.expires_at &&
-                file.status !== FileStatus.expired && (
-                  <p
-                    className={cn(
-                      "text-xs",
-                      isSelected
-                        ? "text-primary-foreground/70"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {t("bucket.grid_view.expires_at", {
-                      date: formatDate(file.expires_at),
-                    })}
-                  </p>
-                )}
             </div>
           </div>
         </div>

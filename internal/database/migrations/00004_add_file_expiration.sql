@@ -1,5 +1,4 @@
 -- +goose Up
-ALTER TYPE file_status ADD VALUE IF NOT EXISTS 'expired';
 ALTER TABLE files ADD COLUMN expires_at TIMESTAMP;
 CREATE INDEX idx_files_expires_at ON files (expires_at) WHERE expires_at IS NOT NULL;
 

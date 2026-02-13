@@ -61,7 +61,6 @@ export const FileActions: FC<IFileActionsProps> = ({
     type === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
 
   const isFileTrashed = file.status === FileStatus.deleted;
-  const isFileExpired = file.status === FileStatus.expired;
 
   return (
     <>
@@ -93,11 +92,9 @@ export const FileActions: FC<IFileActionsProps> = ({
                 <>
                   <MenuItem
                     onClick={() =>
-                      !isFileTrashed &&
-                      !isFileExpired &&
-                      downloadFile(file.id, file.name)
+                      !isFileTrashed && downloadFile(file.id, file.name)
                     }
-                    disabled={isFileTrashed || isFileExpired}
+                    disabled={isFileTrashed}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     {t("file_actions.download")}

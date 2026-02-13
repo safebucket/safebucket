@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { CheckCircle, Clock, LoaderCircle, Trash2 } from "lucide-react";
+import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
 import type { FC } from "react";
 
 import type { ColumnDef } from "@tanstack/react-table";
@@ -133,13 +133,6 @@ const createColumns = (
             <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
               <LoaderCircle className="h-3 w-3 animate-spin" />
               {t("bucket.trash_view.restoring")}
-            </Badge>
-          );
-        case FileStatus.expired:
-          return (
-            <Badge className="bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800">
-              <Clock className="h-3 w-3" />
-              {t("bucket.list_view.expired")}
             </Badge>
           );
         default:

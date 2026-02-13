@@ -224,21 +224,19 @@ func (s BucketService) GetBucket(
 	// Default behavior (empty) shows active items (uploaded + uploading)
 	status := queryParams.Status
 
-	s.DB.Model(&models.File{}).
-		Where("bucket_id = ? AND expires_at IS NOT NULL AND expires_at <= ? AND status = ?",
-			bucketID, time.Now(), models.FileStatusUploaded).
-		Update("status", models.FileStatusExpired)
-
 	var files []models.File
 	var folders []models.Folder
+
+	now := time.Now()
 
 	switch status {
 	case "deleted":
 		fileResult := s.DB.Unscoped().
 			Where(
-				"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?)",
+				"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?) AND (expires_at IS NULL OR expires_at > ?)",
 				bucketID,
 				models.FileStatusRestoring,
+				now,
 			).
 			Order("deleted_at DESC").
 			Find(&files)
@@ -275,8 +273,8 @@ func (s BucketService) GetBucket(
 		}
 
 	case "all":
-		// Show all items regardless of status
-		result = s.DB.Where("bucket_id = ?", bucketID).Find(&files)
+		// Show all items regardless of status, but exclude expired files
+		result = s.DB.Where("bucket_id = ? AND (expires_at IS NULL OR expires_at > ?)", bucketID, now).Find(&files)
 		if result.RowsAffected > 0 {
 			bucket.Files = files
 		}
@@ -304,14 +302,14 @@ func (s BucketService) GetBucket(
 		fallthrough
 	default:
 		// Show only active (non-soft-deleted) items
-		// Filter out expired files that haven't been uploaded yet
+		// Filter out expired files and stale uploads
 		// GORM automatically excludes soft-deleted items (deleted_at IS NOT NULL)
-		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
+		expirationTime := now.Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 		result = s.DB.Where(
-			"bucket_id = ? AND (status IN (?, ?) OR (status = ? AND created_at > ?))",
+			"bucket_id = ? AND (expires_at IS NULL OR expires_at > ?) AND (status = ? OR (status = ? AND created_at > ?))",
 			bucketID,
+			now,
 			models.FileStatusUploaded,
-			models.FileStatusExpired,
 			models.FileStatusUploading,
 			expirationTime,
 		).Find(&files)

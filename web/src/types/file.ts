@@ -4,7 +4,6 @@ export enum FileStatus {
   deleting = "deleting",
   deleted = "deleted",
   restoring = "restoring",
-  expired = "expired",
 }
 
 export interface IFile {

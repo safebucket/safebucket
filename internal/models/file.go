@@ -15,7 +15,6 @@ const (
 	FileStatusDeleting  FileStatus = "deleting"
 	FileStatusDeleted   FileStatus = "deleted"
 	FileStatusRestoring FileStatus = "restoring"
-	FileStatusExpired   FileStatus = "expired"
 )
 
 type File struct {
