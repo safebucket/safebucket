@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"time"
 
 	h "api/internal/helpers"
 
@@ -53,6 +54,14 @@ func validateFoldername(fl validator.FieldLevel) bool {
 	return regex.MatchString(foldername) && !prohibited.MatchString(foldername)
 }
 
+func validateFutureDate(fl validator.FieldLevel) bool {
+	t, ok := fl.Field().Interface().(time.Time)
+	if !ok {
+		return false
+	}
+	return t.After(time.Now())
+}
+
 func Validate[T any](next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 10<<20) // 10MB limit
@@ -69,6 +78,7 @@ func Validate[T any](next http.Handler) http.Handler {
 		_ = validate.RegisterValidation("filename", validateFilename)
 		_ = validate.RegisterValidation("foldername", validateFoldername)
 		_ = validate.RegisterValidation("maxuploadsize", validateMaxUploadSize)
+		_ = validate.RegisterValidation("futuredate", validateFutureDate)
 
 		err = validate.Struct(data)
 		if err != nil {

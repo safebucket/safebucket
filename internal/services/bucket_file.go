@@ -154,6 +154,10 @@ func (s BucketFileService) PatchFile(
 		return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
 	}
 
+	if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
+		return apierrors.NewAPIError(403, apierrors.ErrFileExpired)
+	}
+
 	switch body.Status {
 	case string(models.FileStatusDeleted):
 		return s.TrashFile(logger, user, file)

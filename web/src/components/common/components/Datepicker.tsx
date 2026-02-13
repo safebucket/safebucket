@@ -36,6 +36,7 @@ export function Datepicker({ value, onChange }: DatepickerProps) {
           mode="single"
           selected={value}
           onSelect={onChange}
+          disabled={{ before: new Date() }}
         />
       </PopoverContent>
     </Popover>

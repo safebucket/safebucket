@@ -51,7 +51,7 @@ type FileTransferBody struct {
 	Name      string     `json:"name"                 validate:"required,filename,max=255"`
 	FolderID  *uuid.UUID `json:"folder_id"            validate:"omitempty,uuid"`
 	Size      int        `json:"size"                 validate:"required,gte=1,maxuploadsize"`
-	ExpiresAt *time.Time `json:"expires_at,omitempty" validate:"omitempty"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty" validate:"omitempty,futuredate"`
 }
 
 type FileTransferResponse struct {

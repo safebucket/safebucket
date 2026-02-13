@@ -331,7 +331,7 @@
       "status": "Status",
       "uploaded": "Uploaded",
       "uploading": "Uploading",
-      "deleting": "Deleting",
+      "deleting": "Deleting"
     },
     "trash_view": {
       "type": "Type",
