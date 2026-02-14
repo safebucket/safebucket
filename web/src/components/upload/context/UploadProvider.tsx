@@ -93,12 +93,12 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
 
   const startUpload = useCallback(
     (
-      files: FileList,
+      files: Array<File>,
       bucketId: string,
       folderId: string | undefined,
       expiresAt: string | null,
     ) => {
-      Array.from(files).forEach((file) => {
+      files.forEach((file) => {
         const uploadId = generateRandomString(12);
         const displayPath = file.name;
 

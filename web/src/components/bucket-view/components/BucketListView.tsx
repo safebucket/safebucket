@@ -1,20 +1,19 @@
-import { useTranslation } from "react-i18next";
 import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
-import type { FC } from "react";
-
+import { useTranslation } from "react-i18next";
 import type { ColumnDef } from "@tanstack/react-table";
-
+import type { FC } from "react";
+import type { FileWithPath } from "@/components/upload/helpers/types";
 import type { BucketItem } from "@/types/bucket.ts";
-import { FileStatus } from "@/types/file.ts";
-import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
-import { formatDate, formatFileSize } from "@/lib/utils";
+import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { DataTableColumnHeader } from "@/components/common/components/DataTable/DataColumnHeader";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { DataTableRowActions } from "@/components/common/components/DataTable/DataTableRowActions";
 import { Badge } from "@/components/ui/badge";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
+import { formatDate, formatFileSize } from "@/lib/utils";
+import { FileStatus } from "@/types/file.ts";
 
 const createColumns = (
   t: (key: string) => string,
@@ -152,18 +151,20 @@ const createColumns = (
 interface IBucketListViewProps {
   items: Array<BucketItem>;
   bucketId: string;
+  onFilesDropped: (files: Array<FileWithPath>) => void;
 }
 
 export const BucketListView: FC<IBucketListViewProps> = ({
   items,
   bucketId,
+  onFilesDropped,
 }: IBucketListViewProps) => {
   const { t } = useTranslation();
   const { selected, setSelected, openFolder } = useBucketViewContext();
   const columns = createColumns(t);
 
   return (
-    <DragDropZone bucketId={bucketId}>
+    <DragDropZone bucketId={bucketId} onFilesDropped={onFilesDropped}>
       <DataTable
         columns={columns}
         data={items}

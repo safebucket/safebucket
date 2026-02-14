@@ -1,5 +1,4 @@
 import { Controller } from "react-hook-form";
-import { ChevronRight } from "lucide-react";
 import type { FC } from "react";
 
 import type {
@@ -136,31 +135,6 @@ export const FormField: FC<IFormFieldProps> = ({
             )}
           />
         </div>
-      );
-    case "collapsible":
-      return (
-        <Controller
-          key={field.id}
-          name={field.id}
-          control={control}
-          defaultValue={field.defaultValue as boolean}
-          render={({ field: { onChange, value } }) => (
-            <button
-              type="button"
-              className="flex w-full items-center gap-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => onChange(!value)}
-            >
-              <div className="h-px flex-1 bg-border" />
-              <span className="flex shrink-0 items-center gap-1.5">
-                {field.label}
-                <ChevronRight
-                  className={`h-3.5 w-3.5 transition-transform ${value ? "rotate-90" : ""}`}
-                />
-              </span>
-              <div className="h-px flex-1 bg-border" />
-            </button>
-          )}
-        />
       );
     case "datepicker":
       return (

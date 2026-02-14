@@ -1,27 +1,33 @@
 import { FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
-
+import type { FileWithPath } from "@/components/upload/helpers/types";
 import type { BucketItem } from "@/types/bucket.ts";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { FileGridCard } from "@/components/bucket-view/components/FileGridCard";
+import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 
 interface IBucketGridViewProps {
   items: Array<BucketItem>;
   bucketId: string;
+  onFilesDropped: (files: Array<FileWithPath>) => void;
 }
 
 export const BucketGridView: FC<IBucketGridViewProps> = ({
   items,
   bucketId,
+  onFilesDropped,
 }: IBucketGridViewProps) => {
   const { t } = useTranslation();
   const { selected, setSelected, openFolder } = useBucketViewContext();
 
   if (items.length === 0) {
     return (
-      <DragDropZone bucketId={bucketId} className="min-h-[400px]">
+      <DragDropZone
+        bucketId={bucketId}
+        className="min-h-[400px]"
+        onFilesDropped={onFilesDropped}
+      >
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <FolderOpen className="text-muted-foreground mb-4 h-16 w-16" />
           <h3 className="text-muted-foreground mb-2 text-lg font-semibold">
@@ -39,7 +45,7 @@ export const BucketGridView: FC<IBucketGridViewProps> = ({
   }
 
   return (
-    <DragDropZone bucketId={bucketId}>
+    <DragDropZone bucketId={bucketId} onFilesDropped={onFilesDropped}>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {items.map((item) => (
           <FileGridCard

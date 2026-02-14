@@ -9,7 +9,6 @@ export interface IFormField {
     | "file"
     | "select"
     | "switch"
-    | "collapsible"
     | "datepicker"
     | "otp";
   placeholder?: string;

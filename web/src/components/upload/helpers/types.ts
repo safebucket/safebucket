@@ -1,3 +1,15 @@
+export interface FileWithPath {
+  file: File;
+  relativePath: string;
+}
+
+export interface StagedFile {
+  id: string;
+  file: File;
+  relativePath: string;
+  extension: string;
+}
+
 interface ICreateFileBody {
   bucket: string;
   key: string;
@@ -18,7 +30,7 @@ export interface ICreateFile {
 export interface IUploadContext {
   uploads: Array<IUpload>;
   startUpload: (
-    files: FileList,
+    files: Array<File>,
     bucketId: string,
     folderId: string | undefined,
     expiresAt: string | null,

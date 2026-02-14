@@ -400,7 +400,18 @@
       "drop_files": "Déposez des fichiers ou dossiers à télécharger",
       "drop_description": "Les fichiers et dossiers seront téléchargés dans le répertoire actuel"
     },
-    "permission_denied": "Vous n'avez pas la permission d'uploader des fichiers dans ce bucket"
+    "permission_denied": "Vous n'avez pas la permission d'uploader des fichiers dans ce bucket",
+    "dialog": {
+      "title": "Télécharger",
+      "dropzone_text": "Glissez des fichiers ici ou",
+      "browse": "Parcourir",
+      "file_count": "{{count}} fichier(s) sélectionné(s)",
+      "remove_file": "Supprimer le fichier",
+      "advanced": "Avancé",
+      "expiration_label": "Date d'expiration",
+      "upload_button": "Télécharger",
+      "folder_path": "dans {{path}}"
+    }
   },
   "settings": {
     "title": "Paramètres",

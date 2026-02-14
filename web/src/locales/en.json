@@ -400,7 +400,18 @@
       "drop_files": "Drop files or folders to upload",
       "drop_description": "Files and folders will be uploaded to the current directory"
     },
-    "permission_denied": "You don't have permission to upload files to this bucket"
+    "permission_denied": "You don't have permission to upload files to this bucket",
+    "dialog": {
+      "title": "Upload",
+      "dropzone_text": "Drag files here or",
+      "browse": "Browse",
+      "file_count": "{{count}} file(s) selected",
+      "remove_file": "Remove file",
+      "advanced": "Advanced",
+      "expiration_label": "Expiration date",
+      "upload_button": "Upload",
+      "folder_path": "in {{path}}"
+    }
   },
   "settings": {
     "title": "Settings",

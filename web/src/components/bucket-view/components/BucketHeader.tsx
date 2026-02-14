@@ -1,17 +1,12 @@
-import { useTranslation } from "react-i18next";
 import { ChevronDownIcon, FolderPlus, PlusCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { FC } from "react";
-
 import type { IBucket } from "@/types/bucket.ts";
 import { BucketViewOptions } from "@/components/bucket-view/components/BucketViewOptions";
-import { shareFileFields } from "@/components/bucket-view/helpers/constants";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import { useBucketPermissions } from "@/hooks/usePermissions";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
+import { useFileActions } from "@/components/FileActions/hooks/useFileActions.ts";
 import { Button } from "@/components/ui/button";
-import { UploadPopover } from "@/components/upload/components/UploadPopover";
-import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
 import { ButtonGroup } from "@/components/ui/button-group.tsx";
 import {
   DropdownMenu,
@@ -20,22 +15,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
-import { useFileActions } from "@/components/FileActions/hooks/useFileActions.ts";
+import { UploadPopover } from "@/components/upload/components/UploadPopover";
+import { useBucketPermissions } from "@/hooks/usePermissions";
 
 interface IBucketHeaderProps {
   bucket: IBucket;
+  onOpenUploadDialog: () => void;
 }
 
 export const BucketHeader: FC<IBucketHeaderProps> = ({
   bucket,
+  onOpenUploadDialog,
 }: IBucketHeaderProps) => {
   const { t } = useTranslation();
   const { isContributor } = useBucketPermissions(bucket.id);
-  const shareFileDialog = useDialog();
   const newFolderDialog = useDialog();
 
-  const { folderId } = useBucketViewContext();
-  const { startUpload } = useUploadContext();
   const { createFolder } = useFileActions();
 
   return (
@@ -50,7 +45,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
           {isContributor ? (
             <>
               <ButtonGroup>
-                <Button onClick={shareFileDialog.trigger}>
+                <Button onClick={onOpenUploadDialog}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   {t("bucket.header.upload_file")}
                 </Button>
@@ -70,21 +65,6 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </ButtonGroup>
-
-              <FormDialog
-                {...shareFileDialog.props}
-                title={t("bucket.header.upload_file")}
-                description={t("bucket.header.upload_and_share")}
-                fields={shareFileFields}
-                onSubmit={(data) => {
-                  const expiresAt =
-                    data.expiresAt && data.expiresAtDate
-                      ? (data.expiresAtDate as Date).toISOString()
-                      : null;
-                  startUpload(data.files, bucket.id, folderId, expiresAt);
-                }}
-                confirmLabel={t("bucket.header.upload")}
-              />
 
               <FormDialog
                 {...newFolderDialog.props}
