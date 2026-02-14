@@ -24,10 +24,9 @@ services:
       retries: 10
       start_period: 2s
     restart: unless-stopped
-    depends_on:
-      - nats
 
   bucket-events-config:
+    profiles: [ bucket_events ]
     container_name: bucket-events-config
     image: minio/mc:latest
     environment:
@@ -115,6 +114,7 @@ services:
       MP_SMTP_AUTH: root:root
 
   nats:
+    profiles: [ bucket_events ]
     image: nats:2.12-alpine
     container_name: nats
     ports:

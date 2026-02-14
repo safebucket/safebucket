@@ -59,17 +59,25 @@ storage:
     secret_key: rustfsadmin
 
 events:
-  type: jetstream
+  type: local
   queues:
     notifications:
       name: safebucket-notifications
-    bucket_events:
-      name: safebucket-bucket-events
     object_deletion:
       name: safebucket-object-deletion
-  jetstream:
-    host: localhost
-    port: 4222
+    bucket_events:
+      name: safebucket-bucket-events
+  # type: jetstream
+  # queues:
+  #   notifications:
+  #     name: safebucket-notifications
+  #   bucket_events:
+  #     name: safebucket-bucket-events
+  #   object_deletion:
+  #     name: safebucket-object-deletion
+  # jetstream:
+  #   host: localhost
+  #   port: 4222
 
 notifier:
   type: smtp
