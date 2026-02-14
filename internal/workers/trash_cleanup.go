@@ -5,7 +5,6 @@ import (
 	"path"
 	"time"
 
-	"api/internal/activity"
 	"api/internal/events"
 	"api/internal/messaging"
 	"api/internal/models"
@@ -45,15 +44,13 @@ type TrashCleanupWorker struct {
 	Publisher          messaging.IPublisher
 	TrashRetentionDays int
 	RunInterval        time.Duration
-	ActivityLogger     activity.IActivityLogger
 }
 
 // Start begins the trash cleanup worker loop.
 // It runs an immediate cleanup on startup, then runs on the configured interval.
 // The worker respects context cancellation for graceful shutdown.
 func (w *TrashCleanupWorker) Start(ctx context.Context) {
-	tracker := &RunTracker{DB: w.DB, ActivityLogger: w.ActivityLogger}
-	StartPeriodicWorker(ctx, tracker, "trash_cleanup", w.RunInterval, []WorkerTask{
+	StartPeriodicWorker(ctx, "trash_cleanup", w.RunInterval, []WorkerTask{
 		{Name: "expired_files", Fn: w.cleanupExpiredFiles},
 		{Name: "expired_folders", Fn: w.cleanupExpiredFolders},
 	})

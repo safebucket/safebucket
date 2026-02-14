@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"api/internal/activity"
 	"api/internal/models"
 
 	"go.uber.org/zap"
@@ -18,14 +17,12 @@ const (
 
 // GarbageCollectorWorker periodically cleans up orphaned database records.
 type GarbageCollectorWorker struct {
-	DB             *gorm.DB
-	RunInterval    time.Duration
-	ActivityLogger activity.IActivityLogger
+	DB          *gorm.DB
+	RunInterval time.Duration
 }
 
 func (w *GarbageCollectorWorker) Start(ctx context.Context) {
-	tracker := &RunTracker{DB: w.DB, ActivityLogger: w.ActivityLogger}
-	StartPeriodicWorker(ctx, tracker, "garbage_collector", w.RunInterval, []WorkerTask{
+	StartPeriodicWorker(ctx, "garbage_collector", w.RunInterval, []WorkerTask{
 		{Name: "stale_uploads", Fn: w.cleanupStaleUploads},
 		{Name: "expired_challenges", Fn: w.cleanupExpiredChallenges},
 	})

@@ -5,7 +5,9 @@ import (
 	"path"
 	"strings"
 
+	"api/internal/activity"
 	"api/internal/models"
+	"api/internal/rbac"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -241,6 +243,21 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 			zap.Error(err),
 		)
 		return err
+	}
+
+	action := models.Activity{
+		Message: activity.FileDeleted,
+		Object:  file.ToActivity(),
+		Filter: activity.NewLogFilter(map[string]string{
+			"action":      rbac.ActionDelete.String(),
+			"bucket_id":   e.Payload.BucketID.String(),
+			"file_id":     file.ID.String(),
+			"object_type": rbac.ResourceFile.String(),
+		}),
+	}
+
+	if err := params.ActivityLogger.Send(action); err != nil {
+		zap.L().Error("Failed to log trash expiration activity", zap.Error(err))
 	}
 
 	zap.L().Info("Successfully processed trash expiration",

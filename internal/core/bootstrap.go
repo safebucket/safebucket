@@ -80,7 +80,6 @@ func StartWorkers(
 				Publisher:          eventRouter,
 				TrashRetentionDays: config.App.TrashRetentionDays,
 				RunInterval:        time.Duration(config.App.TrashRetentionDays) * 24 * time.Hour / 7,
-				ActivityLogger:     activityLogger,
 			}
 			worker.Start(ctx)
 		})
@@ -88,9 +87,8 @@ func StartWorkers(
 
 	startWorker(profile.Workers.GarbageCollector, "garbage_collector", cache, appIdentity, func(ctx context.Context) {
 		worker := &workers.GarbageCollectorWorker{
-			DB:             db,
-			RunInterval:    5 * time.Minute,
-			ActivityLogger: activityLogger,
+			DB:          db,
+			RunInterval: 30 * time.Minute,
 		}
 		worker.Start(ctx)
 	})
