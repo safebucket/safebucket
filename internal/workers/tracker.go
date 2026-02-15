@@ -29,7 +29,7 @@ func executeTasks(ctx context.Context, tasks []WorkerTask) []int {
 	return counts
 }
 
-// StartPeriodicWorker runs an immediate cleanup cycle, then repeats on interval
+// StartPeriodicWorker runs an immediate cleanup cycle, then repeats on interval.
 func StartPeriodicWorker(ctx context.Context, workerName string, interval time.Duration, tasks []WorkerTask) {
 	zap.L().Info("Starting worker",
 		zap.String("worker", workerName),

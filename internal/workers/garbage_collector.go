@@ -34,7 +34,7 @@ func (w *GarbageCollectorWorker) Start(ctx context.Context) {
 }
 
 // cleanupStaleUploads deletes files stuck in "uploading" status beyond the threshold.
-func (w *GarbageCollectorWorker) cleanupStaleUploads(ctx context.Context) (int, error) {
+func (w *GarbageCollectorWorker) cleanupStaleUploads(_ context.Context) (int, error) {
 	threshold := time.Now().Add(-GCStaleUploadThreshold)
 
 	result := w.DB.Unscoped().
@@ -53,8 +53,8 @@ func (w *GarbageCollectorWorker) cleanupStaleUploads(ctx context.Context) (int, 
 	return int(result.RowsAffected), nil
 }
 
-// cleanupExpiredChallenges hard-deletes challenges that have expired
-func (w *GarbageCollectorWorker) cleanupExpiredChallenges(ctx context.Context) (int, error) {
+// cleanupExpiredChallenges hard-deletes challenges that have expired.
+func (w *GarbageCollectorWorker) cleanupExpiredChallenges(_ context.Context) (int, error) {
 	now := time.Now()
 
 	result := w.DB.Unscoped().
@@ -74,7 +74,7 @@ func (w *GarbageCollectorWorker) cleanupExpiredChallenges(ctx context.Context) (
 }
 
 // cleanupExpiredFiles hard-deletes files that have passed their expiration date.
-func (w *GarbageCollectorWorker) cleanupExpiredFiles(ctx context.Context) (int, error) {
+func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, error) {
 	var files []models.File
 
 	if err := w.DB.Unscoped().

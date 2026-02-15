@@ -256,8 +256,8 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		}),
 	}
 
-	if err := params.ActivityLogger.Send(action); err != nil {
-		zap.L().Error("Failed to log trash expiration activity", zap.Error(err))
+	if sendErr := params.ActivityLogger.Send(action); sendErr != nil {
+		zap.L().Error("Failed to log trash expiration activity", zap.Error(sendErr))
 	}
 
 	zap.L().Info("Successfully processed trash expiration",
