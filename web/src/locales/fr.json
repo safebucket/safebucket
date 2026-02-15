@@ -25,8 +25,6 @@
   },
   "toast": {
     "download_started": "Téléchargement démarré pour le fichier {{filename}}",
-    "upload_started": "Téléversement démarré pour {{filename}}",
-    "uploading": "Téléversement",
     "user_already_member": "Cet utilisateur est déjà membre de ce bucket",
     "invalid_confirmation": "Confirmation invalide",
     "confirm_deletion_prompt": "Veuillez saisir \"{{text}}\" pour confirmer la suppression",
