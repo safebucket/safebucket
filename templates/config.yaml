@@ -59,7 +59,7 @@ storage:
     secret_key: rustfsadmin
 
 events:
-  type: local
+  type: memory
   queues:
     notifications:
       name: safebucket-notifications

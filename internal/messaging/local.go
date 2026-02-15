@@ -9,47 +9,47 @@ import (
 	"go.uber.org/zap"
 )
 
-type LocalPublisher struct {
+type MemoryPublisher struct {
 	topicName string
 	channel   *gochannel.GoChannel
 }
 
-type LocalSubscriber struct {
+type MemorySubscriber struct {
 	topicName string
 	channel   *gochannel.GoChannel
 }
 
-func NewLocalChannel() *gochannel.GoChannel {
+func NewMemoryChannel() *gochannel.GoChannel {
 	return gochannel.NewGoChannel(gochannel.Config{
 		Persistent: true,
 	}, watermill.NopLogger{})
 }
 
-func NewLocalPublisher(channel *gochannel.GoChannel, topicName string) IPublisher {
-	return &LocalPublisher{topicName: topicName, channel: channel}
+func NewMemoryPublisher(channel *gochannel.GoChannel, topicName string) IPublisher {
+	return &MemoryPublisher{topicName: topicName, channel: channel}
 }
 
-func NewLocalSubscriber(channel *gochannel.GoChannel, topicName string) ISubscriber {
-	return &LocalSubscriber{topicName: topicName, channel: channel}
+func NewMemorySubscriber(channel *gochannel.GoChannel, topicName string) ISubscriber {
+	return &MemorySubscriber{topicName: topicName, channel: channel}
 }
 
-func (p *LocalPublisher) Publish(messages ...*message.Message) error {
+func (p *MemoryPublisher) Publish(messages ...*message.Message) error {
 	return p.channel.Publish(p.topicName, messages...)
 }
 
-func (p *LocalPublisher) Close() error {
+func (p *MemoryPublisher) Close() error {
 	return p.channel.Close()
 }
 
-func (s *LocalSubscriber) Subscribe() <-chan *message.Message {
+func (s *MemorySubscriber) Subscribe() <-chan *message.Message {
 	sub, err := s.channel.Subscribe(context.Background(), s.topicName)
 	if err != nil {
-		zap.L().Error("Failed to subscribe to local topic", zap.String("topic", s.topicName), zap.Error(err))
+		zap.L().Error("Failed to subscribe to memory topic", zap.String("topic", s.topicName), zap.Error(err))
 		return nil
 	}
 	return sub
 }
 
-func (s *LocalSubscriber) Close() error {
+func (s *MemorySubscriber) Close() error {
 	return s.channel.Close()
 }

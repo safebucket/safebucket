@@ -60,7 +60,7 @@ const (
 	ProviderAWS       = "aws"
 	ProviderRustFS    = "rustfs"
 	ProviderS3        = "s3"
-	ProviderLocal     = "local"
+	ProviderMemory    = "memory"
 )
 
 const BulkActionsLimit = 1000

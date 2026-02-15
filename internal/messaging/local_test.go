@@ -21,10 +21,10 @@ func receiveOne(t *testing.T, ch <-chan *message.Message) *message.Message {
 	}
 }
 
-func TestNewLocalPubSub(t *testing.T) {
-	ch := NewLocalChannel()
-	pub := NewLocalPublisher(ch, "test-topic")
-	sub := NewLocalSubscriber(ch, "test-topic")
+func TestNewMemoryPubSub(t *testing.T) {
+	ch := NewMemoryChannel()
+	pub := NewMemoryPublisher(ch, "test-topic")
+	sub := NewMemorySubscriber(ch, "test-topic")
 	if pub == nil {
 		t.Fatal("expected non-nil publisher")
 	}
@@ -33,10 +33,10 @@ func TestNewLocalPubSub(t *testing.T) {
 	}
 }
 
-func TestLocalPublishAndSubscribe(t *testing.T) {
-	ch := NewLocalChannel()
-	pub := NewLocalPublisher(ch, "test-topic")
-	sub := NewLocalSubscriber(ch, "test-topic")
+func TestMemoryPublishAndSubscribe(t *testing.T) {
+	ch := NewMemoryChannel()
+	pub := NewMemoryPublisher(ch, "test-topic")
+	sub := NewMemorySubscriber(ch, "test-topic")
 	defer pub.Close()
 
 	msgCh := sub.Subscribe()
@@ -58,10 +58,10 @@ func TestLocalPublishAndSubscribe(t *testing.T) {
 	msg.Ack()
 }
 
-func TestLocalPublishMultipleMessages(t *testing.T) {
-	ch := NewLocalChannel()
-	pub := NewLocalPublisher(ch, "test-topic")
-	sub := NewLocalSubscriber(ch, "test-topic")
+func TestMemoryPublishMultipleMessages(t *testing.T) {
+	ch := NewMemoryChannel()
+	pub := NewMemoryPublisher(ch, "test-topic")
+	sub := NewMemorySubscriber(ch, "test-topic")
 	defer pub.Close()
 
 	msgCh := sub.Subscribe()
@@ -93,10 +93,10 @@ func TestLocalPublishMultipleMessages(t *testing.T) {
 	}
 }
 
-func TestLocalMessageAck(t *testing.T) {
-	ch := NewLocalChannel()
-	pub := NewLocalPublisher(ch, "test-topic")
-	sub := NewLocalSubscriber(ch, "test-topic")
+func TestMemoryMessageAck(t *testing.T) {
+	ch := NewMemoryChannel()
+	pub := NewMemoryPublisher(ch, "test-topic")
+	sub := NewMemorySubscriber(ch, "test-topic")
 	defer pub.Close()
 
 	msgCh := sub.Subscribe()
@@ -122,9 +122,9 @@ func TestLocalMessageAck(t *testing.T) {
 	msg2.Ack()
 }
 
-func TestLocalPublisherClose(t *testing.T) {
-	ch := NewLocalChannel()
-	pub := NewLocalPublisher(ch, "test-topic")
+func TestMemoryPublisherClose(t *testing.T) {
+	ch := NewMemoryChannel()
+	pub := NewMemoryPublisher(ch, "test-topic")
 
 	err := pub.Close()
 	if err != nil {
@@ -137,9 +137,9 @@ func TestLocalPublisherClose(t *testing.T) {
 	}
 }
 
-func TestLocalSubscriberClose(t *testing.T) {
-	ch := NewLocalChannel()
-	sub := NewLocalSubscriber(ch, "test-topic")
+func TestMemorySubscriberClose(t *testing.T) {
+	ch := NewMemoryChannel()
+	sub := NewMemorySubscriber(ch, "test-topic")
 
 	err := sub.Close()
 	if err != nil {
@@ -147,14 +147,14 @@ func TestLocalSubscriberClose(t *testing.T) {
 	}
 }
 
-func TestLocalIndependentTopics(t *testing.T) {
-	ch1 := NewLocalChannel()
-	pub1 := NewLocalPublisher(ch1, "topic-a")
-	sub1 := NewLocalSubscriber(ch1, "topic-a")
+func TestMemoryIndependentTopics(t *testing.T) {
+	ch1 := NewMemoryChannel()
+	pub1 := NewMemoryPublisher(ch1, "topic-a")
+	sub1 := NewMemorySubscriber(ch1, "topic-a")
 	defer pub1.Close()
-	ch2 := NewLocalChannel()
-	pub2 := NewLocalPublisher(ch2, "topic-b")
-	sub2 := NewLocalSubscriber(ch2, "topic-b")
+	ch2 := NewMemoryChannel()
+	pub2 := NewMemoryPublisher(ch2, "topic-b")
+	sub2 := NewMemorySubscriber(ch2, "topic-b")
 	defer pub2.Close()
 
 	msgCh1 := sub1.Subscribe()

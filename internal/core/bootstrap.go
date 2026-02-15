@@ -73,7 +73,7 @@ func StartWorkers(
 	go events.HandleEvents(eventParams, notifications)
 	zap.L().Info("Started notifications worker")
 
-	if RequiresUploadConfirmation(config.Storage.Type) {
+	if RequiresUploadConfirmation(config.Storage.Type, config.Events.Type) {
 		startWorker(profile.Workers.TrashCleanup, "trash_cleanup", cache, appIdentity, func(ctx context.Context) {
 			worker := &workers.TrashCleanupWorker{
 				DB:                 db,
@@ -260,7 +260,7 @@ func StartHTTPServer(
 			config.App.StaticFiles.Directory,
 			config.App.APIURL,
 			config.Storage.GetExternalURL(),
-			RequiresUploadConfirmation(config.Storage.Type),
+			RequiresUploadConfirmation(config.Storage.Type, config.Events.Type),
 		)
 		if err != nil {
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))

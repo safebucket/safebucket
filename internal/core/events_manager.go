@@ -50,12 +50,12 @@ func (em *EventsManager) initializePublishers() {
 			}, topicConfig.Name)
 		case configuration.ProviderAWS:
 			publisher = messaging.NewAWSPublisher(topicConfig.Name)
-		case configuration.ProviderLocal:
-			// Local provider requires the same GoChannel instance to be shared between publisher and subscriber,
-			// so both are created here. initializeSubscribers() skips the local provider accordingly.
-			ch := messaging.NewLocalChannel()
-			publisher = messaging.NewLocalPublisher(ch, topicConfig.Name)
-			em.subscribers[topicKey] = messaging.NewLocalSubscriber(ch, topicConfig.Name)
+		case configuration.ProviderMemory:
+			// Memory provider requires the same GoChannel instance to be shared between publisher and subscriber,
+			// so both are created here. initializeSubscribers() skips the memory provider accordingly.
+			ch := messaging.NewMemoryChannel()
+			publisher = messaging.NewMemoryPublisher(ch, topicConfig.Name)
+			em.subscribers[topicKey] = messaging.NewMemorySubscriber(ch, topicConfig.Name)
 		}
 
 		em.publishers[topicKey] = publisher
@@ -84,8 +84,8 @@ func (em *EventsManager) initializeSubscribers() {
 			}, topicConfig.Name)
 		case configuration.ProviderAWS:
 			subscriber = messaging.NewAWSSubscriber(topicConfig.Name)
-		case configuration.ProviderLocal:
-			// Local subscribers are already created in initializePublishers() (shared GoChannel).
+		case configuration.ProviderMemory:
+			// Memory subscribers are already created in initializePublishers() (shared GoChannel).
 			continue
 		}
 
