@@ -1,9 +1,6 @@
-import i18n from "i18next";
 import type { ICreateFile } from "@/components/upload/helpers/types";
 import type { IFolder } from "@/types/folder";
 import { api } from "@/lib/api";
-
-import { toast } from "@/components/ui/hooks/use-toast";
 
 export const api_createFile = (
   name: string,
@@ -67,12 +64,6 @@ export const uploadToStorage = async (
     formData.append("file", file);
 
     xhr.send(formData);
-
-    toast({
-      variant: "success",
-      title: i18n.t("toast.uploading"),
-      description: i18n.t("toast.upload_started", { filename: file.name }),
-    });
   });
 };
 

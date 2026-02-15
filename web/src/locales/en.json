@@ -25,8 +25,6 @@
   },
   "toast": {
     "download_started": "Download started for file {{filename}}",
-    "upload_started": "Upload started for {{filename}}",
-    "uploading": "Uploading",
     "user_already_member": "User is already a member of this bucket",
     "invalid_confirmation": "Invalid confirmation",
     "confirm_deletion_prompt": "Please type \"{{text}}\" to confirm deletion",
@@ -390,6 +388,7 @@
     "completed": "completed",
     "failed": "failed",
     "active": "active",
+    "clear_all": "Clear all",
     "status": {
       "completed": "Completed",
       "failed": "Failed",

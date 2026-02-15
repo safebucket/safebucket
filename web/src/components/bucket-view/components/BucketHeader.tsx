@@ -15,7 +15,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
-import { UploadPopover } from "@/components/upload/components/UploadPopover";
 import { useBucketPermissions } from "@/hooks/usePermissions";
 
 interface IBucketHeaderProps {
@@ -39,8 +38,6 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
         <h1 className="text-2xl font-bold">{bucket.name}</h1>
         <div className="flex items-center gap-4">
           <BucketViewOptions />
-
-          {isContributor && <UploadPopover />}
 
           {isContributor ? (
             <>

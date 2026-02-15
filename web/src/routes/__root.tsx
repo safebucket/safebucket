@@ -11,6 +11,7 @@ import type { Session } from "@/components/auth-view/types/session";
 import { AppSidebar } from "@/components/app-sidebar/AppSidebar.tsx";
 import { AppSidebarInset } from "@/components/app-sidebar/components/AppSidebarInset.tsx";
 import { Toaster } from "@/components/ui/toaster.tsx";
+import { UploadPanel } from "@/components/upload/components/UploadPanel";
 import { EnvironmentType } from "@/types/app.ts";
 import { useConfig } from "@/hooks/useConfig.ts";
 import { configQueryOptions } from "@/queries/config.ts";
@@ -39,6 +40,7 @@ function RootComponent() {
       <AppSidebarInset>
         <Outlet />
       </AppSidebarInset>
+      <UploadPanel />
       <Toaster />
 
       {config.environment == EnvironmentType.development && (

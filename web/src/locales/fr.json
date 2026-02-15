@@ -390,6 +390,7 @@
     "completed": "terminé(s)",
     "failed": "échoué(s)",
     "active": "actif(s)",
+    "clear_all": "Tout effacer",
     "status": {
       "completed": "Terminé",
       "failed": "Échec",

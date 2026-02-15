@@ -4,7 +4,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IUpload } from "@/components/upload/helpers/types";
 import { generateRandomString } from "@/lib/utils";
 
-import { successToast } from "@/components/ui/hooks/use-toast";
 import {
   api_confirmUpload,
   api_createFile,
@@ -68,19 +67,14 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
         abortControllersRef.current.delete(uploadId);
       }
     },
-    onSuccess: ({ uploadId, fileName, bucketId }) => {
+    onSuccess: ({ uploadId, bucketId }) => {
       setUploads((prev) =>
         prev.map((u) => (u.id === uploadId ? { ...u, status: "success" } : u)),
       );
 
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-        successToast(`Upload completed for ${fileName}`);
       }, 1000);
-
-      setTimeout(() => {
-        setUploads((prev) => prev.filter((u) => u.id !== uploadId));
-      }, 3000);
     },
     onError: (error: Error, { uploadId }) => {
       setUploads((prev) =>
@@ -135,6 +129,10 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     setUploads((prev) => prev.filter((u) => u.id !== uploadId));
   }, []);
 
+  const clearUploads = useCallback(() => {
+    setUploads((prev) => prev.filter((u) => u.status === "uploading"));
+  }, []);
+
   const hasActiveUploads = uploads.some(
     (upload) => upload.status === "uploading",
   );
@@ -156,7 +154,13 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <UploadContext.Provider
-      value={{ uploads, startUpload, cancelUpload, hasActiveUploads }}
+      value={{
+        uploads,
+        startUpload,
+        cancelUpload,
+        clearUploads,
+        hasActiveUploads,
+      }}
     >
       {children}
     </UploadContext.Provider>

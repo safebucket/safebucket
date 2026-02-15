@@ -36,6 +36,7 @@ export interface IUploadContext {
     expiresAt: string | null,
   ) => void;
   cancelUpload: (uploadId: string) => void;
+  clearUploads: () => void;
   hasActiveUploads: boolean;
 }
 
