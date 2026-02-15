@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IUpload } from "@/components/upload/helpers/types";
 import { generateRandomString } from "@/lib/utils";
-
 import {
   api_confirmUpload,
   api_createFile,

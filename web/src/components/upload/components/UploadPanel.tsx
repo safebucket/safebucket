@@ -55,7 +55,7 @@ export const UploadPanel: FC = () => {
                     {completedCount} {t("upload.completed")}
                   </span>
                 )}
-                {completedCount > 0 && failedCount > 0 && " \u2022 "}
+                {completedCount > 0 && failedCount > 0 && " · "}
                 {failedCount > 0 && (
                   <span className="text-red-600">
                     {failedCount} {t("upload.failed")}
