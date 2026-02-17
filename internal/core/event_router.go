@@ -55,7 +55,9 @@ func (er *EventRouter) getTopicKeyForEvent(eventType string) string {
 		events.PasswordResetChallengeName,
 		events.PasswordResetSuccessName,
 		events.UserWelcomeName,
-		events.MFAResetChallengeName:
+		events.MFAResetChallengeName,
+		events.FileActivityNotificationName,
+		events.FileNotificationEmailName:
 		return configuration.EventsNotifications
 	case events.BucketPurgeName,
 		events.FolderTrashName,

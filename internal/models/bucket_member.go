@@ -12,12 +12,14 @@ type UpdateMembersBody struct {
 }
 
 type BucketMember struct {
-	UserID    uuid.UUID `json:"user_id,omitempty"`
-	Email     string    `json:"email"                validate:"required"`
-	FirstName string    `json:"first_name,omitempty"`
-	LastName  string    `json:"last_name,omitempty"`
-	Group     Group     `json:"group"                validate:"required,oneof=owner contributor viewer"`
-	Status    string    `json:"status"               validate:"required,oneof=active invited"`
+	UserID                uuid.UUID `json:"user_id"`
+	Email                 string    `json:"email"                  validate:"required"`
+	FirstName             string    `json:"first_name"`
+	LastName              string    `json:"last_name"`
+	Group                 Group     `json:"group"                  validate:"required,oneof=owner contributor viewer"`
+	Status                string    `json:"status"                 validate:"required,oneof=active invited"`
+	UploadNotifications   bool      `json:"upload_notifications"`
+	DownloadNotifications bool      `json:"download_notifications"`
 }
 
 type BucketMemberToUpdate struct {

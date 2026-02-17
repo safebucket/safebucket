@@ -1,8 +1,17 @@
-import { queryOptions } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { IActivity, IListBucketActivity } from "@/types/activity";
-import type { IBucketMember } from "@/components/bucket-view/helpers/types.ts";
+import type {
+  IBucketMember,
+  INotificationPreferences,
+} from "@/components/bucket-view/helpers/types.ts";
 import type { IBucket } from "@/types/bucket.ts";
 import { api } from "@/lib/api";
+import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import i18n from "@/lib/i18n";
 
 export const bucketsQueryOptions = () =>
   queryOptions({
@@ -39,6 +48,22 @@ export const bucketMembersQueryOptions = (bucketId: string) =>
       api.get<{ data: Array<IBucketMember> }>(`/buckets/${bucketId}/members`),
     select: (response) => response.data,
   });
+
+export const useUpdateNotificationPreferencesMutation = (bucketId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: INotificationPreferences) =>
+      api.patch(`/buckets/${bucketId}/members/notifications`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["buckets", bucketId, "members"],
+      });
+      successToast(i18n.t("bucket.notifications.updated"));
+    },
+    onError: (error: Error) => errorToast(error),
+  });
+};
 
 export const bucketTrashedFilesQueryOptions = (bucketId: string) =>
   queryOptions({

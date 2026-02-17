@@ -99,6 +99,7 @@ func StartWorkers(
 			db,
 			activityLogger,
 			store,
+			eventRouter,
 			config.App.TrashRetentionDays,
 			bucketEvents,
 		)

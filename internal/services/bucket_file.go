@@ -8,8 +8,10 @@ import (
 
 	"api/internal/activity"
 	apierrors "api/internal/errors"
+	"api/internal/events"
 	"api/internal/handlers"
 	h "api/internal/helpers"
+	"api/internal/messaging"
 	m "api/internal/middlewares"
 	"api/internal/models"
 	"api/internal/rbac"
@@ -26,6 +28,7 @@ import (
 type BucketFileService struct {
 	DB                 *gorm.DB
 	Storage            storage.IStorage
+	Publisher          messaging.IPublisher
 	ActivityLogger     activity.IActivityLogger
 	TrashRetentionDays int
 }
@@ -223,6 +226,14 @@ func (s BucketFileService) HandleUploadedStatus(
 			logger.Warn("Failed to log upload activity", zap.Error(err))
 		}
 
+		var bucket models.Bucket
+		if dbErr := s.DB.Where("id = ?", file.BucketID).First(&bucket).Error; dbErr == nil {
+			evt := events.NewFileActivityNotification(
+				s.Publisher, events.FileActivityUpload, file.BucketID, bucket.Name, file.Name, user.UserID, user.Email,
+			)
+			evt.Trigger()
+		}
+
 		return nil
 	})
 }
@@ -286,6 +297,14 @@ func (s BucketFileService) DownloadFile(
 	err = s.ActivityLogger.Send(action)
 	if err != nil {
 		return models.FileTransferResponse{}, err
+	}
+
+	var bucket models.Bucket
+	if dbErr := s.DB.Where("id = ?", bucketID).First(&bucket).Error; dbErr == nil {
+		evt := events.NewFileActivityNotification(
+			s.Publisher, events.FileActivityDownload, bucketID, bucket.Name, file.Name, user.UserID, user.Email,
+		)
+		evt.Trigger()
 	}
 
 	return models.FileTransferResponse{

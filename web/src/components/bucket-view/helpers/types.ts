@@ -26,11 +26,16 @@ export type IDownloadFileResponse = {
   url: string;
 };
 
-export interface IBucketMember {
-  user_id?: string;
+export interface INotificationPreferences {
+  upload_notifications: boolean;
+  download_notifications: boolean;
+}
+
+export type IBucketMember = INotificationPreferences & {
+  user_id: string;
   email: string;
-  first_name?: string;
-  last_name?: string;
+  first_name: string | null;
+  last_name: string | null;
   group: string;
   status: "active" | "invited";
-}
+};
