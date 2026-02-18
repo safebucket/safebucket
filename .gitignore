@@ -24,6 +24,7 @@ go.work.sum
 # env file
 .env
 !/deployments/local/.env
+!/deployments/dev-lite/.env
 
 .idea/
 .claude/
@@ -66,3 +67,5 @@ data/
 next-env.d.ts
 
 web/config.json
+
+docs/
