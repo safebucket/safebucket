@@ -2,10 +2,13 @@ package workers
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"time"
 
+	"api/internal/activity"
 	"api/internal/models"
+	"api/internal/rbac"
 	"api/internal/storage"
 
 	"github.com/google/uuid"
@@ -20,9 +23,10 @@ const (
 
 // GarbageCollectorWorker periodically cleans up orphaned database records.
 type GarbageCollectorWorker struct {
-	DB          *gorm.DB
-	Storage     storage.IStorage
-	RunInterval time.Duration
+	DB             *gorm.DB
+	Storage        storage.IStorage
+	ActivityLogger activity.IActivityLogger
+	RunInterval    time.Duration
 }
 
 func (w *GarbageCollectorWorker) Start(ctx context.Context) {
@@ -78,7 +82,7 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 	var files []models.File
 
 	if err := w.DB.Unscoped().
-		Where("expires_at IS NOT NULL AND expires_at < ? AND status = ?", time.Now(), models.FileStatusUploaded).
+		Where("expires_at IS NOT NULL AND expires_at < ?", time.Now()).
 		Limit(GCBatchSize).
 		Find(&files).Error; err != nil {
 		return 0, err
@@ -96,7 +100,7 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 	}
 
 	if err := w.Storage.RemoveObjects(storagePaths); err != nil {
-		zap.L().Warn("Failed to delete expired files from storage", zap.Error(err))
+		return 0, fmt.Errorf("failed to remove objects from storage: %w", err)
 	}
 
 	result := w.DB.Unscoped().Delete(&models.File{}, fileIDs)
@@ -106,6 +110,22 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 
 	if result.RowsAffected > 0 {
 		zap.L().Debug("Deleted expired files", zap.Int64("count", result.RowsAffected))
+	}
+
+	for _, file := range files {
+		action := models.Activity{
+			Message: activity.FileExpired,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionDelete.String(),
+				"bucket_id":   file.BucketID.String(),
+				"file_id":     file.ID.String(),
+				"object_type": rbac.ResourceFile.String(),
+			}),
+		}
+		if err := w.ActivityLogger.Send(action); err != nil {
+			zap.L().Error("Failed to log file expiration activity", zap.Error(err))
+		}
 	}
 
 	return int(result.RowsAffected), nil

@@ -87,9 +87,10 @@ func StartWorkers(
 
 	startWorker(profile.Workers.GarbageCollector, "garbage_collector", cache, appIdentity, func(ctx context.Context) {
 		worker := &workers.GarbageCollectorWorker{
-			DB:          db,
-			Storage:     store,
-			RunInterval: 15 * time.Minute,
+			DB:             db,
+			Storage:        store,
+			ActivityLogger: activityLogger,
+			RunInterval:    15 * time.Minute,
 		}
 		worker.Start(ctx)
 	})

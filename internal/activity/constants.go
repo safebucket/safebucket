@@ -7,6 +7,7 @@ const (
 	FileDownloaded               string = "FILE_DOWNLOADED"
 	FileUpdated                  string = "FILE_UPDATED"
 	FileDeleted                  string = "FILE_DELETED"
+	FileExpired                  string = "FILE_EXPIRED"
 	FileTrashed                  string = "FILE_TRASHED"
 	FileRestored                 string = "FILE_RESTORED"
 	FolderCreated                string = "FOLDER_CREATED"
