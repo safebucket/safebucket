@@ -280,6 +280,10 @@ linters:
       # Default: 40
       statements: 55
 
+    gosec:
+      excludes:
+        - G117 # Flags exported struct fields matching secret patterns — false positive for config/auth models
+
     gochecksumtype:
       # Presence of `default` case in switch statements satisfies exhaustiveness, if all members are not listed.
       # Default: true
