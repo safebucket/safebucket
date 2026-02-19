@@ -51,7 +51,10 @@ func (s *SMTPNotifier) NotifyFromTemplate(
 	templateName string,
 	data interface{},
 ) error {
-	tmpl, err := template.ParseFiles(fmt.Sprintf("./internal/mails/%s.html", templateName))
+	tmpl, err := template.ParseFiles(
+		"./internal/mails/base.html",
+		fmt.Sprintf("./internal/mails/%s.html", templateName),
+	)
 	if err != nil {
 		return err
 	}
