@@ -134,7 +134,7 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 		zap.L().Debug("Deleted expired files", zap.Int64("count", rowsAffected))
 	}
 
-	if err := w.Storage.RemoveObjects(storagePaths); err != nil {
+	if err = w.Storage.RemoveObjects(storagePaths); err != nil {
 		return int(rowsAffected), fmt.Errorf("failed to remove objects from storage: %w", err)
 	}
 
