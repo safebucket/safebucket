@@ -71,7 +71,7 @@ events:
     host: localhost
     port: 4222
   # For local development without NATS:
-  # type: gochannels
+  # type: memory
 
 notifier:
   type: smtp
