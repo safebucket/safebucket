@@ -454,6 +454,8 @@ linters:
         linters: [ revive, staticcheck ]
       - text: 'var-naming: avoid package names that conflict with Go standard library package names'
         linters: [ revive ]
+      - text: 'G117'
+        linters: [ gosec ]
       - path: '_test\.go'
         linters:
           - bodyclose
