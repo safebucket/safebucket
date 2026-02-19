@@ -1,0 +1,161 @@
+name: safebucket-local-lite
+
+services:
+  safebucket:
+    container_name: safebucket
+    image: safebucket/safebucket:latest
+    environment:
+      - APP__LOG_LEVEL=${APP__LOG_LEVEL}
+      - APP__PROFILE=${APP__PROFILE}
+      - APP__API_URL=${APP__API_URL}
+      - APP__WEB_URL=${APP__WEB_URL}
+      - APP__PORT=${APP__PORT}
+      - APP__TRUSTED_PROXIES=${APP__TRUSTED_PROXIES}
+      - APP__STATIC_FILES__ENABLED=${APP__STATIC_FILES__ENABLED}
+      - APP__STATIC_FILES__DIRECTORY=${APP__STATIC_FILES__DIRECTORY}
+      - APP__JWT_SECRET=${APP__JWT_SECRET}
+      - APP__ADMIN_EMAIL=${APP__ADMIN_EMAIL}
+      - APP__ADMIN_PASSWORD=${APP__ADMIN_PASSWORD}
+      - APP__ALLOWED_ORIGINS=${APP__ALLOWED_ORIGINS}
+      - APP__TRASH_RETENTION_DAYS=${APP__TRASH_RETENTION_DAYS}
+      - APP__MFA_ENCRYPTION_KEY=${APP__MFA_ENCRYPTION_KEY}
+      - APP__MFA_REQUIRED=${APP__MFA_REQUIRED}
+      - APP__MAX_UPLOAD_SIZE=${APP__MAX_UPLOAD_SIZE}
+      - DATABASE__HOST=database
+      - DATABASE__PORT=5432
+      - DATABASE__USER=${DATABASE__USER}
+      - DATABASE__PASSWORD=${DATABASE__PASSWORD}
+      - DATABASE__NAME=${DATABASE__NAME}
+      - DATABASE__SSLMODE=disable
+      - CACHE__TYPE=${CACHE__TYPE}
+      - CACHE__VALKEY__HOSTS=${CACHE__VALKEY__HOSTS}
+      - CACHE__VALKEY__PASSWORD=${CACHE__VALKEY__PASSWORD}
+      - STORAGE__TYPE=${STORAGE__TYPE}
+      - STORAGE__RUSTFS__BUCKET_NAME=${STORAGE__RUSTFS__BUCKET_NAME}
+      - STORAGE__RUSTFS__ENDPOINT=${STORAGE__RUSTFS__ENDPOINT}
+      - STORAGE__RUSTFS__EXTERNAL_ENDPOINT=${STORAGE__RUSTFS__EXTERNAL_ENDPOINT}
+      - STORAGE__RUSTFS__ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
+      - STORAGE__RUSTFS__SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
+      - EVENTS__TYPE=${EVENTS__TYPE}
+      - EVENTS__QUEUES__NOTIFICATIONS__NAME=${EVENTS__QUEUES__NOTIFICATIONS__NAME}
+      - EVENTS__QUEUES__BUCKET_EVENTS__NAME=${EVENTS__QUEUES__BUCKET_EVENTS__NAME}
+      - EVENTS__QUEUES__OBJECT_DELETION__NAME=${EVENTS__QUEUES__OBJECT_DELETION__NAME}
+      - NOTIFIER__TYPE=${NOTIFIER__TYPE}
+      - NOTIFIER__SMTP__HOST=${NOTIFIER__SMTP__HOST}
+      - NOTIFIER__SMTP__PORT=${NOTIFIER__SMTP__PORT}
+      - NOTIFIER__SMTP__USERNAME=${NOTIFIER__SMTP__USERNAME}
+      - NOTIFIER__SMTP__PASSWORD=${NOTIFIER__SMTP__PASSWORD}
+      - NOTIFIER__SMTP__SENDER=${NOTIFIER__SMTP__SENDER}
+      - NOTIFIER__SMTP__ENABLE_TLS=${NOTIFIER__SMTP__ENABLE_TLS}
+      - NOTIFIER__SMTP__SKIP_VERIFY_TLS=${NOTIFIER__SMTP__SKIP_VERIFY_TLS}
+      - ACTIVITY__TYPE=${ACTIVITY__TYPE}
+      - ACTIVITY__FILESYSTEM__DIRECTORY=${ACTIVITY__FILESYSTEM__DIRECTORY}
+      - AUTH__PROVIDERS__KEYS=${AUTH__PROVIDERS__KEYS}
+      - AUTH__PROVIDERS__LOCAL__NAME=${AUTH__PROVIDERS__LOCAL__NAME}
+      - AUTH__PROVIDERS__LOCAL__TYPE=${AUTH__PROVIDERS__LOCAL__TYPE}
+
+    ports:
+      - "8080:8080"
+    restart: on-failure:3
+    depends_on:
+      bucket:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+
+  bucket:
+    container_name: bucket
+    image: rustfs/rustfs:1.0.0-alpha.82
+    environment:
+      - RUSTFS_ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - "rustfs_data:/data"
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "curl -f http://localhost:9000/health && curl -f http://localhost:9001/rustfs/console/health" ]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 2s
+    restart: unless-stopped
+
+  bucket-init:
+    container_name: bucket-init
+    image: minio/mc:latest
+    environment:
+      - RUSTFS_ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - |
+        echo "Configuring RustFS buckets..."
+
+        # Wait for RustFS to be ready
+        echo "Waiting for RustFS to be ready..."
+        while ! mc alias set local http://bucket:9000 $${RUSTFS_ACCESS_KEY} $${RUSTFS_SECRET_KEY} 2>/dev/null; do
+          echo "RustFS not ready yet, waiting..."
+          sleep 2
+        done
+
+        echo "RustFS is ready. Creating required buckets..."
+        mc mb local/safebucket --ignore-existing
+        echo "Buckets created successfully."
+    depends_on:
+      bucket:
+        condition: service_healthy
+    restart: "no"
+
+  database:
+    container_name: database
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    volumes:
+      - "postgresql_data:/var/lib/postgresql"
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ${DATABASE__USER}
+      POSTGRES_PASSWORD: ${DATABASE__PASSWORD}
+      POSTGRES_DB: ${DATABASE__NAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "psql -U ${DATABASE__USER} -d ${DATABASE__NAME} -c 'SELECT 1' || exit 1" ]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  valkey:
+    container_name: valkey
+    image: valkey/valkey:9
+    command: [ "valkey-server", "--requirepass", "${CACHE__VALKEY__PASSWORD}" ]
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    shm_size: 128mb
+    volumes:
+      - "valkey_data:/data"
+
+  mailpit:
+    image: axllent/mailpit:v1.29
+    container_name: mailpit
+    restart: unless-stopped
+    volumes:
+      - "mail_data:/data"
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ALLOW_INSECURE: true
+      MP_SMTP_AUTH: root:root
+
+volumes:
+  rustfs_data:
+  postgresql_data:
+  mail_data:
+  valkey_data:

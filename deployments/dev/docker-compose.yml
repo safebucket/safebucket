@@ -12,8 +12,6 @@ services:
       - RUSTFS_NOTIFY_MQTT_TOPIC_PRIMARY=${RUSTFS_NOTIFY_MQTT_TOPIC_PRIMARY}
       - RUSTFS_NOTIFY_MQTT_QOS_PRIMARY=${RUSTFS_NOTIFY_MQTT_QOS_PRIMARY}
       - RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY=${RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY}
-    depends_on:
-      - nats
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -26,6 +24,8 @@ services:
       retries: 10
       start_period: 2s
     restart: unless-stopped
+    depends_on:
+      - nats
 
   bucket-events-config:
     container_name: bucket-events-config

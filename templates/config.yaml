@@ -67,17 +67,11 @@ events:
       name: safebucket-object-deletion
     bucket_events:
       name: safebucket-bucket-events
-  # type: jetstream
-  # queues:
-  #   notifications:
-  #     name: safebucket-notifications
-  #   bucket_events:
-  #     name: safebucket-bucket-events
-  #   object_deletion:
-  #     name: safebucket-object-deletion
-  # jetstream:
-  #   host: localhost
-  #   port: 4222
+  jetstream:
+    host: localhost
+    port: 4222
+  # For local development without NATS:
+  # type: gochannels
 
 notifier:
   type: smtp
