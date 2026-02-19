@@ -72,6 +72,22 @@ updates:
       minor-and-patch:
         update-types: ["minor", "patch"]
 
+  # Docker-compose stack (local-lite)
+  - package-ecosystem: "docker-compose"
+    directory: "/deployments/local-lite"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    target-branch: "main"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "[docker-compose:local-lite]"
+      include: "scope"
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

@@ -1,4 +1,4 @@
-name: safebucket-lite
+name: safebucket-local-lite
 
 services:
   bucket:
