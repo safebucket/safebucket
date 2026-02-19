@@ -99,34 +99,44 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 		fileIDs[i] = file.ID
 	}
 
+	var rowsAffected int64
+
+	err := w.DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Unscoped().Delete(&models.File{}, fileIDs)
+		if result.Error != nil {
+			return result.Error
+		}
+		rowsAffected = result.RowsAffected
+
+		for _, file := range files {
+			action := models.Activity{
+				Message: activity.FileExpired,
+				Object:  file.ToActivity(),
+				Filter: activity.NewLogFilter(map[string]string{
+					"action":      rbac.ActionDelete.String(),
+					"bucket_id":   file.BucketID.String(),
+					"file_id":     file.ID.String(),
+					"object_type": rbac.ResourceFile.String(),
+				}),
+			}
+			if err := w.ActivityLogger.Send(action); err != nil {
+				zap.L().Error("Failed to log file expiration activity", zap.Error(err))
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	if rowsAffected > 0 {
+		zap.L().Debug("Deleted expired files", zap.Int64("count", rowsAffected))
+	}
+
 	if err := w.Storage.RemoveObjects(storagePaths); err != nil {
-		return 0, fmt.Errorf("failed to remove objects from storage: %w", err)
+		return int(rowsAffected), fmt.Errorf("failed to remove objects from storage: %w", err)
 	}
 
-	result := w.DB.Unscoped().Delete(&models.File{}, fileIDs)
-	if result.Error != nil {
-		return 0, result.Error
-	}
-
-	if result.RowsAffected > 0 {
-		zap.L().Debug("Deleted expired files", zap.Int64("count", result.RowsAffected))
-	}
-
-	for _, file := range files {
-		action := models.Activity{
-			Message: activity.FileExpired,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionDelete.String(),
-				"bucket_id":   file.BucketID.String(),
-				"file_id":     file.ID.String(),
-				"object_type": rbac.ResourceFile.String(),
-			}),
-		}
-		if err := w.ActivityLogger.Send(action); err != nil {
-			zap.L().Error("Failed to log file expiration activity", zap.Error(err))
-		}
-	}
-
-	return int(result.RowsAffected), nil
+	return int(rowsAffected), nil
 }

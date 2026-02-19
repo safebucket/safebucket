@@ -1,5 +1,6 @@
 import {
   ArchiveRestore,
+  Clock,
   FileDiff,
   FileDown,
   FileMinus,
@@ -52,6 +53,12 @@ export const messageMap = {
     icon: FileMinus,
     iconColor: "text-red-500",
     iconBg: "bg-red-100",
+  },
+  FILE_EXPIRED: {
+    messageKey: "activity.messages.file_expired",
+    icon: Clock,
+    iconColor: "text-orange-500",
+    iconBg: "bg-orange-100",
   },
   FILE_TRASHED: {
     messageKey: "activity.messages.file_trashed",

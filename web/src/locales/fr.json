@@ -265,6 +265,7 @@
       "file_trashed": "A déplacé un fichier '%%FILE_NAME%%' vers la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "file_restored": "A restauré un fichier '%%FILE_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "file_deleted": "A définitivement supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
+      "file_expired": "Le fichier '%%FILE_NAME%%' a expiré et a été supprimé du bucket '%%BUCKET_NAME%%'.",
       "folder_trashed": "A déplacé un dossier '%%FILE_NAME%%' vers la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "folder_restored": "A restauré un dossier '%%FILE_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "folder_purged": "A définitivement supprimé un dossier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",

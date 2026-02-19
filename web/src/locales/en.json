@@ -265,6 +265,7 @@
       "file_trashed": "Moved a file '%%FILE_NAME%%' to trash on the bucket '%%BUCKET_NAME%%'.",
       "file_restored": "Restored a file '%%FILE_NAME%%' from trash on the bucket '%%BUCKET_NAME%%'.",
       "file_deleted": "Permanently deleted a file '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
+      "file_expired": "File '%%FILE_NAME%%' expired and was removed from bucket '%%BUCKET_NAME%%'.",
       "folder_trashed": "Moved a folder '%%FILE_NAME%%' to trash on the bucket '%%BUCKET_NAME%%'.",
       "folder_restored": "Restored a folder '%%FILE_NAME%%' from trash on the bucket '%%BUCKET_NAME%%'.",
       "folder_purged": "Permanently deleted a folder '%%FILE_NAME%%' from the bucket '%%BUCKET_NAME%%'.",
