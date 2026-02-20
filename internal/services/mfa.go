@@ -271,7 +271,7 @@ func (s MFAService) VerifyDevice(
 		}
 
 		// Check rate limiting - fail closed on cache errors
-		attempts, err := s.Cache.GetMFAAttempts(userID.String())
+		attempts, err := cache.GetMFAAttempts(s.Cache, userID.String())
 		if err != nil {
 			logger.Error("Rate limit check failed - denying request", zap.Error(err))
 			return apierrors.NewAPIError(503, "SERVICE_UNAVAILABLE")
@@ -284,7 +284,7 @@ func (s MFAService) VerifyDevice(
 		}
 
 		if !h.ValidateTOTPCode(secret, body.Code) {
-			if incErr := s.Cache.IncrementMFAAttempts(userID.String()); incErr != nil {
+			if incErr := cache.IncrementMFAAttempts(s.Cache, userID.String()); incErr != nil {
 				logger.Error("Failed to increment MFA attempts", zap.Error(incErr))
 			}
 
@@ -295,13 +295,13 @@ func (s MFAService) VerifyDevice(
 		}
 
 		// Reset attempts on success
-		if err = s.Cache.ResetMFAAttempts(userID.String()); err != nil {
+		if err = cache.ResetMFAAttempts(s.Cache, userID.String()); err != nil {
 			logger.Error("Failed to reset MFA attempts", zap.Error(err))
 		}
 
 		// Check replay protection (per device)
 		// Mark and check for replay protection atomically
-		unused, err := s.Cache.MarkTOTPCodeUsed(deviceID.String(), body.Code)
+		unused, err := cache.MarkTOTPCodeUsed(s.Cache, deviceID.String(), body.Code)
 		if err != nil {
 			logger.Error("Failed to mark TOTP code as used", zap.Error(err))
 			return apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")

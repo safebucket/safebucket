@@ -247,7 +247,7 @@ func (s AuthService) VerifyMFALogin(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "MFA_NOT_ENABLED")
 	}
 
-	attempts, err := s.Cache.GetMFAAttempts(user.ID.String())
+	attempts, err := cache.GetMFAAttempts(s.Cache, user.ID.String())
 	if err != nil {
 		logger.Error("Rate limit check failed - denying request", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(503, "SERVICE_UNAVAILABLE")
@@ -269,7 +269,7 @@ func (s AuthService) VerifyMFALogin(
 	}
 
 	if !h.ValidateTOTPCode(secret, body.Code) {
-		if incErr := s.Cache.IncrementMFAAttempts(user.ID.String()); incErr != nil {
+		if incErr := cache.IncrementMFAAttempts(s.Cache, user.ID.String()); incErr != nil {
 			logger.Error("Failed to increment MFA attempts", zap.Error(incErr))
 		}
 		logger.Warn("MFA verification failed",
@@ -279,7 +279,7 @@ func (s AuthService) VerifyMFALogin(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
 	}
 
-	unused, err := s.Cache.MarkTOTPCodeUsed(deviceID, body.Code)
+	unused, err := cache.MarkTOTPCodeUsed(s.Cache, deviceID, body.Code)
 	if err != nil {
 		logger.Error("Failed to atomically check/mark TOTP code", zap.Error(err))
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
@@ -291,7 +291,7 @@ func (s AuthService) VerifyMFALogin(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
 	}
 
-	if resetErr := s.Cache.ResetMFAAttempts(user.ID.String()); resetErr != nil {
+	if resetErr := cache.ResetMFAAttempts(s.Cache, user.ID.String()); resetErr != nil {
 		logger.Warn("Failed to reset MFA attempts", zap.Error(resetErr))
 	}
 

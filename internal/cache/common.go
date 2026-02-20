@@ -6,10 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"api/internal/configuration"
-
 	"github.com/redis/rueidis"
-	"go.uber.org/zap"
 )
 
 type RueidisCache struct {
@@ -42,87 +39,23 @@ func newRueidisCache(
 	return &RueidisCache{client: client}, nil
 }
 
-func (r *RueidisCache) RegisterPlatform(id string) error {
+func (r *RueidisCache) Get(key string) (string, error) {
 	ctx := context.Background()
-	sortedSetKey := configuration.CacheAppIdentityKey
-	currentTime := float64(time.Now().Unix())
-	err := r.client.Do(ctx, r.client.B().Zadd().Key(sortedSetKey).ScoreMember().ScoreMember(currentTime, id).Build()).
-		Error()
-	return err
-}
-
-func (r *RueidisCache) DeleteInactivePlatform() error {
-	ctx := context.Background()
-	sortedSetKey := configuration.CacheAppIdentityKey
-	currentTime := float64(time.Now().Unix())
-	maxLifetime := float64(configuration.CacheMaxAppIdentityLifetime)
-	err := r.client.Do(ctx, r.client.B().Zremrangebyscore().Key(sortedSetKey).Min("-inf").Max(fmt.Sprintf("%f", currentTime-maxLifetime)).Build()).
-		Error()
-	return err
-}
-
-func (r *RueidisCache) StartIdentityTicker(id string) {
-	err := r.RegisterPlatform(id)
+	val, err := r.client.Do(ctx, r.client.B().Get().Key(key).Build()).ToString()
 	if err != nil {
-		zap.L().Fatal("Failed to register platform", zap.String("platform", id), zap.Error(err))
-	}
-
-	err = r.DeleteInactivePlatform()
-	if err != nil {
-		zap.L().Fatal("Failed to delete platform", zap.String("platform", id), zap.Error(err))
-	}
-
-	ticker := time.NewTicker(60 * time.Second)
-	defer ticker.Stop()
-	for range ticker.C {
-		err = r.RegisterPlatform(id)
-		if err != nil {
-			zap.L().Fatal("App identity ticker crashed", zap.Error(err))
+		if rueidis.IsRedisNil(err) {
+			return "", ErrKeyNotFound
 		}
-		err = r.DeleteInactivePlatform()
-		if err != nil {
-			zap.L().Fatal("App identity ticker crashed", zap.Error(err))
-		}
+		return "", err
 	}
+	return val, nil
 }
 
-func (r *RueidisCache) GetRateLimit(userIdentifier string, requestsPerMinute int) (int, error) {
-	ctx := context.Background()
-
-	key := fmt.Sprintf(configuration.CacheAppRateLimitKey, userIdentifier)
-	count, err := r.client.Do(ctx, r.client.B().Incr().Key(key).Build()).AsInt64()
-	if err != nil {
-		return 0, err
-	}
-
-	if count == 1 {
-		expireErr := r.client.Do(ctx, r.client.B().Expire().Key(key).Seconds(int64(1*time.Minute.Seconds())).Build()).
-			Error()
-		if expireErr != nil {
-			return 0, expireErr
-		}
-	}
-
-	if int(count) > requestsPerMinute {
-		retryAfter, ttlErr := r.client.Do(ctx, r.client.B().Ttl().Key(key).Build()).AsInt64()
-		if ttlErr != nil {
-			return 0, ttlErr
-		}
-
-		return int(retryAfter), nil
-	}
-
-	return 0, nil
-}
-
-// TryAcquireLock attempts to acquire a distributed lock using SET NX EX.
-// Returns true if lock was acquired, false if already held by another instance.
-func (r *RueidisCache) TryAcquireLock(key string, instanceID string, ttlSeconds int) (bool, error) {
+func (r *RueidisCache) SetNX(key string, value string, ttl time.Duration) (bool, error) {
 	ctx := context.Background()
 	err := r.client.Do(ctx,
-		r.client.B().Set().Key(key).Value(instanceID).Nx().Ex(time.Duration(ttlSeconds)*time.Second).Build(),
+		r.client.B().Set().Key(key).Value(value).Nx().Ex(ttl).Build(),
 	).Error()
-
 	if err != nil {
 		if rueidis.IsRedisNil(err) {
 			return false, nil
@@ -132,100 +65,44 @@ func (r *RueidisCache) TryAcquireLock(key string, instanceID string, ttlSeconds 
 	return true, nil
 }
 
-// RefreshLock extends the TTL of an existing lock if held by this instance.
-// Returns true if refresh succeeded, false if lock is no longer held.
-func (r *RueidisCache) RefreshLock(key string, instanceID string, ttlSeconds int) (bool, error) {
+func (r *RueidisCache) Del(key string) error {
 	ctx := context.Background()
-	current, err := r.client.Do(ctx, r.client.B().Getex().Key(key).ExSeconds(int64(ttlSeconds)).Build()).ToString()
-
-	if err != nil {
-		if rueidis.IsRedisNil(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	if current != instanceID {
-		return false, nil
-	}
-
-	err = r.client.Do(ctx,
-		r.client.B().Expire().Key(key).Seconds(int64(ttlSeconds)).Build(),
-	).Error()
-
-	return err == nil, err
+	return r.client.Do(ctx, r.client.B().Del().Key(key).Build()).Error()
 }
 
-func (r *RueidisCache) Close() error {
-	r.client.Close()
-	return nil
+func (r *RueidisCache) Incr(key string) (int64, error) {
+	ctx := context.Background()
+	return r.client.Do(ctx, r.client.B().Incr().Key(key).Build()).AsInt64()
 }
 
-func (r *RueidisCache) IsTOTPCodeUsed(deviceID string, code string) (bool, error) {
+func (r *RueidisCache) Expire(key string, ttl time.Duration) error {
 	ctx := context.Background()
-	key := fmt.Sprintf(configuration.CacheTOTPUsedKey, deviceID, code)
-
-	result, err := r.client.Do(ctx, r.client.B().Exists().Key(key).Build()).AsInt64()
-	if err != nil {
-		return false, err
-	}
-	return result > 0, nil
+	return r.client.Do(ctx, r.client.B().Expire().Key(key).Seconds(int64(ttl.Seconds())).Build()).Error()
 }
 
-func (r *RueidisCache) MarkTOTPCodeUsed(deviceID string, code string) (bool, error) {
+func (r *RueidisCache) TTL(key string) (time.Duration, error) {
 	ctx := context.Background()
-	key := fmt.Sprintf(configuration.CacheTOTPUsedKey, deviceID, code)
-
-	// SET key value NX EX ttl
-	// Returns OK if set, nil (RedisNil) if not set (already exists)
-	err := r.client.Do(
-		ctx,
-		r.client.B().Set().Key(key).Value("1").Nx().ExSeconds(int64(configuration.TOTPCodeTTL)).Build(),
-	).Error()
-
+	seconds, err := r.client.Do(ctx, r.client.B().Ttl().Key(key).Build()).AsInt64()
 	if err != nil {
-		if rueidis.IsRedisNil(err) {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (r *RueidisCache) GetMFAAttempts(userID string) (int, error) {
-	ctx := context.Background()
-	key := fmt.Sprintf(configuration.CacheMFAAttemptsKey, userID)
-
-	count, err := r.client.Do(ctx, r.client.B().Get().Key(key).Build()).AsInt64()
-	if err != nil {
-		if rueidis.IsRedisNil(err) {
-			return 0, nil
-		}
 		return 0, err
 	}
-	return int(count), nil
+	return time.Duration(seconds) * time.Second, nil
 }
 
-func (r *RueidisCache) IncrementMFAAttempts(userID string) error {
+func (r *RueidisCache) ZAdd(key string, score float64, member string) error {
 	ctx := context.Background()
-	key := fmt.Sprintf(configuration.CacheMFAAttemptsKey, userID)
-
-	_, err := r.client.Do(ctx, r.client.B().Incr().Key(key).Build()).AsInt64()
-	if err != nil {
-		return err
-	}
-
-	err = r.client.Do(
-		ctx,
-		r.client.B().Expire().Key(key).Seconds(int64(configuration.MFALockoutSeconds)).Build(),
+	return r.client.Do(ctx,
+		r.client.B().Zadd().Key(key).ScoreMember().ScoreMember(score, member).Build(),
 	).Error()
-	return err
 }
 
-func (r *RueidisCache) ResetMFAAttempts(userID string) error {
+func (r *RueidisCache) ZRemRangeByScore(key string, minScore string, maxScore string) error {
 	ctx := context.Background()
-	key := fmt.Sprintf(configuration.CacheMFAAttemptsKey, userID)
+	return r.client.Do(ctx,
+		r.client.B().Zremrangebyscore().Key(key).Min(minScore).Max(maxScore).Build(),
+	).Error()
+}
 
-	return r.client.Do(ctx, r.client.B().Del().Key(key).Build()).Error()
+func (r *RueidisCache) Close() {
+	r.client.Close()
 }

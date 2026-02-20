@@ -1,6 +1,7 @@
 package services
 
 import (
+	"api/internal/cache"
 	"api/internal/configuration"
 	"api/internal/helpers"
 	"api/internal/models"
@@ -21,21 +22,17 @@ import (
 
 // --- Inline Mocks ---
 
-type MockCache struct {
-}
+type MockCache struct{}
 
-func (m *MockCache) RegisterPlatform(_ string) error                        { return nil }
-func (m *MockCache) DeleteInactivePlatform() error                          { return nil }
-func (m *MockCache) StartIdentityTicker(_ string)                           {}
-func (m *MockCache) GetRateLimit(_ string, _ int) (int, error)              { return 0, nil }
-func (m *MockCache) IsTOTPCodeUsed(_ string, _ string) (bool, error)        { return false, nil }
-func (m *MockCache) MarkTOTPCodeUsed(_ string, _ string) (bool, error)      { return true, nil }
-func (m *MockCache) GetMFAAttempts(_ string) (int, error)                   { return 0, nil }
-func (m *MockCache) IncrementMFAAttempts(_ string) error                    { return nil }
-func (m *MockCache) ResetMFAAttempts(_ string) error                        { return nil }
-func (m *MockCache) TryAcquireLock(_ string, _ string, _ int) (bool, error) { return true, nil }
-func (m *MockCache) RefreshLock(_ string, _ string, _ int) (bool, error)    { return true, nil }
-func (m *MockCache) Close() error                                           { return nil }
+func (m *MockCache) Get(_ string) (string, error)                            { return "", cache.ErrKeyNotFound }
+func (m *MockCache) SetNX(_ string, _ string, _ time.Duration) (bool, error) { return true, nil }
+func (m *MockCache) Del(_ string) error                                      { return nil }
+func (m *MockCache) Incr(_ string) (int64, error)                            { return 1, nil }
+func (m *MockCache) Expire(_ string, _ time.Duration) error                  { return nil }
+func (m *MockCache) TTL(_ string) (time.Duration, error)                     { return 0, nil }
+func (m *MockCache) ZAdd(_ string, _ float64, _ string) error                { return nil }
+func (m *MockCache) ZRemRangeByScore(_ string, _ string, _ string) error     { return nil }
+func (m *MockCache) Close() error                                            { return nil }
 
 type MockNotifier struct {
 }

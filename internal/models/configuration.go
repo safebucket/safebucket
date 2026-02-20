@@ -65,7 +65,7 @@ type SharingConfiguration struct {
 }
 
 type CacheConfiguration struct {
-	Type   string                    `mapstructure:"type"   validate:"required,oneof=redis valkey"`
+	Type   string                    `mapstructure:"type"   validate:"required,oneof=redis valkey memory"`
 	Redis  *RedisCacheConfiguration  `mapstructure:"redis"  validate:"required_if=Type redis"`
 	Valkey *ValkeyCacheConfiguration `mapstructure:"valkey" validate:"required_if=Type valkey"`
 }

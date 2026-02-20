@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 
-	"api/internal/cache"
 	apierrors "api/internal/errors"
 	"api/internal/handlers"
 	h "api/internal/helpers"
@@ -22,7 +21,6 @@ import (
 
 type UserService struct {
 	DB         *gorm.DB
-	Cache      cache.ICache
 	AuthConfig models.AuthConfig
 	Publisher  messaging.IPublisher
 	Notifier   notifier.INotifier

@@ -28,8 +28,6 @@ services:
       - DATABASE__NAME=${DATABASE__NAME}
       - DATABASE__SSLMODE=disable
       - CACHE__TYPE=${CACHE__TYPE}
-      - CACHE__VALKEY__HOSTS=${CACHE__VALKEY__HOSTS}
-      - CACHE__VALKEY__PASSWORD=${CACHE__VALKEY__PASSWORD}
       - STORAGE__TYPE=${STORAGE__TYPE}
       - STORAGE__RUSTFS__BUCKET_NAME=${STORAGE__RUSTFS__BUCKET_NAME}
       - STORAGE__RUSTFS__ENDPOINT=${STORAGE__RUSTFS__ENDPOINT}
@@ -122,18 +120,6 @@ services:
       retries: 10
       start_period: 5s
 
-  valkey:
-    container_name: valkey
-    image: valkey/valkey:9
-    command: [ "valkey-server", "--requirepass", "${CACHE__VALKEY__PASSWORD}" ]
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-    shm_size: 128mb
-    volumes:
-      - "valkey_data:/data"
-
 volumes:
   rustfs_data:
   postgresql_data:
-  valkey_data:

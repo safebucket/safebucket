@@ -1,33 +1,20 @@
 package cache
 
+import (
+	"errors"
+	"time"
+)
+
+var ErrKeyNotFound = errors.New("cache: key not found")
+
 type ICache interface {
-	RegisterPlatform(id string) error
-	DeleteInactivePlatform() error
-	StartIdentityTicker(id string)
-
-	GetRateLimit(userIdentifier string, requestsPerMinute int) (int, error)
-
-	// IsTOTPCodeUsed checks if a TOTP code has been used for a specific device.
-	// The deviceID parameter identifies the MFA device (or user ID for legacy single-device users).
-	IsTOTPCodeUsed(deviceID string, code string) (bool, error)
-	// MarkTOTPCodeUsed atomically marks a TOTP code as used for a specific device.
-	// Returns true if the code was unused and is now marked (success).
-	// Returns false if the code was already used (replay attempt).
-	MarkTOTPCodeUsed(deviceID string, code string) (bool, error)
-
-	// GetMFAAttempts returns the current number of failed MFA attempts for a user.
-	GetMFAAttempts(userID string) (int, error)
-	// IncrementMFAAttempts increments failed MFA attempts and sets lockout TTL.
-	// Uses configuration.MFALockoutSeconds constant for lockout duration.
-	IncrementMFAAttempts(userID string) error
-	// ResetMFAAttempts clears the failed attempts counter (called on successful verification).
-	ResetMFAAttempts(userID string) error
-
-	// TryAcquireLock attempts to acquire a distributed lock. Returns true if acquired.
-	TryAcquireLock(key string, instanceID string, ttlSeconds int) (bool, error)
-
-	// RefreshLock extends the TTL of an existing lock if held by this instance.
-	RefreshLock(key string, instanceID string, ttlSeconds int) (bool, error)
-
-	Close() error
+	Get(key string) (string, error)
+	SetNX(key string, value string, ttl time.Duration) (bool, error)
+	Del(key string) error
+	Incr(key string) (int64, error)
+	Expire(key string, ttl time.Duration) error
+	TTL(key string) (time.Duration, error)
+	ZAdd(key string, score float64, member string) error
+	ZRemRangeByScore(key string, minScore string, maxScore string) error
+	Close()
 }

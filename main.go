@@ -19,6 +19,7 @@ func main() {
 
 	db := database.InitDB(config.Database)
 	cache := core.NewCache(config.Cache)
+	defer cache.Close()
 	storage := core.NewStorage(config.Storage, config.App.TrashRetentionDays)
 	notify := core.NewNotifier(config.Notifier)
 	activityLogger := core.NewActivityLogger(config.Activity)
@@ -36,11 +37,7 @@ func main() {
 	}
 
 	appIdentity := uuid.New().String()
-
-	if cache != nil {
-		go cache.StartIdentityTicker(appIdentity)
-		zap.L().Info("Cache identity ticker started")
-	}
+	go core.StartIdentityTicker(cache, appIdentity)
 
 	if profile.Workers.AnyEnabled() {
 		core.StartWorkers(

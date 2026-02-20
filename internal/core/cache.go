@@ -27,6 +27,8 @@ func NewCache(config models.CacheConfiguration) cache.ICache {
 			zap.L().Fatal("Failed to initialize Valkey cache", zap.Error(err))
 		}
 		return cacheInstance
+	case "memory":
+		return cache.NewMemoryCache()
 	default:
 		zap.L().Fatal("Unsupported cache type", zap.String("type", config.Type))
 		return nil

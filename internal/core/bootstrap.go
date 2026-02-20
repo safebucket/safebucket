@@ -135,6 +135,7 @@ func startWorker(
 
 func startSingletonWorker(cache c.ICache, instanceID string, workerName string, runWorker func(context.Context)) {
 	lockKey := fmt.Sprintf(configuration.CacheAppWorkerLockKey, workerName)
+	lockTTL := time.Duration(configuration.CacheAppWorkerLockTTL) * time.Second
 	ticker := time.NewTicker(time.Duration(configuration.CacheAppWorkerLockRefresh) * time.Second)
 	defer ticker.Stop()
 
@@ -143,7 +144,7 @@ func startSingletonWorker(cache c.ICache, instanceID string, workerName string, 
 
 	for {
 		if !workerStarted {
-			acquired, err := cache.TryAcquireLock(lockKey, instanceID, configuration.CacheAppWorkerLockTTL)
+			acquired, err := cache.SetNX(lockKey, instanceID, lockTTL)
 			if err != nil {
 				zap.L().Error("Failed to acquire worker lock", zap.String("worker", workerName), zap.Error(err))
 			}
@@ -156,8 +157,14 @@ func startSingletonWorker(cache c.ICache, instanceID string, workerName string, 
 				go runWorker(ctx)
 			}
 		} else {
-			refreshed, err := cache.RefreshLock(lockKey, instanceID, configuration.CacheAppWorkerLockTTL)
-			if err != nil || !refreshed {
+			refreshed := false
+			current, err := cache.Get(lockKey)
+			if err == nil && current == instanceID {
+				if expErr := cache.Expire(lockKey, lockTTL); expErr == nil {
+					refreshed = true
+				}
+			}
+			if !refreshed {
 				zap.L().Warn("Lost worker lock, stopping worker", zap.String("worker", workerName))
 				workerStarted = false
 				if cancelWorker != nil {
@@ -169,6 +176,44 @@ func startSingletonWorker(cache c.ICache, instanceID string, workerName string, 
 
 		<-ticker.C
 	}
+}
+
+func StartIdentityTicker(cache c.ICache, id string) {
+	register := func() error {
+		return cache.ZAdd(
+			configuration.CacheAppIdentityKey,
+			float64(time.Now().Unix()),
+			id,
+		)
+	}
+	cleanup := func() error {
+		cutoff := float64(time.Now().Unix()) - float64(configuration.CacheMaxAppIdentityLifetime)
+		return cache.ZRemRangeByScore(
+			configuration.CacheAppIdentityKey,
+			"-inf",
+			fmt.Sprintf("%f", cutoff),
+		)
+	}
+
+	if err := register(); err != nil {
+		zap.L().Fatal("Failed to register platform", zap.String("platform", id), zap.Error(err))
+	}
+	if err := cleanup(); err != nil {
+		zap.L().Fatal("Failed to delete inactive platforms", zap.String("platform", id), zap.Error(err))
+	}
+
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		if err := register(); err != nil {
+			zap.L().Fatal("App identity ticker crashed", zap.Error(err))
+		}
+		if err := cleanup(); err != nil {
+			zap.L().Fatal("App identity ticker crashed", zap.Error(err))
+		}
+	}
+
+	zap.L().Info("Cache identity ticker started")
 }
 
 func StartHTTPServer(
@@ -213,7 +258,6 @@ func StartHTTPServer(
 
 		userService := services.UserService{
 			DB:         db,
-			Cache:      cache,
 			AuthConfig: authConfig,
 			Publisher:  eventRouter,
 			Notifier:   notify,
