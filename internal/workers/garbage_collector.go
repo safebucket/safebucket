@@ -99,6 +99,10 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 		fileIDs[i] = file.ID
 	}
 
+	if err := w.Storage.RemoveObjects(storagePaths); err != nil {
+		return 0, fmt.Errorf("failed to remove objects from storage: %w", err)
+	}
+
 	var rowsAffected int64
 
 	err := w.DB.Transaction(func(tx *gorm.DB) error {
@@ -132,10 +136,6 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 
 	if rowsAffected > 0 {
 		zap.L().Debug("Deleted expired files", zap.Int64("count", rowsAffected))
-	}
-
-	if err = w.Storage.RemoveObjects(storagePaths); err != nil {
-		return int(rowsAffected), fmt.Errorf("failed to remove objects from storage: %w", err)
 	}
 
 	return int(rowsAffected), nil
