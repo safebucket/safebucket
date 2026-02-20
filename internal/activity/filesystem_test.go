@@ -20,8 +20,9 @@ func newTestFilesystemClient(t *testing.T) *FilesystemClient {
 			Directory: dir,
 		},
 	}
-	client := NewFilesystemClient(config)
-	return client.(*FilesystemClient)
+	client := NewFilesystemClient(config).(*FilesystemClient)
+	t.Cleanup(func() { client.Close() })
+	return client
 }
 
 func sendTestActivity(
