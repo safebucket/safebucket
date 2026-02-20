@@ -41,13 +41,7 @@ services:
       - EVENTS__QUEUES__BUCKET_EVENTS__NAME=${EVENTS__QUEUES__BUCKET_EVENTS__NAME}
       - EVENTS__QUEUES__OBJECT_DELETION__NAME=${EVENTS__QUEUES__OBJECT_DELETION__NAME}
       - NOTIFIER__TYPE=${NOTIFIER__TYPE}
-      - NOTIFIER__SMTP__HOST=${NOTIFIER__SMTP__HOST}
-      - NOTIFIER__SMTP__PORT=${NOTIFIER__SMTP__PORT}
-      - NOTIFIER__SMTP__USERNAME=${NOTIFIER__SMTP__USERNAME}
-      - NOTIFIER__SMTP__PASSWORD=${NOTIFIER__SMTP__PASSWORD}
-      - NOTIFIER__SMTP__SENDER=${NOTIFIER__SMTP__SENDER}
-      - NOTIFIER__SMTP__ENABLE_TLS=${NOTIFIER__SMTP__ENABLE_TLS}
-      - NOTIFIER__SMTP__SKIP_VERIFY_TLS=${NOTIFIER__SMTP__SKIP_VERIFY_TLS}
+      - NOTIFIER__FILESYSTEM__DIRECTORY=${NOTIFIER__FILESYSTEM__DIRECTORY}
       - ACTIVITY__TYPE=${ACTIVITY__TYPE}
       - ACTIVITY__FILESYSTEM__DIRECTORY=${ACTIVITY__FILESYSTEM__DIRECTORY}
       - AUTH__PROVIDERS__KEYS=${AUTH__PROVIDERS__KEYS}
@@ -139,23 +133,7 @@ services:
     volumes:
       - "valkey_data:/data"
 
-  mailpit:
-    image: axllent/mailpit:v1.29
-    container_name: mailpit
-    restart: unless-stopped
-    volumes:
-      - "mail_data:/data"
-    ports:
-      - "8025:8025"
-      - "1025:1025"
-    environment:
-      MP_MAX_MESSAGES: 500
-      MP_DATABASE: /data/mailpit.db
-      MP_SMTP_AUTH_ALLOW_INSECURE: true
-      MP_SMTP_AUTH: root:root
-
 volumes:
   rustfs_data:
   postgresql_data:
-  mail_data:
   valkey_data:

@@ -127,9 +127,6 @@ func loadDefaults(k *koanf.Koanf) {
 		"app.static_files.directory": "web/dist",
 
 		"database.port": int32(5432),
-
-		"notifier.smtp.enable_tls":      false,
-		"notifier.smtp.skip_verify_tls": false,
 	}
 
 	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
@@ -151,6 +148,10 @@ func loadConditionalDefaults(k *koanf.Koanf) {
 	}
 	if k.String("events.type") == "gcp" {
 		setIfMissing(k, "events.gcp.subscription_suffix", "-sub")
+	}
+	if k.String("notifier.type") == "smtp" {
+		setIfMissing(k, "notifier.smtp.enable_tls", false)
+		setIfMissing(k, "notifier.smtp.skip_verify_tls", false)
 	}
 }
 

@@ -196,8 +196,13 @@ type MailerConfiguration struct {
 }
 
 type NotifierConfiguration struct {
-	Type string               `mapstructure:"type" validate:"required,oneof=smtp"`
-	SMTP *MailerConfiguration `mapstructure:"smtp" validate:"required_if=Type smtp"`
+	Type       string                           `mapstructure:"type"       validate:"required,oneof=smtp filesystem"`
+	SMTP       *MailerConfiguration             `mapstructure:"smtp"       validate:"required_if=Type smtp"`
+	Filesystem *FilesystemNotifierConfiguration `mapstructure:"filesystem" validate:"required_if=Type filesystem"`
+}
+
+type FilesystemNotifierConfiguration struct {
+	Directory string `mapstructure:"directory" validate:"required"`
 }
 
 type ActivityConfiguration struct {
