@@ -77,7 +77,7 @@ func TestFilesystemNotifyFromTemplate_MultipleNotifications(t *testing.T) {
 		"ChallengeURL": "http://localhost:3000/reset",
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		err := n.NotifyFromTemplate("user@example.com", "Reset your password", "password_reset", data)
 		if err != nil {
 			t.Fatalf("NotifyFromTemplate call %d failed: %v", i, err)
