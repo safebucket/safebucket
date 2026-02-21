@@ -157,14 +157,8 @@ func startSingletonWorker(cache c.ICache, instanceID string, workerName string, 
 				go runWorker(ctx)
 			}
 		} else {
-			refreshed := false
-			current, err := cache.Get(lockKey)
-			if err == nil && current == instanceID {
-				if expErr := cache.Expire(lockKey, lockTTL); expErr == nil {
-					refreshed = true
-				}
-			}
-			if !refreshed {
+			refreshed, err := c.RefreshLock(cache, lockKey, instanceID, lockTTL)
+			if err != nil || !refreshed {
 				zap.L().Warn("Lost worker lock, stopping worker", zap.String("worker", workerName))
 				workerStarted = false
 				if cancelWorker != nil {
