@@ -43,3 +43,28 @@ func MarkTOTPCodeUsed(c ICache, deviceID string, code string) (bool, error) {
 	key := fmt.Sprintf(configuration.CacheTOTPUsedKey, deviceID, code)
 	return c.SetNX(key, "1", time.Duration(configuration.TOTPCodeTTL)*time.Second)
 }
+
+func GetRateLimit(c ICache, userIdentifier string, requestsPerMinute int) (int, error) {
+	key := fmt.Sprintf(configuration.CacheAppRateLimitKey, userIdentifier)
+
+	count, err := c.Incr(key)
+	if err != nil {
+		return 0, err
+	}
+
+	if count == 1 {
+		if expErr := c.Expire(key, 1*time.Minute); expErr != nil {
+			return 0, expErr
+		}
+	}
+
+	if int(count) > requestsPerMinute {
+		ttl, ttlErr := c.TTL(key)
+		if ttlErr != nil {
+			return 0, ttlErr
+		}
+		return int(ttl.Seconds()), nil
+	}
+
+	return 0, nil
+}

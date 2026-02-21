@@ -1,16 +1,12 @@
 package middlewares
 
 import (
-	"fmt"
+	"api/internal/cache"
+	"api/internal/helpers"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
-
-	"api/internal/cache"
-	"api/internal/configuration"
-	"api/internal/helpers"
 
 	"go.uber.org/zap"
 )
@@ -69,32 +65,16 @@ func applyRateLimit(
 	userIdentifier string,
 	requestsPerMinute int,
 ) {
-	key := fmt.Sprintf(configuration.CacheAppRateLimitKey, userIdentifier)
+	retryAfter, err := cache.GetRateLimit(c, userIdentifier, requestsPerMinute)
 
-	count, err := c.Incr(key)
 	if err != nil {
 		zap.L().Error("error", zap.Error(err))
 		helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
 		return
 	}
 
-	if count == 1 {
-		if expErr := c.Expire(key, 1*time.Minute); expErr != nil {
-			zap.L().Error("error", zap.Error(expErr))
-			helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
-			return
-		}
-	}
-
-	if int(count) > requestsPerMinute {
-		ttl, ttlErr := c.TTL(key)
-		if ttlErr != nil {
-			zap.L().Error("error", zap.Error(ttlErr))
-			helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
-			return
-		}
-
-		w.Header().Set("Retry-After", strconv.Itoa(int(ttl.Seconds())))
+	if retryAfter > 0 {
+		w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
 		helpers.RespondWithError(w, 429, []string{"RATE_LIMIT_EXCEEDED"})
 		return
 	}
