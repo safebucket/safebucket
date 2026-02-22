@@ -1,54 +1,44 @@
-# Multi-stage build: Frontend (Node.js) + Backend (Go)
+# Frontend
 FROM node:20-alpine AS frontend-builder
 
-# Set working directory for frontend
 WORKDIR /app/web
 
-# Copy package files and install dependencies
 COPY web/package*.json ./
-
-# Copy frontend source code
 COPY web/ ./
 
-# Build static frontend
 RUN npm install && npm run build
 
-# Backend builder stage
-FROM golang:1.25-alpine AS backend-builder
+# Backend
+FROM golang:1.25-bookworm AS backend-builder
 
-RUN apk add --no-cache git ca-certificates tzdata
+# renovate: datasource=github-releases depName=upx/upx
+ARG UPX_VERSION=5.1.0
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates tzdata curl xz-utils && rm -rf /var/lib/apt/lists/*
+RUN curl -L -o upx.tar.xz https://github.com/upx/upx/releases/download/v${UPX_VERSION}/upx-${UPX_VERSION}-amd64_linux.tar.xz && \
+    tar -xf upx.tar.xz && \
+    mv upx-${UPX_VERSION}-amd64_linux/upx /usr/local/bin/ && \
+    rm -rf upx.tar.xz upx-${UPX_VERSION}-amd64_linux
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy backend source code
 COPY . .
 
-# Build the Go binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o safebucket main.go
+RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -a -o safebucket main.go
+RUN upx --best --lzma safebucket
 
-# Final stage - distroless production image
-FROM gcr.io/distroless/static-debian12:nonroot
+# Runtime
+FROM gcr.io/distroless/cc-debian12:nonroot
 
-# Set working directory
 WORKDIR /app
 
-# Copy built binary from backend builder
 COPY --from=backend-builder /app/safebucket ./safebucket
-
-# Copy built frontend static files from frontend builder
 COPY --from=frontend-builder --chown=nonroot:nonroot /app/web/dist ./web/dist
-
-# Copy database migrations
 COPY --from=backend-builder --chown=nonroot:nonroot /app/internal/database/migrations ./internal/database/migrations
-
-# Copy mail templates
 COPY --from=backend-builder --chown=nonroot:nonroot /app/internal/mails ./internal/mails
 
-# Expose port
 EXPOSE 8080
 
-# Run the binary
 CMD ["./safebucket"]

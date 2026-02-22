@@ -1,0 +1,13 @@
+{
+    "customManagers": [
+        {
+            "customType": "regex",
+            "fileMatch": [
+                "(^|/)Dockerfile$"
+            ],
+            "matchStrings": [
+                "# renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>[^\\s]+)\\s+ARG +UPX_VERSION=(?<currentValue>[^\\s]+)"
+            ]
+        }
+    ]
+}
