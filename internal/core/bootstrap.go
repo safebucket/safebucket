@@ -206,8 +206,6 @@ func StartIdentityTicker(cache c.ICache, id string) {
 			zap.L().Fatal("App identity ticker crashed", zap.Error(err))
 		}
 	}
-
-	zap.L().Info("Cache identity ticker started")
 }
 
 func StartHTTPServer(
