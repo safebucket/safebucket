@@ -18,12 +18,12 @@ const (
 
 // Membership represents a user's access level to a specific bucket.
 type Membership struct {
-	ID                    uuid.UUID      `gorm:"type:uuid;primarykey;default:gen_random_uuid()"  json:"id"`
+	ID                    uuid.UUID      `gorm:"primarykey"                                      json:"id"`
 	UserID                uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:idx_user_bucket"  json:"user_id"`
 	User                  User           `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"   json:"user,omitempty"`
-	BucketID              uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex:idx_user_bucket"  json:"bucket_id"`
+	BucketID              uuid.UUID      `gorm:"not null;uniqueIndex:idx_user_bucket"  json:"bucket_id"`
 	Bucket                Bucket         `gorm:"foreignKey:BucketID;constraint:OnDelete:CASCADE" json:"bucket,omitempty"`
-	Group                 Group          `gorm:"type:group_type;not null"                        json:"group"                  validate:"required,oneof=owner contributor viewer"`
+	Group                 Group          `gorm:"not null"                        json:"group"                  validate:"required,oneof=owner contributor viewer"`
 	UploadNotifications   bool           `gorm:"not null;default:true"                           json:"upload_notifications"`
 	DownloadNotifications bool           `gorm:"not null;default:false"                          json:"download_notifications"`
 	CreatedAt             time.Time      `                                                       json:"created_at"`

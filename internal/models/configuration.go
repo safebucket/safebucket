@@ -33,12 +33,22 @@ type AppConfiguration struct {
 }
 
 type DatabaseConfiguration struct {
+	Type     string                  `mapstructure:"type"     validate:"required,oneof=postgres sqlite"`
+	Postgres *PostgresDatabaseConfig `mapstructure:"postgres" validate:"required_if=Type postgres"`
+	SQLite   *SQLiteDatabaseConfig   `mapstructure:"sqlite"   validate:"required_if=Type sqlite"`
+}
+
+type PostgresDatabaseConfig struct {
 	Host     string `mapstructure:"host"     validate:"required"`
-	Port     int32  `mapstructure:"port"     validate:"gte=80,lte=65535"`
+	Port     int32  `mapstructure:"port"     validate:"gte=1,lte=65535"`
 	User     string `mapstructure:"user"     validate:"required"`
 	Password string `mapstructure:"password" validate:"required"`
 	Name     string `mapstructure:"name"     validate:"required"`
 	SSLMode  string `mapstructure:"sslmode"`
+}
+
+type SQLiteDatabaseConfig struct {
+	Path string `mapstructure:"path" validate:"required"`
 }
 
 type AuthConfiguration struct {

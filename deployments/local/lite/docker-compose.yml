@@ -21,12 +21,8 @@ services:
       - APP__MFA_ENCRYPTION_KEY=${APP__MFA_ENCRYPTION_KEY}
       - APP__MFA_REQUIRED=${APP__MFA_REQUIRED}
       - APP__MAX_UPLOAD_SIZE=${APP__MAX_UPLOAD_SIZE}
-      - DATABASE__HOST=database
-      - DATABASE__PORT=5432
-      - DATABASE__USER=${DATABASE__USER}
-      - DATABASE__PASSWORD=${DATABASE__PASSWORD}
-      - DATABASE__NAME=${DATABASE__NAME}
-      - DATABASE__SSLMODE=disable
+      - DATABASE__TYPE=${DATABASE__TYPE}
+      - DATABASE__SQLITE__PATH=${DATABASE__SQLITE__PATH}
       - CACHE__TYPE=${CACHE__TYPE}
       - STORAGE__TYPE=${STORAGE__TYPE}
       - STORAGE__RUSTFS__BUCKET_NAME=${STORAGE__RUSTFS__BUCKET_NAME}
@@ -45,14 +41,13 @@ services:
       - AUTH__PROVIDERS__KEYS=${AUTH__PROVIDERS__KEYS}
       - AUTH__PROVIDERS__LOCAL__NAME=${AUTH__PROVIDERS__LOCAL__NAME}
       - AUTH__PROVIDERS__LOCAL__TYPE=${AUTH__PROVIDERS__LOCAL__TYPE}
-
+    volumes:
+      - "safebucket_data:/app/data"
     ports:
       - "8080:8080"
     restart: on-failure:3
     depends_on:
       bucket:
-        condition: service_healthy
-      database:
         condition: service_healthy
 
   bucket:
@@ -100,26 +95,7 @@ services:
         condition: service_healthy
     restart: "no"
 
-  database:
-    container_name: database
-    image: postgres:18
-    ports:
-      - "5432:5432"
-    volumes:
-      - "postgresql_data:/var/lib/postgresql"
-    restart: unless-stopped
-    shm_size: 128mb
-    environment:
-      POSTGRES_USER: ${DATABASE__USER}
-      POSTGRES_PASSWORD: ${DATABASE__PASSWORD}
-      POSTGRES_DB: ${DATABASE__NAME}
-    healthcheck:
-      test: [ "CMD-SHELL", "psql -U ${DATABASE__USER} -d ${DATABASE__NAME} -c 'SELECT 1' || exit 1" ]
-      interval: 2s
-      timeout: 3s
-      retries: 10
-      start_period: 5s
 
 volumes:
   rustfs_data:
-  postgresql_data:
+  safebucket_data:

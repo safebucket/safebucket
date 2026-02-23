@@ -21,12 +21,13 @@ services:
       - APP__MFA_ENCRYPTION_KEY=${APP__MFA_ENCRYPTION_KEY}
       - APP__MFA_REQUIRED=${APP__MFA_REQUIRED}
       - APP__MAX_UPLOAD_SIZE=${APP__MAX_UPLOAD_SIZE}
-      - DATABASE__HOST=database
-      - DATABASE__PORT=5432
-      - DATABASE__USER=${DATABASE__USER}
-      - DATABASE__PASSWORD=${DATABASE__PASSWORD}
-      - DATABASE__NAME=${DATABASE__NAME}
-      - DATABASE__SSLMODE=disable
+      - DATABASE__TYPE=${DATABASE__TYPE}
+      - DATABASE__POSTGRES__HOST=${DATABASE__POSTGRES__HOST}
+      - DATABASE__POSTGRES__PORT=${DATABASE__POSTGRES__PORT}
+      - DATABASE__POSTGRES__USER=${DATABASE__POSTGRES__USER}
+      - DATABASE__POSTGRES__PASSWORD=${DATABASE__POSTGRES__PASSWORD}
+      - DATABASE__POSTGRES__NAME=${DATABASE__POSTGRES__NAME}
+      - DATABASE__POSTGRES__SSLMODE=${DATABASE__POSTGRES__SSLMODE}
       - CACHE__TYPE=${CACHE__TYPE}
       - CACHE__VALKEY__HOSTS=${CACHE__VALKEY__HOSTS}
       - CACHE__VALKEY__PASSWORD=${CACHE__VALKEY__PASSWORD}
@@ -56,14 +57,35 @@ services:
       - AUTH__PROVIDERS__LOCAL__NAME=${AUTH__PROVIDERS__LOCAL__NAME}
       - AUTH__PROVIDERS__LOCAL__TYPE=${AUTH__PROVIDERS__LOCAL__TYPE}
 
+    volumes:
+      - "safebucket_data:/app/data"
     ports:
       - "8080:8080"
     restart: on-failure:3
     depends_on:
       bucket:
         condition: service_healthy
-      database:
+      postgres:
         condition: service_healthy
+
+  postgres:
+    container_name: postgres
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${DATABASE__POSTGRES__USER}
+      POSTGRES_PASSWORD: ${DATABASE__POSTGRES__PASSWORD}
+      POSTGRES_DB: ${DATABASE__POSTGRES__NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - "postgres_data:/var/lib/postgresql/data"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DATABASE__POSTGRES__USER} -d ${DATABASE__POSTGRES__NAME}" ]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
 
   bucket:
     container_name: bucket
@@ -132,26 +154,6 @@ services:
         condition: service_started
     restart: "no"
 
-  database:
-    container_name: database
-    image: postgres:18
-    ports:
-      - "5432:5432"
-    volumes:
-      - "postgresql_data:/var/lib/postgresql"
-    restart: unless-stopped
-    shm_size: 128mb
-    environment:
-      POSTGRES_USER: ${DATABASE__USER}
-      POSTGRES_PASSWORD: ${DATABASE__PASSWORD}
-      POSTGRES_DB: ${DATABASE__NAME}
-    healthcheck:
-      test: [ "CMD-SHELL", "psql -U ${DATABASE__USER} -d ${DATABASE__NAME} -c 'SELECT 1' || exit 1" ]
-      interval: 2s
-      timeout: 3s
-      retries: 10
-      start_period: 5s
-
   valkey:
     container_name: valkey
     image: valkey/valkey:9
@@ -182,9 +184,9 @@ services:
     image: nats:2.12-alpine
     container_name: nats
     ports:
-      - "4222:4222"   # NATS protocol
-      - "1883:1883"   # MQTT protocol
-      - "8222:8222"   # HTTP monitoring
+      - "4222:4222" # NATS protocol
+      - "1883:1883" # MQTT protocol
+      - "8222:8222" # HTTP monitoring
     restart: unless-stopped
     command: [ "-c", "/etc/nats/nats.conf" ]
     ulimits:
@@ -216,8 +218,9 @@ services:
       start_period: 10s
 
 volumes:
+  postgres_data:
   rustfs_data:
-  postgresql_data:
+  safebucket_data:
   mail_data:
   valkey_data:
   nats_data:

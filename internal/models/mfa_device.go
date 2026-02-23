@@ -15,17 +15,17 @@ const (
 
 // MFADevice represents an MFA device associated with a user.
 type MFADevice struct {
-	ID              uuid.UUID     `gorm:"type:uuid;primarykey;default:gen_random_uuid()" json:"id"`
-	UserID          uuid.UUID     `gorm:"type:uuid;not null;index"                       json:"user_id"`
-	Name            string        `gorm:"type:varchar(100);not null"                     json:"name"`
-	Type            MFADeviceType `gorm:"type:mfa_device_type;not null;default:'totp'"   json:"type"`
-	EncryptedSecret string        `gorm:"not null"                                       json:"-"`
-	IsDefault       bool          `gorm:"column:is_default;not null;default:false"       json:"is_default"`
-	IsVerified      bool          `gorm:"not null;default:false"                         json:"-"`
-	CreatedAt       time.Time     `                                                      json:"created_at"`
-	UpdatedAt       time.Time     `                                                      json:"updated_at"`
-	VerifiedAt      *time.Time    `                                                      json:"verified_at,omitempty"`
-	LastUsedAt      *time.Time    `                                                      json:"last_used_at,omitempty"`
+	ID              uuid.UUID     `gorm:"primarykey"                               json:"id"`
+	UserID          uuid.UUID     `gorm:"not null;index"                           json:"user_id"`
+	Name            string        `gorm:"type:varchar(100);not null"               json:"name"`
+	Type            MFADeviceType `gorm:"not null;default:'totp'"                  json:"type"`
+	EncryptedSecret string        `gorm:"not null"                                 json:"-"`
+	IsDefault       bool          `gorm:"column:is_default;not null;default:false" json:"is_default"`
+	IsVerified      bool          `gorm:"not null;default:false"                   json:"-"`
+	CreatedAt       time.Time     `                                                json:"created_at"`
+	UpdatedAt       time.Time     `                                                json:"updated_at"`
+	VerifiedAt      *time.Time    `                                                json:"verified_at,omitempty"`
+	LastUsedAt      *time.Time    `                                                json:"last_used_at,omitempty"`
 }
 
 // MFADevicesListResponse wraps device list.
