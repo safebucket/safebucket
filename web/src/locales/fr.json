@@ -307,7 +307,15 @@
       "activity": "Activité du bucket",
       "trash": "Corbeille",
       "settings": "Paramètres",
-      "view_only": "Accès en lecture seule"
+      "view_only": "Accès en lecture seule",
+      "notifications": "Notifications"
+    },
+    "notifications": {
+      "title": "Notifications par e-mail",
+      "description": "Soyez notifié lorsque des fichiers sont uploadés ou téléchargés.",
+      "uploads": "Notifications d'upload",
+      "downloads": "Notifications de téléchargement",
+      "updated": "Préférences de notification mises à jour avec succès"
     },
     "list_view": {
       "name": "Nom",

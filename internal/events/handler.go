@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"api/internal/activity"
+	"api/internal/cache"
 	"api/internal/eventparser"
 	"api/internal/messaging"
 	"api/internal/models"
@@ -28,6 +29,7 @@ type EventParams struct {
 	Storage            storage.IStorage
 	ActivityLogger     activity.IActivityLogger
 	TrashRetentionDays int
+	Cache              cache.ICache
 }
 
 type Event interface {
@@ -90,11 +92,115 @@ func HandleEvents(params *EventParams, messages <-chan *message.Message) {
 	}
 }
 
+func handleUploadEvents(
+	parser eventparser.IBucketEventParser,
+	msg *message.Message,
+	db *gorm.DB,
+	activityLogger activity.IActivityLogger,
+	publisher messaging.IPublisher,
+) {
+	uploadEvents := parser.ParseBucketUploadEvents(msg)
+
+	for _, event := range uploadEvents {
+		bucketUUID, err := uuid.Parse(event.BucketID)
+		if err != nil {
+			zap.L().
+				Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketID))
+			continue
+		}
+
+		fileUUID, err := uuid.Parse(event.FileID)
+		if err != nil {
+			zap.L().Error("file id should be a valid UUID", zap.String("fileID", event.FileID))
+			continue
+		}
+
+		file, err := sql.GetFileByID(db, bucketUUID, fileUUID)
+		if err != nil {
+			zap.L().Error("event is misconfigured", zap.Error(err))
+			continue
+		}
+
+		userUUID, err := uuid.Parse(event.UserID)
+		if err != nil {
+			zap.L().Error("user id should be a valid UUID", zap.String("userID", event.UserID))
+			continue
+		}
+
+		db.Model(&file).Update("status", models.FileStatusUploaded)
+
+		action := models.Activity{
+			Message: activity.FileUploaded,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionCreate.String(),
+				"object_type": rbac.ResourceFile.String(),
+				"file_id":     event.FileID,
+				"bucket_id":   event.BucketID,
+				"user_id":     event.UserID,
+			}),
+		}
+
+		err = activityLogger.Send(action)
+		if err != nil {
+			zap.L().Error("failed to send activity", zap.Error(err))
+		}
+
+		var bucket models.Bucket
+		if err = db.Where("id = ?", bucketUUID).First(&bucket).Error; err != nil {
+			continue
+		}
+
+		var user models.User
+		if err = db.Where("id = ?", userUUID).First(&user).Error; err != nil {
+			continue
+		}
+
+		evt := NewFileActivityNotification(
+			publisher, FileActivityUpload, bucketUUID, bucket.Name, file.Name, userUUID, user.Email,
+		)
+		evt.Trigger()
+	}
+}
+
+func handleDeletionEvents(
+	parser eventparser.IBucketEventParser,
+	msg *message.Message,
+	db *gorm.DB,
+	storage storage.IStorage,
+	activityLogger activity.IActivityLogger,
+	trashRetentionDays int,
+) {
+	deletionEvents := parser.ParseBucketDeletionEvents(msg, storage.GetBucketName())
+
+	for _, event := range deletionEvents {
+		bucketUUID, err := uuid.Parse(event.BucketID)
+		if err != nil {
+			zap.L().
+				Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketID))
+			continue
+		}
+		trashEvent := NewTrashExpirationFromBucketEvent(bucketUUID, event.ObjectKey)
+
+		params := &EventParams{
+			DB:                 db,
+			Storage:            storage,
+			ActivityLogger:     activityLogger,
+			TrashRetentionDays: trashRetentionDays,
+		}
+
+		if err = trashEvent.callback(params); err != nil {
+			zap.L().Error("Failed to process trash expiration", zap.Error(err))
+		}
+	}
+}
+
 func HandleBucketEvents(
 	parser eventparser.IBucketEventParser,
 	db *gorm.DB,
 	activityLogger activity.IActivityLogger,
 	storage storage.IStorage,
+	publisher messaging.IPublisher,
 	trashRetentionDays int,
 	messages <-chan *message.Message,
 ) {
@@ -106,71 +212,10 @@ func HandleBucketEvents(
 
 		switch eventType {
 		case eventparser.BucketEventTypeUpload:
-			uploadEvents := parser.ParseBucketUploadEvents(msg)
-
-			for _, event := range uploadEvents {
-				bucketUUID, err := uuid.Parse(event.BucketID)
-				if err != nil {
-					zap.L().
-						Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketID))
-					continue
-				}
-
-				fileUUID, err := uuid.Parse(event.FileID)
-				if err != nil {
-					zap.L().Error("file id should be a valid UUID", zap.String("fileID", event.FileID))
-					continue
-				}
-
-				file, err := sql.GetFileByID(db, bucketUUID, fileUUID)
-				if err != nil {
-					zap.L().Error("event is misconfigured", zap.Error(err))
-					continue
-				}
-
-				db.Model(&file).Update("status", models.FileStatusUploaded)
-
-				action := models.Activity{
-					Message: activity.FileUploaded,
-					Object:  file.ToActivity(),
-					Filter: activity.NewLogFilter(map[string]string{
-						"action":      rbac.ActionCreate.String(),
-						"object_type": rbac.ResourceFile.String(),
-						"file_id":     event.FileID,
-						"bucket_id":   event.BucketID,
-						"user_id":     event.UserID,
-					}),
-				}
-
-				err = activityLogger.Send(action)
-				if err != nil {
-					zap.L().Error("failed to send activity", zap.Error(err))
-				}
-			}
+			handleUploadEvents(parser, msg, db, activityLogger, publisher)
 
 		case eventparser.BucketEventTypeDeletion:
-			deletionEvents := parser.ParseBucketDeletionEvents(msg, storage.GetBucketName())
-
-			for _, event := range deletionEvents {
-				bucketUUID, err := uuid.Parse(event.BucketID)
-				if err != nil {
-					zap.L().
-						Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketID))
-					continue
-				}
-				trashEvent := NewTrashExpirationFromBucketEvent(bucketUUID, event.ObjectKey)
-
-				params := &EventParams{
-					DB:                 db,
-					Storage:            storage,
-					ActivityLogger:     activityLogger,
-					TrashRetentionDays: trashRetentionDays,
-				}
-
-				if err = trashEvent.callback(params); err != nil {
-					zap.L().Error("Failed to process trash expiration", zap.Error(err))
-				}
-			}
+			handleDeletionEvents(parser, msg, db, storage, activityLogger, trashRetentionDays)
 
 		case eventparser.BucketEventTypeIgnore:
 			zap.L().Debug("ignoring event", zap.String("raw_payload", string(msg.Payload)))

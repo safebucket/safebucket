@@ -67,7 +67,11 @@ func StartWorkers(
 		Storage:            store,
 		ActivityLogger:     activityLogger,
 		TrashRetentionDays: config.App.TrashRetentionDays,
+		Cache:              cache,
 	}
+
+	events.StartFileNotificationBuffer(cache, notify)
+	zap.L().Info("Started file notification buffer")
 
 	notifications := eventsManager.GetSubscriber(configuration.EventsNotifications).Subscribe()
 	go events.HandleEvents(eventParams, notifications)
@@ -108,6 +112,7 @@ func StartWorkers(
 			db,
 			activityLogger,
 			store,
+			eventRouter,
 			config.App.TrashRetentionDays,
 			bucketEvents,
 		)

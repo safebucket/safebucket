@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { IBucket } from "@/types/bucket.ts";
 import { BucketViewOptions } from "@/components/bucket-view/components/BucketViewOptions";
+import { NotificationPopover } from "@/components/bucket-view/components/NotificationPopover";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import { useFileActions } from "@/components/FileActions/hooks/useFileActions.ts";
@@ -38,6 +39,8 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
         <h1 className="text-2xl font-bold">{bucket.name}</h1>
         <div className="flex items-center gap-4">
           <BucketViewOptions />
+
+          <NotificationPopover bucketId={bucket.id} />
 
           {isContributor ? (
             <>

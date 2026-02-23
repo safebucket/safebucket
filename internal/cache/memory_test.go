@@ -239,3 +239,46 @@ func TestZRemRangeByScore_MissingKey(t *testing.T) {
 	mc := newTestCache(t)
 	assert.NoError(t, mc.ZRemRangeByScore("nonexistent", "0", "10"))
 }
+
+func TestZRangeByScore_ReturnsInRange(t *testing.T) {
+	mc := newTestCache(t)
+
+	_ = mc.ZAdd("zset", 1.0, "a")
+	_ = mc.ZAdd("zset", 5.0, "b")
+	_ = mc.ZAdd("zset", 10.0, "c")
+
+	members, err := mc.ZRangeByScore("zset", "1", "5")
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"a", "b"}, members)
+}
+
+func TestZRangeByScore_InfBounds(t *testing.T) {
+	mc := newTestCache(t)
+
+	_ = mc.ZAdd("zset", 1.0, "a")
+	_ = mc.ZAdd("zset", 5.0, "b")
+	_ = mc.ZAdd("zset", 10.0, "c")
+
+	members, err := mc.ZRangeByScore("zset", "-inf", "+inf")
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"a", "b", "c"}, members)
+}
+
+func TestZRangeByScore_MissingKey(t *testing.T) {
+	mc := newTestCache(t)
+
+	members, err := mc.ZRangeByScore("nonexistent", "0", "10")
+	require.NoError(t, err)
+	assert.Nil(t, members)
+}
+
+func TestZRangeByScore_NoMatches(t *testing.T) {
+	mc := newTestCache(t)
+
+	_ = mc.ZAdd("zset", 1.0, "a")
+	_ = mc.ZAdd("zset", 2.0, "b")
+
+	members, err := mc.ZRangeByScore("zset", "5", "10")
+	require.NoError(t, err)
+	assert.Nil(t, members)
+}

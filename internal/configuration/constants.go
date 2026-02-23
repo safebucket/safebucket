@@ -63,6 +63,14 @@ const (
 	ProviderMemory    = "memory"
 )
 
+const (
+	CacheNotifyBatchCountKey = "notify:batch:count:%s"
+	CacheNotifyBatchMetaKey  = "notify:batch:meta:%s"
+	CacheNotifyBatchesKey    = "notify:batches"
+	CacheNotifyFlush         = 30
+	CacheNotifyBatchTTL      = CacheNotifyFlush + 5
+)
+
 const BulkActionsLimit = 1000
 
 var ArrayConfigFields = []string{

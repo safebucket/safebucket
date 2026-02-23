@@ -307,7 +307,15 @@
       "activity": "Bucket activity",
       "trash": "Trash",
       "settings": "Settings",
-      "view_only": "View-only access"
+      "view_only": "View-only access",
+      "notifications": "Notifications"
+    },
+    "notifications": {
+      "title": "Email Notifications",
+      "description": "Get notified when files are uploaded or downloaded.",
+      "uploads": "Upload notifications",
+      "downloads": "Download notifications",
+      "updated": "Notification preferences updated successfully"
     },
     "list_view": {
       "name": "Name",

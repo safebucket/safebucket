@@ -38,6 +38,10 @@ func (s BucketMemberService) Routes() chi.Router {
 		With(m.Validate[models.UpdateMembersBody]).
 		Put("/", handlers.BodyHandler(s.UpdateBucketMembers))
 
+	r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
+		With(m.Validate[models.MembershipNotificationBody]).
+		Patch("/notifications", handlers.BodyHandler(s.UpdateNotificationPreferences))
+
 	return r
 }
 
@@ -67,12 +71,14 @@ func (s BucketMemberService) GetBucketMembers(
 		userEmailMap[membership.User.Email] = membership.User
 
 		membersList = append(membersList, models.BucketMember{
-			UserID:    membership.User.ID,
-			Email:     membership.User.Email,
-			FirstName: membership.User.FirstName,
-			LastName:  membership.User.LastName,
-			Group:     membership.Group,
-			Status:    "active",
+			UserID:                membership.User.ID,
+			Email:                 membership.User.Email,
+			FirstName:             membership.User.FirstName,
+			LastName:              membership.User.LastName,
+			Group:                 membership.Group,
+			Status:                "active",
+			UploadNotifications:   membership.UploadNotifications,
+			DownloadNotifications: membership.DownloadNotifications,
 		})
 	}
 
@@ -95,6 +101,30 @@ func (s BucketMemberService) GetBucketMembers(
 	}
 
 	return membersList
+}
+
+func (s BucketMemberService) UpdateNotificationPreferences(
+	logger *zap.Logger,
+	user models.UserClaims,
+	ids uuid.UUIDs,
+	body models.MembershipNotificationBody,
+) error {
+	bucketID := ids[0]
+
+	var membership models.Membership
+	// Note: This check is mandatory as the handler only validates that the user belongs to the bucket
+	// not that he's updating only his own notification preferences
+	result := s.DB.Where("user_id = ? AND bucket_id = ?", user.UserID, bucketID).First(&membership)
+	if result.RowsAffected == 0 {
+		return apierrors.NewAPIError(404, "NOT_FOUND")
+	}
+
+	if err := s.DB.Model(&membership).Updates(body).Error; err != nil {
+		logger.Error("Failed to update notification preferences", zap.Error(err))
+		return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
+	return nil
 }
 
 func (s BucketMemberService) UpdateBucketMembers(

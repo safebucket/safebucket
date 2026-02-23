@@ -96,6 +96,13 @@ func (r *RueidisCache) ZAdd(key string, score float64, member string) error {
 	).Error()
 }
 
+func (r *RueidisCache) ZRangeByScore(key string, minScore string, maxScore string) ([]string, error) {
+	ctx := context.Background()
+	return r.client.Do(ctx,
+		r.client.B().Zrangebyscore().Key(key).Min(minScore).Max(maxScore).Build(),
+	).AsStrSlice()
+}
+
 func (r *RueidisCache) ZRemRangeByScore(key string, minScore string, maxScore string) error {
 	ctx := context.Background()
 	return r.client.Do(ctx,
