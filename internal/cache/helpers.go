@@ -70,12 +70,12 @@ func GetRateLimit(c ICache, userIdentifier string, requestsPerMinute int) (int, 
 }
 
 func RefreshLock(c ICache, key string, instanceID string, ttl time.Duration) (bool, error) {
-	refreshed := false
 	current, err := c.Get(key)
 	if err == nil && current == instanceID {
-		if expErr := c.Expire(key, ttl); expErr == nil {
-			refreshed = true
+		if expErr := c.Expire(key, ttl); expErr != nil {
+			return false, expErr
 		}
+		return true, nil
 	}
-	return refreshed, err
+	return false, err
 }
