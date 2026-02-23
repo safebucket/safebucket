@@ -3,7 +3,6 @@ package main
 import (
 	"api/internal/configuration"
 	"api/internal/core"
-	"api/internal/database"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -17,7 +16,10 @@ func main() {
 
 	profile := configuration.GetProfile(config.App.Profile)
 
-	db := database.InitDB(config.Database)
+	db := core.NewDatabase(config.Database)
+	if sqlDB, err := db.DB(); err == nil {
+		defer sqlDB.Close()
+	}
 	cache := core.NewCache(config.Cache)
 	defer cache.Close()
 	storage := core.NewStorage(config.Storage, config.App.TrashRetentionDays)

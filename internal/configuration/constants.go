@@ -52,6 +52,17 @@ const (
 	MFALockoutSeconds = 900
 )
 
+const (
+	ProviderPostgres = "postgres"
+	ProviderSQLite   = "sqlite"
+)
+
+const (
+	PostgresMaxOpenConns    = 25
+	PostgresMaxIdleConns    = 10
+	PostgresConnMaxLifetime = 30 // in minutes
+)
+
 // Storage and messaging provider types.
 const (
 	ProviderJetstream = "jetstream"

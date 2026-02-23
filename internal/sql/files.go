@@ -3,6 +3,8 @@ package sql
 import (
 	"errors"
 
+	"api/internal/database"
+
 	apierrors "api/internal/errors"
 	"api/internal/models"
 
@@ -30,12 +32,14 @@ func GetSharedFilesByDay(db *gorm.DB, days int) []models.TimeSeriesPoint {
 
 	startDate := time.Now().AddDate(0, 0, -days)
 
+	dateExpr := database.FormatDateStr(db, "files.created_at")
+
 	// Get files from shared buckets grouped by day
 	db.Model(&models.File{}).
-		Select("TO_CHAR(files.created_at, 'YYYY-MM-DD') as date, COUNT(*) as count").
+		Select(dateExpr+" as date, COUNT(*) as count").
 		Where("status = ?", models.FileStatusUploaded).
 		Where("files.created_at >= ?", startDate).
-		Group("TO_CHAR(files.created_at, 'YYYY-MM-DD')").
+		Group(dateExpr).
 		Order("date ASC").
 		Scan(&result)
 

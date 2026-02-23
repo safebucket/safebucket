@@ -9,6 +9,7 @@ import (
 	"api/internal/activity"
 	c "api/internal/cache"
 	"api/internal/configuration"
+	"api/internal/database"
 	"api/internal/events"
 	h "api/internal/helpers"
 	m "api/internal/middlewares"
@@ -23,7 +24,6 @@ import (
 	"github.com/go-chi/cors"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 func CreateAdminUser(db *gorm.DB, config models.Configuration) {
@@ -36,15 +36,13 @@ func CreateAdminUser(db *gorm.DB, config models.Configuration) {
 		Role:         models.RoleAdmin,
 	}
 
-	hash, _ := h.CreateHash(config.App.AdminPassword)
+	hash, err := h.CreateHash(config.App.AdminPassword)
+	if err != nil {
+		zap.L().Fatal("Failed to hash admin password", zap.Error(err))
+	}
 	adminUser.HashedPassword = hash
-	db.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "email"}, {Name: "provider_key"}},
-		TargetWhere: clause.Where{Exprs: []clause.Expression{
-			clause.Eq{Column: "deleted_at", Value: nil},
-		}},
-		DoUpdates: clause.AssignmentColumns([]string{"hashed_password"}),
-	}).Create(&adminUser)
+
+	database.UpsertAdminUser(db, &adminUser)
 }
 
 func StartWorkers(

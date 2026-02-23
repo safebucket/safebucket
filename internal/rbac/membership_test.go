@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"api/internal/database"
 	"api/internal/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -25,6 +26,8 @@ func setupMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, *sql.DB) {
 		Conn: db,
 	}), &gorm.Config{})
 	require.NoError(t, err)
+
+	database.RegisterCallbacks(gormDB)
 
 	return gormDB, mock, db
 }
@@ -204,8 +207,8 @@ func TestCreateMembership(t *testing.T) {
 		group := models.GroupOwner
 
 		mock.ExpectBegin()
-		mock.ExpectQuery(`INSERT INTO "memberships"`).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
+		mock.ExpectExec(`INSERT INTO "memberships"`).
+			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectCommit()
 
 		err := CreateMembership(gormDB, userID, bucketID, group)
@@ -223,7 +226,7 @@ func TestCreateMembership(t *testing.T) {
 		group := models.GroupOwner
 
 		mock.ExpectBegin()
-		mock.ExpectQuery(`INSERT INTO "memberships"`).
+		mock.ExpectExec(`INSERT INTO "memberships"`).
 			WillReturnError(sql.ErrConnDone)
 		mock.ExpectRollback()
 

@@ -4,7 +4,7 @@ CREATE TYPE worker_run_status AS enum ('running', 'completed', 'failed');
 CREATE TABLE worker_runs
     (
         id uuid
-            PRIMARY KEY DEFAULT gen_random_uuid(),
+            PRIMARY KEY,
         worker_name VARCHAR(64) NOT NULL,
         status worker_run_status NOT NULL DEFAULT 'running',
         started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

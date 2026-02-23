@@ -14,7 +14,7 @@ CREATE TYPE role_type AS ENUM ('admin', 'user', 'guest');
 CREATE TABLE users
     (
         id uuid
-            PRIMARY KEY DEFAULT gen_random_uuid(),
+            PRIMARY KEY,
         first_name TEXT,
         last_name TEXT,
         email TEXT NOT NULL,
@@ -37,7 +37,7 @@ CREATE UNIQUE INDEX idx_users_email_provider_key ON users (email, provider_key) 
 CREATE TABLE buckets
     (
         id uuid
-            PRIMARY KEY DEFAULT gen_random_uuid(),
+            PRIMARY KEY,
         name TEXT NOT NULL,
         created_by uuid NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -56,7 +56,7 @@ CREATE INDEX idx_buckets_created_by ON buckets (created_by);
 CREATE TABLE memberships
     (
         id uuid
-            PRIMARY KEY DEFAULT gen_random_uuid(),
+            PRIMARY KEY,
         user_id uuid NOT NULL,
         bucket_id uuid NOT NULL,
         "group" group_type NOT NULL,
@@ -81,7 +81,7 @@ CREATE UNIQUE INDEX idx_memberships_user_bucket ON memberships (user_id, bucket_
 CREATE TABLE folders
     (
         id uuid
-            PRIMARY KEY DEFAULT gen_random_uuid(),
+            PRIMARY KEY,
         name TEXT NOT NULL,
         status file_status,
         folder_id uuid,
@@ -114,7 +114,7 @@ CREATE UNIQUE INDEX idx_folders_unique_name ON folders (bucket_id,
 CREATE TABLE files
     (
         id uuid
-            PRIMARY KEY DEFAULT gen_random_uuid(),
+            PRIMARY KEY,
         name TEXT NOT NULL,
         extension TEXT,
         status file_status,
@@ -153,7 +153,7 @@ CREATE UNIQUE INDEX idx_files_unique_name ON files (bucket_id,
 CREATE TABLE invites
     (
         id uuid
-            PRIMARY KEY DEFAULT gen_random_uuid(),
+            PRIMARY KEY,
         email TEXT NOT NULL,
         "group" group_type NOT NULL,
         bucket_id uuid NOT NULL,
@@ -179,7 +179,7 @@ CREATE INDEX idx_invites_email ON invites (email);
 CREATE TABLE challenges
     (
         id uuid
-            PRIMARY KEY DEFAULT gen_random_uuid(),
+            PRIMARY KEY,
         type challenge_type NOT NULL,
         hashed_secret TEXT NOT NULL,
         attempts_left INTEGER NOT NULL DEFAULT 3,
