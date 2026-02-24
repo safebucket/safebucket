@@ -12,7 +12,7 @@ type UpdateMembersBody struct {
 }
 
 type BucketMember struct {
-	UserID                uuid.UUID `json:"user_id"`
+	UserID                uuid.UUID `json:"user_id,omitempty"`
 	Email                 string    `json:"email"                  validate:"required"`
 	FirstName             string    `json:"first_name"`
 	LastName              string    `json:"last_name"`
