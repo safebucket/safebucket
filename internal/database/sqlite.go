@@ -10,6 +10,14 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	pragmaForeignKeys = "PRAGMA foreign_keys = ON"
+	pragmaJournalWAL  = "PRAGMA journal_mode = WAL"
+	pragmaBusyTimeout = "PRAGMA busy_timeout = 5000"
+
+	sqliteMaxOpenConns = 4
+)
+
 func InitSQLite(config *models.SQLiteDatabaseConfig) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(config.Path), &gorm.Config{})
 	if err != nil {
@@ -21,21 +29,19 @@ func InitSQLite(config *models.SQLiteDatabaseConfig) *gorm.DB {
 		zap.L().Fatal("Failed to retrieve raw SQL database", zap.Error(err))
 	}
 
-	if _, err = sqlDB.ExecContext(context.Background(), "PRAGMA foreign_keys = ON"); err != nil {
+	if _, err = sqlDB.ExecContext(context.Background(), pragmaForeignKeys); err != nil {
 		zap.L().Fatal("Failed to enable foreign keys", zap.Error(err))
 	}
 
-	// WAL mode enables concurrent reads. If it fails (e.g., NFS-mounted filesystem),
-	// fall back to the default journal mode rather than crashing.
-	if _, err = sqlDB.ExecContext(context.Background(), "PRAGMA journal_mode = WAL"); err != nil {
-		zap.L().Warn("Failed to set WAL journal mode, continuing with default journal mode", zap.Error(err))
+	if _, err = sqlDB.ExecContext(context.Background(), pragmaJournalWAL); err != nil {
+		zap.L().Fatal("Failed to set WAL journal mode", zap.Error(err))
 	}
 
-	// Single connection avoids "database is locked" errors. This intentionally
-	// serializes all DB operations (reads and writes) for the lite deployment target.
-	// WAL mode concurrent reads are not leveraged, but correctness is prioritized
-	// over throughput for single-node/self-hosted setups.
-	sqlDB.SetMaxOpenConns(1)
+	if _, err = sqlDB.ExecContext(context.Background(), pragmaBusyTimeout); err != nil {
+		zap.L().Fatal("Failed to set busy timeout", zap.Error(err))
+	}
+
+	sqlDB.SetMaxOpenConns(sqliteMaxOpenConns)
 
 	runMigrations(sqlDB, DialectSQLite)
 	RegisterCallbacks(db)

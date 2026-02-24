@@ -22,7 +22,7 @@ func setupSQLiteDB(t *testing.T) *gorm.DB {
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 
-	_, err = sqlDB.Exec("PRAGMA foreign_keys = ON")
+	_, err = sqlDB.Exec(pragmaForeignKeys)
 	require.NoError(t, err)
 
 	runMigrations(sqlDB, "sqlite")

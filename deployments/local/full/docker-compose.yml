@@ -147,7 +147,7 @@ services:
       POSTGRES_PASSWORD: ${DATABASE__POSTGRES__PASSWORD}
       POSTGRES_DB: ${DATABASE__POSTGRES__NAME}
     healthcheck:
-      test: [ "CMD-SHELL", "psql -U ${DATABASE__USER} -d ${DATABASE__NAME} -c 'SELECT 1' || exit 1" ]
+      test: [ "CMD-SHELL", "psql -U ${DATABASE__POSTGRES__USER} -d ${DATABASE__POSTGRES__NAME} -c 'SELECT 1' || exit 1" ]
       interval: 2s
       timeout: 3s
       retries: 10

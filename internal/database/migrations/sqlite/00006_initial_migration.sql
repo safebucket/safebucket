@@ -89,7 +89,7 @@ CREATE TABLE files
         status TEXT CHECK(status IN ('uploading', 'uploaded', 'deleting', 'deleted', 'restoring')),
         bucket_id TEXT NOT NULL,
         folder_id TEXT,
-        size INTEGER,
+        size INTEGER NOT NULL DEFAULT 0,
         deleted_by TEXT,
         expires_at DATETIME,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -104,7 +104,7 @@ CREATE TABLE files
             FOREIGN KEY (deleted_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
 
         CONSTRAINT chk_files_size_positive
-            CHECK (size IS NULL OR size >= 0)
+            CHECK (size >= 0)
     );
 
 CREATE INDEX idx_files_bucket_folder ON files (bucket_id, folder_id) WHERE deleted_at IS NULL;
