@@ -66,26 +66,6 @@ services:
       database:
         condition: service_healthy
 
-  database:
-    container_name: database
-    image: postgres:18
-    ports:
-      - "5432:5432"
-    volumes:
-      - "postgresql_data:/var/lib/postgresql"
-    restart: unless-stopped
-    shm_size: 128mb
-    environment:
-      POSTGRES_USER: ${DATABASE__POSTGRES__USER}
-      POSTGRES_PASSWORD: ${DATABASE__POSTGRES__PASSWORD}
-      POSTGRES_DB: ${DATABASE__POSTGRES__NAME}
-    healthcheck:
-      test: [ "CMD-SHELL", "psql -U ${DATABASE__POSTGRES__USER} -d ${DATABASE__POSTGRES__NAME} -c 'SELECT 1' || exit 1" ]
-      interval: 2s
-      timeout: 3s
-      retries: 10
-      start_period: 5s
-
   bucket:
     container_name: bucket
     image: rustfs/rustfs:1.0.0-alpha.82
@@ -152,6 +132,26 @@ services:
       nats:
         condition: service_started
     restart: "no"
+
+  database:
+    container_name: database
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    volumes:
+      - "postgresql_data:/var/lib/postgresql"
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ${DATABASE__POSTGRES__USER}
+      POSTGRES_PASSWORD: ${DATABASE__POSTGRES__PASSWORD}
+      POSTGRES_DB: ${DATABASE__POSTGRES__NAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "psql -U ${DATABASE__USER} -d ${DATABASE__NAME} -c 'SELECT 1' || exit 1" ]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
   valkey:
     container_name: valkey
