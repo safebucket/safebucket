@@ -26,7 +26,7 @@ type File struct {
 	Bucket       Bucket         `                             json:"-"`
 	FolderID     *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
 	ParentFolder *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
-	Size         int            `gorm:"default:null"          json:"size"`
+	Size         int            `gorm:"not null;default:0"    json:"size"`
 	DeletedBy    *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
 	ExpiresAt    *time.Time     `gorm:"default:null"          json:"expires_at"`
 	OriginalPath string         `gorm:"-"                     json:"original_path,omitempty"`
