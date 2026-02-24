@@ -21,7 +21,6 @@ func FormatDateStr(db *gorm.DB, column string) string {
 	return fmt.Sprintf("TO_CHAR(%s, 'YYYY-MM-DD')", column)
 }
 
-// UpsertAdminUser creates or updates the admin user.
 func UpsertAdminUser(db *gorm.DB, adminUser *models.User) {
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		var existing models.User
