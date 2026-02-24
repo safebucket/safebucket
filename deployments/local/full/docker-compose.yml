@@ -57,8 +57,6 @@ services:
       - AUTH__PROVIDERS__LOCAL__NAME=${AUTH__PROVIDERS__LOCAL__NAME}
       - AUTH__PROVIDERS__LOCAL__TYPE=${AUTH__PROVIDERS__LOCAL__TYPE}
 
-    volumes:
-      - "safebucket_data:/app/data"
     ports:
       - "8080:8080"
     restart: on-failure:3
@@ -221,7 +219,6 @@ services:
 volumes:
   postgresql_data:
   rustfs_data:
-  safebucket_data:
   mail_data:
   valkey_data:
   nats_data:
