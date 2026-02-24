@@ -65,27 +65,28 @@ services:
     depends_on:
       bucket:
         condition: service_healthy
-      postgres:
+      database:
         condition: service_healthy
 
-  postgres:
-    container_name: postgres
-    image: postgres:17-alpine
+  database:
+    container_name: database
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    volumes:
+      - "postgresql_data:/var/lib/postgresql"
+    restart: unless-stopped
+    shm_size: 128mb
     environment:
       POSTGRES_USER: ${DATABASE__POSTGRES__USER}
       POSTGRES_PASSWORD: ${DATABASE__POSTGRES__PASSWORD}
       POSTGRES_DB: ${DATABASE__POSTGRES__NAME}
-    ports:
-      - "5432:5432"
-    volumes:
-      - "postgres_data:/var/lib/postgresql/data"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DATABASE__POSTGRES__USER} -d ${DATABASE__POSTGRES__NAME}" ]
-      interval: 3s
-      timeout: 2s
+      test: [ "CMD-SHELL", "psql -U ${DATABASE__POSTGRES__USER} -d ${DATABASE__POSTGRES__NAME} -c 'SELECT 1' || exit 1" ]
+      interval: 2s
+      timeout: 3s
       retries: 10
       start_period: 5s
-    restart: unless-stopped
 
   bucket:
     container_name: bucket
@@ -218,7 +219,7 @@ services:
       start_period: 10s
 
 volumes:
-  postgres_data:
+  postgresql_data:
   rustfs_data:
   safebucket_data:
   mail_data:

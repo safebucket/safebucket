@@ -30,7 +30,7 @@ func InitPostgres(config *models.PostgresDatabaseConfig) *gorm.DB {
 	sqlDB.SetMaxIdleConns(configuration.PostgresMaxIdleConns)
 	sqlDB.SetConnMaxLifetime(time.Duration(configuration.PostgresConnMaxLifetime) * time.Minute)
 
-	runMigrations(sqlDB, "postgres")
+	runMigrations(sqlDB, DialectPostgres)
 	RegisterCallbacks(db)
 
 	return db

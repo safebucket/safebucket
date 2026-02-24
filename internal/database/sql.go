@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"embed"
+	"fmt"
 
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
@@ -14,8 +15,8 @@ var postgresMigrations embed.FS
 //go:embed migrations/sqlite/*.sql
 var sqliteMigrations embed.FS
 
-// DialectSQLite is the GORM dialector name for SQLite databases.
 const DialectSQLite = "sqlite"
+const DialectPostgres = "postgres"
 
 func runMigrations(db *sql.DB, dialect string) {
 	gooseDialect := dialect
@@ -29,7 +30,7 @@ func runMigrations(db *sql.DB, dialect string) {
 
 	var migrationsFS embed.FS
 	switch dialect {
-	case "postgres":
+	case DialectPostgres:
 		migrationsFS = postgresMigrations
 	case DialectSQLite:
 		migrationsFS = sqliteMigrations
@@ -38,7 +39,7 @@ func runMigrations(db *sql.DB, dialect string) {
 	goose.SetBaseFS(migrationsFS)
 	defer goose.SetBaseFS(nil)
 
-	migrationsDir := "migrations/" + dialect
+	migrationsDir := fmt.Sprintf("migrations/%s", dialect)
 
 	if err := goose.Up(db, migrationsDir); err != nil {
 		zap.L().Fatal("Failed to run migrations", zap.String("dialect", dialect), zap.Error(err))
