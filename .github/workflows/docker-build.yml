@@ -219,11 +219,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create multi-arch manifests
+        env:
+          METADATA: ${{ steps.meta.outputs.json }}
         run: |
           set -euo pipefail
 
           # Parse tags from metadata JSON
-          METADATA='${{ steps.meta.outputs.json }}'
           echo "Metadata: $METADATA"
 
           # Extract tags grouped by registry

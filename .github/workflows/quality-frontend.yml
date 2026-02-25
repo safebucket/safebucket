@@ -4,14 +4,11 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'web/**'
-      - '.github/workflows/quality-frontend.yml'
   pull_request:
-    paths:
-      - 'web/**'
-      - '.github/workflows/quality-frontend.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   frontend:
