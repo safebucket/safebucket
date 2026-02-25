@@ -31,12 +31,14 @@ app:
   max_upload_size: 53687091200 # 50 Gb
 
 database:
-  host: localhost
-  port: 5432
-  user: safebucket-user
-  password: safebucket-password
-  name: safebucket
-  sslmode: disable
+  type: postgres
+  postgres:
+    host: localhost
+    port: 5432
+    user: safebucket-user
+    password: safebucket-password
+    name: safebucket
+    sslmode: disable
 
 cache:
   type: redis
