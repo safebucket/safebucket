@@ -411,6 +411,7 @@
       "remove_file": "Supprimer le fichier",
       "advanced": "Avancé",
       "expiration_label": "Date d'expiration",
+      "pick_a_date": "Choisir une date",
       "upload_button": "Télécharger",
       "folder_path": "dans {{path}}"
     }

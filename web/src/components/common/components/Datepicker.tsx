@@ -2,6 +2,7 @@
 
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ interface DatepickerProps {
 }
 
 export function Datepicker({ value, onChange }: DatepickerProps) {
+  const { t } = useTranslation();
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -27,7 +29,7 @@ export function Datepicker({ value, onChange }: DatepickerProps) {
           className={cn("w-[280px]", !value && "text-muted-foreground")}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(value, "PPP") : <span>Pick a date</span>}
+          {value ? format(value, "PPP") : <span>{t("upload.dialog.pick_a_date")}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">

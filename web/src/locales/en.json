@@ -410,6 +410,7 @@
       "remove_file": "Remove file",
       "advanced": "Advanced",
       "expiration_label": "Expiration date",
+      "pick_a_date": "Pick a date",
       "upload_button": "Upload",
       "folder_path": "in {{path}}"
     }
