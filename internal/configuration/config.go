@@ -161,6 +161,7 @@ func Read() models.Configuration {
 	loadDefaults(k)
 	readFileConfig(k)
 	readEnvVars(k)
+	migrateDeprecatedKeys(k)
 	loadConditionalDefaults(k)
 
 	var config models.Configuration
