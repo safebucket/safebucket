@@ -17,7 +17,7 @@ const (
 )
 
 type User struct {
-	ID             uuid.UUID      `gorm:"default:(-)" json:"id"`
+	ID             uuid.UUID      `gorm:"default:(-)"                                              json:"id"`
 	FirstName      string         `gorm:"default:null"                                             json:"first_name"`
 	LastName       string         `gorm:"default:null"                                             json:"last_name"`
 	Email          string         `gorm:"not null;default:null;uniqueIndex:idx_email_provider_key" json:"email"`

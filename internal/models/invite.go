@@ -7,7 +7,7 @@ import (
 )
 
 type Invite struct {
-	ID        uuid.UUID `gorm:"default:(-)" json:"id"`
+	ID        uuid.UUID `gorm:"default:(-)"                                                       json:"id"`
 	Email     string    `gorm:"not null;default:null;index:idx_invite_unique,unique"              json:"email"      validate:"required,email"`
 	Group     Group     `gorm:"not null;default:null;index:idx_invite_unique"                     json:"group"      validate:"required,oneof=owner contributor viewer"`
 	BucketID  uuid.UUID `gorm:"not null;index:idx_invite_unique"                                  json:"bucket_id"`

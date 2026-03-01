@@ -15,7 +15,7 @@ const (
 
 // MFADevice represents an MFA device associated with a user.
 type MFADevice struct {
-	ID              uuid.UUID     `gorm:"default:(-)" json:"id"`
+	ID              uuid.UUID     `gorm:"default:(-)"                              json:"id"`
 	UserID          uuid.UUID     `gorm:"not null;index"                           json:"user_id"`
 	Name            string        `gorm:"type:varchar(100);not null"               json:"name"`
 	Type            MFADeviceType `gorm:"not null;default:'totp'"                  json:"type"`
