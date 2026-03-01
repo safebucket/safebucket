@@ -3,7 +3,7 @@ name: safebucket
 services:
   bucket:
     container_name: bucket
-    image: rustfs/rustfs:1.0.0-alpha.82
+    image: rustfs/rustfs:1.0.0-alpha.84
     environment:
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
@@ -27,40 +27,39 @@ services:
     depends_on:
       - nats
 
-  bucket-events-config:
-    container_name: bucket-events-config
-    image: minio/mc:latest
+  bucket-init:
+    container_name: bucket-init
+    image: amazon/aws-cli:latest
     environment:
-      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
-      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${RUSTFS_ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${RUSTFS_SECRET_KEY}
+      - AWS_RETRY_MODE=standard
+      - AWS_MAX_ATTEMPTS=5
+      - AWS_REGION=us-east-1
+      - ENDPOINT_URL=http://bucket:9000
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
-        echo "Configuring RustFS buckets and events..."
+        echo "Configuring RustFS buckets via aws-cli..."
 
         # Wait for RustFS to be ready
         echo "Waiting for RustFS to be ready..."
-        while ! mc alias set local http://bucket:9000 $${RUSTFS_ACCESS_KEY} $${RUSTFS_SECRET_KEY} 2>/dev/null; do
-          echo "RustFS not ready yet, waiting..."
-          sleep 2
+        for bucket in safebucket loki-data loki-ruler; do
+          while ! aws s3api head-bucket --bucket $${bucket} --endpoint-url $${ENDPOINT_URL} 2>/dev/null; do
+            echo "Checking if bucket $${bucket} exists... if not creating it."
+            aws s3api create-bucket --bucket $${bucket} --endpoint-url $${ENDPOINT_URL} 2>/dev/null || true
+            sleep 2
+          done
+          echo "Bucket $${bucket} is ready."
         done
 
-        echo "RustFS is ready. Creating required buckets..."
-        mc mb local/safebucket --ignore-existing
-        mc mb local/loki-data --ignore-existing
-        mc mb local/loki-ruler --ignore-existing
-        echo "Buckets created successfully."
+        echo "Applying CORS policy..."
+        aws s3api put-bucket-cors --bucket safebucket --endpoint-url $${ENDPOINT_URL} --cors-configuration '{"CORSRules":[{"AllowedHeaders":["*"],"AllowedMethods":["GET","PUT","POST","DELETE","HEAD"],"AllowedOrigins":["*"],"ExposeHeaders":["ETag"]}]}'
 
         echo "Adding bucket notification events for MQTT target..."
-        # The MQTT target 'primary' is configured via RUSTFS_NOTIFY_MQTT_* env vars
-        mc event remove local/safebucket arn:rustfs:sqs:us-east-1:primary:mqtt --event put,delete,get 2>/dev/null || true
-        mc event add local/safebucket arn:rustfs:sqs:us-east-1:primary:mqtt --event put,delete,get
+        aws s3api put-bucket-notification-configuration --bucket safebucket --endpoint-url $${ENDPOINT_URL} --notification-configuration '{"QueueConfigurations":[{"QueueArn":"arn:rustfs:sqs:us-east-1:primary:mqtt","Events":["s3:ObjectCreated:*","s3:ObjectRemoved:*","s3:ObjectAccessed:*"]}]}'
 
-        echo "Verifying bucket notification configuration:"
-        mc event list local/safebucket
-
-        echo "RustFS bucket events configured successfully!"
-        echo "Events will be published to MQTT topic: safebucket-bucket-events"
+        echo "Buckets configured successfully."
     depends_on:
       bucket:
         condition: service_healthy
