@@ -45,14 +45,14 @@ services:
       - "safebucket_data:/app/data"
     ports:
       - "8080:8080"
-    restart: on-failure:3
+    restart: unless-stopped
     depends_on:
       bucket:
         condition: service_healthy
 
   bucket:
     container_name: bucket
-    image: rustfs/rustfs:1.0.0-alpha.82
+    image: rustfs/rustfs:1.0.0-alpha.84
     environment:
       - RUSTFS_ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
@@ -71,30 +71,40 @@ services:
 
   bucket-init:
     container_name: bucket-init
-    image: minio/mc:latest
+    image: amazon/aws-cli:latest
     environment:
-      - RUSTFS_ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
-      - RUSTFS_SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
+      - AWS_ACCESS_KEY_ID=${STORAGE__RUSTFS__ACCESS_KEY}
+      - AWS_SECRET_ACCESS_KEY=${STORAGE__RUSTFS__SECRET_KEY}
+      - AWS_RETRY_MODE=standard
+      - AWS_MAX_ATTEMPTS=5
+      - AWS_REGION=us-east-1
+      - BUCKET_NAME=${STORAGE__RUSTFS__BUCKET_NAME}
+      - ENDPOINT_URL=http://bucket:9000
     entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
-        echo "Configuring RustFS buckets..."
+        echo "Configuring RustFS buckets via aws-cli..."
 
         # Wait for RustFS to be ready
         echo "Waiting for RustFS to be ready..."
-        while ! mc alias set local http://bucket:9000 $${RUSTFS_ACCESS_KEY} $${RUSTFS_SECRET_KEY} 2>/dev/null; do
-          echo "RustFS not ready yet, waiting..."
+        while ! aws s3api head-bucket --bucket $${BUCKET_NAME} --endpoint-url $${ENDPOINT_URL} 2>/dev/null; do
+          echo "Checking if bucket exists... if not creating it."
+          aws s3api create-bucket --bucket $${BUCKET_NAME} --endpoint-url $${ENDPOINT_URL} 2>/dev/null || true
+          
+          # Wait a bit before checking/retrying again
           sleep 2
         done
 
-        echo "RustFS is ready. Creating required buckets..."
-        mc mb local/safebucket --ignore-existing
-        echo "Buckets created successfully."
+        echo "RustFS is ready and bucket $${BUCKET_NAME} exists."
+
+        echo "Applying CORS policy..."
+        aws s3api put-bucket-cors --bucket $${BUCKET_NAME} --endpoint-url $${ENDPOINT_URL} --cors-configuration '{"CORSRules":[{"AllowedHeaders":["*"],"AllowedMethods":["GET","PUT","POST","DELETE","HEAD"],"AllowedOrigins":["*"],"ExposeHeaders":["ETag"]}]}'
+
+        echo "Buckets configured successfully."
     depends_on:
       bucket:
         condition: service_healthy
     restart: "no"
-
 
 volumes:
   rustfs_data:
