@@ -1,7 +1,6 @@
 package database
 
 import (
-	"errors"
 	"fmt"
 
 	"api/internal/models"
@@ -26,12 +25,12 @@ func UpsertAdminUser(db *gorm.DB, adminUser *models.User) {
 	if err := db.Transaction(func(tx *gorm.DB) error {
 		var existing models.User
 		result := tx.Where("email = ? AND provider_key = ? AND deleted_at IS NULL",
-			adminUser.Email, adminUser.ProviderKey).First(&existing)
-		if result.Error == nil {
-			return tx.Model(&existing).Update("hashed_password", adminUser.HashedPassword).Error
-		}
-		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			adminUser.Email, adminUser.ProviderKey).Find(&existing)
+		if result.Error != nil {
 			return result.Error
+		}
+		if result.RowsAffected > 0 {
+			return tx.Model(&existing).Update("hashed_password", adminUser.HashedPassword).Error
 		}
 		return tx.Create(adminUser).Error
 	}); err != nil {

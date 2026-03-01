@@ -17,7 +17,7 @@ const (
 
 // Challenge is a unified table for all challenge types (invites and password resets).
 type Challenge struct {
-	ID           uuid.UUID     `gorm:"primarykey"                                                       json:"id"`
+	ID           uuid.UUID     `gorm:"default:(-)" json:"id"`
 	Type         ChallengeType `gorm:"not null;index:idx_challenge_type"                                json:"type"                 validate:"required,oneof=invite password_reset"`
 	HashedSecret string        `gorm:"not null;default:null"                                            json:"hashed_secret"        validate:"required"`
 	AttemptsLeft int           `gorm:"not null;default:3"                                               json:"attempts_left"`

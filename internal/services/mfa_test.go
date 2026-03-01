@@ -3,7 +3,6 @@ package services
 import (
 	"api/internal/cache"
 	"api/internal/configuration"
-	"api/internal/database"
 	"api/internal/helpers"
 	"api/internal/models"
 	"database/sql"
@@ -61,7 +60,6 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
-		database.RegisterCallbacks(gormDB)
 
 		// Dependencies
 		mockCache := &MockCache{}
@@ -204,7 +202,6 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 
 			gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 			require.NoError(t, err)
-			database.RegisterCallbacks(gormDB)
 
 			service := MFAService{
 				DB:             gormDB,
@@ -248,8 +245,8 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 
 			// Mock device creation
 			mock.ExpectBegin()
-			mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
-				WillReturnResult(sqlmock.NewResult(0, 1))
+			mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
+				WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
 			mock.ExpectCommit()
 
 			logger := zap.NewNop()
@@ -287,7 +284,6 @@ func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
-		database.RegisterCallbacks(gormDB)
 
 		service := MFAService{
 			DB:             gormDB,
@@ -353,7 +349,6 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
-		database.RegisterCallbacks(gormDB)
 
 		service := MFAService{
 			DB:             gormDB,
@@ -394,8 +389,8 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 
 		// Mock device creation
 		mock.ExpectBegin()
-		mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
-			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
 		mock.ExpectCommit()
 
 		logger := zap.NewNop()
@@ -430,7 +425,6 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
-		database.RegisterCallbacks(gormDB)
 
 		service := MFAService{
 			DB:             gormDB,
@@ -482,7 +476,6 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
-		database.RegisterCallbacks(gormDB)
 
 		service := MFAService{
 			DB:             gormDB,
@@ -537,7 +530,6 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
-		database.RegisterCallbacks(gormDB)
 
 		service := MFAService{
 			DB:             gormDB,
@@ -575,8 +567,8 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 
 		// Mock device creation
 		mock.ExpectBegin()
-		mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
-			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
 		mock.ExpectCommit()
 
 		logger := zap.NewNop()
@@ -612,7 +604,6 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
-		database.RegisterCallbacks(gormDB)
 
 		service := MFAService{
 			DB:             gormDB,
@@ -657,7 +648,6 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
-		database.RegisterCallbacks(gormDB)
 
 		service := MFAService{
 			DB:             gormDB,
@@ -709,7 +699,6 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
-		database.RegisterCallbacks(gormDB)
 
 		service := MFAService{
 			DB:             gormDB,

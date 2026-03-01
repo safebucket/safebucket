@@ -18,6 +18,11 @@ var sqliteMigrations embed.FS
 const DialectSQLite = "sqlite"
 const DialectPostgres = "postgres"
 
+var migrationSources = map[string]embed.FS{
+	DialectPostgres: postgresMigrations,
+	DialectSQLite:   sqliteMigrations,
+}
+
 func runMigrations(db *sql.DB, dialect string) {
 	gooseDialect := dialect
 	if dialect == DialectSQLite {
@@ -28,20 +33,10 @@ func runMigrations(db *sql.DB, dialect string) {
 		zap.L().Fatal("Failed to set goose dialect", zap.String("dialect", gooseDialect), zap.Error(err))
 	}
 
-	var migrationsFS embed.FS
-	switch dialect {
-	case DialectPostgres:
-		migrationsFS = postgresMigrations
-	case DialectSQLite:
-		migrationsFS = sqliteMigrations
-	}
-
-	goose.SetBaseFS(migrationsFS)
+	goose.SetBaseFS(migrationSources[dialect])
 	defer goose.SetBaseFS(nil)
 
-	migrationsDir := fmt.Sprintf("migrations/%s", dialect)
-
-	if err := goose.Up(db, migrationsDir); err != nil {
+	if err := goose.Up(db, fmt.Sprintf("migrations/%s", dialect)); err != nil {
 		zap.L().Fatal("Failed to run migrations", zap.String("dialect", dialect), zap.Error(err))
 	}
 }

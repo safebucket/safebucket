@@ -18,21 +18,21 @@ const (
 )
 
 type File struct {
-	ID           uuid.UUID      `gorm:"primarykey"            json:"id"`
-	Name         string         `gorm:"not null;default:null" json:"name"`
-	Extension    string         `gorm:"default:null"          json:"extension"`
-	Status       FileStatus     `gorm:"default:null"          json:"status"`
-	BucketID     uuid.UUID      `                             json:"bucket_id"`
-	Bucket       Bucket         `                             json:"-"`
-	FolderID     *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
-	ParentFolder *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
-	Size         int            `gorm:"not null;default:0"    json:"size"`
-	DeletedBy    *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
-	ExpiresAt    *time.Time     `gorm:"default:null"          json:"expires_at"`
-	OriginalPath string         `gorm:"-"                     json:"original_path,omitempty"`
-	CreatedAt    time.Time      `                             json:"created_at"`
-	UpdatedAt    time.Time      `                             json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `                             json:"deleted_at"`
+	ID           uuid.UUID      `gorm:"default:(-)" json:"id"`
+	Name         string         `gorm:"not null;default:null"  json:"name"`
+	Extension    string         `gorm:"default:null"           json:"extension"`
+	Status       FileStatus     `gorm:"default:null"           json:"status"`
+	BucketID     uuid.UUID      `                              json:"bucket_id"`
+	Bucket       Bucket         `                              json:"-"`
+	FolderID     *uuid.UUID     `gorm:"default:null"           json:"folder_id,omitempty"`
+	ParentFolder *Folder        `gorm:"foreignKey:FolderID"    json:"parent_folder,omitempty"`
+	Size         int            `gorm:"not null;default:0"     json:"size"`
+	DeletedBy    *uuid.UUID     `gorm:"default:null"           json:"deleted_by,omitempty"`
+	ExpiresAt    *time.Time     `gorm:"default:null"           json:"expires_at"`
+	OriginalPath string         `gorm:"-"                      json:"original_path,omitempty"`
+	CreatedAt    time.Time      `                              json:"created_at"`
+	UpdatedAt    time.Time      `                              json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `                              json:"deleted_at"`
 }
 
 type FileActivity struct {
