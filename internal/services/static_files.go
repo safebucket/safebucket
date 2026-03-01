@@ -3,9 +3,9 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
-	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -13,8 +13,8 @@ import (
 )
 
 type StaticFileService struct {
-	staticPath                 string
-	discoveredFiles            map[string]string
+	fsys                       fs.FS
+	discoveredFiles            map[string]bool
 	configJSON                 []byte
 	apiURL                     string
 	storageExternalURL         string
@@ -29,23 +29,14 @@ type ConfigJSON struct {
 }
 
 func NewStaticFileService(
-	directory string,
+	fsys fs.FS,
 	apiURL string,
 	storageExternalURL string,
 	requiresUploadConfirmation bool,
 ) (*StaticFileService, error) {
-	var staticPath string
-
-	if !filepath.IsAbs(directory) {
-		workDir, _ := os.Getwd()
-		staticPath = filepath.Join(workDir, directory)
-	} else {
-		staticPath = directory
-	}
-
 	service := &StaticFileService{
-		staticPath:                 staticPath,
-		discoveredFiles:            make(map[string]string),
+		fsys:                       fsys,
+		discoveredFiles:            make(map[string]bool),
 		apiURL:                     apiURL,
 		storageExternalURL:         storageExternalURL,
 		requiresUploadConfirmation: requiresUploadConfirmation,
@@ -60,6 +51,11 @@ func NewStaticFileService(
 	if err = service.discoverFiles(); err != nil {
 		return nil, fmt.Errorf("failed to discover files: %w", err)
 	}
+
+	if _, err = fs.Stat(fsys, "index.html"); err != nil {
+		return nil, fmt.Errorf("index.html not found in static files: %w", err)
+	}
+
 	return service, nil
 }
 
@@ -90,48 +86,30 @@ func (s *StaticFileService) serveConfigJSON(w http.ResponseWriter, _ *http.Reque
 }
 
 func (s *StaticFileService) discoverFiles() error {
-	return s.walkDirectory(s.staticPath, "")
+	return s.walkDirectory(".", "")
 }
 
-// walkDirectory recursively traverses a directory tree to discover static files.
-// It maps URL routes to filesystem paths and handles nested directory structures.
-//
-// Parameters:
-//   - dirPath: The filesystem directory path to traverse
-//   - urlPrefix: The URL path prefix for files in this directory (empty for root)
-//
-// Returns:
-//   - error: Any error encountered during directory traversal
-//
-// The function performs the following operations:
-//  1. Reads all entries in the current directory
-//  2. For subdirectories: recursively calls itself with updated URL prefix
-//  3. For files: checks if serveable and maps route path to filesystem path
-//  4. Normalizes path separators for cross-platform compatibility
 func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
-	entries, err := os.ReadDir(dirPath)
+	entries, err := fs.ReadDir(s.fsys, dirPath)
 	if err != nil {
 		return fmt.Errorf("failed to read directory %s: %w", dirPath, err)
 	}
 
 	for _, entry := range entries {
-		fullPath := filepath.Join(dirPath, entry.Name())
+		fullPath := path.Join(dirPath, entry.Name())
 
 		if entry.IsDir() {
-			subURLPrefix := filepath.Join(urlPrefix, entry.Name())
+			subURLPrefix := path.Join(urlPrefix, entry.Name())
 			if err = s.walkDirectory(fullPath, subURLPrefix); err != nil {
 				zap.L().
 					Warn("failed to walk subdirectory", zap.String("dir", fullPath), zap.Error(err))
 				continue
 			}
 		} else {
-			// Add file to discovered files
-			routePath := filepath.Join(urlPrefix, entry.Name())
-			routePath = "/" + strings.ReplaceAll(routePath, "\\", "/") // Normalize path separators
+			routePath := "/" + path.Join(urlPrefix, entry.Name())
 
 			if s.isServableFile(entry.Name()) {
-				relativePath := filepath.Join(urlPrefix, entry.Name())
-				s.discoveredFiles[routePath] = relativePath
+				s.discoveredFiles[routePath] = true
 			}
 		}
 	}
@@ -141,7 +119,6 @@ func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 }
 
 func (s *StaticFileService) isServableFile(fileName string) bool {
-	// Serve all common static file types
 	staticExtensions := []string{
 		".ico", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
 		".json", ".txt", ".xml", ".pdf",
@@ -171,7 +148,7 @@ func (s *StaticFileService) Routes() chi.Router {
 		})
 	}
 
-	// SPA fallback - serve index.html for all other routes not matched above
+	// SPA fallback - serve index.html for all other routes not matched above.
 	r.Get("/*", func(w http.ResponseWriter, req *http.Request) {
 		s.serveSPAFallback(w, req)
 	})
@@ -179,22 +156,17 @@ func (s *StaticFileService) Routes() chi.Router {
 }
 
 func (s *StaticFileService) serveFile(w http.ResponseWriter, r *http.Request, requestPath string) {
-	// Check if file was discovered at startup (whitelist approach)
-	relativePath, exists := s.discoveredFiles[requestPath]
-	if !exists {
+	if !s.discoveredFiles[requestPath] {
 		http.NotFound(w, r)
 		return
 	}
 
-	fullPath := filepath.Join(s.staticPath, relativePath)
-
-	s.secureServeFile(w, r, fullPath)
+	fsPath := strings.TrimPrefix(requestPath, "/")
+	s.secureServeFile(w, r, fsPath)
 }
 
 func (s *StaticFileService) serveSPAFallback(w http.ResponseWriter, r *http.Request) {
-	relativePath := s.discoveredFiles["/index.html"]
-	fullPath := filepath.Join(s.staticPath, relativePath)
-	s.secureServeFile(w, r, fullPath)
+	s.secureServeFile(w, r, "index.html")
 }
 
 func (s *StaticFileService) secureServeFile(
@@ -204,7 +176,7 @@ func (s *StaticFileService) secureServeFile(
 ) {
 	s.setSecurityHeaders(w, filePath)
 
-	http.ServeFile(w, r, filePath)
+	http.ServeFileFS(w, r, s.fsys, filePath)
 }
 
 func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath string) {

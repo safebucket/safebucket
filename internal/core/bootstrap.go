@@ -3,7 +3,9 @@ package core
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net/http"
+	"os"
 	"time"
 
 	"api/internal/activity"
@@ -219,6 +221,7 @@ func StartHTTPServer(
 	activityLogger activity.IActivityLogger,
 	notify notifier.INotifier,
 	eventRouter *EventRouter,
+	embeddedWebFS fs.FS,
 ) {
 	m.InitValidator(config.App.MaxUploadSize)
 
@@ -304,8 +307,12 @@ func StartHTTPServer(
 	})
 
 	if config.App.StaticFiles.Enabled {
+		webFS, source := resolveWebFS(config.App.StaticFiles.Directory, embeddedWebFS)
+		if webFS == nil {
+			zap.L().Fatal("static files enabled but no source available (no directory on disk and no embedded FS)")
+		}
 		staticFileService, err := services.NewStaticFileService(
-			config.App.StaticFiles.Directory,
+			webFS,
 			config.App.APIURL,
 			config.Storage.GetExternalURL(),
 			RequiresUploadConfirmation(config.Storage.Type, config.Events.Type),
@@ -314,7 +321,7 @@ func StartHTTPServer(
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))
 		}
 		r.Mount("/", staticFileService.Routes())
-		zap.L().Info("static file service enabled", zap.String("directory", config.App.StaticFiles.Directory))
+		zap.L().Info("static file service enabled", zap.String("source", source))
 	} else {
 		zap.L().Info("static file service disabled")
 	}
@@ -333,4 +340,16 @@ func StartHTTPServer(
 	if err != nil {
 		zap.L().Error("Failed to start the app", zap.Error(err))
 	}
+}
+
+func resolveWebFS(directory string, embeddedFS fs.FS) (fs.FS, string) {
+	if info, err := os.Stat(directory); err == nil && info.IsDir() {
+		return os.DirFS(directory), "disk:" + directory
+	}
+
+	if entries, err := fs.ReadDir(embeddedFS, "."); err == nil && len(entries) > 0 {
+		return embeddedFS, "embedded"
+	}
+
+	return nil, ""
 }

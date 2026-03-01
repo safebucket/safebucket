@@ -4,7 +4,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"html/template"
+	"io/fs"
+	"strings"
 
+	"api/internal/mails"
 	"api/internal/models"
 
 	mail "github.com/wneessen/go-mail"
@@ -13,18 +16,21 @@ import (
 
 // SMTPNotifier implements INotifier using SMTP protocol.
 type SMTPNotifier struct {
-	client *mail.Client
-	sender string
+	client    *mail.Client
+	sender    string
+	templates map[string]*template.Template
 }
 
-// NewSMTPNotifier initializes the SMTP notifier and checks the connection.
+// NewSMTPNotifier initializes the SMTP notifier, parses all email templates, and checks the connection.
 func NewSMTPNotifier(config models.MailerConfiguration) *SMTPNotifier {
 	client, err := newMailClient(config)
 	if err != nil {
 		zap.L().Fatal("Failed to create SMTP client", zap.Error(err))
 	}
 
-	return &SMTPNotifier{client: client, sender: config.Sender}
+	templates := parseMailTemplates()
+
+	return &SMTPNotifier{client: client, sender: config.Sender, templates: templates}
 }
 
 func newMailClient(config models.MailerConfiguration) (*mail.Client, error) {
@@ -71,6 +77,32 @@ func newMailClient(config models.MailerConfiguration) (*mail.Client, error) {
 	return client, nil
 }
 
+func parseMailTemplates() map[string]*template.Template {
+	templates := make(map[string]*template.Template)
+
+	entries, err := fs.ReadDir(mails.TemplatesFS, ".")
+	if err != nil {
+		zap.L().Fatal("failed to read embedded mail templates", zap.Error(err))
+	}
+
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == "base.html" || !strings.HasSuffix(name, ".html") {
+			continue
+		}
+
+		tmpl, parseErr := template.ParseFS(mails.TemplatesFS, "base.html", name)
+		if parseErr != nil {
+			zap.L().Fatal("failed to parse mail template", zap.String("template", name), zap.Error(parseErr))
+		}
+
+		key := strings.TrimSuffix(name, ".html")
+		templates[key] = tmpl
+	}
+
+	return templates
+}
+
 // NotifyFromTemplate sends an email using a given template and data.
 func (s *SMTPNotifier) NotifyFromTemplate(
 	to string,
@@ -78,23 +110,24 @@ func (s *SMTPNotifier) NotifyFromTemplate(
 	templateName string,
 	data any,
 ) error {
-	tmpl, err := template.ParseFiles(
-		"./internal/mails/base.html",
-		fmt.Sprintf("./internal/mails/%s.html", templateName),
-	)
-	if err != nil {
-		return err
+	if strings.ContainsAny(templateName, "/\\.") {
+		return fmt.Errorf("invalid template name: %s", templateName)
+	}
+
+	tmpl, ok := s.templates[templateName]
+	if !ok {
+		return fmt.Errorf("unknown mail template: %s", templateName)
 	}
 
 	msg := mail.NewMsg()
-	if err = msg.From(s.sender); err != nil {
+	if err := msg.From(s.sender); err != nil {
 		return err
 	}
-	if err = msg.To(to); err != nil {
+	if err := msg.To(to); err != nil {
 		return err
 	}
 	msg.Subject(subject)
-	if err = msg.SetBodyHTMLTemplate(tmpl, data); err != nil {
+	if err := msg.SetBodyHTMLTemplate(tmpl, data); err != nil {
 		return err
 	}
 

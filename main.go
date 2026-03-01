@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io/fs"
+
 	"api/internal/configuration"
 	"api/internal/core"
 
@@ -57,7 +59,11 @@ func main() {
 	}
 
 	if profile.HTTPServer {
-		core.StartHTTPServer(config, db, cache, storage, activityLogger, notify, eventRouter)
+		webFS, err := fs.Sub(webDistFS, "web/dist")
+		if err != nil {
+			zap.L().Fatal("failed to create sub-filesystem for web assets", zap.Error(err))
+		}
+		core.StartHTTPServer(config, db, cache, storage, activityLogger, notify, eventRouter, webFS)
 	} else if profile.Workers.AnyEnabled() {
 		zap.L().Info("Running in worker-only mode")
 		select {} // Block forever
