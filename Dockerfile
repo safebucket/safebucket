@@ -34,7 +34,7 @@ FROM gcr.io/distroless/cc-debian12:nonroot
 
 WORKDIR /app
 
-COPY --from=backend-builder /app/safebucket ./safebucket
+COPY --from=backend-builder --chown=nonroot:nonroot /app/safebucket ./safebucket
 COPY --from=frontend-builder --chown=nonroot:nonroot /app/web/dist ./web/dist
 COPY --from=backend-builder --chown=nonroot:nonroot /app/internal/database/migrations ./internal/database/migrations
 COPY --from=backend-builder --chown=nonroot:nonroot /app/internal/mails ./internal/mails
