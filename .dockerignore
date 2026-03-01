@@ -60,6 +60,9 @@ coverage.out
 *.temp
 *.log
 
+# Local data
+data/
+
 # Local development
 CLAUDE.md
 .prettierrc.json

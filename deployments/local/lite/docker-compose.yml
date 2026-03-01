@@ -41,6 +41,8 @@ services:
       - AUTH__PROVIDERS__KEYS=${AUTH__PROVIDERS__KEYS}
       - AUTH__PROVIDERS__LOCAL__NAME=${AUTH__PROVIDERS__LOCAL__NAME}
       - AUTH__PROVIDERS__LOCAL__TYPE=${AUTH__PROVIDERS__LOCAL__TYPE}
+      - AUTH__PROVIDERS__LOCAL__SHARING__ALLOWED=${AUTH__PROVIDERS__LOCAL__SHARING__ALLOWED}
+      - GOGC=${GOGC:-50}
     volumes:
       - "safebucket_data:/app/data"
     ports:

@@ -14,6 +14,7 @@ const (
 	pragmaForeignKeys = "PRAGMA foreign_keys = ON"
 	pragmaJournalWAL  = "PRAGMA journal_mode = WAL"
 	pragmaBusyTimeout = "PRAGMA busy_timeout = 5000"
+	pragmaCacheSize   = "PRAGMA cache_size = -2000"
 
 	sqliteMaxOpenConns = 4
 )
@@ -39,6 +40,10 @@ func InitSQLite(config *models.SQLiteDatabaseConfig) *gorm.DB {
 
 	if _, err = sqlDB.ExecContext(context.Background(), pragmaBusyTimeout); err != nil {
 		zap.L().Fatal("Failed to set busy timeout", zap.Error(err))
+	}
+
+	if _, err = sqlDB.ExecContext(context.Background(), pragmaCacheSize); err != nil {
+		zap.L().Fatal("Failed to set cache size", zap.Error(err))
 	}
 
 	sqlDB.SetMaxOpenConns(sqliteMaxOpenConns)
