@@ -41,6 +41,8 @@ CREATE TABLE memberships
         user_id TEXT NOT NULL,
         bucket_id TEXT NOT NULL,
         "group" TEXT NOT NULL CHECK("group" IN ('owner', 'contributor', 'viewer')),
+        upload_notifications INTEGER NOT NULL DEFAULT 1,
+        download_notifications INTEGER NOT NULL DEFAULT 0,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         deleted_at DATETIME,
