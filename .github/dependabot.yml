@@ -104,7 +104,7 @@ updates:
         update-types: ["minor", "patch"]
 
   - package-ecosystem: "terraform"
-    directory: "/deployment/aws/terraform"
+    directory: "/deployments/aws/terraform"
     schedule:
       interval: "weekly"
       day: "monday"
