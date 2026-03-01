@@ -22,10 +22,30 @@ type AuthPatternRule struct {
 
 // AuthExcludedPatterns lists regex patterns for paths with dynamic segments.
 var AuthExcludedPatterns = []AuthPatternRule{
-	{Pattern: regexp.MustCompile(`^/api/v1/auth/providers`), Method: "*"},
-	{Pattern: regexp.MustCompile(`^/api/v1/auth/reset-password/` + UUIDv4Pattern + `/validate$`), Method: "POST"},
-	{Pattern: regexp.MustCompile(`^/api/v1/invites/` + UUIDv4Pattern + `/challenges$`), Method: "POST"},
-	{Pattern: regexp.MustCompile(`^/api/v1/invites/` + UUIDv4Pattern + `/challenges/` + UUIDv4Pattern + `/validate$`), Method: "POST"},
+	{
+		Pattern: regexp.MustCompile(
+			`^/api/v1/auth/providers`,
+		),
+		Method: "*",
+	},
+	{
+		Pattern: regexp.MustCompile(
+			`^/api/v1/auth/reset-password/` + UUIDv4Pattern + `/validate$`,
+		),
+		Method: "POST",
+	},
+	{
+		Pattern: regexp.MustCompile(
+			`^/api/v1/invites/` + UUIDv4Pattern + `/challenges$`,
+		),
+		Method: "POST",
+	},
+	{
+		Pattern: regexp.MustCompile(
+			`^/api/v1/invites/` + UUIDv4Pattern + `/challenges/` + UUIDv4Pattern + `/validate$`,
+		),
+		Method: "POST",
+	},
 }
 
 // AuthAudienceRule defines which token audiences are allowed for a specific route.
