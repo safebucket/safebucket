@@ -192,12 +192,20 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 			description:    "Auth provider list should be public",
 		},
 		{
-			name:           "Excluded path - /api/v1/invites/* without token (GET)",
-			path:           "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000",
-			method:         http.MethodGet,
+			name:           "Excluded path - /api/v1/invites/*/challenges without token (POST)",
+			path:           "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000/challenges",
+			method:         http.MethodPost,
 			authHeader:     "",
 			expectedStatus: http.StatusOK,
-			description:    "Invite endpoints (GET) should not require auth",
+			description:    "Invite challenge endpoints (POST) should not require auth",
+		},
+		{
+			name:           "Excluded path - /api/v1/invites/*/challenges/*/validate without token (POST)",
+			path:           "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000/challenges/660e8400-e29b-41d4-a716-446655440000/validate",
+			method:         http.MethodPost,
+			authHeader:     "",
+			expectedStatus: http.StatusOK,
+			description:    "Invite challenge validate endpoint (POST) should not require auth",
 		},
 		{
 			name:           "Required path - /api/v1/buckets without token",
@@ -324,15 +332,27 @@ func TestIsAuthExcluded(t *testing.T) {
 			method:   "POST",
 			expected: false,
 		},
-		// Invites - wildcard method but POST requires auth (exact path override)
+		// Invites - wildcard method but custom requirements
 		{
-			name:     "Excluded - /api/v1/invites/123 with GET",
-			path:     "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000",
-			method:   "GET",
+			name:     "Excluded - /api/v1/invites/123/challenges with POST",
+			path:     "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000/challenges",
+			method:   "POST",
 			expected: true,
 		},
 		{
-			name:     "Not excluded - /api/v1/invites with POST (exact path override)",
+			name:     "Excluded - /api/v1/invites/*/challenges/*/validate with POST",
+			path:     "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000/challenges/660e8400-e29b-41d4-a716-446655440000/validate",
+			method:   "POST",
+			expected: true,
+		},
+		{
+			name:     "Not excluded - /api/v1/invites/*/challenges with GET (method mismatch)",
+			path:     "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000/challenges",
+			method:   "GET",
+			expected: false,
+		},
+		{
+			name:     "Not excluded - /api/v1/invites with POST",
 			path:     "/api/v1/invites",
 			method:   "POST",
 			expected: false,
