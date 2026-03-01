@@ -71,16 +71,14 @@ func TestMigrateDeprecatedKeys(t *testing.T) {
 }
 
 func TestMigrateDeprecatedKeys_Logging(t *testing.T) {
-	// Setup a zap observer to capture logs
 	core, logs := observer.New(zap.InfoLevel)
 	logger := zap.New(core)
 
-	// Replace the global logger temporarily
 	restoreLogger := zap.ReplaceGlobals(logger)
 	defer restoreLogger()
 
 	t.Run("logs warning when old key is migrated", func(t *testing.T) {
-		logs.TakeAll() // Clear previous logs
+		logs.TakeAll()
 		k := koanf.New(".")
 		require.NoError(t, k.Set("database.host", "localhost"))
 
@@ -90,7 +88,6 @@ func TestMigrateDeprecatedKeys_Logging(t *testing.T) {
 		require.Len(t, entries, 1)
 		assert.Equal(t, zap.WarnLevel, entries[0].Level)
 		assert.Equal(t, "Deprecated configuration key used, please migrate", entries[0].Message)
-		// Can also check specific context fields
 		assert.Equal(t, "database.host", entries[0].ContextMap()["old_key"])
 	})
 
