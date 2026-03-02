@@ -25,14 +25,14 @@ export const BucketDeletion: FC<IBucketDeletionProps> = ({ bucket }) => {
   } = useBucketDeletion(bucket);
 
   return (
-    <Card className="border-red-200 bg-red-50/50">
+    <Card className="border-destructive/20 bg-destructive/5">
       <CardContent>
         <div className="space-y-3 mt-4">
           <div>
-            <h3 className="text-sm font-semibold text-red-700">
+            <h3 className="text-sm font-semibold text-destructive">
               {t("bucket.settings.deletion.title")}
             </h3>
-            <p className="mt-1 text-xs text-red-600">
+            <p className="mt-1 text-xs text-destructive/80">
               {t("bucket.settings.deletion.description")}
             </p>
           </div>
@@ -40,7 +40,7 @@ export const BucketDeletion: FC<IBucketDeletionProps> = ({ bucket }) => {
           <div className="space-y-2">
             <Label htmlFor="confirmation" className="text-xs font-medium">
               {t("bucket.settings.deletion.type_to_confirm")}{" "}
-              <span className="rounded bg-red-100 px-1 py-0.5 font-mono text-xs text-red-700">
+              <span className="rounded bg-destructive/10 px-1 py-0.5 font-mono text-xs text-destructive">
                 {expectedDeleteText}
               </span>{" "}
               {t("bucket.settings.deletion.to_confirm")}
@@ -51,7 +51,7 @@ export const BucketDeletion: FC<IBucketDeletionProps> = ({ bucket }) => {
                 value={confirmationText}
                 onChange={(e) => setConfirmationText(e.target.value)}
                 placeholder={expectedDeleteText}
-                className="border-red-200 text-xs focus:border-red-300 focus:ring-red-200"
+                className="border-destructive/20 text-xs focus:border-destructive/30 focus:ring-destructive/20"
               />
               <Button
                 variant="destructive"
