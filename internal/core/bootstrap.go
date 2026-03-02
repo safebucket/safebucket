@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -220,7 +221,7 @@ func StartHTTPServer(
 	activityLogger activity.IActivityLogger,
 	notify notifier.INotifier,
 	eventRouter *EventRouter,
-	embeddedWebFS fs.FS,
+	embeddedWebFS embed.FS,
 ) {
 	m.InitValidator(config.App.MaxUploadSize)
 
@@ -306,9 +307,9 @@ func StartHTTPServer(
 	})
 
 	if config.App.StaticFiles.Enabled {
-		webFS := resolveWebFS(embeddedWebFS)
-		if webFS == nil {
-			zap.L().Fatal("static files enabled but no web assets found (run 'npm run build' in web/ first)")
+		webFS, err := fs.Sub(embeddedWebFS, "web/dist")
+		if err != nil {
+			zap.L().Fatal("failed to create sub-filesystem for web assets", zap.Error(err))
 		}
 		staticFileService, err := services.NewStaticFileService(
 			webFS,
@@ -339,11 +340,4 @@ func StartHTTPServer(
 	if err != nil {
 		zap.L().Error("Failed to start the app", zap.Error(err))
 	}
-}
-
-func resolveWebFS(embeddedFS fs.FS) fs.FS {
-	if _, err := fs.Stat(embeddedFS, "index.html"); err == nil {
-		return embeddedFS
-	}
-	return nil
 }

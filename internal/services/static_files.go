@@ -89,6 +89,7 @@ func (s *StaticFileService) discoverFiles() error {
 	return s.walkDirectory(".", "")
 }
 
+// walkDirectory recursively discovers servable files in dirPath, mapping them to URL routes under urlPrefix.
 func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
 	entries, err := fs.ReadDir(s.fsys, dirPath)
 	if err != nil {
