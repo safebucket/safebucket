@@ -21,17 +21,19 @@ function ActivityPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="w-full flex-1 overflow-auto">
-      <div className="m-6 mt-0 grid grid-cols-1 gap-8">
-        <div className="flex items-center justify-between">
+    <div className="flex w-full min-h-0 flex-1 flex-col">
+      <div className="mx-6 flex min-h-0 flex-1 flex-col gap-8">
+        <div className="shrink-0 flex items-center justify-between">
           <h1 className="text-2xl font-bold">{t("activity.title")}</h1>
         </div>
 
-        <Card className="py-2">
-          <CardContent className="pb-0 px-2">
-            <ActivityView activity={activity} />
-          </CardContent>
-        </Card>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <Card className="py-2">
+            <CardContent className="pb-0 px-2">
+              <ActivityView activity={activity} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

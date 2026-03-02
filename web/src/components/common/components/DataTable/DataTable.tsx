@@ -6,7 +6,6 @@ import {
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -70,7 +69,6 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
@@ -149,7 +147,6 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
           </TableBody>
         </Table>
       </div>
-      {/* <DataTablePagination table={table} />*/}
     </div>
   );
 }

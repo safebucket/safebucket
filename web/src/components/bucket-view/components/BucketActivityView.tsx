@@ -13,8 +13,8 @@ export const BucketActivityView = () => {
   );
 
   return (
-    <Card className="py-2">
-      <CardContent className="pb-0 px-2">
+    <Card className="flex min-h-0 flex-1 flex-col py-2">
+      <CardContent className="min-h-0 overflow-y-auto pb-0 px-2">
         {isLoading ? (
           <ActivityViewSkeleton />
         ) : (
