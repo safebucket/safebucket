@@ -68,8 +68,8 @@ services:
       - "8080:8080"
     restart: on-failure:3
     depends_on:
-      bucket:
-        condition: service_healthy
+      bucket-init:
+        condition: service_completed_successfully
       database:
         condition: service_healthy
 

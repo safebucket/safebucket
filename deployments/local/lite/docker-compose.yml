@@ -49,8 +49,8 @@ services:
       - "8080:8080"
     restart: unless-stopped
     depends_on:
-      bucket:
-        condition: service_healthy
+      bucket-init:
+        condition: service_completed_successfully
 
   bucket:
     container_name: bucket
