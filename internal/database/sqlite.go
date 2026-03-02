@@ -15,12 +15,14 @@ const (
 	pragmaJournalWAL  = "PRAGMA journal_mode = WAL"
 	pragmaBusyTimeout = "PRAGMA busy_timeout = 5000"
 	pragmaCacheSize   = "PRAGMA cache_size = -2000"
+	pragmaSynchronous = "PRAGMA synchronous = NORMAL"
 
-	sqliteMaxOpenConns = 4
+	sqliteMaxOpenConns = 1
 )
 
 func InitSQLite(config *models.SQLiteDatabaseConfig) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(config.Path), &gorm.Config{})
+	dsn := config.Path + "?_txlock=immediate"
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		zap.L().Fatal("Failed to connect to SQLite", zap.Error(err))
 	}
@@ -44,6 +46,10 @@ func InitSQLite(config *models.SQLiteDatabaseConfig) *gorm.DB {
 
 	if _, err = sqlDB.ExecContext(context.Background(), pragmaCacheSize); err != nil {
 		zap.L().Fatal("Failed to set cache size", zap.Error(err))
+	}
+
+	if _, err = sqlDB.ExecContext(context.Background(), pragmaSynchronous); err != nil {
+		zap.L().Fatal("Failed to set synchronous mode", zap.Error(err))
 	}
 
 	sqlDB.SetMaxOpenConns(sqliteMaxOpenConns)
