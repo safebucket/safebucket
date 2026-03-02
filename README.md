@@ -2,32 +2,35 @@
   <a href="https://safebucket.io"><img src="./assets/safebucket_banner.png" alt="SafeBucket"></a>
 </h1>
 
-## Introduction
+Safebucket is an open-source file sharing platform where files never touch your server.
+Uploads and downloads go directly to your storage backend via presigned URLs. You bring your own identity provider, your
+own storage, and your own infrastructure. Safebucket handles metadata, access control and audit logging.
 
-Safebucket is an open-source secure file sharing platform designed to share files in an easy and secure way, integrating
-with different cloud providers. Built for individuals and organisations that need to collaborate on files with robust
-security, flexible access controls, and seamless support across any S3-compatible provider (including AWS
-S3, Google Cloud Storage and [more](https://docs.safebucket.io/docs/configuration/storage-providers)).
-
-![SafeBucket Homepage](./assets/homepage.png)
+![SafeBucket Homepage](./assets/list_view.png)
 
 ## Why Safebucket?
 
-Safebucket eliminates the complexity of secure file sharing by providing a lightweight, stateless solution that
-integrates seamlessly with your existing infrastructure.
-Plug in your preferred storage and auth providers and eliminate the need for local logins - your users can share files using their
-existing corporate identities.
+- **Files bypass the server**: Clients upload and download directly from S3-compatible storage via presigned URLs. The
+  API only handles metadata and access control.
+- **SSO-first**: Authenticate users with your existing identity providers via OIDC. No need to manage passwords for your
+  team.
+- **Bucket-scoped access**: All sharing happens through buckets with explicit membership and role-based permissions (
+  owner, contributor, viewer).
+- **Swappable infrastructure**: Every component (storage, database, events, cache, notifier) can be replaced. Use AWS S3
+  or a self-hosted MinIO. Use NATS or SQS. Use PostgreSQL or SQLite, etc...
 
 ## Features
 
-- 🔒 **Secure File Sharing**: Create a bucket to start sharing files and folders with colleagues, customers, and teams
-- 👥 **Role-Based Access Control**: Fine grained sharing permissions with owner, contributor, and viewer roles
-- 🔐 **SSO Integration**: Single sign-on with any/multiple auth providers and manage their sharing capabilities
-- 📧 **User Invitation System**: Invite external collaborators via email
-- 📊 **Real-Time Activity Tracking**: Monitor file sharing activity with comprehensive audit trails
-- ☁️ **Multi-Storage Integration**: Store and share files across any S3-compatible provider (including AWS S3, Google
-  Cloud Storage and [more](https://docs.safebucket.io/docs/configuration/storage-providers))
-- 🚀 **Highly Scalable**: Event-driven and cloud native architecture for high-performance operations
+- Direct uploads and downloads via presigned URLs
+- Role-based access control at platform and bucket level
+- SSO via any OIDC provider, with local auth for external users
+- Email invitations with challenge-based validation
+- Real-time activity tracking and audit logs
+- Multifactor authentication (TOTP)
+- File expiration, trash with configurable retention
+- Admin dashboard with platform-wide statistics
+
+See the [full list of features](https://docs.safebucket.io/docs/features).
 
 ## Architecture
 
@@ -37,16 +40,17 @@ existing corporate identities.
 
 ```bash
 git clone https://github.com/safebucket/safebucket.git
-cd safebucket/deployments/local/full
+cd safebucket/deployments/local/lite
 docker compose up -d
 ```
 
 - Go to http://localhost:8080
 - Log in with:
-  - login: admin@safebucket.io
-  - password: ChangeMePlease
+    - login: admin@safebucket.io
+    - password: ChangeMePlease
 
-> **Note:** If you are accessing Safebucket from an external machine (e.g. Proxmox), you need to update the following environment variables in the .env file with your host's IP or domain:
+> **Note:** If you are accessing Safebucket from an external machine (e.g. Proxmox), you need to update the following
+> environment variables in the .env file with your host's IP or domain:
 > - `STORAGE__RUSTFS__EXTERNAL_ENDPOINT`
 > - `APP__ALLOWED_ORIGINS`
 > - `APP__API_URL`
