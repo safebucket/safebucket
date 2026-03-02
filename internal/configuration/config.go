@@ -126,7 +126,7 @@ func loadDefaults(k *koanf.Koanf) {
 		"app.static_files.enabled":   true,
 		"app.static_files.directory": "web/dist",
 
-		"database.type": "postgres",
+		"database.type": ProviderPostgres,
 	}
 
 	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
@@ -141,7 +141,7 @@ func setIfMissing(k *koanf.Koanf, key string, value interface{}) {
 }
 
 func loadConditionalDefaults(k *koanf.Koanf) {
-	if k.String("database.type") == "postgres" {
+	if k.String("database.type") == ProviderPostgres {
 		setIfMissing(k, "database.postgres.port", int32(5432))
 	}
 	if k.String("storage.type") == "s3" {
