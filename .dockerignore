@@ -64,6 +64,5 @@ coverage.out
 data/
 
 # Local development
-CLAUDE.md
 .prettierrc.json
 .prettierignore
