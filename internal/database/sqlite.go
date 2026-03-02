@@ -17,7 +17,7 @@ const (
 	pragmaCacheSize   = "PRAGMA cache_size = -2000"
 	pragmaSynchronous = "PRAGMA synchronous = NORMAL"
 
-	sqliteMaxOpenConns = 1
+	sqliteMaxOpenConns = 0
 )
 
 func InitSQLite(config *models.SQLiteDatabaseConfig) *gorm.DB {
