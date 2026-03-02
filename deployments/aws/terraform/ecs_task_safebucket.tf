@@ -53,10 +53,6 @@ resource "aws_ecs_task_definition" "safebucket" {
           value = "true"
         },
         {
-          name  = "APP__STATIC_FILES__DIRECTORY"
-          value = "web/dist"
-        },
-        {
           name  = "APP__ADMIN_EMAIL"
           value = var.admin_email
         },

@@ -38,9 +38,6 @@ FROM gcr.io/distroless/cc-debian12:nonroot
 WORKDIR /app
 
 COPY --from=backend-builder --chown=nonroot:nonroot /app/safebucket ./safebucket
-COPY --from=frontend-builder --chown=nonroot:nonroot /app/web/dist ./web/dist
-COPY --from=backend-builder --chown=nonroot:nonroot /app/internal/mails ./internal/mails
-
 COPY --chown=nonroot:nonroot --from=backend-builder /app/data /app/data
 
 EXPOSE 8080

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"os"
 	"time"
 
 	"api/internal/activity"
@@ -307,9 +306,9 @@ func StartHTTPServer(
 	})
 
 	if config.App.StaticFiles.Enabled {
-		webFS, source := resolveWebFS(config.App.StaticFiles.Directory, embeddedWebFS)
+		webFS := resolveWebFS(embeddedWebFS)
 		if webFS == nil {
-			zap.L().Fatal("static files enabled but no source available (no directory on disk and no embedded FS)")
+			zap.L().Fatal("static files enabled but no embedded FS found (build with -tags embed_web)")
 		}
 		staticFileService, err := services.NewStaticFileService(
 			webFS,
@@ -321,7 +320,7 @@ func StartHTTPServer(
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))
 		}
 		r.Mount("/", staticFileService.Routes())
-		zap.L().Info("static file service enabled", zap.String("source", source))
+		zap.L().Info("static file service enabled", zap.String("source", "embedded"))
 	} else {
 		zap.L().Info("static file service disabled")
 	}
@@ -342,14 +341,10 @@ func StartHTTPServer(
 	}
 }
 
-func resolveWebFS(directory string, embeddedFS fs.FS) (fs.FS, string) {
-	if info, err := os.Stat(directory); err == nil && info.IsDir() {
-		return os.DirFS(directory), "disk:" + directory
-	}
-
+func resolveWebFS(embeddedFS fs.FS) fs.FS {
 	if entries, err := fs.ReadDir(embeddedFS, "."); err == nil && len(entries) > 0 {
-		return embeddedFS, "embedded"
+		return embeddedFS
 	}
 
-	return nil, ""
+	return nil
 }

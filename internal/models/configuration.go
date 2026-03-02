@@ -239,8 +239,7 @@ type LokiConfiguration struct {
 }
 
 type StaticConfiguration struct {
-	Enabled   bool   `mapstructure:"enabled"`
-	Directory string `mapstructure:"directory"`
+	Enabled bool `mapstructure:"enabled"`
 }
 
 // AuthConfig groups authentication-related configuration for services.
