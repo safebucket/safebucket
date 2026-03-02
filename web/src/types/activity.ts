@@ -1,5 +1,6 @@
 import type { IBucket } from "@/types/bucket.ts";
 import type { IFile } from "@/types/file.ts";
+import type { IFolder } from "@/types/folder.ts";
 
 export interface IUser {
   id: string;
@@ -23,6 +24,8 @@ export interface IActivity {
   bucket?: IBucket;
   file_id?: string;
   file?: IFile;
+  folder_id?: string;
+  folder?: IFolder;
   timestamp: string;
   message: ActivityMessage;
   bucket_member_email?: string;

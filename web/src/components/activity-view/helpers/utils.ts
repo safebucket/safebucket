@@ -26,6 +26,7 @@ export const formatMessage = (
     .replace("%%USERNAME%%", `${log.user.first_name} ${log.user.last_name}`)
     .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
     .replace("%%FILE_NAME%%", log.file?.name || "")
+    .replace("%%FOLDER_NAME%%", log.folder?.name || "")
     .replace("%%BUCKET_MEMBER_EMAIL%%", log.bucket_member_email || "");
 };
 

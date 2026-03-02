@@ -51,6 +51,9 @@ const getResourceName = (activity: IActivity): string => {
   if (activity.file) {
     return activity.file.name;
   }
+  if (activity.folder) {
+    return activity.folder.name;
+  }
   if (activity.bucket) {
     return activity.bucket.name;
   }

@@ -415,7 +415,7 @@ func (s BucketService) GetActivity(
 
 	if len(bucketIDs) > 0 {
 		searchCriteria := map[string][]string{
-			"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String()},
+			"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String(), rbac.ResourceFolder.String()},
 			"bucket_id":   bucketIDs,
 		}
 
@@ -446,7 +446,7 @@ func (s BucketService) GetBucketActivity(
 	}
 
 	searchCriteria := map[string][]string{
-		"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String()},
+		"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String(), rbac.ResourceFolder.String()},
 		"bucket_id":   {bucket.ID.String()},
 	}
 
