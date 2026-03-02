@@ -28,7 +28,7 @@ RUN go mod download
 COPY . .
 COPY --from=frontend-builder /app/web/dist ./web/dist
 
-RUN CGO_ENABLED=1 GOOS=linux go build -tags embed_web -ldflags="-s -w" -a -o safebucket .
+RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -a -o safebucket .
 RUN upx --best --lzma safebucket
 RUN mkdir -p /app/data
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"io/fs"
 
 	"api/internal/configuration"
@@ -9,6 +10,9 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
+
+//go:embed all:web/dist
+var webDistFS embed.FS
 
 func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))

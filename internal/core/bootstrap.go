@@ -308,7 +308,7 @@ func StartHTTPServer(
 	if config.App.StaticFiles.Enabled {
 		webFS := resolveWebFS(embeddedWebFS)
 		if webFS == nil {
-			zap.L().Fatal("static files enabled but no embedded FS found (build with -tags embed_web)")
+			zap.L().Fatal("static files enabled but no web assets found (run 'npm run build' in web/ first)")
 		}
 		staticFileService, err := services.NewStaticFileService(
 			webFS,
@@ -342,9 +342,8 @@ func StartHTTPServer(
 }
 
 func resolveWebFS(embeddedFS fs.FS) fs.FS {
-	if entries, err := fs.ReadDir(embeddedFS, "."); err == nil && len(entries) > 0 {
+	if _, err := fs.Stat(embeddedFS, "index.html"); err == nil {
 		return embeddedFS
 	}
-
 	return nil
 }
