@@ -34,7 +34,7 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   const { createFolder } = useFileActions();
 
   return (
-    <div className="flex-1">
+    <div className="shrink-0">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{bucket.name}</h1>
         <div className="flex items-center gap-4">

@@ -60,10 +60,12 @@ export const BucketView: FC<IBucketViewProps> = ({
   };
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col gap-8">
       <BucketHeader bucket={bucket} onOpenUploadDialog={uploadDialog.open} />
 
-      {viewComponents[view]}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {viewComponents[view]}
+      </div>
 
       <UploadDialog
         {...uploadDialog.dialogProps}
@@ -76,6 +78,6 @@ export const BucketView: FC<IBucketViewProps> = ({
         onAdvancedOpenChange={uploadDialog.setIsAdvancedOpen}
         onUpload={uploadDialog.handleUpload}
       />
-    </>
+    </div>
   );
 };

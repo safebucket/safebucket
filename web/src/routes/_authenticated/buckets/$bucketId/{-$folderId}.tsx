@@ -21,8 +21,8 @@ function BucketComponent() {
 
   return (
     <BucketViewProvider folderId={folderId}>
-      <div className="w-full flex-1">
-        <div className="m-6 mt-0 grid grid-cols-1 gap-8">
+      <div className="flex w-full min-h-0 flex-1 flex-col">
+        <div className="mx-6 flex min-h-0 flex-1 flex-col gap-8">
           <BucketView bucket={bucket} />
         </div>
       </div>
