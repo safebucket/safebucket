@@ -100,7 +100,7 @@ services:
       - "valkey_data:/data"
 
   mailpit:
-    image: axllent/mailpit:v1.29.1
+    image: axllent/mailpit:v1.29.2
     container_name: mailpit
     restart: unless-stopped
     volumes:
@@ -134,7 +134,7 @@ services:
   loki:
     container_name: loki
     profiles: [ loki ]
-    image: grafana/loki:3.6.6
+    image: grafana/loki:3.6.7
     command: "-config.file=/etc/loki/config.yaml"
     ports:
       - "3100:3100"
