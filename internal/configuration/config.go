@@ -153,7 +153,7 @@ func loadConditionalDefaults(k *koanf.Koanf) {
 		setIfMissing(k, "events.gcp.subscription_suffix", "-sub")
 	}
 	if k.String("notifier.type") == "smtp" {
-		setIfMissing(k, "notifier.smtp.enable_tls", false)
+		setIfMissing(k, "notifier.smtp.tls_mode", models.TLSModeStartTLS)
 		setIfMissing(k, "notifier.smtp.skip_verify_tls", false)
 	}
 }

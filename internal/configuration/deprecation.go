@@ -1,6 +1,8 @@
 package configuration
 
 import (
+	"api/internal/models"
+
 	"github.com/knadh/koanf/v2"
 	"go.uber.org/zap"
 )
@@ -41,5 +43,38 @@ func migrateDeprecatedKeys(k *koanf.Koanf) {
 			zap.L().Warn("Deprecated configuration key ignored, new key takes precedence",
 				zap.String("old_key", dk.oldKey), zap.String("new_key", dk.newKey))
 		}
+	}
+
+	migrateEnableTLS(k)
+}
+
+// migrateEnableTLS converts the deprecated enable_tls boolean to the new tls_mode enum.
+// enable_tls: true  → tls_mode: ssl
+// enable_tls: false → tls_mode: starttls (preserves previous opportunistic STARTTLS behavior).
+func migrateEnableTLS(k *koanf.Koanf) {
+	const (
+		oldKey = "notifier.smtp.enable_tls"
+		newKey = "notifier.smtp.tls_mode"
+	)
+
+	oldExists := k.Exists(oldKey)
+	newExists := k.Exists(newKey)
+
+	switch {
+	case oldExists && !newExists:
+		tlsMode := models.TLSModeStartTLS
+		if k.Bool(oldKey) {
+			tlsMode = models.TLSModeSSL
+		}
+		if err := k.Set(newKey, tlsMode); err != nil {
+			zap.L().Error("Failed to migrate enable_tls to tls_mode", zap.Error(err))
+			return
+		}
+		k.Delete(oldKey)
+		zap.L().Warn("Deprecated configuration key used, please migrate",
+			zap.String("old_key", oldKey), zap.String("new_key", newKey), zap.String("migrated_value", tlsMode))
+	case oldExists && newExists:
+		zap.L().Warn("Deprecated configuration key ignored, new key takes precedence",
+			zap.String("old_key", oldKey), zap.String("new_key", newKey))
 	}
 }

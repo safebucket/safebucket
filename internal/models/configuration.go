@@ -195,13 +195,19 @@ type JetStreamEventsConfig struct {
 	Port string `mapstructure:"port" validate:"required"`
 }
 
+const (
+	TLSModeSSL      = "ssl"
+	TLSModeStartTLS = "starttls"
+	TLSModeNone     = "none"
+)
+
 type MailerConfiguration struct {
 	Host          string `mapstructure:"host"            validate:"required"`
 	Port          int    `mapstructure:"port"            validate:"required"`
 	Username      string `mapstructure:"username"`
 	Password      string `mapstructure:"password"`
 	Sender        string `mapstructure:"sender"          validate:"required"`
-	EnableTLS     bool   `mapstructure:"enable_tls"`
+	TLSMode       string `mapstructure:"tls_mode"        validate:"required,oneof=ssl starttls none"`
 	SkipVerifyTLS bool   `mapstructure:"skip_verify_tls"`
 }
 

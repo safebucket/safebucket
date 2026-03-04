@@ -161,8 +161,8 @@ resource "aws_ecs_task_definition" "safebucket" {
           value = var.smtp_sender
         },
         {
-          name  = "NOTIFIER__SMTP__ENABLE_TLS"
-          value = "false"
+          name  = "NOTIFIER__SMTP__TLS_MODE"
+          value = "none"
         },
         {
           name  = "NOTIFIER__SMTP__SKIP_VERIFY_TLS"

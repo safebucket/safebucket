@@ -20,19 +20,7 @@ type SMTPNotifier struct {
 
 // NewSMTPNotifier initializes the SMTP notifier and checks the connection.
 func NewSMTPNotifier(config models.MailerConfiguration) *SMTPNotifier {
-	dialer := gomail.NewDialer(config.Host, config.Port, config.Username, config.Password)
-
-	if config.EnableTLS {
-		dialer.SSL = true
-		// #nosec G402 -- InsecureSkipVerify is configurable for development environments
-		dialer.TLSConfig = &tls.Config{InsecureSkipVerify: config.SkipVerifyTLS}
-	} else {
-		dialer.SSL = false
-	}
-
-	if config.Username == "" {
-		dialer.Auth = nil
-	}
+	dialer := configureDialer(config)
 
 	connection, err := dialer.Dial()
 	if err != nil {
@@ -44,12 +32,39 @@ func NewSMTPNotifier(config models.MailerConfiguration) *SMTPNotifier {
 	return &SMTPNotifier{dialer: dialer, sender: config.Sender}
 }
 
+func configureDialer(config models.MailerConfiguration) *gomail.Dialer {
+	dialer := gomail.NewDialer(config.Host, config.Port, config.Username, config.Password)
+
+	// #nosec G402 -- InsecureSkipVerify is configurable for development environments.
+	tlsConfig := &tls.Config{
+		ServerName:         config.Host,
+		InsecureSkipVerify: config.SkipVerifyTLS,
+	}
+
+	switch config.TLSMode {
+	case models.TLSModeSSL:
+		dialer.SSL = true
+		dialer.TLSConfig = tlsConfig
+	case models.TLSModeStartTLS:
+		dialer.SSL = false
+		dialer.TLSConfig = tlsConfig
+	case models.TLSModeNone:
+		dialer.SSL = false
+	}
+
+	if config.Username == "" {
+		dialer.Auth = nil
+	}
+
+	return dialer
+}
+
 // NotifyFromTemplate sends an email using a given template and data.
 func (s *SMTPNotifier) NotifyFromTemplate(
 	to string,
 	subject string,
 	templateName string,
-	data interface{},
+	data any,
 ) error {
 	tmpl, err := template.ParseFiles(
 		"./internal/mails/base.html",

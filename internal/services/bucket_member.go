@@ -235,7 +235,7 @@ func (s BucketMemberService) addMember(
 ) {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		var invitee models.User
-		result := tx.Where("email = ?", invite.Email).First(&invitee)
+		result := tx.Where("email = ?", invite.Email).Find(&invitee)
 
 		if result.RowsAffected == 0 {
 			// User doesn't exist yet - create an invite

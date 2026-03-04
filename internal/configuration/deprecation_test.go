@@ -3,6 +3,8 @@ package configuration
 import (
 	"testing"
 
+	"api/internal/models"
+
 	"github.com/knadh/koanf/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -103,5 +105,55 @@ func TestMigrateDeprecatedKeys_Logging(t *testing.T) {
 		require.Len(t, entries, 1)
 		assert.Equal(t, zap.WarnLevel, entries[0].Level)
 		assert.Equal(t, "Deprecated configuration key ignored, new key takes precedence", entries[0].Message)
+	})
+}
+
+func TestMigrateEnableTLS(t *testing.T) {
+	t.Run("enable_tls true migrates to ssl", func(t *testing.T) {
+		k := koanf.New(".")
+		require.NoError(t, k.Set("notifier.smtp.enable_tls", true))
+
+		migrateEnableTLS(k)
+
+		assert.Equal(t, models.TLSModeSSL, k.String("notifier.smtp.tls_mode"))
+		assert.False(t, k.Exists("notifier.smtp.enable_tls"))
+	})
+
+	t.Run("enable_tls false migrates to starttls", func(t *testing.T) {
+		k := koanf.New(".")
+		require.NoError(t, k.Set("notifier.smtp.enable_tls", false))
+
+		migrateEnableTLS(k)
+
+		assert.Equal(t, models.TLSModeStartTLS, k.String("notifier.smtp.tls_mode"))
+		assert.False(t, k.Exists("notifier.smtp.enable_tls"))
+	})
+
+	t.Run("tls_mode takes precedence over enable_tls", func(t *testing.T) {
+		k := koanf.New(".")
+		require.NoError(t, k.Set("notifier.smtp.enable_tls", true))
+		require.NoError(t, k.Set("notifier.smtp.tls_mode", models.TLSModeNone))
+
+		migrateEnableTLS(k)
+
+		assert.Equal(t, models.TLSModeNone, k.String("notifier.smtp.tls_mode"))
+	})
+
+	t.Run("only tls_mode set remains unchanged", func(t *testing.T) {
+		k := koanf.New(".")
+		require.NoError(t, k.Set("notifier.smtp.tls_mode", models.TLSModeStartTLS))
+
+		migrateEnableTLS(k)
+
+		assert.Equal(t, models.TLSModeStartTLS, k.String("notifier.smtp.tls_mode"))
+	})
+
+	t.Run("neither key set does nothing", func(t *testing.T) {
+		k := koanf.New(".")
+
+		migrateEnableTLS(k)
+
+		assert.False(t, k.Exists("notifier.smtp.enable_tls"))
+		assert.False(t, k.Exists("notifier.smtp.tls_mode"))
 	})
 }
