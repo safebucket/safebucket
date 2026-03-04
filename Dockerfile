@@ -13,11 +13,12 @@ FROM golang:1.25-bookworm AS backend-builder
 
 # renovate: datasource=github-releases depName=upx/upx
 ARG UPX_VERSION=5.1.0
+ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates tzdata curl xz-utils && rm -rf /var/lib/apt/lists/*
-RUN curl -L -o upx.tar.xz https://github.com/upx/upx/releases/download/v${UPX_VERSION}/upx-${UPX_VERSION}-amd64_linux.tar.xz && \
+RUN curl -L -o upx.tar.xz https://github.com/upx/upx/releases/download/v${UPX_VERSION}/upx-${UPX_VERSION}-${TARGETARCH}_linux.tar.xz && \
     tar -xf upx.tar.xz && \
-    mv upx-${UPX_VERSION}-amd64_linux/upx /usr/local/bin/ && \
-    rm -rf upx.tar.xz upx-${UPX_VERSION}-amd64_linux
+    mv upx-${UPX_VERSION}-${TARGETARCH}_linux/upx /usr/local/bin/ && \
+    rm -rf upx.tar.xz upx-${UPX_VERSION}-${TARGETARCH}_linux
 
 WORKDIR /app
 
