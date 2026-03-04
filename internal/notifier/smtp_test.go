@@ -9,110 +9,142 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConfigureDialer_SSLMode(t *testing.T) {
+func TestNewMailClient_SSLMode(t *testing.T) {
 	config := models.MailerConfiguration{
 		Host:     "smtp.example.com",
 		Port:     465,
 		Username: "user",
 		Password: "pass",
+		Sender:   "test@example.com",
 		TLSMode:  models.TLSModeSSL,
 	}
 
-	dialer := configureDialer(config)
+	client, err := newMailClient(config)
 
-	assert.True(t, dialer.SSL)
-	require.NotNil(t, dialer.TLSConfig)
-	assert.Equal(t, "smtp.example.com", dialer.TLSConfig.ServerName)
-	assert.False(t, dialer.TLSConfig.InsecureSkipVerify)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
-func TestConfigureDialer_STARTTLSMode(t *testing.T) {
+func TestNewMailClient_STARTTLSMode(t *testing.T) {
 	config := models.MailerConfiguration{
 		Host:     "smtp.example.com",
 		Port:     587,
 		Username: "user",
 		Password: "pass",
+		Sender:   "test@example.com",
 		TLSMode:  models.TLSModeStartTLS,
 	}
 
-	dialer := configureDialer(config)
+	client, err := newMailClient(config)
 
-	assert.False(t, dialer.SSL)
-	require.NotNil(t, dialer.TLSConfig)
-	assert.Equal(t, "smtp.example.com", dialer.TLSConfig.ServerName)
-	assert.False(t, dialer.TLSConfig.InsecureSkipVerify)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
-func TestConfigureDialer_NoneMode(t *testing.T) {
+func TestNewMailClient_NoneMode(t *testing.T) {
 	config := models.MailerConfiguration{
-		Host:     "mailpit",
-		Port:     1025,
-		Username: "user",
-		Password: "pass",
-		TLSMode:  models.TLSModeNone,
+		Host:    "mailpit",
+		Port:    1025,
+		Sender:  "test@example.com",
+		TLSMode: models.TLSModeNone,
 	}
 
-	dialer := configureDialer(config)
+	client, err := newMailClient(config)
 
-	assert.False(t, dialer.SSL)
-	assert.Nil(t, dialer.TLSConfig)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
-func TestConfigureDialer_SkipVerifyTLS_SSL(t *testing.T) {
+func TestNewMailClient_SkipVerifyTLS_SSL(t *testing.T) {
 	config := models.MailerConfiguration{
 		Host:          "smtp.example.com",
 		Port:          465,
 		Username:      "user",
 		Password:      "pass",
-		TLSMode:       "ssl",
+		Sender:        "test@example.com",
+		TLSMode:       models.TLSModeSSL,
 		SkipVerifyTLS: true,
 	}
 
-	dialer := configureDialer(config)
+	client, err := newMailClient(config)
 
-	require.NotNil(t, dialer.TLSConfig)
-	assert.True(t, dialer.TLSConfig.InsecureSkipVerify)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
-func TestConfigureDialer_SkipVerifyTLS_STARTTLS(t *testing.T) {
+func TestNewMailClient_SkipVerifyTLS_STARTTLS(t *testing.T) {
 	config := models.MailerConfiguration{
 		Host:          "smtp.example.com",
 		Port:          587,
 		Username:      "user",
 		Password:      "pass",
-		TLSMode:       "starttls",
+		Sender:        "test@example.com",
+		TLSMode:       models.TLSModeStartTLS,
 		SkipVerifyTLS: true,
 	}
 
-	dialer := configureDialer(config)
+	client, err := newMailClient(config)
 
-	require.NotNil(t, dialer.TLSConfig)
-	assert.True(t, dialer.TLSConfig.InsecureSkipVerify)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
-func TestConfigureDialer_AuthDisabledWhenUsernameEmpty(t *testing.T) {
+func TestNewMailClient_NoAuthWhenUsernameEmpty(t *testing.T) {
 	config := models.MailerConfiguration{
 		Host:    "mailpit",
 		Port:    1025,
+		Sender:  "test@example.com",
 		TLSMode: models.TLSModeNone,
 	}
 
-	dialer := configureDialer(config)
+	client, err := newMailClient(config)
 
-	assert.Nil(t, dialer.Auth)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
 }
 
-func TestConfigureDialer_CredentialsPreservedWhenUsernameSet(t *testing.T) {
+func TestNewMailClient_WithCredentials(t *testing.T) {
 	config := models.MailerConfiguration{
 		Host:     "smtp.example.com",
 		Port:     587,
 		Username: "user",
 		Password: "pass",
+		Sender:   "test@example.com",
 		TLSMode:  models.TLSModeStartTLS,
 	}
 
-	dialer := configureDialer(config)
+	client, err := newMailClient(config)
 
-	assert.Equal(t, "user", dialer.Username)
-	assert.Equal(t, "pass", dialer.Password)
+	require.NoError(t, err)
+	assert.NotNil(t, client)
+}
+
+func TestNewMailClient_SkipVerifyTLS_IgnoredWhenNone(t *testing.T) {
+	config := models.MailerConfiguration{
+		Host:          "mailpit",
+		Port:          1025,
+		Sender:        "test@example.com",
+		TLSMode:       models.TLSModeNone,
+		SkipVerifyTLS: true,
+	}
+
+	client, err := newMailClient(config)
+
+	require.NoError(t, err)
+	assert.NotNil(t, client)
+}
+
+func TestNewMailClient_InvalidTLSMode(t *testing.T) {
+	config := models.MailerConfiguration{
+		Host:    "smtp.example.com",
+		Port:    587,
+		Sender:  "test@example.com",
+		TLSMode: "invalid",
+	}
+
+	client, err := newMailClient(config)
+
+	require.Error(t, err)
+	assert.Nil(t, client)
+	assert.Contains(t, err.Error(), "unsupported TLS mode")
 }

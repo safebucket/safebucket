@@ -195,20 +195,23 @@ type JetStreamEventsConfig struct {
 	Port string `mapstructure:"port" validate:"required"`
 }
 
+// TLSMode defines the TLS strategy for SMTP connections.
+type TLSMode string
+
 const (
-	TLSModeSSL      = "ssl"
-	TLSModeStartTLS = "starttls"
-	TLSModeNone     = "none"
+	TLSModeSSL      TLSMode = "ssl"
+	TLSModeStartTLS TLSMode = "starttls"
+	TLSModeNone     TLSMode = "none"
 )
 
 type MailerConfiguration struct {
-	Host          string `mapstructure:"host"            validate:"required"`
-	Port          int    `mapstructure:"port"            validate:"required"`
-	Username      string `mapstructure:"username"`
-	Password      string `mapstructure:"password"`
-	Sender        string `mapstructure:"sender"          validate:"required"`
-	TLSMode       string `mapstructure:"tls_mode"        validate:"required,oneof=ssl starttls none"`
-	SkipVerifyTLS bool   `mapstructure:"skip_verify_tls"`
+	Host          string  `mapstructure:"host"            validate:"required"`
+	Port          int     `mapstructure:"port"            validate:"required"`
+	Username      string  `mapstructure:"username"`
+	Password      string  `mapstructure:"password"`
+	Sender        string  `mapstructure:"sender"          validate:"required"`
+	TLSMode       TLSMode `mapstructure:"tls_mode"        validate:"required,oneof=ssl starttls none"`
+	SkipVerifyTLS bool    `mapstructure:"skip_verify_tls"`
 }
 
 type NotifierConfiguration struct {

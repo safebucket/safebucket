@@ -72,7 +72,7 @@ func migrateEnableTLS(k *koanf.Koanf) {
 		}
 		k.Delete(oldKey)
 		zap.L().Warn("Deprecated configuration key used, please migrate",
-			zap.String("old_key", oldKey), zap.String("new_key", newKey), zap.String("migrated_value", tlsMode))
+			zap.String("old_key", oldKey), zap.String("new_key", newKey), zap.String("migrated_value", string(tlsMode)))
 	case oldExists && newExists:
 		zap.L().Warn("Deprecated configuration key ignored, new key takes precedence",
 			zap.String("old_key", oldKey), zap.String("new_key", newKey))

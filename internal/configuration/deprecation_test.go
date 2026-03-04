@@ -115,7 +115,7 @@ func TestMigrateEnableTLS(t *testing.T) {
 
 		migrateEnableTLS(k)
 
-		assert.Equal(t, models.TLSModeSSL, k.String("notifier.smtp.tls_mode"))
+		assert.Equal(t, string(models.TLSModeSSL), k.String("notifier.smtp.tls_mode"))
 		assert.False(t, k.Exists("notifier.smtp.enable_tls"))
 	})
 
@@ -125,7 +125,7 @@ func TestMigrateEnableTLS(t *testing.T) {
 
 		migrateEnableTLS(k)
 
-		assert.Equal(t, models.TLSModeStartTLS, k.String("notifier.smtp.tls_mode"))
+		assert.Equal(t, string(models.TLSModeStartTLS), k.String("notifier.smtp.tls_mode"))
 		assert.False(t, k.Exists("notifier.smtp.enable_tls"))
 	})
 
@@ -136,7 +136,7 @@ func TestMigrateEnableTLS(t *testing.T) {
 
 		migrateEnableTLS(k)
 
-		assert.Equal(t, models.TLSModeNone, k.String("notifier.smtp.tls_mode"))
+		assert.Equal(t, string(models.TLSModeNone), k.String("notifier.smtp.tls_mode"))
 	})
 
 	t.Run("only tls_mode set remains unchanged", func(t *testing.T) {
@@ -145,7 +145,7 @@ func TestMigrateEnableTLS(t *testing.T) {
 
 		migrateEnableTLS(k)
 
-		assert.Equal(t, models.TLSModeStartTLS, k.String("notifier.smtp.tls_mode"))
+		assert.Equal(t, string(models.TLSModeStartTLS), k.String("notifier.smtp.tls_mode"))
 	})
 
 	t.Run("neither key set does nothing", func(t *testing.T) {
@@ -155,5 +155,43 @@ func TestMigrateEnableTLS(t *testing.T) {
 
 		assert.False(t, k.Exists("notifier.smtp.enable_tls"))
 		assert.False(t, k.Exists("notifier.smtp.tls_mode"))
+	})
+}
+
+func TestMigrateEnableTLS_Logging(t *testing.T) {
+	core, logs := observer.New(zap.InfoLevel)
+	logger := zap.New(core)
+
+	restoreLogger := zap.ReplaceGlobals(logger)
+	defer restoreLogger()
+
+	t.Run("logs warning with migrated value when enable_tls is migrated", func(t *testing.T) {
+		logs.TakeAll()
+		k := koanf.New(".")
+		require.NoError(t, k.Set("notifier.smtp.enable_tls", true))
+
+		migrateEnableTLS(k)
+
+		entries := logs.All()
+		require.Len(t, entries, 1)
+		assert.Equal(t, zap.WarnLevel, entries[0].Level)
+		assert.Equal(t, "Deprecated configuration key used, please migrate", entries[0].Message)
+		assert.Equal(t, "notifier.smtp.enable_tls", entries[0].ContextMap()["old_key"])
+		assert.Equal(t, "notifier.smtp.tls_mode", entries[0].ContextMap()["new_key"])
+		assert.Equal(t, "ssl", entries[0].ContextMap()["migrated_value"])
+	})
+
+	t.Run("logs warning when both keys are present", func(t *testing.T) {
+		logs.TakeAll()
+		k := koanf.New(".")
+		require.NoError(t, k.Set("notifier.smtp.enable_tls", true))
+		require.NoError(t, k.Set("notifier.smtp.tls_mode", models.TLSModeNone))
+
+		migrateEnableTLS(k)
+
+		entries := logs.All()
+		require.Len(t, entries, 1)
+		assert.Equal(t, zap.WarnLevel, entries[0].Level)
+		assert.Equal(t, "Deprecated configuration key ignored, new key takes precedence", entries[0].Message)
 	})
 }
