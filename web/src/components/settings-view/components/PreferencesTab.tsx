@@ -25,6 +25,8 @@ export function PreferencesTab() {
     i18n.changeLanguage(value);
   };
 
+  const currentLanguage = i18n.language.split("-")[0] ?? "en";
+
   const languages = [
     { value: "en", label: t("settings.language.english") },
     { value: "fr", label: t("settings.language.french") },
@@ -46,13 +48,13 @@ export function PreferencesTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Field orientation="horizontal">
-            <FieldLabel className="min-w-[200px]">
+          <Field orientation="horizontal" className="items-center!">
+            <FieldLabel className="sm:min-w-50">
               {t("settings.appearance.theme_mode.label")}
             </FieldLabel>
             <FieldContent className="items-end">
               <Select value={mode} onValueChange={setMode}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -83,16 +85,16 @@ export function PreferencesTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Field orientation="horizontal">
-            <FieldLabel className="min-w-[200px]">
+          <Field orientation="horizontal" className="items-center!">
+            <FieldLabel className="sm:min-w-50">
               {t("settings.language.label")}
             </FieldLabel>
             <FieldContent className="items-end">
               <Select
-                value={i18n.language}
+                value={currentLanguage}
                 onValueChange={handleLanguageChange}
               >
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

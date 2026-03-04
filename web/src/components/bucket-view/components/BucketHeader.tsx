@@ -36,9 +36,16 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   return (
     <div className="shrink-0">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{bucket.name}</h1>
-        <div className="flex items-center gap-4">
-          <BucketViewOptions />
+        <h1 className="min-w-0 truncate text-xl font-bold md:text-2xl">
+          {bucket.name}
+        </h1>
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="hidden md:flex">
+            <BucketViewOptions />
+          </div>
+          <div className="md:hidden">
+            <BucketViewOptions variant="dropdown" />
+          </div>
 
           <NotificationPopover bucketId={bucket.id} />
 
@@ -46,12 +53,14 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
             <>
               <ButtonGroup>
                 <Button onClick={onOpenUploadDialog}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  {t("bucket.header.upload_file")}
+                  <PlusCircle className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">
+                    {t("bucket.header.upload_file")}
+                  </span>
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="!pl-2">
+                    <Button className="pl-2!">
                       <ChevronDownIcon />
                     </Button>
                   </DropdownMenuTrigger>

@@ -215,12 +215,6 @@
       "title": "Statistiques",
       "total_files": "Nombre total de fichiers",
       "total_buckets": "Nombre total de buckets"
-    },
-    "tutorial": {
-      "title": "Tutoriel : Comment transférer des fichiers",
-      "video_title": "Commencer avec safebucket",
-      "video_description": "Un guide complet pour les transferts de fichiers",
-      "coming_soon": "Bientôt disponible..."
     }
   },
   "file_actions": {

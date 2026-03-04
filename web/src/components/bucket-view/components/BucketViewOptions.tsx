@@ -1,4 +1,5 @@
 import {
+  Check,
   FolderClock,
   LayoutGrid,
   LayoutList,
@@ -14,6 +15,13 @@ import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketVi
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { ButtonGroup } from "@/components/ui/button-group.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu.tsx";
 import {
   Tooltip,
   TooltipContent,
@@ -49,7 +57,13 @@ const options = [
   },
 ];
 
-export const BucketViewOptions: FC = () => {
+interface IBucketViewOptionsProps {
+  variant?: "buttons" | "dropdown";
+}
+
+export const BucketViewOptions: FC<IBucketViewOptionsProps> = ({
+  variant = "buttons",
+}) => {
   const { view, setView, bucketId } = useBucketViewContext();
   const { isOwner } = useBucketPermissions(bucketId);
 
@@ -61,6 +75,29 @@ export const BucketViewOptions: FC = () => {
       return true;
     });
   }, [isOwner]);
+
+  const activeOption = filteredOptions.find((opt) => opt.key === view);
+
+  if (variant === "dropdown") {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="secondary">{activeOption?.value}</Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuGroup>
+            {filteredOptions.map((opt, i) => (
+              <DropdownMenuItem key={i} onClick={() => setView(opt.key)}>
+                {opt.value}
+                {opt.tooltip}
+                {view === opt.key && <Check className="ml-auto h-4 w-4" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
 
   return (
     <ButtonGroup className="default">

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { BarChart3, FileText, Play } from "lucide-react";
+import { BarChart3, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button.tsx";
@@ -155,31 +155,6 @@ function Homepage() {
               </Card>
             </div>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("homepage.tutorial.title")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
-                <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                  <Play className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-foreground">
-                    {t("homepage.tutorial.video_title")}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    {t("homepage.tutorial.video_description")}
-                  </p>
-                </div>
-                <Button variant="outline">
-                  {t("homepage.tutorial.coming_soon")}
-                  {/* <ChevronRight className="w-4 h-4 ml-2" /> */}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
