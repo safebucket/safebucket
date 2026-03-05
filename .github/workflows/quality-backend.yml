@@ -33,6 +33,9 @@ jobs:
           go-version: 1.25
           cache: true
 
+      - name: Create web dist placeholder
+        run: mkdir -p web/dist && touch web/dist/index.html
+
       - name: Run Go linter
         uses: golangci/golangci-lint-action@v9.2.0
         with:
