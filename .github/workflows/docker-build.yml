@@ -182,6 +182,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
@@ -224,14 +225,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Parse tags from metadata JSON
           echo "Metadata: $METADATA"
 
-          # Extract tags grouped by registry
           dockerhub_tags=$(echo "$METADATA" | jq -r '.tags[] | select(startswith("docker.io/"))')
           ghcr_tags=$(echo "$METADATA" | jq -r '.tags[] | select(startswith("ghcr.io/"))')
 
-          # Build Docker Hub manifest with all its tags
           if [[ -n "$dockerhub_tags" ]]; then
             echo "Creating Docker Hub manifest for: $dockerhub_tags"
             tag_args=""
@@ -244,7 +242,6 @@ jobs:
               docker.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-dockerhub }}
           fi
 
-          # Build GHCR manifest with all its tags
           if [[ -n "$ghcr_tags" ]]; then
             echo "Creating GHCR manifest for: $ghcr_tags"
             tag_args=""
@@ -256,3 +253,16 @@ jobs:
               ghcr.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-github }} \
               ghcr.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-github }}
           fi
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4
+
+      - name: Sign the images
+        env:
+          METADATA: ${{ steps.meta.outputs.json }}
+        run: |
+          TAGS=$(echo "$METADATA" | jq -r '.tags[]')
+          for tag in $TAGS; do
+            echo "Signing $tag"
+            cosign sign --yes "$tag"
+          done
