@@ -353,7 +353,7 @@ func TestAudienceValidate_RefreshToken(t *testing.T) {
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, token, false)
 		require.NoError(t, err)
-		assert.Equal(t, configuration.AudienceRefreshToken, claims.Aud)
+		assert.Equal(t, configuration.AudienceRefreshToken, claims.Audience[0])
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
 		recorder := httptest.NewRecorder()

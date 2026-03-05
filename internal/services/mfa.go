@@ -113,7 +113,8 @@ func (s MFAService) AddDevice(
 	// Note: Authorization is handled by middleware. This check is for business logic:
 	// - Restricted tokens (during login/reset flow) don't require password for first device setup
 	// - Full access tokens require password verification to add devices
-	isRestricted := claims.Aud == configuration.AudienceMFALogin || claims.Aud == configuration.AudienceMFAReset
+	isRestricted := claims.AudienceString() == configuration.AudienceMFALogin ||
+		claims.AudienceString() == configuration.AudienceMFAReset
 
 	if isRestricted {
 		// CRITICAL: Restricted token bypass is ONLY allowed for the very first device setup.
@@ -138,7 +139,6 @@ func (s MFAService) AddDevice(
 			return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(400, "BAD_REQUEST")
 		}
 
-		// Validate Password
 		match, err := argon2id.ComparePasswordAndHash(body.Password, user.HashedPassword)
 		if err != nil {
 			logger.Error("failed to compare password and hash", zap.Error(err))
@@ -363,7 +363,7 @@ func (s MFAService) VerifyDevice(
 
 	// If audience is PasswordReset, return a new restricted token with MFA=true
 	// CRITICAL: Do NOT issue full access tokens for password reset flow
-	if claims.Aud == configuration.AudienceMFAReset {
+	if claims.AudienceString() == configuration.AudienceMFAReset {
 		var restrictedToken string
 		restrictedToken, err = h.NewRestrictedAccessToken(
 			s.AuthConfig.JWTSecret,

@@ -39,7 +39,7 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 			}
 
 			// Only enforce MFA for full access tokens from local provider
-			if claims.Aud != configuration.AudienceAccessToken ||
+			if claims.AudienceString() != configuration.AudienceAccessToken ||
 				claims.Provider != string(models.LocalProviderType) {
 				next.ServeHTTP(w, r)
 				return

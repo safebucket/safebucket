@@ -11,8 +11,6 @@ type UserClaims struct {
 	Email       string     `json:"email"`
 	UserID      uuid.UUID  `json:"user_id"`
 	Role        Role       `json:"role"`
-	Issuer      string     `json:"iss"`
-	Aud         string     `json:"aud"`
 	Provider    string     `json:"provider"`
 	MFA         bool       `json:"mfa"`
 	ChallengeID *uuid.UUID `json:"challenge_id,omitempty"`
@@ -20,6 +18,14 @@ type UserClaims struct {
 
 func (u *UserClaims) Valid() bool {
 	return u.UserID.String() != ""
+}
+
+// AudienceString returns the first audience claim or an empty string.
+func (u *UserClaims) AudienceString() string {
+	if len(u.Audience) > 0 {
+		return u.Audience[0]
+	}
+	return ""
 }
 
 type UserClaimKey struct{}

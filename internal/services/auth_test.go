@@ -121,7 +121,7 @@ func TestLogin_UserHasMFA_ConfigMFADisabled_RequiresMFA(t *testing.T) {
 		parsedClaims, err := helpers.ParseToken(jwtSecret, "Bearer "+response.AccessToken, true)
 		require.NoError(t, err, "Token should be parseable")
 
-		assert.Equal(t, configuration.AudienceMFALogin, parsedClaims.Aud,
+		assert.Equal(t, configuration.AudienceMFALogin, parsedClaims.Audience[0],
 			"Token should have AudienceMFALogin audience for MFA verification flow")
 
 		// MFA claim should be false (not yet verified)
@@ -210,7 +210,7 @@ func TestLogin_UserNoMFA_ConfigMFADisabled_NoMFARequired(t *testing.T) {
 		assert.NotEmpty(t, response.AccessToken)
 		parsedClaims, err := helpers.ParseToken(jwtSecret, "Bearer "+response.AccessToken, true)
 		require.NoError(t, err)
-		assert.Equal(t, configuration.AudienceAccessToken, parsedClaims.Aud,
+		assert.Equal(t, configuration.AudienceAccessToken, parsedClaims.Audience[0],
 			"Should return full access token")
 
 		// Should return refresh token
@@ -292,7 +292,7 @@ func TestLogin_UserNoMFA_ConfigMFAEnabled_RequiresMFA(t *testing.T) {
 		// Should return restricted token
 		parsedClaims, err := helpers.ParseToken(jwtSecret, "Bearer "+response.AccessToken, true)
 		require.NoError(t, err)
-		assert.Equal(t, configuration.AudienceMFALogin, parsedClaims.Aud,
+		assert.Equal(t, configuration.AudienceMFALogin, parsedClaims.Audience[0],
 			"Should return restricted token for MFA setup")
 
 		// No refresh token

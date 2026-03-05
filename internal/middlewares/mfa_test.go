@@ -56,7 +56,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 		// Parse token and set up context
 		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
-		require.Equal(t, configuration.AudienceAccessToken, claims.Aud)
+		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
@@ -90,7 +90,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 
 		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
-		require.Equal(t, configuration.AudienceAccessToken, claims.Aud)
+		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
@@ -124,7 +124,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 
 		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
-		require.Equal(t, configuration.AudienceAccessToken, claims.Aud)
+		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
@@ -304,7 +304,7 @@ func TestMFAValidate_TokenUserStateMismatch(t *testing.T) {
 
 		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
-		require.Equal(t, configuration.AudienceAccessToken, claims.Aud)
+		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 		assert.False(t, claims.MFA, "Token should have MFA=false since user had no devices at token creation")
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
@@ -338,7 +338,7 @@ func TestMFAValidate_TokenUserStateMismatch(t *testing.T) {
 
 		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
-		require.Equal(t, configuration.AudienceAccessToken, claims.Aud)
+		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 		assert.True(t, claims.MFA, "Token should have MFA=true since user had verified device at token creation")
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)

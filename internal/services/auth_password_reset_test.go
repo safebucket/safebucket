@@ -6,6 +6,7 @@ import (
 	"api/internal/configuration"
 	"api/internal/models"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,11 +19,11 @@ import (
 func TestPasswordResetAudienceValidation(t *testing.T) {
 	t.Run("should allow AudienceMFAReset token", func(t *testing.T) {
 		claims := models.UserClaims{
-			Aud: configuration.AudienceMFAReset,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFAReset}},
 		}
 
 		// This is the audience check from CompletePasswordReset
-		isValidAudience := claims.Aud == configuration.AudienceMFAReset
+		isValidAudience := claims.Audience[0] == configuration.AudienceMFAReset
 
 		assert.True(t, isValidAudience,
 			"AudienceMFAReset should be accepted for password reset completion")
@@ -30,11 +31,11 @@ func TestPasswordResetAudienceValidation(t *testing.T) {
 
 	t.Run("should block AudienceMFALogin token (cross-flow attack)", func(t *testing.T) {
 		claims := models.UserClaims{
-			Aud: configuration.AudienceMFALogin,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFALogin}},
 		}
 
 		// This simulates the check in CompletePasswordReset
-		isInvalidAudience := claims.Aud != configuration.AudienceMFAReset
+		isInvalidAudience := claims.Audience[0] != configuration.AudienceMFAReset
 
 		assert.True(t, isInvalidAudience,
 			"AudienceMFALogin should be rejected for password reset completion")
@@ -42,10 +43,10 @@ func TestPasswordResetAudienceValidation(t *testing.T) {
 
 	t.Run("should block AudienceAccessToken (full access token)", func(t *testing.T) {
 		claims := models.UserClaims{
-			Aud: configuration.AudienceAccessToken,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
 		}
 
-		isInvalidAudience := claims.Aud != configuration.AudienceMFAReset
+		isInvalidAudience := claims.Audience[0] != configuration.AudienceMFAReset
 
 		assert.True(t, isInvalidAudience,
 			"Full access token should be rejected for password reset completion")
@@ -53,10 +54,10 @@ func TestPasswordResetAudienceValidation(t *testing.T) {
 
 	t.Run("should block AudienceRefreshToken", func(t *testing.T) {
 		claims := models.UserClaims{
-			Aud: configuration.AudienceRefreshToken,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceRefreshToken}},
 		}
 
-		isInvalidAudience := claims.Aud != configuration.AudienceMFAReset
+		isInvalidAudience := claims.Audience[0] != configuration.AudienceMFAReset
 
 		assert.True(t, isInvalidAudience,
 			"Refresh token should be rejected for password reset completion")
@@ -176,12 +177,12 @@ func TestCrossFlowAttackPrevention(t *testing.T) {
 	t.Run("login token cannot complete password reset", func(t *testing.T) {
 		// Attacker obtains victim's login-flow MFA token
 		loginFlowToken := models.UserClaims{
-			Aud: configuration.AudienceMFALogin,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFALogin}},
 		}
 
 		// CompletePasswordReset checks:
 		// 1. Audience must be AudienceMFAReset
-		audienceBlocked := loginFlowToken.Aud != configuration.AudienceMFAReset
+		audienceBlocked := loginFlowToken.Audience[0] != configuration.AudienceMFAReset
 
 		assert.True(t, audienceBlocked,
 			"Login flow token should be blocked from password reset completion")
@@ -190,13 +191,13 @@ func TestCrossFlowAttackPrevention(t *testing.T) {
 	t.Run("password reset token cannot get full access via login MFA verify", func(t *testing.T) {
 		// Token from password reset flow
 		resetFlowToken := models.UserClaims{
-			Aud: configuration.AudienceMFAReset,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFAReset}},
 		}
 
 		// VerifyMFALogin returns different response based on audience:
 		// - AudienceMFALogin -> full access + refresh tokens
 		// - AudienceMFAReset -> restricted token with MFA=true
-		returnsRestrictedToken := resetFlowToken.Aud == configuration.AudienceMFAReset
+		returnsRestrictedToken := resetFlowToken.Audience[0] == configuration.AudienceMFAReset
 
 		assert.True(t, returnsRestrictedToken,
 			"Password reset token should get restricted token, not full access")
@@ -247,14 +248,14 @@ func TestCompletePasswordResetSecurityChecks(t *testing.T) {
 
 		// Valid token: correct audience AND MFA verified
 		validClaims := models.UserClaims{
-			Aud: configuration.AudienceMFAReset,
-			MFA: true,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFAReset}},
+			MFA:              true,
 		}
 
 		// Check 1: MFA bypass prevention
 		mfaBypassBlocked := userWithMFA.HasMFAEnabled() && !validClaims.MFA
 		// Check 2: Audience validation
-		audienceInvalid := validClaims.Aud != configuration.AudienceMFAReset
+		audienceInvalid := validClaims.Audience[0] != configuration.AudienceMFAReset
 
 		assert.False(t, mfaBypassBlocked, "Valid MFA should not be blocked")
 		assert.False(t, audienceInvalid, "Valid audience should not be blocked")
@@ -263,10 +264,10 @@ func TestCompletePasswordResetSecurityChecks(t *testing.T) {
 	t.Run("wrong audience blocks even with valid MFA", func(t *testing.T) {
 		// Wrong audience even though MFA is verified
 		wrongAudienceClaims := models.UserClaims{
-			Aud: configuration.AudienceMFALogin, // Wrong!
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFALogin}}, // Wrong!
 		}
 
-		audienceInvalid := wrongAudienceClaims.Aud != configuration.AudienceMFAReset
+		audienceInvalid := wrongAudienceClaims.Audience[0] != configuration.AudienceMFAReset
 
 		assert.True(t, audienceInvalid,
 			"Wrong audience should be blocked regardless of MFA status")

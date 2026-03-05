@@ -31,15 +31,17 @@ func AudienceValidate(next http.Handler) http.Handler {
 			return
 		}
 
+		tokenAudience := claims.AudienceString()
+
 		allowedAudiences := getRouteAllowedAudiences(r.URL.Path, r.Method)
 
 		if allowedAudiences != nil {
-			if !isAudienceInList(claims.Aud, allowedAudiences) {
+			if !isAudienceInList(tokenAudience, allowedAudiences) {
 				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
 				return
 			}
 		} else {
-			if claims.Aud != configuration.AudienceAccessToken {
+			if tokenAudience != configuration.AudienceAccessToken {
 				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
 				return
 			}

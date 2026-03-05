@@ -184,7 +184,7 @@ func (s AuthService) Verify(
 		return models.UserClaims{}, errors.New("invalid access token")
 	}
 
-	if claims.Aud != configuration.AudienceAccessToken {
+	if claims.AudienceString() != configuration.AudienceAccessToken {
 		return models.UserClaims{}, errors.New("invalid access token audience")
 	}
 
@@ -303,7 +303,7 @@ func (s AuthService) VerifyMFALogin(
 	// If audience is PasswordReset, return a new restricted token with MFA=true
 	// Do NOT issue full access tokens for password reset flow
 	// Preserve the challenge ID from the original token
-	if claims.Aud == configuration.AudienceMFAReset {
+	if claims.AudienceString() == configuration.AudienceMFAReset {
 		var restrictedToken string
 		restrictedToken, err = h.NewRestrictedAccessToken(
 			s.AuthConfig.JWTSecret,

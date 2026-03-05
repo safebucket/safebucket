@@ -36,10 +36,10 @@ func generateTestToken(secret string, user *models.User, expiresIn time.Duration
 		Email:    user.Email,
 		UserID:   user.ID,
 		Role:     user.Role,
-		Aud:      "app:*",
 		Provider: "test",
-		Issuer:   "safebucket",
 		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    "safebucket",
+			Audience:  jwt.ClaimStrings{"app:*"},
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(expiresIn)},
 		},

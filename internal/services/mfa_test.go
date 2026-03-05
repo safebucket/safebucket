@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -78,10 +79,10 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		// 1. Create a Restricted Token (Password Reset Flow)
 		// This simulates what the user has when entering the flow
 		claims := models.UserClaims{
-			UserID:      userID,
-			Aud:         configuration.AudienceMFAReset,
-			MFA:         false,
-			ChallengeID: &challengeID,
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFAReset}},
+			MFA:              false,
+			ChallengeID:      &challengeID,
 		}
 
 		// Mock DB interactions for VerifyDevice
@@ -151,23 +152,18 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		parsedClaims, err := helpers.ParseToken(jwtSecret, "Bearer "+authResponse.AccessToken, true)
 		require.NoError(t, err, "Token should be parseable")
 
-		// Verify this is a restricted token with the correct audience
-		isRestrictedAudience := parsedClaims.Aud == configuration.AudienceMFALogin ||
-			parsedClaims.Aud == configuration.AudienceMFAReset
+		isRestrictedAudience := parsedClaims.Audience[0] == configuration.AudienceMFALogin ||
+			parsedClaims.Audience[0] == configuration.AudienceMFAReset
 		if !isRestrictedAudience {
-			// If audience is full access, this is a vulnerability
-			assert.NotEqual(t, configuration.AudienceAccessToken, parsedClaims.Aud,
+			assert.NotEqual(t, configuration.AudienceAccessToken, parsedClaims.Audience[0],
 				"VULNERABILITY CONFIRMED: Returned a valid Full Access Token instead of Restricted Token")
 		} else {
-			// If it's a restricted token, check Audience explicitly
-			assert.Equal(t, configuration.AudienceMFAReset, parsedClaims.Aud,
+			assert.Equal(t, configuration.AudienceMFAReset, parsedClaims.Audience[0],
 				"Should preserve the Password Reset audience")
 
-			// Also ensure MFA is marked as Verified
 			assert.True(t, parsedClaims.MFA, "Restricted token should have MFA=true")
 		}
 
-		// Also assert NO Refresh Token is returned
 		assert.Empty(t, authResponse.RefreshToken, "Should not return Refresh Token for password reset flow")
 	})
 }
@@ -215,10 +211,10 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 			challengeID := uuid.New()
 
 			claims := models.UserClaims{
-				UserID:      userID,
-				Aud:         tc.audience,
-				MFA:         false,
-				ChallengeID: &challengeID,
+				UserID:           userID,
+				RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{tc.audience}},
+				MFA:              false,
+				ChallengeID:      &challengeID,
 			}
 
 			// Mock user lookup
@@ -295,9 +291,9 @@ func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 
 		userID := uuid.New()
 		claims := models.UserClaims{
-			UserID: userID,
-			Aud:    configuration.AudienceMFALogin,
-			MFA:    false,
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFALogin}},
+			MFA:              false,
 		}
 
 		// Mock user lookup
@@ -360,9 +356,9 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 
 		userID := uuid.New()
 		claims := models.UserClaims{
-			UserID: userID,
-			Aud:    configuration.AudienceMFALogin,
-			MFA:    false,
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFALogin}},
+			MFA:              false,
 		}
 
 		// Mock user lookup
@@ -436,9 +432,9 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 
 		userID := uuid.New()
 		claims := models.UserClaims{
-			UserID: userID,
-			Aud:    configuration.AudienceAccessToken,
-			MFA:    true,
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
+			MFA:              true,
 		}
 
 		// Mock user lookup
@@ -487,9 +483,9 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 
 		userID := uuid.New()
 		claims := models.UserClaims{
-			UserID: userID,
-			Aud:    configuration.AudienceAccessToken,
-			MFA:    true,
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
+			MFA:              true,
 		}
 
 		// Create a valid password hash
@@ -541,9 +537,9 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 
 		userID := uuid.New()
 		claims := models.UserClaims{
-			UserID: userID,
-			Aud:    configuration.AudienceAccessToken,
-			MFA:    true,
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
+			MFA:              true,
 		}
 
 		hashedPassword, _ := helpers.CreateHash("correct-password")
@@ -615,9 +611,9 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 
 		userID := uuid.New()
 		claims := models.UserClaims{
-			UserID: userID,
-			Aud:    configuration.AudienceAccessToken,
-			MFA:    false,
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
+			MFA:              false,
 		}
 
 		// Mock user lookup - OAuth user
@@ -659,9 +655,9 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 
 		userID := uuid.New()
 		claims := models.UserClaims{
-			UserID: userID,
-			Aud:    configuration.AudienceAccessToken,
-			MFA:    true,
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
+			MFA:              true,
 		}
 
 		// Mock user lookup
@@ -710,9 +706,9 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 
 		userID := uuid.New()
 		claims := models.UserClaims{
-			UserID: userID,
-			Aud:    configuration.AudienceMFALogin,
-			MFA:    false,
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFALogin}},
+			MFA:              false,
 		}
 
 		// Mock user lookup
