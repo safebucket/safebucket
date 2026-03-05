@@ -86,6 +86,10 @@ func ParseToken(jwtSecret string, tokenString string, requireBearer bool) (model
 		return models.UserClaims{}, errors.New("invalid token")
 	}
 
+	if len(claims.Audience) != 1 {
+		return models.UserClaims{}, errors.New("invalid token audience")
+	}
+
 	return *claims, nil
 }
 

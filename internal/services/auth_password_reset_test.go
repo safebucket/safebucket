@@ -264,7 +264,9 @@ func TestCompletePasswordResetSecurityChecks(t *testing.T) {
 	t.Run("wrong audience blocks even with valid MFA", func(t *testing.T) {
 		// Wrong audience even though MFA is verified
 		wrongAudienceClaims := models.UserClaims{
-			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFALogin}}, // Wrong!
+			RegisteredClaims: jwt.RegisteredClaims{
+				Audience: jwt.ClaimStrings{configuration.AudienceMFALogin},
+			},
 		}
 
 		audienceInvalid := wrongAudienceClaims.Audience[0] != configuration.AudienceMFAReset
