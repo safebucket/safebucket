@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"api/internal/models"
@@ -386,6 +388,10 @@ func (c *FilesystemClient) CountByDay(searchCriteria map[string][]string, days i
 			})
 		}
 	}
+
+	slices.SortFunc(points, func(a, b models.TimeSeriesPoint) int {
+		return strings.Compare(a.Date, b.Date)
+	})
 
 	return points, nil
 }

@@ -36,6 +36,7 @@ interface DataTableProps<TData, TValue> {
   trashMode?: boolean;
   onRestore?: (fileId: string, fileName: string) => void;
   onPermanentDelete?: (fileId: string, fileName: string) => void;
+  defaultColumnVisibility?: VisibilityState;
 }
 
 export function DataTable<TData extends { id: string; name: string }, TValue>({
@@ -47,9 +48,16 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
   trashMode = false,
   onRestore,
   onPermanentDelete,
+  defaultColumnVisibility,
 }: DataTableProps<TData, TValue>) {
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+    React.useState<VisibilityState>(defaultColumnVisibility ?? {});
+
+  React.useEffect(() => {
+    if (defaultColumnVisibility) {
+      setColumnVisibility(defaultColumnVisibility);
+    }
+  }, [defaultColumnVisibility]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   );

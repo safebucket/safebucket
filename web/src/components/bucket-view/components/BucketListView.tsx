@@ -1,6 +1,7 @@
 import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { ColumnDef } from "@tanstack/react-table";
+import { useMemo } from "react";
+import type { ColumnDef, VisibilityState } from "@tanstack/react-table";
 import type { FC } from "react";
 import type { FileWithPath } from "@/components/upload/helpers/types";
 import type { BucketItem } from "@/types/bucket.ts";
@@ -11,6 +12,7 @@ import { DataTableColumnHeader } from "@/components/common/components/DataTable/
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { DataTableRowActions } from "@/components/common/components/DataTable/DataTableRowActions";
 import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/components/ui/hooks/use-mobile";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { FileStatus } from "@/types/file.ts";
@@ -26,17 +28,18 @@ const createColumns = (
         title={t("bucket.list_view.name")}
       />
     ),
+    size: 350,
     cell: ({ row }) => {
       const item = row.original;
       const itemIsFolder = isFolder(item);
       return (
-        <div className="flex w-[350px] items-center space-x-2">
+        <div className="flex items-center space-x-2 overflow-hidden max-w-[calc(100vw-8rem)] md:max-w-87.5">
           <FileIconView
-            className="text-primary h-5 w-5"
+            className="text-primary h-5 w-5 shrink-0"
             isFolder={itemIsFolder}
             extension={!itemIsFolder ? item.extension : undefined}
           />
-          <p>{row.getValue("name")}</p>
+          <p className="truncate">{row.getValue("name")}</p>
         </div>
       );
     },
@@ -144,6 +147,7 @@ const createColumns = (
   },
   {
     id: "actions",
+    size: 50,
     cell: ({ row }) => <DataTableRowActions row={row} />,
   },
 ];
@@ -161,7 +165,16 @@ export const BucketListView: FC<IBucketListViewProps> = ({
 }: IBucketListViewProps) => {
   const { t } = useTranslation();
   const { selected, setSelected, openFolder } = useBucketViewContext();
+  const isMobile = useIsMobile();
   const columns = createColumns(t);
+
+  const columnVisibility = useMemo(
+    (): VisibilityState =>
+      isMobile
+        ? { size: false, type: false, created_at: false, status: false }
+        : ({} as VisibilityState),
+    [isMobile],
+  );
 
   return (
     <DragDropZone bucketId={bucketId} onFilesDropped={onFilesDropped}>
@@ -171,6 +184,7 @@ export const BucketListView: FC<IBucketListViewProps> = ({
         selected={selected}
         onRowClick={setSelected}
         onRowDoubleClick={openFolder}
+        defaultColumnVisibility={columnVisibility}
       />
     </DragDropZone>
   );

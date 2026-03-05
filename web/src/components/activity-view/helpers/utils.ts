@@ -14,6 +14,7 @@ const DEFAULT_ACTIVITY_MAPPING = {
 export function getActivityMapping(
   messageType: ActivityMessage,
 ): IMessageMapping {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return messageMap[messageType] || DEFAULT_ACTIVITY_MAPPING;
 }
 
@@ -21,9 +22,15 @@ export const formatMessage = (
   log: IActivity,
   t: (key: string) => string,
 ): string => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const mapping = messageMap[log.message] || DEFAULT_ACTIVITY_MAPPING;
   return t(mapping.messageKey)
-    .replace("%%USERNAME%%", `${log.user.first_name} ${log.user.last_name}`)
+    .replace(
+      "%%USERNAME%%",
+      log.user.first_name || log.user.last_name
+        ? `${log.user.first_name} ${log.user.last_name}`
+        : log.user.email,
+    )
     .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
     .replace("%%FILE_NAME%%", log.file?.name || "")
     .replace("%%FOLDER_NAME%%", log.folder?.name || "")

@@ -41,7 +41,9 @@ export function ActivityItem({ item }: ActivityItemProps) {
       </ItemMedia>
       <ItemContent>
         <ItemTitle>
-          {item.user.first_name} {item.user.last_name}
+          {item.user.first_name || item.user.last_name
+            ? `${item.user.first_name} ${item.user.last_name}`
+            : item.user.email}
           <div
             className={cn(
               "flex h-6 w-6 items-center justify-center rounded-full",
