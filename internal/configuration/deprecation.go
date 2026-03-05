@@ -5,11 +5,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type deprecatedKey struct {
-	oldKey string
-	newKey string
-}
-
 // migrateDeprecatedKeys remaps deprecated config keys to their new paths.
 // If only the old key is set, its value is copied to the new key with a warning.
 // If both are set, the new key takes precedence and the old key is ignored.
