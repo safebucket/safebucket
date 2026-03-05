@@ -3,6 +3,9 @@ name: Security Scan (PR)
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   trivy-fs-scan:
     name: Trivy Filesystem Scan
