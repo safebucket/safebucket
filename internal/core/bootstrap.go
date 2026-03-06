@@ -326,8 +326,6 @@ func StartHTTPServer(
 		zap.L().Info("static file service disabled")
 	}
 
-	zap.L().Info("HTTP server starting", zap.Int("port", config.App.Port))
-
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", config.App.Port),
 		Handler:      r,
@@ -336,7 +334,17 @@ func StartHTTPServer(
 		IdleTimeout:  5 * time.Second,
 	}
 
-	err := server.ListenAndServe()
+	var err error
+	if config.App.TLSEnabled() {
+		zap.L().Info("HTTPS server starting",
+			zap.Int("port", config.App.Port),
+			zap.String("cert", config.App.TLSCertFile),
+		)
+		err = server.ListenAndServeTLS(config.App.TLSCertFile, config.App.TLSKeyFile)
+	} else {
+		zap.L().Info("HTTP server starting", zap.Int("port", config.App.Port))
+		err = server.ListenAndServe()
+	}
 	if err != nil {
 		zap.L().Error("Failed to start the app", zap.Error(err))
 	}

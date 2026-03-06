@@ -30,6 +30,8 @@ type AppConfiguration struct {
 	WebURL             string              `mapstructure:"web_url"              validate:"required"`
 	TrashRetentionDays int                 `mapstructure:"trash_retention_days" validate:"gte=1,lte=365"`
 	MaxUploadSize      int64               `mapstructure:"max_upload_size"      validate:"gte=1"`
+	TLSCertFile        string              `mapstructure:"tls_cert_file"`
+	TLSKeyFile         string              `mapstructure:"tls_key_file"`
 }
 
 type DatabaseConfiguration struct {
@@ -253,6 +255,11 @@ type AuthConfig struct {
 	RefreshTokenExpiry int
 	MFATokenExpiry     int
 	WebURL             string
+}
+
+// TLSEnabled returns true when both TLS certificate and key file paths are configured.
+func (c *AppConfiguration) TLSEnabled() bool {
+	return c.TLSCertFile != "" && c.TLSKeyFile != ""
 }
 
 // GetAuthConfig extracts authentication configuration from AppConfiguration.
