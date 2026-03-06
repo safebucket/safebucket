@@ -95,7 +95,7 @@ func TestNewAccessToken(t *testing.T) {
 		assert.Equal(t, user.ID, claims.UserID)
 		assert.Equal(t, user.Role, claims.Role)
 		assert.Equal(t, provider, claims.Provider)
-		assert.Equal(t, "safebucket", claims.Issuer)
+		assert.Equal(t, configuration.AppName, claims.Issuer)
 		assert.Equal(t, "app:*", claims.Audience[0])
 	})
 
@@ -213,7 +213,7 @@ func TestParseToken(t *testing.T) {
 			Provider: provider,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Audience:  jwt.ClaimStrings{"app:*"},
-				Issuer:    "safebucket",
+				Issuer:    configuration.AppName,
 				IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-2 * time.Hour)},
 				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
 			},
@@ -254,7 +254,7 @@ func TestParseToken(t *testing.T) {
 			Provider: provider,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Audience:  jwt.ClaimStrings{"app:*", "auth:refresh"},
-				Issuer:    "safebucket",
+				Issuer:    configuration.AppName,
 				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 			},
@@ -275,7 +275,7 @@ func TestParseToken(t *testing.T) {
 			Role:     user.Role,
 			Provider: provider,
 			RegisteredClaims: jwt.RegisteredClaims{
-				Issuer:    "safebucket",
+				Issuer:    configuration.AppName,
 				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 			},
@@ -404,7 +404,7 @@ func TestParseRefreshToken(t *testing.T) {
 			Provider: provider,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Audience:  jwt.ClaimStrings{"auth:refresh"},
-				Issuer:    "safebucket",
+				Issuer:    configuration.AppName,
 				IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-11 * time.Hour)},
 				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
 			},

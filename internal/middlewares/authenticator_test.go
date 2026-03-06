@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-
+	"api/internal/configuration"
 	"api/internal/models"
 	"api/internal/tests"
 
@@ -38,7 +38,7 @@ func generateTestToken(secret string, user *models.User, expiresIn time.Duration
 		Role:     user.Role,
 		Provider: "test",
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "safebucket",
+			Issuer:    configuration.AppName,
 			Audience:  jwt.ClaimStrings{"app:*"},
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(expiresIn)},
@@ -435,7 +435,7 @@ func TestAuthenticate_UserClaimsInContext(t *testing.T) {
 	assert.Equal(t, testUser.ID, capturedClaims.UserID)
 	assert.Equal(t, testUser.Role, capturedClaims.Role)
 	assert.Equal(t, "test", capturedClaims.Provider)
-	assert.Equal(t, "safebucket", capturedClaims.Issuer)
+	assert.Equal(t, configuration.AppName, capturedClaims.Issuer)
 }
 
 func TestAuthenticate_ContextPropagation(t *testing.T) {
