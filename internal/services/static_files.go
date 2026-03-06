@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"path"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -86,36 +85,25 @@ func (s *StaticFileService) serveConfigJSON(w http.ResponseWriter, _ *http.Reque
 }
 
 func (s *StaticFileService) discoverFiles() error {
-	return s.walkDirectory(".", "")
-}
-
-// walkDirectory recursively discovers servable files in dirPath, mapping them to URL routes under urlPrefix.
-func (s *StaticFileService) walkDirectory(dirPath, urlPrefix string) error {
-	entries, err := fs.ReadDir(s.fsys, dirPath)
-	if err != nil {
-		return fmt.Errorf("failed to read directory %s: %w", dirPath, err)
-	}
-
-	for _, entry := range entries {
-		fullPath := path.Join(dirPath, entry.Name())
-
-		if entry.IsDir() {
-			subURLPrefix := path.Join(urlPrefix, entry.Name())
-			if err = s.walkDirectory(fullPath, subURLPrefix); err != nil {
-				zap.L().
-					Warn("failed to walk subdirectory", zap.String("dir", fullPath), zap.Error(err))
-				continue
-			}
-		} else {
-			routePath := "/" + path.Join(urlPrefix, entry.Name())
-
-			if s.isServableFile(entry.Name()) {
-				s.discoveredFiles[routePath] = true
-			}
+	err := fs.WalkDir(s.fsys, ".", func(filePath string, d fs.DirEntry, err error) error {
+		if err != nil {
+			zap.L().Warn("error accessing path during file discovery", zap.String("path", filePath), zap.Error(err))
+			return nil
 		}
+
+		if !d.IsDir() && s.isServableFile(d.Name()) {
+			routePath := "/" + filePath
+			s.discoveredFiles[routePath] = true
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to discover files: %w", err)
 	}
+
 	zap.L().
-		Debug("file discovery completed", zap.String("directory", dirPath), zap.Int("total_files", len(s.discoveredFiles)))
+		Debug("file discovery completed", zap.Int("total_files", len(s.discoveredFiles)))
 	return nil
 }
 
