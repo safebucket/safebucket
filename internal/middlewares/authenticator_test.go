@@ -1,14 +1,14 @@
 package middlewares
 
 import (
+	"api/internal/configuration"
+	"api/internal/models"
+	"api/internal/tests"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-	"api/internal/configuration"
-	"api/internal/models"
-	"api/internal/tests"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
