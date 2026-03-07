@@ -257,6 +257,8 @@ jobs:
         run: |
           TAGS=$(echo "$METADATA" | jq -r '.tags[]')
           for tag in $TAGS; do
-            echo "Signing $tag"
-            cosign sign --yes "$tag"
+            DIGEST=$(docker buildx imagetools inspect "$tag" --format '{{json .Manifest}}' | jq -r '.digest')
+            REPO=$(echo "$tag" | cut -d: -f1)
+            echo "Signing $REPO@$DIGEST"
+            cosign sign --yes "$REPO@$DIGEST"
           done

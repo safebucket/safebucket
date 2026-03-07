@@ -52,6 +52,31 @@ docker compose up -d
 > - `APP__API_URL`
 > - `APP__WEB_URL`
 
+## Verify Image Signatures
+
+All published container images are signed with [cosign](https://github.com/sigstore/cosign) using keyless signing via GitHub Actions OIDC — no manual keys are involved.
+
+You can verify the signature of any published image using the following commands:
+
+**Docker Hub:**
+
+```bash
+cosign verify \
+  --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp=https://github.com/safebucket/safebucket/ \
+  docker.io/safebucket/safebucket:<tag>
+```
+
+**GHCR:**
+
+```bash
+cosign verify \
+  --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp=https://github.com/safebucket/safebucket/ \
+  ghcr.io/safebucket/safebucket:<tag>
+```
+
+Replace `<tag>` with the image tag you want to verify (e.g., `latest`, `v1.0.0`).
 
 ## Star History
 
