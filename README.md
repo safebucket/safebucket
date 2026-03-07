@@ -54,7 +54,7 @@ docker compose up -d
 
 ## Verify Image Signatures
 
-All published container images are signed with [cosign](https://github.com/sigstore/cosign) using keyless signing via GitHub Actions OIDC — no manual keys are involved.
+All published container images are signed with [cosign](https://github.com/sigstore/cosign) using keyless signing via GitHub Actions OIDC: no manual keys are involved.
 
 You can verify the signature of any published image using the following commands:
 
