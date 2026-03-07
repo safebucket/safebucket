@@ -1,9 +1,9 @@
 <h1 align="center">
-  <a href="https://safebucket.io"><img src="./assets/safebucket_banner.png" alt="SafeBucket"></a>
+  <a href="https://docs.safebucket.io"><img src="./assets/safebucket_banner.png" alt="SafeBucket"></a>
 </h1>
 
 Safebucket is an open-source file sharing platform where files never touch your server.
-Uploads and downloads go directly to your storage backend via presigned URLs. You bring your own identity provider, your
+Uploads and downloads go directly to your storage backend. You bring your own identity provider, your
 own storage, and your own infrastructure. Safebucket handles metadata, access control and audit logging.
 
 ![SafeBucket Homepage](./assets/list_view.png)
@@ -30,7 +30,7 @@ own storage, and your own infrastructure. Safebucket handles metadata, access co
 - File expiration, trash with configurable retention
 - Admin dashboard with platform-wide statistics
 
-See the [full list of features](https://docs.safebucket.io/docs/features).
+See the [full list of features](https://docs.safebucket.io/features).
 
 ## Architecture
 
