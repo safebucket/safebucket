@@ -6,7 +6,7 @@ Safebucket is an open-source file sharing platform where files never touch your 
 Uploads and downloads go directly to your storage backend. You bring your own identity provider, your
 own storage, and your own infrastructure. Safebucket handles metadata, access control and audit logging.
 
-![SafeBucket Homepage](./assets/list_view.png)
+![SafeBucket List View](./assets/list_view.png)
 
 ## Why Safebucket?
 
