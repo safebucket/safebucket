@@ -2,6 +2,8 @@ name: Build and Push Docker Image
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'  # Trigger on version tags like v1.0.0, v2.1.3
 
@@ -40,7 +42,7 @@ jobs:
     needs: [ check-branch ]
     if: |
       always() &&
-      (github.event_name == 'workflow_dispatch' ||
+      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
        (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true'))
     runs-on: ubuntu-latest
     permissions:
@@ -65,9 +67,8 @@ jobs:
           tags: |
             # Tag pattern for semantic versioning
             type=semver,pattern={{version}}
-            # For manual dispatch
-            type=raw,value=${{ inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag != '' }}
-            type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag == '' }}
+            # For main branch commits
+            type=raw,value=main,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -114,7 +115,7 @@ jobs:
     needs: [ check-branch ]
     if: |
       always() &&
-      (github.event_name == 'workflow_dispatch' ||
+      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
        (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true'))
     runs-on: ubuntu-24.04-arm
     permissions:
@@ -179,7 +180,7 @@ jobs:
       id-token: write
     if: |
       always() &&
-      (github.event_name == 'workflow_dispatch' ||
+      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
        (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true')) &&
       needs.build-amd64.result == 'success' &&
       needs.build-arm64.result == 'success'
@@ -193,8 +194,7 @@ jobs:
             ghcr.io/safebucket/safebucket
           tags: |
             type=semver,pattern={{version}}
-            type=raw,value=${{ inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag != '' }}
-            type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' && inputs.tag == '' }}
+            type=raw,value=main,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
