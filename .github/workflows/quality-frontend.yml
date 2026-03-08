@@ -1,4 +1,4 @@
-name: Frontend Quality
+name: Frontend quality
 
 on:
   push:

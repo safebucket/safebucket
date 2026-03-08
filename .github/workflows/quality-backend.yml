@@ -1,4 +1,4 @@
-name: Backend Quality
+name: Backend quality
 
 on:
   push:

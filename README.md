@@ -2,6 +2,17 @@
   <a href="https://docs.safebucket.io"><img src="./assets/safebucket_banner.png" alt="SafeBucket"></a>
 </h1>
 
+<div align="center">
+
+[![GitHub Release][release-img]][release]
+[![Backend Quality][backend-img]][backend]
+[![Frontend Quality][frontend-img]][frontend]
+[![Docker Build][docker-build-img]][docker-build]
+[![Go Report Card][go-report-img]][go-report]
+[![License: Apache-2.0][license-img]][license]
+
+</div>
+
 Safebucket is an open-source file sharing platform where files never touch your server.
 Uploads and downloads go directly to your storage backend. You bring your own identity provider, your
 own storage, and your own infrastructure. Safebucket handles metadata, access control and audit logging.
@@ -99,3 +110,18 @@ This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file 
 - Pub/sub integrations by [Watermill](https://watermill.io)
 - Configuration management by [Koanf](https://github.com/knadh/koanf)
 - Icons by [Lucide](https://lucide.dev)
+
+[release]: https://github.com/safebucket/safebucket/releases
+[release-img]: https://img.shields.io/github/v/release/safebucket/safebucket
+[backend]: https://github.com/safebucket/safebucket/actions/workflows/quality-backend.yml
+[backend-img]: https://github.com/safebucket/safebucket/actions/workflows/quality-backend.yml/badge.svg
+[frontend]: https://github.com/safebucket/safebucket/actions/workflows/quality-frontend.yml
+[frontend-img]: https://github.com/safebucket/safebucket/actions/workflows/quality-frontend.yml/badge.svg
+[docker-build]: https://github.com/safebucket/safebucket/actions/workflows/docker-build.yml
+[docker-build-img]: https://github.com/safebucket/safebucket/actions/workflows/docker-build.yml/badge.svg
+[go-report]: https://goreportcard.com/report/github.com/safebucket/safebucket
+[go-report-img]: https://goreportcard.com/badge/github.com/safebucket/safebucket
+[license]: https://github.com/safebucket/safebucket/blob/main/LICENSE
+[license-img]: https://img.shields.io/github/license/safebucket/safebucket
+[github-downloads-img]: https://img.shields.io/github/downloads/safebucket/safebucket/total
+[docker-pulls]: https://img.shields.io/docker/pulls/safebucket/safebucket

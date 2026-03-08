@@ -1,14 +1,15 @@
 package middlewares
 
 import (
-	"github.com/safebucket/safebucket/internal/configuration"
-	"github.com/safebucket/safebucket/internal/models"
-	"github.com/safebucket/safebucket/internal/tests"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
