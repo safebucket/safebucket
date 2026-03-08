@@ -44,72 +44,12 @@ jobs:
       always() &&
       ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
        (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true'))
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      digest-dockerhub: ${{ steps.build-dockerhub.outputs.digest }}
-      digest-github: ${{ steps.build-github.outputs.digest }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            docker.io/safebucket/safebucket
-            ghcr.io/safebucket/safebucket
-          tags: |
-            # Tag pattern for semantic versioning
-            type=semver,pattern={{version}}
-            # For main branch commits
-            type=raw,value=main,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push AMD64 image by digest - DockerHub
-        id: build-dockerhub
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64
-          push: true
-          outputs: |
-            type=image,name=docker.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=amd64
-          cache-to: type=gha,mode=max,scope=amd64
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push AMD64 image by digest - Github
-        id: build-github
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64
-          push: true
-          outputs: |
-            type=image,name=ghcr.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=amd64
-          cache-to: type=gha,mode=max,scope=amd64
+    uses: ./.github/workflows/build-arch.yml
+    with:
+      arch: amd64
+      runner: ubuntu-latest
+      platform: linux/amd64
+    secrets: inherit
 
   build-arm64:
     needs: [ check-branch ]
@@ -117,59 +57,12 @@ jobs:
       always() &&
       ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
        (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true'))
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      digest-dockerhub: ${{ steps.build-dockerhub.outputs.digest }}
-      digest-github: ${{ steps.build-github.outputs.digest }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push ARM64 image by digest - DockerHub
-        id: build-dockerhub
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/arm64
-          push: true
-          outputs: |
-            type=image,name=docker.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=arm64
-          cache-to: type=gha,mode=max,scope=arm64
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push ARM64 image by digest - Github
-        id: build-github
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/arm64
-          push: true
-          outputs: |
-            type=image,name=ghcr.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=arm64
-          cache-to: type=gha,mode=max,scope=arm64
+    uses: ./.github/workflows/build-arch.yml
+    with:
+      arch: arm64
+      runner: ubuntu-24.04-arm
+      platform: linux/arm64
+    secrets: inherit
 
   create-manifests:
     runs-on: ubuntu-latest
@@ -262,3 +155,32 @@ jobs:
             echo "Signing $REPO@$DIGEST"
             cosign sign --yes "$REPO@$DIGEST"
           done
+
+  release:
+    needs: [check-branch, build-amd64, build-arm64, create-manifests]
+    if: >
+      github.ref_type == 'tag' &&
+      needs.create-manifests.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: binary-linux-*
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum safebucket-linux-* > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/safebucket-linux-amd64
+            dist/safebucket-linux-arm64
+            dist/checksums.txt

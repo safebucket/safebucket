@@ -1,0 +1,104 @@
+name: Build Docker image for architecture
+
+on:
+  workflow_call:
+    inputs:
+      arch:
+        description: 'Target architecture (amd64 or arm64)'
+        required: true
+        type: string
+      runner:
+        description: 'GitHub Actions runner to use'
+        required: true
+        type: string
+      platform:
+        description: 'Docker platform (e.g. linux/amd64)'
+        required: true
+        type: string
+    outputs:
+      digest-dockerhub:
+        description: 'Image digest on Docker Hub'
+        value: ${{ jobs.build.outputs.digest-dockerhub }}
+      digest-github:
+        description: 'Image digest on GitHub Container Registry'
+        value: ${{ jobs.build.outputs.digest-github }}
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runner }}
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest-dockerhub: ${{ steps.build-dockerhub.outputs.digest }}
+      digest-github: ${{ steps.build-github.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push image by digest - DockerHub
+        id: build-dockerhub
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ inputs.platform }}
+          push: true
+          outputs: |
+            type=image,name=docker.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ inputs.arch }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.arch }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image by digest - GitHub
+        id: build-github
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ inputs.platform }}
+          push: true
+          outputs: |
+            type=image,name=ghcr.io/safebucket/safebucket,push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ inputs.arch }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.arch }}
+
+      - name: Load image from cache
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ inputs.platform }}
+          load: true
+          push: false
+          tags: safebucket:extract
+          cache-from: type=gha,scope=${{ inputs.arch }}
+
+      - name: Extract binary
+        run: |
+          docker create --name extract-${{ inputs.arch }} safebucket:extract
+          docker cp extract-${{ inputs.arch }}:/app/safebucket ./safebucket-linux-${{ inputs.arch }}
+          docker rm extract-${{ inputs.arch }}
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-linux-${{ inputs.arch }}
+          path: ./safebucket-linux-${{ inputs.arch }}
+          if-no-files-found: error
+          retention-days: 1
