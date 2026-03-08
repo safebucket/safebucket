@@ -23,5 +23,5 @@ jobs:
           format: 'table'
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-          trivyignores: '.trivyignore.yaml'
+          trivyignores: '.github/.trivyignore.yaml'
           exit-code: '1'
