@@ -257,10 +257,6 @@ type AuthConfig struct {
 	WebURL             string
 }
 
-func (c *AppConfiguration) TLSEnabled() bool {
-	return c.TLSCertFile != ""
-}
-
 // GetAuthConfig extracts authentication configuration from AppConfiguration.
 func (c *AppConfiguration) GetAuthConfig() AuthConfig {
 	return AuthConfig{

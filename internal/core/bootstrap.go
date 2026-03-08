@@ -335,8 +335,8 @@ func StartHTTPServer(
 	}
 
 	var err error
-	if config.App.TLSEnabled() {
-		zap.L().Info("HTTPS server starting",
+	if config.App.TLSCertFile != "" {
+		zap.L().Info("TLS certificates provided, starting HTTPS server",
 			zap.Int("port", config.App.Port),
 			zap.String("cert", config.App.TLSCertFile),
 		)
