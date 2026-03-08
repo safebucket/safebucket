@@ -1,9 +1,9 @@
 package middlewares
 
 import (
-	"api/internal/configuration"
-	"api/internal/models"
-	"api/internal/tests"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests"
 	"context"
 	"net/http"
 	"net/http/httptest"

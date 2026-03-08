@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"api/internal/configuration"
+	"github.com/safebucket/safebucket/internal/configuration"
 
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"

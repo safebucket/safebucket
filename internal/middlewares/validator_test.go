@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"api/internal/models"
-	"api/internal/tests"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests"
 
 	"github.com/stretchr/testify/assert"
 )

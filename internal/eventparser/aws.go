@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"api/internal/storage"
+	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"

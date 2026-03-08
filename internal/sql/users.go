@@ -1,8 +1,8 @@
 package sql
 
 import (
-	"api/internal/models"
-	"api/internal/rbac"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/rbac"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"

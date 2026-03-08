@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"api/internal/configuration"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"

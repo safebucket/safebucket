@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	apierrors "api/internal/errors"
-	"api/internal/models"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"

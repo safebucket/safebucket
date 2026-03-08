@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"

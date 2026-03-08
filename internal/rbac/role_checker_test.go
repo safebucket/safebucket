@@ -3,7 +3,7 @@ package rbac
 import (
 	"testing"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/stretchr/testify/assert"
 )

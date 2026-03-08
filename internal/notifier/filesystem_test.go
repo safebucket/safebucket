@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 )
 
 func newTestFilesystemNotifier(t *testing.T) (*FilesystemNotifier, string) {

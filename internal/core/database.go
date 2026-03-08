@@ -1,9 +1,9 @@
 package core
 
 import (
-	"api/internal/configuration"
-	"api/internal/database"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/database"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"

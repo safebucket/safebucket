@@ -1,6 +1,6 @@
 package rbac
 
-import "api/internal/models"
+import "github.com/safebucket/safebucket/internal/models"
 
 // groupRank returns the hierarchical rank of a bucket group
 // Higher rank means more permissions (Owner > Contributor > Viewer).

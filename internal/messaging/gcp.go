@@ -3,7 +3,7 @@ package messaging
 import (
 	"context"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/ThreeDotsLabs/watermill-googlecloud/pkg/googlecloud"
 	"github.com/ThreeDotsLabs/watermill/message"

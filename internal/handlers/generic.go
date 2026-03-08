@@ -4,10 +4,10 @@ import (
 	"errors"
 	"net/http"
 
-	apierrors "api/internal/errors"
-	h "api/internal/helpers"
-	m "api/internal/middlewares"
-	"api/internal/models"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+	h "github.com/safebucket/safebucket/internal/helpers"
+	m "github.com/safebucket/safebucket/internal/middlewares"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"

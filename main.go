@@ -3,8 +3,8 @@ package main
 import (
 	"embed"
 
-	"api/internal/configuration"
-	"api/internal/core"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/core"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"

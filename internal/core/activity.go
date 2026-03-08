@@ -1,8 +1,8 @@
 package core
 
 import (
-	"api/internal/activity"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/models"
 )
 
 func NewActivityLogger(config models.ActivityConfiguration) activity.IActivityLogger {

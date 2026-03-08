@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"api/internal/configuration"
+	"github.com/safebucket/safebucket/internal/configuration"
 )
 
 func GetMFAAttempts(c ICache, userID string) (int, error) {

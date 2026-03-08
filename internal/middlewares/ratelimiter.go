@@ -1,8 +1,8 @@
 package middlewares
 
 import (
-	"api/internal/cache"
-	"api/internal/helpers"
+	"github.com/safebucket/safebucket/internal/cache"
+	"github.com/safebucket/safebucket/internal/helpers"
 	"net"
 	"net/http"
 	"strconv"

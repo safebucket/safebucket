@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 )
 
 type ValkeyCache = RueidisCache

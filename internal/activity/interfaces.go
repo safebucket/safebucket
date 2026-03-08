@@ -1,6 +1,6 @@
 package activity
 
-import "api/internal/models"
+import "github.com/safebucket/safebucket/internal/models"
 
 // IActivityLogger defines a common interface for all logs.
 type IActivityLogger interface {

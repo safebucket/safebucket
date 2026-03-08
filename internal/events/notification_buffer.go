@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"api/internal/cache"
-	"api/internal/configuration"
-	"api/internal/notifier"
+	"github.com/safebucket/safebucket/internal/cache"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/notifier"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"

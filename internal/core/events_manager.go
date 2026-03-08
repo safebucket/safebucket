@@ -1,11 +1,11 @@
 package core
 
 import (
-	"api/internal/configuration"
-	"api/internal/eventparser"
-	"api/internal/messaging"
-	"api/internal/models"
-	"api/internal/storage"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/eventparser"
+	"github.com/safebucket/safebucket/internal/messaging"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/storage"
 
 	"go.uber.org/zap"
 )

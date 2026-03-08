@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"api/internal/messaging"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/messaging"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"

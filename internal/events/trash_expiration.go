@@ -5,9 +5,9 @@ import (
 	"path"
 	"strings"
 
-	"api/internal/activity"
-	"api/internal/models"
-	"api/internal/rbac"
+	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"

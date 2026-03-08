@@ -1,8 +1,8 @@
 package core
 
 import (
-	"api/internal/models"
-	"api/internal/notifier"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/notifier"
 )
 
 func NewNotifier(config models.NotifierConfiguration) notifier.INotifier {

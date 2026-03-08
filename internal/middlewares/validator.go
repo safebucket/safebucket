@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"time"
 
-	h "api/internal/helpers"
+	h "github.com/safebucket/safebucket/internal/helpers"
 
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"

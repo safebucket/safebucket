@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"api/internal/configuration"
-	"api/internal/helpers"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
 )
 
 // AuthExcludedKey is used to store auth exclusion flag in context.

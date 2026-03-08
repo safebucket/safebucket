@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"api/internal/configuration"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"

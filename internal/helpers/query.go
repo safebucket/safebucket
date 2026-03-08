@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 )
 
 // GetQueryParams extracts validated query parameters from the request context.

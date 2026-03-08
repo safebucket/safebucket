@@ -11,8 +11,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 
-	h "api/internal/helpers"
-	"api/internal/models"
+	h "github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
 )
 
 // ValidateQuery is a middleware that validates query parameters against a struct type.

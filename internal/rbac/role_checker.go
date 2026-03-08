@@ -1,6 +1,6 @@
 package rbac
 
-import "api/internal/models"
+import "github.com/safebucket/safebucket/internal/models"
 
 // roleRank returns the hierarchical rank of a role
 // Higher rank means more permissions (Admin > User > Guest).

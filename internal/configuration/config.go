@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/parsers/yaml"

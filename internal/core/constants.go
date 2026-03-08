@@ -1,6 +1,6 @@
 package core
 
-import "api/internal/configuration"
+import "github.com/safebucket/safebucket/internal/configuration"
 
 // RequiresUploadConfirmation returns true when the client must manually confirm uploads.
 // This is needed for storage providers without bucket notifications (e.g. generic S3)

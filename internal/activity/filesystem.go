@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/mapping"

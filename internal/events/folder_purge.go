@@ -5,11 +5,11 @@ import (
 	"errors"
 	"path"
 
-	"api/internal/activity"
-	c "api/internal/configuration"
-	"api/internal/messaging"
-	"api/internal/models"
-	"api/internal/rbac"
+	"github.com/safebucket/safebucket/internal/activity"
+	c "github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/messaging"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"

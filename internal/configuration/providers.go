@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"go.uber.org/zap"

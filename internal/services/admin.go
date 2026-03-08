@@ -1,14 +1,14 @@
 package services
 
 import (
-	"api/internal/activity"
-	"api/internal/handlers"
-	m "api/internal/middlewares"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/handlers"
+	m "github.com/safebucket/safebucket/internal/middlewares"
+	"github.com/safebucket/safebucket/internal/models"
 
-	"api/internal/sql"
+	"github.com/safebucket/safebucket/internal/sql"
 
-	"api/internal/rbac"
+	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"

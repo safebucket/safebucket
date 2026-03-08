@@ -3,9 +3,9 @@ package middlewares
 import (
 	"net/http"
 
-	h "api/internal/helpers"
-	"api/internal/models"
-	"api/internal/rbac"
+	h "github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/rbac"
 
 	"gorm.io/gorm"
 )

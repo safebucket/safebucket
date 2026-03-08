@@ -7,8 +7,8 @@ import (
 	"io/fs"
 	"strings"
 
-	"api/internal/mails"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/mails"
+	"github.com/safebucket/safebucket/internal/models"
 
 	mail "github.com/wneessen/go-mail"
 	"go.uber.org/zap"

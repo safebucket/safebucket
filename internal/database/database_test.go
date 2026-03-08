@@ -3,7 +3,7 @@ package database
 import (
 	"testing"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

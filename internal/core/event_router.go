@@ -1,8 +1,8 @@
 package core
 
 import (
-	"api/internal/configuration"
-	"api/internal/events"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/events"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"

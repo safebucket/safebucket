@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"time"
 
-	c "api/internal/configuration"
-	"api/internal/models"
+	c "github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"strings"
 

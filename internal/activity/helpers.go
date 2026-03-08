@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"

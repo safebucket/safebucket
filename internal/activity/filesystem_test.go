@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/blevesearch/bleve/v2"
 )

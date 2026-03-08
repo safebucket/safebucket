@@ -1,7 +1,7 @@
 package configuration
 
 import (
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"go.uber.org/zap"
 )

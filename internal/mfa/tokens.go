@@ -1,10 +1,10 @@
 package mfa
 
 import (
-	"api/internal/configuration"
-	apierrors "api/internal/errors"
-	h "api/internal/helpers"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/configuration"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+	h "github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"go.uber.org/zap"
 )

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
-	"api/internal/configuration"
-	"api/internal/rbac"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"

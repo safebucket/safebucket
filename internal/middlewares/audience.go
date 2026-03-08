@@ -3,9 +3,9 @@ package middlewares
 import (
 	"net/http"
 
-	"api/internal/configuration"
-	"api/internal/helpers"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
 )
 
 // AudienceValidate middleware handles audience validation for JWT tokens.

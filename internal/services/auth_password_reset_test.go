@@ -3,8 +3,8 @@ package services
 import (
 	"testing"
 
-	"api/internal/configuration"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"

@@ -1,7 +1,7 @@
 package rbac
 
 import (
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 	"errors"
 
 	"github.com/google/uuid"

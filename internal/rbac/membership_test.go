@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"

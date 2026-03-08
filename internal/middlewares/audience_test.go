@@ -6,10 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"api/internal/configuration"
-	"api/internal/helpers"
-	"api/internal/models"
-	"api/internal/tests"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

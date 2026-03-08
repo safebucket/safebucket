@@ -1,4 +1,4 @@
-module api
+module github.com/safebucket/safebucket
 
 go 1.25.6
 

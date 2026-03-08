@@ -6,10 +6,10 @@ import (
 	"path"
 	"time"
 
-	"api/internal/activity"
-	"api/internal/models"
-	"api/internal/rbac"
-	"api/internal/storage"
+	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"

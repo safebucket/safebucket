@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"api/internal/database"
+	"github.com/safebucket/safebucket/internal/database"
 
-	apierrors "api/internal/errors"
-	"api/internal/models"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"time"
 

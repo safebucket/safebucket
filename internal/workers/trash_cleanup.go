@@ -5,9 +5,9 @@ import (
 	"path"
 	"time"
 
-	"api/internal/events"
-	"api/internal/messaging"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/events"
+	"github.com/safebucket/safebucket/internal/messaging"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"

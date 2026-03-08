@@ -5,10 +5,10 @@ import (
 	"regexp"
 	"testing"
 
-	"api/internal/activity"
-	"api/internal/configuration"
-	"api/internal/helpers"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"

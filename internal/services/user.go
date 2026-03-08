@@ -3,14 +3,14 @@ package services
 import (
 	"errors"
 
-	apierrors "api/internal/errors"
-	"api/internal/handlers"
-	h "api/internal/helpers"
-	"api/internal/messaging"
-	m "api/internal/middlewares"
-	"api/internal/models"
-	"api/internal/notifier"
-	"api/internal/sql"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+	"github.com/safebucket/safebucket/internal/handlers"
+	h "github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/messaging"
+	m "github.com/safebucket/safebucket/internal/middlewares"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/notifier"
+	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"

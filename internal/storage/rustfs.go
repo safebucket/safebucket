@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	c "api/internal/configuration"
-	"api/internal/models"
+	c "github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"

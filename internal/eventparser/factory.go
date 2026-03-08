@@ -3,8 +3,8 @@ package eventparser
 import (
 	"strings"
 
-	"api/internal/configuration"
-	"api/internal/storage"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/storage"
 )
 
 // NewBucketEventParser returns the appropriate parser for the given storage provider type.

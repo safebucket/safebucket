@@ -1,10 +1,10 @@
 package services
 
 import (
-	"api/internal/cache"
-	"api/internal/configuration"
-	"api/internal/helpers"
-	"api/internal/models"
+	"github.com/safebucket/safebucket/internal/cache"
+	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
 	"database/sql"
 	"regexp"
 	"testing"

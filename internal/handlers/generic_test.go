@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	apierrors "api/internal/errors"
-	m "api/internal/middlewares"
-	"api/internal/models"
-	"api/internal/tests"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+	m "github.com/safebucket/safebucket/internal/middlewares"
+	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"

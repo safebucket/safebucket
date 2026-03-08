@@ -3,7 +3,7 @@ package helpers
 import (
 	"fmt"
 
-	"api/internal/configuration"
+	"github.com/safebucket/safebucket/internal/configuration"
 
 	"github.com/pquerna/otp/totp"
 )
