@@ -49,7 +49,9 @@ jobs:
       arch: amd64
       runner: ubuntu-latest
       platform: linux/amd64
-    secrets: inherit
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
   build-arm64:
     needs: [ check-branch ]
@@ -62,7 +64,9 @@ jobs:
       arch: arm64
       runner: ubuntu-24.04-arm
       platform: linux/arm64
-    secrets: inherit
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
   create-manifests:
     runs-on: ubuntu-latest
@@ -164,6 +168,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - name: Download binaries
         uses: actions/download-artifact@v4
@@ -176,11 +181,25 @@ jobs:
         working-directory: dist
         run: sha256sum safebucket-linux-* > checksums.txt
 
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign binaries
+        working-directory: dist
+        run: |
+          for bin in safebucket-linux-*; do
+            cosign sign-blob --yes --output-signature "${bin}.sig" --output-certificate "${bin}.pem" "${bin}"
+          done
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           files: |
             dist/safebucket-linux-amd64
+            dist/safebucket-linux-amd64.sig
+            dist/safebucket-linux-amd64.pem
             dist/safebucket-linux-arm64
+            dist/safebucket-linux-arm64.sig
+            dist/safebucket-linux-arm64.pem
             dist/checksums.txt

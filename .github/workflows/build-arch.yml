@@ -15,6 +15,11 @@ on:
         description: 'Docker platform (e.g. linux/amd64)'
         required: true
         type: string
+    secrets:
+      DOCKER_USERNAME:
+        required: true
+      DOCKER_PASSWORD:
+        required: true
     outputs:
       digest-dockerhub:
         description: 'Image digest on Docker Hub'
@@ -90,10 +95,12 @@ jobs:
           cache-from: type=gha,scope=${{ inputs.arch }}
 
       - name: Extract binary
+        env:
+          ARCH: ${{ inputs.arch }}
         run: |
-          docker create --name extract-${{ inputs.arch }} safebucket:extract
-          docker cp extract-${{ inputs.arch }}:/app/safebucket ./safebucket-linux-${{ inputs.arch }}
-          docker rm extract-${{ inputs.arch }}
+          docker create --name "extract-${ARCH}" safebucket:extract
+          docker cp "extract-${ARCH}":/app/safebucket "./safebucket-linux-${ARCH}"
+          docker rm "extract-${ARCH}"
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
