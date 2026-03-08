@@ -1,0 +1,28 @@
+name: Docker Quality
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/quality-docker.yml'
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/quality-docker.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  hadolint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: Dockerfile
