@@ -67,22 +67,12 @@ docker compose up -d
 > - `APP__API_URL`
 > - `APP__WEB_URL`
 
-## Verify Image Signatures
+## Verify Image Signature
 
-All published container images are signed with [cosign](https://github.com/sigstore/cosign) using keyless signing via GitHub Actions OIDC: no manual keys are involved.
+All published container images are signed with [cosign](https://github.com/sigstore/cosign) using keyless signing via
+GitHub Actions OIDC: no manual keys are involved.
 
 You can verify the signature of any published image using the following commands:
-
-**Docker Hub:**
-
-```bash
-cosign verify \
-  --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-  --certificate-identity-regexp=https://github.com/safebucket/safebucket/ \
-  docker.io/safebucket/safebucket:<tag>
-```
-
-**GHCR:**
 
 ```bash
 cosign verify \
@@ -112,16 +102,29 @@ This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file 
 - Icons by [Lucide](https://lucide.dev)
 
 [release]: https://github.com/safebucket/safebucket/releases
+
 [release-img]: https://img.shields.io/github/v/release/safebucket/safebucket
+
 [backend]: https://github.com/safebucket/safebucket/actions/workflows/quality-backend.yml
+
 [backend-img]: https://github.com/safebucket/safebucket/actions/workflows/quality-backend.yml/badge.svg
+
 [frontend]: https://github.com/safebucket/safebucket/actions/workflows/quality-frontend.yml
+
 [frontend-img]: https://github.com/safebucket/safebucket/actions/workflows/quality-frontend.yml/badge.svg
+
 [docker-build]: https://github.com/safebucket/safebucket/actions/workflows/docker-build.yml
+
 [docker-build-img]: https://github.com/safebucket/safebucket/actions/workflows/docker-build.yml/badge.svg
+
 [go-report]: https://goreportcard.com/report/github.com/safebucket/safebucket
+
 [go-report-img]: https://goreportcard.com/badge/github.com/safebucket/safebucket
+
 [license]: https://github.com/safebucket/safebucket/blob/main/LICENSE
+
 [license-img]: https://img.shields.io/github/license/safebucket/safebucket
+
 [github-downloads-img]: https://img.shields.io/github/downloads/safebucket/safebucket/total
+
 [docker-pulls]: https://img.shields.io/docker/pulls/safebucket/safebucket

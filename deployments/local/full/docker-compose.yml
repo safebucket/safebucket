@@ -3,7 +3,7 @@ name: safebucket
 services:
   safebucket:
     container_name: safebucket
-    image: safebucket/safebucket:latest
+    image: ghcr.io/safebucket/safebucket:latest
     environment:
       - APP__LOG_LEVEL=${APP__LOG_LEVEL}
       - APP__PROFILE=${APP__PROFILE}
