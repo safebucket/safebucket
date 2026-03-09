@@ -44,6 +44,9 @@ jobs:
       always() &&
       ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
        (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true'))
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/build-arch.yml
     with:
       arch: amd64
@@ -59,6 +62,9 @@ jobs:
       always() &&
       ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
        (needs.check-branch.result == 'success' && needs.check-branch.outputs.on-default-branch == 'true'))
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/build-arch.yml
     with:
       arch: arm64
