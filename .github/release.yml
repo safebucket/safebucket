@@ -11,7 +11,7 @@ changelog:
         - bug
     - title: "Dependencies"
       labels:
-        - deps
+        - dependencies
     - title: "Other Changes"
       labels:
         - "*"

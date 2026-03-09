@@ -9,7 +9,7 @@ updates:
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 10
-    labels: ["deps"]
+    labels: ["dependencies"]
     commit-message:
       prefix: "[deps]"
       include: "scope"
@@ -26,7 +26,7 @@ updates:
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 10
-    labels: ["deps"]
+    labels: ["dependencies"]
     commit-message:
       prefix: "[deps]"
       include: "scope"
@@ -51,7 +51,7 @@ updates:
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 5
-    labels: ["deps"]
+    labels: ["dependencies"]
     commit-message:
       prefix: "[docker-compose:local-full]"
       include: "scope"
@@ -68,7 +68,7 @@ updates:
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 5
-    labels: ["deps"]
+    labels: ["dependencies"]
     commit-message:
       prefix: "[docker-compose:dev]"
       include: "scope"
@@ -85,7 +85,7 @@ updates:
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 5
-    labels: ["deps"]
+    labels: ["dependencies"]
     commit-message:
       prefix: "[docker-compose:local-lite]"
       include: "scope"
@@ -101,7 +101,7 @@ updates:
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 3
-    labels: ["deps"]
+    labels: ["dependencies"]
     commit-message:
       prefix: "[actions]"
       include: "scope"
@@ -117,7 +117,7 @@ updates:
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 5
-    labels: ["deps"]
+    labels: ["dependencies"]
     commit-message:
       prefix: "[terraform-aws]"
       include: "scope"
@@ -133,7 +133,7 @@ updates:
       time: "09:00"
     target-branch: "main"
     open-pull-requests-limit: 5
-    labels: ["deps"]
+    labels: ["dependencies"]
     commit-message:
       prefix: "[docker]"
       include: "scope"
