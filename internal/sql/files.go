@@ -35,7 +35,6 @@ func GetSharedFilesByDay(db *gorm.DB, days int) []models.TimeSeriesPoint {
 
 	dateExpr := database.FormatDateStr(db, "files.created_at")
 
-	// Get files from shared buckets grouped by day
 	db.Model(&models.File{}).
 		Select(fmt.Sprintf("%s as date, COUNT(*) as count", dateExpr)).
 		Where("status = ?", models.FileStatusUploaded).

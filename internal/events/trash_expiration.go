@@ -30,7 +30,6 @@ type TrashExpiration struct {
 	Payload TrashExpirationPayload
 }
 
-// NewTrashExpirationFromBucketEvent creates a trash expiration event from a bucket deletion event.
 func NewTrashExpirationFromBucketEvent(bucketID uuid.UUID, objectKey string) *TrashExpiration {
 	return &TrashExpiration{
 		Payload: TrashExpirationPayload{
@@ -41,7 +40,6 @@ func NewTrashExpirationFromBucketEvent(bucketID uuid.UUID, objectKey string) *Tr
 	}
 }
 
-// Trigger publishes the trash expiration event (if needed for manual triggering).
 func (e *TrashExpiration) Trigger(publisher message.Publisher) {
 	payload, err := json.Marshal(e.Payload)
 	if err != nil {
@@ -57,7 +55,6 @@ func (e *TrashExpiration) Trigger(publisher message.Publisher) {
 	}
 }
 
-// parsedPathInfo contains the results of parsing an object path.
 type parsedPathInfo struct {
 	isMarker     bool
 	originalPath string
@@ -66,7 +63,6 @@ type parsedPathInfo struct {
 	filename     string
 }
 
-// parseObjectPath parses the object key and extracts path information.
 func (e *TrashExpiration) parseObjectPath(params *EventParams) parsedPathInfo {
 	isMarker, originalPath := params.Storage.IsTrashMarkerPath(e.Payload.ObjectKey)
 	prefix := path.Join("buckets", e.Payload.BucketID.String()) + "/"
@@ -113,7 +109,6 @@ func (e *TrashExpiration) parseObjectPath(params *EventParams) parsedPathInfo {
 	}
 }
 
-// findTrashedFile queries the database for a trashed file.
 func (e *TrashExpiration) findTrashedFile(params *EventParams, pathInfo parsedPathInfo) (*models.File, error) {
 	fileID, err := uuid.Parse(pathInfo.filename)
 	if err != nil {

@@ -146,8 +146,7 @@ func TestValidateTOTPCode(t *testing.T) {
 
 		result := ValidateTOTPCode(key.Secret(), "000000")
 
-		// This might occasionally pass if 000000 happens to be valid, but very unlikely
-		// For robust testing, we use a code that's definitely wrong
+		// 000000 is almost certainly invalid, but not guaranteed
 		assert.False(t, result, "should reject obviously wrong code")
 	})
 

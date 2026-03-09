@@ -252,7 +252,7 @@ func TestFilesystemMigrateIndex(t *testing.T) {
 		t.Fatalf("failed to close index: %v", err)
 	}
 
-	// Open via NewFilesystemClient — should detect version mismatch and migrate.
+	// Open via NewFilesystemClient - should detect version mismatch and migrate.
 	config := models.ActivityConfiguration{
 		Type: "filesystem",
 		Filesystem: &models.FilesystemActivityConfiguration{

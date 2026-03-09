@@ -31,14 +31,10 @@ const (
 	lokiSearchURI = "/loki/api/v1/query_range"
 )
 
-// LokiBody represents the main structure for sending logs to Loki, containing a list of log stream entries.
 type LokiBody struct {
 	Streams []StreamEntry `json:"streams"`
 }
 
-// StreamEntry represents a single log record stream in a Loki-compatible format.
-// The Stream field contains dynamic labels as key-value pairs.
-// The Values field contains log entries with their associated timestamp and message.
 type StreamEntry struct {
 	Stream map[string]string `json:"stream"` // dynamic labels like "foo": "bar2"
 	Values []RawLogValue     `json:"values"` // each entry is a [timestamp, message]
@@ -55,10 +51,9 @@ type LokiResult struct {
 	Values [][]string        `json:"values"` // each value is [timestamp, logLine, structuredMetadata?]
 }
 
-// RawLogValue is a fixed-size array of 3 interface{} elements, typically representing [timestamp, message, metadata].
+// RawLogValue [timestamp, message, metadata].
 type RawLogValue [3]interface{}
 
-// LokiMatrixResponse represents the response from Loki's range query endpoint for matrix results.
 type LokiMatrixResponse struct {
 	Data struct {
 		ResultType string             `json:"resultType"`
@@ -66,13 +61,11 @@ type LokiMatrixResponse struct {
 	} `json:"data"`
 }
 
-// LokiMatrixResult represents a single matrix result stream from a Loki range query.
 type LokiMatrixResult struct {
 	Metric map[string]string `json:"metric"`
 	Values [][]interface{}   `json:"values"` // [[timestamp, "count_value"], ...]
 }
 
-// LokiClient provides methods to interact with a Loki logging endpoint, including sending logs and searching for logs.
 type LokiClient struct {
 	Client    *resty.Client
 	pushURL   string
@@ -189,7 +182,6 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 	return activity, nil
 }
 
-// CountByDay returns the count of log entries per day matching the search criteria.
 func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
 	baseQuery := generateSearchQuery(searchCriteria)
 	countQuery := fmt.Sprintf("sum(count_over_time(%s[1d]))", baseQuery)
@@ -277,7 +269,6 @@ func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([
 	return result, nil
 }
 
-// NewLokiClient initializes and returns a new LokiClient instance based on the provided log configuration.
 func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 	client := resty.New()
 	client.SetRetryCount(5).
@@ -378,9 +369,6 @@ func generateORCriteria(criteria map[string][]string) []string {
 	return formattedCriteria
 }
 
-// createLokiBody transforms a LogMessage into a LokiBody structure, separating metadata into labels and additional fields.
-// It constructs a Loki-compatible log entry stream with the message and associated metadata.
-// Returns the generated LokiBody and any error encountered during its creation.
 func createLokiBody(activity models.Activity) (LokiBody, error) {
 	labels, metadata := splitMetadata(activity.Filter.Fields)
 	labels["service_name"] = configuration.AppName

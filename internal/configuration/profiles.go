@@ -12,7 +12,6 @@ const (
 	ProfileWorker  = "worker"
 )
 
-// Profiles defines all available deployment profiles.
 var Profiles = map[string]models.Profile{
 	ProfileDefault: {
 		Name:       ProfileDefault,
@@ -46,8 +45,6 @@ var Profiles = map[string]models.Profile{
 	},
 }
 
-// GetProfile returns the profile by name. Returns the default profile if name is empty.
-// Returns false if the profile name is not found.
 func GetProfile(name string) models.Profile {
 	if name == "" {
 		name = ProfileDefault

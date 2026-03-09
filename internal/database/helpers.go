@@ -11,7 +11,7 @@ import (
 
 // FormatDateStr returns the correct SQL expression to extract a formatted date (YYYY-MM-DD)
 // depending on the underlying database dialect.
-// IMPORTANT: column must be a trusted, hardcoded column identifier — it is interpolated
+// IMPORTANT: column must be a trusted, hardcoded column identifier - it is interpolated
 // directly into the SQL string without escaping.
 func FormatDateStr(db *gorm.DB, column string) string {
 	if db.Dialector.Name() == DialectSQLite {

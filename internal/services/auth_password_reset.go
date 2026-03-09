@@ -111,9 +111,6 @@ func (s AuthPasswordResetService) RequestPasswordReset(
 	return nil, nil
 }
 
-// ValidatePasswordReset verifies the reset code and returns a restricted access token.
-// If user has MFA enabled, frontend should verify MFA before completing password reset.
-// Frontend fetches devices and determines MFA state by checking if devices list is empty.
 func (s AuthPasswordResetService) ValidatePasswordReset(
 	logger *zap.Logger,
 	_ models.UserClaims,
@@ -183,8 +180,6 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
-	// Generate restricted access token for password reset flow
-	// Include challenge ID in token to validate later (replaces status column check)
 	restrictedToken, tokenErr := h.NewRestrictedAccessToken(
 		s.AuthConfig.JWTSecret,
 		&userWithMFA,
@@ -225,9 +220,6 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	}, nil
 }
 
-// CompletePasswordReset applies the new password.
-// Authorization is handled via restricted access token in Authorization header.
-// For users with MFA, they must have verified MFA via /auth/mfa/verify first.
 func (s AuthPasswordResetService) CompletePasswordReset(
 	logger *zap.Logger,
 	claims models.UserClaims,
@@ -260,9 +252,6 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	}
 	user = &userWithMFA
 
-	// CRITICAL: Prevent MFA bypass
-	// If user has MFA enabled, token MUST indicate MFA is verified
-	// Note: Audience validation (cross-flow attack prevention) is handled by middleware
 	if userWithMFA.HasMFAEnabled() && !claims.MFA {
 		logger.Warn("MFA bypass attempt in password reset",
 			zap.String("user_id", user.ID.String()))
@@ -343,8 +332,6 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	}, nil
 }
 
-// getChallenge retrieves a challenge for the given user.
-// Note: Status check is no longer needed - the JWT's challenge_id proves the code was validated.
 func (s AuthPasswordResetService) getChallenge(
 	_ *zap.Logger,
 	challengeID uuid.UUID,

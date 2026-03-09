@@ -12,7 +12,6 @@ type FileStatus string
 const (
 	FileStatusUploading FileStatus = "uploading"
 	FileStatusUploaded  FileStatus = "uploaded"
-	FileStatusDeleting  FileStatus = "deleting"
 	FileStatusDeleted   FileStatus = "deleted"
 	FileStatusRestoring FileStatus = "restoring"
 )
@@ -60,7 +59,6 @@ type FileTransferResponse struct {
 	Body map[string]string `json:"body"`
 }
 
-// FilePatchBody represents a PATCH request for trash/restore operations.
 type FilePatchBody struct {
 	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
 }

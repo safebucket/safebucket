@@ -2,7 +2,6 @@ package configuration
 
 const AppName = "safebucket"
 
-// JWT Audience constants for token type separation.
 const (
 	AudienceAccessToken  = "app:*"
 	AudienceRefreshToken = "auth:refresh"
@@ -42,14 +41,10 @@ const (
 )
 
 const (
-	// MaxMFADevicesPerUser is the maximum number of MFA devices allowed per user.
 	MaxMFADevicesPerUser = 5
-	// TOTPCodeTTL is the time-to-live for TOTP code replay protection (in seconds).
-	TOTPCodeTTL = 90
-	// MFAMaxAttempts is the maximum number of failed MFA verification attempts before lockout.
-	MFAMaxAttempts = 5
-	// MFALockoutSeconds is the lockout duration after max failed MFA attempts (in seconds).
-	MFALockoutSeconds = 900
+	TOTPCodeTTL          = 90
+	MFAMaxAttempts       = 5
+	MFALockoutSeconds    = 900
 )
 
 const (
@@ -63,7 +58,6 @@ const (
 	PostgresConnMaxLifetime = 30 // in minutes
 )
 
-// Storage and messaging provider types.
 const (
 	ProviderJetstream = "jetstream"
 	ProviderMinio     = "minio"

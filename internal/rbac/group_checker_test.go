@@ -114,52 +114,34 @@ func TestHasGroup_EdgeCases(t *testing.T) {
 	})
 }
 
-// TestHasGroup_TableDriven comprehensive test matrix.
 func TestHasGroup_TableDriven(t *testing.T) {
 	tests := []struct {
 		name          string
 		userGroup     models.Group
 		requiredGroup models.Group
 		expected      bool
-		description   string
 	}{
-		// Owner scenarios
-		{"Owner->Owner", models.GroupOwner, models.GroupOwner, true, "Owner can do Owner things"},
-		{"Owner->Contributor", models.GroupOwner, models.GroupContributor, true, "Owner can do Contributor things"},
-		{"Owner->Viewer", models.GroupOwner, models.GroupViewer, true, "Owner can do Viewer things"},
+		{"Owner->Owner", models.GroupOwner, models.GroupOwner, true},
+		{"Owner->Contributor", models.GroupOwner, models.GroupContributor, true},
+		{"Owner->Viewer", models.GroupOwner, models.GroupViewer, true},
 
-		// Contributor scenarios
-		{"Contributor->Owner", models.GroupContributor, models.GroupOwner, false, "Contributor CANNOT do Owner things"},
-		{
-			"Contributor->Contributor",
-			models.GroupContributor,
-			models.GroupContributor,
-			true,
-			"Contributor can do Contributor things",
-		},
-		{"Contributor->Viewer", models.GroupContributor, models.GroupViewer, true, "Contributor can do Viewer things"},
+		{"Contributor->Owner", models.GroupContributor, models.GroupOwner, false},
+		{"Contributor->Contributor", models.GroupContributor, models.GroupContributor, true},
+		{"Contributor->Viewer", models.GroupContributor, models.GroupViewer, true},
 
-		// Viewer scenarios
-		{"Viewer->Owner", models.GroupViewer, models.GroupOwner, false, "Viewer CANNOT do Owner things"},
-		{
-			"Viewer->Contributor",
-			models.GroupViewer,
-			models.GroupContributor,
-			false,
-			"Viewer CANNOT do Contributor things",
-		},
-		{"Viewer->Viewer", models.GroupViewer, models.GroupViewer, true, "Viewer can do Viewer things"},
+		{"Viewer->Owner", models.GroupViewer, models.GroupOwner, false},
+		{"Viewer->Contributor", models.GroupViewer, models.GroupContributor, false},
+		{"Viewer->Viewer", models.GroupViewer, models.GroupViewer, true},
 
-		// Edge cases
-		{"Unknown->Owner", models.Group("unknown"), models.GroupOwner, false, "Unknown group has no privileges"},
-		{"Owner->Unknown", models.GroupOwner, models.Group("unknown"), true, "Owner (rank 3) >= unknown (rank 0)"},
-		{"Empty->Viewer", models.Group(""), models.GroupViewer, false, "Empty group has no privileges"},
+		{"Unknown->Owner", models.Group("unknown"), models.GroupOwner, false},
+		{"Owner->Unknown", models.GroupOwner, models.Group("unknown"), true}, // rank 3 >= rank 0
+		{"Empty->Viewer", models.Group(""), models.GroupViewer, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := HasGroup(tt.userGroup, tt.requiredGroup)
-			assert.Equal(t, tt.expected, result, tt.description)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }

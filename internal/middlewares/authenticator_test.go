@@ -399,7 +399,7 @@ func TestIsAuthExcluded(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isAuthExcluded(tt.path, tt.method)
+			result := isPathExcludedFromAuth(tt.path, tt.method)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

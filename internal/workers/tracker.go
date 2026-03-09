@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// WorkerTask represents a named operation to be executed during a worker run.
 type WorkerTask struct {
 	Name string
 	Fn   func(ctx context.Context) (int, error)
@@ -29,7 +28,6 @@ func executeTasks(ctx context.Context, tasks []WorkerTask) []int {
 	return counts
 }
 
-// StartPeriodicWorker runs an immediate cleanup cycle, then repeats on interval.
 func StartPeriodicWorker(ctx context.Context, workerName string, interval time.Duration, tasks []WorkerTask) {
 	zap.L().Info("Starting worker",
 		zap.String("worker", workerName),
@@ -51,7 +49,6 @@ func StartPeriodicWorker(ctx context.Context, workerName string, interval time.D
 	}
 }
 
-// runWorkerCycle executes a single tracked worker cycle, logging timing and per-task counts.
 func runWorkerCycle(ctx context.Context, workerName string, tasks []WorkerTask) {
 	startTime := time.Now()
 	zap.L().Info("Starting worker cycle", zap.String("worker", workerName))

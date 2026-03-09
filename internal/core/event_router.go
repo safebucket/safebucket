@@ -46,7 +46,6 @@ func (er *EventRouter) Close() error {
 	return nil
 }
 
-// getTopicKeyForEvent maps event types to topic keys.
 func (er *EventRouter) getTopicKeyForEvent(eventType string) string {
 	switch eventType {
 	case events.UserInvitationName,

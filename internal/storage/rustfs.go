@@ -25,7 +25,6 @@ type S3Storage struct {
 	storage          *minio.Client
 }
 
-// s3Config holds a common configuration for S3-compatible storage providers.
 type s3Config struct {
 	endpoint         string
 	externalEndpoint string
@@ -34,7 +33,6 @@ type s3Config struct {
 	providerName     string
 }
 
-// newS3Storage creates a new S3-compatible storage client.
 func newS3Storage(cfg s3Config, bucketName string) IStorage {
 	minioClient, err := minio.New(cfg.endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.accessKey, cfg.secretKey, ""),
@@ -92,8 +90,6 @@ func NewRustFSStorage(config *models.RustFSStorageConfiguration, bucketName stri
 	}, bucketName)
 }
 
-// replaceEndpoint replaces the internal endpoint with the external endpoint in a URL.
-// It properly parses URLs to replace only the scheme and host, preserving path and query parameters.
 func (s S3Storage) replaceEndpoint(urlString string) string {
 	if s.InternalEndpoint == s.ExternalEndpoint {
 		return urlString
@@ -209,8 +205,8 @@ func (s S3Storage) RemoveObjects(paths []string) error {
 
 	go func() {
 		defer close(objectsCh)
-		for _, path := range paths {
-			objectsCh <- minio.ObjectInfo{Key: path}
+		for _, p := range paths {
+			objectsCh <- minio.ObjectInfo{Key: p}
 		}
 	}()
 
@@ -252,7 +248,6 @@ func (s S3Storage) IsTrashMarkerPath(path string) (bool, string) {
 	resourceType := parts[1] // "files" or "folders"
 	resourceID := parts[2]
 
-	// Validate resource type
 	if resourceType != folderPath && resourceType != filePath {
 		return false, ""
 	}
@@ -380,7 +375,6 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	const trashRuleID = "safebucket-trash-retention"
 	const multipartRuleID = "safebucket-abort-incomplete-multipart"
 
-	// Validate retentionDays to prevent overflow and invalid values
 	if retentionDays < 0 {
 		return fmt.Errorf("retentionDays %d cannot be negative", retentionDays)
 	}
@@ -390,10 +384,8 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 
 	ctx := context.Background()
 
-	// Fetch existing lifecycle configuration
 	existingConfig, err := s.storage.GetBucketLifecycle(ctx, s.BucketName)
 
-	// Process existing rules to preserve non-SafeBucket policies
 	config := s.processExistingLifecycleRules(
 		existingConfig,
 		err,
@@ -402,7 +394,6 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 		retentionDays,
 	)
 
-	// Check if trash rule already exists and is up-to-date
 	trashRuleExists := false
 	for _, rule := range config.Rules {
 		if rule.ID == trashRuleID {
@@ -411,7 +402,6 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 		}
 	}
 
-	// Add or update trash rule if needed
 	if !trashRuleExists {
 		trashRule := lifecycle.Rule{
 			ID:     trashRuleID,

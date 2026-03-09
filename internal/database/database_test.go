@@ -12,7 +12,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// setupSQLiteDB creates an in-memory SQLite database with migrations and callbacks.
 func setupSQLiteDB(t *testing.T) *gorm.DB {
 	t.Helper()
 

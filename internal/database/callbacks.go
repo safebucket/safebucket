@@ -17,7 +17,6 @@ func RegisterCallbacks(db *gorm.DB) {
 	}
 }
 
-// generateUUID sets a UUID primary key if it is zero-valued before creation.
 func generateUUID(db *gorm.DB) {
 	if db.Statement.Schema == nil {
 		return

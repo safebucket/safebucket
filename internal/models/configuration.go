@@ -118,15 +118,11 @@ type CloudStorage struct {
 	ProjectID  string `mapstructure:"project_id"  validate:"required"`
 }
 
-// AWSConfiguration for AWS S3 storage.
-// Uses AWS SDK default credential chain (environment variables, shared credentials, IAM roles).
 type AWSConfiguration struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
 	ExternalEndpoint string `mapstructure:"external_endpoint"`
 }
 
-// S3Configuration for generic S3-compatible providers (Storj, Hetzner, Backblaze B2, Garage).
-// This provider assumes NO lifecycle policy or bucket notification support.
 type S3Configuration struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
 	Endpoint         string `mapstructure:"endpoint"          validate:"required"`
@@ -197,7 +193,6 @@ type JetStreamEventsConfig struct {
 	Port string `mapstructure:"port" validate:"required"`
 }
 
-// TLSMode defines the TLS strategy for SMTP connections.
 type TLSMode string
 
 const (
@@ -244,9 +239,6 @@ type StaticConfiguration struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
-// AuthConfig groups authentication-related configuration for services.
-// This reduces the number of individual fields passed to services and
-// makes it easier to add new auth-related config without modifying service structs.
 type AuthConfig struct {
 	JWTSecret          string
 	MFAEncryptionKey   string
@@ -257,7 +249,6 @@ type AuthConfig struct {
 	WebURL             string
 }
 
-// GetAuthConfig extracts authentication configuration from AppConfiguration.
 func (c *AppConfiguration) GetAuthConfig() AuthConfig {
 	return AuthConfig{
 		JWTSecret:          c.JWTSecret,

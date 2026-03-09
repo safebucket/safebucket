@@ -16,9 +16,7 @@ import (
 )
 
 const (
-	// FileBatchSize is the number of files to process in each cleanup batch.
-	FileBatchSize = 100
-	// FolderBatchSize is the number of folders to process in each cleanup batch.
+	FileBatchSize   = 100
 	FolderBatchSize = 50
 )
 
@@ -36,9 +34,6 @@ func (a *watermillPublisherAdapter) Close() error {
 	return a.publisher.Close()
 }
 
-// TrashCleanupWorker handles application-level trash cleanup for storage providers
-// that don't support bucket lifecycle policies (e.g., Storj).
-// It queries for expired trashed items and triggers existing events to handle cleanup.
 type TrashCleanupWorker struct {
 	DB                 *gorm.DB
 	Publisher          messaging.IPublisher
@@ -46,9 +41,6 @@ type TrashCleanupWorker struct {
 	RunInterval        time.Duration
 }
 
-// Start begins the trash cleanup worker loop.
-// It runs an immediate cleanup on startup, then runs on the configured interval.
-// The worker respects context cancellation for graceful shutdown.
 func (w *TrashCleanupWorker) Start(ctx context.Context) {
 	StartPeriodicWorker(ctx, "trash_cleanup", w.RunInterval, []WorkerTask{
 		{Name: "expired_files", Fn: w.cleanupExpiredFiles},
@@ -56,9 +48,6 @@ func (w *TrashCleanupWorker) Start(ctx context.Context) {
 	})
 }
 
-// cleanupExpiredFiles finds root-level files (not in any folder) that have been
-// in trash longer than the retention period and triggers TrashExpiration events.
-// Files inside folders are cleaned up by FolderPurge when the parent folder expires.
 func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) (int, error) {
 	expirationTime := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
 	totalQueued := 0
@@ -102,13 +91,11 @@ func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) (int, erro
 	return totalQueued, nil
 }
 
-// cleanupExpiredFolders finds root-level trashed folders that have expired
-// and triggers FolderPurge events to handle recursive deletion.
 func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) (int, error) {
 	expirationTime := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
 	totalQueued := 0
 
-	// Only get root-level trashed folders (no parent)
+	// Query root-level trashed folders (no parent)
 	// FolderPurge events will handle children recursively
 	var folders []models.Folder
 	result := w.DB.Unscoped().
@@ -150,8 +137,6 @@ func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) (int, er
 	return totalQueued, nil
 }
 
-// cleanupOrphanedFolders finds and cleans up nested trashed folders
-// whose parent folders have already been deleted from the database.
 func (w *TrashCleanupWorker) cleanupOrphanedFolders(ctx context.Context, expirationTime time.Time) error {
 	var folders []models.Folder
 	// Find trashed folders with a folder_id that no longer exists

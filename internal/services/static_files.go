@@ -20,7 +20,6 @@ type StaticFileService struct {
 	requiresUploadConfirmation bool
 }
 
-// ConfigJSON represents the frontend configuration structure.
 type ConfigJSON struct {
 	APIURL                     string `json:"apiUrl"`
 	Environment                string `json:"environment"`
@@ -58,7 +57,6 @@ func NewStaticFileService(
 	return service, nil
 }
 
-// buildConfigJSON serializes the frontend configuration to JSON bytes.
 func (s *StaticFileService) buildConfigJSON() ([]byte, error) {
 	config := ConfigJSON{
 		APIURL:                     s.apiURL,

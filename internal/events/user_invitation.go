@@ -42,10 +42,8 @@ func NewUserInvitation(
 	inviteID string,
 	webURL string,
 ) UserInvitation {
-	// Generate role descriptions
 	groupDescription := getGroupDescription(group)
 
-	// Create invite URL pointing to the invitation page
 	inviteURL := fmt.Sprintf("%s/invites/%s", webURL, inviteID)
 
 	return UserInvitation{

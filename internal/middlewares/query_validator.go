@@ -15,23 +15,11 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 )
 
-// ValidateQuery is a middleware that validates query parameters against a struct type.
-// It uses reflection to parse URL query parameters into the struct and validates them
-// using go-playground/validator tags.
-//
-// Usage:
-//
-//	r.With(m.ValidateQuery[models.FileListQueryParams]).
-//	    Get("/files", handlers.GetListHandler(s.ListFiles))
-//
-// The validated query parameters are stored in the request context and can be retrieved
-// using the GetQueryParams helper function.
 func ValidateQuery[T any](next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		data := new(T)
 		queryParams := r.URL.Query()
 
-		// Parse query parameters into the struct using reflection
 		err := parseQueryParams(queryParams, data)
 		if err != nil {
 			zap.L().Error("failed to parse query parameters", zap.Error(err))
@@ -39,7 +27,6 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 			return
 		}
 
-		// Validate the struct using go-playground/validator
 		validate := validator.New()
 		err = validate.Struct(data)
 		if err != nil {
@@ -73,13 +60,11 @@ func parseQueryParams(queryParams url.Values, data interface{}) error {
 		field := val.Field(i)
 		fieldType := typ.Field(i)
 
-		// Get the query parameter name from the json tag (falling back to field name)
 		queryParamName := fieldType.Tag.Get("json")
 		if queryParamName == "" {
 			queryParamName = fieldType.Name
 		}
 
-		// Get the query parameter value
 		queryValue := queryParams.Get(queryParamName)
 		if queryValue == "" {
 			// Skip empty values, validation will handle required fields
@@ -97,7 +82,6 @@ func parseQueryParams(queryParams url.Values, data interface{}) error {
 
 // setFieldValue sets a struct field value from a string, handling type conversion.
 func setFieldValue(field reflect.Value, value string) error {
-	// Handle pointer types
 	if field.Kind() == reflect.Ptr {
 		if !field.CanSet() {
 			return nil

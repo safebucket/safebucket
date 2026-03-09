@@ -11,7 +11,7 @@ var AuthExcludedExactPaths = map[string]string{
 	"/api/v1/auth/login":          "POST",
 	"/api/v1/auth/verify":         "POST",
 	"/api/v1/auth/refresh":        "POST",
-	"/api/v1/auth/reset-password": "POST", // Initiate password reset
+	"/api/v1/auth/reset-password": "POST",
 }
 
 // AuthPatternRule defines a regex pattern for path matching with dynamic segments.

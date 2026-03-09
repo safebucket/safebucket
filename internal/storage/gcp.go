@@ -102,9 +102,9 @@ func (g GCPStorage) RemoveObject(path string) error {
 
 func (g GCPStorage) RemoveObjects(paths []string) error {
 	// GCP doesn't have native batch delete, so we delete one by one
-	for _, path := range paths {
-		if err := g.RemoveObject(path); err != nil {
-			zap.L().Error("Failed to delete object", zap.String("key", path), zap.Error(err))
+	for _, p := range paths {
+		if err := g.RemoveObject(p); err != nil {
+			zap.L().Error("Failed to delete object", zap.String("key", p), zap.Error(err))
 			return err
 		}
 	}

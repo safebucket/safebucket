@@ -14,14 +14,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// SMTPNotifier implements INotifier using SMTP protocol.
 type SMTPNotifier struct {
 	client    *mail.Client
 	sender    string
 	templates map[string]*template.Template
 }
 
-// NewSMTPNotifier initializes the SMTP notifier, parses all email templates, and checks the connection.
 func NewSMTPNotifier(config models.MailerConfiguration) *SMTPNotifier {
 	client, err := newMailClient(config)
 	if err != nil {
@@ -103,7 +101,6 @@ func parseMailTemplates() map[string]*template.Template {
 	return templates
 }
 
-// NotifyFromTemplate sends an email using a given template and data.
 func (s *SMTPNotifier) NotifyFromTemplate(
 	to string,
 	subject string,

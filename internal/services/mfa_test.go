@@ -22,8 +22,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// --- Inline Mocks ---
-
 type MockCache struct{}
 
 func (m *MockCache) Get(_ string) (string, error)                                 { return "", cache.ErrKeyNotFound }
@@ -44,14 +42,11 @@ func (m *MockNotifier) NotifyFromTemplate(_ string, _ string, _ string, _ interf
 	return nil
 }
 
-// --- Tests ---
-
 func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
-	// Setup Token Helper (mocking JWT secret)
 	jwtSecret := "test-secret"
 	config := models.AuthConfig{
 		JWTSecret:        jwtSecret,
-		MFAEncryptionKey: "01234567890123456789012345678901", // 32 bytes
+		MFAEncryptionKey: "01234567890123456789012345678901",
 		WebURL:           "http://localhost:3000",
 	}
 
@@ -63,7 +58,6 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
 		require.NoError(t, err)
 
-		// Dependencies
 		mockCache := &MockCache{}
 		service := MFAService{
 			DB:             gormDB,
@@ -77,8 +71,6 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		deviceID := uuid.New()
 		challengeID := uuid.New()
 
-		// 1. Create a Restricted Token (Password Reset Flow)
-		// This simulates what the user has when entering the flow
 		claims := models.UserClaims{
 			UserID:           userID,
 			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFAReset}},
@@ -86,41 +78,29 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 			ChallengeID:      &challengeID,
 		}
 
-		// Mock DB interactions for VerifyDevice
-		// 1. Transaction Start
 		mock.ExpectBegin()
 
-		// 2. Find User
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, "hash")
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE (id = $1 AND provider_type = $2) AND "users"."deleted_at" IS NULL`)).
 			WithArgs(userID, models.LocalProviderType).
 			WillReturnRows(userRow)
 
-		// 3. Find Device (Locking)
-		// We need a valid encrypted secret here to pass decryption
-		// Using a dummy secret for the test
 		encryptedSecret, _ := helpers.EncryptSecret("JBSWY3DPEHPK3PXP", []byte(config.MFAEncryptionKey))
 		deviceRow := sqlmock.NewRows([]string{"id", "user_id", "encrypted_secret", "is_verified", "name"}).
 			AddRow(deviceID.String(), userID.String(), encryptedSecret, false, "My Device")
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
 			WillReturnRows(deviceRow)
 
-		// 4. Count existing default devices
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices" WHERE user_id = $1 AND is_verified = $2 AND is_default = $3 AND id != $4`)).
 			WithArgs(userID, true, true, deviceID).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-		// 5. Update Device
 		mock.ExpectExec(regexp.QuoteMeta(`UPDATE "mfa_devices" SET`)).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		// 6. Transaction Commit
 		mock.ExpectCommit()
 
-		// 7. Post-Transaction User Reload (DB Preload MFADevices)
-		// This is called to generate the token
-		// GORM generates: SELECT * FROM "users" WHERE "users"."id" = $1 AND "users"."deleted_at" IS NULL AND "users"."id" = $2 ORDER BY "users"."id" LIMIT $3
 		userRowReload := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, "hash")
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
@@ -131,25 +111,21 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 			WithArgs(userID, true).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(deviceID))
 
-		// Execute
 		totpCode, _ := totp.GenerateCode("JBSWY3DPEHPK3PXP", time.Now())
 
 		logger := zap.NewNop()
 
 		response, err := service.VerifyDevice(
-			logger, // legitimate logger to prevent panic
+			logger,
 			claims,
 			uuid.UUIDs{deviceID},
 			models.MFADeviceVerifyBody{Code: totpCode},
 		)
 		require.NoError(t, err)
 
-		// Assertions
 		authResponse, ok := response.(models.AuthLoginResponse)
 		require.True(t, ok)
 
-		// Validate the returned Access Token
-		// Use ParseToken for validation and check audience separately
 		parsedClaims, err := helpers.ParseToken(jwtSecret, "Bearer "+authResponse.AccessToken, true)
 		require.NoError(t, err, "Token should be parseable")
 
@@ -218,29 +194,24 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 				ChallengeID:      &challengeID,
 			}
 
-			// Mock user lookup
 			userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 				AddRow(userID, "test@example.com", models.LocalProviderType, "hash")
 			mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 				WithArgs(userID, models.LocalProviderType, 1).
 				WillReturnRows(userRow)
 
-			// Mock device count (total)
 			mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
 				WithArgs(userID).
 				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-			// Mock verified device count (CRITICAL: must be 0 for first device)
 			mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices" WHERE user_id = $1 AND is_verified = $2`)).
 				WithArgs(userID, true).
 				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-			// Mock name uniqueness check
 			mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
 				WithArgs(userID, "My First Device", true).
 				WillReturnRows(sqlmock.NewRows([]string{}))
 
-			// Mock device creation
 			mock.ExpectBegin()
 			mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
 				WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
@@ -254,7 +225,7 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 				uuid.UUIDs{},
 				models.MFADeviceSetupBody{
 					Name:     "My First Device",
-					Password: "", // No password required for restricted token first device
+					Password: "",
 				},
 			)
 
@@ -297,19 +268,16 @@ func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 			MFA:              false,
 		}
 
-		// Mock user lookup
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 			WithArgs(userID, models.LocalProviderType, 1).
 			WillReturnRows(userRow)
 
-		// Mock total device count
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
 			WithArgs(userID).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 
-		// Mock verified device count (1 = user already has a verified device)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices" WHERE user_id = $1 AND is_verified = $2`)).
 			WithArgs(userID, true).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
@@ -362,29 +330,24 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 			MFA:              false,
 		}
 
-		// Mock user lookup
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 			WithArgs(userID, models.LocalProviderType, 1).
 			WillReturnRows(userRow)
 
-		// Mock total device count (3 unverified devices exist)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
 			WithArgs(userID).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(3))
 
-		// Mock verified device count (0 = no verified devices, just failed setup attempts)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices" WHERE user_id = $1 AND is_verified = $2`)).
 			WithArgs(userID, true).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-		// Mock name uniqueness check
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
 			WithArgs(userID, "New Device", true).
 			WillReturnRows(sqlmock.NewRows([]string{}))
 
-		// Mock device creation
 		mock.ExpectBegin()
 		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
@@ -438,14 +401,12 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 			MFA:              true,
 		}
 
-		// Mock user lookup
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 			WithArgs(userID, models.LocalProviderType, 1).
 			WillReturnRows(userRow)
 
-		// Mock device count
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
 			WithArgs(userID).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
@@ -458,7 +419,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 			uuid.UUIDs{},
 			models.MFADeviceSetupBody{
 				Name:     "Second Device",
-				Password: "", // Empty password
+				Password: "",
 			},
 		)
 
@@ -489,17 +450,14 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 			MFA:              true,
 		}
 
-		// Create a valid password hash
 		hashedPassword, _ := helpers.CreateHash("correct-password")
 
-		// Mock user lookup
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, hashedPassword)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 			WithArgs(userID, models.LocalProviderType, 1).
 			WillReturnRows(userRow)
 
-		// Mock device count
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
 			WithArgs(userID).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
@@ -545,24 +503,20 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 
 		hashedPassword, _ := helpers.CreateHash("correct-password")
 
-		// Mock user lookup
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, hashedPassword)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 			WithArgs(userID, models.LocalProviderType, 1).
 			WillReturnRows(userRow)
 
-		// Mock device count
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
 			WithArgs(userID).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 
-		// Mock name uniqueness check
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
 			WithArgs(userID, "Second Device", true).
 			WillReturnRows(sqlmock.NewRows([]string{}))
 
-		// Mock device creation
 		mock.ExpectBegin()
 		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
@@ -617,7 +571,6 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 			MFA:              false,
 		}
 
-		// Mock user lookup - OAuth user
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 			WithArgs(userID, models.LocalProviderType, 1).
 			WillReturnRows(sqlmock.NewRows([]string{}))
@@ -661,14 +614,12 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 			MFA:              true,
 		}
 
-		// Mock user lookup
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 			WithArgs(userID, models.LocalProviderType, 1).
 			WillReturnRows(userRow)
 
-		// Mock device count (already at max)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
 			WithArgs(userID).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(configuration.MaxMFADevicesPerUser))
@@ -712,24 +663,20 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 			MFA:              false,
 		}
 
-		// Mock user lookup
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 			WithArgs(userID, models.LocalProviderType, 1).
 			WillReturnRows(userRow)
 
-		// Mock device count
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
 			WithArgs(userID).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-		// Mock verified count
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices" WHERE user_id = $1 AND is_verified = $2`)).
 			WithArgs(userID, true).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
-		// Mock name uniqueness check - name already exists
 		existingDeviceRow := sqlmock.NewRows([]string{"id", "name"}).
 			AddRow(uuid.New(), "My Device")
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).

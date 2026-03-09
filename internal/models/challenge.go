@@ -6,16 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// ChallengeType defines the type of challenge.
 type ChallengeType string
 
 const (
 	ChallengeTypeInvite        ChallengeType = "invite"
 	ChallengeTypePasswordReset ChallengeType = "password_reset"
-	ChallengeTypeMFAReset      ChallengeType = "mfa_reset"
 )
 
-// Challenge is a unified table for all challenge types (invites and password resets).
 type Challenge struct {
 	ID           uuid.UUID     `gorm:"default:(-)"                                                      json:"id"`
 	Type         ChallengeType `gorm:"not null;index:idx_challenge_type"                                json:"type"                 validate:"required,oneof=invite password_reset"`

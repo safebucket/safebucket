@@ -37,7 +37,6 @@ type FilesystemActivityEntry struct {
 	Object            string    `json:"object"`
 }
 
-// FilesystemClient implements IActivityLogger using a local bleve index.
 type FilesystemClient struct {
 	index bleve.Index
 }

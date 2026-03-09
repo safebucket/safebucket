@@ -18,7 +18,6 @@ import (
 
 const audienceTestJWTSecret = "test-secret-key-for-audience-testing"
 
-// TestAudienceValidate tests the AudienceValidate middleware.
 func TestAudienceValidate(t *testing.T) {
 	testUser := &models.User{
 		ID:           uuid.New(),

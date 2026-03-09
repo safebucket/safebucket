@@ -10,13 +10,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// testUUIDModel is a test model with a UUID primary key.
 type testUUIDModel struct {
 	ID   uuid.UUID `gorm:"type:text;primaryKey"`
 	Name string
 }
 
-// testAutoIncrModel is a test model with an auto-increment integer primary key.
 type testAutoIncrModel struct {
 	ID   uint `gorm:"primaryKey;autoIncrement"`
 	Name string

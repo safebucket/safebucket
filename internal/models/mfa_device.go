@@ -6,14 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// MFADeviceType represents the type of MFA device.
 type MFADeviceType string
 
 const (
 	MFADeviceTypeTOTP MFADeviceType = "totp"
 )
 
-// MFADevice represents an MFA device associated with a user.
 type MFADevice struct {
 	ID              uuid.UUID     `gorm:"default:(-)"                              json:"id"`
 	UserID          uuid.UUID     `gorm:"not null;index"                           json:"user_id"`
@@ -28,18 +26,15 @@ type MFADevice struct {
 	LastUsedAt      *time.Time    `                                                json:"last_used_at,omitempty"`
 }
 
-// MFADevicesListResponse wraps device list.
 type MFADevicesListResponse struct {
 	Devices []MFADevice `json:"devices"`
 }
 
-// MFADeviceSetupBody is used to initiate MFA setup.
 type MFADeviceSetupBody struct {
 	Name     string `json:"name"     validate:"required,min=1,max=50"`
 	Password string `json:"password" validate:"omitempty"`
 }
 
-// MFADeviceSetupResponse is returned when initiating device setup.
 type MFADeviceSetupResponse struct {
 	DeviceID  uuid.UUID `json:"device_id"`
 	Secret    string    `json:"secret"`
@@ -47,29 +42,24 @@ type MFADeviceSetupResponse struct {
 	Issuer    string    `json:"issuer"`
 }
 
-// MFADeviceVerifyBody is used to verify and enable a new device.
 type MFADeviceVerifyBody struct {
 	Code string `json:"code" validate:"required,len=6,numeric"`
 }
 
-// MFADeviceUpdateBody is used to update device properties.
 type MFADeviceUpdateBody struct {
 	Name      *string `json:"name"       validate:"omitempty,min=1,max=100"`
 	IsDefault *bool   `json:"is_default" validate:"omitempty"`
 }
 
-// MFADeviceRemoveBody is used when removing an MFA device (requires password for security).
 type MFADeviceRemoveBody struct {
 	Password string `json:"password" validate:"required,min=1"`
 }
 
-// MFADeviceActivity is the activity log representation of an MFA device.
 type MFADeviceActivity struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
 }
 
-// ToActivity converts an MFADevice to its activity log representation.
 func (d *MFADevice) ToActivity() MFADeviceActivity {
 	return MFADeviceActivity{
 		ID:   d.ID,

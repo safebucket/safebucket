@@ -16,7 +16,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// tokenConfig holds configuration for creating a specific token type.
 type tokenConfig struct {
 	audience      string
 	provider      string

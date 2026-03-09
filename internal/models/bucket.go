@@ -34,7 +34,6 @@ type BucketCreateUpdateBody struct {
 	Name string `json:"name" validate:"required,max=100"`
 }
 
-// AdminBucketListItem represents a bucket with enriched admin information.
 type AdminBucketListItem struct {
 	ID          uuid.UUID    `json:"id"`
 	Name        string       `json:"name"`
@@ -46,11 +45,6 @@ type AdminBucketListItem struct {
 	Size        int64        `json:"size"`
 }
 
-// BucketQueryParams defines query parameters for filtering bucket contents.
-// Use with the ValidateQuery middleware:
-//
-//	r.With(m.ValidateQuery[models.BucketQueryParams]).
-//	    Get("/", handler)
 type BucketQueryParams struct {
 	Status string `json:"status" validate:"omitempty,oneof=all deleted uploaded uploading"`
 }

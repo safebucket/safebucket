@@ -114,40 +114,34 @@ func TestHasRole_EdgeCases(t *testing.T) {
 	})
 }
 
-// TestHasRole_TableDriven comprehensive test matrix.
 func TestHasRole_TableDriven(t *testing.T) {
 	tests := []struct {
 		name         string
 		userRole     models.Role
 		requiredRole models.Role
 		expected     bool
-		description  string
 	}{
-		// Admin scenarios
-		{"Admin->Admin", models.RoleAdmin, models.RoleAdmin, true, "Admin can do Admin things"},
-		{"Admin->User", models.RoleAdmin, models.RoleUser, true, "Admin can do User things"},
-		{"Admin->Guest", models.RoleAdmin, models.RoleGuest, true, "Admin can do Guest things"},
+		{"Admin->Admin", models.RoleAdmin, models.RoleAdmin, true},
+		{"Admin->User", models.RoleAdmin, models.RoleUser, true},
+		{"Admin->Guest", models.RoleAdmin, models.RoleGuest, true},
 
-		// User scenarios
-		{"User->Admin", models.RoleUser, models.RoleAdmin, false, "User CANNOT do Admin things"},
-		{"User->User", models.RoleUser, models.RoleUser, true, "User can do User things"},
-		{"User->Guest", models.RoleUser, models.RoleGuest, true, "User can do Guest things"},
+		{"User->Admin", models.RoleUser, models.RoleAdmin, false},
+		{"User->User", models.RoleUser, models.RoleUser, true},
+		{"User->Guest", models.RoleUser, models.RoleGuest, true},
 
-		// Guest scenarios
-		{"Guest->Admin", models.RoleGuest, models.RoleAdmin, false, "Guest CANNOT do Admin things"},
-		{"Guest->User", models.RoleGuest, models.RoleUser, false, "Guest CANNOT do User things"},
-		{"Guest->Guest", models.RoleGuest, models.RoleGuest, true, "Guest can do Guest things"},
+		{"Guest->Admin", models.RoleGuest, models.RoleAdmin, false},
+		{"Guest->User", models.RoleGuest, models.RoleUser, false},
+		{"Guest->Guest", models.RoleGuest, models.RoleGuest, true},
 
-		// Edge cases
-		{"Unknown->Admin", models.Role("unknown"), models.RoleAdmin, false, "Unknown role has no privileges"},
-		{"Admin->Unknown", models.RoleAdmin, models.Role("unknown"), true, "Admin (rank 3) >= unknown (rank 0)"},
-		{"Empty->Guest", models.Role(""), models.RoleGuest, false, "Empty role has no privileges"},
+		{"Unknown->Admin", models.Role("unknown"), models.RoleAdmin, false},
+		{"Admin->Unknown", models.RoleAdmin, models.Role("unknown"), true}, // rank 3 >= rank 0
+		{"Empty->Guest", models.Role(""), models.RoleGuest, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := HasRole(tt.userRole, tt.requiredRole)
-			assert.Equal(t, tt.expected, result, tt.description)
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }

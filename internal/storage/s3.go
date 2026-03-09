@@ -28,7 +28,6 @@ type GenericS3Storage struct {
 	storage          *minio.Client
 }
 
-// NewGenericS3Storage creates a new generic S3-compatible storage client.
 func NewGenericS3Storage(config *models.S3Configuration, bucketName string) IStorage {
 	endpoint := config.Endpoint
 
@@ -65,7 +64,6 @@ func NewGenericS3Storage(config *models.S3Configuration, bucketName string) ISto
 	}
 }
 
-// replaceEndpoint replaces the internal endpoint with the external endpoint in a URL.
 func (s *GenericS3Storage) replaceEndpoint(urlString string) string {
 	if s.InternalEndpoint == s.ExternalEndpoint {
 		return urlString

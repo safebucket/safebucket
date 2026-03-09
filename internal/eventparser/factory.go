@@ -7,7 +7,6 @@ import (
 	"github.com/safebucket/safebucket/internal/storage"
 )
 
-// NewBucketEventParser returns the appropriate parser for the given storage provider type.
 func NewBucketEventParser(storageType string, store storage.IStorage) IBucketEventParser {
 	switch storageType {
 	case configuration.ProviderRustFS:

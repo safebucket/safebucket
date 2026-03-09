@@ -11,7 +11,6 @@ const (
 	BucketEventTypeIgnore   = "ignore"
 )
 
-// IBucketEventParser handles interpretation of bucket event payloads.
 type IBucketEventParser interface {
 	GetBucketEventType(*message.Message) string
 	ParseBucketUploadEvents(*message.Message) []BucketUploadEvent

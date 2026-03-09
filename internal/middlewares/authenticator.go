@@ -9,15 +9,13 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 )
 
-// AuthExcludedKey is used to store auth exclusion flag in context.
 type AuthExcludedKey struct{}
 
-// Authenticate middleware handles authentication.
 func Authenticate(jwtSecret string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			// Check if path is excluded from auth (default = auth required)
-			excluded := isAuthExcluded(r.URL.Path, r.Method)
+			excluded := isPathExcludedFromAuth(r.URL.Path, r.Method)
 			ctx := context.WithValue(r.Context(), AuthExcludedKey{}, excluded)
 
 			if excluded {
@@ -41,10 +39,7 @@ func Authenticate(jwtSecret string) func(next http.Handler) http.Handler {
 	}
 }
 
-// isAuthExcluded checks if path is excluded from authentication.
-// Returns false by default (auth required unless explicitly excluded).
-func isAuthExcluded(path, method string) bool {
-	// Phase 1: Fast exact path match (O(1) lookup)
+func isPathExcludedFromAuth(path, method string) bool {
 	if m, ok := configuration.AuthExcludedExactPaths[path]; ok {
 		if m == "*" || m == method {
 			return true

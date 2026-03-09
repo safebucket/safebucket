@@ -58,7 +58,6 @@ func LoadProviders(
 				zap.String("name", name),
 				zap.Error(err),
 			)
-			continue
 		}
 
 		verifier := provider.Verifier(&oidc.Config{ClientID: providerCfg.OIDC.ClientID})

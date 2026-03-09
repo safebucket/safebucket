@@ -21,7 +21,6 @@ const (
 	GCBatchSize            = 100
 )
 
-// GarbageCollectorWorker periodically cleans up orphaned database records.
 type GarbageCollectorWorker struct {
 	DB             *gorm.DB
 	Storage        storage.IStorage

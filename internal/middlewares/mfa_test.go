@@ -23,18 +23,15 @@ import (
 
 const mfaTestJWTSecret = "test-secret-key-for-mfa-testing"
 
-// generateRestrictedToken creates a restricted access token for testing.
 func generateRestrictedToken(secret string, user *models.User, audience string, mfaVerified bool) (string, error) {
 	return helpers.NewRestrictedAccessToken(secret, user, audience, mfaVerified, nil)
 }
 
-// generateFullAccessToken creates a full access token for testing.
 func generateFullAccessToken(user *models.User) (string, error) {
 	return helpers.NewAccessToken(mfaTestJWTSecret, user, string(models.LocalProviderType))
 }
 
 // TestMFAValidate_MFAEnforcement tests MFA enforcement for full access tokens.
-// Note: Audience validation is now handled by AudienceValidate middleware, not MFAValidate.
 func TestMFAValidate_MFAEnforcement(t *testing.T) {
 	t.Run("should require MFA setup for local user without MFA when mfaRequired is true", func(t *testing.T) {
 		testUser := &models.User{
@@ -48,12 +45,10 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		// Access a protected endpoint that requires MFA
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
 
-		// Parse token and set up context
 		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
 		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
@@ -157,7 +152,6 @@ func TestMFAValidate_RestrictedTokensSkipMFAEnforcement(t *testing.T) {
 		token, err := generateRestrictedToken(mfaTestJWTSecret, testUser, configuration.AudienceMFALogin, false)
 		require.NoError(t, err)
 
-		// Access MFA device endpoint (allowed by AudienceValidate for this token)
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/mfa/devices", nil)
 		recorder := httptest.NewRecorder()
 
@@ -174,8 +168,6 @@ func TestMFAValidate_RestrictedTokensSkipMFAEnforcement(t *testing.T) {
 		}))
 		handler.ServeHTTP(recorder, req)
 
-		// MFAValidate should pass because the token is NOT app:* audience
-		// (MFA enforcement only applies to app:* tokens)
 		assert.True(t, nextCalled, "Next handler should be called for restricted tokens")
 		assert.Equal(t, http.StatusOK, recorder.Code)
 	})
@@ -186,7 +178,6 @@ func TestMFAValidate_NoClaims(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
 		recorder := httptest.NewRecorder()
 
-		// No claims set in context (simulates middleware chain error)
 		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
