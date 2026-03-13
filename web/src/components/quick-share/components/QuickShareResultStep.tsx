@@ -33,9 +33,7 @@ export const QuickShareResultStep: FC<IQuickShareResultStepProps> = ({
       </div>
 
       <div className="space-y-1 text-center">
-        <p className="text-lg font-medium">
-          {t("quick_share.link_ready")}
-        </p>
+        <p className="text-lg font-medium">{t("quick_share.link_ready")}</p>
         <p className="text-muted-foreground text-sm">
           {t("quick_share.link_ready_description")}
         </p>

@@ -58,7 +58,6 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
                 min={1}
                 value={value}
                 onChange={(e) => onChange(Number(e.target.value))}
-
               />
             )}
           />

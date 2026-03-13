@@ -65,9 +65,7 @@ export const FileActions: FC<IFileActionsProps> = ({
         <MenuContent className="w-48">
           {isFile(file) && (
             <MenuItem
-              onClick={() =>
-                !isFileTrashed && downloadFile(file.id, file.name)
-              }
+              onClick={() => !isFileTrashed && downloadFile(file.id, file.name)}
               disabled={isFileTrashed}
             >
               <Download className="mr-2 h-4 w-4" />
