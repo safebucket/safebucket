@@ -147,9 +147,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
           <DialogTitle className="text-xl">
             {t("quick_share.title")}
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            {t("quick_share.description")}
-          </DialogDescription>
+          <DialogDescription className="sr-only" />
         </DialogHeader>
 
         <div className="px-6 pb-4">
