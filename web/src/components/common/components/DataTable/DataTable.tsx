@@ -17,7 +17,8 @@ import type {
   VisibilityState,
 } from "@tanstack/react-table";
 
-import { FileActions } from "@/components/FileActions/FileActions";
+import { FileActions } from "@/components/file-actions/FileActions";
+import { TrashActions } from "@/components/file-actions/components/TrashActions";
 import {
   Table,
   TableBody,
@@ -112,15 +113,8 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <FileActions
-                  key={row.id}
-                  file={row.original as any}
-                  type="context"
-                  trashMode={trashMode}
-                  onRestore={onRestore}
-                  onPermanentDelete={onPermanentDelete}
-                >
+              table.getRowModel().rows.map((row) => {
+                const tableRow = (
                   <TableRow
                     key={row.id}
                     data-state={
@@ -140,8 +134,28 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
                       </TableCell>
                     ))}
                   </TableRow>
-                </FileActions>
-              ))
+                );
+
+                return trashMode ? (
+                  <TrashActions
+                    key={row.id}
+                    file={row.original as any}
+                    type="context"
+                    onRestore={onRestore}
+                    onPermanentDelete={onPermanentDelete}
+                  >
+                    {tableRow}
+                  </TrashActions>
+                ) : (
+                  <FileActions
+                    key={row.id}
+                    file={row.original as any}
+                    type="context"
+                  >
+                    {tableRow}
+                  </FileActions>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell

@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { IFileActions } from "@/components/FileActions/helpers/types";
+import type { IFileActions } from "@/components/file-actions/helpers/types";
 import {
   api_downloadFile,
   downloadFromStorage,
-} from "@/components/FileActions/helpers/api";
+} from "@/components/file-actions/helpers/api";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import {

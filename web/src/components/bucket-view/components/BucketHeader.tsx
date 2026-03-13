@@ -6,7 +6,7 @@ import { BucketViewOptions } from "@/components/bucket-view/components/BucketVie
 import { NotificationPopover } from "@/components/bucket-view/components/NotificationPopover";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
-import { useFileActions } from "@/components/FileActions/hooks/useFileActions.ts";
+import { useFileActions } from "@/components/file-actions/hooks/useFileActions.ts";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group.tsx";
 import {

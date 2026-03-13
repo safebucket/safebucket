@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { ArchiveRestore, Download, FolderPlus, Trash2 } from "lucide-react";
+import { Download, FolderPlus, Share2, Trash2 } from "lucide-react";
 import type { FC, ReactNode } from "react";
 
 import type { BucketItem } from "@/types/bucket.ts";
@@ -8,10 +8,11 @@ import { FileStatus } from "@/types/file.ts";
 import { isFile } from "@/components/bucket-view/helpers/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { useBucketPermissions } from "@/hooks/usePermissions";
-import { useFileActions } from "@/components/FileActions/hooks/useFileActions";
+import { useFileActions } from "@/components/file-actions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
+import { QuickShareDialog } from "@/components/quick-share/QuickShareDialog";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -31,25 +32,20 @@ interface IFileActionsProps {
   children: ReactNode;
   file: BucketItem;
   type: "context" | "dropdown";
-  trashMode?: boolean;
-  onRestore?: (fileId: string, fileName: string) => void;
-  onPermanentDelete?: (fileId: string, fileName: string) => void;
 }
 
 export const FileActions: FC<IFileActionsProps> = ({
   children,
   file,
   type,
-  trashMode = false,
-  onRestore,
-  onPermanentDelete,
 }: IFileActionsProps) => {
   const { t } = useTranslation();
   const { bucketId } = useBucketViewContext();
-  const { isContributor } = useBucketPermissions(bucketId);
+  const { isContributor, isOwner } = useBucketPermissions(bucketId);
   const { createFolder, downloadFile, deleteFile } = useFileActions();
   const newFolderDialog = useDialog();
   const deleteFileDialog = useDialog();
+  const shareDialog = useDialog();
 
   const Menu = type === "context" ? ContextMenu : DropdownMenu;
   const MenuTrigger =
@@ -66,63 +62,48 @@ export const FileActions: FC<IFileActionsProps> = ({
     <>
       <Menu>
         <MenuTrigger asChild>{children}</MenuTrigger>
-        <MenuContent className={trashMode ? "w-[180px]" : "w-48"}>
-          {trashMode ? (
+        <MenuContent className="w-48">
+          {isFile(file) && (
+            <MenuItem
+              onClick={() =>
+                !isFileTrashed && downloadFile(file.id, file.name)
+              }
+              disabled={isFileTrashed}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {t("file_actions.download")}
+            </MenuItem>
+          )}
+          {isContributor && (
+            <MenuItem onClick={newFolderDialog.trigger}>
+              <FolderPlus className="mr-2 h-4 w-4" />
+              {t("file_actions.new_folder")}
+            </MenuItem>
+          )}
+          {isOwner && (
+            <MenuItem onClick={shareDialog.trigger}>
+              <Share2 className="mr-2 h-4 w-4" />
+              {t("file_actions.share")}
+            </MenuItem>
+          )}
+          {isContributor && (
             <>
-              {isContributor && (
-                <>
-                  <MenuItem onClick={() => onRestore?.(file.id, file.name)}>
-                    <ArchiveRestore className="mr-2 h-4 w-4" />
-                    {t("bucket.trash_view.restore")}
-                  </MenuItem>
-                  <Separator />
-                  <MenuItem
-                    className="text-red-600"
-                    onClick={() => onPermanentDelete?.(file.id, file.name)}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {t("bucket.trash_view.delete_permanently")}
-                  </MenuItem>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              {isFile(file) && (
-                <>
-                  <MenuItem
-                    onClick={() =>
-                      !isFileTrashed && downloadFile(file.id, file.name)
-                    }
-                    disabled={isFileTrashed}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    {t("file_actions.download")}
-                  </MenuItem>
-                </>
-              )}
-              {isContributor && (
-                <>
-                  <Separator />
-                  <MenuItem onClick={newFolderDialog.trigger}>
-                    <FolderPlus className="mr-2 h-4 w-4" />
-                    {t("file_actions.new_folder")}
-                  </MenuItem>
-                  <Separator />
-                  <MenuItem
-                    className="text-orange-600"
-                    onClick={deleteFileDialog.trigger}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {t("file_actions.move_to_trash")}
-                  </MenuItem>
-                </>
-              )}
+              <Separator />
+              <MenuItem
+                className="text-orange-600"
+                onClick={deleteFileDialog.trigger}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t("file_actions.move_to_trash")}
+              </MenuItem>
             </>
           )}
         </MenuContent>
       </Menu>
-      {!trashMode && isContributor && (
+      {isOwner && (
+        <QuickShareDialog {...shareDialog.props} initialItem={file} />
+      )}
+      {isContributor && (
         <>
           <FormDialog
             {...newFolderDialog.props}
