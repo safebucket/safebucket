@@ -65,6 +65,9 @@ services:
 
     ports:
       - "8080:8080"
+    networks:
+      - safebucket-frontend
+      - safebucket-backend
     restart: on-failure:3
     depends_on:
       bucket-init:
@@ -85,7 +88,6 @@ services:
       - RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY=/data/.rustfs/events
     ports:
       - "9000:9000"
-      - "9001:9001"
     volumes:
       - "rustfs_data:/data"
     healthcheck:
@@ -94,6 +96,9 @@ services:
       timeout: 2s
       retries: 10
       start_period: 2s
+    networks:
+      - safebucket-frontend
+      - safebucket-backend
     restart: unless-stopped
     depends_on:
       - nats
@@ -137,13 +142,13 @@ services:
         condition: service_healthy
       nats:
         condition: service_started
+    networks:
+      - safebucket-backend
     restart: "no"
 
   database:
     container_name: database
     image: postgres:18
-    ports:
-      - "5432:5432"
     volumes:
       - "postgresql_data:/var/lib/postgresql"
     restart: unless-stopped
@@ -158,13 +163,15 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+    networks:
+      - safebucket-backend
 
   valkey:
     container_name: valkey
     image: valkey/valkey:9
     command: [ "valkey-server", "--requirepass", "${CACHE__VALKEY__PASSWORD}" ]
-    ports:
-      - "6379:6379"
+    networks:
+      - safebucket-backend
     restart: unless-stopped
     shm_size: 128mb
     volumes:
@@ -182,14 +189,13 @@ services:
     environment:
       MP_MAX_MESSAGES: 500
       MP_DATABASE: /data/mailpit.db
+    networks:
+      - safebucket-frontend
+      - safebucket-backend
 
   nats:
     image: nats:2.12-alpine
     container_name: nats
-    ports:
-      - "4222:4222" # NATS protocol
-      - "1883:1883" # MQTT protocol
-      - "8222:8222" # HTTP monitoring
     restart: unless-stopped
     command: [ "-c", "/etc/nats/nats.conf" ]
     ulimits:
@@ -199,15 +205,13 @@ services:
     volumes:
       - "nats_data:/data"
       - ./config/nats.conf:/etc/nats/nats.conf:ro
+    networks:
+      - safebucket-backend
 
   loki:
     container_name: loki
     image: grafana/loki:3.6.7
     command: "-config.file=/etc/loki/config.yaml"
-    ports:
-      - "3100:3100"
-      - "7946:7946"
-      - "9095:9095"
     volumes:
       - ./config/loki.yaml:/etc/loki/config.yaml
     depends_on:
@@ -219,6 +223,14 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - safebucket-backend
+
+networks:
+  safebucket-frontend:
+    driver: bridge
+  safebucket-backend:
+    internal: true
 
 volumes:
   postgresql_data:
