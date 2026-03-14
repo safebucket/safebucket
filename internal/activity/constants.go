@@ -27,4 +27,8 @@ const (
 	MFADeviceVerified            string = "MFA_DEVICE_VERIFIED"
 	MFADeviceUpdated             string = "MFA_DEVICE_UPDATED"
 	MFADeviceRemoved             string = "MFA_DEVICE_REMOVED"
+	ShareLinkCreated             string = "SHARE_LINK_CREATED"
+	ShareLinkDeleted             string = "SHARE_LINK_DELETED"
+	ShareLinkExpired             string = "SHARE_LINK_EXPIRED"
+	ShareLinkMaxViewsReached     string = "SHARE_LINK_MAX_VIEWS_REACHED"
 )

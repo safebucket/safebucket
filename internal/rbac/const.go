@@ -28,4 +28,5 @@ const (
 	ResourceFolder    = Resource("folder")
 	ResourceUser      = Resource("user")
 	ResourceMFADevice = Resource("mfa_device")
+	ResourceShare     = Resource("share")
 )
