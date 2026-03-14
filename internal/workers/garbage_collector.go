@@ -147,7 +147,11 @@ func (w *GarbageCollectorWorker) cleanupExpiredShares(_ context.Context) (int, e
 }
 
 func (w *GarbageCollectorWorker) cleanupMaxViewsShares(_ context.Context) (int, error) {
-	return w.cleanupShares("max_views IS NOT NULL AND current_views >= max_views", nil, activity.ShareLinkMaxViewsReached)
+	return w.cleanupShares(
+		"max_views IS NOT NULL AND current_views >= max_views",
+		nil,
+		activity.ShareLinkMaxViewsReached,
+	)
 }
 
 func (w *GarbageCollectorWorker) cleanupShares(whereClause string, args []any, activityMsg string) (int, error) {
