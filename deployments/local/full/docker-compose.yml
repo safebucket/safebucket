@@ -66,8 +66,8 @@ services:
     ports:
       - "8080:8080"
     networks:
-      - safebucket-frontend
-      - safebucket-backend
+      - safebucket-external
+      - safebucket-internal
     restart: on-failure:3
     depends_on:
       bucket-init:
@@ -97,8 +97,8 @@ services:
       retries: 10
       start_period: 2s
     networks:
-      - safebucket-frontend
-      - safebucket-backend
+      - safebucket-external
+      - safebucket-internal
     restart: unless-stopped
     depends_on:
       - nats
@@ -143,7 +143,7 @@ services:
       nats:
         condition: service_started
     networks:
-      - safebucket-backend
+      - safebucket-internal
     restart: "no"
 
   database:
@@ -164,14 +164,14 @@ services:
       retries: 10
       start_period: 5s
     networks:
-      - safebucket-backend
+      - safebucket-internal
 
   valkey:
     container_name: valkey
     image: valkey/valkey:9
     command: [ "valkey-server", "--requirepass", "${CACHE__VALKEY__PASSWORD}" ]
     networks:
-      - safebucket-backend
+      - safebucket-internal
     restart: unless-stopped
     shm_size: 128mb
     volumes:
@@ -190,8 +190,8 @@ services:
       MP_MAX_MESSAGES: 500
       MP_DATABASE: /data/mailpit.db
     networks:
-      - safebucket-frontend
-      - safebucket-backend
+      - safebucket-external
+      - safebucket-internal
 
   nats:
     image: nats:2.12-alpine
@@ -206,7 +206,7 @@ services:
       - "nats_data:/data"
       - ./config/nats.conf:/etc/nats/nats.conf:ro
     networks:
-      - safebucket-backend
+      - safebucket-internal
 
   loki:
     container_name: loki
@@ -224,12 +224,12 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - safebucket-backend
+      - safebucket-internal
 
 networks:
-  safebucket-frontend:
+  safebucket-external:
     driver: bridge
-  safebucket-backend:
+  safebucket-internal:
     internal: true
 
 volumes:

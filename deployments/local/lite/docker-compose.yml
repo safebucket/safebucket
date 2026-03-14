@@ -47,7 +47,7 @@ services:
     ports:
       - "8080:8080"
     networks:
-      - safebucket-lite
+      - safebucket
     restart: unless-stopped
     depends_on:
       bucket-init:
@@ -70,7 +70,7 @@ services:
       retries: 10
       start_period: 2s
     networks:
-      - safebucket-lite
+      - safebucket
     restart: unless-stopped
 
   bucket-init:
@@ -106,14 +106,14 @@ services:
 
         echo "Buckets configured successfully."
     networks:
-      - safebucket-lite
+      - safebucket
     depends_on:
       bucket:
         condition: service_healthy
     restart: "no"
 
 networks:
-  safebucket-lite:
+  safebucket:
     driver: bridge
 
 volumes:
