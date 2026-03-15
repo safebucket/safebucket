@@ -40,11 +40,6 @@ CREATE TABLE shares
 
 CREATE INDEX idx_shares_bucket_id ON shares (bucket_id) WHERE deleted_at IS NULL;
 
-CREATE TRIGGER update_shares_updated_at
-    BEFORE UPDATE ON shares
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TABLE share_files
     (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -67,7 +62,6 @@ CREATE INDEX idx_share_files_file_id ON share_files (file_id);
 -- +goose Down
 -- +goose StatementBegin
 
-DROP TRIGGER IF EXISTS update_shares_updated_at ON shares;
 DROP TABLE IF EXISTS share_files;
 DROP TABLE IF EXISTS shares;
 DROP TYPE IF EXISTS share_type;

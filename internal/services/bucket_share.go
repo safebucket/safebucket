@@ -47,14 +47,18 @@ func (s BucketShareService) CreateShare(
 
 	if body.Type == models.ShareTypeFolder {
 		var folder models.Folder
-		if s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucketID).Find(&folder).RowsAffected == 0 {
+		if s.DB.Where("id = ? AND bucket_id = ? AND (status IS NULL)", body.FolderID, bucketID).
+			Find(&folder).
+			RowsAffected == 0 {
 			return models.Share{}, apierrors.NewAPIError(400, "FOLDER_NOT_FOUND")
 		}
 	}
 
 	if body.Type == models.ShareTypeFiles {
 		var count int64
-		s.DB.Model(&models.File{}).Where("id IN ? AND bucket_id = ?", body.FileIDs, bucketID).Count(&count)
+		s.DB.Model(&models.File{}).
+			Where("id IN ? AND bucket_id = ? AND status = ?", body.FileIDs, bucketID, models.FileStatusUploaded).
+			Count(&count)
 		if count != int64(len(body.FileIDs)) {
 			return models.Share{}, apierrors.NewAPIError(404, "FILE_NOT_FOUND")
 		}
