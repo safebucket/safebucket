@@ -94,9 +94,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   const [step, setStep] = useState<Step>(1);
   const [generatedLink, setGeneratedLink] = useState("");
 
-  const allFolders = (bucket?.folders ?? []).filter(
-    (f) => f.status === null,
-  );
+  const allFolders = (bucket?.folders ?? []).filter((f) => f.status === null);
 
   useEffect(() => {
     if (open) {
@@ -170,7 +168,9 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
               scope={scope}
               selectedFileIds={selectedFileIds}
               selectedFolderId={selectedFolderId}
-              files={(bucket?.files ?? []).filter((f) => f.status === FileStatus.uploaded)}
+              files={(bucket?.files ?? []).filter(
+                (f) => f.status === FileStatus.uploaded,
+              )}
               folders={allFolders}
               onScopeChange={handleScopeChange}
               onToggleFile={handleToggleFile}
