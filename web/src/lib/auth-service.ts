@@ -219,8 +219,7 @@ export const verifyMFALogin = async (
 export const logout = async (): Promise<void> => {
   try {
     await api.post("/auth/logout");
-  } catch {
-  }
+  } catch {}
   authCookies.clearAll();
 };
 

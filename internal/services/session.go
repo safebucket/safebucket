@@ -106,7 +106,7 @@ func (s SessionService) RevokeOtherSessions(
 
 func (s SessionService) RevokeSession(
 	logger *zap.Logger,
-	claims models.UserClaims,
+	_ models.UserClaims,
 	ids uuid.UUIDs,
 ) error {
 	userID := ids[0]

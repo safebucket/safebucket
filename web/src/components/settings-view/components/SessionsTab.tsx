@@ -44,7 +44,9 @@ export function SessionsTab({ userId }: SessionsTabProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base">{t("settings.sessions.title")}</CardTitle>
+            <CardTitle className="text-base">
+              {t("settings.sessions.title")}
+            </CardTitle>
             <CardDescription>
               {t("settings.sessions.description")}
             </CardDescription>
