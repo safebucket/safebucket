@@ -22,14 +22,12 @@ type BucketShareService struct {
 
 func (s BucketShareService) Routes() chi.Router {
 	r := chi.NewRouter()
+	authorize := m.AuthorizeGroup(s.DB, models.GroupOwner, 0)
 
-	r.Group(func(r chi.Router) {
-		r.Use(m.AuthorizeGroup(s.DB, models.GroupOwner, 0))
-		r.Get("/", handlers.GetListHandler(s.ListShares))
-		r.With(m.Validate[models.ShareCreateBody]).
-			Post("/", handlers.CreateHandler(s.CreateShare))
-		r.Delete("/{id1}", handlers.DeleteHandler(s.DeleteShare))
-	})
+	r.With(authorize).Get("/", handlers.GetListHandler(s.ListShares))
+	r.With(authorize, m.Validate[models.ShareCreateBody]).
+		Post("/", handlers.CreateHandler(s.CreateShare))
+	r.With(authorize).Delete("/{id1}", handlers.DeleteHandler(s.DeleteShare))
 
 	return r
 }
@@ -83,6 +81,7 @@ func (s BucketShareService) CreateShare(
 	}
 
 	share := &models.Share{
+		Name:           body.Name,
 		BucketID:       bucketID,
 		FolderID:       body.FolderID,
 		ExpiresAt:      body.ExpiresAt,

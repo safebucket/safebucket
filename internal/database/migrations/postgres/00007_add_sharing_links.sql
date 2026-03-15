@@ -6,6 +6,7 @@ CREATE TYPE share_type AS ENUM ('files', 'folder', 'bucket');
 CREATE TABLE shares
     (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
         bucket_id UUID NOT NULL,
         folder_id UUID,
         expires_at TIMESTAMP,

@@ -17,6 +17,7 @@ const (
 
 type Share struct {
 	ID                uuid.UUID      `gorm:"default:(-)"            json:"id"`
+	Name              string         `gorm:"not null"               json:"name"`
 	BucketID          uuid.UUID      `gorm:"not null"               json:"bucket_id"`
 	Bucket            Bucket         `                              json:"-"`
 	FolderID          *uuid.UUID     `gorm:"default:null"           json:"folder_id,omitempty"`
@@ -40,12 +41,14 @@ type Share struct {
 
 type ShareActivity struct {
 	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
 	Type ShareType `json:"type"`
 }
 
 func (s *Share) ToActivity() ShareActivity {
 	return ShareActivity{
 		ID:   s.ID,
+		Name: s.Name,
 		Type: s.Type,
 	}
 }
@@ -54,10 +57,11 @@ type ShareFile struct {
 	ID      uuid.UUID `gorm:"default:(-)" json:"id"`
 	ShareID uuid.UUID `gorm:"not null"    json:"share_id"`
 	FileID  uuid.UUID `gorm:"not null"    json:"file_id"`
-	File    File      `                   json:"file,omitempty"`
+	File    File      `                   json:"file"`
 }
 
 type ShareCreateBody struct {
+	Name          string      `json:"name"            validate:"required,min=1,max=255"`
 	Type          ShareType   `json:"type"            validate:"required,oneof=files folder bucket"`
 	FolderID      *uuid.UUID  `json:"folder_id"       validate:"omitempty,uuid"`
 	FileIDs       []uuid.UUID `json:"file_ids"        validate:"omitempty,dive,uuid"`

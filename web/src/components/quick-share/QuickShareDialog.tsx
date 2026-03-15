@@ -29,6 +29,7 @@ export type ShareScope = "files" | "folder" | "bucket";
 type Step = 1 | 2 | 3;
 
 export interface IQuickShareForm {
+  name: string;
   scope: ShareScope;
   selectedFileIds: Array<string>;
   selectedFolderId: string | null;
@@ -54,8 +55,12 @@ function generateDummyLink(): string {
   return `${window.location.origin}/s/${result}`;
 }
 
-function getDefaultValues(initialItem: BucketItem): IQuickShareForm {
+function getDefaultValues(
+  initialItem: BucketItem,
+  t: (key: string) => string,
+): IQuickShareForm {
   return {
+    name: t("quick_share.default_name"),
     scope: isFile(initialItem) ? "files" : "folder",
     selectedFileIds: isFile(initialItem) ? [initialItem.id] : [],
     selectedFolderId: !isFile(initialItem) ? initialItem.id : null,
@@ -77,7 +82,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   const { data: bucket } = useQuery(bucketDataQueryOptions(bucketId));
 
   const { control, watch, setValue, reset } = useForm<IQuickShareForm>({
-    defaultValues: getDefaultValues(initialItem),
+    defaultValues: getDefaultValues(initialItem, t),
   });
 
   const scope = watch("scope");
@@ -92,7 +97,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
 
   useEffect(() => {
     if (open) {
-      reset(getDefaultValues(initialItem));
+      reset(getDefaultValues(initialItem, t));
       setStep(1);
       setGeneratedLink("");
     }

@@ -4,6 +4,7 @@
 CREATE TABLE shares
     (
         id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
         bucket_id TEXT NOT NULL,
         folder_id TEXT,
         expires_at DATETIME,

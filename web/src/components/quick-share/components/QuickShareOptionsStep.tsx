@@ -32,6 +32,18 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
     <div className="space-y-5">
       <div className="space-y-4">
         <div className="space-y-2">
+          <Label>{t("quick_share.name")}</Label>
+          <Controller
+            name="name"
+            control={control}
+            rules={{ required: true, minLength: 1, maxLength: 255 }}
+            render={({ field: { onChange, value } }) => (
+              <Input type="text" value={value} onChange={onChange} />
+            )}
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label>{t("quick_share.expiry_date")}</Label>
           <div>
             <Controller

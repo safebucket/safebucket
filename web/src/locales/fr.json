@@ -251,6 +251,8 @@
     "selected_count_one": "{{count}} fichier sélectionné",
     "selected_count_many": "{{count}} fichiers sélectionnés",
     "selected_count_other": "{{count}} fichiers sélectionnés",
+    "name": "Nom",
+    "default_name": "Mon lien de partage",
     "expiry_date": "Date d'expiration",
     "no_expiry": "Pas d'expiration",
     "max_views": "Nombre maximum de vues",

@@ -251,6 +251,8 @@
     "selected_count_one": "{{count}} file selected",
     "selected_count_many": "{{count}} files selected",
     "selected_count_other": "{{count}} files selected",
+    "name": "Name",
+    "default_name": "My shared link",
     "expiry_date": "Expiry date",
     "no_expiry": "No expiry",
     "max_views": "Maximum views",
