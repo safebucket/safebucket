@@ -3,6 +3,8 @@ package services
 import (
 	"errors"
 
+	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/cache"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
@@ -20,10 +22,13 @@ import (
 )
 
 type UserService struct {
-	DB         *gorm.DB
-	AuthConfig models.AuthConfig
-	Publisher  messaging.IPublisher
-	Notifier   notifier.INotifier
+	DB                 *gorm.DB
+	Cache              cache.ICache
+	AuthConfig         models.AuthConfig
+	Publisher          messaging.IPublisher
+	Notifier           notifier.INotifier
+	ActivityLogger     activity.IActivityLogger
+	RefreshTokenExpiry int
 }
 
 func (s UserService) Routes() chi.Router {
@@ -47,6 +52,12 @@ func (s UserService) Routes() chi.Router {
 
 		r.With(m.AuthorizeSelfOrAdmin(0)).
 			Get("/stats", handlers.GetOneHandler(s.GetUserStats))
+
+		r.Mount("/sessions", SessionService{
+			Cache:              s.Cache,
+			RefreshTokenExpiry: s.RefreshTokenExpiry,
+			ActivityLogger:     s.ActivityLogger,
+		}.Routes())
 	})
 	return r
 }
@@ -156,6 +167,10 @@ func (s UserService) UpdateUser(
 
 func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids uuid.UUIDs) error {
 	userID := ids[0]
+
+	if err := cache.RevokeAllSessions(s.Cache, userID.String()); err != nil {
+		logger.Error("Failed to revoke user sessions", zap.Error(err))
+	}
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Where("id = ?", userID).Delete(&models.User{})

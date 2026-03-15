@@ -72,7 +72,7 @@ func TestNewAccessToken(t *testing.T) {
 	provider := "local"
 
 	t.Run("should create valid access token", func(t *testing.T) {
-		token, err := NewAccessToken(jwtSecret, user, provider)
+		token, err := NewAccessToken(jwtSecret, user, provider, "")
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
@@ -80,7 +80,7 @@ func TestNewAccessToken(t *testing.T) {
 	})
 
 	t.Run("should have correct claims", func(t *testing.T) {
-		token, err := NewAccessToken(jwtSecret, user, provider)
+		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		// Parse the token to verify claims
@@ -100,7 +100,7 @@ func TestNewAccessToken(t *testing.T) {
 	})
 
 	t.Run("should expire in configured minutes", func(t *testing.T) {
-		token, err := NewAccessToken(jwtSecret, user, provider)
+		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -118,7 +118,7 @@ func TestNewAccessToken(t *testing.T) {
 	})
 
 	t.Run("should use configuration constant for expiry", func(t *testing.T) {
-		token, err := NewAccessToken(jwtSecret, user, provider)
+		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -135,7 +135,7 @@ func TestNewAccessToken(t *testing.T) {
 	})
 
 	t.Run("should use HS256 signing method", func(t *testing.T) {
-		token, err := NewAccessToken(jwtSecret, user, provider)
+		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		parsedToken, err := jwt.Parse(token, func(_ *jwt.Token) (interface{}, error) {
@@ -144,6 +144,20 @@ func TestNewAccessToken(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, "HS256", parsedToken.Method.Alg())
+	})
+
+	t.Run("should have typed JTI with access prefix", func(t *testing.T) {
+		token, err := NewAccessToken(jwtSecret, user, provider, "test-sid")
+		require.NoError(t, err)
+
+		claims := &models.UserClaims{}
+		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecret), nil
+		})
+
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(claims.ID, "access:"), "JTI should have access: prefix")
+		assert.Equal(t, "test-sid", claims.SID)
 	})
 }
 
@@ -158,7 +172,7 @@ func TestParseToken(t *testing.T) {
 	provider := "local"
 
 	t.Run("should parse valid token with Bearer prefix", func(t *testing.T) {
-		token, err := NewAccessToken(jwtSecret, user, provider)
+		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		claims, err := ParseToken(jwtSecret, "Bearer "+token, true)
@@ -171,7 +185,7 @@ func TestParseToken(t *testing.T) {
 	})
 
 	t.Run("should parse valid token without Bearer prefix when not required", func(t *testing.T) {
-		token, err := NewRefreshToken(jwtSecret, user, provider)
+		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		claims, err := ParseToken(jwtSecret, token, false)
@@ -182,7 +196,7 @@ func TestParseToken(t *testing.T) {
 	})
 
 	t.Run("should reject token without Bearer prefix when required", func(t *testing.T) {
-		token, err := NewAccessToken(jwtSecret, user, provider)
+		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		_, err = ParseToken(jwtSecret, token, true)
@@ -197,7 +211,7 @@ func TestParseToken(t *testing.T) {
 	})
 
 	t.Run("should reject token with wrong secret", func(t *testing.T) {
-		token, err := NewAccessToken(jwtSecret, user, provider)
+		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		_, err = ParseToken("wrong-secret", "Bearer "+token, true)
@@ -228,8 +242,8 @@ func TestParseToken(t *testing.T) {
 
 	t.Run("should parse token with any single audience", func(t *testing.T) {
 		// Create tokens with different audiences
-		accessToken, _ := NewAccessToken(jwtSecret, user, provider)
-		refreshToken, _ := NewRefreshToken(jwtSecret, user, provider)
+		accessToken, _ := NewAccessToken(jwtSecret, user, provider, "")
+		refreshToken, _ := NewRefreshToken(jwtSecret, user, provider, "")
 		mfaToken, _ := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 
 		// ParseToken should accept all of them - audience value validation is not its responsibility
@@ -301,7 +315,7 @@ func TestNewRefreshToken(t *testing.T) {
 	provider := "local"
 
 	t.Run("should create valid refresh token", func(t *testing.T) {
-		token, err := NewRefreshToken(jwtSecret, user, provider)
+		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
@@ -309,7 +323,7 @@ func TestNewRefreshToken(t *testing.T) {
 	})
 
 	t.Run("should have correct refresh audience", func(t *testing.T) {
-		token, err := NewRefreshToken(jwtSecret, user, provider)
+		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -322,7 +336,7 @@ func TestNewRefreshToken(t *testing.T) {
 	})
 
 	t.Run("should expire in configured minutes", func(t *testing.T) {
-		token, err := NewRefreshToken(jwtSecret, user, provider)
+		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -339,7 +353,7 @@ func TestNewRefreshToken(t *testing.T) {
 	})
 
 	t.Run("should use configuration constant for expiry", func(t *testing.T) {
-		token, err := NewRefreshToken(jwtSecret, user, provider)
+		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		claims := &models.UserClaims{}
@@ -354,6 +368,20 @@ func TestNewRefreshToken(t *testing.T) {
 		diff := actualExpiry.Sub(expectedExpiry).Abs()
 		assert.Less(t, diff, 5*time.Second)
 	})
+
+	t.Run("should have typed JTI with refresh prefix", func(t *testing.T) {
+		token, err := NewRefreshToken(jwtSecret, user, provider, "test-sid")
+		require.NoError(t, err)
+
+		claims := &models.UserClaims{}
+		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecret), nil
+		})
+
+		require.NoError(t, err)
+		assert.True(t, strings.HasPrefix(claims.ID, "refresh:"), "JTI should have refresh: prefix")
+		assert.Equal(t, "test-sid", claims.SID)
+	})
 }
 
 // TestParseRefreshToken tests JWT refresh token parsing.
@@ -367,7 +395,7 @@ func TestParseRefreshToken(t *testing.T) {
 	provider := "local"
 
 	t.Run("should parse valid refresh token", func(t *testing.T) {
-		token, err := NewRefreshToken(jwtSecret, user, provider)
+		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		claims, err := ParseRefreshToken(jwtSecret, token)
@@ -380,7 +408,7 @@ func TestParseRefreshToken(t *testing.T) {
 
 	t.Run("should reject access token as refresh token", func(t *testing.T) {
 		// Try to use access token as refresh token
-		token, err := NewAccessToken(jwtSecret, user, provider)
+		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		_, err = ParseRefreshToken(jwtSecret, token)
@@ -389,7 +417,7 @@ func TestParseRefreshToken(t *testing.T) {
 	})
 
 	t.Run("should reject token with wrong secret", func(t *testing.T) {
-		token, err := NewRefreshToken(jwtSecret, user, provider)
+		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
 		_, err = ParseRefreshToken("wrong-secret", token)
@@ -482,6 +510,20 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 
 		diff := actualExpiry.Sub(expectedExpiry).Abs()
 		assert.Less(t, diff, 5*time.Second)
+	})
+
+	t.Run("should have empty JTI and no SID for restricted tokens", func(t *testing.T) {
+		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
+		require.NoError(t, err)
+
+		claims := &models.UserClaims{}
+		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecret), nil
+		})
+
+		require.NoError(t, err)
+		assert.Empty(t, claims.ID, "restricted tokens should have empty JTI")
+		assert.Empty(t, claims.SID, "restricted tokens should have no SID")
 	})
 }
 

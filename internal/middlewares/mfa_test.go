@@ -28,7 +28,7 @@ func generateRestrictedToken(secret string, user *models.User, audience string, 
 }
 
 func generateFullAccessToken(user *models.User) (string, error) {
-	return helpers.NewAccessToken(mfaTestJWTSecret, user, string(models.LocalProviderType))
+	return helpers.NewAccessToken(mfaTestJWTSecret, user, string(models.LocalProviderType), "")
 }
 
 // TestMFAValidate_MFAEnforcement tests MFA enforcement for full access tokens.
@@ -221,7 +221,7 @@ func TestMFAValidate_OAuthUsersSkipMFA(t *testing.T) {
 		}
 
 		// Generate token with OAuth provider
-		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, "google")
+		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, "google", "")
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
@@ -359,7 +359,7 @@ func TestMFAValidate_ProviderTypeMismatch(t *testing.T) {
 			ProviderType: models.OIDCProviderType,
 		}
 
-		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, "google")
+		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, "google", "")
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
@@ -720,7 +720,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 			ProviderType: models.OIDCProviderType,
 		}
 
-		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, "google")
+		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, "google", "")
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)

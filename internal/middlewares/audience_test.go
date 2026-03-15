@@ -60,7 +60,7 @@ func TestAudienceValidate(t *testing.T) {
 	})
 
 	t.Run("should allow full access token for regular routes", func(t *testing.T) {
-		token, err := helpers.NewAccessToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType))
+		token, err := helpers.NewAccessToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType), "")
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
@@ -347,7 +347,7 @@ func TestAudienceValidate_RefreshToken(t *testing.T) {
 	}
 
 	t.Run("should reject refresh token for regular routes", func(t *testing.T) {
-		token, err := helpers.NewRefreshToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType))
+		token, err := helpers.NewRefreshToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType), "")
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, token, false)
@@ -370,7 +370,7 @@ func TestAudienceValidate_RefreshToken(t *testing.T) {
 	})
 
 	t.Run("should reject refresh token for MFA endpoints", func(t *testing.T) {
-		token, err := helpers.NewRefreshToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType))
+		token, err := helpers.NewRefreshToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType), "")
 		require.NoError(t, err)
 
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, token, false)
@@ -713,7 +713,9 @@ func TestAudienceValidate_ComprehensiveMatrix(t *testing.T) {
 
 			switch tc.audience {
 			case configuration.AudienceAccessToken:
-				token, err = helpers.NewAccessToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType))
+				token, err = helpers.NewAccessToken(
+					audienceTestJWTSecret, testUser, string(models.LocalProviderType), "",
+				)
 			case configuration.AudienceMFALogin:
 				token, err = helpers.NewRestrictedAccessToken(
 					audienceTestJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
@@ -723,7 +725,9 @@ func TestAudienceValidate_ComprehensiveMatrix(t *testing.T) {
 					audienceTestJWTSecret, testUser, configuration.AudienceMFAReset, true, nil,
 				)
 			case configuration.AudienceRefreshToken:
-				token, err = helpers.NewRefreshToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType))
+				token, err = helpers.NewRefreshToken(
+					audienceTestJWTSecret, testUser, string(models.LocalProviderType), "",
+				)
 			}
 			require.NoError(t, err)
 

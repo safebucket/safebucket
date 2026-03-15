@@ -103,6 +103,26 @@ func (r *RueidisCache) ZRangeByScore(key string, minScore string, maxScore strin
 	).AsStrSlice()
 }
 
+func (r *RueidisCache) ZRangeByScoreWithScores(
+	key string, minScore string, maxScore string,
+) ([]ZScoreEntry, error) {
+	ctx := context.Background()
+	scores, err := r.client.Do(ctx,
+		r.client.B().Zrange().Key(key).Min(minScore).Max(maxScore).Byscore().Withscores().Build(),
+	).AsZScores()
+	if err != nil {
+		if rueidis.IsRedisNil(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	entries := make([]ZScoreEntry, len(scores))
+	for i, s := range scores {
+		entries[i] = ZScoreEntry{Member: s.Member, Score: s.Score}
+	}
+	return entries, nil
+}
+
 func (r *RueidisCache) ZRemRangeByScore(key string, minScore string, maxScore string) error {
 	ctx := context.Background()
 	return r.client.Do(ctx,

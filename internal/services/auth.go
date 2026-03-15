@@ -41,6 +41,7 @@ func (s AuthService) Routes() chi.Router {
 	r.With(m.Validate[models.AuthLoginBody]).Post("/login", handlers.CreateHandler(s.Login))
 	r.With(m.Validate[models.AuthVerifyBody]).Post("/verify", handlers.CreateHandler(s.Verify))
 	r.With(m.Validate[models.AuthRefreshBody]).Post("/refresh", handlers.CreateHandler(s.Refresh))
+	r.Post("/logout", handlers.DeleteHandler(s.Logout))
 
 	r.Route("/mfa", func(r chi.Router) {
 		r.With(m.Validate[models.MFALoginVerifyBody]).
@@ -99,9 +100,14 @@ func (s AuthService) Login(
 		return mfa.HandleMFARequired(logger, s.AuthConfig, &searchUser)
 	}
 
-	tokens, err := mfa.GenerateTokens(s.AuthConfig, &searchUser)
+	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &searchUser)
 	if err != nil {
 		return models.AuthLoginResponse{}, err
+	}
+
+	if err = cache.CreateSession(s.Cache, searchUser.ID.String(), sid); err != nil {
+		logger.Error("Failed to create session", zap.Error(err))
+		return models.AuthLoginResponse{}, apierrors.ErrInternalServer
 	}
 
 	action := models.Activity{
@@ -202,6 +208,20 @@ func (s AuthService) Refresh(
 		return models.AuthRefreshResponse{}, err
 	}
 
+	if refreshToken.SID == "" {
+		return models.AuthRefreshResponse{}, apierrors.NewAPIError(401, "SESSION_REVOKED")
+	}
+
+	maxAge := time.Duration(configuration.RefreshTokenExpiry) * time.Minute
+	active, sessionErr := cache.IsSessionActive(s.Cache, refreshToken.UserID.String(), refreshToken.SID, maxAge)
+	if sessionErr != nil {
+		logger.Error("Session check failed during refresh", zap.Error(sessionErr))
+		return models.AuthRefreshResponse{}, apierrors.ErrInternalServer
+	}
+	if !active {
+		return models.AuthRefreshResponse{}, apierrors.NewAPIError(401, "SESSION_REVOKED")
+	}
+
 	var user models.User
 	result := s.DB.Where("id = ?", refreshToken.UserID).First(&user)
 	if result.RowsAffected == 0 {
@@ -214,6 +234,7 @@ func (s AuthService) Refresh(
 		s.AuthConfig.JWTSecret,
 		&user,
 		refreshToken.Provider,
+		refreshToken.SID,
 	)
 	if err != nil {
 		return models.AuthRefreshResponse{}, apierrors.ErrGenerateAccessTokenFailed
@@ -322,7 +343,17 @@ func (s AuthService) VerifyMFALogin(
 		}, nil
 	}
 
-	return mfa.GenerateTokens(s.AuthConfig, &user)
+	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user)
+	if err != nil {
+		return models.AuthLoginResponse{}, err
+	}
+
+	if sessionErr := cache.CreateSession(s.Cache, user.ID.String(), sid); sessionErr != nil {
+		logger.Error("Failed to create session", zap.Error(sessionErr))
+		return models.AuthLoginResponse{}, apierrors.ErrInternalServer
+	}
+
+	return tokens, nil
 }
 
 func (s AuthService) GetProviderList(
@@ -409,10 +440,17 @@ func (s AuthService) OpenIDCallback(
 		}
 	}
 
+	sid := uuid.New().String()
+	if sessionErr := cache.CreateSession(s.Cache, searchUser.ID.String(), sid); sessionErr != nil {
+		logger.Error("Failed to create session", zap.Error(sessionErr))
+		return "", "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
 	accessToken, err := h.NewAccessToken(
 		s.AuthConfig.JWTSecret,
 		&searchUser,
 		providerKey,
+		sid,
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
@@ -423,6 +461,7 @@ func (s AuthService) OpenIDCallback(
 		s.AuthConfig.JWTSecret,
 		&searchUser,
 		providerKey,
+		sid,
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
@@ -445,4 +484,22 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	return accessToken, refreshToken, nil
+}
+
+// Logout revokes the current session.
+func (s AuthService) Logout(
+	logger *zap.Logger,
+	claims models.UserClaims,
+	_ uuid.UUIDs,
+) error {
+	if claims.SID == "" {
+		return apierrors.NewAPIError(401, "SESSION_REVOKED")
+	}
+
+	if err := cache.RevokeSession(s.Cache, claims.UserID.String(), claims.SID); err != nil {
+		logger.Error("Failed to revoke session", zap.Error(err))
+		return apierrors.ErrInternalServer
+	}
+
+	return nil
 }

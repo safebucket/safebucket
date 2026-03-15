@@ -7,6 +7,12 @@ import (
 
 var ErrKeyNotFound = errors.New("cache: key not found")
 
+// ZScoreEntry represents a sorted set member with its score.
+type ZScoreEntry struct {
+	Member string
+	Score  float64
+}
+
 type ICache interface {
 	Get(key string) (string, error)
 	SetNX(key string, value string, ttl time.Duration) (bool, error)
@@ -16,6 +22,7 @@ type ICache interface {
 	TTL(key string) (time.Duration, error)
 	ZAdd(key string, score float64, member string) error
 	ZRangeByScore(key string, minScore string, maxScore string) ([]string, error)
+	ZRangeByScoreWithScores(key string, minScore string, maxScore string) ([]ZScoreEntry, error)
 	ZRemRangeByScore(key string, minScore string, maxScore string) error
 	Close()
 }

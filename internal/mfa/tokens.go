@@ -6,6 +6,7 @@ import (
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -38,29 +39,33 @@ func HandleMFARequired(
 	}, nil
 }
 
-// GenerateTokens generates full access and refresh tokens for the user.
+// GenerateTokens generates a session ID and full access and refresh tokens for the user.
 // Used after successful MFA verification or for users without MFA.
 func GenerateTokens(
 	authConfig models.AuthConfig,
 	user *models.User,
-) (models.AuthLoginResponse, error) {
+) (string, models.AuthLoginResponse, error) {
+	sid := uuid.New().String()
+
 	accessToken, err := h.NewAccessToken(
 		authConfig.JWTSecret,
 		user,
 		string(models.LocalProviderType),
+		sid,
 	)
 	if err != nil {
-		return models.AuthLoginResponse{}, apierrors.ErrGenerateAccessTokenFailed
+		return "", models.AuthLoginResponse{}, apierrors.ErrGenerateAccessTokenFailed
 	}
 
 	refreshToken, err := h.NewRefreshToken(
 		authConfig.JWTSecret,
 		user,
 		string(models.LocalProviderType),
+		sid,
 	)
 	if err != nil {
-		return models.AuthLoginResponse{}, apierrors.ErrGenerateRefreshTokenFailed
+		return "", models.AuthLoginResponse{}, apierrors.ErrGenerateRefreshTokenFailed
 	}
 
-	return models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+	return sid, models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   IMFADeviceSetupResponse,
   IMFADevicesResponse,
+  ISessionListResponse,
   IUser,
 } from "@/components/auth-view/types/session";
 import { api, fetchApi } from "@/lib/api";
@@ -169,6 +170,46 @@ export const useUpdateMFADeviceMutation = (
         queryKey: ["users", userId, "mfa", "devices"],
       });
       successToast("MFA device updated");
+    },
+    onError: (error: Error) => errorToast(error),
+  });
+};
+
+export const useSessionsQuery = (userId: string) => {
+  return useQuery({
+    queryKey: ["users", userId, "sessions"],
+    queryFn: () => fetchApi<ISessionListResponse>(`/users/${userId}/sessions`),
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+  });
+};
+
+export const useRevokeSessionMutation = (userId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      api.delete(`/users/${userId}/sessions/${sessionId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["users", userId, "sessions"],
+      });
+      successToast("Session revoked successfully");
+    },
+    onError: (error: Error) => errorToast(error),
+  });
+};
+
+export const useRevokeAllSessionsMutation = (userId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => api.delete(`/users/${userId}/sessions`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["users", userId, "sessions"],
+      });
+      successToast("All other sessions have been revoked");
     },
     onError: (error: Error) => errorToast(error),
   });

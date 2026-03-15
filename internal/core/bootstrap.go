@@ -249,16 +249,19 @@ func StartHTTPServer(
 	authConfig := config.App.GetAuthConfig()
 
 	r.Route("/api", func(apiRouter chi.Router) {
-		apiRouter.Use(m.Authenticate(authConfig.JWTSecret))
+		apiRouter.Use(m.Authenticate(authConfig.JWTSecret, cache, configuration.RefreshTokenExpiry))
 		apiRouter.Use(m.AudienceValidate)
 		apiRouter.Use(m.MFAValidate(db, authConfig.MFARequired))
 		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
 
 		userService := services.UserService{
-			DB:         db,
-			AuthConfig: authConfig,
-			Publisher:  eventRouter,
-			Notifier:   notify,
+			DB:                 db,
+			Cache:              cache,
+			AuthConfig:         authConfig,
+			Publisher:          eventRouter,
+			Notifier:           notify,
+			ActivityLogger:     activityLogger,
+			RefreshTokenExpiry: configuration.RefreshTokenExpiry,
 		}
 
 		apiRouter.Mount("/v1/users", userService.Routes())
@@ -293,6 +296,7 @@ func StartHTTPServer(
 
 		apiRouter.Mount("/v1/invites", services.InviteService{
 			DB:             db,
+			Cache:          cache,
 			Storage:        store,
 			AuthConfig:     authConfig,
 			Publisher:      eventRouter,

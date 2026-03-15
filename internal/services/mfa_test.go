@@ -32,8 +32,11 @@ func (m *MockCache) Expire(_ string, _ time.Duration) error                     
 func (m *MockCache) TTL(_ string) (time.Duration, error)                          { return 0, nil }
 func (m *MockCache) ZAdd(_ string, _ float64, _ string) error                     { return nil }
 func (m *MockCache) ZRangeByScore(_ string, _ string, _ string) ([]string, error) { return nil, nil }
-func (m *MockCache) ZRemRangeByScore(_ string, _ string, _ string) error          { return nil }
-func (m *MockCache) Close()                                                       {}
+func (m *MockCache) ZRangeByScoreWithScores(_ string, _ string, _ string) ([]cache.ZScoreEntry, error) {
+	return nil, nil
+}
+func (m *MockCache) ZRemRangeByScore(_ string, _ string, _ string) error { return nil }
+func (m *MockCache) Close()                                              {}
 
 type MockNotifier struct {
 }

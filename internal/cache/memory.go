@@ -90,6 +90,7 @@ func (m *MemoryCache) Del(key string) error {
 	defer m.mu.Unlock()
 
 	delete(m.data, key)
+	delete(m.sortedSets, key)
 	return nil
 }
 
@@ -182,6 +183,29 @@ func (m *MemoryCache) ZRangeByScore(key string, minScore string, maxScore string
 	for _, e := range entries {
 		if e.score >= lo && e.score <= hi {
 			result = append(result, e.member)
+		}
+	}
+	return result, nil
+}
+
+func (m *MemoryCache) ZRangeByScoreWithScores(
+	key string, minScore string, maxScore string,
+) ([]ZScoreEntry, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	entries, ok := m.sortedSets[key]
+	if !ok {
+		return nil, nil
+	}
+
+	lo := parseScore(minScore)
+	hi := parseScore(maxScore)
+
+	var result []ZScoreEntry
+	for _, e := range entries {
+		if e.score >= lo && e.score <= hi {
+			result = append(result, ZScoreEntry{Member: e.member, Score: e.score})
 		}
 	}
 	return result, nil

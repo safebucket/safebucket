@@ -57,6 +57,17 @@ export async function fetchApi<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
+  if (response.status === 401) {
+    const res = await response.json();
+    const errorCode = res.error?.[0];
+
+    if (errorCode === "SESSION_REVOKED") {
+      authCookies.clearAll();
+      window.location.href = "/auth/login";
+      throw new Error(errorCode);
+    }
+  }
+
   if (response.status === 403) {
     const res = await response.json();
     const errorCode = res.error?.[0];
@@ -75,7 +86,7 @@ export async function fetchApi<T>(
       if (refreshed) {
         return fetchApi<T>(url, options, false);
       } else {
-        authLogout();
+        await authLogout();
       }
     }
     throw new Error(errorCode);

@@ -278,6 +278,7 @@
     "settings": "Settings",
     "profile": "Profile",
     "preferences": "Preferences",
+    "sessions": "Sessions",
     "security": "Security",
     "administration": "Administration",
     "dashboard": "Dashboard",
@@ -501,6 +502,21 @@
       "description": "Select your preferred language",
       "english": "English",
       "french": "French"
+    },
+    "sessions": {
+      "title": "Active Sessions",
+      "description": "Manage your active sessions across devices",
+      "current": "Current session",
+      "created_at": "Created {{date}}",
+      "revoke": "Revoke",
+      "revoke_all": "Revoke all other sessions",
+      "revoke_confirm_title": "Revoke Session",
+      "revoke_confirm_description": "Are you sure you want to revoke this session? The device will be logged out immediately.",
+      "revoke_current_confirm_title": "Revoke Current Session",
+      "revoke_current_confirm_description": "Are you sure? You will be logged out immediately.",
+      "revoke_all_confirm_title": "Revoke All Other Sessions",
+      "revoke_all_confirm_description": "Are you sure you want to revoke all other sessions? All other devices will be logged out immediately.",
+      "no_sessions": "No active sessions found"
     },
     "security": {
       "tab": "Security",

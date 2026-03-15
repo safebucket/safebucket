@@ -25,6 +25,7 @@ const (
 	CacheAppWorkerLockRefresh   = 55
 	CacheMFAAttemptsKey         = "mfa:attempts:%s"
 	CacheTOTPUsedKey            = "totp:used:%s:%s"
+	CacheUserSessionsKey        = "user:sessions:%s"
 )
 
 const (

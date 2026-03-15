@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/tests"
@@ -31,7 +32,7 @@ func mockAuthenticatedNextHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("OK:" + userClaims.Email))
 }
 
-// generateTestToken creates a valid JWT token for testing.
+// generateTestToken creates a valid JWT token for testing without a SID.
 func generateTestToken(secret string, user *models.User, expiresIn time.Duration) (string, error) {
 	claims := models.UserClaims{
 		Email:    user.Email,
@@ -49,14 +50,28 @@ func generateTestToken(secret string, user *models.User, expiresIn time.Duration
 	return token.SignedString([]byte(secret))
 }
 
+// generateTestTokenWithSession creates a JWT token with a SID and registers the session in cache.
+func generateTestTokenWithSession(
+	secret string, user *models.User, expiresIn time.Duration, mc *cache.MemoryCache,
+) (string, error) {
+	sid := uuid.New().String()
+	if err := cache.CreateSession(mc, user.ID.String(), sid); err != nil {
+		return "", err
+	}
+	return generateTestTokenWithSID(secret, user, expiresIn, sid)
+}
+
 func TestAuthenticate(t *testing.T) {
+	mc := cache.NewMemoryCache()
+	t.Cleanup(func() { mc.Close() })
+
 	testUser := &models.User{
 		ID:    uuid.New(),
 		Email: "test@example.com",
 		Role:  models.RoleUser,
 	}
 
-	validToken, err := generateTestToken(testJWTSecret, testUser, time.Hour)
+	validToken, err := generateTestTokenWithSession(testJWTSecret, testUser, time.Hour, mc)
 	require.NoError(t, err)
 
 	expiredToken, err := generateTestToken(testJWTSecret, testUser, -time.Hour)
@@ -143,7 +158,9 @@ func TestAuthenticate(t *testing.T) {
 			}
 			recorder := httptest.NewRecorder()
 
-			handler := Authenticate(testJWTSecret)(http.HandlerFunc(mockAuthenticatedNextHandler))
+			handler := Authenticate(testJWTSecret, mc, 600)(
+				http.HandlerFunc(mockAuthenticatedNextHandler),
+			)
 			handler.ServeHTTP(recorder, req)
 
 			assert.Equal(t, tt.expectedStatus, recorder.Code)
@@ -159,13 +176,16 @@ func TestAuthenticate(t *testing.T) {
 }
 
 func TestAuthenticate_ExcludedPaths(t *testing.T) {
+	mc := cache.NewMemoryCache()
+	t.Cleanup(func() { mc.Close() })
+
 	testUser := &models.User{
 		ID:    uuid.New(),
 		Email: "test@example.com",
 		Role:  models.RoleUser,
 	}
 
-	validToken, err := generateTestToken(testJWTSecret, testUser, time.Hour)
+	validToken, err := generateTestTokenWithSession(testJWTSecret, testUser, time.Hour, mc)
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -248,7 +268,7 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 				_, _ = w.Write([]byte("OK"))
 			})
 
-			handler := Authenticate(testJWTSecret)(simpleHandler)
+			handler := Authenticate(testJWTSecret, mc, 600)(simpleHandler)
 			handler.ServeHTTP(recorder, req)
 
 			assert.Equal(t, tt.expectedStatus, recorder.Code, tt.description)
@@ -406,16 +426,19 @@ func TestIsAuthExcluded(t *testing.T) {
 }
 
 func TestAuthenticate_UserClaimsInContext(t *testing.T) {
+	mc := cache.NewMemoryCache()
+	t.Cleanup(func() { mc.Close() })
+
 	testUser := &models.User{
 		ID:    uuid.New(),
 		Email: "context-test@example.com",
 		Role:  models.RoleAdmin,
 	}
 
-	validToken, err := generateTestToken(testJWTSecret, testUser, time.Hour)
+	validToken, err := generateTestTokenWithSession(testJWTSecret, testUser, time.Hour, mc)
 	require.NoError(t, err)
 
-	// Handler that extracts and validates claims from context
+	// Handler that extracts and validates claims from context.
 	var capturedClaims models.UserClaims
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
@@ -428,7 +451,7 @@ func TestAuthenticate_UserClaimsInContext(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+validToken)
 	recorder := httptest.NewRecorder()
 
-	handler := Authenticate(testJWTSecret)(testHandler)
+	handler := Authenticate(testJWTSecret, mc, 600)(testHandler)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
@@ -439,6 +462,126 @@ func TestAuthenticate_UserClaimsInContext(t *testing.T) {
 	assert.Equal(t, configuration.AppName, capturedClaims.Issuer)
 }
 
+// generateTestTokenWithSID creates a valid JWT token with a specific SID for session tests.
+func generateTestTokenWithSID(
+	secret string, user *models.User, expiresIn time.Duration, sid string,
+) (string, error) {
+	claims := models.UserClaims{
+		Email:    user.Email,
+		UserID:   user.ID,
+		Role:     user.Role,
+		Provider: "test",
+		SID:      sid,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    configuration.AppName,
+			Audience:  jwt.ClaimStrings{"app:*"},
+			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(expiresIn)},
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
+func TestAuthenticate_SessionRevocation(t *testing.T) {
+	const refreshTokenExpiry = 600
+
+	testUser := &models.User{
+		ID:    uuid.New(),
+		Email: "session@example.com",
+		Role:  models.RoleUser,
+	}
+
+	t.Run("Active session passes", func(t *testing.T) {
+		mc := cache.NewMemoryCache()
+		t.Cleanup(func() { mc.Close() })
+
+		sid := uuid.New().String()
+		require.NoError(t, cache.CreateSession(mc, testUser.ID.String(), sid))
+
+		token, err := generateTestTokenWithSID(testJWTSecret, testUser, time.Hour, sid)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		recorder := httptest.NewRecorder()
+
+		handler := Authenticate(testJWTSecret, mc, refreshTokenExpiry)(
+			http.HandlerFunc(mockAuthenticatedNextHandler),
+		)
+		handler.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusOK, recorder.Code)
+		assert.Contains(t, recorder.Body.String(), "OK:session@example.com")
+	})
+
+	t.Run("Revoked session blocked", func(t *testing.T) {
+		mc := cache.NewMemoryCache()
+		t.Cleanup(func() { mc.Close() })
+
+		sid := uuid.New().String()
+		require.NoError(t, cache.CreateSession(mc, testUser.ID.String(), sid))
+		require.NoError(t, cache.RevokeSession(mc, testUser.ID.String(), sid))
+
+		token, err := generateTestTokenWithSID(testJWTSecret, testUser, time.Hour, sid)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		recorder := httptest.NewRecorder()
+
+		handler := Authenticate(testJWTSecret, mc, refreshTokenExpiry)(
+			http.HandlerFunc(mockAuthenticatedNextHandler),
+		)
+		handler.ServeHTTP(recorder, req)
+
+		expected := models.Error{Status: http.StatusUnauthorized, Error: []string{"SESSION_REVOKED"}}
+		tests.AssertJSONResponse(t, recorder, http.StatusUnauthorized, expected)
+	})
+
+	t.Run("Unknown SID blocked", func(t *testing.T) {
+		mc := cache.NewMemoryCache()
+		t.Cleanup(func() { mc.Close() })
+
+		sid := uuid.New().String()
+		token, err := generateTestTokenWithSID(testJWTSecret, testUser, time.Hour, sid)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		recorder := httptest.NewRecorder()
+
+		handler := Authenticate(testJWTSecret, mc, refreshTokenExpiry)(
+			http.HandlerFunc(mockAuthenticatedNextHandler),
+		)
+		handler.ServeHTTP(recorder, req)
+
+		expected := models.Error{Status: http.StatusUnauthorized, Error: []string{"SESSION_REVOKED"}}
+		tests.AssertJSONResponse(t, recorder, http.StatusUnauthorized, expected)
+	})
+
+	t.Run("No SID rejects token", func(t *testing.T) {
+		mc := cache.NewMemoryCache()
+		t.Cleanup(func() { mc.Close() })
+
+		// generateTestToken does not set a SID.
+		token, err := generateTestToken(testJWTSecret, testUser, time.Hour)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		recorder := httptest.NewRecorder()
+
+		handler := Authenticate(testJWTSecret, mc, refreshTokenExpiry)(
+			http.HandlerFunc(mockAuthenticatedNextHandler),
+		)
+		handler.ServeHTTP(recorder, req)
+
+		expected := models.Error{Status: http.StatusUnauthorized, Error: []string{"SESSION_REVOKED"}}
+		tests.AssertJSONResponse(t, recorder, http.StatusUnauthorized, expected)
+	})
+}
+
 func TestAuthenticate_ContextPropagation(t *testing.T) {
 	testUser := &models.User{
 		ID:    uuid.New(),
@@ -446,7 +589,13 @@ func TestAuthenticate_ContextPropagation(t *testing.T) {
 		Role:  models.RoleUser,
 	}
 
-	validToken, err := generateTestToken(testJWTSecret, testUser, time.Hour)
+	mc := cache.NewMemoryCache()
+	t.Cleanup(func() { mc.Close() })
+
+	sid := uuid.New().String()
+	require.NoError(t, cache.CreateSession(mc, testUser.ID.String(), sid))
+
+	validToken, err := generateTestTokenWithSID(testJWTSecret, testUser, time.Hour, sid)
 	require.NoError(t, err)
 
 	type testContextKey struct{}
@@ -471,7 +620,7 @@ func TestAuthenticate_ContextPropagation(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 
-	handler := Authenticate(testJWTSecret)(testHandler)
+	handler := Authenticate(testJWTSecret, mc, 600)(testHandler)
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)

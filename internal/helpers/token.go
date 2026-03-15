@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -22,22 +23,38 @@ type tokenConfig struct {
 	mfa           *bool // nil = don't set (defaults to false), otherwise set to this value
 	expiryMinutes int
 	challengeID   *uuid.UUID
+	sid           string
 }
 
 func boolPtr(b bool) *bool {
 	return &b
 }
 
+func generateJTI(audience string) string {
+	switch audience {
+	case configuration.AudienceAccessToken:
+		return fmt.Sprintf("access:%s", uuid.New().String())
+	case configuration.AudienceRefreshToken:
+		return fmt.Sprintf("refresh:%s", uuid.New().String())
+	default:
+		return ""
+	}
+}
+
 // createToken is a generic helper for creating JWT tokens with specified configuration.
 // This private function consolidates the common token creation logic used by all public
 // token creation functions (NewAccessToken, NewRefreshToken, etc.).
 func createToken(jwtSecret string, user *models.User, config tokenConfig) (string, error) {
+	jti := generateJTI(config.audience)
+
 	claims := models.UserClaims{
 		Email:    user.Email,
 		UserID:   user.ID,
 		Role:     user.Role,
 		Provider: config.provider,
+		SID:      config.sid,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        jti,
 			Issuer:    configuration.AppName,
 			Audience:  jwt.ClaimStrings{config.audience},
 			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
@@ -108,26 +125,27 @@ func CreateHash(password string) (string, error) {
 	return hash, nil
 }
 
-func NewAccessToken(jwtSecret string, user *models.User, provider string) (string, error) {
+func NewAccessToken(jwtSecret string, user *models.User, provider string, sid string) (string, error) {
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      configuration.AudienceAccessToken,
 		provider:      provider,
 		mfa:           boolPtr(user.HasMFAEnabled()),
 		expiryMinutes: configuration.AccessTokenExpiry,
+		sid:           sid,
 	})
 }
 
-func NewRefreshToken(jwtSecret string, user *models.User, provider string) (string, error) {
+func NewRefreshToken(jwtSecret string, user *models.User, provider string, sid string) (string, error) {
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      configuration.AudienceRefreshToken,
 		provider:      provider,
 		mfa:           boolPtr(user.HasMFAEnabled()),
 		expiryMinutes: configuration.RefreshTokenExpiry,
+		sid:           sid,
 	})
 }
 
 // ParseRefreshToken validates and parses a refresh token.
-// Returns error if token is invalid or has wrong audience.
 func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims, error) {
 	claims, err := ParseToken(jwtSecret, refreshToken, false)
 	if err != nil {

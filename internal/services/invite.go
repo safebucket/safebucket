@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
@@ -27,6 +28,7 @@ import (
 
 type InviteService struct {
 	DB             *gorm.DB
+	Cache          cache.ICache
 	Storage        storage.IStorage
 	AuthConfig     models.AuthConfig
 	Publisher      messaging.IPublisher
@@ -171,10 +173,17 @@ func (s InviteService) createUserFromInvite(
 		logger.Error("Failed to log invite acceptance", zap.Error(logErr))
 	}
 
+	sid := uuid.New().String()
+	if sessionErr := cache.CreateSession(s.Cache, newUser.ID.String(), sid); sessionErr != nil {
+		logger.Error("Failed to create session", zap.Error(sessionErr))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
 	accessToken, err := h.NewAccessToken(
 		s.AuthConfig.JWTSecret,
 		&newUser,
 		string(models.LocalProviderType),
+		sid,
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
@@ -185,6 +194,7 @@ func (s InviteService) createUserFromInvite(
 		s.AuthConfig.JWTSecret,
 		&newUser,
 		string(models.LocalProviderType),
+		sid,
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))

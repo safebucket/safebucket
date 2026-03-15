@@ -27,4 +27,6 @@ const (
 	MFADeviceVerified            string = "MFA_DEVICE_VERIFIED"
 	MFADeviceUpdated             string = "MFA_DEVICE_UPDATED"
 	MFADeviceRemoved             string = "MFA_DEVICE_REMOVED"
+	SessionRevoked               string = "SESSION_REVOKED"
+	OtherSessionsRevoked         string = "OTHER_SESSIONS_REVOKED"
 )

@@ -278,6 +278,7 @@
     "settings": "Paramètres",
     "profile": "Profil",
     "preferences": "Préférences",
+    "sessions": "Sessions",
     "security": "Sécurité",
     "administration": "Administration",
     "dashboard": "Tableau de bord",
@@ -501,6 +502,21 @@
       "description": "Sélectionnez votre langue préférée",
       "english": "Anglais",
       "french": "Français"
+    },
+    "sessions": {
+      "title": "Sessions actives",
+      "description": "Gérez vos sessions actives sur vos appareils",
+      "current": "Session actuelle",
+      "created_at": "Créée le {{date}}",
+      "revoke": "Révoquer",
+      "revoke_all": "Révoquer toutes les autres sessions",
+      "revoke_confirm_title": "Révoquer la session",
+      "revoke_confirm_description": "Êtes-vous sûr de vouloir révoquer cette session ? L'appareil sera déconnecté immédiatement.",
+      "revoke_current_confirm_title": "Révoquer la session actuelle",
+      "revoke_current_confirm_description": "Êtes-vous sûr ? Vous serez déconnecté immédiatement.",
+      "revoke_all_confirm_title": "Révoquer toutes les autres sessions",
+      "revoke_all_confirm_description": "Êtes-vous sûr de vouloir révoquer toutes les autres sessions ? Tous les autres appareils seront déconnectés immédiatement.",
+      "no_sessions": "Aucune session active trouvée"
     },
     "security": {
       "tab": "Sécurité",

@@ -13,6 +13,7 @@ type UserClaims struct {
 	Role        Role       `json:"role"`
 	Provider    string     `json:"provider"`
 	MFA         bool       `json:"mfa"`
+	SID         string     `json:"sid,omitempty"`
 	ChallengeID *uuid.UUID `json:"challenge_id,omitempty"`
 }
 

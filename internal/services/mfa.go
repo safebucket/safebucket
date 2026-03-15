@@ -409,7 +409,17 @@ func (s MFAService) VerifyDevice(
 		}
 	}()
 
-	return mfa.GenerateTokens(s.AuthConfig, &user)
+	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user)
+	if err != nil {
+		return nil, err
+	}
+
+	if sessionErr := cache.CreateSession(s.Cache, userID.String(), sid); sessionErr != nil {
+		logger.Error("Failed to create session", zap.Error(sessionErr))
+		return nil, apierrors.ErrInternalServer
+	}
+
+	return tokens, nil
 }
 
 // UpdateDevice updates device properties (name, primary status).

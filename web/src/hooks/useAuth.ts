@@ -91,8 +91,8 @@ export function useLogout() {
   const router = useRouter();
   const { queryClient } = useRouteContext({ from: "__root__" });
 
-  return useCallback(() => {
-    authLogout();
+  return useCallback(async () => {
+    await authLogout();
 
     router.update({
       context: {

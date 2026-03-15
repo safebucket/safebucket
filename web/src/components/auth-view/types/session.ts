@@ -13,6 +13,7 @@ export interface IJWTPayload {
   iss: string;
   user_id: string;
   role: "admin" | "user" | "guest";
+  sid?: string;
 }
 
 export interface IUser {
@@ -65,4 +66,14 @@ export interface ILoginResponse {
   mfa_required: boolean;
   mfa_token?: string;
   mfa_setup_required?: boolean;
+}
+
+export interface ISessionResponse {
+  id: string;
+  is_current: boolean;
+  created_at: string;
+}
+
+export interface ISessionListResponse {
+  sessions: Array<ISessionResponse>;
 }

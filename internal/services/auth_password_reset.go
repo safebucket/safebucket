@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
@@ -25,6 +26,7 @@ import (
 
 type AuthPasswordResetService struct {
 	DB             *gorm.DB
+	Cache          cache.ICache
 	AuthConfig     models.AuthConfig
 	Publisher      messaging.IPublisher
 	ActivityLogger activity.IActivityLogger
@@ -33,6 +35,7 @@ type AuthPasswordResetService struct {
 func NewAuthPasswordResetService(s AuthService) AuthPasswordResetService {
 	return AuthPasswordResetService{
 		DB:             s.DB,
+		Cache:          s.Cache,
 		AuthConfig:     s.AuthConfig,
 		Publisher:      s.Publisher,
 		ActivityLogger: s.ActivityLogger,
@@ -302,10 +305,17 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 		logger.Error("Failed to log password reset completion", zap.Error(logErr))
 	}
 
+	sid := uuid.New().String()
+	if sessionErr := cache.CreateSession(s.Cache, user.ID.String(), sid); sessionErr != nil {
+		logger.Error("Failed to create session", zap.Error(sessionErr))
+		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
 	accessToken, err := h.NewAccessToken(
 		s.AuthConfig.JWTSecret,
 		user,
 		string(models.LocalProviderType),
+		sid,
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
@@ -316,6 +326,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 		s.AuthConfig.JWTSecret,
 		user,
 		string(models.LocalProviderType),
+		sid,
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))

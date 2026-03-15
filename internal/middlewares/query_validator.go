@@ -99,8 +99,7 @@ func setFieldValue(field reflect.Value, value string) error {
 		return nil
 	}
 
-	//nolint:exhaustive // Only handle supported types, others skip via default
-	switch field.Kind() {
+	switch field.Kind() { //nolint:exhaustive // Only handle supported types.
 	case reflect.String:
 		field.SetString(value)
 	case reflect.Int, reflect.Int32, reflect.Int64:

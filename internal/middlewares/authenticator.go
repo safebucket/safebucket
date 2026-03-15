@@ -3,7 +3,9 @@ package middlewares
 import (
 	"context"
 	"net/http"
+	"time"
 
+	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
@@ -11,7 +13,9 @@ import (
 
 type AuthExcludedKey struct{}
 
-func Authenticate(jwtSecret string) func(next http.Handler) http.Handler {
+func Authenticate(
+	jwtSecret string, c cache.ICache, refreshTokenExpiry int,
+) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			// Check if path is excluded from auth (default = auth required)
@@ -29,6 +33,20 @@ func Authenticate(jwtSecret string) func(next http.Handler) http.Handler {
 			userClaims, err := helpers.ParseToken(jwtSecret, accessToken, true)
 			if err != nil {
 				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				return
+			}
+
+			if userClaims.SID == "" {
+				helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
+				return
+			}
+
+			maxAge := time.Duration(refreshTokenExpiry) * time.Minute
+			active, sessionErr := cache.IsSessionActive(
+				c, userClaims.UserID.String(), userClaims.SID, maxAge,
+			)
+			if sessionErr != nil || !active {
+				helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
 				return
 			}
 
