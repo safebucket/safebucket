@@ -63,12 +63,12 @@ type ShareFile struct {
 type ShareCreateBody struct {
 	Name          string      `json:"name"            validate:"required,min=1,max=255"`
 	Type          ShareType   `json:"type"            validate:"required,oneof=files folder bucket"`
-	FolderID      *uuid.UUID  `json:"folder_id"       validate:"omitempty,uuid"`
-	FileIDs       []uuid.UUID `json:"file_ids"        validate:"omitempty,dive,uuid"`
+	FolderID      *uuid.UUID  `json:"folder_id"       validate:"required_if=Type folder,omitempty,uuid"`
+	FileIDs       []uuid.UUID `json:"file_ids"        validate:"required_if=Type files,omitempty,dive,uuid"`
 	ExpiresAt     *time.Time  `json:"expires_at"      validate:"omitempty,futuredate"`
 	MaxViews      *int        `json:"max_views"       validate:"omitempty,gte=1"`
 	Password      string      `json:"password"        validate:"omitempty,min=8,max=72"`
-	AllowUpload   bool        `json:"allow_upload"`
+	AllowUpload   bool        `json:"allow_upload"    validate:"excluded_if=Type files"`
 	MaxUploads    *int        `json:"max_uploads"     validate:"omitempty,gte=1"`
 	MaxUploadSize *int64      `json:"max_upload_size" validate:"omitempty,gte=1"`
 }

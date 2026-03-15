@@ -45,14 +45,7 @@ func (s BucketShareService) CreateShare(
 		return models.Share{}, apierrors.NewAPIError(404, "NOT_FOUND")
 	}
 
-	if body.AllowUpload && body.Type == models.ShareTypeFiles {
-		return models.Share{}, apierrors.NewAPIError(400, "SHARE_UPLOAD_NOT_ALLOWED_FOR_FILES")
-	}
-
 	if body.Type == models.ShareTypeFolder {
-		if body.FolderID == nil {
-			return models.Share{}, apierrors.NewAPIError(400, "SHARE_FOLDER_REQUIRED")
-		}
 		var folder models.Folder
 		if s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucketID).Find(&folder).RowsAffected == 0 {
 			return models.Share{}, apierrors.NewAPIError(400, "FOLDER_NOT_FOUND")
@@ -60,9 +53,6 @@ func (s BucketShareService) CreateShare(
 	}
 
 	if body.Type == models.ShareTypeFiles {
-		if len(body.FileIDs) == 0 {
-			return models.Share{}, apierrors.NewAPIError(400, "SHARE_FILES_REQUIRED")
-		}
 		var count int64
 		s.DB.Model(&models.File{}).Where("id IN ? AND bucket_id = ?", body.FileIDs, bucketID).Count(&count)
 		if count != int64(len(body.FileIDs)) {
