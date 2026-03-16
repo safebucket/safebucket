@@ -57,7 +57,9 @@ export const ShareLinkItem: FC<IShareLinkItemProps> = ({ share, bucketId }) => {
   const createdText = new Date(share.created_at).toLocaleDateString();
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/shares/${share.id}`);
+    navigator.clipboard.writeText(
+      `${window.location.origin}/shares/${share.id}`,
+    );
     successToast(t("bucket.settings.shares.link_copied"));
   };
 

@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ArrowLeft, ArrowRight, Link, Loader2, TriangleAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Link,
+  Loader2,
+  TriangleAlert,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import type { FC } from "react";
@@ -28,7 +34,7 @@ import {
   bucketDataQueryOptions,
   useCreateShareMutation,
 } from "@/queries/bucket";
-import type {ShareScope} from "@/types/share.ts";
+import type { ShareScope } from "@/types/share.ts";
 
 type Step = 1 | 2 | 3;
 
@@ -147,7 +153,8 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
       name: values.name,
       type: values.scope,
       file_ids: values.scope === "files" ? values.selectedFileIds : undefined,
-      folder_id: values.scope === "folder" ? values.selectedFolderId : undefined,
+      folder_id:
+        values.scope === "folder" ? values.selectedFolderId : undefined,
       expires_at: values.expiresAt ? values.expiresAt.toISOString() : undefined,
       max_views: values.maxViews,
       allow_upload: values.allowUploads,
