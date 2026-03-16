@@ -103,7 +103,7 @@ jobs:
           docker rm "extract-${ARCH}"
 
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: binary-linux-${{ inputs.arch }}
           path: ./safebucket-linux-${{ inputs.arch }}
