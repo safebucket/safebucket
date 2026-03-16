@@ -410,7 +410,7 @@
         "delete": "Supprimer"
       },
       "members": {
-        "title": "Membres du Bucket",
+        "title": "Partage",
         "description": "Gérez les personnes qui ont accès à ce bucket et leurs permissions",
         "add_member": "Ajouter un membre",
         "members": "Membres",
@@ -422,6 +422,29 @@
         "you": "vous",
         "invited": "Invité",
         "updated_successfully": "Les membres du bucket ont été mis à jour avec succès"
+      },
+      "shares": {
+        "tab_members": "Membres",
+        "tab_shares": "Liens de partage",
+        "no_shares": "Aucun lien de partage n'a encore été créé",
+        "type_files": "Fichiers",
+        "type_folder": "Dossier",
+        "type_bucket": "Bucket",
+        "views": "{{current}} / {{max}} vues",
+        "views_unlimited": "{{current}} vues",
+        "expires": "Expire le {{date}}",
+        "expired": "Expiré",
+        "no_expiry": "Pas d'expiration",
+        "password_protected": "Mot de passe",
+        "uploads_allowed": "Uploads",
+        "copy_link": "Copier le lien",
+        "link_copied": "Lien de partage copié dans le presse-papiers",
+        "delete": "Supprimer le lien de partage",
+        "deleted": "Lien de partage supprimé",
+        "created": "Créé le",
+        "expiry": "Expiration",
+        "views_label": "Vues",
+        "create": "Créer un lien"
       }
     }
   },

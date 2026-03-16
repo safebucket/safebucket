@@ -23,14 +23,12 @@ import { bucketGroups } from "@/types/bucket.ts";
 interface IBucketMemberProps {
   member: IMemberState;
   isCurrentUser: boolean;
-  isOwner: boolean;
   updateMemberRole: (email: string, newRole: string) => void;
 }
 
 export const BucketMember: FC<IBucketMemberProps> = ({
   member,
   isCurrentUser,
-  isOwner,
   updateMemberRole,
 }) => (
   <Item key={member.email} variant="outline">
@@ -57,7 +55,7 @@ export const BucketMember: FC<IBucketMemberProps> = ({
       <Select
         value={member.group}
         onValueChange={(value) => updateMemberRole(member.email, value)}
-        disabled={isCurrentUser || !isOwner}
+        disabled={isCurrentUser}
       >
         <SelectTrigger className="w-32">
           <SelectValue />
@@ -68,7 +66,7 @@ export const BucketMember: FC<IBucketMemberProps> = ({
               {group.name}
             </SelectItem>
           ))}
-          {!isCurrentUser && isOwner && (
+          {!isCurrentUser && (
             <>
               <SelectSeparator />
               <SelectItem value="remove" className="text-red-600">

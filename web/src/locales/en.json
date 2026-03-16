@@ -410,7 +410,7 @@
         "delete": "Delete"
       },
       "members": {
-        "title": "Bucket Members",
+        "title": "Sharing",
         "description": "Manage who has access to this bucket and their permissions",
         "add_member": "Add Member",
         "members": "Members",
@@ -422,6 +422,29 @@
         "you": "you",
         "invited": "Invited",
         "updated_successfully": "Bucket members updated successfully"
+      },
+      "shares": {
+        "tab_members": "Members",
+        "tab_shares": "Share Links",
+        "no_shares": "No share links have been created yet",
+        "type_files": "Files",
+        "type_folder": "Folder",
+        "type_bucket": "Bucket",
+        "views": "{{current}} / {{max}} views",
+        "views_unlimited": "{{current}} views",
+        "expires": "Expires {{date}}",
+        "expired": "Expired",
+        "no_expiry": "No expiry",
+        "password_protected": "Password",
+        "uploads_allowed": "Uploads",
+        "copy_link": "Copy link",
+        "link_copied": "Share link copied to clipboard",
+        "delete": "Delete share link",
+        "deleted": "Share link deleted",
+        "created": "Created",
+        "expiry": "Expiry",
+        "views_label": "Views",
+        "create": "Create link"
       }
     }
   },

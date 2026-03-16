@@ -9,7 +9,7 @@ import type { FC } from "react";
 import type { BucketItem } from "@/types/bucket.ts";
 import { FileStatus } from "@/types/file.ts";
 import { isFile } from "@/components/bucket-view/helpers/utils";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
+
 import { QuickShareOptionsStep } from "@/components/quick-share/components/QuickShareOptionsStep";
 import { QuickShareResultStep } from "@/components/quick-share/components/QuickShareResultStep";
 import { QuickShareScopeStep } from "@/components/quick-share/components/QuickShareScopeStep";
@@ -44,7 +44,8 @@ export interface IQuickShareForm {
 interface IQuickShareDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialItem: BucketItem;
+  initialItem?: BucketItem;
+  bucketId: string;
 }
 
 function generateDummyLink(): string {
@@ -57,14 +58,15 @@ function generateDummyLink(): string {
 }
 
 function getDefaultValues(
-  initialItem: BucketItem,
   t: (key: string) => string,
+  initialItem?: BucketItem,
 ): IQuickShareForm {
   return {
     name: t("quick_share.default_name"),
-    scope: isFile(initialItem) ? "files" : "folder",
-    selectedFileIds: isFile(initialItem) ? [initialItem.id] : [],
-    selectedFolderId: !isFile(initialItem) ? initialItem.id : null,
+    scope: initialItem ? (isFile(initialItem) ? "files" : "folder") : "bucket",
+    selectedFileIds: initialItem && isFile(initialItem) ? [initialItem.id] : [],
+    selectedFolderId:
+      initialItem && !isFile(initialItem) ? initialItem.id : null,
     expiresAt: undefined,
     maxViews: 1,
     allowUploads: false,
@@ -77,13 +79,13 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   open,
   onOpenChange,
   initialItem,
+  bucketId,
 }) => {
   const { t } = useTranslation();
-  const { bucketId } = useBucketViewContext();
   const { data: bucket } = useQuery(bucketDataQueryOptions(bucketId));
 
   const { control, watch, setValue, reset } = useForm<IQuickShareForm>({
-    defaultValues: getDefaultValues(initialItem, t),
+    defaultValues: getDefaultValues(t, initialItem),
   });
 
   const scope = watch("scope");
@@ -98,7 +100,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
 
   useEffect(() => {
     if (open) {
-      reset(getDefaultValues(initialItem, t));
+      reset(getDefaultValues(t, initialItem));
       setStep(1);
       setGeneratedLink("");
     }
@@ -108,13 +110,18 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
     setValue("scope", newScope);
     setValue("allowUploads", false);
     if (newScope === "files") {
-      setValue("selectedFileIds", isFile(initialItem) ? [initialItem.id] : []);
+      setValue(
+        "selectedFileIds",
+        initialItem && isFile(initialItem) ? [initialItem.id] : [],
+      );
       setValue("selectedFolderId", null);
     } else if (newScope === "folder") {
       setValue("selectedFileIds", []);
       setValue(
         "selectedFolderId",
-        !isFile(initialItem) ? initialItem.id : (allFolders[0]?.id ?? null),
+        initialItem && !isFile(initialItem)
+          ? initialItem.id
+          : (allFolders[0]?.id ?? null),
       );
     } else {
       setValue("selectedFileIds", []);

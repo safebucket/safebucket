@@ -9,6 +9,7 @@ import type {
   INotificationPreferences,
 } from "@/components/bucket-view/helpers/types.ts";
 import type { IBucket } from "@/types/bucket.ts";
+import type { IShare } from "@/types/share.ts";
 import { api } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import i18n from "@/lib/i18n";
@@ -65,6 +66,30 @@ export const useUpdateNotificationPreferencesMutation = (bucketId: string) => {
   });
 };
 
+export const bucketSharesQueryOptions = (bucketId: string) =>
+  queryOptions({
+    queryKey: ["buckets", bucketId, "shares"],
+    queryFn: () =>
+      api.get<{ data: Array<IShare> }>(`/buckets/${bucketId}/shares`),
+    select: (response) => response.data,
+  });
+
+export const useDeleteShareMutation = (bucketId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (shareId: string) =>
+      api.delete(`/buckets/${bucketId}/shares/${shareId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["buckets", bucketId, "shares"],
+      });
+      successToast(i18n.t("bucket.settings.shares.deleted"));
+    },
+    onError: (error: Error) => errorToast(error),
+  });
+};
+
 export const bucketTrashedFilesQueryOptions = (bucketId: string) =>
   queryOptions({
     queryKey: ["buckets", bucketId, "trash"],
@@ -73,8 +98,8 @@ export const bucketTrashedFilesQueryOptions = (bucketId: string) =>
         `/buckets/${bucketId}?status=deleted`,
       );
       return {
-        files: response.files || [],
-        folders: response.folders || [],
+        files: response.files,
+        folders: response.folders,
       };
     },
     enabled: !!bucketId,
