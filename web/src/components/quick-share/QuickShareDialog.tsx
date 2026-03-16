@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ArrowLeft, ArrowRight, Link, TriangleAlert } from "lucide-react";
+import { ArrowLeft, ArrowRight, Link, Loader2, TriangleAlert } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import type { FC } from "react";
@@ -24,9 +24,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { bucketDataQueryOptions } from "@/queries/bucket";
+import {
+  bucketDataQueryOptions,
+  useCreateShareMutation,
+} from "@/queries/bucket";
+import type {ShareScope} from "@/types/share.ts";
 
-export type ShareScope = "files" | "folder" | "bucket";
 type Step = 1 | 2 | 3;
 
 export interface IQuickShareForm {
@@ -46,15 +49,6 @@ interface IQuickShareDialogProps {
   onOpenChange: (open: boolean) => void;
   initialItem?: BucketItem;
   bucketId: string;
-}
-
-function generateDummyLink(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return `${window.location.origin}/s/${result}`;
 }
 
 function getDefaultValues(
@@ -84,9 +78,12 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   const { t } = useTranslation();
   const { data: bucket } = useQuery(bucketDataQueryOptions(bucketId));
 
-  const { control, watch, setValue, reset } = useForm<IQuickShareForm>({
-    defaultValues: getDefaultValues(t, initialItem),
-  });
+  const { control, watch, setValue, reset, getValues } =
+    useForm<IQuickShareForm>({
+      defaultValues: getDefaultValues(t, initialItem),
+    });
+
+  const createShareMutation = useCreateShareMutation(bucketId);
 
   const scope = watch("scope");
   const selectedFileIds = watch("selectedFileIds");
@@ -143,8 +140,28 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
     setValue("selectedFolderId", folderId);
   };
 
-  const handleCreate = () => {
-    setGeneratedLink(generateDummyLink());
+  const handleCreate = async () => {
+    const values = getValues();
+
+    const share = await createShareMutation.mutateAsync({
+      name: values.name,
+      type: values.scope,
+      file_ids: values.scope === "files" ? values.selectedFileIds : undefined,
+      folder_id: values.scope === "folder" ? values.selectedFolderId : undefined,
+      expires_at: values.expiresAt ? values.expiresAt.toISOString() : undefined,
+      max_views: values.maxViews,
+      allow_upload: values.allowUploads,
+      max_uploads:
+        values.allowUploads && values.maxUploads
+          ? Number(values.maxUploads)
+          : undefined,
+      max_upload_size:
+        values.allowUploads && values.maxUploadSize
+          ? Number(values.maxUploadSize) * 1024 * 1024
+          : undefined,
+    });
+
+    setGeneratedLink(`${window.location.origin}/shares/${share.id}`);
     setStep(3);
   };
 
@@ -235,8 +252,17 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
                   <ArrowLeft className="h-4 w-4" />
                   {t("quick_share.back")}
                 </Button>
-                <Button type="button" onClick={handleCreate} className="gap-2">
-                  <Link className="h-4 w-4" />
+                <Button
+                  type="button"
+                  onClick={handleCreate}
+                  disabled={createShareMutation.isPending}
+                  className="gap-2"
+                >
+                  {createShareMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Link className="h-4 w-4" />
+                  )}
                   {t("quick_share.create")}
                 </Button>
               </div>

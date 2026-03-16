@@ -57,12 +57,7 @@ export const ShareLinkItem: FC<IShareLinkItemProps> = ({ share, bucketId }) => {
   const createdText = new Date(share.created_at).toLocaleDateString();
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/s/${share.id}`);
-    successToast(t("bucket.settings.shares.link_copied"));
-  };
-
-  const handleCopyId = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/s/${share.id}`);
+    navigator.clipboard.writeText(`${window.location.origin}/shares/${share.id}`);
     successToast(t("bucket.settings.shares.link_copied"));
   };
 
@@ -79,7 +74,7 @@ export const ShareLinkItem: FC<IShareLinkItemProps> = ({ share, bucketId }) => {
           <ItemDescription>
             <button
               type="button"
-              onClick={handleCopyId}
+              onClick={handleCopyLink}
               className="cursor-pointer font-mono text-xs hover:text-primary"
             >
               {share.id}

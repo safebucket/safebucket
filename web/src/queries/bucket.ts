@@ -9,7 +9,7 @@ import type {
   INotificationPreferences,
 } from "@/components/bucket-view/helpers/types.ts";
 import type { IBucket } from "@/types/bucket.ts";
-import type { IShare } from "@/types/share.ts";
+import type { IShare, IShareCreateBody } from "@/types/share.ts";
 import { api } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 import i18n from "@/lib/i18n";
@@ -73,6 +73,21 @@ export const bucketSharesQueryOptions = (bucketId: string) =>
       api.get<{ data: Array<IShare> }>(`/buckets/${bucketId}/shares`),
     select: (response) => response.data,
   });
+
+export const useCreateShareMutation = (bucketId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: IShareCreateBody) =>
+      api.post<IShare>(`/buckets/${bucketId}/shares`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["buckets", bucketId, "shares"],
+      });
+    },
+    onError: (error: Error) => errorToast(error),
+  });
+};
 
 export const useDeleteShareMutation = (bucketId: string) => {
   const queryClient = useQueryClient();
