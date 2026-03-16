@@ -5,10 +5,8 @@ import { Controller } from "react-hook-form";
 import type { Control } from "react-hook-form";
 import type { FC } from "react";
 
-import type {
-  IQuickShareForm,
-  ShareScope,
-} from "@/components/quick-share/QuickShareDialog";
+import type { IQuickShareForm } from "@/components/quick-share/QuickShareDialog";
+import type { ShareScope } from "@/types/share.ts";
 import { Datepicker } from "@/components/common/components/Datepicker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
