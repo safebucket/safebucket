@@ -167,25 +167,20 @@ func (m *MemoryCache) ZAdd(key string, score float64, member string) error {
 	return nil
 }
 
-func (m *MemoryCache) ZRangeByScore(key string, minScore string, maxScore string) ([]string, error) {
+func (m *MemoryCache) ZScore(key string, member string) (float64, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	entries, ok := m.sortedSets[key]
 	if !ok {
-		return nil, nil
+		return 0, ErrKeyNotFound
 	}
-
-	lo := parseScore(minScore)
-	hi := parseScore(maxScore)
-
-	var result []string
 	for _, e := range entries {
-		if e.score >= lo && e.score <= hi {
-			result = append(result, e.member)
+		if e.member == member {
+			return e.score, nil
 		}
 	}
-	return result, nil
+	return 0, ErrKeyNotFound
 }
 
 func (m *MemoryCache) ZRangeByScoreWithScores(

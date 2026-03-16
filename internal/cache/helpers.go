@@ -3,7 +3,6 @@ package cache
 import (
 	"errors"
 	"fmt"
-	"slices"
 	"strconv"
 	"time"
 
@@ -99,12 +98,15 @@ func CreateSession(c ICache, userID string, sid string) error {
 }
 
 func IsSessionActive(c ICache, userID string, sid string, maxAge time.Duration) (bool, error) {
-	cutoff := sessionCutoff(maxAge)
-	members, err := c.ZRangeByScore(sessionKey(userID), cutoff, "+inf")
+	score, err := c.ZScore(sessionKey(userID), sid)
 	if err != nil {
+		if errors.Is(err, ErrKeyNotFound) {
+			return false, nil
+		}
 		return false, err
 	}
-	return slices.Contains(members, sid), nil
+	cutoff := float64(time.Now().Add(-maxAge).Unix())
+	return score >= cutoff, nil
 }
 
 func ListActiveSessions(c ICache, userID string, maxAge time.Duration) ([]ActiveSession, error) {
@@ -136,14 +138,14 @@ func RevokeOtherSessions(c ICache, userID string, currentSID string, maxAge time
 	key := sessionKey(userID)
 	cutoff := sessionCutoff(maxAge)
 
-	members, err := c.ZRangeByScore(key, cutoff, "+inf")
+	entries, err := c.ZRangeByScoreWithScores(key, cutoff, "+inf")
 	if err != nil {
 		return err
 	}
 
-	for _, m := range members {
-		if m != currentSID {
-			if zErr := c.ZAdd(key, 0, m); zErr != nil {
+	for _, e := range entries {
+		if e.Member != currentSID {
+			if zErr := c.ZAdd(key, 0, e.Member); zErr != nil {
 				return zErr
 			}
 		}

@@ -305,6 +305,10 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 		logger.Error("Failed to log password reset completion", zap.Error(logErr))
 	}
 
+	if revokeErr := cache.RevokeAllSessions(s.Cache, user.ID.String()); revokeErr != nil {
+		logger.Error("Failed to revoke existing sessions during password reset", zap.Error(revokeErr))
+	}
+
 	sid := uuid.New().String()
 	if sessionErr := cache.CreateSession(s.Cache, user.ID.String(), sid); sessionErr != nil {
 		logger.Error("Failed to create session", zap.Error(sessionErr))

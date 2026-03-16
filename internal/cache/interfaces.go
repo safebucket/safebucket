@@ -21,8 +21,8 @@ type ICache interface {
 	Expire(key string, ttl time.Duration) error
 	TTL(key string) (time.Duration, error)
 	ZAdd(key string, score float64, member string) error
-	ZRangeByScore(key string, minScore string, maxScore string) ([]string, error)
 	ZRangeByScoreWithScores(key string, minScore string, maxScore string) ([]ZScoreEntry, error)
+	ZScore(key string, member string) (float64, error)
 	ZRemRangeByScore(key string, minScore string, maxScore string) error
 	Close()
 }

@@ -7,6 +7,7 @@ import type {
 } from "@/components/auth-view/types/session";
 import { api, fetchApi } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import i18n from "@/lib/i18n";
 import { useSession } from "@/hooks/useAuth";
 
 interface UpdateUserPayload {
@@ -194,7 +195,7 @@ export const useRevokeSessionMutation = (userId: string) => {
       queryClient.invalidateQueries({
         queryKey: ["users", userId, "sessions"],
       });
-      successToast("Session revoked successfully");
+      successToast(i18n.t("settings.sessions.revoked"));
     },
     onError: (error: Error) => errorToast(error),
   });
@@ -209,7 +210,7 @@ export const useRevokeAllSessionsMutation = (userId: string) => {
       queryClient.invalidateQueries({
         queryKey: ["users", userId, "sessions"],
       });
-      successToast("All other sessions have been revoked");
+      successToast(i18n.t("settings.sessions.all_revoked"));
     },
     onError: (error: Error) => errorToast(error),
   });

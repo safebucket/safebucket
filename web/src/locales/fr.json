@@ -516,7 +516,9 @@
       "revoke_current_confirm_description": "Êtes-vous sûr ? Vous serez déconnecté immédiatement.",
       "revoke_all_confirm_title": "Révoquer toutes les autres sessions",
       "revoke_all_confirm_description": "Êtes-vous sûr de vouloir révoquer toutes les autres sessions ? Tous les autres appareils seront déconnectés immédiatement.",
-      "no_sessions": "Aucune session active trouvée"
+      "no_sessions": "Aucune session active trouvée",
+      "revoked": "Session révoquée avec succès",
+      "all_revoked": "Toutes les autres sessions ont été révoquées"
     },
     "security": {
       "tab": "Sécurité",

@@ -36,18 +36,20 @@ func Authenticate(
 				return
 			}
 
-			if userClaims.SID == "" {
-				helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
-				return
-			}
+			if userClaims.Audience[0] == configuration.AudienceAccessToken {
+				if userClaims.SID == "" {
+					helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
+					return
+				}
 
-			maxAge := time.Duration(refreshTokenExpiry) * time.Minute
-			active, sessionErr := cache.IsSessionActive(
-				c, userClaims.UserID.String(), userClaims.SID, maxAge,
-			)
-			if sessionErr != nil || !active {
-				helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
-				return
+				maxAge := time.Duration(refreshTokenExpiry) * time.Minute
+				active, sessionErr := cache.IsSessionActive(
+					c, userClaims.UserID.String(), userClaims.SID, maxAge,
+				)
+				if sessionErr != nil || !active {
+					helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
+					return
+				}
 			}
 
 			ctx = context.WithValue(ctx, models.UserClaimKey{}, userClaims)

@@ -145,7 +145,7 @@ func StartFileNotificationBuffer(c cache.ICache, n notifier.INotifier) {
 
 	go func() {
 		for range ticker.C {
-			members, err := c.ZRangeByScore(
+			entries, err := c.ZRangeByScoreWithScores(
 				configuration.CacheNotifyBatchesKey,
 				"1",
 				"+inf",
@@ -155,10 +155,10 @@ func StartFileNotificationBuffer(c cache.ICache, n notifier.INotifier) {
 				continue
 			}
 
-			for _, groupKey := range members {
-				if err = flushBuffer(c, n, groupKey); err != nil {
+			for _, entry := range entries {
+				if err = flushBuffer(c, n, entry.Member); err != nil {
 					zap.L().Error("batch flusher: failed to flush batch",
-						zap.String("groupKey", groupKey), zap.Error(err))
+						zap.String("groupKey", entry.Member), zap.Error(err))
 				}
 			}
 

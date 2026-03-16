@@ -516,7 +516,9 @@
       "revoke_current_confirm_description": "Are you sure? You will be logged out immediately.",
       "revoke_all_confirm_title": "Revoke All Other Sessions",
       "revoke_all_confirm_description": "Are you sure you want to revoke all other sessions? All other devices will be logged out immediately.",
-      "no_sessions": "No active sessions found"
+      "no_sessions": "No active sessions found",
+      "revoked": "Session revoked successfully",
+      "all_revoked": "All other sessions have been revoked"
     },
     "security": {
       "tab": "Security",

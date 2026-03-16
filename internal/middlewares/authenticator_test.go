@@ -462,6 +462,25 @@ func TestAuthenticate_UserClaimsInContext(t *testing.T) {
 	assert.Equal(t, configuration.AppName, capturedClaims.Issuer)
 }
 
+func generateTestTokenWithAudience(
+	secret string, user *models.User, expiresIn time.Duration, audience string,
+) (string, error) {
+	claims := models.UserClaims{
+		Email:    user.Email,
+		UserID:   user.ID,
+		Role:     user.Role,
+		Provider: "test",
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    configuration.AppName,
+			Audience:  jwt.ClaimStrings{audience},
+			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(expiresIn)},
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
 // generateTestTokenWithSID creates a valid JWT token with a specific SID for session tests.
 func generateTestTokenWithSID(
 	secret string, user *models.User, expiresIn time.Duration, sid string,
@@ -558,6 +577,28 @@ func TestAuthenticate_SessionRevocation(t *testing.T) {
 
 		expected := models.Error{Status: http.StatusUnauthorized, Error: []string{"SESSION_REVOKED"}}
 		tests.AssertJSONResponse(t, recorder, http.StatusUnauthorized, expected)
+	})
+
+	t.Run("Restricted token without SID passes", func(t *testing.T) {
+		mc := cache.NewMemoryCache()
+		t.Cleanup(func() { mc.Close() })
+
+		token, err := generateTestTokenWithAudience(
+			testJWTSecret, testUser, time.Hour, configuration.AudienceMFALogin,
+		)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		recorder := httptest.NewRecorder()
+
+		handler := Authenticate(testJWTSecret, mc, refreshTokenExpiry)(
+			http.HandlerFunc(mockAuthenticatedNextHandler),
+		)
+		handler.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusOK, recorder.Code)
+		assert.Contains(t, recorder.Body.String(), "OK:session@example.com")
 	})
 
 	t.Run("No SID rejects token", func(t *testing.T) {
