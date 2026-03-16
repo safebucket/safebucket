@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import type { FC } from "react";
 
 import type { BucketItem } from "@/types/bucket.ts";
+import type { ShareScope } from "@/types/share.ts";
 import { FileStatus } from "@/types/file.ts";
 import { isFile } from "@/components/bucket-view/helpers/utils";
 
@@ -34,7 +35,6 @@ import {
   bucketDataQueryOptions,
   useCreateShareMutation,
 } from "@/queries/bucket";
-import type { ShareScope } from "@/types/share.ts";
 
 type Step = 1 | 2 | 3;
 
