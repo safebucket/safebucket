@@ -12,11 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	authenticatedRequestsPerMinute   = 200
-	unauthenticatedRequestsPerMinute = 20
-)
-
 func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -83,7 +78,12 @@ func applyRateLimit(
 	next.ServeHTTP(w, r)
 }
 
-func RateLimit(cache cache.ICache, trustedProxies []string) func(next http.Handler) http.Handler {
+func RateLimit(
+	cache cache.ICache,
+	trustedProxies []string,
+	authenticatedRateLimit int,
+	unauthenticatedRateLimit int,
+) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			claims, err := helpers.GetUserClaims(r.Context())
@@ -94,10 +94,10 @@ func RateLimit(cache cache.ICache, trustedProxies []string) func(next http.Handl
 					helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
 					return
 				}
-				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerMinute)
+				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRateLimit)
 			} else {
 				userID := claims.UserID.String()
-				applyRateLimit(next, w, r, cache, userID, authenticatedRequestsPerMinute)
+				applyRateLimit(next, w, r, cache, userID, authenticatedRateLimit)
 			}
 		}
 		return http.HandlerFunc(fn)
