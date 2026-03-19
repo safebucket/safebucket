@@ -593,6 +593,34 @@
       "footer_text": "Vous n'avez pas reçu le code ? Vérifiez votre dossier spam ou demandez-en un nouveau"
     }
   },
+  "share_consumer": {
+    "received_link": "Vous avez recu un lien de partage",
+    "received_link_description": "Cliquez ci-dessous pour acceder au contenu partage",
+    "access_share": "Acceder au partage",
+    "password_required": "Ce partage est protege par un mot de passe",
+    "password_placeholder": "Saisir le mot de passe",
+    "unlock": "Deverrouiller",
+    "back": "Retour",
+    "expired": "Ce partage a expire",
+    "not_found": "Partage non trouve",
+    "max_views_reached": "Ce partage a atteint son nombre maximum de vues",
+    "expires": "Expire le {{date}}",
+    "no_expiry": "Pas d'expiration",
+    "views": "{{current}}/{{max}} vues",
+    "views_unlimited": "{{current}} vues",
+    "uploads_allowed": "Uploads autorises",
+    "password_protected": "Protege par mot de passe",
+    "type_files": "Fichiers",
+    "type_folder": "Dossier",
+    "type_bucket": "Bucket",
+    "list_view": "Vue liste",
+    "grid_view": "Vue grille",
+    "empty": "Aucun fichier dans ce partage",
+    "name": "Nom",
+    "size": "Taille",
+    "type": "Type",
+    "uploaded_at": "Date d'ajout"
+  },
   "admin": {
     "dashboard": {
       "stats": {

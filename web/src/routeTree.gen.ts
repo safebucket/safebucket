@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as SharesUuidIndexRouteImport } from './routes/shares/$uuid/index'
 import { Route as InvitesIdIndexRouteImport } from './routes/invites/$id/index'
 import { Route as AuthResetPasswordIndexRouteImport } from './routes/auth/reset-password/index'
 import { Route as AuthMfaIndexRouteImport } from './routes/auth/mfa/index'
@@ -43,6 +44,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
+} as any)
+const SharesUuidIndexRoute = SharesUuidIndexRouteImport.update({
+  id: '/shares/$uuid/',
+  path: '/shares/$uuid/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const InvitesIdIndexRoute = InvitesIdIndexRouteImport.update({
   id: '/invites/$id/',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/auth/mfa/': typeof AuthMfaIndexRoute
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
+  '/shares/$uuid/': typeof SharesUuidIndexRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/admin/activity/': typeof AuthenticatedAdminActivityIndexRoute
   '/admin/buckets/': typeof AuthenticatedAdminBucketsIndexRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/auth/mfa': typeof AuthMfaIndexRoute
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
+  '/shares/$uuid': typeof SharesUuidIndexRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/admin/activity': typeof AuthenticatedAdminActivityIndexRoute
   '/admin/buckets': typeof AuthenticatedAdminBucketsIndexRoute
@@ -196,6 +204,7 @@ export interface FileRoutesById {
   '/auth/mfa/': typeof AuthMfaIndexRoute
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
+  '/shares/$uuid/': typeof SharesUuidIndexRoute
   '/_authenticated/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/_authenticated/admin/activity/': typeof AuthenticatedAdminActivityIndexRoute
   '/_authenticated/admin/buckets/': typeof AuthenticatedAdminBucketsIndexRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/'
     | '/auth/reset-password/'
     | '/invites/$id/'
+    | '/shares/$uuid/'
     | '/buckets/$bucketId/{-$folderId}'
     | '/admin/activity/'
     | '/admin/buckets/'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/auth/mfa'
     | '/auth/reset-password'
     | '/invites/$id'
+    | '/shares/$uuid'
     | '/buckets/$bucketId/{-$folderId}'
     | '/admin/activity'
     | '/admin/buckets'
@@ -262,6 +273,7 @@ export interface FileRouteTypes {
     | '/auth/mfa/'
     | '/auth/reset-password/'
     | '/invites/$id/'
+    | '/shares/$uuid/'
     | '/_authenticated/buckets/$bucketId/{-$folderId}'
     | '/_authenticated/admin/activity/'
     | '/_authenticated/admin/buckets/'
@@ -281,6 +293,7 @@ export interface RootRouteChildren {
   AuthMfaIndexRoute: typeof AuthMfaIndexRoute
   AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
   InvitesIdIndexRoute: typeof InvitesIdIndexRoute
+  SharesUuidIndexRoute: typeof SharesUuidIndexRoute
   AuthMfaSetupRequiredIndexRoute: typeof AuthMfaSetupRequiredIndexRoute
   AuthResetPasswordIdIndexRoute: typeof AuthResetPasswordIdIndexRoute
   InvitesIdChallengesChallengeIdIndexRoute: typeof InvitesIdChallengesChallengeIdIndexRoute
@@ -308,6 +321,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/shares/$uuid/': {
+      id: '/shares/$uuid/'
+      path: '/shares/$uuid'
+      fullPath: '/shares/$uuid/'
+      preLoaderRoute: typeof SharesUuidIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/invites/$id/': {
       id: '/invites/$id/'
@@ -482,6 +502,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthMfaIndexRoute: AuthMfaIndexRoute,
   AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,
   InvitesIdIndexRoute: InvitesIdIndexRoute,
+  SharesUuidIndexRoute: SharesUuidIndexRoute,
   AuthMfaSetupRequiredIndexRoute: AuthMfaSetupRequiredIndexRoute,
   AuthResetPasswordIdIndexRoute: AuthResetPasswordIdIndexRoute,
   InvitesIdChallengesChallengeIdIndexRoute:

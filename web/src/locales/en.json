@@ -593,6 +593,34 @@
       "footer_text": "Didn't receive the code? Check your spam folder or request a new one"
     }
   },
+  "share_consumer": {
+    "received_link": "You've received a shared link",
+    "received_link_description": "Click below to access the shared content",
+    "access_share": "Access Share",
+    "password_required": "This share is password protected",
+    "password_placeholder": "Enter password",
+    "unlock": "Unlock",
+    "back": "Back",
+    "expired": "This share has expired",
+    "not_found": "Share not found",
+    "max_views_reached": "This share has reached its maximum number of views",
+    "expires": "Expires {{date}}",
+    "no_expiry": "No expiry",
+    "views": "{{current}}/{{max}} views",
+    "views_unlimited": "{{current}} views",
+    "uploads_allowed": "Uploads allowed",
+    "password_protected": "Password protected",
+    "type_files": "Files",
+    "type_folder": "Folder",
+    "type_bucket": "Bucket",
+    "list_view": "List view",
+    "grid_view": "Grid view",
+    "empty": "No files in this share",
+    "name": "Name",
+    "size": "Size",
+    "type": "Type",
+    "uploaded_at": "Uploaded At"
+  },
   "admin": {
     "dashboard": {
       "stats": {
