@@ -128,7 +128,7 @@ func (e *FolderTrash) callback(params *EventParams) error {
 			}
 
 			folderUpdates := map[string]interface{}{
-				"status":     models.FileStatusDeleted,
+				"status":     models.FolderStatusDeleted,
 				"deleted_by": e.Payload.UserID,
 			}
 			if err := tx.Model(&models.Folder{}).

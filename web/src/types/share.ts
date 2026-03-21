@@ -1,6 +1,3 @@
-import type { IFile } from "@/types/file";
-import type { IFolder } from "@/types/folder";
-
 export type ShareScope = "files" | "folder" | "bucket";
 
 export interface IShare {
@@ -39,12 +36,3 @@ export interface IShareCreateBody {
   max_uploads?: number;
   max_upload_size?: number;
 }
-
-export interface IPublicShareContent {
-  files: Array<IFile>;
-  folders: Array<IFolder>;
-}
-
-export type IConsumeShareResponse =
-  | { password_required: true }
-  | { password_required: false; share: IShare; content: IPublicShareContent };

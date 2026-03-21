@@ -7,19 +7,27 @@ import (
 	"gorm.io/gorm"
 )
 
+type FolderStatus string
+
+const (
+	FolderStatusReady     FolderStatus = "ready"
+	FolderStatusDeleted   FolderStatus = "deleted"
+	FolderStatusRestoring FolderStatus = "restoring"
+)
+
 type Folder struct {
-	ID           uuid.UUID      `gorm:"default:(-)"           json:"id"`
-	Name         string         `gorm:"not null;default:null" json:"name"`
-	Status       FileStatus     `gorm:"default:null"          json:"status"`
-	FolderID     *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
-	ParentFolder *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
-	BucketID     uuid.UUID      `gorm:"not null"              json:"bucket_id"`
-	Bucket       Bucket         `                             json:"-"`
-	DeletedBy    *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
-	OriginalPath string         `gorm:"-"                     json:"original_path,omitempty"`
-	CreatedAt    time.Time      `                             json:"created_at"`
-	UpdatedAt    time.Time      `                             json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `                             json:"deleted_at"`
+	ID           uuid.UUID      `gorm:"default:(-)"            json:"id"`
+	Name         string         `gorm:"not null;default:null"  json:"name"`
+	Status       FolderStatus   `gorm:"not null;default:ready" json:"status"`
+	FolderID     *uuid.UUID     `gorm:"default:null"           json:"folder_id,omitempty"`
+	ParentFolder *Folder        `gorm:"foreignKey:FolderID"    json:"parent_folder,omitempty"`
+	BucketID     uuid.UUID      `gorm:"not null"               json:"bucket_id"`
+	Bucket       Bucket         `                              json:"-"`
+	DeletedBy    *uuid.UUID     `gorm:"default:null"           json:"deleted_by,omitempty"`
+	OriginalPath string         `gorm:"-"                      json:"original_path,omitempty"`
+	CreatedAt    time.Time      `                              json:"created_at"`
+	UpdatedAt    time.Time      `                              json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `                              json:"deleted_at"`
 }
 
 type FolderActivity struct {
@@ -44,5 +52,5 @@ type FolderUpdateBody struct {
 }
 
 type FolderPatchBody struct {
-	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
+	Status FolderStatus `json:"status" validate:"required,oneof=deleted ready"`
 }

@@ -29,9 +29,9 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
   const itemIsFolder = isFolder(file);
 
   const renderStatusBadge = () => {
-    if (!file.status) return null;
+    const status = file.status;
 
-    switch (file.status) {
+    switch (status) {
       case FileStatus.uploaded:
         return (
           <Badge className="gap-1 bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">

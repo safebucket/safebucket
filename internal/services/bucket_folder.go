@@ -92,6 +92,7 @@ func (s BucketFolderService) CreateFolder(
 
 	folder := models.Folder{
 		Name:     body.Name,
+		Status:   models.FolderStatusReady,
 		BucketID: bucketID,
 		FolderID: body.FolderID,
 	}
@@ -147,7 +148,7 @@ func (s BucketFolderService) UpdateFolder(
 	}
 
 	folder.Name = body.Name
-	if err := s.DB.Save(&folder).Error; err != nil {
+	if err := s.DB.Model(&folder).Update("name", body.Name).Error; err != nil {
 		logger.Error("Failed to update folder", zap.Error(err))
 		return apierrors.NewAPIError(500, "UPDATE_FAILED")
 	}
@@ -187,9 +188,9 @@ func (s BucketFolderService) PatchFolder(
 	}
 
 	switch body.Status {
-	case string(models.FileStatusDeleted):
+	case models.FolderStatusDeleted:
 		return s.TrashFolder(logger, user, folder)
-	case string(models.FileStatusUploaded):
+	case models.FolderStatusReady:
 		return s.RestoreFolder(logger, user, folder)
 	default:
 		return apierrors.NewAPIError(400, "INVALID_STATUS")
@@ -223,12 +224,12 @@ func (s BucketFolderService) TrashFolder(
 		return apierrors.NewAPIError(409, "FOLDER_ALREADY_TRASHED")
 	}
 
-	if folder.Status == models.FileStatusRestoring {
+	if folder.Status == models.FolderStatusRestoring {
 		return apierrors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
 	}
 
 	updates := map[string]interface{}{
-		"status":     models.FileStatusDeleted,
+		"status":     models.FolderStatusDeleted,
 		"deleted_by": user.UserID,
 	}
 	if err := s.DB.Model(&folder).Updates(updates).Error; err != nil {
@@ -320,7 +321,7 @@ func (s BucketFolderService) RestoreFolder(
 			return apierrors.NewAPIError(409, "FOLDER_NOT_IN_TRASH")
 		}
 
-		if lockedFolder.Status == models.FileStatusRestoring {
+		if lockedFolder.Status == models.FolderStatusRestoring {
 			return apierrors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
 		}
 
@@ -356,7 +357,7 @@ func (s BucketFolderService) RestoreFolder(
 		// Set folder to restoring status
 		if updateErr := tx.Unscoped().
 			Model(&lockedFolder).
-			Update("status", models.FileStatusRestoring).
+			Update("status", models.FolderStatusRestoring).
 			Error; updateErr != nil {
 			logger.Error("Failed to set folder to restoring status", zap.Error(updateErr))
 			return apierrors.NewAPIError(500, "UPDATE_FAILED")
@@ -457,9 +458,9 @@ func (s BucketFolderService) ListTrashedFolders(
 	// Trashed = deleted_at IS NOT NULL and status != restoring
 	result := s.DB.Unscoped().
 		Where(
-			"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?)",
+			"bucket_id = ? AND deleted_at IS NOT NULL AND status != ?",
 			ids[0],
-			models.FileStatusRestoring,
+			models.FolderStatusRestoring,
 		).
 		Order("deleted_at DESC").
 		Find(&folders)

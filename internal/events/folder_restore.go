@@ -144,7 +144,7 @@ func (e *FolderRestore) fetchAndValidateFolder(tx *gorm.DB) (*models.Folder, err
 		return nil, result.Error
 	}
 
-	if folder.Status != models.FileStatusRestoring {
+	if folder.Status != models.FolderStatusRestoring {
 		zap.L().Warn("Folder not in restoring status, skipping",
 			zap.String("current_status", string(folder.Status)))
 		return nil, nil
@@ -169,7 +169,7 @@ func (e *FolderRestore) checkFolderNameConflict(tx *gorm.DB, folder *models.Fold
 
 	if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
 		zap.L().Error("Folder name conflict detected", zap.String("folder_name", folder.Name))
-		if err := tx.Unscoped().Model(folder).Update("status", models.FileStatusDeleted).Error; err != nil {
+		if err := tx.Unscoped().Model(folder).Update("status", models.FolderStatusDeleted).Error; err != nil {
 			zap.L().Error("Failed to revert folder status", zap.Error(err))
 		}
 		return errors.New("folder name conflict")
@@ -181,10 +181,11 @@ func (e *FolderRestore) checkFolderNameConflict(tx *gorm.DB, folder *models.Fold
 func (e *FolderRestore) processChildFolders(tx *gorm.DB, parentName string) ([]uuid.UUID, error) {
 	var childFolders []models.Folder
 	if err := tx.Unscoped().Where(
-		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status = ?)",
+		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status = ? OR status = ?)",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FileStatusDeleted,
+		models.FolderStatusReady,
+		models.FolderStatusDeleted,
 	).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
 		zap.L().Error("Failed to find child folders for restore", zap.Error(err))
 		return nil, err
@@ -213,7 +214,7 @@ func (e *FolderRestore) processChildFolders(tx *gorm.DB, parentName string) ([]u
 
 	if err := tx.Unscoped().Model(&models.Folder{}).
 		Where("id IN ?", folderIDs).
-		Update("status", models.FileStatusRestoring).Error; err != nil {
+		Update("status", models.FolderStatusRestoring).Error; err != nil {
 		zap.L().Error("Failed to set child folders to restoring status", zap.Error(err))
 		return nil, err
 	}
@@ -309,10 +310,11 @@ func (e *FolderRestore) unmarkChildFilesFromStorage(params *EventParams, childFi
 func (e *FolderRestore) checkRemainingItemsToRestore(params *EventParams) error {
 	var remainingFolders int64
 	params.DB.Unscoped().Model(&models.Folder{}).Where(
-		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status = ?)",
+		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status = ? OR status = ?)",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FileStatusDeleted,
+		models.FolderStatusReady,
+		models.FolderStatusDeleted,
 	).Count(&remainingFolders)
 
 	var remainingFiles int64
@@ -339,7 +341,7 @@ func (e *FolderRestore) checkChildFoldersStillRestoring(params *EventParams) err
 		"bucket_id = ? AND folder_id = ? AND status = ?",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FileStatusRestoring,
+		models.FolderStatusRestoring,
 	).Count(&restoringFolders)
 
 	if restoringFolders > 0 {
@@ -363,14 +365,14 @@ func (e *FolderRestore) finalizeFolderRestore(params *EventParams) error {
 			return result.Error
 		}
 
-		if folder.Status != models.FileStatusRestoring {
+		if folder.Status != models.FolderStatusRestoring {
 			zap.L().Warn("Folder not in restoring status during final restore, skipping",
 				zap.String("current_status", string(folder.Status)))
 			return nil
 		}
 
 		if err := tx.Unscoped().Model(&folder).Updates(map[string]interface{}{
-			"status":     nil,
+			"status":     models.FolderStatusReady,
 			"deleted_at": nil,
 			"deleted_by": nil,
 		}).Error; err != nil {

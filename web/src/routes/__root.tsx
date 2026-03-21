@@ -30,12 +30,12 @@ function RootComponent() {
   const config = useConfig();
   const location = useLocation();
 
+  // Hide sidebar on auth routes (login, MFA setup required, etc.)
   const isAuthRoute = location.pathname.startsWith("/auth");
-  const isShareRoute = location.pathname.startsWith("/shares");
-  const showSidebar = session && !isAuthRoute && !isShareRoute;
+  const showSidebar = session && !isAuthRoute;
 
   return (
-    <div className="flex h-svh max-h-svh w-full overflow-hidden">
+    <div className="flex h-svh max-h-svh w-full">
       {showSidebar && <AppSidebar />}
       <AppSidebarInset>
         <Outlet />
