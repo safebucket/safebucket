@@ -21,6 +21,15 @@
     "FORBIDDEN": "You don't have permission to perform this action.",
     "NOT_FOUND": "The requested resource was not found.",
     "INTERNAL_SERVER_ERROR": "An unexpected error occurred. Please try again.",
+    "SHARE_NOT_FOUND": "This share link does not exist.",
+    "SHARE_EXPIRED": "This share link has expired.",
+    "SHARE_PASSWORD_REQUIRED": "This share is password protected.",
+    "SHARE_PASSWORD_INVALID": "Incorrect share password.",
+    "SHARE_MAX_VIEWS_REACHED": "This share link has reached its maximum number of views.",
+    "SHARE_UPLOAD_NOT_ALLOWED": "Uploads are not allowed on this share.",
+    "SHARE_MAX_UPLOADS_REACHED": "This share link has reached its maximum number of uploads.",
+    "SHARE_UPLOAD_SIZE_EXCEEDED": "The file exceeds the maximum upload size for this share.",
+    "SHARE_FILE_NOT_IN_SHARE": "This file is not part of the share.",
     "default": "An error occurred. Please try again."
   },
   "toast": {

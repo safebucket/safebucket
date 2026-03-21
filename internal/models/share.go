@@ -60,6 +60,22 @@ type ShareFile struct {
 	File    File      `                   json:"file"`
 }
 
+type PublicShareResponse struct {
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	Type          ShareType `json:"type"`
+	AllowUpload   bool      `json:"allow_upload"`
+	MaxUploadSize *int64    `json:"max_upload_size,omitempty"`
+	Files         []File    `json:"files"`
+	Folders       []Folder  `json:"folders"`
+}
+
+type ShareUploadBody struct {
+	Name     string     `json:"name"      validate:"required,filename,max=255"`
+	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
+	Size     int64      `json:"size"      validate:"required,gte=1"`
+}
+
 type ShareCreateBody struct {
 	Name          string      `json:"name"            validate:"required,min=1,max=255"`
 	Type          ShareType   `json:"type"            validate:"required,oneof=files folder bucket"`

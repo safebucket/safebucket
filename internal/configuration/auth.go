@@ -36,6 +36,12 @@ var AuthExcludedPatterns = []AuthPatternRule{
 	},
 	{
 		Pattern: regexp.MustCompile(
+			`^/api/v1/shares/` + UUIDv4Pattern,
+		),
+		Method: "*",
+	},
+	{
+		Pattern: regexp.MustCompile(
 			`^/api/v1/invites/` + UUIDv4Pattern + `/challenges$`,
 		),
 		Method: "POST",
