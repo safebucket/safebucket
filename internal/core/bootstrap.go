@@ -255,8 +255,8 @@ func StartHTTPServer(
 		apiRouter.Use(m.RateLimit(
 			cache,
 			config.App.TrustedProxies,
-			config.App.AuthenticatedRateLimit,
-			config.App.UnauthenticatedRateLimit,
+			config.App.AuthenticatedRequestsPerMinute,
+			config.App.UnauthenticatedRequestsPerMinute,
 		))
 
 		userService := services.UserService{
