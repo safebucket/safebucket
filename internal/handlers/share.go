@@ -39,7 +39,7 @@ func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.Handler
 			if errors.As(err, &apiErr) {
 				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
 			} else {
-				h.RespondWithError(w, http.StatusBadRequest, []string{err.Error()})
+				h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
 			}
 		} else {
 			h.RespondWithJSON(w, http.StatusOK, record)
@@ -68,7 +68,7 @@ func ShareCreateHandler[In any, Out any](create ShareCreateTargetFunc[In, Out]) 
 		if err != nil {
 			var apiErr *apierrors.APIError
 			if errors.As(err, &apiErr) {
-				h.RespondWithError(w, apiErr.Code, []string{err.Error()})
+				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
 			} else {
 				h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
 			}
@@ -93,7 +93,7 @@ func ShareActionHandler(action ShareActionTargetFunc) http.HandlerFunc {
 			if errors.As(err, &apiErr) {
 				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
 			} else {
-				h.RespondWithError(w, http.StatusBadRequest, []string{err.Error()})
+				h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
 			}
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
