@@ -1,11 +1,15 @@
-import type { FileStatus } from "./file";
+export enum FolderStatus {
+  ready = "ready",
+  deleted = "deleted",
+  restoring = "restoring",
+}
 
 export interface IFolder {
   id: string;
   name: string;
   folder_id?: string;
   bucket_id: string;
-  status: FileStatus | null;
+  status: FolderStatus;
   created_at: string;
   updated_at: string;
   deleted_at?: string;

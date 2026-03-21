@@ -1,5 +1,5 @@
 import type { FileStatus, IFile } from "@/types/file";
-import type { IFolder } from "@/types/folder";
+import { type IFolder, FolderStatus } from "@/types/folder";
 import type { IConsumeShareResponse, IShare } from "@/types/share";
 
 const mockFiles: Array<IFile> = [
@@ -97,7 +97,7 @@ const mockFolders: Array<IFolder> = [
     name: "Documentation",
     folder_id: "folder1",
     bucket_id: "b1",
-    status: null,
+    status: FolderStatus.ready,
     created_at: "2026-03-08T09:00:00Z",
     updated_at: "2026-03-08T09:00:00Z",
   },
@@ -113,7 +113,7 @@ const mockBucketFolders: Array<IFolder> = [
     id: "folder1",
     name: "Design Assets",
     bucket_id: "b1",
-    status: null,
+    status: FolderStatus.ready,
     created_at: "2026-03-07T09:00:00Z",
     updated_at: "2026-03-07T09:00:00Z",
   },

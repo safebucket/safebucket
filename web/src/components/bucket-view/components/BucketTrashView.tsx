@@ -13,6 +13,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { TrashedItem } from "@/components/bucket-view/hooks/useTrashActions";
 import type { IBucket } from "@/types/bucket.ts";
 import { FileStatus } from "@/types/file.ts";
+import { FolderStatus } from "@/types/folder.ts";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { formatDate, formatFileSize } from "@/lib/utils";
@@ -188,6 +189,7 @@ const createColumns = (
 
       switch (status) {
         case FileStatus.deleted:
+        case FolderStatus.deleted:
           return (
             <Badge className="bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800">
               <Trash2 className="h-3 w-3" />
@@ -195,6 +197,7 @@ const createColumns = (
             </Badge>
           );
         case FileStatus.restoring:
+        case FolderStatus.restoring:
           return (
             <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
               <LoaderCircle className="h-3 w-3 animate-spin" />

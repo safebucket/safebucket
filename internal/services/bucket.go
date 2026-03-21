@@ -261,9 +261,9 @@ func (s BucketService) GetBucket(
 		// Trashed = deleted_at IS NOT NULL and status != restoring
 		folderResult := s.DB.Unscoped().
 			Where(
-				"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?)",
+				"bucket_id = ? AND deleted_at IS NOT NULL AND status != ?",
 				bucketID,
-				models.FileStatusRestoring,
+				models.FolderStatusRestoring,
 			).
 			Order("deleted_at DESC").
 			Find(&folders)

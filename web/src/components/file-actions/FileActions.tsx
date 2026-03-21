@@ -5,6 +5,7 @@ import type { FC, ReactNode } from "react";
 
 import type { BucketItem } from "@/types/bucket.ts";
 import { FileStatus } from "@/types/file.ts";
+import { FolderStatus } from "@/types/folder.ts";
 import { isFile } from "@/components/bucket-view/helpers/utils";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { useBucketPermissions } from "@/hooks/usePermissions";
@@ -56,7 +57,9 @@ export const FileActions: FC<IFileActionsProps> = ({
   const Separator =
     type === "context" ? ContextMenuSeparator : DropdownMenuSeparator;
 
-  const isFileTrashed = file.status === FileStatus.deleted;
+  const isTrashed =
+    file.status === FileStatus.deleted ||
+    file.status === FolderStatus.deleted;
 
   return (
     <>
@@ -65,8 +68,8 @@ export const FileActions: FC<IFileActionsProps> = ({
         <MenuContent className="w-48">
           {isFile(file) && (
             <MenuItem
-              onClick={() => !isFileTrashed && downloadFile(file.id, file.name)}
-              disabled={isFileTrashed}
+              onClick={() => !isTrashed && downloadFile(file.id, file.name)}
+              disabled={isTrashed}
             >
               <Download className="mr-2 h-4 w-4" />
               {t("file_actions.download")}

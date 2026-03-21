@@ -47,7 +47,7 @@ func (s BucketShareService) CreateShare(
 
 	if body.Type == models.ShareTypeFolder {
 		var folder models.Folder
-		if s.DB.Where("id = ? AND bucket_id = ? AND (status IS NULL)", body.FolderID, bucketID).
+		if s.DB.Where("id = ? AND bucket_id = ? AND status = ?", body.FolderID, bucketID, models.FolderStatusReady).
 			Find(&folder).
 			RowsAffected == 0 {
 			return models.Share{}, apierrors.NewAPIError(400, "FOLDER_NOT_FOUND")

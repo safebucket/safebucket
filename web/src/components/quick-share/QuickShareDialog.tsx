@@ -15,6 +15,7 @@ import type { FC } from "react";
 import type { BucketItem } from "@/types/bucket.ts";
 import type { ShareScope } from "@/types/share.ts";
 import { FileStatus } from "@/types/file.ts";
+import { FolderStatus } from "@/types/folder.ts";
 import { isFile } from "@/components/bucket-view/helpers/utils";
 
 import { QuickShareOptionsStep } from "@/components/quick-share/components/QuickShareOptionsStep";
@@ -99,7 +100,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   const [step, setStep] = useState<Step>(1);
   const [generatedLink, setGeneratedLink] = useState("");
 
-  const allFolders = (bucket?.folders ?? []).filter((f) => f.status === null);
+  const allFolders = (bucket?.folders ?? []).filter((f) => f.status === FolderStatus.ready);
 
   useEffect(() => {
     if (open) {
