@@ -99,7 +99,7 @@ services:
       - "valkey_data:/data"
 
   mailpit:
-    image: axllent/mailpit:v1.29.3
+    image: axllent/mailpit:v1.29.4
     container_name: mailpit
     restart: unless-stopped
     volumes:
