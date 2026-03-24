@@ -7,13 +7,15 @@ const (
 	AudienceRefreshToken = "auth:refresh"
 	AudienceMFALogin     = "auth:mfa:login"
 	AudienceMFAReset     = "auth:mfa:password-reset"
+	AudienceShareAccess  = "share:access"
 )
 
 // JWT Token expiry times (in minutes).
 const (
 	AccessTokenExpiry  = 60
 	RefreshTokenExpiry = 600
-	MFATokenExpiry     = 5 // For restricted access during MFA flow
+	MFATokenExpiry     = 5  // For restricted access during MFA flow
+	ShareTokenExpiry   = 15 // For share access tokens
 )
 
 const (

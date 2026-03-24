@@ -17,11 +17,43 @@ type (
 	ShareGetOneTargetFunc[Out any]         func(*zap.Logger, models.Share, uuid.UUIDs) (Out, error)
 	ShareCreateTargetFunc[In any, Out any] func(*zap.Logger, models.Share, uuid.UUIDs, In) (Out, error)
 	ShareActionTargetFunc                  func(*zap.Logger, models.Share, uuid.UUIDs) error
+	ShareAuthTargetFunc[In any, Out any]   func(*zap.Logger, models.Share, uuid.UUIDs, In) (Out, error)
 )
 
 func getShare(r *http.Request) models.Share {
 	share, _ := r.Context().Value(m.ShareKey{}).(models.Share)
 	return share
+}
+
+func ShareAuthHandler[In any, Out any](auth ShareAuthTargetFunc[In, Out]) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+
+		logger := m.GetLogger(r)
+
+		body, ok := r.Context().Value(m.BodyKey{}).(In)
+		if !ok {
+			logger.Error("Failed to extract body from context")
+			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			return
+		}
+
+		share := getShare(r)
+		resp, err := auth(logger, share, ids, body)
+		if err != nil {
+			var apiErr *apierrors.APIError
+			if errors.As(err, &apiErr) {
+				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
+			} else {
+				h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			}
+		} else {
+			h.RespondWithJSON(w, http.StatusOK, resp)
+		}
+	}
 }
 
 func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.HandlerFunc {

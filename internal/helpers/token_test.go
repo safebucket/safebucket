@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestCreateHash tests password hashing functionality.
 func TestCreateHash(t *testing.T) {
 	t.Run("should hash password successfully", func(t *testing.T) {
 		password := "testPassword123"
@@ -43,7 +42,6 @@ func TestCreateHash(t *testing.T) {
 
 		require.NoError(t, err)
 
-		// Verify the hash can be checked
 		match, err := argon2id.ComparePasswordAndHash(password, hash)
 		require.NoError(t, err)
 		assert.True(t, match)
@@ -61,7 +59,6 @@ func TestCreateHash(t *testing.T) {
 	})
 }
 
-// TestNewAccessToken tests JWT access token generation.
 func TestNewAccessToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
@@ -83,7 +80,6 @@ func TestNewAccessToken(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
-		// Parse the token to verify claims
 		claims := &models.UserClaims{}
 		parsedToken, err := jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
@@ -161,7 +157,6 @@ func TestNewAccessToken(t *testing.T) {
 	})
 }
 
-// TestParseToken tests the generic JWT token parsing function.
 func TestParseToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
@@ -241,12 +236,10 @@ func TestParseToken(t *testing.T) {
 	})
 
 	t.Run("should parse token with any single audience", func(t *testing.T) {
-		// Create tokens with different audiences
 		accessToken, _ := NewAccessToken(jwtSecret, user, provider, "")
 		refreshToken, _ := NewRefreshToken(jwtSecret, user, provider, "")
 		mfaToken, _ := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 
-		// ParseToken should accept all of them - audience value validation is not its responsibility
 		claims1, err1 := ParseToken(jwtSecret, "Bearer "+accessToken, true)
 		claims2, err2 := ParseToken(jwtSecret, refreshToken, false)
 		claims3, err3 := ParseToken(jwtSecret, "Bearer "+mfaToken, true)
@@ -304,7 +297,6 @@ func TestParseToken(t *testing.T) {
 	})
 }
 
-// TestNewRefreshToken tests JWT refresh token generation.
 func TestNewRefreshToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
@@ -384,7 +376,6 @@ func TestNewRefreshToken(t *testing.T) {
 	})
 }
 
-// TestParseRefreshToken tests JWT refresh token parsing.
 func TestParseRefreshToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
@@ -407,7 +398,6 @@ func TestParseRefreshToken(t *testing.T) {
 	})
 
 	t.Run("should reject access token as refresh token", func(t *testing.T) {
-		// Try to use access token as refresh token
 		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
@@ -446,7 +436,6 @@ func TestParseRefreshToken(t *testing.T) {
 	})
 }
 
-// TestNewRestrictedAccessToken tests restricted access token generation.
 func TestNewRestrictedAccessToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	user := &models.User{
@@ -527,7 +516,6 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 	})
 }
 
-// TestGetUserClaims tests extracting claims from context.
 func TestGetUserClaims(t *testing.T) {
 	t.Run("should extract valid claims from context", func(t *testing.T) {
 		expectedClaims := models.UserClaims{
@@ -565,7 +553,6 @@ func TestGetUserClaims(t *testing.T) {
 	})
 }
 
-// TestGenerateSecret tests random secret generation.
 func TestGenerateSecret(t *testing.T) {
 	t.Run("should generate 6 character secret", func(t *testing.T) {
 		secret, err := GenerateSecret()
@@ -611,7 +598,6 @@ func TestGenerateSecret(t *testing.T) {
 	})
 
 	t.Run("should use all characters in charset", func(t *testing.T) {
-		// Generate many secrets and verify all possible characters appear
 		charsSeen := make(map[rune]bool)
 
 		// Generate enough secrets to likely see all characters
@@ -631,7 +617,143 @@ func TestGenerateSecret(t *testing.T) {
 	})
 }
 
-// TestSecretEntropyAndSecurity tests security properties of generated secrets.
+func TestNewShareAccessToken(t *testing.T) {
+	jwtSecret := "test-secret-key"
+	shareID := uuid.New()
+
+	t.Run("should create valid share token", func(t *testing.T) {
+		token, err := NewShareAccessToken(jwtSecret, shareID)
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, token)
+		assert.Equal(t, 2, strings.Count(token, "."), "JWT should have 3 parts separated by dots")
+	})
+
+	t.Run("should have correct claims", func(t *testing.T) {
+		token, err := NewShareAccessToken(jwtSecret, shareID)
+		require.NoError(t, err)
+
+		claims := &models.ShareClaims{}
+		parsedToken, err := jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecret), nil
+		})
+
+		require.NoError(t, err)
+		assert.True(t, parsedToken.Valid)
+		assert.Equal(t, shareID, claims.ShareID)
+		assert.Equal(t, configuration.AppName, claims.Issuer)
+		assert.Equal(t, configuration.AudienceShareAccess, claims.Audience[0])
+	})
+
+	t.Run("should expire in configured minutes", func(t *testing.T) {
+		token, err := NewShareAccessToken(jwtSecret, shareID)
+		require.NoError(t, err)
+
+		claims := &models.ShareClaims{}
+		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
+			return []byte(jwtSecret), nil
+		})
+
+		require.NoError(t, err)
+		expectedExpiry := time.Now().Add(
+			time.Duration(configuration.ShareTokenExpiry) * time.Minute,
+		)
+		diff := claims.ExpiresAt.Time.Sub(expectedExpiry).Abs()
+		assert.Less(t, diff, 5*time.Second)
+	})
+}
+
+func TestParseShareToken(t *testing.T) {
+	jwtSecret := "test-secret-key"
+	shareID := uuid.New()
+
+	t.Run("should parse valid share token with Bearer prefix", func(t *testing.T) {
+		token, err := NewShareAccessToken(jwtSecret, shareID)
+		require.NoError(t, err)
+
+		claims, err := ParseShareToken(jwtSecret, "Bearer "+token)
+
+		require.NoError(t, err)
+		assert.Equal(t, shareID, claims.ShareID)
+		assert.Equal(t, configuration.AudienceShareAccess, claims.Audience[0])
+	})
+
+	t.Run("should reject token without Bearer prefix", func(t *testing.T) {
+		token, err := NewShareAccessToken(jwtSecret, shareID)
+		require.NoError(t, err)
+
+		_, err = ParseShareToken(jwtSecret, token)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid token", err.Error())
+	})
+
+	t.Run("should reject malformed token", func(t *testing.T) {
+		_, err := ParseShareToken(jwtSecret, "Bearer invalid.token.here")
+		assert.Error(t, err)
+		assert.Equal(t, "invalid token", err.Error())
+	})
+
+	t.Run("should reject token with wrong secret", func(t *testing.T) {
+		token, err := NewShareAccessToken(jwtSecret, shareID)
+		require.NoError(t, err)
+
+		_, err = ParseShareToken("wrong-secret", "Bearer "+token)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid token", err.Error())
+	})
+
+	t.Run("should reject expired share token", func(t *testing.T) {
+		claims := models.ShareClaims{
+			ShareID: shareID,
+			RegisteredClaims: jwt.RegisteredClaims{
+				Audience:  jwt.ClaimStrings{configuration.AudienceShareAccess},
+				Issuer:    configuration.AppName,
+				IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-2 * time.Hour)},
+				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, err := token.SignedString([]byte(jwtSecret))
+		require.NoError(t, err)
+
+		_, err = ParseShareToken(jwtSecret, "Bearer "+signedToken)
+		assert.Error(t, err)
+	})
+
+	t.Run("should reject user token", func(t *testing.T) {
+		user := &models.User{
+			ID:    uuid.New(),
+			Email: "test@example.com",
+			Role:  models.RoleUser,
+		}
+		userToken, err := NewAccessToken(jwtSecret, user, "local")
+		require.NoError(t, err)
+
+		_, err = ParseShareToken(jwtSecret, "Bearer "+userToken)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid token audience", err.Error())
+	})
+
+	t.Run("should reject token with wrong audience", func(t *testing.T) {
+		claims := models.ShareClaims{
+			ShareID: shareID,
+			RegisteredClaims: jwt.RegisteredClaims{
+				Audience:  jwt.ClaimStrings{"wrong:audience"},
+				Issuer:    configuration.AppName,
+				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, err := token.SignedString([]byte(jwtSecret))
+		require.NoError(t, err)
+
+		_, err = ParseShareToken(jwtSecret, "Bearer "+signedToken)
+		assert.Error(t, err)
+		assert.Equal(t, "invalid token audience", err.Error())
+	})
+}
+
 func TestSecretEntropyAndSecurity(t *testing.T) {
 	t.Run("should have sufficient entropy for security", func(t *testing.T) {
 		// With 36 possible characters and 6 positions:

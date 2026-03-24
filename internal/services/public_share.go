@@ -14,6 +14,7 @@ import (
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/storage"
 
+	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -25,6 +26,7 @@ type PublicShareService struct {
 	DB             *gorm.DB
 	Storage        storage.IStorage
 	ActivityLogger activity.IActivityLogger
+	JWTSecret      string
 }
 
 func (s PublicShareService) Routes() chi.Router {
@@ -33,14 +35,45 @@ func (s PublicShareService) Routes() chi.Router {
 	r.Route("/{id0}", func(r chi.Router) {
 		r.Use(m.ValidateShareAccess(s.DB))
 
-		r.Get("/", handlers.ShareGetOneHandler(s.ListShareItems))
-		r.Get("/files/{id1}", handlers.ShareGetOneHandler(s.DownloadShareFile))
-		r.With(m.Validate[models.ShareUploadBody]).
-			Post("/files", handlers.ShareCreateHandler(s.UploadShareFile))
-		r.Patch("/files/{id1}", handlers.ShareActionHandler(s.ConfirmShareUpload))
+		r.With(m.Validate[models.ShareAuthBody]).
+			Post("/auth", handlers.ShareAuthHandler(s.AuthenticateShare))
+
+		r.Group(func(r chi.Router) {
+			r.Use(m.ValidateShareToken(s.JWTSecret))
+
+			r.Get("/", handlers.ShareGetOneHandler(s.ListShareItems))
+			r.Get("/files/{id1}", handlers.ShareGetOneHandler(s.DownloadShareFile))
+			r.With(m.Validate[models.ShareUploadBody]).
+				Post("/files", handlers.ShareCreateHandler(s.UploadShareFile))
+			r.Patch("/files/{id1}", handlers.ShareActionHandler(s.ConfirmShareUpload))
+		})
 	})
 
 	return r
+}
+
+func (s PublicShareService) AuthenticateShare(
+	logger *zap.Logger,
+	share models.Share,
+	_ uuid.UUIDs,
+	body models.ShareAuthBody,
+) (models.ShareAuthResponse, error) {
+	if share.HashedPassword == "" {
+		return models.ShareAuthResponse{}, apierrors.NewAPIError(400, "SHARE_NOT_PASSWORD_PROTECTED")
+	}
+
+	match, err := argon2id.ComparePasswordAndHash(body.Password, share.HashedPassword)
+	if err != nil || !match {
+		return models.ShareAuthResponse{}, apierrors.NewAPIError(401, "SHARE_PASSWORD_INVALID")
+	}
+
+	token, err := h.NewShareAccessToken(s.JWTSecret, share.ID)
+	if err != nil {
+		logger.Error("Failed to create share access token", zap.Error(err))
+		return models.ShareAuthResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+	}
+
+	return models.ShareAuthResponse{Token: token}, nil
 }
 
 func (s PublicShareService) ListShareItems(
@@ -176,7 +209,7 @@ func (s PublicShareService) UploadShareFile(
 	case models.ShareTypeFiles:
 		folderID = nil
 	case models.ShareTypeFolder:
-		folderID = &share.BucketID
+		folderID = share.FolderID
 	case models.ShareTypeBucket:
 		if body.FolderID != nil {
 			var folder models.Folder

@@ -234,7 +234,7 @@ func StartHTTPServer(
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   config.App.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Share-Password"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{},
 		AllowCredentials: true,
 		MaxAge:           300,
@@ -318,6 +318,7 @@ func StartHTTPServer(
 			DB:             db,
 			Storage:        store,
 			ActivityLogger: activityLogger,
+			JWTSecret:      authConfig.JWTSecret,
 		}.Routes())
 	})
 

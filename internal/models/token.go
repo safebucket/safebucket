@@ -32,3 +32,9 @@ func (u *UserClaims) AudienceString() string {
 type UserClaimKey struct{}
 
 type QueryKey struct{}
+
+type ShareClaims struct {
+	jwt.RegisteredClaims
+
+	ShareID uuid.UUID `json:"share_id"`
+}

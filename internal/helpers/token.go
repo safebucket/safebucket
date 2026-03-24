@@ -41,10 +41,57 @@ func generateJTI(audience string) string {
 	}
 }
 
+func signToken(jwtSecret string, claims jwt.Claims) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(jwtSecret))
+}
+
+func stripBearer(tokenString string) (string, error) {
+	if !strings.HasPrefix(tokenString, "Bearer ") {
+		return "", errors.New("invalid token")
+	}
+	return strings.TrimPrefix(tokenString, "Bearer "), nil
+}
+
+func parseJWT(
+	jwtSecret string,
+	tokenString string,
+	claims jwt.Claims,
+) error {
+	_, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, errors.New("unexpected signing method")
+			}
+			return []byte(jwtSecret), nil
+		},
+	)
+	return err
+}
+
+func newRegisteredClaims(
+	audience string,
+	expiryMinutes int,
+) jwt.RegisteredClaims {
+	return jwt.RegisteredClaims{
+		Issuer:   configuration.AppName,
+		Audience: jwt.ClaimStrings{audience},
+		IssuedAt: &jwt.NumericDate{Time: time.Now()},
+		ExpiresAt: &jwt.NumericDate{
+			Time: time.Now().Add(
+				time.Minute * time.Duration(expiryMinutes),
+			),
+		},
+	}
+}
+
 // createToken is a generic helper for creating JWT tokens with specified configuration.
 // This private function consolidates the common token creation logic used by all public
 // token creation functions (NewAccessToken, NewRefreshToken, etc.).
 func createToken(jwtSecret string, user *models.User, config tokenConfig) (string, error) {
+
 	jti := generateJTI(config.audience)
 
 	claims := models.UserClaims{
@@ -70,40 +117,69 @@ func createToken(jwtSecret string, user *models.User, config tokenConfig) (strin
 		claims.ChallengeID = config.challengeID
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(jwtSecret))
+	return signToken(jwtSecret, claims)
 }
 
 // ParseToken parses and validates a JWT token without audience validation.
 // It validates signature, expiry, and issuer only.
 // Audience validation is delegated to the AudienceValidate middleware for route-specific rules.
 // The requireBearer parameter controls whether the "Bearer " prefix is required.
-func ParseToken(jwtSecret string, tokenString string, requireBearer bool) (models.UserClaims, error) {
+func ParseToken(
+	jwtSecret string,
+	tokenString string,
+	requireBearer bool,
+) (models.UserClaims, error) {
 	if requireBearer {
-		if !strings.HasPrefix(tokenString, "Bearer ") {
-			return models.UserClaims{}, errors.New("invalid token")
+		var err error
+		tokenString, err = stripBearer(tokenString)
+		if err != nil {
+			return models.UserClaims{}, err
 		}
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 	}
 
 	claims := &models.UserClaims{}
-
-	_, err := jwt.ParseWithClaims(
-		tokenString,
-		claims,
-		func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, errors.New("unexpected signing method")
-			}
-			return []byte(jwtSecret), nil
-		},
-	)
-	if err != nil {
+	if err := parseJWT(jwtSecret, tokenString, claims); err != nil {
 		return models.UserClaims{}, errors.New("invalid token")
 	}
 
 	if len(claims.Audience) != 1 {
 		return models.UserClaims{}, errors.New("invalid token audience")
+	}
+
+	return *claims, nil
+}
+
+func NewShareAccessToken(
+	jwtSecret string,
+	shareID uuid.UUID,
+) (string, error) {
+	claims := models.ShareClaims{
+		ShareID: shareID,
+		RegisteredClaims: newRegisteredClaims(
+			configuration.AudienceShareAccess,
+			configuration.ShareTokenExpiry,
+		),
+	}
+	return signToken(jwtSecret, claims)
+}
+
+func ParseShareToken(
+	jwtSecret string,
+	tokenString string,
+) (models.ShareClaims, error) {
+	raw, err := stripBearer(tokenString)
+	if err != nil {
+		return models.ShareClaims{}, err
+	}
+
+	claims := &models.ShareClaims{}
+	if parseErr := parseJWT(jwtSecret, raw, claims); parseErr != nil {
+		return models.ShareClaims{}, errors.New("invalid token")
+	}
+
+	if len(claims.Audience) != 1 ||
+		claims.Audience[0] != configuration.AudienceShareAccess {
+		return models.ShareClaims{}, errors.New("invalid token audience")
 	}
 
 	return *claims, nil
