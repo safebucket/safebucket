@@ -81,8 +81,8 @@ func applyRateLimit(
 func RateLimit(
 	cache cache.ICache,
 	trustedProxies []string,
-	authenticatedRateLimit int,
-	unauthenticatedRateLimit int,
+	authenticatedRequestsPerMinute int,
+	unauthenticatedRequestsPerMinute int,
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
@@ -94,10 +94,10 @@ func RateLimit(
 					helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
 					return
 				}
-				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRateLimit)
+				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerMinute)
 			} else {
 				userID := claims.UserID.String()
-				applyRateLimit(next, w, r, cache, userID, authenticatedRateLimit)
+				applyRateLimit(next, w, r, cache, userID, authenticatedRequestsPerMinute)
 			}
 		}
 		return http.HandlerFunc(fn)
