@@ -9,7 +9,7 @@ COPY web/ ./
 RUN npm install && npm run build
 
 # Backend
-FROM golang:1.25-bookworm AS backend-builder
+FROM golang:1.26-bookworm AS backend-builder
 
 # renovate: datasource=github-releases depName=upx/upx
 ARG UPX_VERSION=5.1.0
