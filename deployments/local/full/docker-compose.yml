@@ -210,7 +210,7 @@ services:
 
   loki:
     container_name: loki
-    image: grafana/loki:3.6.7
+    image: grafana/loki:3.7.1
     command: "-config.file=/etc/loki/config.yaml"
     volumes:
       - ./config/loki.yaml:/etc/loki/config.yaml
