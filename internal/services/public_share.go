@@ -111,7 +111,6 @@ func (s PublicShareService) ListShareItems(
 		s.DB.Joins("JOIN share_files ON share_files.file_id = files.id").
 			Where("share_files.share_id = ?", share.ID).
 			Where("files.status = ?", models.FileStatusUploaded).
-			Where("files.deleted_at IS NULL").
 			Where("files.expires_at IS NULL OR files.expires_at > ?", now).
 			Find(&files)
 		response.Files = files

@@ -18,7 +18,6 @@ func GetShareFile(db *gorm.DB, share models.Share, fileID uuid.UUID) (models.Fil
 		Where("files.id = ?", fileID).
 		Where("files.bucket_id = ?", share.BucketID).
 		Where("files.status = ?", models.FileStatusUploaded).
-		Where("files.deleted_at IS NULL").
 		Where("files.expires_at IS NULL OR files.expires_at > ?", now)
 
 	switch share.Type {
