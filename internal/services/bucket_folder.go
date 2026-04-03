@@ -92,7 +92,7 @@ func (s BucketFolderService) CreateFolder(
 
 	folder := models.Folder{
 		Name:     body.Name,
-		Status:   models.FolderStatusReady,
+		Status:   models.FolderStatusCreated,
 		BucketID: bucketID,
 		FolderID: body.FolderID,
 	}
@@ -190,8 +190,10 @@ func (s BucketFolderService) PatchFolder(
 	switch body.Status {
 	case models.FolderStatusDeleted:
 		return s.TrashFolder(logger, user, folder)
-	case models.FolderStatusReady:
+	case models.FolderStatusCreated:
 		return s.RestoreFolder(logger, user, folder)
+	case models.FolderStatusRestoring:
+		return apierrors.NewAPIError(400, "INVALID_STATUS")
 	default:
 		return apierrors.NewAPIError(400, "INVALID_STATUS")
 	}

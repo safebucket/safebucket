@@ -3,7 +3,7 @@
 CREATE TABLE folders_new (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'ready' CHECK(status IN ('ready', 'deleted', 'restoring')),
+    status TEXT NOT NULL DEFAULT 'created' CHECK(status IN ('created', 'deleted', 'restoring')),
     folder_id TEXT,
     bucket_id TEXT NOT NULL,
     deleted_by TEXT,
@@ -14,7 +14,7 @@ CREATE TABLE folders_new (
     CONSTRAINT fk_folders_bucket_id FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT fk_folders_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
 );
-INSERT INTO folders_new SELECT id, name, CASE WHEN status IS NULL OR status = '' OR status IN ('uploading', 'uploaded') THEN 'ready' ELSE status END, folder_id, bucket_id, deleted_by, created_at, updated_at, deleted_at FROM folders;
+INSERT INTO folders_new SELECT id, name, CASE WHEN status IS NULL OR status = '' OR status IN ('uploading', 'uploaded') THEN 'created' ELSE status END, folder_id, bucket_id, deleted_by, created_at, updated_at, deleted_at FROM folders;
 DROP TABLE folders;
 ALTER TABLE folders_new RENAME TO folders;
 CREATE INDEX idx_folders_bucket_parent ON folders (bucket_id, folder_id) WHERE deleted_at IS NULL;
@@ -38,7 +38,7 @@ CREATE TABLE folders_old (
     CONSTRAINT fk_folders_bucket_id FOREIGN KEY (bucket_id) REFERENCES buckets (id) ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT fk_folders_deleted_by FOREIGN KEY (deleted_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
 );
-INSERT INTO folders_old SELECT id, name, CASE WHEN status = 'ready' THEN NULL ELSE status END, folder_id, bucket_id, deleted_by, created_at, updated_at, deleted_at FROM folders;
+INSERT INTO folders_old SELECT id, name, CASE WHEN status = 'created' THEN NULL ELSE status END, folder_id, bucket_id, deleted_by, created_at, updated_at, deleted_at FROM folders;
 DROP TABLE folders;
 ALTER TABLE folders_old RENAME TO folders;
 CREATE INDEX idx_folders_bucket_parent ON folders (bucket_id, folder_id) WHERE deleted_at IS NULL;

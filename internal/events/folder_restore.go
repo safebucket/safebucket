@@ -184,7 +184,7 @@ func (e *FolderRestore) processChildFolders(tx *gorm.DB, parentName string) ([]u
 		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status = ? OR status = ?)",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FolderStatusReady,
+		models.FolderStatusCreated,
 		models.FolderStatusDeleted,
 	).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
 		zap.L().Error("Failed to find child folders for restore", zap.Error(err))
@@ -313,7 +313,7 @@ func (e *FolderRestore) checkRemainingItemsToRestore(params *EventParams) error 
 		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status = ? OR status = ?)",
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FolderStatusReady,
+		models.FolderStatusCreated,
 		models.FolderStatusDeleted,
 	).Count(&remainingFolders)
 
@@ -372,7 +372,7 @@ func (e *FolderRestore) finalizeFolderRestore(params *EventParams) error {
 		}
 
 		if err := tx.Unscoped().Model(&folder).Updates(map[string]interface{}{
-			"status":     models.FolderStatusReady,
+			"status":     models.FolderStatusCreated,
 			"deleted_at": nil,
 			"deleted_by": nil,
 		}).Error; err != nil {

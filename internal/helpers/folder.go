@@ -85,7 +85,7 @@ func RestoreParentFolders(
 		updates := map[string]interface{}{
 			"deleted_at": nil,
 			"deleted_by": nil,
-			"status":     models.FolderStatusReady,
+			"status":     models.FolderStatusCreated,
 		}
 		if err := tx.Unscoped().Model(&folder).Updates(updates).Error; err != nil {
 			logger.Error("Failed to restore parent folder",

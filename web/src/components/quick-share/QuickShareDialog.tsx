@@ -100,7 +100,9 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   const [step, setStep] = useState<Step>(1);
   const [generatedLink, setGeneratedLink] = useState("");
 
-  const allFolders = (bucket?.folders ?? []).filter((f) => f.status === FolderStatus.ready);
+  const allFolders = (bucket?.folders ?? []).filter(
+    (f) => f.status === FolderStatus.created,
+  );
 
   useEffect(() => {
     if (open) {

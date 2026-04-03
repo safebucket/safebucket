@@ -1,5 +1,5 @@
 export enum FolderStatus {
-  ready = "ready",
+  created = "created",
   deleted = "deleted",
   restoring = "restoring",
 }

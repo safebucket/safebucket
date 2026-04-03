@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { type IFile, FileStatus } from "@/types/file.ts";
 import type { IFolder } from "@/types/folder.ts";
+import type { IFile } from "@/types/file.ts";
+import { FileStatus } from "@/types/file.ts";
 import { FolderStatus } from "@/types/folder.ts";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
@@ -64,7 +65,7 @@ export const useTrashActions = (): ITrashActions => {
         });
       } else {
         return api.patch(`/buckets/${bucketId}/folders/${itemId}`, {
-          status: FolderStatus.ready,
+          status: FolderStatus.created,
         });
       }
     },
