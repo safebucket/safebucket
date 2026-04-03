@@ -198,10 +198,14 @@ function successToast(message: string) {
 }
 
 function errorToast(error: Error) {
+  const key = `errors.${error.message}`;
+  const translated = i18n.t(key, { defaultValue: "" });
+  const description = translated || i18n.t("errors.default");
+
   toast({
     variant: "destructive",
     title: i18n.t("common.error"),
-    description: error.message,
+    description,
   });
 }
 

@@ -12,11 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	authenticatedRequestsPerMinute   = 200
-	unauthenticatedRequestsPerMinute = 20
-)
-
 func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -83,7 +78,12 @@ func applyRateLimit(
 	next.ServeHTTP(w, r)
 }
 
-func RateLimit(cache cache.ICache, trustedProxies []string) func(next http.Handler) http.Handler {
+func RateLimit(
+	cache cache.ICache,
+	trustedProxies []string,
+	authenticatedRequestsPerMinute int,
+	unauthenticatedRequestsPerMinute int,
+) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			claims, err := helpers.GetUserClaims(r.Context())

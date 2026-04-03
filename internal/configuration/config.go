@@ -115,15 +115,17 @@ func readFileConfig(k *koanf.Koanf) {
 
 func loadDefaults(k *koanf.Koanf) {
 	defaults := map[string]interface{}{
-		"app.profile":              "default",
-		"app.access_token_expiry":  60,
-		"app.refresh_token_expiry": 600,
-		"app.mfa_token_expiry":     5,
-		"app.log_level":            "info",
-		"app.port":                 8080,
-		"app.trash_retention_days": 7,
-		"app.max_upload_size":      int64(53687091200),
-		"app.static_files.enabled": true,
+		"app.profile":                             "default",
+		"app.access_token_expiry":                 60,
+		"app.refresh_token_expiry":                600,
+		"app.mfa_token_expiry":                    5,
+		"app.log_level":                           "info",
+		"app.port":                                8080,
+		"app.trash_retention_days":                7,
+		"app.max_upload_size":                     int64(53687091200),
+		"app.authenticated_requests_per_minute":   200,
+		"app.unauthenticated_requests_per_minute": 20,
+		"app.static_files.enabled":                true,
 
 		"database.type": ProviderPostgres,
 	}

@@ -1,4 +1,5 @@
-import { Users } from "lucide-react";
+import { Share2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
 import {
@@ -10,15 +11,17 @@ import {
 } from "@/components/ui/card";
 
 export const BucketMembersSkeleton: FC = () => {
+  const { t } = useTranslation();
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Bucket Members
+          <Share2 className="h-5 w-5" />
+          {t("bucket.settings.members.title")}
         </CardTitle>
         <CardDescription>
-          Manage who has access to this bucket and their permissions
+          {t("bucket.settings.members.description")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

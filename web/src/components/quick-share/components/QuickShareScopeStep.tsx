@@ -5,7 +5,7 @@ import type { FC } from "react";
 
 import type { IFile } from "@/types/file.ts";
 import type { IFolder } from "@/types/folder.ts";
-import type { ShareScope } from "@/components/quick-share/QuickShareDialog";
+import type { ShareScope } from "@/types/share.ts";
 import { QuickShareFileList } from "@/components/quick-share/components/QuickShareFileList";
 import { QuickShareFolderList } from "@/components/quick-share/components/QuickShareFolderList";
 import { Label } from "@/components/ui/label";

@@ -5,10 +5,8 @@ import { Controller } from "react-hook-form";
 import type { Control } from "react-hook-form";
 import type { FC } from "react";
 
-import type {
-  IQuickShareForm,
-  ShareScope,
-} from "@/components/quick-share/QuickShareDialog";
+import type { IQuickShareForm } from "@/components/quick-share/QuickShareDialog";
+import type { ShareScope } from "@/types/share.ts";
 import { Datepicker } from "@/components/common/components/Datepicker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +29,18 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
   return (
     <div className="space-y-5">
       <div className="space-y-4">
+        <div className="space-y-2">
+          <Label>{t("quick_share.name")}</Label>
+          <Controller
+            name="name"
+            control={control}
+            rules={{ required: true, minLength: 1, maxLength: 255 }}
+            render={({ field: { onChange, value } }) => (
+              <Input type="text" value={value} onChange={onChange} />
+            )}
+          />
+        </div>
+
         <div className="space-y-2">
           <Label>{t("quick_share.expiry_date")}</Label>
           <div>

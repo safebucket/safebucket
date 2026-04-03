@@ -33,6 +33,8 @@ func (w *GarbageCollectorWorker) Start(ctx context.Context) {
 		{Name: "stale_uploads", Fn: w.cleanupStaleUploads},
 		{Name: "expired_challenges", Fn: w.cleanupExpiredChallenges},
 		{Name: "expired_files", Fn: w.cleanupExpiredFiles},
+		{Name: "expired_shares", Fn: w.cleanupExpiredShares},
+		{Name: "max_views_shares", Fn: w.cleanupMaxViewsShares},
 	})
 }
 
@@ -135,6 +137,80 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 
 	if rowsAffected > 0 {
 		zap.L().Debug("Deleted expired files", zap.Int64("count", rowsAffected))
+	}
+
+	return int(rowsAffected), nil
+}
+
+func (w *GarbageCollectorWorker) cleanupExpiredShares(_ context.Context) (int, error) {
+	return w.cleanupShares("expires_at IS NOT NULL AND expires_at < ?", []any{time.Now()}, activity.ShareLinkExpired)
+}
+
+func (w *GarbageCollectorWorker) cleanupMaxViewsShares(_ context.Context) (int, error) {
+	return w.cleanupShares(
+		"max_views IS NOT NULL AND current_views >= max_views",
+		nil,
+		activity.ShareLinkMaxViewsReached,
+	)
+}
+
+func (w *GarbageCollectorWorker) cleanupShares(whereClause string, args []any, activityMsg string) (int, error) {
+	var shares []models.Share
+
+	if err := w.DB.Unscoped().
+		Where(whereClause, args...).
+		Limit(GCBatchSize).
+		Find(&shares).Error; err != nil {
+		return 0, err
+	}
+
+	if len(shares) == 0 {
+		return 0, nil
+	}
+
+	shareIDs := make([]uuid.UUID, len(shares))
+	for i, share := range shares {
+		shareIDs[i] = share.ID
+	}
+
+	var rowsAffected int64
+
+	err := w.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("share_id IN ?", shareIDs).Delete(&models.ShareFile{}).Error; err != nil {
+			return err
+		}
+
+		result := tx.Unscoped().Delete(&models.Share{}, shareIDs)
+		if result.Error != nil {
+			return result.Error
+		}
+		rowsAffected = result.RowsAffected
+
+		for _, share := range shares {
+			action := models.Activity{
+				Message: activityMsg,
+				Object:  share.ToActivity(),
+				Filter: activity.NewLogFilter(map[string]string{
+					"action":      rbac.ActionDelete.String(),
+					"bucket_id":   share.BucketID.String(),
+					"share_id":    share.ID.String(),
+					"object_type": rbac.ResourceShare.String(),
+				}),
+			}
+			if err := w.ActivityLogger.Send(action); err != nil {
+				zap.L().Error("Failed to log share cleanup activity", zap.Error(err))
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	if rowsAffected > 0 {
+		zap.L().Debug("Deleted shares", zap.String("reason", activityMsg), zap.Int64("count", rowsAffected))
 	}
 
 	return int(rowsAffected), nil

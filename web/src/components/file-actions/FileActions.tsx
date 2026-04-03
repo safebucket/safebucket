@@ -99,7 +99,11 @@ export const FileActions: FC<IFileActionsProps> = ({
         </MenuContent>
       </Menu>
       {isOwner && (
-        <QuickShareDialog {...shareDialog.props} initialItem={file} />
+        <QuickShareDialog
+          {...shareDialog.props}
+          initialItem={file}
+          bucketId={bucketId}
+        />
       )}
       {isContributor && (
         <>

@@ -68,12 +68,9 @@ export const BucketViewOptions: FC<IBucketViewOptionsProps> = ({
   const { isOwner } = useBucketPermissions(bucketId);
 
   const filteredOptions = useMemo(() => {
-    return options.filter((opt) => {
-      if (opt.key === BucketViewMode.Settings && !isOwner) {
-        return false;
-      }
-      return true;
-    });
+    return options.filter(
+      (opt) => !(opt.key === BucketViewMode.Settings && !isOwner),
+    );
   }, [isOwner]);
 
   const activeOption = filteredOptions.find((opt) => opt.key === view);

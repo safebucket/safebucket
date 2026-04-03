@@ -83,6 +83,11 @@ func (s BucketService) Routes() chi.Router {
 			ActivityLogger:     s.ActivityLogger,
 			TrashRetentionDays: s.TrashRetentionDays,
 		}.Routes())
+
+		r.Mount("/shares", BucketShareService{
+			DB:             s.DB,
+			ActivityLogger: s.ActivityLogger,
+		}.Routes())
 	})
 
 	return r

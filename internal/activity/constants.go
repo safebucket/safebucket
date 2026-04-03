@@ -29,4 +29,8 @@ const (
 	MFADeviceRemoved             string = "MFA_DEVICE_REMOVED"
 	SessionRevoked               string = "SESSION_REVOKED"
 	OtherSessionsRevoked         string = "OTHER_SESSIONS_REVOKED"
+	ShareLinkCreated             string = "SHARE_LINK_CREATED"
+	ShareLinkDeleted             string = "SHARE_LINK_DELETED"
+	ShareLinkExpired             string = "SHARE_LINK_EXPIRED"
+	ShareLinkMaxViewsReached     string = "SHARE_LINK_MAX_VIEWS_REACHED"
 )

@@ -252,7 +252,12 @@ func StartHTTPServer(
 		apiRouter.Use(m.Authenticate(authConfig.JWTSecret, cache, configuration.RefreshTokenExpiry))
 		apiRouter.Use(m.AudienceValidate)
 		apiRouter.Use(m.MFAValidate(db, authConfig.MFARequired))
-		apiRouter.Use(m.RateLimit(cache, config.App.TrustedProxies))
+		apiRouter.Use(m.RateLimit(
+			cache,
+			config.App.TrustedProxies,
+			config.App.AuthenticatedRequestsPerMinute,
+			config.App.UnauthenticatedRequestsPerMinute,
+		))
 
 		userService := services.UserService{
 			DB:                 db,
