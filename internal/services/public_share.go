@@ -124,7 +124,7 @@ func (s PublicShareService) ListShareItems(
 		response.Files = files
 
 		var folders []models.Folder
-		s.DB.Where("bucket_id = ? AND folder_id = ? AND status IS NULL", share.BucketID, share.FolderID).
+		s.DB.Where("bucket_id = ? AND folder_id = ? AND status = ?", share.BucketID, share.FolderID, models.FolderStatusCreated).
 			Find(&folders)
 		response.Folders = folders
 
@@ -137,7 +137,7 @@ func (s PublicShareService) ListShareItems(
 		response.Files = files
 
 		var folders []models.Folder
-		s.DB.Where("bucket_id = ? AND status IS NULL", share.BucketID).Find(&folders)
+		s.DB.Where("bucket_id = ? AND status = ?", share.BucketID, models.FolderStatusCreated).Find(&folders)
 		response.Folders = folders
 	}
 

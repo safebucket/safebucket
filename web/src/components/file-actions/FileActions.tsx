@@ -60,6 +60,10 @@ export const FileActions: FC<IFileActionsProps> = ({
   const isTrashed =
     file.status === FileStatus.deleted || file.status === FolderStatus.deleted;
 
+  const canShare = isFile(file)
+    ? file.status === FileStatus.uploaded
+    : file.status === FolderStatus.created;
+
   return (
     <>
       <Menu>
@@ -80,7 +84,7 @@ export const FileActions: FC<IFileActionsProps> = ({
               {t("file_actions.new_folder")}
             </MenuItem>
           )}
-          {isOwner && (
+          {isOwner && canShare && (
             <MenuItem onClick={shareDialog.trigger}>
               <Share2 className="mr-2 h-4 w-4" />
               {t("file_actions.share")}
