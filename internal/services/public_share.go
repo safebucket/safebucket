@@ -211,13 +211,13 @@ func (s PublicShareService) UploadShareFile(
 		folderID = share.FolderID
 	case models.ShareTypeBucket:
 		if body.FolderID != nil {
+			folderID = body.FolderID
 			var folder models.Folder
 			if s.DB.Where("id = ? AND bucket_id = ?", folderID, share.BucketID).
 				Find(&folder).RowsAffected == 0 {
 				return models.FileTransferResponse{}, apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
 			}
 		}
-		folderID = body.FolderID
 	}
 
 	var existingFile models.File
@@ -332,7 +332,7 @@ func (s PublicShareService) ConfirmShareUpload(
 			return apierrors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
 		}
 
-		if !h.IsFileInShare(s.DB, share, fileID, file) {
+		if !h.IsFileInShare(tx, share, fileID, file) {
 			return apierrors.NewAPIError(403, "SHARE_FILE_NOT_IN_SHARE")
 		}
 
