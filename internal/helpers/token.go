@@ -91,7 +91,6 @@ func newRegisteredClaims(
 // This private function consolidates the common token creation logic used by all public
 // token creation functions (NewAccessToken, NewRefreshToken, etc.).
 func createToken(jwtSecret string, user *models.User, config tokenConfig) (string, error) {
-
 	jti := generateJTI(config.audience)
 
 	claims := models.UserClaims{

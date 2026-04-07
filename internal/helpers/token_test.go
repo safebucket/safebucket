@@ -726,7 +726,7 @@ func TestParseShareToken(t *testing.T) {
 			Email: "test@example.com",
 			Role:  models.RoleUser,
 		}
-		userToken, err := NewAccessToken(jwtSecret, user, "local")
+		userToken, err := NewAccessToken(jwtSecret, user, "local", "")
 		require.NoError(t, err)
 
 		_, err = ParseShareToken(jwtSecret, "Bearer "+userToken)
