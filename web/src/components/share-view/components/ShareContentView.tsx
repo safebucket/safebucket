@@ -54,9 +54,7 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
 
   const columnVisibility = useMemo(
     (): VisibilityState =>
-      isMobile
-        ? { size: false, type: false, created_at: false }
-        : {},
+      isMobile ? { size: false, type: false, created_at: false } : {},
     [isMobile],
   );
 

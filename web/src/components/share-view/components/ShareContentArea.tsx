@@ -69,9 +69,7 @@ export const ShareContentArea: FC<IShareContentAreaProps> = ({
               key={item.id}
               file={item}
               onDoubleClick={onOpenFolder}
-              onDownload={
-                !isFolder(item) ? () => onDownload(item) : undefined
-              }
+              onDownload={!isFolder(item) ? () => onDownload(item) : undefined}
             />
           ))}
         </div>
