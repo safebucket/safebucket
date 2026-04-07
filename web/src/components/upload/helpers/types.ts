@@ -10,21 +10,11 @@ export interface StagedFile {
   extension: string;
 }
 
-interface ICreateFileBody {
-  bucket: string;
-  key: string;
-  policy: string;
-  "x-amz-algorithm": string;
-  "x-amz-credential": string;
-  "x-amz-date": string;
-  "x-amz-signature": string;
-}
-
 export interface ICreateFile {
   id: string;
   path: string;
   url: string;
-  body: ICreateFileBody;
+  body: Record<string, string>;
 }
 
 export interface IUploadContext {

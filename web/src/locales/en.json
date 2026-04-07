@@ -33,6 +33,8 @@
     "SHARE_MAX_UPLOADS_REACHED": "This share link has reached its maximum number of uploads.",
     "SHARE_UPLOAD_SIZE_EXCEEDED": "The file exceeds the maximum upload size for this share.",
     "SHARE_FILE_NOT_IN_SHARE": "This file is not part of the share.",
+    "FILE_ALREADY_EXISTS": "A file with this name already exists.",
+    "MAX_UPLOADS_REACHED": "This share link has reached its maximum number of uploads.",
     "default": "An error occurred. Please try again."
   },
   "toast": {
@@ -649,7 +651,12 @@
     "name": "Name",
     "size": "Size",
     "type": "Type",
-    "uploaded_at": "Uploaded At"
+    "uploaded_at": "Uploaded At",
+    "download": "Download",
+    "upload": "Upload",
+    "drop_files": "Drop files to upload",
+    "drop_description": "Files will be uploaded to this share",
+    "upload_size_exceeded": "File exceeds the maximum upload size ({{max}})"
   },
   "admin": {
     "dashboard": {

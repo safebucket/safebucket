@@ -33,6 +33,8 @@
     "SHARE_MAX_UPLOADS_REACHED": "Ce lien de partage a atteint son nombre maximum d'envois.",
     "SHARE_UPLOAD_SIZE_EXCEEDED": "Le fichier dépasse la taille maximale d'envoi pour ce partage.",
     "SHARE_FILE_NOT_IN_SHARE": "Ce fichier ne fait pas partie du partage.",
+    "FILE_ALREADY_EXISTS": "Un fichier avec ce nom existe déjà.",
+    "MAX_UPLOADS_REACHED": "Ce lien de partage a atteint son nombre maximum d'envois.",
     "default": "Une erreur s'est produite. Veuillez réessayer."
   },
   "toast": {
@@ -649,7 +651,12 @@
     "name": "Nom",
     "size": "Taille",
     "type": "Type",
-    "uploaded_at": "Date d'ajout"
+    "uploaded_at": "Date d'ajout",
+    "download": "Télécharger",
+    "upload": "Importer",
+    "drop_files": "Déposez les fichiers pour les importer",
+    "drop_description": "Les fichiers seront importés dans ce partage",
+    "upload_size_exceeded": "Le fichier dépasse la taille maximale d'import ({{max}})"
   },
   "admin": {
     "dashboard": {

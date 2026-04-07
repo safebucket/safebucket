@@ -99,6 +99,9 @@ func (s PublicShareService) ListShareItems(
 		Type:          share.Type,
 		AllowUpload:   share.AllowUpload,
 		MaxUploadSize: share.MaxUploadSize,
+		ExpiresAt:     share.ExpiresAt,
+		MaxViews:      share.MaxViews,
+		CurrentViews:  share.CurrentViews + 1,
 		Files:         []models.File{},
 		Folders:       []models.Folder{},
 	}

@@ -40,11 +40,31 @@ export interface IShareCreateBody {
   max_upload_size?: number;
 }
 
-export interface IPublicShareContent {
+export interface IPublicShareResponse {
+  id: string;
+  name: string;
+  type: ShareScope;
+  allow_upload: boolean;
+  max_upload_size: number | null;
+  expires_at: string | null;
+  max_views: number | null;
+  current_views: number;
   files: Array<IFile>;
   folders: Array<IFolder>;
 }
 
-export type IConsumeShareResponse =
-  | { password_required: true }
-  | { password_required: false; share: IShare; content: IPublicShareContent };
+export interface IShareAuthResponse {
+  token: string;
+}
+
+export interface IShareUploadBody {
+  name: string;
+  size: number;
+  folder_id?: string;
+}
+
+export interface IFileTransferResponse {
+  id: string;
+  url: string;
+  body?: Record<string, string>;
+}
