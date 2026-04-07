@@ -313,6 +313,8 @@
       "file_restored": "A restauré un fichier '%%FILE_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "file_deleted": "A définitivement supprimé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
       "file_expired": "Le fichier '%%FILE_NAME%%' a expiré et a été supprimé du bucket '%%BUCKET_NAME%%'.",
+      "folder_created": "A créé un dossier '%%FOLDER_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "folder_updated": "A mis à jour un dossier '%%FOLDER_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "folder_trashed": "A déplacé un dossier '%%FOLDER_NAME%%' vers la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "folder_restored": "A restauré un dossier '%%FOLDER_NAME%%' de la corbeille dans le bucket '%%BUCKET_NAME%%'.",
       "folder_purged": "A définitivement supprimé un dossier '%%FOLDER_NAME%%' du bucket '%%BUCKET_NAME%%'.",

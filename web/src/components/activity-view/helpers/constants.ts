@@ -6,6 +6,8 @@ import {
   FileMinus,
   FileUp,
   FolderMinus,
+  FolderPen,
+  FolderPlus,
   Share2,
   Smartphone,
   SmartphoneCharging,
@@ -71,6 +73,18 @@ export const messageMap = {
     icon: ArchiveRestore,
     iconColor: "text-blue-500",
     iconBg: "bg-blue-100",
+  },
+  FOLDER_CREATED: {
+    messageKey: "activity.messages.folder_created",
+    icon: FolderPlus,
+    iconColor: "text-green-500",
+    iconBg: "bg-green-100",
+  },
+  FOLDER_UPDATED: {
+    messageKey: "activity.messages.folder_updated",
+    icon: FolderPen,
+    iconColor: "text-amber-500",
+    iconBg: "bg-amber-100",
   },
   FOLDER_TRASHED: {
     messageKey: "activity.messages.folder_trashed",
