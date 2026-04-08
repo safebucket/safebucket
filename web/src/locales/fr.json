@@ -305,7 +305,7 @@
   "activity": {
     "title": "Flux d'activité",
     "no_activity_yet": "Aucune activité pour le moment.",
-    "anonymous": "Lien de partage",
+    "share_link": "Lien de partage",
     "messages": {
       "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
       "bucket_deleted": "A définitivement supprimé un bucket '%%BUCKET_NAME%%'.",

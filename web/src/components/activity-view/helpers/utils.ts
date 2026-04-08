@@ -35,7 +35,10 @@ export const formatMessage = (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const mapping = messageMap[log.message] || DEFAULT_ACTIVITY_MAPPING;
   return t(mapping.messageKey)
-    .replace("%%USERNAME%%", getUserDisplayName(log.user, t("activity.anonymous")))
+    .replace(
+      "%%USERNAME%%",
+      getUserDisplayName(log.user, t("activity.share_link")),
+    )
     .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
     .replace("%%FILE_NAME%%", log.file?.name || "")
     .replace("%%FOLDER_NAME%%", log.folder?.name || "")

@@ -42,7 +42,7 @@ export function ActivityItem({ item }: ActivityItemProps) {
       </ItemMedia>
       <ItemContent>
         <ItemTitle>
-          {getUserDisplayName(item.user, t("activity.anonymous"))}
+          {getUserDisplayName(item.user, t("activity.share_link"))}
           <div
             className={cn(
               "flex h-6 w-6 items-center justify-center rounded-full",
