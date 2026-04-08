@@ -44,9 +44,9 @@ type TracingConfiguration struct {
 }
 
 type PyroscopeConfiguration struct {
-	ServerAddress   string            `mapstructure:"server_address"      validate:"required,http_url"`
-	ApplicationName string            `mapstructure:"application_name"    validate:"required"`
-	UploadRate      int               `mapstructure:"upload_rate"         validate:"gte=0"`
+	ServerAddress   string            `mapstructure:"server_address"   validate:"required,http_url"`
+	ApplicationName string            `mapstructure:"application_name" validate:"required"`
+	UploadRate      int               `mapstructure:"upload_rate"      validate:"gte=0"`
 	Tags            map[string]string `mapstructure:"tags"`
 }
 
