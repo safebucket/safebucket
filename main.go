@@ -19,6 +19,15 @@ func main() {
 	config := configuration.Read()
 	core.NewLogger(config.App.LogLevel)
 
+	tracer := core.NewTracer(config.App.Tracing, config.App.Profile)
+	if tracer != nil {
+		defer func() {
+			if err := tracer.Stop(); err != nil {
+				zap.L().Error("Failed to stop tracer", zap.Error(err))
+			}
+		}()
+	}
+
 	profile := configuration.GetProfile(config.App.Profile)
 
 	db := core.NewDatabase(config.Database)
