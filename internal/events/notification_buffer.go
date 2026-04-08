@@ -144,6 +144,7 @@ func StartFileNotificationBuffer(c cache.ICache, n notifier.INotifier) {
 	ticker := time.NewTicker(configuration.CacheNotifyFlush * time.Second)
 
 	go func() {
+		defer ticker.Stop()
 		for range ticker.C {
 			entries, err := c.ZRangeByScoreWithScores(
 				configuration.CacheNotifyBatchesKey,
