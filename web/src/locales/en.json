@@ -305,6 +305,7 @@
   "activity": {
     "title": "Activity Feed",
     "no_activity_yet": "No activity yet.",
+    "anonymous": "Share link",
     "messages": {
       "bucket_created": "Created a bucket '%%BUCKET_NAME%%' and shared it with you.",
       "bucket_deleted": "Permanently deleted a bucket '%%BUCKET_NAME%%'.",
@@ -321,6 +322,8 @@
       "bucket_member_created": "Invited %%BUCKET_MEMBER_EMAIL%% to the bucket '%%BUCKET_NAME%%'.",
       "bucket_member_updated": "Updated the group of %%BUCKET_MEMBER_EMAIL%% on the bucket '%%BUCKET_NAME%%'.",
       "bucket_member_deleted": "Removed %%BUCKET_MEMBER_EMAIL%% from the bucket '%%BUCKET_NAME%%'.",
+      "share_file_downloaded": "A file '%%FILE_NAME%%' was downloaded via share link on bucket '%%BUCKET_NAME%%'.",
+      "share_file_uploaded": "A file '%%FILE_NAME%%' was uploaded via share link on bucket '%%BUCKET_NAME%%'.",
       "default": "%%USERNAME%% performed an action on bucket '%%BUCKET_NAME%%'."
     },
     "time": {

@@ -16,8 +16,8 @@ export interface IMFADevice {
 
 export interface IActivity {
   domain: string;
-  user_id: string;
-  user: IUser;
+  user_id?: string;
+  user?: IUser;
   action: string;
   object_type: string;
   bucket_id?: string;
@@ -26,6 +26,7 @@ export interface IActivity {
   file?: IFile;
   folder_id?: string;
   folder?: IFolder;
+  share_id?: string;
   timestamp: string;
   message: ActivityMessage;
   bucket_member_email?: string;
@@ -52,6 +53,8 @@ export enum ActivityMessage {
   MFA_DEVICE_VERIFIED = "MFA_DEVICE_VERIFIED",
   MFA_DEVICE_UPDATED = "MFA_DEVICE_UPDATED",
   MFA_DEVICE_REMOVED = "MFA_DEVICE_REMOVED",
+  SHARE_FILE_DOWNLOADED = "SHARE_FILE_DOWNLOADED",
+  SHARE_FILE_UPLOADED = "SHARE_FILE_UPLOADED",
 }
 
 export interface IListBucketActivity {

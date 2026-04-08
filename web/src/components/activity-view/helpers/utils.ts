@@ -1,6 +1,6 @@
 import { AlertCircle } from "lucide-react";
 
-import type { ActivityMessage, IActivity } from "@/types/activity.ts";
+import type { ActivityMessage, IActivity, IUser } from "@/types/activity.ts";
 import type { IMessageMapping } from "@/components/activity-view/helpers/types.ts";
 import { messageMap } from "@/components/activity-view/helpers/constants";
 
@@ -10,6 +10,16 @@ const DEFAULT_ACTIVITY_MAPPING = {
   iconColor: "text-gray-500",
   iconBg: "bg-gray-100",
 };
+
+export function getUserDisplayName(
+  user: IUser | undefined,
+  fallback: string,
+): string {
+  if (!user) return fallback;
+  if (user.first_name || user.last_name)
+    return `${user.first_name} ${user.last_name}`;
+  return user.email;
+}
 
 export function getActivityMapping(
   messageType: ActivityMessage,
@@ -25,12 +35,7 @@ export const formatMessage = (
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const mapping = messageMap[log.message] || DEFAULT_ACTIVITY_MAPPING;
   return t(mapping.messageKey)
-    .replace(
-      "%%USERNAME%%",
-      log.user.first_name || log.user.last_name
-        ? `${log.user.first_name} ${log.user.last_name}`
-        : log.user.email,
-    )
+    .replace("%%USERNAME%%", getUserDisplayName(log.user, t("activity.anonymous")))
     .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
     .replace("%%FILE_NAME%%", log.file?.name || "")
     .replace("%%FOLDER_NAME%%", log.folder?.name || "")

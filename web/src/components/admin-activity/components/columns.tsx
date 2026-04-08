@@ -114,7 +114,7 @@ export const createColumns = (t: TFunction): Array<ColumnDef<IActivity>> => [
     header: t("admin.activity.columns.user"),
     cell: ({ row }) => {
       const user = row.original.user;
-      return user.email;
+      return user?.email ?? t("activity.anonymous");
     },
   },
   {

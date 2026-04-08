@@ -132,4 +132,16 @@ export const messageMap = {
     iconColor: "text-red-500",
     iconBg: "bg-red-100",
   },
+  SHARE_FILE_DOWNLOADED: {
+    messageKey: "activity.messages.share_file_downloaded",
+    icon: FileDown,
+    iconColor: "text-teal-500",
+    iconBg: "bg-teal-100",
+  },
+  SHARE_FILE_UPLOADED: {
+    messageKey: "activity.messages.share_file_uploaded",
+    icon: FileUp,
+    iconColor: "text-teal-500",
+    iconBg: "bg-teal-100",
+  },
 } satisfies Record<ActivityMessage, object>;

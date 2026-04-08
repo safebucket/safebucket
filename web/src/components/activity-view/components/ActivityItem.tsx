@@ -18,6 +18,7 @@ import {
 import {
   formatMessage,
   getActivityMapping,
+  getUserDisplayName,
   timeAgo,
 } from "@/components/activity-view/helpers/utils.ts";
 
@@ -35,15 +36,13 @@ export function ActivityItem({ item }: ActivityItemProps) {
         <Avatar className="h-10 w-10">
           <AvatarImage src="/placeholder.svg" />
           <AvatarFallback>
-            {item.user.email.charAt(0).toUpperCase()}
+            {item.user ? item.user.email.charAt(0).toUpperCase() : "?"}
           </AvatarFallback>
         </Avatar>
       </ItemMedia>
       <ItemContent>
         <ItemTitle>
-          {item.user.first_name || item.user.last_name
-            ? `${item.user.first_name} ${item.user.last_name}`
-            : item.user.email}
+          {getUserDisplayName(item.user, t("activity.anonymous"))}
           <div
             className={cn(
               "flex h-6 w-6 items-center justify-center rounded-full",
