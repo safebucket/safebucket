@@ -36,6 +36,7 @@ func (m *MockCache) ZRangeByScoreWithScores(_ string, _ string, _ string) ([]cac
 }
 func (m *MockCache) ZScore(_ string, _ string) (float64, error)          { return 0, cache.ErrKeyNotFound }
 func (m *MockCache) ZRemRangeByScore(_ string, _ string, _ string) error { return nil }
+func (m *MockCache) ScanKeys(_ string, _ int64, _ int64) ([]string, error) { return nil, nil }
 func (m *MockCache) Close()                                              {}
 
 type MockNotifier struct {

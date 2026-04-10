@@ -24,5 +24,6 @@ type ICache interface {
 	ZRangeByScoreWithScores(key string, minScore string, maxScore string) ([]ZScoreEntry, error)
 	ZScore(key string, member string) (float64, error)
 	ZRemRangeByScore(key string, minScore string, maxScore string) error
+	ScanKeys(pattern string, count int64, limit int64) ([]string, error)
 	Close()
 }

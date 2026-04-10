@@ -2,6 +2,7 @@ package cache
 
 import (
 	"math"
+	"path"
 	"strconv"
 	"sync"
 	"time"
@@ -243,6 +244,35 @@ func parseScore(s string) float64 {
 		v, _ := strconv.ParseFloat(s, 64)
 		return v
 	}
+}
+
+func (m *MemoryCache) ScanKeys(pattern string, _ int64, limit int64) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	seen := make(map[string]bool)
+	var keys []string
+
+	for k := range m.data {
+		if matched, _ := path.Match(pattern, k); matched && !seen[k] {
+			keys = append(keys, k)
+			seen[k] = true
+			if limit > 0 && int64(len(keys)) >= limit {
+				return keys, nil
+			}
+		}
+	}
+	for k := range m.sortedSets {
+		if matched, _ := path.Match(pattern, k); matched && !seen[k] {
+			keys = append(keys, k)
+			seen[k] = true
+			if limit > 0 && int64(len(keys)) >= limit {
+				return keys, nil
+			}
+		}
+	}
+
+	return keys, nil
 }
 
 func (m *MemoryCache) Close() {

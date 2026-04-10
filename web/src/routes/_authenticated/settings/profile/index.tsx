@@ -19,19 +19,21 @@ function Profile() {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">
-          {t("settings.profile.title")}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {t("settings.profile.description")}
-        </p>
-      </div>
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="container mx-auto max-w-3xl p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold">
+            {t("settings.profile.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {t("settings.profile.description")}
+          </p>
+        </div>
 
-      <ProfileForm user={user} />
-      <div className="mt-2">
-        <SessionsTab userId={session.userId} />
+        <ProfileForm user={user} />
+        <div className="mt-2">
+          <SessionsTab userId={session.userId} />
+        </div>
       </div>
     </div>
   );

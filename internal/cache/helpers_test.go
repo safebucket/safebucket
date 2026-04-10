@@ -183,3 +183,53 @@ func TestRevokeAllSessions_DeletesSet(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, sessions)
 }
+
+func TestSessionCleanup_RemovesExpiredAndRevoked(t *testing.T) {
+	mc := newTestCache(t)
+
+	require.NoError(t, CreateSession(mc, "user1", "jti-active"))
+
+	oldTS := float64(time.Now().Add(-testMaxAge - time.Minute).Unix())
+	require.NoError(t, mc.ZAdd(sessionKey("user1"), oldTS, "jti-expired"))
+
+	require.NoError(t, CreateSession(mc, "user1", "jti-revoked"))
+	require.NoError(t, RevokeSession(mc, "user1", "jti-revoked"))
+
+	keys, err := mc.ScanKeys("user:sessions:*", 100, 0)
+	require.NoError(t, err)
+	require.Len(t, keys, 1)
+
+	cutoff := sessionCutoff(testMaxAge)
+	for _, key := range keys {
+		require.NoError(t, mc.ZRemRangeByScore(key, "-inf", cutoff))
+	}
+	sessions, err := ListActiveSessions(mc, "user1", testMaxAge)
+	require.NoError(t, err)
+	require.Len(t, sessions, 1)
+	assert.Equal(t, "jti-active", sessions[0].SID)
+}
+
+func TestSessionCleanup_DeletesEmptyKeys(t *testing.T) {
+	mc := newTestCache(t)
+	oldTS := float64(time.Now().Add(-testMaxAge - time.Minute).Unix())
+	require.NoError(t, mc.ZAdd(sessionKey("user1"), oldTS, "jti-expired"))
+
+	keys, err := mc.ScanKeys("user:sessions:*", 100, 0)
+	require.NoError(t, err)
+	require.Len(t, keys, 1)
+
+	cutoff := sessionCutoff(testMaxAge)
+	for _, key := range keys {
+		require.NoError(t, mc.ZRemRangeByScore(key, "-inf", cutoff))
+
+		remaining, rangeErr := mc.ZRangeByScoreWithScores(key, "-inf", "+inf")
+		require.NoError(t, rangeErr)
+		if len(remaining) == 0 {
+			require.NoError(t, mc.Del(key))
+		}
+	}
+
+	keysAfter, err := mc.ScanKeys("user:sessions:*", 100, 0)
+	require.NoError(t, err)
+	assert.Empty(t, keysAfter)
+}

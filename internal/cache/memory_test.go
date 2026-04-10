@@ -320,3 +320,50 @@ func TestZRangeByScoreWithScores_NoMatches(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, entries)
 }
+
+func TestScanKeys_MatchesSortedSets(t *testing.T) {
+	mc := newTestCache(t)
+
+	_ = mc.ZAdd("user:sessions:abc", 1.0, "s1")
+	_ = mc.ZAdd("user:sessions:def", 2.0, "s2")
+	_ = mc.ZAdd("other:key", 3.0, "s3")
+
+	keys, err := mc.ScanKeys("user:sessions:*", 100, 0)
+	require.NoError(t, err)
+	assert.Len(t, keys, 2)
+	assert.ElementsMatch(t, []string{"user:sessions:abc", "user:sessions:def"}, keys)
+}
+
+func TestScanKeys_MatchesDataKeys(t *testing.T) {
+	mc := newTestCache(t)
+
+	_, _ = mc.SetNX("app:ratelimit:user1", "5", time.Minute)
+	_, _ = mc.SetNX("app:ratelimit:user2", "3", time.Minute)
+	_, _ = mc.SetNX("other:key", "1", time.Minute)
+
+	keys, err := mc.ScanKeys("app:ratelimit:*", 100, 0)
+	require.NoError(t, err)
+	assert.Len(t, keys, 2)
+	assert.ElementsMatch(t, []string{"app:ratelimit:user1", "app:ratelimit:user2"}, keys)
+}
+
+func TestScanKeys_NoMatches(t *testing.T) {
+	mc := newTestCache(t)
+
+	_ = mc.ZAdd("user:sessions:abc", 1.0, "s1")
+
+	keys, err := mc.ScanKeys("nonexistent:*", 100, 0)
+	require.NoError(t, err)
+	assert.Empty(t, keys)
+}
+
+func TestScanKeys_NoDuplicates(t *testing.T) {
+	mc := newTestCache(t)
+	_, _ = mc.SetNX("user:sessions:abc", "val", time.Minute)
+	_ = mc.ZAdd("user:sessions:abc", 1.0, "s1")
+
+	keys, err := mc.ScanKeys("user:sessions:*", 100, 0)
+	require.NoError(t, err)
+	assert.Len(t, keys, 1)
+	assert.Equal(t, "user:sessions:abc", keys[0])
+}

@@ -135,6 +135,26 @@ func (r *RueidisCache) ZRemRangeByScore(key string, minScore string, maxScore st
 	).Error()
 }
 
+func (r *RueidisCache) ScanKeys(pattern string, count int64, limit int64) ([]string, error) {
+	ctx := context.Background()
+	var keys []string
+	scanner := rueidis.NewScanner(func(cursor uint64) (rueidis.ScanEntry, error) {
+		return r.client.Do(ctx,
+			r.client.B().Scan().Cursor(cursor).Match(pattern).Count(count).Build(),
+		).AsScanEntry()
+	})
+	for key := range scanner.Iter() {
+		keys = append(keys, key)
+		if limit > 0 && int64(len(keys)) >= limit {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return keys, nil
+}
+
 func (r *RueidisCache) Close() {
 	r.client.Close()
 }
