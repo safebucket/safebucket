@@ -93,7 +93,7 @@ export const ShareHeader: FC<IShareHeaderProps> = ({
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  {t("share_consumer.upload")}
+                  {t("common.upload")}
                 </Button>
               </>
             )}

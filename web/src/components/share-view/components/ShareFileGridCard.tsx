@@ -64,7 +64,7 @@ export const ShareFileGridCard: FC<IShareFileGridCardProps> = ({
               e.stopPropagation();
               onDownload();
             }}
-            title={t("share_consumer.download")}
+            title={t("common.download")}
           >
             <Download className="h-4 w-4" />
           </Button>

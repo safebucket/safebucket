@@ -8,7 +8,9 @@
     "loading": "Loading...",
     "success": "Success",
     "error": "Error",
-    "delete": "Delete"
+    "delete": "Delete",
+    "upload": "Upload",
+    "download": "Download"
   },
   "errors": {
     "INVALID_PASSWORD": "Invalid password. Please try again.",
@@ -658,8 +660,6 @@
     "size": "Size",
     "type": "Type",
     "uploaded_at": "Uploaded At",
-    "download": "Download",
-    "upload": "Upload",
     "drop_files": "Drop files to upload",
     "drop_description": "Files will be uploaded to this share",
     "upload_size_exceeded": "File exceeds the maximum upload size ({{max}})"

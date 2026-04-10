@@ -8,7 +8,9 @@
     "loading": "Chargement...",
     "success": "Succès",
     "error": "Erreur",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "upload": "Uploader",
+    "download": "Télécharger"
   },
   "errors": {
     "INVALID_PASSWORD": "Mot de passe invalide. Veuillez réessayer.",
@@ -658,8 +660,6 @@
     "size": "Taille",
     "type": "Type",
     "uploaded_at": "Date d'ajout",
-    "download": "Télécharger",
-    "upload": "Importer",
     "drop_files": "Déposez les fichiers pour les importer",
     "drop_description": "Les fichiers seront importés dans ce partage",
     "upload_size_exceeded": "Le fichier dépasse la taille maximale d'import ({{max}})"

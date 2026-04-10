@@ -80,7 +80,7 @@ export const createColumns = (
             onDownload(item);
           }}
         >
-          {t("share_consumer.download")}
+          {t("common.download")}
         </Button>
       );
     },
