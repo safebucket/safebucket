@@ -28,6 +28,20 @@ import (
 	"gorm.io/gorm"
 )
 
+func StartProfiler(config models.Configuration) (models.Profile, func()) {
+	profiler := NewProfiler(config.App.Profiling, config.App.Profile)
+	cleanup := func() {}
+	if profiler != nil {
+		cleanup = func() {
+			if err := profiler.Stop(); err != nil {
+				zap.L().Error("Failed to stop profiler", zap.Error(err))
+			}
+		}
+	}
+	profile := configuration.GetProfile(config.App.Profile)
+	return profile, cleanup
+}
+
 func CreateAdminUser(db *gorm.DB, config models.Configuration) {
 	adminUser := models.User{
 		FirstName:    "admin",

@@ -19,16 +19,8 @@ func main() {
 	config := configuration.Read()
 	core.NewLogger(config.App.LogLevel)
 
-	profiler := core.NewProfiler(config.App.Profiling, config.App.Profile)
-	if profiler != nil {
-		defer func() {
-			if err := profiler.Stop(); err != nil {
-				zap.L().Error("Failed to stop profiler", zap.Error(err))
-			}
-		}()
-	}
-
-	profile := configuration.GetProfile(config.App.Profile)
+	profile, stopProfiler := core.StartProfiler(config)
+	defer stopProfiler()
 
 	db := core.NewDatabase(config.Database)
 	if sqlDB, err := db.DB(); err == nil {
