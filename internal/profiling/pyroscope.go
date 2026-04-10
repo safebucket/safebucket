@@ -1,4 +1,4 @@
-package tracing
+package profiling
 
 import (
 	"fmt"
@@ -10,11 +10,11 @@ import (
 	"github.com/grafana/pyroscope-go"
 )
 
-type PyroscopeTracer struct {
+type PyroscopeProfiler struct {
 	profiler *pyroscope.Profiler
 }
 
-func NewPyroscopeTracer(cfg models.PyroscopeConfiguration) (*PyroscopeTracer, error) {
+func NewPyroscopeProfiler(cfg models.PyroscopeConfiguration) (*PyroscopeProfiler, error) {
 	runtime.SetMutexProfileFraction(5)
 	runtime.SetBlockProfileRate(5)
 
@@ -40,10 +40,10 @@ func NewPyroscopeTracer(cfg models.PyroscopeConfiguration) (*PyroscopeTracer, er
 		return nil, fmt.Errorf("starting pyroscope profiler: %w", err)
 	}
 
-	return &PyroscopeTracer{profiler: profiler}, nil
+	return &PyroscopeProfiler{profiler: profiler}, nil
 }
 
-func (p *PyroscopeTracer) Stop() error {
+func (p *PyroscopeProfiler) Stop() error {
 	if p == nil || p.profiler == nil {
 		return nil
 	}

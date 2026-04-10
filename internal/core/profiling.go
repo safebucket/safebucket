@@ -2,14 +2,14 @@ package core
 
 import (
 	"github.com/safebucket/safebucket/internal/models"
-	"github.com/safebucket/safebucket/internal/tracing"
+	"github.com/safebucket/safebucket/internal/profiling"
 
 	"go.uber.org/zap"
 )
 
-func NewTracer(config models.TracingConfiguration, component string) tracing.ITracer {
+func NewProfiler(config models.ProfilingConfiguration, component string) profiling.IProfiler {
 	if !config.Enabled {
-		zap.L().Info("Tracing disabled")
+		zap.L().Info("Profiling disabled")
 		return nil
 	}
 
@@ -20,23 +20,23 @@ func NewTracer(config models.TracingConfiguration, component string) tracing.ITr
 		}
 		config.Pyroscope.Tags["component"] = component
 
-		tracer, err := tracing.NewPyroscopeTracer(*config.Pyroscope)
+		tracer, err := profiling.NewPyroscopeProfiler(*config.Pyroscope)
 		if err != nil {
 			zap.L().Error(
-				"Failed to initialize Pyroscope tracer, continuing without tracing",
+				"Failed to initialize Pyroscope profiler, continuing without profiling",
 				zap.Error(err),
 			)
 			return nil
 		}
 		zap.L().Info(
-			"Tracing enabled",
+			"Profiling enabled",
 			zap.String("type", config.Type),
 			zap.String("server", config.Pyroscope.ServerAddress),
 			zap.String("application", config.Pyroscope.ApplicationName),
 		)
 		return tracer
 	default:
-		zap.L().Warn("Unknown tracing type, tracing disabled", zap.String("type", config.Type))
+		zap.L().Warn("Unknown profiling type, profiling disabled", zap.String("type", config.Type))
 		return nil
 	}
 }

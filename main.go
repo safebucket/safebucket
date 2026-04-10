@@ -19,11 +19,11 @@ func main() {
 	config := configuration.Read()
 	core.NewLogger(config.App.LogLevel)
 
-	tracer := core.NewTracer(config.App.Tracing, config.App.Profile)
-	if tracer != nil {
+	profiler := core.NewProfiler(config.App.Profiling, config.App.Profile)
+	if profiler != nil {
 		defer func() {
-			if err := tracer.Stop(); err != nil {
-				zap.L().Error("Failed to stop tracer", zap.Error(err))
+			if err := profiler.Stop(); err != nil {
+				zap.L().Error("Failed to stop profiler", zap.Error(err))
 			}
 		}()
 	}

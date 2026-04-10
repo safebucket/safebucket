@@ -126,7 +126,7 @@ func loadDefaults(k *koanf.Koanf) {
 		"app.authenticated_requests_per_minute":   200,
 		"app.unauthenticated_requests_per_minute": 20,
 		"app.static_files.enabled":                true,
-		"app.tracing.enabled":                     false,
+		"app.profiling.enabled":                   false,
 
 		"database.type": ProviderPostgres,
 	}
@@ -158,9 +158,9 @@ func loadConditionalDefaults(k *koanf.Koanf) {
 		setIfMissing(k, "notifier.smtp.tls_mode", models.TLSModeStartTLS)
 		setIfMissing(k, "notifier.smtp.skip_verify_tls", false)
 	}
-	if k.String("app.tracing.type") == "pyroscope" {
-		setIfMissing(k, "app.tracing.pyroscope.application_name", "safebucket")
-		setIfMissing(k, "app.tracing.pyroscope.upload_rate", 15)
+	if k.String("app.profiling.type") == "pyroscope" {
+		setIfMissing(k, "app.profiling.pyroscope.application_name", AppName)
+		setIfMissing(k, "app.profiling.pyroscope.upload_rate", 15)
 	}
 }
 
