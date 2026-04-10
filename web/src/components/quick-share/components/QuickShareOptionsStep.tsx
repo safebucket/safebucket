@@ -55,7 +55,6 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
             />
           </div>
         </div>
-
       </div>
 
       <Separator />

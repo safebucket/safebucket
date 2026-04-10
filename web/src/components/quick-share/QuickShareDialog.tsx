@@ -188,7 +188,10 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent style={{ maxWidth: "640px" }} className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0">
+      <DialogContent
+        style={{ maxWidth: "640px" }}
+        className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0"
+      >
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="text-xl">
             {t("quick_share.title")}
