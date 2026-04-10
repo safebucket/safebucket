@@ -45,7 +45,8 @@ export interface IQuickShareForm {
   selectedFileIds: Array<string>;
   selectedFolderId: string | null;
   expiresAt: Date | undefined;
-  maxViews: number;
+  limitViews: boolean;
+  maxViews: number | "";
   allowUploads: boolean;
   maxUploadSize: number | "";
   maxUploads: number | "";
@@ -69,6 +70,7 @@ function getDefaultValues(
     selectedFolderId:
       initialItem && !isFile(initialItem) ? initialItem.id : null,
     expiresAt: undefined,
+    limitViews: false,
     maxViews: 1,
     allowUploads: false,
     maxUploadSize: 100,
@@ -95,6 +97,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   const scope = watch("scope");
   const selectedFileIds = watch("selectedFileIds");
   const selectedFolderId = watch("selectedFolderId");
+  const limitViews = watch("limitViews");
   const allowUploads = watch("allowUploads");
 
   const [step, setStep] = useState<Step>(1);
@@ -159,7 +162,10 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
       folder_id:
         values.scope === "folder" ? values.selectedFolderId : undefined,
       expires_at: values.expiresAt ? values.expiresAt.toISOString() : undefined,
-      max_views: values.maxViews,
+      max_views:
+        values.limitViews && values.maxViews
+          ? Number(values.maxViews)
+          : undefined,
       allow_upload: values.allowUploads,
       max_uploads:
         values.allowUploads && values.maxUploads
@@ -182,7 +188,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent style={{ maxWidth: "640px" }} className="gap-0 p-0">
+      <DialogContent style={{ maxWidth: "640px" }} className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="text-xl">
             {t("quick_share.title")}
@@ -196,7 +202,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
 
         <Separator />
 
-        <div className="p-6">
+        <div className="min-h-0 overflow-y-auto p-6">
           {step === 1 && (
             <QuickShareScopeStep
               scope={scope}
@@ -216,6 +222,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
             <QuickShareOptionsStep
               scope={scope}
               control={control}
+              limitViews={limitViews}
               allowUploads={allowUploads}
             />
           )}

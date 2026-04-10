@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { Upload } from "lucide-react";
+import { Eye, Upload } from "lucide-react";
 import { Controller } from "react-hook-form";
 import type { Control } from "react-hook-form";
 import type { FC } from "react";
@@ -16,12 +16,14 @@ import { Switch } from "@/components/ui/switch";
 interface IQuickShareOptionsStepProps {
   scope: ShareScope;
   control: Control<IQuickShareForm>;
+  limitViews: boolean;
   allowUploads: boolean;
 }
 
 export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
   scope,
   control,
+  limitViews,
   allowUploads,
 }) => {
   const { t } = useTranslation();
@@ -54,24 +56,51 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>{t("quick_share.max_views")}</Label>
-          <p className="text-muted-foreground text-xs">
-            {t("quick_share.max_views_description")}
-          </p>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Eye className="text-muted-foreground h-4 w-4" />
+              <Label>{t("quick_share.limit_views")}</Label>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              {t("quick_share.limit_views_description")}
+            </p>
+          </div>
           <Controller
-            name="maxViews"
+            name="limitViews"
             control={control}
             render={({ field: { onChange, value } }) => (
-              <Input
-                type="number"
-                min={1}
-                value={value}
-                onChange={(e) => onChange(Number(e.target.value))}
-              />
+              <Switch checked={value} onCheckedChange={onChange} />
             )}
           />
         </div>
+
+        {limitViews && (
+          <div className="space-y-2">
+            <Label>{t("quick_share.max_views")}</Label>
+            <Controller
+              name="maxViews"
+              control={control}
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  type="number"
+                  min={1}
+                  value={value}
+                  onChange={(e) =>
+                    onChange(
+                      e.target.value === "" ? "" : Number(e.target.value),
+                    )
+                  }
+                />
+              )}
+            />
+          </div>
+        )}
       </div>
 
       {scope !== "files" && (
