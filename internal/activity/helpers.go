@@ -38,46 +38,53 @@ func NewLogFilter(criteria map[string]string) models.LogFilter {
 func enrichLogWithMetadata(log map[string]interface{}) map[string]interface{} {
 	newLog := log
 
-	objectType, _ := log["object_type"].(string)
-	if objectData, exists := log["object"]; exists && objectData != nil {
-		if objectMap, isMap := objectData.(map[string]interface{}); isMap {
-			jsonBytes, _ := json.Marshal(objectMap)
+	objectData, exists := log["object"]
+	if !exists || objectData == nil {
+		return newLog
+	}
 
-			switch objectType {
-			case "bucket":
-				var bucket models.Bucket
-				if json.Unmarshal(jsonBytes, &bucket) == nil {
-					newLog["bucket"] = &bucket
-					delete(newLog, "bucket_id")
-				}
-			case "file":
-				var file models.File
-				if json.Unmarshal(jsonBytes, &file) == nil {
-					newLog["file"] = &file
-					delete(newLog, "file_id")
-				}
-			case "folder":
-				var folder models.Folder
-				if json.Unmarshal(jsonBytes, &folder) == nil {
-					newLog["folder"] = &folder
-					delete(newLog, "folder_id")
-				}
-			case "mfa_device":
-				var mfaDevice models.MFADeviceActivity
-				if json.Unmarshal(jsonBytes, &mfaDevice) == nil {
-					newLog["mfa_device"] = &mfaDevice
-					delete(newLog, "device_id")
-				}
-			case "share":
-				var share models.Share
-				if json.Unmarshal(jsonBytes, &share) == nil {
-					newLog["share"] = &share
-					delete(newLog, "share_id")
-				}
-			}
-			delete(newLog, "object")
+	objectMap, isMap := objectData.(map[string]interface{})
+	if !isMap {
+		return newLog
+	}
+
+	jsonBytes, _ := json.Marshal(objectMap)
+	objectType, _ := log["object_type"].(string)
+
+	switch objectType {
+	case "bucket":
+		var bucket models.Bucket
+		if json.Unmarshal(jsonBytes, &bucket) == nil {
+			newLog["bucket"] = &bucket
+			delete(newLog, "bucket_id")
+		}
+	case "file":
+		var file models.File
+		if json.Unmarshal(jsonBytes, &file) == nil {
+			newLog["file"] = &file
+			delete(newLog, "file_id")
+		}
+	case "folder":
+		var folder models.Folder
+		if json.Unmarshal(jsonBytes, &folder) == nil {
+			newLog["folder"] = &folder
+			delete(newLog, "folder_id")
+		}
+	case "mfa_device":
+		var mfaDevice models.MFADeviceActivity
+		if json.Unmarshal(jsonBytes, &mfaDevice) == nil {
+			newLog["mfa_device"] = &mfaDevice
+			delete(newLog, "device_id")
+		}
+	case "share":
+		var share models.Share
+		if json.Unmarshal(jsonBytes, &share) == nil {
+			newLog["share"] = &share
+			delete(newLog, "share_id")
 		}
 	}
+
+	delete(newLog, "object")
 
 	return newLog
 }
