@@ -34,10 +34,10 @@ func (m *MockCache) ZAdd(_ string, _ float64, _ string) error                { r
 func (m *MockCache) ZRangeByScoreWithScores(_ string, _ string, _ string) ([]cache.ZScoreEntry, error) {
 	return nil, nil
 }
-func (m *MockCache) ZScore(_ string, _ string) (float64, error)          { return 0, cache.ErrKeyNotFound }
-func (m *MockCache) ZRemRangeByScore(_ string, _ string, _ string) error { return nil }
+func (m *MockCache) ZScore(_ string, _ string) (float64, error)            { return 0, cache.ErrKeyNotFound }
+func (m *MockCache) ZRemRangeByScore(_ string, _ string, _ string) error   { return nil }
 func (m *MockCache) ScanKeys(_ string, _ int64, _ int64) ([]string, error) { return nil, nil }
-func (m *MockCache) Close()                                              {}
+func (m *MockCache) Close()                                                {}
 
 type MockNotifier struct {
 }
