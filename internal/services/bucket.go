@@ -420,8 +420,13 @@ func (s BucketService) GetActivity(
 
 	if len(bucketIDs) > 0 {
 		searchCriteria := map[string][]string{
-			"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String(), rbac.ResourceFolder.String()},
-			"bucket_id":   bucketIDs,
+			"object_type": {
+				rbac.ResourceBucket.String(),
+				rbac.ResourceFile.String(),
+				rbac.ResourceFolder.String(),
+				rbac.ResourceShare.String(),
+			},
+			"bucket_id": bucketIDs,
 		}
 
 		history, err := s.ActivityLogger.Search(searchCriteria)
@@ -451,8 +456,13 @@ func (s BucketService) GetBucketActivity(
 	}
 
 	searchCriteria := map[string][]string{
-		"object_type": {rbac.ResourceBucket.String(), rbac.ResourceFile.String(), rbac.ResourceFolder.String()},
-		"bucket_id":   {bucket.ID.String()},
+		"object_type": {
+			rbac.ResourceBucket.String(),
+			rbac.ResourceFile.String(),
+			rbac.ResourceFolder.String(),
+			rbac.ResourceShare.String(),
+		},
+		"bucket_id": {bucket.ID.String()},
 	}
 
 	history, err := s.ActivityLogger.Search(searchCriteria)

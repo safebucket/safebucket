@@ -19,10 +19,11 @@ import (
 
 var authorizedLabels = [2]string{"object_type", "action"}
 
-var authorizedObjects = [4]rbac.Resource{
+var authorizedObjects = [5]rbac.Resource{
 	rbac.ResourceBucket,
 	rbac.ResourceFile,
 	rbac.ResourceFolder,
+	rbac.ResourceShare,
 	rbac.ResourceMFADevice,
 }
 
@@ -156,6 +157,7 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 				"bucket_id":           result.Stream["bucket_id"],
 				"file_id":             result.Stream["file_id"],
 				"folder_id":           result.Stream["folder_id"],
+				"share_id":            result.Stream["share_id"],
 				"bucket_member_email": result.Stream["bucket_member_email"],
 				"timestamp":           log[0],
 			}

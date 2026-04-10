@@ -68,6 +68,12 @@ func enrichLogWithMetadata(log map[string]interface{}) map[string]interface{} {
 					newLog["mfa_device"] = &mfaDevice
 					delete(newLog, "device_id")
 				}
+			case "share":
+				var share models.Share
+				if json.Unmarshal(jsonBytes, &share) == nil {
+					newLog["share"] = &share
+					delete(newLog, "share_id")
+				}
 			}
 			delete(newLog, "object")
 		}

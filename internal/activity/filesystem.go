@@ -33,6 +33,7 @@ type FilesystemActivityEntry struct {
 	BucketID          string    `json:"bucket_id"`
 	FileID            string    `json:"file_id"`
 	FolderID          string    `json:"folder_id"`
+	ShareID           string    `json:"share_id"`
 	BucketMemberEmail string    `json:"bucket_member_email"`
 	Object            string    `json:"object"`
 }
@@ -108,6 +109,7 @@ func buildIndexMapping() *mapping.IndexMappingImpl {
 	docMapping.AddFieldMappingsAt("bucket_id", keywordMapping)
 	docMapping.AddFieldMappingsAt("file_id", keywordMapping)
 	docMapping.AddFieldMappingsAt("folder_id", keywordMapping)
+	docMapping.AddFieldMappingsAt("share_id", keywordMapping)
 	docMapping.AddFieldMappingsAt("bucket_member_email", keywordMapping)
 	docMapping.AddFieldMappingsAt("timestamp", dateMapping)
 	docMapping.AddFieldMappingsAt("message", textMapping)
@@ -272,6 +274,7 @@ func (c *FilesystemClient) Send(activity models.Activity) error {
 		BucketID:          activity.Filter.Fields["bucket_id"],
 		FileID:            activity.Filter.Fields["file_id"],
 		FolderID:          activity.Filter.Fields["folder_id"],
+		ShareID:           activity.Filter.Fields["share_id"],
 		BucketMemberEmail: activity.Filter.Fields["bucket_member_email"],
 		Object:            objectJSON,
 	}
@@ -314,6 +317,7 @@ func (c *FilesystemClient) Search(searchCriteria map[string][]string) ([]map[str
 		bucketID, _ := hit.Fields["bucket_id"].(string)
 		fileID, _ := hit.Fields["file_id"].(string)
 		folderID, _ := hit.Fields["folder_id"].(string)
+		shareID, _ := hit.Fields["share_id"].(string)
 		bucketMemberEmail, _ := hit.Fields["bucket_member_email"].(string)
 		message, _ := hit.Fields["message"].(string)
 
@@ -325,6 +329,7 @@ func (c *FilesystemClient) Search(searchCriteria map[string][]string) ([]map[str
 			"bucket_id":           bucketID,
 			"file_id":             fileID,
 			"folder_id":           folderID,
+			"share_id":            shareID,
 			"bucket_member_email": bucketMemberEmail,
 			"message":             message,
 		}
