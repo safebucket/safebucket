@@ -23,6 +23,7 @@ var ToEnrich = map[string]ToEnrichValue{
 	"bucket_id": {Name: "bucket", Object: models.Bucket{}},
 	"file_id":   {Name: "file", Object: models.File{}},
 	"folder_id": {Name: "folder", Object: models.Folder{}},
+	"share_id":  {Name: "share", Object: models.Share{}},
 }
 
 // NewLogFilter creates a LogFilter object with the specified criteria and the current timestamp in nanoseconds.

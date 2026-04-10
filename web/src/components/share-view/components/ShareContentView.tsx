@@ -117,7 +117,11 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
       />
 
       <div className="mx-auto w-full max-w-6xl flex-1 overflow-y-auto px-6 py-6">
-        {shareContent.allow_upload ? (
+        {shareContent.allow_upload &&
+        !(
+          shareContent.max_uploads !== null &&
+          shareContent.current_uploads >= shareContent.max_uploads
+        ) ? (
           <ShareUploadZone
             shareId={shareId}
             token={token}

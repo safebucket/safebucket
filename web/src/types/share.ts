@@ -35,6 +35,7 @@ export interface IShareCreateBody {
   folder_id?: string | null;
   expires_at?: string;
   max_views?: number;
+  password?: string;
   allow_upload: boolean;
   max_uploads?: number;
   max_upload_size?: number;
@@ -46,6 +47,8 @@ export interface IPublicShareResponse {
   type: ShareScope;
   allow_upload: boolean;
   max_upload_size: number | null;
+  max_uploads: number | null;
+  current_uploads: number;
   expires_at: string | null;
   max_views: number | null;
   current_views: number;

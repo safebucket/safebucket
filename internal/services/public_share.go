@@ -94,16 +94,18 @@ func (s PublicShareService) ListShareItems(
 	}
 
 	response := models.PublicShareResponse{
-		ID:            share.ID,
-		Name:          share.Name,
-		Type:          share.Type,
-		AllowUpload:   share.AllowUpload,
-		MaxUploadSize: share.MaxUploadSize,
-		ExpiresAt:     share.ExpiresAt,
-		MaxViews:      share.MaxViews,
-		CurrentViews:  share.CurrentViews + 1,
-		Files:         []models.File{},
-		Folders:       []models.Folder{},
+		ID:             share.ID,
+		Name:           share.Name,
+		Type:           share.Type,
+		AllowUpload:    share.AllowUpload,
+		MaxUploadSize:  share.MaxUploadSize,
+		MaxUploads:     share.MaxUploads,
+		CurrentUploads: share.CurrentUploads,
+		ExpiresAt:      share.ExpiresAt,
+		MaxViews:       share.MaxViews,
+		CurrentViews:   share.CurrentViews + 1,
+		Files:          []models.File{},
+		Folders:        []models.Folder{},
 	}
 
 	now := time.Now()

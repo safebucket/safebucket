@@ -44,9 +44,12 @@ export interface IQuickShareForm {
   scope: ShareScope;
   selectedFileIds: Array<string>;
   selectedFolderId: string | null;
+  hasExpiry: boolean;
   expiresAt: Date | undefined;
   limitViews: boolean;
   maxViews: number | "";
+  passwordProtected: boolean;
+  password: string;
   allowUploads: boolean;
   maxUploadSize: number | "";
   maxUploads: number | "";
@@ -69,9 +72,12 @@ function getDefaultValues(
     selectedFileIds: initialItem && isFile(initialItem) ? [initialItem.id] : [],
     selectedFolderId:
       initialItem && !isFile(initialItem) ? initialItem.id : null,
+    hasExpiry: false,
     expiresAt: undefined,
     limitViews: false,
     maxViews: 1,
+    passwordProtected: false,
+    password: "",
     allowUploads: false,
     maxUploadSize: 100,
     maxUploads: 1,
@@ -97,7 +103,9 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   const scope = watch("scope");
   const selectedFileIds = watch("selectedFileIds");
   const selectedFolderId = watch("selectedFolderId");
+  const hasExpiry = watch("hasExpiry");
   const limitViews = watch("limitViews");
+  const passwordProtected = watch("passwordProtected");
   const allowUploads = watch("allowUploads");
 
   const [step, setStep] = useState<Step>(1);
@@ -161,10 +169,17 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
       file_ids: values.scope === "files" ? values.selectedFileIds : undefined,
       folder_id:
         values.scope === "folder" ? values.selectedFolderId : undefined,
-      expires_at: values.expiresAt ? values.expiresAt.toISOString() : undefined,
+      expires_at:
+        values.hasExpiry && values.expiresAt
+          ? values.expiresAt.toISOString()
+          : undefined,
       max_views:
         values.limitViews && values.maxViews
           ? Number(values.maxViews)
+          : undefined,
+      password:
+        values.passwordProtected && values.password
+          ? values.password
           : undefined,
       allow_upload: values.allowUploads,
       max_uploads:
@@ -225,7 +240,9 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
             <QuickShareOptionsStep
               scope={scope}
               control={control}
+              hasExpiry={hasExpiry}
               limitViews={limitViews}
+              passwordProtected={passwordProtected}
               allowUploads={allowUploads}
             />
           )}

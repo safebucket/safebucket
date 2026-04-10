@@ -25,6 +25,11 @@ export const ShareHeader: FC<IShareHeaderProps> = ({
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const uploadsExhausted =
+    shareContent.allow_upload &&
+    shareContent.max_uploads !== null &&
+    shareContent.current_uploads >= shareContent.max_uploads;
+
   const viewsText = shareContent.max_views
     ? t("share_consumer.views", {
         current: shareContent.current_views,
@@ -72,7 +77,7 @@ export const ShareHeader: FC<IShareHeaderProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {shareContent.allow_upload && (
+            {shareContent.allow_upload && !uploadsExhausted && (
               <>
                 <input
                   ref={fileInputRef}

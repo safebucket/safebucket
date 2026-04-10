@@ -42,7 +42,8 @@ export const formatMessage = (
     .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
     .replace("%%FILE_NAME%%", log.file?.name || "")
     .replace("%%FOLDER_NAME%%", log.folder?.name || "")
-    .replace("%%BUCKET_MEMBER_EMAIL%%", log.bucket_member_email || "");
+    .replace("%%BUCKET_MEMBER_EMAIL%%", log.bucket_member_email || "")
+    .replace("%%SHARE_NAME%%", log.share?.name || "");
 };
 
 export const timeAgo = (

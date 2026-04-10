@@ -27,6 +27,7 @@ export interface IActivity {
   folder_id?: string;
   folder?: IFolder;
   share_id?: string;
+  share?: { id: string; name: string };
   timestamp: string;
   message: ActivityMessage;
   bucket_member_email?: string;
