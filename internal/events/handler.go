@@ -121,15 +121,27 @@ func handleUploadEvents(
 			continue
 		}
 
+		db.Model(&file).Update("status", models.FileStatusUploaded)
+
 		userUUID, err := uuid.Parse(event.UserID)
 		if err != nil {
-			zap.L().Error("user id should be a valid UUID", zap.String("userID", event.UserID))
+			if err2 := activityLogger.Send(models.Activity{
+				Message: activity.ShareFileUploaded,
+				Object:  file.ToActivity(),
+				Filter: activity.NewLogFilter(map[string]string{
+					"action":      rbac.ActionCreate.String(),
+					"object_type": rbac.ResourceFile.String(),
+					"file_id":     event.FileID,
+					"bucket_id":   event.BucketID,
+					"share_id":    event.ShareID,
+				}),
+			}); err2 != nil {
+				zap.L().Error("failed to send activity", zap.Error(err))
+			}
 			continue
 		}
 
-		db.Model(&file).Update("status", models.FileStatusUploaded)
-
-		action := models.Activity{
+		if err2 := activityLogger.Send(models.Activity{
 			Message: activity.FileUploaded,
 			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
@@ -139,10 +151,7 @@ func handleUploadEvents(
 				"bucket_id":   event.BucketID,
 				"user_id":     event.UserID,
 			}),
-		}
-
-		err = activityLogger.Send(action)
-		if err != nil {
+		}); err2 != nil {
 			zap.L().Error("failed to send activity", zap.Error(err))
 		}
 

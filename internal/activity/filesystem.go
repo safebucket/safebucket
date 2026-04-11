@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const schemaVersion = "1"
+const schemaVersion = "2"
 
 var schemaVersionKey = []byte("schema_version")
 

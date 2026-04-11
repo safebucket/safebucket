@@ -66,13 +66,15 @@ func (p *AWSEventParser) ParseBucketUploadEvents(msg *message.Message) []BucketU
 		bucketID := metadata["bucket_id"]
 		fileID := metadata["file_id"]
 		userID := metadata["user_id"]
+		shareID := metadata["share_id"]
 
-		if bucketID == "" || fileID == "" || userID == "" {
+		if bucketID == "" || fileID == "" || (userID == "" && shareID == "") {
 			zap.L().Warn("incomplete metadata in object",
 				zap.String("object_key", record.S3.Object.Key),
 				zap.String("bucket_id", bucketID),
 				zap.String("file_id", fileID),
-				zap.String("user_id", userID))
+				zap.String("user_id", userID),
+				zap.String("share_id", shareID))
 			continue
 		}
 
@@ -80,6 +82,7 @@ func (p *AWSEventParser) ParseBucketUploadEvents(msg *message.Message) []BucketU
 			BucketID: bucketID,
 			FileID:   fileID,
 			UserID:   userID,
+			ShareID:  shareID,
 		})
 	}
 

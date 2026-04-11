@@ -283,20 +283,6 @@ func (s PublicShareService) UploadShareFile(
 			return apierrors.NewAPIError(403, "SHARE_MAX_UPLOADS_REACHED")
 		}
 
-		if activityErr := s.ActivityLogger.Send(models.Activity{
-			Message: activity.ShareFileUploaded,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionCreate.String(),
-				"object_type": rbac.ResourceFile.String(),
-				"bucket_id":   share.BucketID.String(),
-				"file_id":     file.ID.String(),
-				"share_id":    share.ID.String(),
-			}),
-		}); activityErr != nil {
-			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))
-		}
-
 		return nil
 	})
 
@@ -353,6 +339,20 @@ func (s PublicShareService) ConfirmShareUpload(
 		if txErr := tx.Model(&file).Update("status", models.FileStatusUploaded).Error; txErr != nil {
 			logger.Error("Failed to update file status", zap.Error(txErr))
 			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		}
+
+		if activityErr := s.ActivityLogger.Send(models.Activity{
+			Message: activity.ShareFileUploaded,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(map[string]string{
+				"action":      rbac.ActionCreate.String(),
+				"object_type": rbac.ResourceFile.String(),
+				"bucket_id":   share.BucketID.String(),
+				"file_id":     file.ID.String(),
+				"share_id":    share.ID.String(),
+			}),
+		}); activityErr != nil {
+			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))
 		}
 
 		return nil

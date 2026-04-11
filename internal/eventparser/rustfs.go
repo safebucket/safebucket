@@ -69,11 +69,13 @@ func (p *RustFSEventParser) ParseBucketUploadEvents(msg *message.Message) []Buck
 		bucketID := metadata["bucket-id"]
 		fileID := metadata["file-id"]
 		userID := metadata["user-id"]
+		shareID := metadata["share-id"]
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
 			BucketID: bucketID,
 			FileID:   fileID,
 			UserID:   userID,
+			ShareID:  shareID,
 		})
 	}
 

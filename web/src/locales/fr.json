@@ -335,6 +335,10 @@
       "bucket_member_deleted": "A retiré %%BUCKET_MEMBER_EMAIL%% du bucket '%%BUCKET_NAME%%'.",
       "share_file_downloaded": "Un fichier '%%FILE_NAME%%' a été téléchargé via le lien de partage '%%SHARE_NAME%%' sur le bucket '%%BUCKET_NAME%%'.",
       "share_file_uploaded": "Un fichier '%%FILE_NAME%%' a été uploadé via le lien de partage '%%SHARE_NAME%%' sur le bucket '%%BUCKET_NAME%%'.",
+      "share_created": "A créé le lien de partage '%%SHARE_NAME%%' sur le bucket '%%BUCKET_NAME%%'.",
+      "share_deleted": "A supprimé le lien de partage '%%SHARE_NAME%%' sur le bucket '%%BUCKET_NAME%%'.",
+      "share_expired": "Le lien de partage '%%SHARE_NAME%%' a expiré sur le bucket '%%BUCKET_NAME%%'.",
+      "share_max_views_reached": "Le lien de partage '%%SHARE_NAME%%' a atteint le nombre maximum de vues sur le bucket '%%BUCKET_NAME%%'.",
       "default": "%%USERNAME%% a effectué une action sur le bucket '%%BUCKET_NAME%%'."
     },
     "time": {

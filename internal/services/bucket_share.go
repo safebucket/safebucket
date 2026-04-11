@@ -110,7 +110,7 @@ func (s BucketShareService) CreateShare(
 		}
 
 		if err := s.ActivityLogger.Send(models.Activity{
-			Message: activity.ShareLinkCreated,
+			Message: activity.ShareCreated,
 			Object:  share.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionCreate.String(),
@@ -180,7 +180,7 @@ func (s BucketShareService) DeleteShare(
 		}
 
 		err := s.ActivityLogger.Send(models.Activity{
-			Message: activity.ShareLinkDeleted,
+			Message: activity.ShareDeleted,
 			Object:  share.ToActivity(),
 			Filter: activity.NewLogFilter(map[string]string{
 				"action":      rbac.ActionDelete.String(),

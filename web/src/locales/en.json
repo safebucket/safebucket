@@ -335,6 +335,10 @@
       "bucket_member_deleted": "Removed %%BUCKET_MEMBER_EMAIL%% from the bucket '%%BUCKET_NAME%%'.",
       "share_file_downloaded": "A file '%%FILE_NAME%%' was downloaded via share link '%%SHARE_NAME%%' on bucket '%%BUCKET_NAME%%'.",
       "share_file_uploaded": "A file '%%FILE_NAME%%' was uploaded via share link '%%SHARE_NAME%%' on bucket '%%BUCKET_NAME%%'.",
+      "share_created": "Created share link '%%SHARE_NAME%%' on bucket '%%BUCKET_NAME%%'.",
+      "share_deleted": "Deleted share link '%%SHARE_NAME%%' on bucket '%%BUCKET_NAME%%'.",
+      "share_expired": "Share link '%%SHARE_NAME%%' expired on bucket '%%BUCKET_NAME%%'.",
+      "share_max_views_reached": "Share link '%%SHARE_NAME%%' reached max views on bucket '%%BUCKET_NAME%%'.",
       "default": "%%USERNAME%% performed an action on bucket '%%BUCKET_NAME%%'."
     },
     "time": {

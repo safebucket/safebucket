@@ -69,11 +69,13 @@ func (p *MinIOEventParser) ParseBucketUploadEvents(msg *message.Message) []Bucke
 		bucketID := metadata["X-Amz-Meta-Bucket-Id"]
 		fileID := metadata["X-Amz-Meta-File-Id"]
 		userID := metadata["X-Amz-Meta-User-Id"]
+		shareID := metadata["X-Amz-Meta-Share-Id"]
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
 			BucketID: bucketID,
 			FileID:   fileID,
 			UserID:   userID,
+			ShareID:  shareID,
 		})
 	}
 
