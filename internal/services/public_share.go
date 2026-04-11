@@ -7,8 +7,10 @@ import (
 
 	"github.com/safebucket/safebucket/internal/activity"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
+	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
@@ -26,6 +28,7 @@ type PublicShareService struct {
 	DB             *gorm.DB
 	Storage        storage.IStorage
 	ActivityLogger activity.IActivityLogger
+	Publisher      messaging.IPublisher
 	JWTSecret      string
 }
 
@@ -353,6 +356,18 @@ func (s PublicShareService) ConfirmShareUpload(
 			}),
 		}); activityErr != nil {
 			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))
+		}
+
+		var bucket models.Bucket
+		if dbErr := tx.Where("id = ?", share.BucketID).First(&bucket).Error; dbErr == nil {
+			var user models.User
+			if dbErr = tx.Where("id = ?", share.CreatedBy).First(&user).Error; dbErr == nil {
+				evt := events.NewFileActivityNotification(
+					s.Publisher, events.FileActivityUpload, events.FileActivitySourceShare,
+					share.BucketID, bucket.Name, file.Name, share.CreatedBy, user.Email,
+				)
+				evt.Trigger()
+			}
 		}
 
 		return nil

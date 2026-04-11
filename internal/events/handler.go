@@ -123,9 +123,18 @@ func handleUploadEvents(
 
 		db.Model(&file).Update("status", models.FileStatusUploaded)
 
-		userUUID, err := uuid.Parse(event.UserID)
-		if err != nil {
-			if err2 := activityLogger.Send(models.Activity{
+		var bucket models.Bucket
+		if err = db.Where("id = ?", bucketUUID).First(&bucket).Error; err != nil {
+			continue
+		}
+
+		if event.ShareID != "" {
+			shareUUID, parseErr := uuid.Parse(event.ShareID)
+			if parseErr != nil {
+				zap.L().Error("share id should be a valid UUID", zap.String("shareID", event.ShareID))
+				continue
+			}
+			if err = activityLogger.Send(models.Activity{
 				Message: activity.ShareFileUploaded,
 				Object:  file.ToActivity(),
 				Filter: activity.NewLogFilter(map[string]string{
@@ -133,42 +142,59 @@ func handleUploadEvents(
 					"object_type": rbac.ResourceFile.String(),
 					"file_id":     event.FileID,
 					"bucket_id":   event.BucketID,
-					"share_id":    event.ShareID,
+					"share_id":    shareUUID.String(),
 				}),
-			}); err2 != nil {
-				zap.L().Error("failed to send activity", zap.Error(err2))
+			}); err != nil {
+				zap.L().Error("failed to send activity", zap.Error(err))
 			}
-			continue
-		}
 
-		if err2 := activityLogger.Send(models.Activity{
-			Message: activity.FileUploaded,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionCreate.String(),
-				"object_type": rbac.ResourceFile.String(),
-				"file_id":     event.FileID,
-				"bucket_id":   event.BucketID,
-				"user_id":     event.UserID,
-			}),
-		}); err2 != nil {
-			zap.L().Error("failed to send activity", zap.Error(err2))
-		}
+			var share models.Share
+			if err = db.Where("id = ?", shareUUID).First(&share).Error; err != nil {
+				continue
+			}
 
-		var bucket models.Bucket
-		if err = db.Where("id = ?", bucketUUID).First(&bucket).Error; err != nil {
-			continue
-		}
+			var user models.User
+			if err = db.Where("id = ?", share.CreatedBy).First(&user).Error; err != nil {
+				continue
+			}
 
-		var user models.User
-		if err = db.Where("id = ?", userUUID).First(&user).Error; err != nil {
-			continue
-		}
+			evt := NewFileActivityNotification(
+				publisher, FileActivityUpload, FileActivitySourceShare,
+				bucketUUID, bucket.Name, file.Name, share.CreatedBy, user.Email,
+			)
+			evt.Trigger()
+		} else {
+			userUUID, parseErr := uuid.Parse(event.UserID)
+			if parseErr != nil {
+				zap.L().Error("user id should be a valid UUID", zap.String("userID", event.UserID))
+				continue
+			}
 
-		evt := NewFileActivityNotification(
-			publisher, FileActivityUpload, bucketUUID, bucket.Name, file.Name, userUUID, user.Email,
-		)
-		evt.Trigger()
+			if err = activityLogger.Send(models.Activity{
+				Message: activity.FileUploaded,
+				Object:  file.ToActivity(),
+				Filter: activity.NewLogFilter(map[string]string{
+					"action":      rbac.ActionCreate.String(),
+					"object_type": rbac.ResourceFile.String(),
+					"file_id":     event.FileID,
+					"bucket_id":   event.BucketID,
+					"user_id":     event.UserID,
+				}),
+			}); err != nil {
+				zap.L().Error("failed to send activity", zap.Error(err))
+			}
+
+			var user models.User
+			if err = db.Where("id = ?", userUUID).First(&user).Error; err != nil {
+				continue
+			}
+
+			evt := NewFileActivityNotification(
+				publisher, FileActivityUpload, FileActivitySourceUser,
+				bucketUUID, bucket.Name, file.Name, userUUID, user.Email,
+			)
+			evt.Trigger()
+		}
 	}
 }
 

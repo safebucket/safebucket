@@ -18,14 +18,15 @@ import (
 // batchMeta holds the metadata for a notification batch, stored as JSON in cache.
 // ActionText is computed at flush time and excluded from serialization.
 type batchMeta struct {
-	RecipientEmail   string    `json:"recipient_email"`
-	ActorEmail       string    `json:"actor_email"`
-	BucketID         uuid.UUID `json:"bucket_id"`
-	BucketName       string    `json:"bucket_name"`
-	NotificationType string    `json:"notification_type"`
-	WebURL           string    `json:"web_url"`
-	FirstFileName    string    `json:"first_file_name"`
-	ActionText       string    `json:"-"`
+	RecipientEmail   string             `json:"recipient_email"`
+	ActorEmail       string             `json:"actor_email"`
+	BucketID         uuid.UUID          `json:"bucket_id"`
+	BucketName       string             `json:"bucket_name"`
+	NotificationType string             `json:"notification_type"`
+	Source           FileActivitySource `json:"source"`
+	WebURL           string             `json:"web_url"`
+	FirstFileName    string             `json:"first_file_name"`
+	ActionText       string             `json:"-"`
 }
 
 func batchGroupKey(recipientEmail string, bucketID uuid.UUID, actorEmail string, activityType FileActivityType) string {
@@ -111,6 +112,17 @@ func flushBuffer(c cache.ICache, n notifier.INotifier, groupKey string) error {
 }
 
 func composeBatchEmail(meta batchMeta, count int64, firstName string) (string, string) {
+	switch meta.Source {
+	case FileActivitySourceShare:
+		return composeShareBatchEmail(meta, count)
+	case FileActivitySourceUser:
+		return composeUserBatchEmail(meta, count, firstName)
+	default:
+		return composeUserBatchEmail(meta, count, firstName)
+	}
+}
+
+func composeUserBatchEmail(meta batchMeta, count int64, firstName string) (string, string) {
 	var verb, preposition string
 	if meta.NotificationType == string(FileActivityUpload) {
 		verb = "uploaded"
@@ -136,6 +148,39 @@ func composeBatchEmail(meta batchMeta, count int64, firstName string) (string, s
 	)
 	subject := fmt.Sprintf("%s %s %d files %s %s",
 		meta.ActorEmail, verb, count, preposition, meta.BucketName)
+	return actionText, subject
+}
+
+func composeShareBatchEmail(meta batchMeta, count int64) (string, string) {
+	var verb, preposition string
+	if meta.NotificationType == string(FileActivityUpload) {
+		verb = "uploaded"
+		preposition = "to"
+	} else {
+		verb = "downloaded"
+		preposition = "from"
+	}
+
+	if count == 1 {
+		actionText := fmt.Sprintf(
+			"A file was %s via sharing link %s bucket \"%s\" (link created by %s).",
+			verb, preposition, meta.BucketName, meta.ActorEmail,
+		)
+		subject := fmt.Sprintf(
+			"A file was %s via sharing link %s %s",
+			verb, preposition, meta.BucketName,
+		)
+		return actionText, subject
+	}
+
+	actionText := fmt.Sprintf(
+		"%d files were %s via sharing link %s bucket \"%s\" (link created by %s).",
+		count, verb, preposition, meta.BucketName, meta.ActorEmail,
+	)
+	subject := fmt.Sprintf(
+		"%d files were %s via sharing link %s %s",
+		count, verb, preposition, meta.BucketName,
+	)
 	return actionText, subject
 }
 

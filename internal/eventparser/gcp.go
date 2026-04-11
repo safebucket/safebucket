@@ -37,6 +37,15 @@ func (p *GCPEventParser) ParseBucketUploadEvents(msg *message.Message) []BucketU
 		userID := event.Metadata["user-id"]
 		shareID := event.Metadata["share-id"]
 
+		if bucketID == "" || fileID == "" || (userID == "" && shareID == "") {
+			zap.L().Warn("incomplete metadata in object",
+				zap.String("bucket_id", bucketID),
+				zap.String("file_id", fileID),
+				zap.String("user_id", userID),
+				zap.String("share_id", shareID))
+			return uploadEvents
+		}
+
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
 			BucketID: bucketID,
 			FileID:   fileID,
