@@ -169,6 +169,7 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
                     type={showPassword ? "text" : "password"}
                     value={value}
                     onChange={onChange}
+                    minLength={8}
                     placeholder={t("quick_share.password_placeholder")}
                     className="pr-10"
                   />
