@@ -120,6 +120,7 @@ func (s *GenericS3Storage) PresignedPostPolicy(
 	_ = policy.SetUserMetadata("Bucket-Id", metadata["bucket_id"])
 	_ = policy.SetUserMetadata("File-Id", metadata["file_id"])
 	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
+	_ = policy.SetUserMetadata("Share-Id", metadata["share_id"])
 
 	presignedURL, formData, err := s.storage.PresignedPostPolicy(context.Background(), policy)
 	if err != nil {
