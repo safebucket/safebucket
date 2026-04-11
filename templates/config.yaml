@@ -29,6 +29,13 @@ app:
   mfa_encryption_key: "ChangeMe32CharacterKeyForAES256!"
   mfa_required: false
   max_upload_size: 53687091200 # 50 Gb
+  tracing:
+    enabled: true
+    type: tempo
+    tempo:
+      endpoint: http://localhost:4318
+      service_name: safebucket
+      sampling_rate: 1.0
 
 database:
   type: postgres
@@ -124,3 +131,23 @@ activity:
 #   type: loki
 #   loki:
 #     endpoint: http://localhost:3100
+
+# Profiling (requires debug docker profile)
+# app:
+#   profiling:
+#     enabled: true
+#     type: pyroscope
+#     pyroscope:
+#       server_address: http://localhost:4040
+#       application_name: safebucket
+
+# Tracing (requires debug docker profile)
+# app:
+#   tracing:
+#     enabled: true
+#     type: tempo
+#     tempo:
+#       endpoint: http://localhost:4318
+#       service_name: safebucket
+#       sampling_rate: 1.0
+

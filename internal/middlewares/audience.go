@@ -18,6 +18,10 @@ import (
 // 3. For all other routes, require the full access token audience ("app:*").
 func AudienceValidate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := startSpan(r.Context(), "AudienceValidate")
+		defer span.End()
+		r = r.WithContext(ctx)
+
 		// Skip if auth was excluded (context set by Authenticate)
 		if excluded, _ := r.Context().Value(AuthExcludedKey{}).(bool); excluded {
 			next.ServeHTTP(w, r)
@@ -27,6 +31,7 @@ func AudienceValidate(next http.Handler) http.Handler {
 		claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 		if !ok {
 			// No claims means auth middleware didn't set them (shouldn't happen if middleware order is correct)
+			spanReject(span, "FORBIDDEN")
 			helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
 			return
 		}
@@ -37,11 +42,13 @@ func AudienceValidate(next http.Handler) http.Handler {
 
 		if allowedAudiences != nil {
 			if !isAudienceInList(tokenAudience, allowedAudiences) {
+				spanReject(span, "FORBIDDEN")
 				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
 				return
 			}
 		} else {
 			if tokenAudience != configuration.AudienceAccessToken {
+				spanReject(span, "FORBIDDEN")
 				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
 				return
 			}

@@ -86,11 +86,16 @@ func RateLimit(
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
+			ctx, span := startSpan(r.Context(), "RateLimit")
+			defer span.End()
+			r = r.WithContext(ctx)
+
 			claims, err := helpers.GetUserClaims(r.Context())
 			if err != nil {
 				ipAddress, err2 := getClientIP(r, trustedProxies)
 				if err2 != nil {
 					zap.L().Error("error", zap.Error(err))
+					spanReject(span, "INTERNAL_SERVER_ERROR")
 					helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
 					return
 				}

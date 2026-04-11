@@ -22,6 +22,9 @@ func main() {
 	profile, stopProfiler := core.StartProfiler(config)
 	defer stopProfiler()
 
+	stopTracer := core.StartTracer(config)
+	defer stopTracer()
+
 	db := core.NewDatabase(config.Database)
 	if sqlDB, err := db.DB(); err == nil {
 		defer sqlDB.Close()

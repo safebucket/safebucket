@@ -50,6 +50,19 @@ type PyroscopeConfiguration struct {
 	Tags            map[string]string `mapstructure:"tags"`
 }
 
+type TracingConfiguration struct {
+	Enabled bool                `mapstructure:"enabled"`
+	Type    string              `mapstructure:"type"  validate:"required_if=Enabled true,omitempty,oneof=tempo"`
+	Tempo   *TempoConfiguration `mapstructure:"tempo" validate:"required_if=Type tempo"`
+}
+
+type TempoConfiguration struct {
+	Endpoint     string            `mapstructure:"endpoint"      validate:"required,http_url"`
+	ServiceName  string            `mapstructure:"service_name"  validate:"required"`
+	SamplingRate float64           `mapstructure:"sampling_rate" validate:"gte=0,lte=1"`
+	Tags         map[string]string `mapstructure:"tags"`
+}
+
 type DatabaseConfiguration struct {
 	Type     string                  `mapstructure:"type"     validate:"required,oneof=postgres sqlite"`
 	Postgres *PostgresDatabaseConfig `mapstructure:"postgres" validate:"required_if=Type postgres"`

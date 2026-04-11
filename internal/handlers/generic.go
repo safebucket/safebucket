@@ -3,13 +3,20 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"reflect"
+	"runtime"
+	"strings"
 
+	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -23,8 +30,28 @@ type (
 	DeleteTargetFunc                          func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
 )
 
+// spanName extracts a readable "ServiceName.methodName" from a function pointer via reflection.
+func spanName(fn any) string {
+	full := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+	parts := strings.Split(full, ".")
+	if len(parts) < 2 {
+		return full
+	}
+	method := strings.TrimSuffix(parts[len(parts)-1], "-fm")
+	return parts[len(parts)-2] + "." + method
+}
+
+func recordError(span trace.Span, err error) {
+	span.RecordError(err)
+	span.SetStatus(codes.Error, err.Error())
+}
+
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
+	name := spanName(create)
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := otel.Tracer(configuration.AppName).Start(r.Context(), name)
+		defer span.End()
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -41,8 +68,8 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 
 		resp, err := create(logger, claims, ids, body)
 		if err != nil {
-			strErrors := []string{err.Error()}
-			h.RespondWithError(w, http.StatusBadRequest, strErrors)
+			recordError(span, err)
+			h.RespondWithError(w, http.StatusBadRequest, []string{err.Error()})
 		} else {
 			h.RespondWithJSON(w, http.StatusCreated, resp)
 		}
@@ -50,7 +77,11 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 }
 
 func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
+	name := spanName(getList)
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := otel.Tracer(configuration.AppName).Start(r.Context(), name)
+		defer span.End()
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -65,7 +96,11 @@ func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 }
 
 func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
+	name := spanName(getOne)
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := otel.Tracer(configuration.AppName).Start(r.Context(), name)
+		defer span.End()
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -75,8 +110,8 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 		logger := m.GetLogger(r)
 		record, err := getOne(logger, claims, ids)
 		if err != nil {
-			strErrors := []string{err.Error()}
-			h.RespondWithError(w, http.StatusNotFound, strErrors)
+			recordError(span, err)
+			h.RespondWithError(w, http.StatusNotFound, []string{err.Error()})
 		} else {
 			h.RespondWithJSON(w, http.StatusOK, record)
 		}
@@ -84,7 +119,11 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 }
 
 func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, Out]) http.HandlerFunc {
+	name := spanName(getOne)
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := otel.Tracer(configuration.AppName).Start(r.Context(), name)
+		defer span.End()
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -102,8 +141,8 @@ func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, 
 
 		record, err := getOne(logger, claims, ids, query)
 		if err != nil {
-			strErrors := []string{err.Error()}
-			h.RespondWithError(w, http.StatusNotFound, strErrors)
+			recordError(span, err)
+			h.RespondWithError(w, http.StatusNotFound, []string{err.Error()})
 		} else {
 			h.RespondWithJSON(w, http.StatusOK, record)
 		}
@@ -111,7 +150,11 @@ func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, 
 }
 
 func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
+	name := spanName(handler)
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := otel.Tracer(configuration.AppName).Start(r.Context(), name)
+		defer span.End()
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -129,6 +172,7 @@ func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
 
 		err := handler(logger, claims, ids, body)
 		if err != nil {
+			recordError(span, err)
 			strErrors := []string{err.Error()}
 
 			var apiErr *apierrors.APIError
@@ -144,7 +188,11 @@ func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
 }
 
 func DeleteHandler(del DeleteTargetFunc) http.HandlerFunc {
+	name := spanName(del)
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := otel.Tracer(configuration.AppName).Start(r.Context(), name)
+		defer span.End()
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -154,8 +202,8 @@ func DeleteHandler(del DeleteTargetFunc) http.HandlerFunc {
 		logger := m.GetLogger(r)
 		err := del(logger, claims, ids)
 		if err != nil {
-			strErrors := []string{err.Error()}
-			h.RespondWithError(w, http.StatusNotFound, strErrors)
+			recordError(span, err)
+			h.RespondWithError(w, http.StatusNotFound, []string{err.Error()})
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 		}

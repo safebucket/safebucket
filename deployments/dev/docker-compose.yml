@@ -166,6 +166,25 @@ services:
       retries: 5
       start_period: 10s
 
+  tempo:
+    container_name: tempo
+    profiles: [ debug ]
+    image: grafana/tempo:2.10.3
+    command: [ "-config.file=/etc/tempo/config.yaml" ]
+    ports:
+      - "3201:3200"
+      - "4318:4318"
+    volumes:
+      - ./config/tempo.yaml:/etc/tempo/config.yaml
+      - tempo_data:/var/tempo
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/ready" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   grafana:
     container_name: grafana
     profiles: [ debug ]
@@ -194,6 +213,10 @@ services:
             type: grafana-pyroscope-datasource
             access: proxy
             url: http://pyroscope:4040
+          - name: Tempo
+            type: tempo
+            access: proxy
+            url: http://tempo:3200
         EOF
         /run.sh
     ports:
@@ -211,3 +234,4 @@ volumes:
   mail_data:
   valkey_data:
   nats_data:
+  tempo_data:

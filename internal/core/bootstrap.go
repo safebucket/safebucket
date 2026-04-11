@@ -24,6 +24,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -40,6 +41,20 @@ func StartProfiler(config models.Configuration) (models.Profile, func()) {
 	}
 	profile := configuration.GetProfile(config.App.Profile)
 	return profile, cleanup
+}
+
+func StartTracer(config models.Configuration) func() {
+	tracer := NewTracer(config.App.Tracing)
+	if tracer == nil {
+		return func() {}
+	}
+	return func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := tracer.Shutdown(ctx); err != nil {
+			zap.L().Error("Failed to stop tracer", zap.Error(err))
+		}
+	}
 }
 
 func CreateAdminUser(db *gorm.DB, config models.Configuration) {
@@ -242,6 +257,10 @@ func StartHTTPServer(
 	m.InitValidator(config.App.MaxUploadSize)
 
 	r := chi.NewRouter()
+
+	if config.App.Tracing.Enabled {
+		r.Use(otelhttp.NewMiddleware(configuration.AppName))
+	}
 
 	r.Use(middleware.Timeout(5 * time.Second))
 	r.Use(m.Logger)

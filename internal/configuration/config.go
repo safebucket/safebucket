@@ -127,6 +127,7 @@ func loadDefaults(k *koanf.Koanf) {
 		"app.unauthenticated_requests_per_minute": 20,
 		"app.static_files.enabled":                true,
 		"profiling.enabled":                       false,
+		"app.tracing.enabled":                     false,
 
 		"database.type": ProviderPostgres,
 	}
@@ -167,6 +168,10 @@ func loadConditionalDefaults(k *koanf.Koanf) {
 	if k.String("profiling.type") == "pyroscope" {
 		setIfMissing(k, "profiling.pyroscope.application_name", AppName)
 		setIfMissing(k, "profiling.pyroscope.upload_rate", 15)
+	}
+	if k.String("app.tracing.type") == "tempo" {
+		setIfMissing(k, "app.tracing.tempo.service_name", AppName)
+		setIfMissing(k, "app.tracing.tempo.sampling_rate", 1.0)
 	}
 }
 
