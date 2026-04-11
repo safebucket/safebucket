@@ -136,7 +136,7 @@ func handleUploadEvents(
 					"share_id":    event.ShareID,
 				}),
 			}); err2 != nil {
-				zap.L().Error("failed to send activity", zap.Error(err))
+				zap.L().Error("failed to send activity", zap.Error(err2))
 			}
 			continue
 		}
@@ -152,7 +152,7 @@ func handleUploadEvents(
 				"user_id":     event.UserID,
 			}),
 		}); err2 != nil {
-			zap.L().Error("failed to send activity", zap.Error(err))
+			zap.L().Error("failed to send activity", zap.Error(err2))
 		}
 
 		var bucket models.Bucket
