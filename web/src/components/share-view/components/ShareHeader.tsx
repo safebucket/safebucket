@@ -50,74 +50,79 @@ export const ShareHeader: FC<IShareHeaderProps> = ({
   return (
     <div className="border-b bg-background">
       <div className="mx-auto max-w-6xl px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold md:text-2xl">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h1 className="min-w-0 truncate text-xl font-bold md:text-2xl">
               {shareContent.name}
             </h1>
-            <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-              <Badge variant="outline">
-                {t(`share_consumer.type_${shareContent.type}`)}
-              </Badge>
-              <span className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                {viewsText}
-              </span>
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {expiryText}
-              </span>
-              {shareContent.allow_upload && (
-                <Badge variant="secondary" className="gap-1">
-                  <Upload className="h-3 w-3" />
-                  {t("share_consumer.uploads_allowed")}
-                </Badge>
+
+            <div className="flex shrink-0 items-center gap-2">
+              {shareContent.allow_upload && !uploadsExhausted && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        onUploadFiles(Array.from(files));
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="md:w-auto md:px-3"
+                    onClick={() => fileInputRef.current?.click()}
+                    title={t("common.upload")}
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span className="hidden md:inline">
+                      {t("common.upload")}
+                    </span>
+                  </Button>
+                </>
               )}
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="icon"
+                onClick={() => onViewModeChange("list")}
+                title={t("share_consumer.list_view")}
+              >
+                <LayoutList className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="icon"
+                onClick={() => onViewModeChange("grid")}
+                title={t("share_consumer.grid_view")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {shareContent.allow_upload && !uploadsExhausted && (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = e.target.files;
-                    if (files && files.length > 0) {
-                      onUploadFiles(Array.from(files));
-                      e.target.value = "";
-                    }
-                  }}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {t("common.upload")}
-                </Button>
-              </>
+          <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+            <Badge variant="outline">
+              {t(`share_consumer.type_${shareContent.type}`)}
+            </Badge>
+            <span className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {viewsText}
+            </span>
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {expiryText}
+            </span>
+            {shareContent.allow_upload && (
+              <Badge variant="secondary" className="gap-1">
+                <Upload className="h-3 w-3" />
+                {t("share_consumer.uploads_allowed")}
+              </Badge>
             )}
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              size="icon"
-              onClick={() => onViewModeChange("list")}
-              title={t("share_consumer.list_view")}
-            >
-              <LayoutList className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="icon"
-              onClick={() => onViewModeChange("grid")}
-              title={t("share_consumer.grid_view")}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </div>

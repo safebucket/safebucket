@@ -1,8 +1,4 @@
-import {
-  queryOptions,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { queryOptions, useMutation } from "@tanstack/react-query";
 import type {
   IFileTransferResponse,
   IPublicShareResponse,
@@ -86,26 +82,15 @@ export const useShareDownloadMutation = (
       }),
   });
 
-export const useShareUploadMutation = (
-  shareId: string,
-  token: string | null,
-) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+export const useShareUploadMutation = (shareId: string, token: string | null) =>
+  useMutation({
     mutationFn: (body: IShareUploadBody) =>
       shareFetch<IFileTransferResponse>(`/${shareId}/files`, {
         method: "POST",
         body,
         token: token ?? undefined,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["shares", shareId, "content"],
-      });
-    },
   });
-};
 
 export const useShareConfirmUploadMutation = (
   shareId: string,

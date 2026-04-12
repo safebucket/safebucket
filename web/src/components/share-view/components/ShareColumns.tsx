@@ -1,3 +1,4 @@
+import { Download } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import type { BucketItem } from "@/types/bucket.ts";
@@ -23,7 +24,7 @@ export const createColumns = (
       const item = row.original;
       const itemIsFolder = isFolder(item);
       return (
-        <div className="flex items-center space-x-2 overflow-hidden max-w-[calc(100vw-8rem)] md:max-w-87.5">
+        <div className="flex items-center space-x-2 overflow-hidden max-w-[calc(100vw-10rem)] md:max-w-87.5">
           <FileIconView
             className="text-primary h-5 w-5 shrink-0"
             isFolder={itemIsFolder}
@@ -67,20 +68,21 @@ export const createColumns = (
   },
   {
     id: "actions",
-    size: 80,
+    size: 48,
     cell: ({ row }) => {
       const item = row.original;
       if (isFolder(item)) return null;
       return (
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={(e) => {
             e.stopPropagation();
             onDownload(item);
           }}
+          title={t("common.download")}
         >
-          {t("common.download")}
+          <Download className="h-4 w-4" />
         </Button>
       );
     },

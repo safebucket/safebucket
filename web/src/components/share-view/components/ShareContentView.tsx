@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import type { VisibilityState } from "@tanstack/react-table";
 import type { FC } from "react";
 
@@ -13,7 +14,10 @@ import { ShareHeader } from "@/components/share-view/components/ShareHeader.tsx"
 import { ShareContentArea } from "@/components/share-view/components/ShareContentArea.tsx";
 import { ShareUploadZone } from "@/components/share-view/components/ShareUploadZone.tsx";
 import { useIsMobile } from "@/components/ui/hooks/use-mobile.tsx";
-import { useShareDownloadMutation } from "@/queries/share.ts";
+import {
+  shareContentQueryOptions,
+  useShareDownloadMutation,
+} from "@/queries/share.ts";
 import { downloadFromStorage } from "@/components/file-actions/helpers/api.ts";
 import { errorToast } from "@/components/ui/hooks/use-toast.ts";
 
@@ -32,6 +36,10 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
 }) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
+  const { data: content } = useQuery({
+    ...shareContentQueryOptions(shareId, token),
+    initialData: shareContent,
+  });
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(
     shareContent.type === "folder" ? shareContent.id : undefined,
@@ -59,18 +67,18 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
   );
 
   const items = useMemo((): Array<BucketItem> => {
-    const folderItems = shareContent.folders.filter(
+    const folderItems = content.folders.filter(
       (folder) =>
         (!currentFolderId && !folder.folder_id) ||
         folder.folder_id === currentFolderId,
     );
-    const fileItems = shareContent.files.filter(
+    const fileItems = content.files.filter(
       (file) =>
         (!currentFolderId && !file.folder_id) ||
         file.folder_id === currentFolderId,
     );
     return [...folderItems, ...fileItems];
-  }, [shareContent, currentFolderId]);
+  }, [content, currentFolderId]);
 
   const openFolder = (item: BucketItem) => {
     if (isFolder(item)) {
@@ -86,7 +94,7 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
   };
 
   const currentFolderName = currentFolderId
-    ? (shareContent.folders.find((f) => f.id === currentFolderId)?.name ?? null)
+    ? (content.folders.find((f) => f.id === currentFolderId)?.name ?? null)
     : null;
 
   const handleUploadFiles = (files: Array<File>) => {
@@ -110,25 +118,23 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ShareHeader
-        shareContent={shareContent}
+        shareContent={content}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onUploadFiles={handleUploadFiles}
       />
 
       <div className="mx-auto w-full max-w-6xl flex-1 overflow-y-auto px-6 py-6">
-        {shareContent.allow_upload &&
+        {content.allow_upload &&
         !(
-          shareContent.max_uploads !== null &&
-          shareContent.current_uploads >= shareContent.max_uploads
+          content.max_uploads !== null &&
+          content.current_uploads >= content.max_uploads
         ) ? (
           <ShareUploadZone
             shareId={shareId}
             token={token}
-            maxUploadSize={shareContent.max_upload_size}
-            folderId={
-              shareContent.type === "bucket" ? currentFolderId : undefined
-            }
+            maxUploadSize={content.max_upload_size}
+            folderId={content.type === "bucket" ? currentFolderId : undefined}
             onReady={(fn) => {
               uploadFilesRef.current = fn;
             }}

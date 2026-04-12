@@ -6,6 +6,8 @@ import type React from "react";
 import type { DragEvent, FC } from "react";
 
 import type { IUpload } from "@/components/upload/helpers/types";
+import type { IPublicShareResponse } from "@/types/share";
+import { FileStatus } from "@/types/file";
 import { extractFilesFromDrop } from "@/components/upload/helpers/file-processing";
 import { uploadToStorage } from "@/components/upload/helpers/api";
 import {
@@ -115,9 +117,34 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
           ),
         );
 
-        queryClient.invalidateQueries({
-          queryKey: ["shares", shareId, "content"],
-        });
+        const extension = file.name.includes(".")
+          ? (file.name.split(".").pop() ?? "")
+          : "";
+
+        queryClient.setQueriesData<IPublicShareResponse>(
+          { queryKey: ["shares", shareId, "content"] },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              current_uploads: old.current_uploads + 1,
+              files: [
+                ...old.files,
+                {
+                  id: presigned.id,
+                  name: file.name,
+                  size: file.size,
+                  extension,
+                  folder_id: folderId,
+                  status: FileStatus.uploaded,
+                  created_at: new Date().toISOString(),
+                  deleted_at: null,
+                  expires_at: null,
+                },
+              ],
+            };
+          },
+        );
       } catch (err) {
         setUploads((prev) =>
           prev.map((u) =>
@@ -224,7 +251,7 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
       {children}
 
       {uploads.length > 0 && (
-        <div className="fixed right-4 bottom-8 z-50 w-96 rounded-lg border bg-card text-card-foreground shadow-lg">
+        <div className="fixed inset-x-4 bottom-8 z-50 mx-auto max-w-96 rounded-lg border bg-card text-card-foreground shadow-lg">
           <button
             type="button"
             className="flex w-full items-center justify-between px-4 py-3"
