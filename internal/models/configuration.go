@@ -111,6 +111,7 @@ type MinioStorageConfiguration struct {
 	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
 	ClientID         string `mapstructure:"client_id"         validate:"required"`
 	ClientSecret     string `mapstructure:"client_secret"     validate:"required"`
+	Region           string `mapstructure:"region"`
 }
 
 type CloudStorage struct {
@@ -142,6 +143,7 @@ type RustFSStorageConfiguration struct {
 	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
 	AccessKey        string `mapstructure:"access_key"        validate:"required"`
 	SecretKey        string `mapstructure:"secret_key"        validate:"required"`
+	Region           string `mapstructure:"region"`
 }
 
 // GetExternalURL returns the external URL for the configured storage provider.

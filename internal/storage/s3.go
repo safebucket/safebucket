@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"net/url"
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
@@ -21,15 +20,14 @@ import (
 // (Storj, Hetzner, Backblaze B2, Garage, etc.).
 // This provider assumes NO lifecycle policy or bucket notification support.
 type GenericS3Storage struct {
-	BucketName       string
-	InternalEndpoint string
-	ExternalEndpoint string
-	Region           string
-	storage          *minio.Client
+	BucketName    string
+	storage       *minio.Client
+	signingClient *minio.Client
 }
 
-func NewGenericS3Storage(config *models.S3Configuration, bucketName string) IStorage {
+func NewGenericS3Storage(config *models.S3Configuration) IStorage {
 	endpoint := config.Endpoint
+	bucketName := config.BucketName
 
 	minioOptions := &minio.Options{
 		Creds:  credentials.NewStaticV4(config.AccessKey, config.SecretKey, ""),
@@ -55,36 +53,22 @@ func NewGenericS3Storage(config *models.S3Configuration, bucketName string) ISto
 		zap.L().Fatal("S3 bucket does not exist", zap.String("bucketName", bucketName))
 	}
 
+	signingClient, err := newSigningClient(signingClientOptions{
+		externalEndpoint: config.ExternalEndpoint,
+		accessKey:        config.AccessKey,
+		secretKey:        config.SecretKey,
+		region:           config.Region,
+		forcePathStyle:   config.ForcePathStyle,
+	})
+	if err != nil {
+		zap.L().Fatal("Failed to create S3 signing client", zap.Error(err))
+	}
+
 	return &GenericS3Storage{
-		BucketName:       bucketName,
-		InternalEndpoint: endpoint,
-		ExternalEndpoint: config.ExternalEndpoint,
-		Region:           config.Region,
-		storage:          minioClient,
+		BucketName:    bucketName,
+		storage:       minioClient,
+		signingClient: signingClient,
 	}
-}
-
-func (s *GenericS3Storage) replaceEndpoint(urlString string) string {
-	if s.InternalEndpoint == s.ExternalEndpoint {
-		return urlString
-	}
-
-	presignedURL, err := url.Parse(urlString)
-	if err != nil {
-		zap.L().Warn("failed to parse presigned URL, using original", zap.Error(err))
-		return urlString
-	}
-
-	externalURL, err := url.Parse(s.ExternalEndpoint)
-	if err != nil {
-		zap.L().Warn("failed to parse external endpoint, using original URL", zap.Error(err))
-		return urlString
-	}
-
-	presignedURL.Scheme = externalURL.Scheme
-	presignedURL.Host = externalURL.Host
-
-	return presignedURL.String()
 }
 
 func (s *GenericS3Storage) GetBucketName() string {
@@ -92,7 +76,7 @@ func (s *GenericS3Storage) GetBucketName() string {
 }
 
 func (s *GenericS3Storage) PresignedGetObject(objectPath string) (string, error) {
-	presignedURL, err := s.storage.PresignedGetObject(
+	presignedURL, err := s.signingClient.PresignedGetObject(
 		context.Background(),
 		s.BucketName,
 		objectPath,
@@ -103,8 +87,7 @@ func (s *GenericS3Storage) PresignedGetObject(objectPath string) (string, error)
 		return "", err
 	}
 
-	urlString := s.replaceEndpoint(presignedURL.String())
-	return urlString, nil
+	return presignedURL.String(), nil
 }
 
 func (s *GenericS3Storage) PresignedPostPolicy(
@@ -121,13 +104,12 @@ func (s *GenericS3Storage) PresignedPostPolicy(
 	_ = policy.SetUserMetadata("File-Id", metadata["file_id"])
 	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
 
-	presignedURL, formData, err := s.storage.PresignedPostPolicy(context.Background(), policy)
+	presignedURL, formData, err := s.signingClient.PresignedPostPolicy(context.Background(), policy)
 	if err != nil {
 		return "", map[string]string{}, err
 	}
 
-	urlString := s.replaceEndpoint(presignedURL.String())
-	return urlString, formData, nil
+	return presignedURL.String(), formData, nil
 }
 
 func (s *GenericS3Storage) StatObject(objectPath string) (map[string]string, error) {

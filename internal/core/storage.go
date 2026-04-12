@@ -13,15 +13,15 @@ func NewStorage(config models.StorageConfiguration, trashRetentionDays int) stor
 
 	switch config.Type {
 	case configuration.ProviderMinio:
-		store = storage.NewS3Storage(config.Minio, config.Minio.BucketName)
+		store = storage.NewS3Storage(config.Minio)
 	case configuration.ProviderGCP:
 		store = storage.NewGCPStorage(config.CloudStorage.BucketName)
 	case configuration.ProviderAWS:
 		store = storage.NewAWSStorage(config.AWS.BucketName)
 	case configuration.ProviderRustFS:
-		store = storage.NewRustFSStorage(config.RustFS, config.RustFS.BucketName)
+		store = storage.NewRustFSStorage(config.RustFS)
 	case configuration.ProviderS3:
-		store = storage.NewGenericS3Storage(config.S3, config.S3.BucketName)
+		store = storage.NewGenericS3Storage(config.S3)
 	default:
 		return nil
 	}

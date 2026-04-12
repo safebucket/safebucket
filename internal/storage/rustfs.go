@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -19,21 +18,23 @@ import (
 )
 
 type S3Storage struct {
-	BucketName       string
-	InternalEndpoint string
-	ExternalEndpoint string
-	storage          *minio.Client
+	BucketName    string
+	storage       *minio.Client
+	signingClient *minio.Client
 }
 
 type s3Config struct {
+	bucketName       string
 	endpoint         string
 	externalEndpoint string
 	accessKey        string
 	secretKey        string
+	region           string
 	providerName     string
 }
 
-func newS3Storage(cfg s3Config, bucketName string) IStorage {
+func newS3Storage(cfg s3Config) IStorage {
+	bucketName := cfg.bucketName
 	minioClient, err := minio.New(cfg.endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.accessKey, cfg.secretKey, ""),
 		Secure: false,
@@ -62,55 +63,47 @@ func newS3Storage(cfg s3Config, bucketName string) IStorage {
 		externalEndpoint = cfg.endpoint
 	}
 
+	signingClient, err := newSigningClient(signingClientOptions{
+		externalEndpoint: externalEndpoint,
+		accessKey:        cfg.accessKey,
+		secretKey:        cfg.secretKey,
+		region:           cfg.region,
+	})
+	if err != nil {
+		zap.L().Fatal("Failed to create signing client",
+			zap.String("provider", cfg.providerName),
+			zap.Error(err))
+	}
+
 	return S3Storage{
-		BucketName:       bucketName,
-		InternalEndpoint: cfg.endpoint,
-		ExternalEndpoint: externalEndpoint,
-		storage:          minioClient,
+		BucketName:    bucketName,
+		storage:       minioClient,
+		signingClient: signingClient,
 	}
 }
 
-func NewS3Storage(config *models.MinioStorageConfiguration, bucketName string) IStorage {
+func NewS3Storage(config *models.MinioStorageConfiguration) IStorage {
 	return newS3Storage(s3Config{
+		bucketName:       config.BucketName,
 		endpoint:         config.Endpoint,
 		externalEndpoint: config.ExternalEndpoint,
 		accessKey:        config.ClientID,
 		secretKey:        config.ClientSecret,
+		region:           config.Region,
 		providerName:     "MinIO",
-	}, bucketName)
+	})
 }
 
-func NewRustFSStorage(config *models.RustFSStorageConfiguration, bucketName string) IStorage {
+func NewRustFSStorage(config *models.RustFSStorageConfiguration) IStorage {
 	return newS3Storage(s3Config{
+		bucketName:       config.BucketName,
 		endpoint:         config.Endpoint,
 		externalEndpoint: config.ExternalEndpoint,
 		accessKey:        config.AccessKey,
 		secretKey:        config.SecretKey,
+		region:           config.Region,
 		providerName:     "RustFS",
-	}, bucketName)
-}
-
-func (s S3Storage) replaceEndpoint(urlString string) string {
-	if s.InternalEndpoint == s.ExternalEndpoint {
-		return urlString
-	}
-
-	presignedURL, err := url.Parse(urlString)
-	if err != nil {
-		zap.L().Warn("failed to parse presigned URL, using original", zap.Error(err))
-		return urlString
-	}
-
-	externalURL, err := url.Parse(s.ExternalEndpoint)
-	if err != nil {
-		zap.L().Warn("failed to parse external endpoint, using original URL", zap.Error(err))
-		return urlString
-	}
-
-	presignedURL.Scheme = externalURL.Scheme
-	presignedURL.Host = externalURL.Host
-
-	return presignedURL.String()
+	})
 }
 
 func (s S3Storage) GetBucketName() string {
@@ -118,7 +111,7 @@ func (s S3Storage) GetBucketName() string {
 }
 
 func (s S3Storage) PresignedGetObject(path string) (string, error) {
-	presignedURL, err := s.storage.PresignedGetObject(
+	presignedURL, err := s.signingClient.PresignedGetObject(
 		context.Background(),
 		s.BucketName,
 		path,
@@ -129,9 +122,7 @@ func (s S3Storage) PresignedGetObject(path string) (string, error) {
 		return "", err
 	}
 
-	// Replace internal endpoint with external endpoint for browser access
-	urlString := s.replaceEndpoint(presignedURL.String())
-	return urlString, nil
+	return presignedURL.String(), nil
 }
 
 func (s S3Storage) PresignedPostPolicy(
@@ -148,14 +139,12 @@ func (s S3Storage) PresignedPostPolicy(
 	_ = policy.SetUserMetadata("File-Id", metadata["file_id"])
 	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
 
-	presignedURL, metadata, err := s.storage.PresignedPostPolicy(context.Background(), policy)
+	presignedURL, formData, err := s.signingClient.PresignedPostPolicy(context.Background(), policy)
 	if err != nil {
 		return "", map[string]string{}, err
 	}
 
-	// Replace internal endpoint with external endpoint for browser access
-	urlString := s.replaceEndpoint(presignedURL.String())
-	return urlString, metadata, nil
+	return presignedURL.String(), formData, nil
 }
 
 func (s S3Storage) StatObject(path string) (map[string]string, error) {
