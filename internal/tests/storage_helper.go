@@ -1,4 +1,4 @@
-package storage
+package tests
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-func newTestMinioClient(t *testing.T, endpoint string, secure bool) *minio.Client {
+func NewTestMinioClient(t *testing.T, endpoint string, secure bool) *minio.Client {
 	t.Helper()
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4("testkey", "testsecret", ""),
@@ -20,7 +20,7 @@ func newTestMinioClient(t *testing.T, endpoint string, secure bool) *minio.Clien
 	return client
 }
 
-func keysOf(m map[string]string) []string {
+func KeysOf(m map[string]string) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
