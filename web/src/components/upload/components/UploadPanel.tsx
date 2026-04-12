@@ -27,7 +27,7 @@ export const UploadPanel: FC = () => {
   const hasFinished = completedCount > 0 || failedCount > 0;
 
   return (
-    <div className="fixed right-4 bottom-8 z-50 w-96 rounded-lg border bg-card text-card-foreground shadow-lg">
+    <div className="fixed inset-x-4 bottom-8 z-50 mx-auto max-w-96 rounded-lg border bg-card text-card-foreground shadow-lg">
       <button
         type="button"
         className="flex w-full items-center justify-between px-4 py-3"
