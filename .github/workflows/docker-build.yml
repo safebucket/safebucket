@@ -23,7 +23,7 @@ jobs:
           fetch-depth: 0  # Fetch all history to check branch
           persist-credentials: false
 
-      - name: Check if tag is on an main or releae branch
+      - name: Check if tag is on main or release branch
         id: check
         env:
           TAG_NAME: ${{ github.ref_name }}
