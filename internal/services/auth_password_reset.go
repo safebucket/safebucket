@@ -200,12 +200,12 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	action := models.Activity{
 		Message: activity.PasswordResetCodeVerified,
 		Object:  user.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":       activity.PasswordResetCodeVerified,
-			"user_id":      user.ID.String(),
-			"challenge_id": challengeID.String(),
-			"object_type":  "user",
-			"mfa_required": strconv.FormatBool(hasMFA),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:      activity.PasswordResetCodeVerified,
+			UserID:      user.ID.String(),
+			ChallengeID: challengeID.String(),
+			ObjectType:  "user",
+			MFARequired: strconv.FormatBool(hasMFA),
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -294,11 +294,11 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	action := models.Activity{
 		Message: activity.PasswordResetCompleted,
 		Object:  user.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":       activity.PasswordResetCompleted,
-			"user_id":      user.ID.String(),
-			"challenge_id": challengeID.String(),
-			"object_type":  "user",
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:      activity.PasswordResetCompleted,
+			UserID:      user.ID.String(),
+			ChallengeID: challengeID.String(),
+			ObjectType:  "user",
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {

@@ -33,12 +33,12 @@ func sendTestActivity(
 	err := client.Send(models.Activity{
 		Message: message,
 		Filter: models.LogFilter{
-			Fields: map[string]string{
-				"action":      action,
-				"object_type": objectType,
-				"user_id":     userID,
-				"domain":      "example.com",
-				"bucket_id":   bucketID,
+			Fields: models.ActivityFields{
+				Action:     action,
+				ObjectType: objectType,
+				UserID:     userID,
+				Domain:     "example.com",
+				BucketID:   bucketID,
 			},
 			Timestamp: strconv.FormatInt(ts.UnixNano(), 10),
 		},
@@ -218,7 +218,20 @@ func TestFilesystemMigrateIndex(t *testing.T) {
 
 	// Index some test documents.
 	now := time.Now()
-	docs := []FilesystemActivityEntry{
+	// testDoc is a local struct matching the bleve index shape for migration testing.
+	type testDoc struct {
+		Message    string    `json:"message"`
+		Timestamp  time.Time `json:"timestamp"`
+		Action     string    `json:"action"`
+		ObjectType string    `json:"object_type"`
+		UserID     string    `json:"user_id"`
+		Domain     string    `json:"domain"`
+		BucketID   string    `json:"bucket_id"`
+		FileID     string    `json:"file_id"`
+		Object     string    `json:"object"`
+	}
+
+	docs := []testDoc{
 		{
 			Message:    "Created bucket",
 			Timestamp:  now,

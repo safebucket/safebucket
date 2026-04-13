@@ -119,11 +119,11 @@ func (s BucketService) CreateBucket(
 		action := models.Activity{
 			Message: activity.BucketCreated,
 			Object:  newBucket.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionCreate.String(),
-				"object_type": rbac.ResourceBucket.String(),
-				"bucket_id":   newBucket.ID.String(),
-				"user_id":     user.UserID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionCreate.String(),
+				ObjectType: rbac.ResourceBucket.String(),
+				BucketID:   newBucket.ID.String(),
+				UserID:     user.UserID.String(),
 			}),
 		}
 
@@ -381,11 +381,11 @@ func (s BucketService) DeleteBucket(
 		action := models.Activity{
 			Message: activity.BucketDeleted,
 			Object:  bucket.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionDelete.String(),
-				"bucket_id":   bucket.ID.String(),
-				"object_type": rbac.ResourceBucket.String(),
-				"user_id":     user.UserID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				BucketID:   bucket.ID.String(),
+				ObjectType: rbac.ResourceBucket.String(),
+				UserID:     user.UserID.String(),
 			}),
 		}
 

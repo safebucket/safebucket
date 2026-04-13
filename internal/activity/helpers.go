@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -27,11 +28,29 @@ var ToEnrich = map[string]ToEnrichValue{
 }
 
 // NewLogFilter creates a LogFilter object with the specified criteria and the current timestamp in nanoseconds.
-func NewLogFilter(criteria map[string]string) models.LogFilter {
+func NewLogFilter(criteria models.ActivityFields) models.LogFilter {
 	return models.LogFilter{
 		Fields:    criteria,
 		Timestamp: strconv.FormatInt(time.Now().UnixNano(), 10),
 	}
+}
+
+var authorizedObjects = [5]rbac.Resource{
+	rbac.ResourceBucket,
+	rbac.ResourceFile,
+	rbac.ResourceFolder,
+	rbac.ResourceShare,
+	rbac.ResourceMFADevice,
+}
+
+// isAuthorizedObject checks if the given object type is part of the predefined authorizedObjects array.
+func isAuthorizedObject(objectType string) bool {
+	for _, item := range authorizedObjects {
+		if objectType == item.String() {
+			return true
+		}
+	}
+	return false
 }
 
 // enrichLogWithMetadata handles Tier 1 enrichment by extracting objects from log metadata.

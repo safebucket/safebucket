@@ -132,12 +132,12 @@ func handleUploadEvents(
 		action := models.Activity{
 			Message: activity.FileUploaded,
 			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionCreate.String(),
-				"object_type": rbac.ResourceFile.String(),
-				"file_id":     event.FileID,
-				"bucket_id":   event.BucketID,
-				"user_id":     event.UserID,
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionCreate.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				FileID:     event.FileID,
+				BucketID:   event.BucketID,
+				UserID:     event.UserID,
 			}),
 		}
 

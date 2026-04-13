@@ -113,12 +113,12 @@ func (s AuthService) Login(
 	action := models.Activity{
 		Message: activity.UserLoggedIn,
 		Object:  searchUser.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":        activity.UserLoggedIn,
-			"user_id":       searchUser.ID.String(),
-			"object_type":   "user",
-			"provider_type": string(models.LocalProviderType),
-			"provider_name": s.Providers[string(models.LocalProviderType)].Name,
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:       activity.UserLoggedIn,
+			UserID:       searchUser.ID.String(),
+			ObjectType:   "user",
+			ProviderType: string(models.LocalProviderType),
+			ProviderName: s.Providers[string(models.LocalProviderType)].Name,
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -471,12 +471,12 @@ func (s AuthService) OpenIDCallback(
 	action := models.Activity{
 		Message: activity.UserLoggedIn,
 		Object:  searchUser.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":        activity.UserLoggedIn,
-			"user_id":       searchUser.ID.String(),
-			"object_type":   "user",
-			"provider_type": string(models.OIDCProviderType),
-			"provider_name": provider.Name,
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:       activity.UserLoggedIn,
+			UserID:       searchUser.ID.String(),
+			ObjectType:   "user",
+			ProviderType: string(models.OIDCProviderType),
+			ProviderName: provider.Name,
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {

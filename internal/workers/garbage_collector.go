@@ -123,11 +123,11 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 			action := models.Activity{
 				Message: activity.FileExpired,
 				Object:  file.ToActivity(),
-				Filter: activity.NewLogFilter(map[string]string{
-					"action":      rbac.ActionDelete.String(),
-					"bucket_id":   file.BucketID.String(),
-					"file_id":     file.ID.String(),
-					"object_type": rbac.ResourceFile.String(),
+				Filter: activity.NewLogFilter(models.ActivityFields{
+					Action:     rbac.ActionDelete.String(),
+					BucketID:   file.BucketID.String(),
+					FileID:     file.ID.String(),
+					ObjectType: rbac.ResourceFile.String(),
 				}),
 			}
 			if err := w.ActivityLogger.Send(action); err != nil {
@@ -196,11 +196,11 @@ func (w *GarbageCollectorWorker) cleanupShares(whereClause string, args []any, a
 			action := models.Activity{
 				Message: activityMsg,
 				Object:  share.ToActivity(),
-				Filter: activity.NewLogFilter(map[string]string{
-					"action":      rbac.ActionDelete.String(),
-					"bucket_id":   share.BucketID.String(),
-					"share_id":    share.ID.String(),
-					"object_type": rbac.ResourceShare.String(),
+				Filter: activity.NewLogFilter(models.ActivityFields{
+					Action:     rbac.ActionDelete.String(),
+					BucketID:   share.BucketID.String(),
+					ShareID:    share.ID.String(),
+					ObjectType: rbac.ResourceShare.String(),
 				}),
 			}
 			if err := w.ActivityLogger.Send(action); err != nil {

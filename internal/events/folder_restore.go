@@ -408,12 +408,12 @@ func (e *FolderRestore) logRestoreActivity(params *EventParams, folder *models.F
 	action := models.Activity{
 		Message: activity.FolderRestored,
 		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionRestore.String(),
-			"bucket_id":   e.Payload.BucketID.String(),
-			"folder_id":   e.Payload.FolderID.String(),
-			"object_type": rbac.ResourceFolder.String(),
-			"user_id":     e.Payload.UserID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     rbac.ActionRestore.String(),
+			BucketID:   e.Payload.BucketID.String(),
+			FolderID:   e.Payload.FolderID.String(),
+			ObjectType: rbac.ResourceFolder.String(),
+			UserID:     e.Payload.UserID.String(),
 		}),
 	}
 

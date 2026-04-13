@@ -102,12 +102,12 @@ func (s BucketFolderService) CreateFolder(
 	action := models.Activity{
 		Message: activity.FolderCreated,
 		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionCreate.String(),
-			"bucket_id":   bucketID.String(),
-			"folder_id":   folder.ID.String(),
-			"object_type": rbac.ResourceFolder.String(),
-			"user_id":     user.UserID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     rbac.ActionCreate.String(),
+			BucketID:   bucketID.String(),
+			FolderID:   folder.ID.String(),
+			ObjectType: rbac.ResourceFolder.String(),
+			UserID:     user.UserID.String(),
 		}),
 	}
 
@@ -153,12 +153,12 @@ func (s BucketFolderService) RenameFolder(
 	action := models.Activity{
 		Message: activity.FolderUpdated,
 		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionUpdate.String(),
-			"bucket_id":   bucketID.String(),
-			"folder_id":   folderID.String(),
-			"object_type": rbac.ResourceFolder.String(),
-			"user_id":     user.UserID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     rbac.ActionUpdate.String(),
+			BucketID:   bucketID.String(),
+			FolderID:   folderID.String(),
+			ObjectType: rbac.ResourceFolder.String(),
+			UserID:     user.UserID.String(),
 		}),
 	}
 
@@ -249,12 +249,12 @@ func (s BucketFolderService) TrashFolder(
 	action := models.Activity{
 		Message: activity.FolderTrashed,
 		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionErase.String(),
-			"bucket_id":   folder.BucketID.String(),
-			"folder_id":   folder.ID.String(),
-			"object_type": rbac.ResourceFolder.String(),
-			"user_id":     user.UserID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     rbac.ActionErase.String(),
+			BucketID:   folder.BucketID.String(),
+			FolderID:   folder.ID.String(),
+			ObjectType: rbac.ResourceFolder.String(),
+			UserID:     user.UserID.String(),
 		}),
 	}
 
@@ -372,12 +372,12 @@ func (s BucketFolderService) RestoreFolder(
 	action := models.Activity{
 		Message: activity.FolderRestored,
 		Object:  restoredFolder.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionRestore.String(),
-			"bucket_id":   restoredFolder.BucketID.String(),
-			"folder_id":   restoredFolder.ID.String(),
-			"object_type": rbac.ResourceFolder.String(),
-			"user_id":     user.UserID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     rbac.ActionRestore.String(),
+			BucketID:   restoredFolder.BucketID.String(),
+			FolderID:   restoredFolder.ID.String(),
+			ObjectType: rbac.ResourceFolder.String(),
+			UserID:     user.UserID.String(),
 		}),
 	}
 
@@ -407,12 +407,12 @@ func (s BucketFolderService) PurgeFolder(
 	action := models.Activity{
 		Message: activity.FolderDeleted,
 		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionDelete.String(),
-			"bucket_id":   folder.BucketID.String(),
-			"folder_id":   folder.ID.String(),
-			"object_type": rbac.ResourceFolder.String(),
-			"user_id":     user.UserID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     rbac.ActionDelete.String(),
+			BucketID:   folder.BucketID.String(),
+			FolderID:   folder.ID.String(),
+			ObjectType: rbac.ResourceFolder.String(),
+			UserID:     user.UserID.String(),
 		}),
 	}
 

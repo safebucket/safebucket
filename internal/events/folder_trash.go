@@ -247,12 +247,12 @@ func (e *FolderTrash) callback(params *EventParams) error {
 	action := models.Activity{
 		Message: activity.FolderTrashed,
 		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionErase.String(),
-			"bucket_id":   e.Payload.BucketID.String(),
-			"folder_id":   e.Payload.FolderID.String(),
-			"object_type": rbac.ResourceFolder.String(),
-			"user_id":     e.Payload.UserID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     rbac.ActionErase.String(),
+			BucketID:   e.Payload.BucketID.String(),
+			FolderID:   e.Payload.FolderID.String(),
+			ObjectType: rbac.ResourceFolder.String(),
+			UserID:     e.Payload.UserID.String(),
 		}),
 	}
 

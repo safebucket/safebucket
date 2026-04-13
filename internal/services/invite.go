@@ -70,11 +70,11 @@ func (s InviteService) handleInviteChallengeFailedAttempt(
 		action := models.Activity{
 			Message: activity.InviteChallengeLocked,
 			Object:  nil,
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":       activity.InviteChallengeLocked,
-				"challenge_id": challenge.ID.String(),
-				"invite_id":    inviteID.String(),
-				"object_type":  "challenge",
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:      activity.InviteChallengeLocked,
+				ChallengeID: challenge.ID.String(),
+				InviteID:    inviteID.String(),
+				ObjectType:  "challenge",
 			}),
 		}
 		if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -92,12 +92,12 @@ func (s InviteService) handleInviteChallengeFailedAttempt(
 	action := models.Activity{
 		Message: activity.InviteChallengeAttemptFailed,
 		Object:  nil,
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":        activity.InviteChallengeAttemptFailed,
-			"challenge_id":  challenge.ID.String(),
-			"invite_id":     inviteID.String(),
-			"attempts_left": strconv.Itoa(challenge.AttemptsLeft),
-			"object_type":   "challenge",
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:       activity.InviteChallengeAttemptFailed,
+			ChallengeID:  challenge.ID.String(),
+			InviteID:     inviteID.String(),
+			AttemptsLeft: strconv.Itoa(challenge.AttemptsLeft),
+			ObjectType:   "challenge",
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -162,11 +162,11 @@ func (s InviteService) createUserFromInvite(
 	action := models.Activity{
 		Message: activity.InviteAccepted,
 		Object:  newUser.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      activity.InviteAccepted,
-			"user_id":     newUser.ID.String(),
-			"invite_id":   inviteID.String(),
-			"object_type": "user",
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     activity.InviteAccepted,
+			UserID:     newUser.ID.String(),
+			InviteID:   inviteID.String(),
+			ObjectType: "user",
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {

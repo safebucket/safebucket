@@ -91,10 +91,10 @@ func (s SessionService) RevokeOtherSessions(
 
 	action := models.Activity{
 		Message: activity.OtherSessionsRevoked,
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      activity.OtherSessionsRevoked,
-			"user_id":     userID.String(),
-			"object_type": "session",
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     activity.OtherSessionsRevoked,
+			UserID:     userID.String(),
+			ObjectType: "session",
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -129,11 +129,11 @@ func (s SessionService) RevokeSession(
 
 	action := models.Activity{
 		Message: activity.SessionRevoked,
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      activity.SessionRevoked,
-			"user_id":     userID.String(),
-			"session_id":  sessionSID,
-			"object_type": "session",
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     activity.SessionRevoked,
+			UserID:     userID.String(),
+			SessionID:  sessionSID,
+			ObjectType: "session",
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
