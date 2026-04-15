@@ -389,7 +389,7 @@ func buildIndexMapping() *mapping.IndexMappingImpl {
 
 var schemaVersionKey = []byte("schema_version")
 
-// schemaVersion is derived from the serialized index mapping so it changes automatically when the mapping changes.
+// schemaVersion is derived from the serialized index mapping
 var schemaVersion = func() string {
 	b, err := json.Marshal(buildIndexMapping())
 	if err != nil {

@@ -43,7 +43,6 @@ var authorizedObjects = [5]rbac.Resource{
 	rbac.ResourceMFADevice,
 }
 
-// isAuthorizedObject checks if the given object type is part of the predefined authorizedObjects array.
 func isAuthorizedObject(objectType string) bool {
 	for _, item := range authorizedObjects {
 		if objectType == item.String() {
@@ -53,7 +52,6 @@ func isAuthorizedObject(objectType string) bool {
 	return false
 }
 
-// enrichLogWithMetadata handles Tier 1 enrichment by extracting objects from log metadata.
 func enrichLogWithMetadata(log map[string]interface{}) map[string]interface{} {
 	newLog := log
 

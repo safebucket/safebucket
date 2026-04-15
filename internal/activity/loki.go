@@ -354,7 +354,6 @@ func createLokiBody(activity models.Activity) (LokiBody, error) {
 	}, nil
 }
 
-// lokiLabelSet defines which fields are promoted to Loki stream labels.
 var lokiLabelSet = map[string]bool{}
 
 func init() {
@@ -371,7 +370,6 @@ func init() {
 	}
 }
 
-// lokiLabels splits fields into Loki stream labels and structured metadata.
 func lokiLabels[T any](fields map[string]T) (map[string]T, map[string]T) {
 	labels := make(map[string]T)
 	metadata := make(map[string]T)

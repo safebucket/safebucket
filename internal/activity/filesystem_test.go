@@ -85,7 +85,6 @@ func TestFilesystemSendAndSearch(t *testing.T) {
 		t.Errorf("expected domain=example.com, got %v", r["domain"])
 	}
 
-	// Verify timestamp is nanosecond string
 	tsStr, ok := r["timestamp"].(string)
 	if !ok {
 		t.Fatal("timestamp should be a string")
@@ -94,7 +93,6 @@ func TestFilesystemSendAndSearch(t *testing.T) {
 		t.Errorf("timestamp should be parseable as int64: %v", parseErr)
 	}
 
-	// Verify object was stored and parsed back
 	obj, ok := r["object"].(map[string]any)
 	if !ok {
 		t.Fatal("object should be a map")
@@ -118,7 +116,6 @@ func TestFilesystemSearchWithORCriteria(t *testing.T) {
 		t, client, "update", "file", "user-2", "bucket-1", "Updated file", now.Add(-2*time.Second),
 	)
 
-	// Search with OR on action: create OR delete
 	results, err := client.Search(map[string][]string{
 		"action": {"create", "delete"},
 	})
@@ -145,7 +142,6 @@ func TestFilesystemCountByDay(t *testing.T) {
 	today := time.Now()
 	yesterday := today.AddDate(0, 0, -1)
 
-	// 2 events today, 1 yesterday
 	sendTestActivity(
 		t, client, "create", "bucket", "user-1", "bucket-1", "Created bucket 1", today,
 	)
@@ -174,13 +170,11 @@ func TestFilesystemCountByDay(t *testing.T) {
 func TestFilesystemSearchRespectsTimeWindow(t *testing.T) {
 	client := newTestFilesystemClient(t)
 
-	// Index an event from 60 days ago (outside 30-day window)
 	oldTime := time.Now().AddDate(0, 0, -60)
 	sendTestActivity(
 		t, client, "create", "bucket", "user-1", "bucket-old", "Old event", oldTime,
 	)
 
-	// Index a recent event
 	sendTestActivity(
 		t, client, "create", "bucket", "user-1", "bucket-new", "New event", time.Now(),
 	)
@@ -204,21 +198,17 @@ func TestFilesystemSearchRespectsTimeWindow(t *testing.T) {
 func TestFilesystemMigrateIndex(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "activity.bleve")
 
-	// Create an index with an old schema version.
 	indexMapping := buildIndexMapping()
 	index, err := bleve.New(dir, indexMapping)
 	if err != nil {
 		t.Fatalf("failed to create index: %v", err)
 	}
-	// Set an old version to trigger migration.
 	err = index.SetInternal(schemaVersionKey, []byte("0"))
 	if err != nil {
 		t.Fatalf("failed to set schema version: %v", err)
 	}
 
-	// Index some test documents.
 	now := time.Now()
-	// testDoc is a local struct matching the bleve index shape for migration testing.
 	type testDoc struct {
 		Message    string    `json:"message"`
 		Timestamp  time.Time `json:"timestamp"`
@@ -265,7 +255,6 @@ func TestFilesystemMigrateIndex(t *testing.T) {
 		t.Fatalf("failed to close index: %v", err)
 	}
 
-	// Open via NewFilesystemClient - should detect version mismatch and migrate.
 	config := models.ActivityConfiguration{
 		Type: "filesystem",
 		Filesystem: &models.FilesystemActivityConfiguration{
@@ -274,7 +263,6 @@ func TestFilesystemMigrateIndex(t *testing.T) {
 	}
 	client := NewFilesystemClient(config).(*FilesystemClient)
 
-	// Verify schema version is updated.
 	storedVersion, err := client.index.GetInternal(schemaVersionKey)
 	if err != nil {
 		t.Fatalf("failed to get schema version: %v", err)
@@ -283,17 +271,14 @@ func TestFilesystemMigrateIndex(t *testing.T) {
 		t.Errorf("expected schema version %s, got %s", schemaVersion, string(storedVersion))
 	}
 
-	// Verify all documents are searchable.
 	results, err := client.Search(map[string][]string{})
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}
-	// Both docs are recent so should appear within the 30-day window.
 	if len(results) != 2 {
 		t.Fatalf("expected 2 results after migration, got %d", len(results))
 	}
 
-	// Verify specific fields survived the migration.
 	found := map[string]bool{}
 	for _, r := range results {
 		found[r["action"].(string)] = true
