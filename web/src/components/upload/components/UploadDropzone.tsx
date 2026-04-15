@@ -90,6 +90,7 @@ export const UploadDropzone: FC<UploadDropzoneProps> = ({
       <input
         ref={fileInputRef}
         type="file"
+        accept="*/*"
         multiple
         className="hidden"
         onChange={handleFileInputChange}

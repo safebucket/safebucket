@@ -251,7 +251,7 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
       {children}
 
       {uploads.length > 0 && (
-        <div className="fixed inset-x-4 bottom-8 z-50 mx-auto max-w-96 rounded-lg border bg-card text-card-foreground shadow-lg">
+        <div className="fixed inset-x-4 bottom-8 z-50 mx-auto max-w-96 rounded-lg border bg-card text-card-foreground shadow-lg md:inset-x-auto md:right-8 md:mx-0">
           <button
             type="button"
             className="flex w-full items-center justify-between px-4 py-3"
