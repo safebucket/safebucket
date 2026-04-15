@@ -62,7 +62,7 @@ export const ShareHeader: FC<IShareHeaderProps> = ({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="*/*"
+                    accept="*/*, application/octet-stream"
                     multiple
                     className="hidden"
                     onChange={(e) => {
