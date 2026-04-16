@@ -9,6 +9,7 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tracing"
 )
 
 type AuthExcludedKey struct{}
@@ -18,7 +19,7 @@ func Authenticate(
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			ctx, span := startSpan(r.Context(), "Authenticate")
+			ctx, span := tracing.StartSpan(r.Context(), "middleware.Authenticate")
 			defer span.End()
 			r = r.WithContext(ctx)
 
@@ -36,14 +37,14 @@ func Authenticate(
 			// Parse token (signature, expiry validation only - no audience check)
 			userClaims, err := helpers.ParseToken(jwtSecret, accessToken, true)
 			if err != nil {
-				spanReject(span, "FORBIDDEN")
+				tracing.RejectSpan(span, "FORBIDDEN")
 				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
 			if userClaims.Audience[0] == configuration.AudienceAccessToken {
 				if userClaims.SID == "" {
-					spanReject(span, "SESSION_REVOKED")
+					tracing.RejectSpan(span, "SESSION_REVOKED")
 					helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
 					return
 				}
@@ -53,7 +54,7 @@ func Authenticate(
 					c, userClaims.UserID.String(), userClaims.SID, maxAge,
 				)
 				if sessionErr != nil || !active {
-					spanReject(span, "SESSION_REVOKED")
+					tracing.RejectSpan(span, "SESSION_REVOKED")
 					helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
 					return
 				}

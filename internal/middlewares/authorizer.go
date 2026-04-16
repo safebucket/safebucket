@@ -6,6 +6,7 @@ import (
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/tracing"
 
 	"gorm.io/gorm"
 )
@@ -15,19 +16,19 @@ import (
 func AuthorizeRole(requiredRole models.Role) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, span := startSpan(r.Context(), "AuthorizeRole")
+			ctx, span := tracing.StartSpan(r.Context(), "middleware.AuthorizeRole")
 			defer span.End()
 			r = r.WithContext(ctx)
 
 			userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				spanReject(span, "UNAUTHORIZED")
+				tracing.RejectSpan(span, "UNAUTHORIZED")
 				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
 			if !rbac.HasRole(userClaims.Role, requiredRole) {
-				spanReject(span, "FORBIDDEN")
+				tracing.RejectSpan(span, "FORBIDDEN")
 				h.RespondWithError(w, 403, []string{"FORBIDDEN"})
 				return
 			}
@@ -47,13 +48,13 @@ func AuthorizeGroup(
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, span := startSpan(r.Context(), "AuthorizeGroup")
+			ctx, span := tracing.StartSpan(r.Context(), "middleware.AuthorizeGroup")
 			defer span.End()
 			r = r.WithContext(ctx)
 
 			userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				spanReject(span, "UNAUTHORIZED")
+				tracing.RejectSpan(span, "UNAUTHORIZED")
 				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
@@ -65,13 +66,13 @@ func AuthorizeGroup(
 
 			ids, ok := h.ParseUUIDs(w, r)
 			if !ok {
-				spanReject(span, "UNAUTHORIZED")
+				tracing.RejectSpan(span, "UNAUTHORIZED")
 				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
 			if bucketIDIndex >= len(ids) {
-				spanReject(span, "UNAUTHORIZED")
+				tracing.RejectSpan(span, "UNAUTHORIZED")
 				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
@@ -80,13 +81,13 @@ func AuthorizeGroup(
 
 			hasAccess, err := rbac.HasBucketAccess(db, userClaims.UserID, bucketID, requiredGroup)
 			if err != nil {
-				spanReject(span, "INTERNAL_SERVER_ERROR")
+				tracing.RejectSpan(span, "INTERNAL_SERVER_ERROR")
 				h.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
 				return
 			}
 
 			if !hasAccess {
-				spanReject(span, "FORBIDDEN")
+				tracing.RejectSpan(span, "FORBIDDEN")
 				h.RespondWithError(w, 403, []string{"FORBIDDEN"})
 				return
 			}
@@ -103,26 +104,26 @@ func AuthorizeGroup(
 func AuthorizeSelfOrAdmin(targetUserIDIndex int) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, span := startSpan(r.Context(), "AuthorizeSelfOrAdmin")
+			ctx, span := tracing.StartSpan(r.Context(), "middleware.AuthorizeSelfOrAdmin")
 			defer span.End()
 			r = r.WithContext(ctx)
 
 			userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				spanReject(span, "UNAUTHORIZED")
+				tracing.RejectSpan(span, "UNAUTHORIZED")
 				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
 			ids, ok := h.ParseUUIDs(w, r)
 			if !ok {
-				spanReject(span, "UNAUTHORIZED")
+				tracing.RejectSpan(span, "UNAUTHORIZED")
 				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
 			if targetUserIDIndex >= len(ids) {
-				spanReject(span, "UNAUTHORIZED")
+				tracing.RejectSpan(span, "UNAUTHORIZED")
 				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
@@ -135,7 +136,7 @@ func AuthorizeSelfOrAdmin(targetUserIDIndex int) func(next http.Handler) http.Ha
 			}
 
 			if userClaims.Role != models.RoleAdmin {
-				spanReject(span, "FORBIDDEN")
+				tracing.RejectSpan(span, "FORBIDDEN")
 				h.RespondWithError(w, 403, []string{"FORBIDDEN"})
 				return
 			}

@@ -44,7 +44,7 @@ func StartProfiler(config models.Configuration) (models.Profile, func()) {
 }
 
 func StartTracer(config models.Configuration) func() {
-	tracer := NewTracer(config.App.Tracing)
+	tracer := NewTracer(config.Tracing)
 	if tracer == nil {
 		return func() {}
 	}
@@ -258,8 +258,13 @@ func StartHTTPServer(
 
 	r := chi.NewRouter()
 
-	if config.App.Tracing.Enabled {
-		r.Use(otelhttp.NewMiddleware(configuration.AppName))
+	if config.Tracing.Enabled {
+		r.Use(otelhttp.NewMiddleware(
+			configuration.AppName,
+			otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+				return r.Method + " " + r.URL.Path
+			}),
+		))
 	}
 
 	r.Use(middleware.Timeout(5 * time.Second))

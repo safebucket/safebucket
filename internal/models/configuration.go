@@ -10,6 +10,7 @@ type Configuration struct {
 	Notifier  NotifierConfiguration  `mapstructure:"notifier"  validate:"required"`
 	Activity  ActivityConfiguration  `mapstructure:"activity"  validate:"required"`
 	Profiling ProfilingConfiguration `mapstructure:"profiling"`
+	Tracing  TracingConfiguration  `mapstructure:"tracing"`
 }
 
 type AppConfiguration struct {
@@ -35,6 +36,7 @@ type AppConfiguration struct {
 	UnauthenticatedRequestsPerMinute int                 `mapstructure:"unauthenticated_requests_per_minute" validate:"gte=1"`
 	TLSCertFile                      string              `mapstructure:"tls_cert_file"                       validate:"required_with=TLSKeyFile"`
 	TLSKeyFile                       string              `mapstructure:"tls_key_file"                        validate:"required_with=TLSCertFile"`
+	Profiling                        ProfilingConfiguration `mapstructure:"profiling"`
 }
 
 type ProfilingConfiguration struct {
@@ -52,8 +54,8 @@ type PyroscopeConfiguration struct {
 
 type TracingConfiguration struct {
 	Enabled bool                `mapstructure:"enabled"`
-	Type    string              `mapstructure:"type"  validate:"required_if=Enabled true,omitempty,oneof=tempo"`
-	Tempo   *TempoConfiguration `mapstructure:"tempo" validate:"required_if=Type tempo"`
+	Type    string              `mapstructure:"type"    validate:"required_if=Enabled true,omitempty,oneof=tempo"`
+	Tempo   *TempoConfiguration `mapstructure:"tempo"   validate:"required_if=Type tempo"`
 }
 
 type TempoConfiguration struct {

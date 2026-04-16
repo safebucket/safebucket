@@ -15,6 +15,10 @@ func NewTracer(config models.TracingConfiguration) tracing.ITracer {
 
 	switch config.Type {
 	case "tempo":
+		if config.Tempo == nil {
+			zap.L().Warn("Tempo tracing enabled but no tempo config provided, tracing disabled")
+			return nil
+		}
 		if config.Tempo.Tags == nil {
 			config.Tempo.Tags = make(map[string]string)
 		}
