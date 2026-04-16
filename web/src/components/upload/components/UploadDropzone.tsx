@@ -90,6 +90,7 @@ export const UploadDropzone: FC<UploadDropzoneProps> = ({
       <input
         ref={fileInputRef}
         type="file"
+        accept="*/*, application/octet-stream"
         multiple
         className="hidden"
         onChange={handleFileInputChange}

@@ -229,7 +229,8 @@ func (s BucketFileService) HandleUploadedStatus(
 		var bucket models.Bucket
 		if dbErr := s.DB.Where("id = ?", file.BucketID).First(&bucket).Error; dbErr == nil {
 			evt := events.NewFileActivityNotification(
-				s.Publisher, events.FileActivityUpload, file.BucketID, bucket.Name, file.Name, user.UserID, user.Email,
+				s.Publisher, events.FileActivityUpload, events.FileActivitySourceUser,
+				file.BucketID, bucket.Name, file.Name, user.UserID, user.Email,
 			)
 			evt.Trigger()
 		}
@@ -302,7 +303,8 @@ func (s BucketFileService) DownloadFile(
 	var bucket models.Bucket
 	if dbErr := s.DB.Where("id = ?", bucketID).First(&bucket).Error; dbErr == nil {
 		evt := events.NewFileActivityNotification(
-			s.Publisher, events.FileActivityDownload, bucketID, bucket.Name, file.Name, user.UserID, user.Email,
+			s.Publisher, events.FileActivityDownload, events.FileActivitySourceUser,
+			bucketID, bucket.Name, file.Name, user.UserID, user.Email,
 		)
 		evt.Trigger()
 	}

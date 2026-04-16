@@ -146,6 +146,12 @@ func loadConditionalDefaults(k *koanf.Koanf) {
 	if k.String("database.type") == ProviderPostgres {
 		setIfMissing(k, "database.postgres.port", int32(5432))
 	}
+	if k.String("storage.type") == "minio" {
+		setIfMissing(k, "storage.minio.region", "us-east-1")
+	}
+	if k.String("storage.type") == "rustfs" {
+		setIfMissing(k, "storage.rustfs.region", "us-east-1")
+	}
 	if k.String("storage.type") == "s3" {
 		setIfMissing(k, "storage.s3.region", "us-east-1")
 		setIfMissing(k, "storage.s3.force_path_style", true)

@@ -69,11 +69,22 @@ func (p *RustFSEventParser) ParseBucketUploadEvents(msg *message.Message) []Buck
 		bucketID := metadata["bucket-id"]
 		fileID := metadata["file-id"]
 		userID := metadata["user-id"]
+		shareID := metadata["share-id"]
+
+		if bucketID == "" || fileID == "" || (userID == "" && shareID == "") {
+			zap.L().Warn("incomplete metadata in object",
+				zap.String("bucket_id", bucketID),
+				zap.String("file_id", fileID),
+				zap.String("user_id", userID),
+				zap.String("share_id", shareID))
+			continue
+		}
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
 			BucketID: bucketID,
 			FileID:   fileID,
 			UserID:   userID,
+			ShareID:  shareID,
 		})
 	}
 

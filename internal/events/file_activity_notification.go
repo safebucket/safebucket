@@ -20,19 +20,27 @@ const (
 	FileActivityDownload FileActivityType = "download"
 )
 
+type FileActivitySource string
+
+const (
+	FileActivitySourceUser  FileActivitySource = "user"
+	FileActivitySourceShare FileActivitySource = "share"
+)
+
 const (
 	FileActivityNotificationName        = "FileActivityNotification"
 	FileActivityNotificationPayloadName = "FileActivityNotificationPayload"
 )
 
 type FileActivityNotificationPayload struct {
-	Type             string           `json:"type"`
-	NotificationType FileActivityType `json:"notification_type"`
-	BucketID         uuid.UUID        `json:"bucket_id"`
-	BucketName       string           `json:"bucket_name"`
-	FileName         string           `json:"file_name"`
-	ActorID          uuid.UUID        `json:"actor_id"`
-	ActorEmail       string           `json:"actor_email"`
+	Type             string             `json:"type"`
+	NotificationType FileActivityType   `json:"notification_type"`
+	Source           FileActivitySource `json:"source"`
+	BucketID         uuid.UUID          `json:"bucket_id"`
+	BucketName       string             `json:"bucket_name"`
+	FileName         string             `json:"file_name"`
+	ActorID          uuid.UUID          `json:"actor_id"`
+	ActorEmail       string             `json:"actor_email"`
 }
 
 type FileActivityNotification struct {
@@ -43,6 +51,7 @@ type FileActivityNotification struct {
 func NewFileActivityNotification(
 	publisher messaging.IPublisher,
 	notificationType FileActivityType,
+	source FileActivitySource,
 	bucketID uuid.UUID,
 	bucketName string,
 	fileName string,
@@ -54,6 +63,7 @@ func NewFileActivityNotification(
 		Payload: FileActivityNotificationPayload{
 			Type:             FileActivityNotificationName,
 			NotificationType: notificationType,
+			Source:           source,
 			BucketID:         bucketID,
 			BucketName:       bucketName,
 			FileName:         fileName,
@@ -103,6 +113,7 @@ func (e *FileActivityNotification) callback(params *EventParams) error {
 			BucketID:         e.Payload.BucketID,
 			BucketName:       e.Payload.BucketName,
 			NotificationType: string(e.Payload.NotificationType),
+			Source:           e.Payload.Source,
 			WebURL:           params.WebURL,
 		}
 

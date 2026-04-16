@@ -472,7 +472,7 @@ func (s BucketService) GetBucketActivity(
 	}
 
 	if len(history) == 0 {
-		return models.Page[map[string]interface{}]{}, nil
+		return models.Page[map[string]interface{}]{Data: []map[string]interface{}{}}, nil
 	}
 
 	enriched := activity.EnrichActivity(s.DB, history)

@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { Database, File, Folder, Smartphone, User } from "lucide-react";
+import { Database, File, Folder, Link2, Smartphone, User } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -45,6 +45,10 @@ const resourceTypeConfig: Record<string, ResourceTypeConfig> = {
     icon: Smartphone,
     className: "text-cyan-600 bg-cyan-50 dark:text-cyan-400 dark:bg-cyan-950",
   },
+  share: {
+    icon: Link2,
+    className: "text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-950",
+  },
 };
 
 const getResourceName = (activity: IActivity): string => {
@@ -59,6 +63,9 @@ const getResourceName = (activity: IActivity): string => {
   }
   if (activity.bucket_member_email) {
     return activity.bucket_member_email;
+  }
+  if (activity.share) {
+    return activity.share.name;
   }
   if (activity.mfa_device) {
     return activity.mfa_device.name;

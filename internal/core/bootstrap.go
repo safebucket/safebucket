@@ -334,6 +334,7 @@ func StartHTTPServer(
 			DB:             db,
 			Storage:        store,
 			ActivityLogger: activityLogger,
+			Publisher:      eventRouter,
 			JWTSecret:      authConfig.JWTSecret,
 		}.Routes())
 	})

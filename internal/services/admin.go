@@ -92,6 +92,7 @@ func (s AdminService) GetActivity(
 			rbac.ResourceFolder.String(),
 			rbac.ResourceUser.String(),
 			rbac.ResourceMFADevice.String(),
+			rbac.ResourceShare.String(),
 		},
 	}
 

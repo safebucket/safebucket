@@ -69,11 +69,22 @@ func (p *MinIOEventParser) ParseBucketUploadEvents(msg *message.Message) []Bucke
 		bucketID := metadata["X-Amz-Meta-Bucket-Id"]
 		fileID := metadata["X-Amz-Meta-File-Id"]
 		userID := metadata["X-Amz-Meta-User-Id"]
+		shareID := metadata["X-Amz-Meta-Share-Id"]
+
+		if bucketID == "" || fileID == "" || (userID == "" && shareID == "") {
+			zap.L().Warn("incomplete metadata in object",
+				zap.String("bucket_id", bucketID),
+				zap.String("file_id", fileID),
+				zap.String("user_id", userID),
+				zap.String("share_id", shareID))
+			continue
+		}
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
 			BucketID: bucketID,
 			FileID:   fileID,
 			UserID:   userID,
+			ShareID:  shareID,
 		})
 	}
 

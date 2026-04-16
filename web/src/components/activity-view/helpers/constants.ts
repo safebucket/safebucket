@@ -1,6 +1,7 @@
 import {
   ArchiveRestore,
   Clock,
+  Eye,
   FileDiff,
   FileDown,
   FileMinus,
@@ -8,6 +9,8 @@ import {
   FolderMinus,
   FolderPen,
   FolderPlus,
+  Link2,
+  Link2Off,
   Share2,
   Smartphone,
   SmartphoneCharging,
@@ -145,6 +148,30 @@ export const messageMap = {
     icon: Smartphone,
     iconColor: "text-red-500",
     iconBg: "bg-red-100",
+  },
+  SHARE_CREATED: {
+    messageKey: "activity.messages.share_created",
+    icon: Link2,
+    iconColor: "text-green-500",
+    iconBg: "bg-green-100",
+  },
+  SHARE_DELETED: {
+    messageKey: "activity.messages.share_deleted",
+    icon: Link2Off,
+    iconColor: "text-red-500",
+    iconBg: "bg-red-100",
+  },
+  SHARE_EXPIRED: {
+    messageKey: "activity.messages.share_expired",
+    icon: Clock,
+    iconColor: "text-orange-500",
+    iconBg: "bg-orange-100",
+  },
+  SHARE_MAX_VIEWS_REACHED: {
+    messageKey: "activity.messages.share_max_views_reached",
+    icon: Eye,
+    iconColor: "text-orange-500",
+    iconBg: "bg-orange-100",
   },
   SHARE_FILE_DOWNLOADED: {
     messageKey: "activity.messages.share_file_downloaded",
