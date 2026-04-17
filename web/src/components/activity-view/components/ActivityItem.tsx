@@ -1,3 +1,4 @@
+import { Link2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { IActivity } from "@/types/activity.ts";
 
@@ -36,7 +37,11 @@ export function ActivityItem({ item }: ActivityItemProps) {
         <Avatar className="h-10 w-10">
           <AvatarImage src="/placeholder.svg" />
           <AvatarFallback>
-            {item.user ? item.user.email.charAt(0).toUpperCase() : "?"}
+            {item.user ? (
+              item.user.email.charAt(0).toUpperCase()
+            ) : (
+              <Link2 className="h-4 w-4" />
+            )}
           </AvatarFallback>
         </Avatar>
       </ItemMedia>
