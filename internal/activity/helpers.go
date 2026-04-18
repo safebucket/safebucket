@@ -27,7 +27,6 @@ var ToEnrich = map[string]ToEnrichValue{
 	"share_id":  {Name: "share", Object: models.Share{}},
 }
 
-// NewLogFilter creates a LogFilter object with the specified criteria and the current timestamp in nanoseconds.
 func NewLogFilter(criteria models.ActivityFields) models.LogFilter {
 	return models.LogFilter{
 		Fields:    criteria,

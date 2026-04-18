@@ -30,7 +30,6 @@ type (
 	DeleteTargetFunc                          func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
 )
 
-// spanName extracts a readable "ServiceName.methodName" from a function pointer via reflection.
 func spanName(fn any) string {
 	full := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 	parts := strings.Split(full, ".")
