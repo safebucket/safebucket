@@ -29,7 +29,7 @@ import (
 )
 
 func StartProfiler(config models.Configuration) (models.Profile, func()) {
-	profiler := NewProfiler(config.App.Profiling, config.App.Profile)
+	profiler := NewProfiler(config.Profiling, config.App.Profile)
 	cleanup := func() {}
 	if profiler != nil {
 		cleanup = func() {

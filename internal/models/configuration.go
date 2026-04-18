@@ -1,40 +1,40 @@
 package models
 
 type Configuration struct {
-	App      AppConfiguration      `mapstructure:"app"      validate:"required"`
-	Database DatabaseConfiguration `mapstructure:"database" validate:"required"`
-	Auth     AuthConfiguration     `mapstructure:"auth"     validate:"required"`
-	Cache    CacheConfiguration    `mapstructure:"cache"    validate:"required"`
-	Storage  StorageConfiguration  `mapstructure:"storage"  validate:"required"`
-	Events   EventsConfiguration   `mapstructure:"events"   validate:"required"`
-	Notifier NotifierConfiguration `mapstructure:"notifier" validate:"required"`
-	Activity ActivityConfiguration `mapstructure:"activity" validate:"required"`
+	App       AppConfiguration       `mapstructure:"app"       validate:"required"`
+	Database  DatabaseConfiguration  `mapstructure:"database"  validate:"required"`
+	Auth      AuthConfiguration      `mapstructure:"auth"      validate:"required"`
+	Cache     CacheConfiguration     `mapstructure:"cache"     validate:"required"`
+	Storage   StorageConfiguration   `mapstructure:"storage"   validate:"required"`
+	Events    EventsConfiguration    `mapstructure:"events"    validate:"required"`
+	Notifier  NotifierConfiguration  `mapstructure:"notifier"  validate:"required"`
+	Activity  ActivityConfiguration  `mapstructure:"activity"  validate:"required"`
+	Profiling ProfilingConfiguration `mapstructure:"profiling"`
 }
 
 type AppConfiguration struct {
-	Profile                          string                 `mapstructure:"profile"                             validate:"oneof=default api worker"`
-	AdminEmail                       string                 `mapstructure:"admin_email"                         validate:"required,email"`
-	AdminPassword                    string                 `mapstructure:"admin_password"                      validate:"required"`
-	APIURL                           string                 `mapstructure:"api_url"                             validate:"required"`
-	AllowedOrigins                   []string               `mapstructure:"allowed_origins"                     validate:"required"`
-	JWTSecret                        string                 `mapstructure:"jwt_secret"                          validate:"required"`
-	MFAEncryptionKey                 string                 `mapstructure:"mfa_encryption_key"                  validate:"len=32"`
-	MFARequired                      bool                   `mapstructure:"mfa_required"`
-	AccessTokenExpiry                int                    `mapstructure:"access_token_expiry"                 validate:"gte=1,lte=1440"`
-	RefreshTokenExpiry               int                    `mapstructure:"refresh_token_expiry"                validate:"gte=1,lte=720"`
-	MFATokenExpiry                   int                    `mapstructure:"mfa_token_expiry"                    validate:"gte=1,lte=30"`
-	LogLevel                         string                 `mapstructure:"log_level"                           validate:"oneof=debug info warn error fatal panic"`
-	Port                             int                    `mapstructure:"port"                                validate:"gte=80,lte=65535"`
-	StaticFiles                      StaticConfiguration    `mapstructure:"static_files"`
-	TrustedProxies                   []string               `mapstructure:"trusted_proxies"                     validate:"required"`
-	WebURL                           string                 `mapstructure:"web_url"                             validate:"required"`
-	TrashRetentionDays               int                    `mapstructure:"trash_retention_days"                validate:"gte=1,lte=365"`
-	MaxUploadSize                    int64                  `mapstructure:"max_upload_size"                     validate:"gte=1"`
-	AuthenticatedRequestsPerMinute   int                    `mapstructure:"authenticated_requests_per_minute"   validate:"gte=1"`
-	UnauthenticatedRequestsPerMinute int                    `mapstructure:"unauthenticated_requests_per_minute" validate:"gte=1"`
-	TLSCertFile                      string                 `mapstructure:"tls_cert_file"                       validate:"required_with=TLSKeyFile"`
-	TLSKeyFile                       string                 `mapstructure:"tls_key_file"                        validate:"required_with=TLSCertFile"`
-	Profiling                        ProfilingConfiguration `mapstructure:"profiling"`
+	Profile                          string              `mapstructure:"profile"                             validate:"oneof=default api worker"`
+	AdminEmail                       string              `mapstructure:"admin_email"                         validate:"required,email"`
+	AdminPassword                    string              `mapstructure:"admin_password"                      validate:"required"`
+	APIURL                           string              `mapstructure:"api_url"                             validate:"required"`
+	AllowedOrigins                   []string            `mapstructure:"allowed_origins"                     validate:"required"`
+	JWTSecret                        string              `mapstructure:"jwt_secret"                          validate:"required"`
+	MFAEncryptionKey                 string              `mapstructure:"mfa_encryption_key"                  validate:"len=32"`
+	MFARequired                      bool                `mapstructure:"mfa_required"`
+	AccessTokenExpiry                int                 `mapstructure:"access_token_expiry"                 validate:"gte=1,lte=1440"`
+	RefreshTokenExpiry               int                 `mapstructure:"refresh_token_expiry"                validate:"gte=1,lte=720"`
+	MFATokenExpiry                   int                 `mapstructure:"mfa_token_expiry"                    validate:"gte=1,lte=30"`
+	LogLevel                         string              `mapstructure:"log_level"                           validate:"oneof=debug info warn error fatal panic"`
+	Port                             int                 `mapstructure:"port"                                validate:"gte=80,lte=65535"`
+	StaticFiles                      StaticConfiguration `mapstructure:"static_files"`
+	TrustedProxies                   []string            `mapstructure:"trusted_proxies"                     validate:"required"`
+	WebURL                           string              `mapstructure:"web_url"                             validate:"required"`
+	TrashRetentionDays               int                 `mapstructure:"trash_retention_days"                validate:"gte=1,lte=365"`
+	MaxUploadSize                    int64               `mapstructure:"max_upload_size"                     validate:"gte=1"`
+	AuthenticatedRequestsPerMinute   int                 `mapstructure:"authenticated_requests_per_minute"   validate:"gte=1"`
+	UnauthenticatedRequestsPerMinute int                 `mapstructure:"unauthenticated_requests_per_minute" validate:"gte=1"`
+	TLSCertFile                      string              `mapstructure:"tls_cert_file"                       validate:"required_with=TLSKeyFile"`
+	TLSKeyFile                       string              `mapstructure:"tls_key_file"                        validate:"required_with=TLSCertFile"`
 }
 
 type ProfilingConfiguration struct {
