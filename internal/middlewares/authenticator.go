@@ -37,15 +37,13 @@ func Authenticate(
 			// Parse token (signature, expiry validation only - no audience check)
 			userClaims, err := helpers.ParseToken(jwtSecret, accessToken, true)
 			if err != nil {
-				tracing.RejectSpan(span, "FORBIDDEN")
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
 			if userClaims.Audience[0] == configuration.AudienceAccessToken {
 				if userClaims.SID == "" {
-					tracing.RejectSpan(span, "SESSION_REVOKED")
-					helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
+					helpers.RespondWithErrorCtx(r.Context(), w, 401, []string{"SESSION_REVOKED"})
 					return
 				}
 
@@ -54,8 +52,7 @@ func Authenticate(
 					c, userClaims.UserID.String(), userClaims.SID, maxAge,
 				)
 				if sessionErr != nil || !active {
-					tracing.RejectSpan(span, "SESSION_REVOKED")
-					helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
+					helpers.RespondWithErrorCtx(r.Context(), w, 401, []string{"SESSION_REVOKED"})
 					return
 				}
 			}

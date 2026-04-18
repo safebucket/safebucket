@@ -32,8 +32,7 @@ func AudienceValidate(next http.Handler) http.Handler {
 		claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 		if !ok {
 			// No claims means auth middleware didn't set them (shouldn't happen if middleware order is correct)
-			tracing.RejectSpan(span, "FORBIDDEN")
-			helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+			helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 			return
 		}
 
@@ -43,14 +42,12 @@ func AudienceValidate(next http.Handler) http.Handler {
 
 		if allowedAudiences != nil {
 			if !isAudienceInList(tokenAudience, allowedAudiences) {
-				tracing.RejectSpan(span, "FORBIDDEN")
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 		} else {
 			if tokenAudience != configuration.AudienceAccessToken {
-				tracing.RejectSpan(span, "FORBIDDEN")
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 		}

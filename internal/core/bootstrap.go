@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -263,6 +264,9 @@ func StartHTTPServer(
 			configuration.AppName,
 			otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
 				return r.Method + " " + r.URL.Path
+			}),
+			otelhttp.WithFilter(func(r *http.Request) bool {
+				return strings.HasPrefix(r.URL.Path, "/api/")
 			}),
 		))
 	}

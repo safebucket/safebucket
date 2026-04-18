@@ -39,8 +39,7 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 			claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
 				// No claims means auth middleware didn't set them (shouldn't happen if middleware order is correct)
-				tracing.RejectSpan(span, "FORBIDDEN")
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
@@ -62,14 +61,12 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 			}
 
 			if mfaRequired {
-				tracing.RejectSpan(span, "FORBIDDEN")
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
 			if db != nil && userHasMFAEnrolled(db, claims.UserID) {
-				tracing.RejectSpan(span, "FORBIDDEN")
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 

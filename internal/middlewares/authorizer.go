@@ -22,14 +22,12 @@ func AuthorizeRole(requiredRole models.Role) func(next http.Handler) http.Handle
 
 			userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				tracing.RejectSpan(span, "UNAUTHORIZED")
-				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
 			if !rbac.HasRole(userClaims.Role, requiredRole) {
-				tracing.RejectSpan(span, "FORBIDDEN")
-				h.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				h.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
@@ -54,8 +52,7 @@ func AuthorizeGroup(
 
 			userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				tracing.RejectSpan(span, "UNAUTHORIZED")
-				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
@@ -66,14 +63,12 @@ func AuthorizeGroup(
 
 			ids, ok := h.ParseUUIDs(w, r)
 			if !ok {
-				tracing.RejectSpan(span, "UNAUTHORIZED")
-				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
 			if bucketIDIndex >= len(ids) {
-				tracing.RejectSpan(span, "UNAUTHORIZED")
-				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
@@ -81,14 +76,12 @@ func AuthorizeGroup(
 
 			hasAccess, err := rbac.HasBucketAccess(db, userClaims.UserID, bucketID, requiredGroup)
 			if err != nil {
-				tracing.RejectSpan(span, "INTERNAL_SERVER_ERROR")
-				h.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
+				h.RespondWithErrorCtx(r.Context(), w, 500, []string{"INTERNAL_SERVER_ERROR"})
 				return
 			}
 
 			if !hasAccess {
-				tracing.RejectSpan(span, "FORBIDDEN")
-				h.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				h.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
@@ -110,21 +103,18 @@ func AuthorizeSelfOrAdmin(targetUserIDIndex int) func(next http.Handler) http.Ha
 
 			userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				tracing.RejectSpan(span, "UNAUTHORIZED")
-				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
 			ids, ok := h.ParseUUIDs(w, r)
 			if !ok {
-				tracing.RejectSpan(span, "UNAUTHORIZED")
-				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
 			if targetUserIDIndex >= len(ids) {
-				tracing.RejectSpan(span, "UNAUTHORIZED")
-				h.RespondWithError(w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
 				return
 			}
 
@@ -136,8 +126,7 @@ func AuthorizeSelfOrAdmin(targetUserIDIndex int) func(next http.Handler) http.Ha
 			}
 
 			if userClaims.Role != models.RoleAdmin {
-				tracing.RejectSpan(span, "FORBIDDEN")
-				h.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				h.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 

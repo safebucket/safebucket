@@ -96,8 +96,7 @@ func RateLimit(
 				ipAddress, err2 := getClientIP(r, trustedProxies)
 				if err2 != nil {
 					zap.L().Error("error", zap.Error(err))
-					tracing.RejectSpan(span, "INTERNAL_SERVER_ERROR")
-					helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
+					helpers.RespondWithErrorCtx(r.Context(), w, 500, []string{"INTERNAL_SERVER_ERROR"})
 					return
 				}
 				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerMinute)
