@@ -203,9 +203,9 @@ func (c *FilesystemClient) Send(activity models.Activity) error {
 	doc["timestamp"] = time.Unix(0, timestamp)
 
 	if activity.Object != nil && isAuthorizedObject(activity.Filter.Fields.ObjectType) {
-		b, err := json.Marshal(activity.Object)
-		if err != nil {
-			return fmt.Errorf("failed to marshal object: %w", err)
+		b, marshalErr := json.Marshal(activity.Object)
+		if marshalErr != nil {
+			return fmt.Errorf("failed to marshal object: %w", marshalErr)
 		}
 		doc["object"] = string(b)
 	}
@@ -344,21 +344,21 @@ func buildBleveQuery(searchCriteria map[string][]string) query.Query {
 }
 
 // bleveFieldTypes maps each json field name to its bleve field type.
-var bleveFieldTypes = map[string]string{}
-
-func init() {
+var bleveFieldTypes = func() map[string]string {
+	m := map[string]string{}
 	t := reflect.TypeOf(models.ActivityFields{})
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		f := t.Field(i)
 		jsonTag := f.Tag.Get("json")
 		if jsonTag == "" || jsonTag == "-" {
 			continue
 		}
 		if bleveTag := f.Tag.Get("bleve"); bleveTag != "" {
-			bleveFieldTypes[jsonTag] = bleveTag
+			m[jsonTag] = bleveTag
 		}
 	}
-}
+	return m
+}()
 
 func buildIndexMapping() *mapping.IndexMappingImpl {
 	keywordMapping := bleve.NewKeywordFieldMapping()
@@ -389,7 +389,7 @@ func buildIndexMapping() *mapping.IndexMappingImpl {
 
 var schemaVersionKey = []byte("schema_version")
 
-// schemaVersion is derived from the serialized index mapping
+// schemaVersion is derived from the serialized index mapping.
 var schemaVersion = func() string {
 	b, err := json.Marshal(buildIndexMapping())
 	if err != nil {

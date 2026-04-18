@@ -361,12 +361,12 @@ func (s PublicShareService) ConfirmShareUpload(
 		if activityErr := s.ActivityLogger.Send(models.Activity{
 			Message: activity.ShareFileUploaded,
 			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionCreate.String(),
-				"object_type": rbac.ResourceFile.String(),
-				"bucket_id":   share.BucketID.String(),
-				"file_id":     file.ID.String(),
-				"share_id":    share.ID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionCreate.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				BucketID:   share.BucketID.String(),
+				FileID:     file.ID.String(),
+				ShareID:    share.ID.String(),
 			}),
 		}); activityErr != nil {
 			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))

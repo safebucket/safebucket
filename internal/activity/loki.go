@@ -354,21 +354,21 @@ func createLokiBody(activity models.Activity) (LokiBody, error) {
 	}, nil
 }
 
-var lokiLabelSet = map[string]bool{}
-
-func init() {
+var lokiLabelSet = func() map[string]bool {
+	m := map[string]bool{}
 	t := reflect.TypeOf(models.ActivityFields{})
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		f := t.Field(i)
 		jsonTag := f.Tag.Get("json")
 		if jsonTag == "" || jsonTag == "-" {
 			continue
 		}
 		if lokiTag := f.Tag.Get("loki"); lokiTag == "label" {
-			lokiLabelSet[jsonTag] = true
+			m[jsonTag] = true
 		}
 	}
-}
+	return m
+}()
 
 func lokiLabels[T any](fields map[string]T) (map[string]T, map[string]T) {
 	labels := make(map[string]T)
