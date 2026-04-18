@@ -126,9 +126,9 @@ func loadDefaults(k *koanf.Koanf) {
 		"app.authenticated_requests_per_minute":   200,
 		"app.unauthenticated_requests_per_minute": 20,
 		"app.static_files.enabled":                true,
-        "tracing.enabled": false,
+		"tracing.enabled":                         false,
 		"profiling.enabled":                       false,
-		"database.type": ProviderPostgres,
+		"database.type":                           ProviderPostgres,
 	}
 
 	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {

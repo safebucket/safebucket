@@ -95,7 +95,6 @@ func (s AuthService) Login(
 	hasMFA := len(verifiedDevices) > 0
 
 	// If user has MFA enabled OR MFA is required by admin, return restricted token
-	// Frontend will fetch devices and determine if setup or verification is needed
 	if hasMFA || s.AuthConfig.MFARequired {
 		return mfa.HandleMFARequired(logger, s.AuthConfig, &searchUser)
 	}
@@ -128,8 +127,6 @@ func (s AuthService) Login(
 	return tokens, nil
 }
 
-// getMFASecretAndDevice retrieves the MFA secret and device ID for verification.
-// Returns (secret, deviceID, targetDevice, error).
 func (s AuthService) getMFASecretAndDevice(
 	logger *zap.Logger,
 	user *models.User,
@@ -243,18 +240,12 @@ func (s AuthService) Refresh(
 	return models.AuthRefreshResponse{AccessToken: accessToken}, nil
 }
 
-// VerifyMFALogin verifies TOTP code during login.
-// Token is extracted from Authorization header by middleware.
-// On success, issues full access and refresh tokens.
 func (s AuthService) VerifyMFALogin(
 	logger *zap.Logger,
 	claims models.UserClaims,
 	_ uuid.UUIDs,
 	body models.MFALoginVerifyBody,
 ) (models.AuthLoginResponse, error) {
-	// Audience validation is handled by middleware via routeAudienceRules
-	// This endpoint accepts both AudienceMFALogin and AudienceMFAReset
-
 	var user models.User
 	result := s.DB.Preload("MFADevices", "is_verified = ?", true).
 		Where("id = ? AND provider_type = ?", claims.UserID, models.LocalProviderType).
@@ -321,17 +312,14 @@ func (s AuthService) VerifyMFALogin(
 		zap.String("device_id", deviceID),
 		zap.String("email", user.Email))
 
-	// If audience is PasswordReset, return a new restricted token with MFA=true
-	// Do NOT issue full access tokens for password reset flow
-	// Preserve the challenge ID from the original token
 	if claims.AudienceString() == configuration.AudienceMFAReset {
 		var restrictedToken string
 		restrictedToken, err = h.NewRestrictedAccessToken(
 			s.AuthConfig.JWTSecret,
 			&user,
 			configuration.AudienceMFAReset,
-			true,               // Verified!
-			claims.ChallengeID, // Preserve challenge ID
+			true,
+			claims.ChallengeID,
 		)
 		if err != nil {
 			return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
@@ -339,7 +327,7 @@ func (s AuthService) VerifyMFALogin(
 
 		return models.AuthLoginResponse{
 			AccessToken: restrictedToken,
-			MFARequired: false, // MFA checks done
+			MFARequired: false,
 		}, nil
 	}
 
@@ -486,7 +474,6 @@ func (s AuthService) OpenIDCallback(
 	return accessToken, refreshToken, nil
 }
 
-// Logout revokes the current session.
 func (s AuthService) Logout(
 	logger *zap.Logger,
 	claims models.UserClaims,
@@ -495,7 +482,6 @@ func (s AuthService) Logout(
 	if claims.SID == "" {
 		return apierrors.NewAPIError(401, "SESSION_REVOKED")
 	}
-
 	if err := cache.RevokeSession(s.Cache, claims.UserID.String(), claims.SID); err != nil {
 		logger.Error("Failed to revoke session", zap.Error(err))
 		return apierrors.ErrInternalServer

@@ -39,7 +39,6 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 			Email:        "test@example.com",
 			Role:         models.RoleUser,
 			ProviderType: models.LocalProviderType,
-			// No MFA devices = claims.MFA will be false
 		}
 
 		token, err := generateFullAccessToken(testUser)
@@ -144,11 +143,9 @@ func TestMFAValidate_RestrictedTokensSkipMFAEnforcement(t *testing.T) {
 		Email:        "test@example.com",
 		Role:         models.RoleUser,
 		ProviderType: models.LocalProviderType,
-		// No MFA devices - would normally trigger FORBIDDEN for full access tokens
 	}
 
 	t.Run("should skip MFA enforcement for restricted tokens (handled by AudienceValidate)", func(t *testing.T) {
-		// Restricted token with mfa:login audience
 		token, err := generateRestrictedToken(mfaTestJWTSecret, testUser, configuration.AudienceMFALogin, false)
 		require.NoError(t, err)
 
@@ -193,7 +190,6 @@ func TestMFAValidate_AuthExcluded(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
 		recorder := httptest.NewRecorder()
 
-		// Set auth excluded flag (as Authenticate middleware would)
 		ctx := context.WithValue(req.Context(), AuthExcludedKey{}, true)
 		req = req.WithContext(ctx)
 
@@ -217,10 +213,8 @@ func TestMFAValidate_OAuthUsersSkipMFA(t *testing.T) {
 			Email:        "oauth@example.com",
 			Role:         models.RoleUser,
 			ProviderType: models.OIDCProviderType,
-			// No MFA devices, but OAuth provider
 		}
 
-		// Generate token with OAuth provider
 		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, "google", "")
 		require.NoError(t, err)
 
@@ -417,7 +411,6 @@ func TestMFAValidate_CrossFlowTokenAccess(t *testing.T) {
 }
 
 func TestIsMFABypassPath_WithConfiguredRules(t *testing.T) {
-	// Save original rules and restore after test
 	originalRules := configuration.MFABypassRules
 	defer func() { configuration.SetMFABypassRulesForTesting(originalRules) }()
 
@@ -489,7 +482,6 @@ func TestIsMFABypassPath_WithConfiguredRules(t *testing.T) {
 }
 
 func TestMFAValidate_BypassPath(t *testing.T) {
-	// Save original rules and restore after test
 	originalRules := configuration.MFABypassRules
 	defer func() { configuration.SetMFABypassRulesForTesting(originalRules) }()
 
@@ -503,13 +495,11 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 			Email:        "test@example.com",
 			Role:         models.RoleUser,
 			ProviderType: models.LocalProviderType,
-			// No MFA devices = claims.MFA will be false
 		}
 
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		// Access bypass path
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
@@ -544,7 +534,6 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		// Access non-bypass path
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
@@ -575,7 +564,6 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		// Access bypass path with wrong method (POST instead of GET)
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/health", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
@@ -596,8 +584,6 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 	})
 }
 
-// TestMFAValidate_EnrollmentCheck tests the database enrollment check functionality.
-// This verifies that users with stale tokens (MFA=false but enrolled in DB) are blocked.
 func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 	t.Run("should block local user with MFA=false token when user has enrolled MFA", func(t *testing.T) {
 		// Setup mock DB
@@ -617,7 +603,6 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 			Email:        "test@example.com",
 			Role:         models.RoleUser,
 			ProviderType: models.LocalProviderType,
-			// No MFA devices at token creation time
 		}
 
 		token, err := generateFullAccessToken(testUser)
@@ -627,7 +612,6 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, claims.MFA, "Token should have MFA=false")
 
-		// Simulate user enrolling MFA after token was issued
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(1)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices" WHERE user_id = $1 AND is_verified = $2`)).
 			WithArgs(testUser.ID, true).
@@ -639,7 +623,6 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		// mfaRequired=false but DB has enrolled device
 		handler := MFAValidate(gormDB, false)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -651,7 +634,6 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 	})
 
 	t.Run("should allow local user with MFA=false token when user has no MFA enrolled", func(t *testing.T) {
-		// Setup mock DB
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func(db *sql.DB) {
@@ -676,7 +658,6 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
 
-		// User has no MFA devices in DB
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(0)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices" WHERE user_id = $1 AND is_verified = $2`)).
 			WithArgs(testUser.ID, true).
@@ -701,7 +682,6 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 	})
 
 	t.Run("should not check DB for OAuth users", func(t *testing.T) {
-		// Setup mock DB - no expectations should be set
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func(db *sql.DB) {
@@ -741,12 +721,10 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 
 		assert.True(t, nextCalled, "Next handler should be called for OAuth users without DB check")
 		assert.Equal(t, http.StatusOK, recorder.Code)
-		// No expectations set - mock will fail if any DB call was made
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
 	t.Run("should not check DB when token has MFA=true", func(t *testing.T) {
-		// Setup mock DB - no expectations should be set
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func(db *sql.DB) {
@@ -790,12 +768,10 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 
 		assert.True(t, nextCalled, "Next handler should be called when token has MFA=true without DB check")
 		assert.Equal(t, http.StatusOK, recorder.Code)
-		// No expectations set - mock will fail if any DB call was made
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
 	t.Run("should not check DB when mfaRequired=true", func(t *testing.T) {
-		// Setup mock DB - no expectations should be set
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func(db *sql.DB) {
@@ -827,7 +803,6 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		// mfaRequired=true should block immediately without DB check
 		handler := MFAValidate(gormDB, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -835,7 +810,6 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 
 		expected := models.Error{Status: http.StatusForbidden, Error: []string{"FORBIDDEN"}}
 		tests.AssertJSONResponse(t, recorder, http.StatusForbidden, expected)
-		// No expectations set - mock will fail if any DB call was made
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }

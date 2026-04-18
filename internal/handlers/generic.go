@@ -51,6 +51,7 @@ func recordError(span trace.Span, err error, status int) {
 	}
 }
 
+//nolint:dupl // structurally similar to GetOneWithQueryHandler but handles body decoding and write semantics.
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
 	name := spanName(create)
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -126,6 +127,7 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 	}
 }
 
+//nolint:dupl // structurally similar to CreateHandler but handles query decoding and read semantics.
 func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, Out]) http.HandlerFunc {
 	name := spanName(getOne)
 	return func(w http.ResponseWriter, r *http.Request) {
