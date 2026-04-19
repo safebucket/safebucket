@@ -54,7 +54,7 @@ func InitSQLite(config *models.SQLiteDatabaseConfig) *gorm.DB {
 
 	sqlDB.SetMaxOpenConns(sqliteMaxOpenConns)
 
-	runMigrations(sqlDB, DialectSQLite)
+	RunMigrations(sqlDB, DialectSQLite)
 	RegisterCallbacks(db)
 
 	return db

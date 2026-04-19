@@ -24,7 +24,7 @@ func setupSQLiteDB(t *testing.T) *gorm.DB {
 	_, err = sqlDB.Exec(pragmaForeignKeys)
 	require.NoError(t, err)
 
-	runMigrations(sqlDB, "sqlite")
+	RunMigrations(sqlDB, DialectSQLite)
 	RegisterCallbacks(db)
 
 	return db

@@ -10,6 +10,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// EventsManager owns publisher lifetime. Subscriber lifetime is owned by the consumer
+// (typically WorkersHandle), which must close subscribers to drain HandleEvents loops
+// before waiting on its WaitGroup.
 type EventsManager struct {
 	publishers  map[string]messaging.IPublisher
 	subscribers map[string]messaging.ISubscriber
@@ -121,14 +124,6 @@ func (em *EventsManager) Close() {
 	for topicKey, publisher := range em.publishers {
 		if err := publisher.Close(); err != nil {
 			zap.L().Error("Failed to close publisher",
-				zap.String("topic_key", topicKey),
-				zap.Error(err))
-		}
-	}
-
-	for topicKey, subscriber := range em.subscribers {
-		if err := subscriber.Close(); err != nil {
-			zap.L().Error("Failed to close subscriber",
 				zap.String("topic_key", topicKey),
 				zap.Error(err))
 		}

@@ -1,0 +1,26 @@
+name: Backend integration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25
+          cache: true
+
+      - name: Create web dist placeholder
+        run: mkdir -p web/dist && touch web/dist/index.html
+
+      - name: Run Go integration tests
+        run: go test -v -tags=integration -timeout=15m ./internal/integration/...
