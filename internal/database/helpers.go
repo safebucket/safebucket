@@ -11,13 +11,10 @@ import (
 
 // FormatDateStr returns the correct SQL expression to extract a formatted date (YYYY-MM-DD)
 // depending on the underlying database dialect.
-// IMPORTANT: column must be a trusted, hardcoded column identifier - it is interpolated
-// directly into the SQL string without escaping.
 func FormatDateStr(db *gorm.DB, column string) string {
 	if db.Dialector.Name() == DialectSQLite {
 		return fmt.Sprintf("strftime('%%Y-%%m-%%d', %s)", column)
 	}
-	// Fallback to PostgreSQL syntax
 	return fmt.Sprintf("TO_CHAR(%s, 'YYYY-MM-DD')", column)
 }
 
