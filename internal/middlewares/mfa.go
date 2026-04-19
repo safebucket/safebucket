@@ -30,7 +30,6 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 			defer span.End()
 			r = r.WithContext(ctx)
 
-			// Skip if auth was excluded (context set by Authenticate)
 			if excluded, _ := r.Context().Value(AuthExcludedKey{}).(bool); excluded {
 				next.ServeHTTP(w, r)
 				return
@@ -38,12 +37,10 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 
 			claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				// No claims means auth middleware didn't set them (shouldn't happen if middleware order is correct)
 				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
-			// Only enforce MFA for full access tokens from local provider
 			if claims.AudienceString() != configuration.AudienceAccessToken ||
 				claims.Provider != string(models.LocalProviderType) {
 				next.ServeHTTP(w, r)

@@ -23,7 +23,6 @@ func Authenticate(
 			defer span.End()
 			r = r.WithContext(ctx)
 
-			// Check if path is excluded from auth (default = auth required)
 			excluded := isPathExcludedFromAuth(r.URL.Path, r.Method)
 			ctx = context.WithValue(r.Context(), AuthExcludedKey{}, excluded)
 
@@ -34,7 +33,6 @@ func Authenticate(
 
 			accessToken := r.Header.Get("Authorization")
 
-			// Parse token (signature, expiry validation only - no audience check)
 			userClaims, err := helpers.ParseToken(jwtSecret, accessToken, true)
 			if err != nil {
 				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
@@ -77,5 +75,5 @@ func isPathExcludedFromAuth(path, method string) bool {
 		}
 	}
 
-	return false // Auth required by default
+	return false
 }
