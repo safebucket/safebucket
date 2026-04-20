@@ -99,7 +99,7 @@ services:
       - "valkey_data:/data"
 
   mailpit:
-    image: axllent/mailpit:v1.29.6
+    image: axllent/mailpit:v1.29.7
     container_name: mailpit
     restart: unless-stopped
     volumes:
@@ -169,7 +169,7 @@ services:
   tempo:
     container_name: tempo
     profiles: [ debug ]
-    image: grafana/tempo:2.10.3
+    image: grafana/tempo:2.10.4
     command: [ "-config.file=/etc/tempo/config.yaml" ]
     ports:
       - "3201:3200"
