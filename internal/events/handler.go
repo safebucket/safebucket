@@ -1,6 +1,7 @@
 package events
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -71,23 +72,31 @@ func getEventFromMessage(eventType string, msg *message.Message) (Event, error) 
 	return event, nil
 }
 
-func HandleEvents(params *EventParams, messages <-chan *message.Message) {
-	for msg := range messages {
-		zap.L().
-			Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
+func HandleEvents(ctx context.Context, params *EventParams, messages <-chan *message.Message) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg, ok := <-messages:
+			if !ok {
+				return
+			}
+			zap.L().
+				Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
 
-		eventType := msg.Metadata.Get("type")
-		event, err := getEventFromMessage(eventType, msg)
-		if err != nil {
-			zap.L().Error("event is misconfigured", zap.Error(err))
-			msg.Ack()
-			continue
-		}
+			eventType := msg.Metadata.Get("type")
+			event, err := getEventFromMessage(eventType, msg)
+			if err != nil {
+				zap.L().Error("event is misconfigured", zap.Error(err))
+				msg.Ack()
+				continue
+			}
 
-		if err = event.callback(params); err != nil {
-			msg.Nack()
-		} else {
-			msg.Ack()
+			if err = event.callback(params); err != nil {
+				msg.Nack()
+			} else {
+				msg.Ack()
+			}
 		}
 	}
 }
@@ -231,6 +240,7 @@ func handleDeletionEvents(
 }
 
 func HandleBucketEvents(
+	ctx context.Context,
 	parser eventparser.IBucketEventParser,
 	db *gorm.DB,
 	activityLogger activity.IActivityLogger,
@@ -239,26 +249,34 @@ func HandleBucketEvents(
 	trashRetentionDays int,
 	messages <-chan *message.Message,
 ) {
-	for msg := range messages {
-		zap.L().
-			Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg, ok := <-messages:
+			if !ok {
+				return
+			}
+			zap.L().
+				Debug("message received", zap.Any("raw_payload", string(msg.Payload)), zap.Any("metadata", msg.Metadata))
 
-		eventType := parser.GetBucketEventType(msg)
+			eventType := parser.GetBucketEventType(msg)
 
-		switch eventType {
-		case eventparser.BucketEventTypeUpload:
-			handleUploadEvents(parser, msg, db, activityLogger, publisher)
+			switch eventType {
+			case eventparser.BucketEventTypeUpload:
+				handleUploadEvents(parser, msg, db, activityLogger, publisher)
 
-		case eventparser.BucketEventTypeDeletion:
-			handleDeletionEvents(parser, msg, db, storage, activityLogger, trashRetentionDays)
+			case eventparser.BucketEventTypeDeletion:
+				handleDeletionEvents(parser, msg, db, storage, activityLogger, trashRetentionDays)
 
-		case eventparser.BucketEventTypeIgnore:
-			zap.L().Debug("ignoring event", zap.String("raw_payload", string(msg.Payload)))
+			case eventparser.BucketEventTypeIgnore:
+				zap.L().Debug("ignoring event", zap.String("raw_payload", string(msg.Payload)))
 
-		default:
-			zap.L().Warn("Unknown bucket event type", zap.String("payload", string(msg.Payload)))
+			default:
+				zap.L().Warn("Unknown bucket event type", zap.String("payload", string(msg.Payload)))
+			}
+
+			msg.Ack()
 		}
-
-		msg.Ack()
 	}
 }

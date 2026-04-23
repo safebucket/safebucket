@@ -1,0 +1,58 @@
+app:
+  profile: default
+  admin_email: admin@safebucket.test
+  admin_password: admin-correct-horse-staple
+  api_url: http://api.test
+  allowed_origins: ["*"]
+  jwt_secret: integration-test-jwt-secret
+  mfa_encryption_key: "01234567890123456789012345678901"
+  mfa_required: false
+  access_token_expiry: 60
+  refresh_token_expiry: 600
+  mfa_token_expiry: 5
+  log_level: info
+  port: 8080
+  static_files:
+    enabled: false
+  trusted_proxies: ["127.0.0.1"]
+  web_url: http://web.test
+  trash_retention_days: 7
+  max_upload_size: 33554432
+  authenticated_requests_per_minute: 10000
+  unauthenticated_requests_per_minute: 10000
+
+database:
+  type: postgres
+  # host/port/user/password/name are injected at runtime from the container
+
+cache:
+  type: memory
+
+storage:
+  type: minio
+  # bucket_name, endpoint, external_endpoint, client_id, client_secret are
+  # injected at runtime from the container
+
+events:
+  type: memory
+  queues:
+    notifications:
+      name: test-notifications
+    object_deletion:
+      name: test-object-deletion
+    bucket_events:
+      name: test-bucket-events
+
+notifier:
+  type: filesystem
+  # directory is injected at runtime (t.TempDir)
+
+activity:
+  type: filesystem
+  # directory is injected at runtime (t.TempDir)
+
+auth:
+  providers:
+    local:
+      name: local
+      type: local

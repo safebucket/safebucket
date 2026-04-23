@@ -35,7 +35,6 @@ type BootedApp struct {
 	AppIdentity    string
 }
 
-// Boot wires all backend dependencies, starts the identity ticker and workers, and builds the API route
 func Boot(ctx context.Context, cfg models.Configuration, opts BootOptions) *BootedApp {
 	profile := configuration.GetProfile(cfg.App.Profile)
 
@@ -101,15 +100,14 @@ func Boot(ctx context.Context, cfg models.Configuration, opts BootOptions) *Boot
 }
 
 func (a *BootedApp) Shutdown(ctx context.Context) error {
-	var firstErr error
-	if a.Workers != nil {
-		if err := a.Workers.Shutdown(ctx); err != nil {
-			zap.L().Error("Workers shutdown error", zap.Error(err))
-			firstErr = err
-		}
-	}
 	if a.EventsManager != nil {
 		a.EventsManager.Close()
 	}
-	return firstErr
+	if a.Workers != nil {
+		if err := a.Workers.Shutdown(ctx); err != nil {
+			zap.L().Error("Workers shutdown error", zap.Error(err))
+			return err
+		}
+	}
+	return nil
 }

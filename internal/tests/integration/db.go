@@ -30,6 +30,10 @@ func (p *SQLiteProvider) Setup(t *testing.T) *gorm.DB {
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 
+	// :memory: gives each connection its own empty database, so pin the pool to
+	// a single connection (matches internal/database/sqlite.go).
+	sqlDB.SetMaxOpenConns(1)
+
 	_, err = sqlDB.ExecContext(context.Background(), "PRAGMA foreign_keys = ON")
 	require.NoError(t, err)
 

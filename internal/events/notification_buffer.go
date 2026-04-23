@@ -17,8 +17,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// batchMeta holds the metadata for a notification batch, stored as JSON in cache.
-// ActionText is computed at flush time and excluded from serialization.
 type batchMeta struct {
 	RecipientEmail   string             `json:"recipient_email"`
 	ActorEmail       string             `json:"actor_email"`

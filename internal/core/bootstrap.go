@@ -63,8 +63,7 @@ func CreateAdminUser(db *gorm.DB, config models.Configuration) {
 }
 
 type WorkersHandle struct {
-	wg          *sync.WaitGroup
-	subscribers []messaging.ISubscriber
+	wg *sync.WaitGroup
 }
 
 func NewWorkersHandle() *WorkersHandle {
@@ -82,16 +81,13 @@ func (h *WorkersHandle) Wait() {
 	h.wg.Wait()
 }
 
+// Shutdown waits for all worker goroutines to exit. Subscriber channels must be closed
+// (via EventsManager.Close) before calling this, otherwise HandleEvents loops will not
+// exit and the wait will hang until ctx expires.
 func (h *WorkersHandle) Shutdown(ctx context.Context) error {
 	if h == nil {
 		return nil
 	}
-	for _, sub := range h.subscribers {
-		if err := sub.Close(); err != nil {
-			zap.L().Warn("Failed to close subscriber during shutdown", zap.Error(err))
-		}
-	}
-
 	done := make(chan struct{})
 	go func() {
 		h.Wait()
@@ -133,12 +129,10 @@ func StartWorkers(
 	events.StartFileNotificationBuffer(ctx, handle.wg, cache, notify)
 	zap.L().Info("Started file notification buffer")
 
-	notificationsSub := eventsManager.GetSubscriber(configuration.EventsNotifications)
-	if notificationsSub != nil {
-		handle.subscribers = append(handle.subscribers, notificationsSub)
+	if notificationsSub := eventsManager.GetSubscriber(configuration.EventsNotifications); notificationsSub != nil {
 		notifications := notificationsSub.Subscribe()
 		handle.wg.Go(func() {
-			events.HandleEvents(eventParams, notifications)
+			events.HandleEvents(ctx, eventParams, notifications)
 		})
 		zap.L().Info("Started notifications worker")
 	}
@@ -170,25 +164,26 @@ func StartWorkers(
 		})
 
 	if deletionSub := eventsManager.GetSubscriber(configuration.EventsObjectDeletion); deletionSub != nil {
-		handle.subscribers = append(handle.subscribers, deletionSub)
+		deletionMessages := deletionSub.Subscribe()
 		startWorker(ctx, handle.wg, profile.Workers.ObjectDeletion, "object_deletion", cache, appIdentity,
-			func(_ context.Context) {
-				events.HandleEvents(eventParams, deletionSub.Subscribe())
+			func(workerCtx context.Context) {
+				events.HandleEvents(workerCtx, eventParams, deletionMessages)
 			})
 	}
 
 	if bucketSub := eventsManager.GetSubscriber(configuration.EventsBucketEvents); bucketSub != nil {
-		handle.subscribers = append(handle.subscribers, bucketSub)
+		bucketMessages := bucketSub.Subscribe()
 		startWorker(ctx, handle.wg, profile.Workers.BucketEvents, "bucket_events", cache, appIdentity,
-			func(_ context.Context) {
+			func(workerCtx context.Context) {
 				events.HandleBucketEvents(
+					workerCtx,
 					eventsManager.parser,
 					db,
 					activityLogger,
 					store,
 					eventRouter,
 					config.App.TrashRetentionDays,
-					bucketSub.Subscribe(),
+					bucketMessages,
 				)
 			})
 	}
@@ -232,15 +227,23 @@ func startSingletonWorker(
 
 	var workerStarted bool
 	var cancelWorker context.CancelFunc
+	var workerDone chan struct{}
 	defer func() {
 		if cancelWorker != nil {
 			cancelWorker()
+		}
+		if workerDone != nil {
+			<-workerDone
 		}
 	}()
 	stopWorker := func() {
 		if cancelWorker != nil {
 			cancelWorker()
 			cancelWorker = nil
+		}
+		if workerDone != nil {
+			<-workerDone
+			workerDone = nil
 		}
 		workerStarted = false
 	}
@@ -257,7 +260,12 @@ func startSingletonWorker(
 				workerStarted = true
 				workerCtx, cancel := context.WithCancel(ctx)
 				cancelWorker = cancel
-				wg.Go(func() { runWorker(workerCtx) })
+				done := make(chan struct{})
+				workerDone = done
+				wg.Go(func() {
+					defer close(done)
+					runWorker(workerCtx)
+				})
 			}
 		} else {
 			refreshed, err := c.RefreshLock(cache, lockKey, instanceID, lockTTL)

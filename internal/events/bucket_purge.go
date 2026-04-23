@@ -87,7 +87,6 @@ func (e *BucketPurge) callback(params *EventParams) error {
 	return nil
 }
 
-// deleteRootFiles deletes all root-level files (folder_id IS NULL) for the bucket.
 func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 	var files []models.File
 	result := params.DB.Unscoped().
@@ -122,7 +121,6 @@ func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 		if len(storagePaths) > 0 {
 			if err := params.Storage.RemoveObjects(storagePaths); err != nil {
 				zap.L().Warn("Failed to delete files from storage", zap.Error(err))
-				// Continue - files may not exist in storage yet (uploading status)
 			} else {
 				zap.L().Info("Successfully deleted files from storage",
 					zap.Int("count", len(storagePaths)),
@@ -162,7 +160,6 @@ func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 	return true
 }
 
-// deleteRootFolders delegates deletion of root-level folders to FolderPurge events.
 func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
 	var folders []models.Folder
 	result := params.DB.Unscoped().
@@ -220,8 +217,6 @@ func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
 	return true
 }
 
-// cleanupOrphanedStorage removes any remaining objects in storage that weren't in the database.
-// This handles edge cases like uncommitted uploads, residual storage artifacts, and trash markers.
 func (e *BucketPurge) cleanupOrphanedStorage(params *EventParams) bool {
 	bucketPrefix := path.Join("buckets", e.Payload.BucketID.String())
 
@@ -249,7 +244,6 @@ func (e *BucketPurge) cleanupOrphanedStorage(params *EventParams) bool {
 		zap.Int("count", len(objects)),
 	)
 
-	// Check if more objects exist (batching)
 	if len(objects) == c.BulkActionsLimit {
 		zap.L().Info("More orphaned objects may exist, requeuing")
 		return false

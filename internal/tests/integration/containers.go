@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/safebucket/safebucket/internal/database"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -23,7 +24,9 @@ const (
 	postgresPassword     = "safebucket"
 )
 
-type PostgresProvider struct{}
+type PostgresProvider struct {
+	container *tcpostgres.PostgresContainer
+}
 
 func (p *PostgresProvider) Setup(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -42,6 +45,7 @@ func (p *PostgresProvider) Setup(t *testing.T) *gorm.DB {
 		tcpostgres.BasicWaitStrategies(),
 	)
 	require.NoError(t, err, "start postgres container")
+	p.container = container
 
 	t.Cleanup(func() {
 		_ = testcontainers.TerminateContainer(container)
@@ -69,3 +73,24 @@ func (p *PostgresProvider) Dialect() string {
 }
 
 func (p *PostgresProvider) Teardown() {}
+
+func (p *PostgresProvider) ConfigFor(t *testing.T) *models.PostgresDatabaseConfig {
+	t.Helper()
+	require.NotNil(t, p.container, "postgres container not started")
+
+	ctx := context.Background()
+	host, err := p.container.Host(ctx)
+	require.NoError(t, err, "postgres host")
+
+	port, err := p.container.MappedPort(ctx, "5432/tcp")
+	require.NoError(t, err, "postgres mapped port")
+
+	return &models.PostgresDatabaseConfig{
+		Host:     host,
+		Port:     int32(port.Num()),
+		User:     postgresUser,
+		Password: postgresPassword,
+		Name:     postgresDBName,
+		SSLMode:  "disable",
+	}
+}

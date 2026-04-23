@@ -20,6 +20,7 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/core"
 	"github.com/safebucket/safebucket/internal/messaging"
+	"github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/notifier"
 	"github.com/safebucket/safebucket/internal/storage"
@@ -29,15 +30,29 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	testJWTSecret        = "integration-test-jwt-secret"
-	testMFAEncryptionKey = "01234567890123456789012345678901"
-	testAdminEmail       = "admin@safebucket.test"
-	testAdminPassword    = "admin-correct-horse-staple"
-	testPassword         = "correct-horse-battery-staple"
-)
+const testPassword = "correct-horse-battery-staple"
 
-var testProvider DBProvider
+func ActiveScenarios() []string {
+	if s := os.Getenv("TEST_SCENARIO"); s != "" {
+		return []string{s}
+	}
+
+	matches, err := filepath.Glob(filepath.Join("scenarios", "*.yaml"))
+	if err != nil {
+		panic("integration: failed to glob test scenarios: " + err.Error())
+	}
+
+	if len(matches) == 0 {
+		panic("integration: no scenarios found in scenarios/")
+	}
+
+	scenarios := make([]string, 0, len(matches))
+	for _, m := range matches {
+		name := filepath.Base(m)
+		scenarios = append(scenarios, name[:len(name)-5]) // strip .yaml
+	}
+	return scenarios
+}
 
 type TestApp struct {
 	BaseURL     string
@@ -55,70 +70,30 @@ type TestApp struct {
 	client *http.Client
 }
 
-func DefaultTestConfig(t *testing.T) models.Configuration {
+func LoadScenario(t *testing.T, name string) models.Configuration {
 	t.Helper()
 
-	notifyDir := filepath.Join(t.TempDir(), "notifications")
-	require.NoError(t, os.MkdirAll(notifyDir, 0o750))
+	path, err := filepath.Abs(filepath.Join("scenarios", name+".yaml"))
+	require.NoError(t, err, "resolve scenario path")
 
-	activityDir := filepath.Join(t.TempDir(), "activity")
-	require.NoError(t, os.MkdirAll(activityDir, 0o750))
+	cfg, err := configuration.Load(configuration.LoadOptions{
+		ConfigFilePath: path,
+		SkipEnv:        true,
+	})
+	require.NoError(t, err, "load scenario %s", name)
+	return cfg
+}
 
-	return models.Configuration{
-		App: models.AppConfiguration{
-			Profile:                          configuration.ProfileDefault,
-			AdminEmail:                       testAdminEmail,
-			AdminPassword:                    testAdminPassword,
-			APIURL:                           "http://api.test",
-			AllowedOrigins:                   []string{"*"},
-			JWTSecret:                        testJWTSecret,
-			MFAEncryptionKey:                 testMFAEncryptionKey,
-			MFARequired:                      false,
-			AccessTokenExpiry:                60,
-			RefreshTokenExpiry:               600,
-			MFATokenExpiry:                   5,
-			LogLevel:                         "info",
-			Port:                             8080,
-			StaticFiles:                      models.StaticConfiguration{Enabled: false},
-			TrustedProxies:                   []string{"127.0.0.1"},
-			WebURL:                           "http://web.test",
-			TrashRetentionDays:               7,
-			MaxUploadSize:                    32 << 20,
-			AuthenticatedRequestsPerMinute:   10_000,
-			UnauthenticatedRequestsPerMinute: 10_000,
-		},
-		Auth: models.AuthConfiguration{
-			Providers: map[string]models.ProviderConfiguration{
-				string(models.LocalProviderType): {
-					Name: string(models.LocalProviderType),
-					Type: models.LocalProviderType,
-				},
-			},
-		},
-		Cache: models.CacheConfiguration{Type: "memory"},
-		Events: models.EventsConfiguration{
-			Type: configuration.ProviderMemory,
-			Queues: map[string]models.QueueConfig{
-				configuration.EventsNotifications:  {Name: "test-" + configuration.EventsNotifications},
-				configuration.EventsObjectDeletion: {Name: "test-" + configuration.EventsObjectDeletion},
-				configuration.EventsBucketEvents:   {Name: "test-" + configuration.EventsBucketEvents},
-			},
-		},
-		Notifier: models.NotifierConfiguration{
-			Type:       "filesystem",
-			Filesystem: &models.FilesystemNotifierConfiguration{Directory: notifyDir},
-		},
-		Activity: models.ActivityConfiguration{
-			Type:       "filesystem",
-			Filesystem: &models.FilesystemActivityConfiguration{Directory: activityDir},
-		},
-	}
+func BootScenario(t *testing.T, name string) *TestApp {
+	return BootTestApp(t, LoadScenario(t, name))
 }
 
 func BootTestApp(t *testing.T, cfg models.Configuration) *TestApp {
 	t.Helper()
 
-	db := testProvider.Setup(t)
+	provider := providerForDialect(t, cfg.Database.Type)
+	db := provider.Setup(t)
+	injectDatabaseConfig(t, &cfg, provider, db)
 
 	minioInstance := StartMinIO(t)
 	cfg.Storage = models.StorageConfiguration{
@@ -133,6 +108,17 @@ func BootTestApp(t *testing.T, cfg models.Configuration) *TestApp {
 		},
 	}
 
+	notifyDir := filepath.Join(t.TempDir(), "notifications")
+	require.NoError(t, os.MkdirAll(notifyDir, 0o750))
+	cfg.Notifier.Filesystem = &models.FilesystemNotifierConfiguration{Directory: notifyDir}
+
+	activityDir := filepath.Join(t.TempDir(), "activity")
+	require.NoError(t, os.MkdirAll(activityDir, 0o750))
+	cfg.Activity.Filesystem = &models.FilesystemActivityConfiguration{Directory: activityDir}
+
+	require.NoError(t, configuration.Validate(cfg), "final scenario config failed validation")
+	middlewares.InitValidator(cfg.App.MaxUploadSize)
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	app := core.Boot(ctx, cfg, core.BootOptions{DB: db})
@@ -144,23 +130,14 @@ func BootTestApp(t *testing.T, cfg models.Configuration) *TestApp {
 	t.Cleanup(func() {
 		server.Close()
 
+		cancel()
+
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer shutdownCancel()
 		if err := app.Shutdown(shutdownCtx); err != nil {
 			t.Logf("integration: app shutdown: %v", err)
 		}
-
-		cancel()
 	})
-
-	notifyDir := ""
-	if cfg.Notifier.Filesystem != nil {
-		notifyDir = cfg.Notifier.Filesystem.Directory
-	}
-	activityDir := ""
-	if cfg.Activity.Filesystem != nil {
-		activityDir = cfg.Activity.Filesystem.Directory
-	}
 
 	return &TestApp{
 		BaseURL:     server.URL,
@@ -283,4 +260,33 @@ func (a *TestApp) ReadNotifications(t *testing.T) []Notification {
 		out = append(out, n)
 	}
 	return out
+}
+
+func providerForDialect(t *testing.T, dialect string) DBProvider {
+	t.Helper()
+	switch dialect {
+	case configuration.ProviderPostgres:
+		return &PostgresProvider{}
+	case configuration.ProviderSQLite:
+		return &SQLiteProvider{}
+	default:
+		require.Failf(t, "unsupported dialect", "scenario requested dialect %q", dialect)
+		return nil
+	}
+}
+
+func injectDatabaseConfig(t *testing.T, cfg *models.Configuration, provider DBProvider, db *gorm.DB) {
+	t.Helper()
+	switch provider.Dialect() {
+	case configuration.ProviderPostgres:
+		pg, ok := provider.(*PostgresProvider)
+		require.True(t, ok, "provider must be *PostgresProvider for postgres dialect")
+		cfg.Database.Postgres = pg.ConfigFor(t)
+	case configuration.ProviderSQLite:
+		if cfg.Database.SQLite == nil {
+			cfg.Database.SQLite = &models.SQLiteDatabaseConfig{Path: ":memory:"}
+		}
+	default:
+		require.Failf(t, "unsupported dialect", "provider dialect %q", provider.Dialect())
+	}
 }

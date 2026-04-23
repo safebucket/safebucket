@@ -9,6 +9,11 @@ permissions:
 jobs:
   integration:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [postgres, sqlite]
+    name: "test (${{ matrix.scenario }})"
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -23,4 +28,6 @@ jobs:
         run: mkdir -p web/dist && touch web/dist/index.html
 
       - name: Run Go integration tests
-        run: go test -v -tags=integration -timeout=15m ./internal/integration/...
+        env:
+          TEST_SCENARIO: ${{ matrix.scenario }}
+        run: go test -v -tags=integration -timeout=15m ./internal/tests/integration/...

@@ -87,30 +87,24 @@ func readEnvVars(k *koanf.Koanf) {
 	parseAuthProviders(k)
 }
 
-func readFileConfig(k *koanf.Koanf) {
-	configFilePath := os.Getenv("CONFIG_FILE_PATH")
-	var filePath string
-	if configFilePath == "" {
-		for _, path := range ConfigFileSearchPaths {
-			if _, err := os.Stat(path); err == nil {
-				filePath = path
-				break
-			}
-		}
-	} else {
-		filePath = configFilePath
+func discoverConfigFile() string {
+	if p := os.Getenv("CONFIG_FILE_PATH"); p != "" {
+		return p
 	}
+	for _, path := range ConfigFileSearchPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
+	}
+	return ""
+}
 
-	if filePath != "" {
-		err := k.Load(file.Provider(filePath), yaml.Parser())
-		if err != nil {
-			zap.L().
-				Fatal("Fatal error loading config file", zap.String("path", filePath), zap.Error(err))
-		}
-		zap.L().Info("Read configuration from file " + filePath)
-	} else {
-		zap.L().Warn("No configuration file found")
+func loadFile(k *koanf.Koanf, path string) error {
+	if err := k.Load(file.Provider(path), yaml.Parser()); err != nil {
+		return fmt.Errorf("load config file %s: %w", path, err)
 	}
+	zap.L().Info("Read configuration from file " + path)
+	return nil
 }
 
 func loadDefaults(k *koanf.Koanf) {
@@ -170,25 +164,61 @@ func loadConditionalDefaults(k *koanf.Koanf) {
 	}
 }
 
-func Read() models.Configuration {
-	k := koanf.New(".")
+// LoadOptions controls how Load builds the configuration. The zero value
+// matches prod behavior (discover file from env/search paths, overlay env vars).
+type LoadOptions struct {
+	// ConfigFilePath overrides the normal file search. If empty, Load
+	// falls back to CONFIG_FILE_PATH and ConfigFileSearchPaths.
+	ConfigFilePath string
+	// SkipEnv disables the env var overlay. Useful for tests that need
+	// deterministic config isolated from the process environment.
+	SkipEnv bool
+}
 
+// Load builds a Configuration through the koanf pipeline (defaults -> file ->
+// env -> deprecation -> conditional defaults -> unmarshal) without running the
+// struct validator. Callers that need validation should call Validate.
+func Load(opts LoadOptions) (models.Configuration, error) {
+	k := koanf.New(".")
 	loadDefaults(k)
-	readFileConfig(k)
-	readEnvVars(k)
+
+	path := opts.ConfigFilePath
+	if path == "" {
+		path = discoverConfigFile()
+	}
+	if path != "" {
+		if err := loadFile(k, path); err != nil {
+			return models.Configuration{}, err
+		}
+	} else if opts.ConfigFilePath == "" {
+		zap.L().Warn("No configuration file found")
+	}
+
+	if !opts.SkipEnv {
+		readEnvVars(k)
+	}
 	migrateDeprecatedKeys(k)
 	loadConditionalDefaults(k)
 
-	var config models.Configuration
-	err := k.UnmarshalWithConf("", &config, koanf.UnmarshalConf{Tag: "mapstructure"})
+	var cfg models.Configuration
+	if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "mapstructure"}); err != nil {
+		return models.Configuration{}, fmt.Errorf("decode config: %w", err)
+	}
+	return cfg, nil
+}
+
+// Validate runs the go-playground/validator struct validation on a loaded config.
+func Validate(cfg models.Configuration) error {
+	return validator.New().Struct(cfg)
+}
+
+func Read() models.Configuration {
+	cfg, err := Load(LoadOptions{})
 	if err != nil {
-		zap.L().Fatal("Unable to decode config into struct", zap.Error(err))
+		zap.L().Fatal("Unable to load configuration", zap.Error(err))
 	}
-
-	validate := validator.New()
-	if err = validate.Struct(config); err != nil {
-		zap.L().Fatal("Invalid configuration", zap.Error(err))
+	if validateErr := Validate(cfg); validateErr != nil {
+		zap.L().Fatal("Invalid configuration", zap.Error(validateErr))
 	}
-
-	return config
+	return cfg
 }

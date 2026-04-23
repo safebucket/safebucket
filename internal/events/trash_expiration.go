@@ -190,17 +190,6 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		return nil
 	}
 
-	// At this point, file is guaranteed to be soft-deleted (deleted_at IS NOT NULL).
-	//
-	// However, there's a race condition: if a user restores the file,
-	// UnmarkAsTrashed deletes the trash marker, which triggers this event.
-	// The restore handler clears deleted_at, but this event may process
-	// before or after that DB update completes.
-	//
-	// Solution: Re-check the file's deleted_at to distinguish:
-	// - deleted_at IS NOT NULL → Lifecycle policy expiration, delete permanently
-	// - deleted_at IS NULL → User restore in progress, skip deletion
-
 	var currentFile models.File
 	if reloadErr := params.DB.Unscoped().First(&currentFile, "id = ?", file.ID).Error; reloadErr != nil {
 		zap.L().Error("Failed to reload file for status check",
