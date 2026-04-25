@@ -67,7 +67,6 @@ func parseAuthProviders(k *koanf.Koanf) {
 				}
 			}
 		}
-		// Remove the keys entry to avoid conflict with providers map
 		k.Delete("auth.providers.keys")
 	}
 }
@@ -164,20 +163,11 @@ func loadConditionalDefaults(k *koanf.Koanf) {
 	}
 }
 
-// LoadOptions controls how Load builds the configuration. The zero value
-// matches prod behavior (discover file from env/search paths, overlay env vars).
 type LoadOptions struct {
-	// ConfigFilePath overrides the normal file search. If empty, Load
-	// falls back to CONFIG_FILE_PATH and ConfigFileSearchPaths.
 	ConfigFilePath string
-	// SkipEnv disables the env var overlay. Useful for tests that need
-	// deterministic config isolated from the process environment.
-	SkipEnv bool
+	SkipEnv        bool
 }
 
-// Load builds a Configuration through the koanf pipeline (defaults -> file ->
-// env -> deprecation -> conditional defaults -> unmarshal) without running the
-// struct validator. Callers that need validation should call Validate.
 func Load(opts LoadOptions) (models.Configuration, error) {
 	k := koanf.New(".")
 	loadDefaults(k)
@@ -207,7 +197,6 @@ func Load(opts LoadOptions) (models.Configuration, error) {
 	return cfg, nil
 }
 
-// Validate runs the go-playground/validator struct validation on a loaded config.
 func Validate(cfg models.Configuration) error {
 	return validator.New().Struct(cfg)
 }

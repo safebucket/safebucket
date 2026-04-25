@@ -116,16 +116,17 @@ func (em *EventsManager) GetSubscriber(topicKey string) messaging.ISubscriber {
 }
 
 func (em *EventsManager) Close() {
-	for topicKey, subscriber := range em.subscribers {
-		if err := subscriber.Close(); err != nil {
-			zap.L().Error("Failed to close subscriber",
+	for topicKey, publisher := range em.publishers {
+		if err := publisher.Close(); err != nil {
+			zap.L().Error("Failed to close publisher",
 				zap.String("topic_key", topicKey),
 				zap.Error(err))
 		}
 	}
-	for topicKey, publisher := range em.publishers {
-		if err := publisher.Close(); err != nil {
-			zap.L().Error("Failed to close publisher",
+
+	for topicKey, subscriber := range em.subscribers {
+		if err := subscriber.Close(); err != nil {
+			zap.L().Error("Failed to close subscriber",
 				zap.String("topic_key", topicKey),
 				zap.Error(err))
 		}

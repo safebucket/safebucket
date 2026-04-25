@@ -81,9 +81,6 @@ func (h *WorkersHandle) Wait() {
 	h.wg.Wait()
 }
 
-// Shutdown waits for all worker goroutines to exit. Subscriber channels must be closed
-// (via EventsManager.Close) before calling this, otherwise HandleEvents loops will not
-// exit and the wait will hang until ctx expires.
 func (h *WorkersHandle) Shutdown(ctx context.Context) error {
 	if h == nil {
 		return nil
