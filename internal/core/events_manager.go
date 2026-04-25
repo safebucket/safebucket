@@ -10,9 +10,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// EventsManager owns both publisher and subscriber lifetime. Close() must be called
-// before waiting on consumer goroutines so closing the subscriber channels drains any
-// HandleEvents loops still running.
 type EventsManager struct {
 	publishers  map[string]messaging.IPublisher
 	subscribers map[string]messaging.ISubscriber
@@ -54,8 +51,6 @@ func (em *EventsManager) initializePublishers() {
 		case configuration.ProviderAWS:
 			publisher = messaging.NewAWSPublisher(topicConfig.Name)
 		case configuration.ProviderMemory:
-			// Memory provider requires the same GoChannel instance to be shared between publisher and subscriber,
-			// so both are created here. initializeSubscribers() skips the memory provider accordingly.
 			ch := messaging.NewMemoryChannel()
 			publisher = messaging.NewMemoryPublisher(ch, topicConfig.Name)
 			em.subscribers[topicKey] = messaging.NewMemorySubscriber(ch, topicConfig.Name)

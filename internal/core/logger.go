@@ -41,15 +41,12 @@ func NewLogger(level string) {
 	}(logger)
 }
 
-// isIgnorableLogSyncError returns true for errors that can be safely ignored during logger sync.
 func isIgnorableLogSyncError(err error) bool {
-	// Standard UNIX not-a-terminal error
 	if errors.Is(err, syscall.ENOTTY) {
 		return true
 	}
 
 	errStr := err.Error()
-	// Common Windows stderr sync errors
 	if strings.Contains(errStr, "The handle is invalid") ||
 		strings.Contains(errStr, "sync /dev/stderr") ||
 		strings.Contains(errStr, "inappropriate ioctl for device") {
