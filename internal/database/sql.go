@@ -36,9 +36,8 @@ var migrationSources = map[string]embed.FS{
 	DialectSQLite:   sqliteMigrations,
 }
 
-
 func RunMigrations(db *sql.DB, dialect string) {
-  goose.SetLogger(zapGooseLogger{l: zap.L()})
+	goose.SetLogger(zapGooseLogger{l: zap.L()})
 	gooseDialect := dialect
 	if dialect == DialectSQLite {
 		gooseDialect = "sqlite3"

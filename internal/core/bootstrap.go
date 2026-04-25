@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"sync"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -33,17 +33,17 @@ import (
 	"gorm.io/gorm"
 )
 
-  func StartProfiler(config models.Configuration) func() {                                                                                                                          
-      profiler := NewProfiler(config.Profiling, config.App.Profile)
-      if profiler == nil {                                                                                                                                                          
-          return func() {}
-      }                                                                                                                                                                             
-      return func() {                                              
-          if err := profiler.Stop(); err != nil {
-              zap.L().Error("Failed to stop profiler", zap.Error(err))                                                                                                              
-          }
-      }                                                                                                                                                                             
-  }    
+func StartProfiler(config models.Configuration) func() {
+	profiler := NewProfiler(config.Profiling, config.App.Profile)
+	if profiler == nil {
+		return func() {}
+	}
+	return func() {
+		if err := profiler.Stop(); err != nil {
+			zap.L().Error("Failed to stop profiler", zap.Error(err))
+		}
+	}
+}
 
 func StartTracer(config models.Configuration) func() {
 	tracer := NewTracer(config.Tracing)
