@@ -43,7 +43,6 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 			return
 		}
 
-		// Store validated query parameters in context
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, models.QueryKey{}, *data)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -67,11 +66,9 @@ func parseQueryParams(queryParams url.Values, data interface{}) error {
 
 		queryValue := queryParams.Get(queryParamName)
 		if queryValue == "" {
-			// Skip empty values, validation will handle required fields
 			continue
 		}
 
-		// Set the field value based on its type
 		if err := setFieldValue(field, queryValue); err != nil {
 			return err
 		}
@@ -86,7 +83,6 @@ func setFieldValue(field reflect.Value, value string) error {
 		if !field.CanSet() {
 			return nil
 		}
-		// Create a new value of the pointer's element type
 		newValue := reflect.New(field.Type().Elem())
 		if err := setFieldValue(newValue.Elem(), value); err != nil {
 			return err
@@ -121,7 +117,6 @@ func setFieldValue(field reflect.Value, value string) error {
 		}
 		field.SetFloat(floatValue)
 	default:
-		// Unsupported type, skip
 		return nil
 	}
 

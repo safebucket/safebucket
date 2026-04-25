@@ -132,6 +132,23 @@ func handleUploadEvents(
 
 		db.Model(&file).Update("status", models.FileStatusUploaded)
 
+		action := models.Activity{
+			Message: activity.FileUploaded,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionCreate.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				FileID:     event.FileID,
+				BucketID:   event.BucketID,
+				UserID:     event.UserID,
+			}),
+		}
+
+		err = activityLogger.Send(action)
+		if err != nil {
+			zap.L().Error("failed to send activity", zap.Error(err))
+		}
+
 		var bucket models.Bucket
 		if err = db.Where("id = ?", bucketUUID).First(&bucket).Error; err != nil {
 			continue
@@ -146,12 +163,12 @@ func handleUploadEvents(
 			if err = activityLogger.Send(models.Activity{
 				Message: activity.ShareFileUploaded,
 				Object:  file.ToActivity(),
-				Filter: activity.NewLogFilter(map[string]string{
-					"action":      rbac.ActionCreate.String(),
-					"object_type": rbac.ResourceFile.String(),
-					"file_id":     event.FileID,
-					"bucket_id":   event.BucketID,
-					"share_id":    shareUUID.String(),
+				Filter: activity.NewLogFilter(models.ActivityFields{
+					Action:     rbac.ActionCreate.String(),
+					ObjectType: rbac.ResourceFile.String(),
+					FileID:     event.FileID,
+					BucketID:   event.BucketID,
+					ShareID:    shareUUID.String(),
 				}),
 			}); err != nil {
 				zap.L().Error("failed to send activity", zap.Error(err))
@@ -182,12 +199,12 @@ func handleUploadEvents(
 			if err = activityLogger.Send(models.Activity{
 				Message: activity.FileUploaded,
 				Object:  file.ToActivity(),
-				Filter: activity.NewLogFilter(map[string]string{
-					"action":      rbac.ActionCreate.String(),
-					"object_type": rbac.ResourceFile.String(),
-					"file_id":     event.FileID,
-					"bucket_id":   event.BucketID,
-					"user_id":     event.UserID,
+				Filter: activity.NewLogFilter(models.ActivityFields{
+					Action:     rbac.ActionCreate.String(),
+					ObjectType: rbac.ResourceFile.String(),
+					FileID:     event.FileID,
+					BucketID:   event.BucketID,
+					UserID:     event.UserID,
 				}),
 			}); err != nil {
 				zap.L().Error("failed to send activity", zap.Error(err))

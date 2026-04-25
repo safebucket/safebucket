@@ -313,7 +313,7 @@
   },
   "activity": {
     "title": "Activity Feed",
-    "no_activity_yet": "No activity yet.",
+    "no_activity_yet": "No activity in the last 30 days.",
     "share_link": "Share link",
     "messages": {
       "bucket_created": "Created a bucket '%%BUCKET_NAME%%' and shared it with you.",

@@ -1,14 +1,16 @@
 package models
 
 type Configuration struct {
-	App      AppConfiguration      `mapstructure:"app"      validate:"required"`
-	Database DatabaseConfiguration `mapstructure:"database" validate:"required"`
-	Auth     AuthConfiguration     `mapstructure:"auth"     validate:"required"`
-	Cache    CacheConfiguration    `mapstructure:"cache"    validate:"required"`
-	Storage  StorageConfiguration  `mapstructure:"storage"  validate:"required"`
-	Events   EventsConfiguration   `mapstructure:"events"   validate:"required"`
-	Notifier NotifierConfiguration `mapstructure:"notifier" validate:"required"`
-	Activity ActivityConfiguration `mapstructure:"activity" validate:"required"`
+	App       AppConfiguration       `mapstructure:"app"       validate:"required"`
+	Database  DatabaseConfiguration  `mapstructure:"database"  validate:"required"`
+	Auth      AuthConfiguration      `mapstructure:"auth"      validate:"required"`
+	Cache     CacheConfiguration     `mapstructure:"cache"     validate:"required"`
+	Storage   StorageConfiguration   `mapstructure:"storage"   validate:"required"`
+	Events    EventsConfiguration    `mapstructure:"events"    validate:"required"`
+	Notifier  NotifierConfiguration  `mapstructure:"notifier"  validate:"required"`
+	Activity  ActivityConfiguration  `mapstructure:"activity"  validate:"required"`
+	Profiling ProfilingConfiguration `mapstructure:"profiling"`
+	Tracing   TracingConfiguration   `mapstructure:"tracing"`
 }
 
 type AppConfiguration struct {
@@ -48,6 +50,19 @@ type PyroscopeConfiguration struct {
 	ApplicationName string            `mapstructure:"application_name" validate:"required"`
 	UploadRate      int               `mapstructure:"upload_rate"      validate:"gte=1"`
 	Tags            map[string]string `mapstructure:"tags"`
+}
+
+type TracingConfiguration struct {
+	Enabled bool                `mapstructure:"enabled"`
+	Type    string              `mapstructure:"type"    validate:"required_if=Enabled true,omitempty,oneof=tempo"`
+	Tempo   *TempoConfiguration `mapstructure:"tempo"   validate:"required_if=Type tempo"`
+}
+
+type TempoConfiguration struct {
+	Endpoint     string            `mapstructure:"endpoint"      validate:"required,http_url"`
+	ServiceName  string            `mapstructure:"service_name"  validate:"required"`
+	SamplingRate float64           `mapstructure:"sampling_rate" validate:"gte=0,lte=1"`
+	Tags         map[string]string `mapstructure:"tags"`
 }
 
 type DatabaseConfiguration struct {

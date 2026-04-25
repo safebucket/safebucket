@@ -60,7 +60,6 @@ export const UploadDropzone: FC<UploadDropzoneProps> = ({
         );
         onFilesSelected(files);
       }
-      // Reset input so the same file can be re-selected
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }

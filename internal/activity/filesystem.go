@@ -1,9 +1,12 @@
 package activity
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -17,26 +20,6 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
-
-const schemaVersion = "2"
-
-var schemaVersionKey = []byte("schema_version")
-
-// FilesystemActivityEntry is the document shape indexed in bleve.
-type FilesystemActivityEntry struct {
-	Message           string    `json:"message"`
-	Timestamp         time.Time `json:"timestamp"`
-	Action            string    `json:"action"`
-	ObjectType        string    `json:"object_type"`
-	UserID            string    `json:"user_id"`
-	Domain            string    `json:"domain"`
-	BucketID          string    `json:"bucket_id"`
-	FileID            string    `json:"file_id"`
-	FolderID          string    `json:"folder_id"`
-	ShareID           string    `json:"share_id"`
-	BucketMemberEmail string    `json:"bucket_member_email"`
-	Object            string    `json:"object"`
-}
 
 type FilesystemClient struct {
 	index bleve.Index
@@ -92,35 +75,6 @@ func NewFilesystemClient(config models.ActivityConfiguration) IActivityLogger {
 	return &FilesystemClient{index: index}
 }
 
-func buildIndexMapping() *mapping.IndexMappingImpl {
-	keywordMapping := bleve.NewKeywordFieldMapping()
-	dateMapping := bleve.NewDateTimeFieldMapping()
-	textMapping := bleve.NewTextFieldMapping()
-
-	disabledMapping := bleve.NewTextFieldMapping()
-	disabledMapping.Index = false
-	disabledMapping.Store = true
-
-	docMapping := bleve.NewDocumentMapping()
-	docMapping.AddFieldMappingsAt("action", keywordMapping)
-	docMapping.AddFieldMappingsAt("object_type", keywordMapping)
-	docMapping.AddFieldMappingsAt("user_id", keywordMapping)
-	docMapping.AddFieldMappingsAt("domain", keywordMapping)
-	docMapping.AddFieldMappingsAt("bucket_id", keywordMapping)
-	docMapping.AddFieldMappingsAt("file_id", keywordMapping)
-	docMapping.AddFieldMappingsAt("folder_id", keywordMapping)
-	docMapping.AddFieldMappingsAt("share_id", keywordMapping)
-	docMapping.AddFieldMappingsAt("bucket_member_email", keywordMapping)
-	docMapping.AddFieldMappingsAt("timestamp", dateMapping)
-	docMapping.AddFieldMappingsAt("message", textMapping)
-	docMapping.AddFieldMappingsAt("object", disabledMapping)
-
-	indexMapping := bleve.NewIndexMapping()
-	indexMapping.DefaultMapping = docMapping
-
-	return indexMapping
-}
-
 func cleanupOnError(indexes []bleve.Index, dirs []string) {
 	for _, idx := range indexes {
 		_ = idx.Close()
@@ -152,8 +106,7 @@ func copyDocuments(oldIndex, newIndex bleve.Index) (int, error) {
 
 		batch := newIndex.NewBatch()
 		for _, hit := range result.Hits {
-			entry := reconstructEntry(hit.Fields)
-			if batchErr := batch.Index(hit.ID, entry); batchErr != nil {
+			if batchErr := batch.Index(hit.ID, hit.Fields); batchErr != nil {
 				return 0, fmt.Errorf("failed to index document %s: %w", hit.ID, batchErr)
 			}
 		}
@@ -222,18 +175,6 @@ func migrateIndex(dir string) error {
 	return nil
 }
 
-func reconstructEntry(fields map[string]any) FilesystemActivityEntry {
-	var entry FilesystemActivityEntry
-	b, err := json.Marshal(fields)
-	if err != nil {
-		return entry
-	}
-	if unmarshalErr := json.Unmarshal(b, &entry); unmarshalErr != nil {
-		return entry
-	}
-	return entry
-}
-
 func parseTimestamp(fields map[string]any) time.Time {
 	if s, ok := fields["timestamp"].(string); ok {
 		if t, err := time.Parse(time.RFC3339, s); err == nil {
@@ -248,40 +189,29 @@ func (c *FilesystemClient) Close() error {
 }
 
 func (c *FilesystemClient) Send(activity models.Activity) error {
-	ts, err := strconv.ParseInt(activity.Filter.Timestamp, 10, 64)
+	timestamp, err := strconv.ParseInt(activity.Filter.Timestamp, 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse timestamp: %w", err)
 	}
-	timestamp := time.Unix(0, ts)
 
-	var objectJSON string
-	if activity.Object != nil && isAuthorizedObject(activity.Filter.Fields["object_type"]) {
-		var b []byte
-		b, err = json.Marshal(activity.Object)
-		if err != nil {
-			return fmt.Errorf("failed to marshal object: %w", err)
-		}
-		objectJSON = string(b)
+	fieldsMap := activity.Filter.Fields.ToMap()
+	doc := make(map[string]interface{}, len(fieldsMap)+3)
+	for k, v := range fieldsMap {
+		doc[k] = v
 	}
+	doc["message"] = activity.Message
+	doc["timestamp"] = time.Unix(0, timestamp)
 
-	entry := FilesystemActivityEntry{
-		Message:           activity.Message,
-		Timestamp:         timestamp,
-		Action:            activity.Filter.Fields["action"],
-		ObjectType:        activity.Filter.Fields["object_type"],
-		UserID:            activity.Filter.Fields["user_id"],
-		Domain:            activity.Filter.Fields["domain"],
-		BucketID:          activity.Filter.Fields["bucket_id"],
-		FileID:            activity.Filter.Fields["file_id"],
-		FolderID:          activity.Filter.Fields["folder_id"],
-		ShareID:           activity.Filter.Fields["share_id"],
-		BucketMemberEmail: activity.Filter.Fields["bucket_member_email"],
-		Object:            objectJSON,
+	if activity.Object != nil && isAuthorizedObject(activity.Filter.Fields.ObjectType) {
+		b, marshalErr := json.Marshal(activity.Object)
+		if marshalErr != nil {
+			return fmt.Errorf("failed to marshal object: %w", marshalErr)
+		}
+		doc["object"] = string(b)
 	}
 
 	docID := uuid.New().String()
-	err = c.index.Index(docID, entry)
-	if err != nil {
+	if err = c.index.Index(docID, doc); err != nil {
 		return fmt.Errorf("failed to index activity: %w", err)
 	}
 
@@ -310,28 +240,9 @@ func (c *FilesystemClient) Search(searchCriteria map[string][]string) ([]map[str
 
 	var activities []map[string]any
 	for _, hit := range result.Hits {
-		domain, _ := hit.Fields["domain"].(string)
-		userID, _ := hit.Fields["user_id"].(string)
-		action, _ := hit.Fields["action"].(string)
-		objectType, _ := hit.Fields["object_type"].(string)
-		bucketID, _ := hit.Fields["bucket_id"].(string)
-		fileID, _ := hit.Fields["file_id"].(string)
-		folderID, _ := hit.Fields["folder_id"].(string)
-		shareID, _ := hit.Fields["share_id"].(string)
-		bucketMemberEmail, _ := hit.Fields["bucket_member_email"].(string)
-		message, _ := hit.Fields["message"].(string)
-
-		entry := map[string]any{
-			"domain":              domain,
-			"user_id":             userID,
-			"action":              action,
-			"object_type":         objectType,
-			"bucket_id":           bucketID,
-			"file_id":             fileID,
-			"folder_id":           folderID,
-			"share_id":            shareID,
-			"bucket_member_email": bucketMemberEmail,
-			"message":             message,
+		entry := make(map[string]any, len(hit.Fields))
+		for k, v := range hit.Fields {
+			entry[k] = v
 		}
 
 		if t := parseTimestamp(hit.Fields); !t.IsZero() {
@@ -431,3 +342,59 @@ func buildBleveQuery(searchCriteria map[string][]string) query.Query {
 
 	return bleve.NewConjunctionQuery(queries...)
 }
+
+// bleveFieldTypes maps each json field name to its bleve field type.
+var bleveFieldTypes = func() map[string]string {
+	m := map[string]string{}
+	t := reflect.TypeOf(models.ActivityFields{})
+	for i := range t.NumField() {
+		f := t.Field(i)
+		jsonTag := f.Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+		if bleveTag := f.Tag.Get("bleve"); bleveTag != "" {
+			m[jsonTag] = bleveTag
+		}
+	}
+	return m
+}()
+
+func buildIndexMapping() *mapping.IndexMappingImpl {
+	keywordMapping := bleve.NewKeywordFieldMapping()
+	dateMapping := bleve.NewDateTimeFieldMapping()
+	textMapping := bleve.NewTextFieldMapping()
+
+	disabledMapping := bleve.NewTextFieldMapping()
+	disabledMapping.Index = false
+	disabledMapping.Store = true
+
+	typeToMapping := map[string]*mapping.FieldMapping{
+		"keyword":  keywordMapping,
+		"datetime": dateMapping,
+		"text":     textMapping,
+		"stored":   disabledMapping,
+	}
+
+	docMapping := bleve.NewDocumentMapping()
+	for field, fieldType := range bleveFieldTypes {
+		docMapping.AddFieldMappingsAt(field, typeToMapping[fieldType])
+	}
+
+	indexMapping := bleve.NewIndexMapping()
+	indexMapping.DefaultMapping = docMapping
+
+	return indexMapping
+}
+
+var schemaVersionKey = []byte("schema_version")
+
+// schemaVersion is derived from the serialized index mapping.
+var schemaVersion = func() string {
+	b, err := json.Marshal(buildIndexMapping())
+	if err != nil {
+		panic(fmt.Sprintf("failed to marshal index mapping for schema version: %v", err))
+	}
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:4])
+}()

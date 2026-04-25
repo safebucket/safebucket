@@ -1,14 +1,19 @@
 package helpers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -60,4 +65,16 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 
 func RespondWithError(w http.ResponseWriter, code int, msg []string) {
 	RespondWithJSON(w, code, models.Error{Status: code, Error: msg})
+}
+
+// RespondWithErrorCtx writes an error response and also records the error on
+// the active span extracted from ctx, so middlewares and handlers don't need
+// to annotate spans by hand at every rejection site.
+func RespondWithErrorCtx(ctx context.Context, w http.ResponseWriter, code int, msg []string) {
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		errMsg := strings.Join(msg, ", ")
+		span.RecordError(errors.New(errMsg))
+		span.SetStatus(codes.Error, errMsg)
+	}
+	RespondWithError(w, code, msg)
 }

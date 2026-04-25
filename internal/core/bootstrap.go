@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"net/http"
 	"sync"
+	"strings"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -27,18 +28,33 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
-func StartProfiler(config models.Configuration) func() {
-	profiler := NewProfiler(config.App.Profiling, config.App.Profile)
-	if profiler == nil {
+  func StartProfiler(config models.Configuration) func() {                                                                                                                          
+      profiler := NewProfiler(config.Profiling, config.App.Profile)
+      if profiler == nil {                                                                                                                                                          
+          return func() {}
+      }                                                                                                                                                                             
+      return func() {                                              
+          if err := profiler.Stop(); err != nil {
+              zap.L().Error("Failed to stop profiler", zap.Error(err))                                                                                                              
+          }
+      }                                                                                                                                                                             
+  }    
+
+func StartTracer(config models.Configuration) func() {
+	tracer := NewTracer(config.Tracing)
+	if tracer == nil {
 		return func() {}
 	}
 	return func() {
-		if err := profiler.Stop(); err != nil {
-			zap.L().Error("Failed to stop profiler", zap.Error(err))
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := tracer.Shutdown(ctx); err != nil {
+			zap.L().Error("Failed to stop tracer", zap.Error(err))
 		}
 	}
 }
@@ -335,6 +351,18 @@ func BuildAPIRouter(
 	providers configuration.Providers,
 ) chi.Router {
 	r := chi.NewRouter()
+
+	if config.Tracing.Enabled {
+		r.Use(otelhttp.NewMiddleware(
+			configuration.AppName,
+			otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+				return r.Method + " " + r.URL.Path
+			}),
+			otelhttp.WithFilter(func(r *http.Request) bool {
+				return strings.HasPrefix(r.URL.Path, "/api/")
+			}),
+		))
+	}
 
 	r.Use(middleware.Timeout(5 * time.Second))
 	r.Use(m.Logger)

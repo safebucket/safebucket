@@ -3,6 +3,7 @@ package activity
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -11,21 +12,10 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/safebucket/safebucket/internal/configuration"
-	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
 )
-
-var authorizedLabels = [2]string{"object_type", "action"}
-
-var authorizedObjects = [5]rbac.Resource{
-	rbac.ResourceBucket,
-	rbac.ResourceFile,
-	rbac.ResourceFolder,
-	rbac.ResourceShare,
-	rbac.ResourceMFADevice,
-}
 
 const (
 	lokiPushURI   = "/loki/api/v1/push"
@@ -310,44 +300,8 @@ func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 	}
 }
 
-// isAuthorized checks if the given label is part of the predefined authorizedLabels array and returns true if matched.
-func isAuthorized(label string) bool {
-	for _, auth := range authorizedLabels {
-		if label == auth {
-			return true
-		}
-	}
-	return false
-}
-
-// isAuthorizedObject checks if the given object type is part of the predefined authorizedObjects array and returns true if matched.
-func isAuthorizedObject(objectType string) bool {
-	for _, item := range authorizedObjects {
-		if objectType == item.String() {
-			return true
-		}
-	}
-	return false
-}
-
-// splitMetadata separates a map into labels and metadata based on specific authorization criteria.
-// Returns two maps: labels containing authorized keys and metadata containing unauthorized keys.
-func splitMetadata[T interface{}](structuredMetadata map[string]T) (map[string]T, map[string]T) {
-	labels := make(map[string]T)
-	metadata := make(map[string]T)
-
-	for key, value := range structuredMetadata {
-		if isAuthorized(key) {
-			labels[key] = value
-		} else {
-			metadata[key] = value
-		}
-	}
-	return labels, metadata
-}
-
 func generateSearchQuery(searchCriteria map[string][]string) string {
-	labels, metadata := splitMetadata(searchCriteria)
+	labels, metadata := lokiLabels(searchCriteria)
 
 	formattedLabels := generateORCriteria(labels)
 	formattedMetadata := generateORCriteria(metadata)
@@ -372,14 +326,14 @@ func generateORCriteria(criteria map[string][]string) []string {
 }
 
 func createLokiBody(activity models.Activity) (LokiBody, error) {
-	labels, metadata := splitMetadata(activity.Filter.Fields)
+	labels, metadata := lokiLabels(activity.Filter.Fields.ToMap())
 	labels["service_name"] = configuration.AppName
 
 	logLine := map[string]interface{}{
 		"message": activity.Message,
 	}
 
-	if isAuthorizedObject(activity.Filter.Fields["object_type"]) {
+	if isAuthorizedObject(activity.Filter.Fields.ObjectType) {
 		logLine["object"] = activity.Object
 	}
 
@@ -398,4 +352,33 @@ func createLokiBody(activity models.Activity) (LokiBody, error) {
 	return LokiBody{
 		Streams: []StreamEntry{stream},
 	}, nil
+}
+
+var lokiLabelSet = func() map[string]bool {
+	m := map[string]bool{}
+	t := reflect.TypeOf(models.ActivityFields{})
+	for i := range t.NumField() {
+		f := t.Field(i)
+		jsonTag := f.Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+		if lokiTag := f.Tag.Get("loki"); lokiTag == "label" {
+			m[jsonTag] = true
+		}
+	}
+	return m
+}()
+
+func lokiLabels[T any](fields map[string]T) (map[string]T, map[string]T) {
+	labels := make(map[string]T)
+	metadata := make(map[string]T)
+	for key, value := range fields {
+		if lokiLabelSet[key] {
+			labels[key] = value
+		} else {
+			metadata[key] = value
+		}
+	}
+	return labels, metadata
 }

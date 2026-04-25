@@ -112,12 +112,12 @@ func (s BucketShareService) CreateShare(
 		if err := s.ActivityLogger.Send(models.Activity{
 			Message: activity.ShareCreated,
 			Object:  share.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionCreate.String(),
-				"object_type": rbac.ResourceShare.String(),
-				"bucket_id":   bucketID.String(),
-				"share_id":    share.ID.String(),
-				"user_id":     user.UserID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionCreate.String(),
+				ObjectType: rbac.ResourceShare.String(),
+				BucketID:   bucketID.String(),
+				ShareID:    share.ID.String(),
+				UserID:     user.UserID.String(),
 			}),
 		}); err != nil {
 			logger.Error("Failed to log share create activity", zap.Error(err))
@@ -182,12 +182,12 @@ func (s BucketShareService) DeleteShare(
 		err := s.ActivityLogger.Send(models.Activity{
 			Message: activity.ShareDeleted,
 			Object:  share.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionDelete.String(),
-				"object_type": rbac.ResourceShare.String(),
-				"bucket_id":   bucketID.String(),
-				"share_id":    shareID.String(),
-				"user_id":     user.UserID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				ObjectType: rbac.ResourceShare.String(),
+				BucketID:   bucketID.String(),
+				ShareID:    shareID.String(),
+				UserID:     user.UserID.String(),
 			}),
 		})
 

@@ -4,10 +4,21 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"strings"
 
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 )
+
+type zapGooseLogger struct{ l *zap.Logger }
+
+func (g zapGooseLogger) Printf(format string, v ...any) {
+	g.l.Sugar().Infof(strings.TrimRight(format, "\n"), v...)
+}
+
+func (g zapGooseLogger) Fatalf(format string, v ...any) {
+	g.l.Sugar().Fatalf(strings.TrimRight(format, "\n"), v...)
+}
 
 //go:embed migrations/postgres/*.sql
 var postgresMigrations embed.FS
@@ -25,7 +36,9 @@ var migrationSources = map[string]embed.FS{
 	DialectSQLite:   sqliteMigrations,
 }
 
+
 func RunMigrations(db *sql.DB, dialect string) {
+  goose.SetLogger(zapGooseLogger{l: zap.L()})
 	gooseDialect := dialect
 	if dialect == DialectSQLite {
 		gooseDialect = "sqlite3"

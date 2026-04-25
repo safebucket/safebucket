@@ -60,6 +60,7 @@ services:
       - RUSTFS_ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
     ports:
+      - "9001:9001"
       - "9000:9000"
     volumes:
       - "rustfs_data:/data"

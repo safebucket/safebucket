@@ -186,11 +186,11 @@ func (s MFAService) AddDevice(
 	action := models.Activity{
 		Message: activity.MFADeviceEnrolled,
 		Object:  device.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      activity.MFADeviceEnrolled,
-			"user_id":     userID.String(),
-			"object_type": "mfa_device",
-			"device_id":   device.ID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     activity.MFADeviceEnrolled,
+			UserID:     userID.String(),
+			ObjectType: "mfa_device",
+			DeviceID:   device.ID.String(),
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -347,11 +347,11 @@ func (s MFAService) VerifyDevice(
 			ID:   deviceID,
 			Name: deviceName,
 		},
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      activity.MFADeviceVerified,
-			"user_id":     userID.String(),
-			"object_type": "mfa_device",
-			"device_id":   deviceID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     activity.MFADeviceVerified,
+			UserID:     userID.String(),
+			ObjectType: "mfa_device",
+			DeviceID:   deviceID.String(),
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -481,11 +481,11 @@ func (s MFAService) UpdateDevice(
 		action := models.Activity{
 			Message: activity.MFADeviceUpdated,
 			Object:  device.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      activity.MFADeviceUpdated,
-				"user_id":     userID.String(),
-				"object_type": "mfa_device",
-				"device_id":   deviceID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     activity.MFADeviceUpdated,
+				UserID:     userID.String(),
+				ObjectType: "mfa_device",
+				DeviceID:   deviceID.String(),
 			}),
 		}
 		if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -568,11 +568,11 @@ func (s MFAService) RemoveDevice(
 		action := models.Activity{
 			Message: activity.MFADeviceRemoved,
 			Object:  device.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      activity.MFADeviceRemoved,
-				"user_id":     userID.String(),
-				"object_type": "mfa_device",
-				"device_id":   deviceID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     activity.MFADeviceRemoved,
+				UserID:     userID.String(),
+				ObjectType: "mfa_device",
+				DeviceID:   deviceID.String(),
 			}),
 		}
 		if logErr := s.ActivityLogger.Send(action); logErr != nil {

@@ -33,8 +33,14 @@ func main() {
 
 	middlewares.InitValidator(config.App.MaxUploadSize)
 
-	app := core.Boot(ctx, config, core.BootOptions{})
-	if sqlDB, err := app.DB.DB(); err == nil {
+ stopTracer := core.StartTracer(config)
+ defer stopTracer()
+
+ app := core.Boot(ctx, config, core.BootOptions{})
+ if sqlDB, err := app.DB.DB(); err == nil {
+     defer sqlDB.Close()
+ }
+
 		defer sqlDB.Close()
 	}
 	defer app.Cache.Close()

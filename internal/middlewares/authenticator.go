@@ -9,6 +9,7 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tracing"
 )
 
 type AuthExcludedKey struct{}
@@ -18,9 +19,12 @@ func Authenticate(
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			// Check if path is excluded from auth (default = auth required)
+			ctx, span := tracing.StartSpan(r.Context(), "middleware.Authenticate")
+			defer span.End()
+			r = r.WithContext(ctx)
+
 			excluded := isPathExcludedFromAuth(r.URL.Path, r.Method)
-			ctx := context.WithValue(r.Context(), AuthExcludedKey{}, excluded)
+			ctx = context.WithValue(r.Context(), AuthExcludedKey{}, excluded)
 
 			if excluded {
 				next.ServeHTTP(w, r.WithContext(ctx))
@@ -29,16 +33,15 @@ func Authenticate(
 
 			accessToken := r.Header.Get("Authorization")
 
-			// Parse token (signature, expiry validation only - no audience check)
 			userClaims, err := helpers.ParseToken(jwtSecret, accessToken, true)
 			if err != nil {
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
 			if userClaims.Audience[0] == configuration.AudienceAccessToken {
 				if userClaims.SID == "" {
-					helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
+					helpers.RespondWithErrorCtx(r.Context(), w, 401, []string{"SESSION_REVOKED"})
 					return
 				}
 
@@ -47,7 +50,7 @@ func Authenticate(
 					c, userClaims.UserID.String(), userClaims.SID, maxAge,
 				)
 				if sessionErr != nil || !active {
-					helpers.RespondWithError(w, 401, []string{"SESSION_REVOKED"})
+					helpers.RespondWithErrorCtx(r.Context(), w, 401, []string{"SESSION_REVOKED"})
 					return
 				}
 			}
@@ -72,5 +75,5 @@ func isPathExcludedFromAuth(path, method string) bool {
 		}
 	}
 
-	return false // Auth required by default
+	return false
 }

@@ -37,7 +37,6 @@ func TestSQLite_Migrations(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	// Verify all expected tables exist
 	tables := []string{"users", "buckets", "memberships", "folders", "files", "invites", "challenges", "mfa_devices"}
 	for _, table := range tables {
 		var count int
@@ -82,7 +81,6 @@ func TestSQLite_UUIDGeneration(t *testing.T) {
 	})
 
 	t.Run("generates unique UUIDs for batch create", func(t *testing.T) {
-		// First create a user and bucket for foreign key constraints
 		user := models.User{
 			Email:        "batch@example.com",
 			ProviderType: models.LocalProviderType,
@@ -113,7 +111,6 @@ func TestSQLite_CRUD(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	// Create
 	user := models.User{
 		FirstName:    "John",
 		LastName:     "Doe",
@@ -125,25 +122,21 @@ func TestSQLite_CRUD(t *testing.T) {
 	require.NoError(t, db.Create(&user).Error)
 	require.NotEqual(t, uuid.Nil, user.ID)
 
-	// Read
 	var fetched models.User
 	require.NoError(t, db.First(&fetched, "id = ?", user.ID).Error)
 	assert.Equal(t, "John", fetched.FirstName)
 	assert.Equal(t, "john@example.com", fetched.Email)
 
-	// Update
 	require.NoError(t, db.Model(&fetched).Update("first_name", "Jane").Error)
 	var updated models.User
 	require.NoError(t, db.First(&updated, "id = ?", user.ID).Error)
 	assert.Equal(t, "Jane", updated.FirstName)
 
-	// Soft delete
 	require.NoError(t, db.Delete(&updated).Error)
 	var deleted models.User
 	err = db.First(&deleted, "id = ?", user.ID).Error
 	assert.ErrorIs(t, err, gorm.ErrRecordNotFound, "soft-deleted user should not be found")
 
-	// Unscoped should still find it
 	var unscoped models.User
 	require.NoError(t, db.Unscoped().First(&unscoped, "id = ?", user.ID).Error)
 	assert.Equal(t, user.ID, unscoped.ID)
@@ -156,7 +149,6 @@ func TestSQLite_ForeignKeyConstraints(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	// Try to create a bucket referencing a non-existent user
 	bucket := models.Bucket{
 		Name:      "orphan-bucket",
 		CreatedBy: uuid.New(), // non-existent user

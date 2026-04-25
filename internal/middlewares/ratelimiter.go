@@ -8,6 +8,7 @@ import (
 
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/tracing"
 
 	"go.uber.org/zap"
 )
@@ -86,12 +87,16 @@ func RateLimit(
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
+			ctx, span := tracing.StartSpan(r.Context(), "middleware.RateLimit")
+			defer span.End()
+			r = r.WithContext(ctx)
+
 			claims, err := helpers.GetUserClaims(r.Context())
 			if err != nil {
 				ipAddress, err2 := getClientIP(r, trustedProxies)
 				if err2 != nil {
 					zap.L().Error("error", zap.Error(err))
-					helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
+					helpers.RespondWithErrorCtx(r.Context(), w, 500, []string{"INTERNAL_SERVER_ERROR"})
 					return
 				}
 				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerMinute)

@@ -215,12 +215,12 @@ func (s BucketFileService) HandleUploadedStatus(
 		if err := s.ActivityLogger.Send(models.Activity{
 			Message: activity.FileUploaded,
 			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionCreate.String(),
-				"bucket_id":   file.BucketID.String(),
-				"file_id":     file.ID.String(),
-				"object_type": rbac.ResourceFile.String(),
-				"user_id":     user.UserID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionCreate.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     user.UserID.String(),
 			}),
 		}); err != nil {
 			logger.Warn("Failed to log upload activity", zap.Error(err))
@@ -287,12 +287,12 @@ func (s BucketFileService) DownloadFile(
 	action := models.Activity{
 		Message: activity.FileDownloaded,
 		Object:  file.ToActivity(),
-		Filter: activity.NewLogFilter(map[string]string{
-			"action":      rbac.ActionDownload.String(),
-			"bucket_id":   bucketID.String(),
-			"file_id":     fileID.String(),
-			"object_type": rbac.ResourceFile.String(),
-			"user_id":     user.UserID.String(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     rbac.ActionDownload.String(),
+			BucketID:   bucketID.String(),
+			FileID:     fileID.String(),
+			ObjectType: rbac.ResourceFile.String(),
+			UserID:     user.UserID.String(),
 		}),
 	}
 	err = s.ActivityLogger.Send(action)
@@ -371,12 +371,12 @@ func (s BucketFileService) TrashFile(
 		action := models.Activity{
 			Message: activity.FileTrashed,
 			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionErase.String(),
-				"bucket_id":   file.BucketID.String(),
-				"file_id":     file.ID.String(),
-				"object_type": rbac.ResourceFile.String(),
-				"user_id":     user.UserID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionErase.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     user.UserID.String(),
 			}),
 		}
 
@@ -476,12 +476,12 @@ func (s BucketFileService) RestoreFile(
 		action := models.Activity{
 			Message: activity.FileRestored,
 			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionRestore.String(),
-				"bucket_id":   file.BucketID.String(),
-				"file_id":     file.ID.String(),
-				"object_type": rbac.ResourceFile.String(),
-				"user_id":     user.UserID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionRestore.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     user.UserID.String(),
 			}),
 		}
 		if activityErr := s.ActivityLogger.Send(action); activityErr != nil {
@@ -557,12 +557,12 @@ func (s BucketFileService) PurgeFile(
 		action := models.Activity{
 			Message: activity.FileDeleted,
 			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(map[string]string{
-				"action":      rbac.ActionDelete.String(),
-				"bucket_id":   file.BucketID.String(),
-				"file_id":     file.ID.String(),
-				"object_type": rbac.ResourceFile.String(),
-				"user_id":     user.UserID.String(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     user.UserID.String(),
 			}),
 		}
 

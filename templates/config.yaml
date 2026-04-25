@@ -30,6 +30,14 @@ app:
   mfa_required: false
   max_upload_size: 53687091200 # 50 Gb
 
+tracing:
+  enabled: true
+  type: tempo
+  tempo:
+    endpoint: http://localhost:4318
+    service_name: safebucket
+    sampling_rate: 1.0
+
 database:
   type: postgres
   postgres:

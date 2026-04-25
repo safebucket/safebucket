@@ -6,6 +6,7 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tracing"
 )
 
 // AudienceValidate middleware handles audience validation for JWT tokens.
@@ -18,6 +19,10 @@ import (
 // 3. For all other routes, require the full access token audience ("app:*").
 func AudienceValidate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), "middleware.AudienceValidate")
+		defer span.End()
+		r = r.WithContext(ctx)
+
 		// Skip if auth was excluded (context set by Authenticate)
 		if excluded, _ := r.Context().Value(AuthExcludedKey{}).(bool); excluded {
 			next.ServeHTTP(w, r)
@@ -27,7 +32,7 @@ func AudienceValidate(next http.Handler) http.Handler {
 		claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 		if !ok {
 			// No claims means auth middleware didn't set them (shouldn't happen if middleware order is correct)
-			helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+			helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 			return
 		}
 
@@ -37,12 +42,12 @@ func AudienceValidate(next http.Handler) http.Handler {
 
 		if allowedAudiences != nil {
 			if !isAudienceInList(tokenAudience, allowedAudiences) {
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 		} else {
 			if tokenAudience != configuration.AudienceAccessToken {
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 		}

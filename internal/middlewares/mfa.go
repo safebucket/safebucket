@@ -6,6 +6,7 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tracing"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -25,7 +26,10 @@ import (
 func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			// Skip if auth was excluded (context set by Authenticate)
+			ctx, span := tracing.StartSpan(r.Context(), "middleware.MFAValidate")
+			defer span.End()
+			r = r.WithContext(ctx)
+
 			if excluded, _ := r.Context().Value(AuthExcludedKey{}).(bool); excluded {
 				next.ServeHTTP(w, r)
 				return
@@ -33,12 +37,10 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 
 			claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				// No claims means auth middleware didn't set them (shouldn't happen if middleware order is correct)
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
-			// Only enforce MFA for full access tokens from local provider
 			if claims.AudienceString() != configuration.AudienceAccessToken ||
 				claims.Provider != string(models.LocalProviderType) {
 				next.ServeHTTP(w, r)
@@ -56,12 +58,12 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 			}
 
 			if mfaRequired {
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 
 			if db != nil && userHasMFAEnrolled(db, claims.UserID) {
-				helpers.RespondWithError(w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
 				return
 			}
 

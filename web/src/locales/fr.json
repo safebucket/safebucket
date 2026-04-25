@@ -313,7 +313,7 @@
   },
   "activity": {
     "title": "Flux d'activité",
-    "no_activity_yet": "Aucune activité pour le moment.",
+    "no_activity_yet": "Aucune activité au cours des 30 derniers jours.",
     "share_link": "Lien de partage",
     "messages": {
       "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
