@@ -169,7 +169,7 @@ services:
   tempo:
     container_name: tempo
     profiles: [ debug ]
-    image: grafana/tempo:2.10.4
+    image: grafana/tempo:2.10.5
     command: [ "-config.file=/etc/tempo/config.yaml" ]
     ports:
       - "3201:3200"
