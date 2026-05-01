@@ -25,6 +25,7 @@ import (
 	"github.com/safebucket/safebucket/internal/notifier"
 	"github.com/safebucket/safebucket/internal/storage"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -170,6 +171,57 @@ func (a *TestApp) LoginAs(t *testing.T, email string) string {
 	require.Equal(t, http.StatusCreated, status, "login should succeed")
 	require.NotEmpty(t, resp.AccessToken)
 	return resp.AccessToken
+}
+
+func (a *TestApp) LoginAdmin(t *testing.T) string {
+	t.Helper()
+
+	var resp models.AuthLoginResponse
+	status := a.Do(t, http.MethodPost, "/api/v1/auth/login", "", models.AuthLoginBody{
+		Email:    a.Config.App.AdminEmail,
+		Password: a.Config.App.AdminPassword,
+	}, &resp)
+	require.Equal(t, http.StatusCreated, status, "admin login should succeed")
+	require.NotEmpty(t, resp.AccessToken)
+	return resp.AccessToken
+}
+
+func (a *TestApp) CreateUserAPI(t *testing.T, adminToken, email string) models.User {
+	t.Helper()
+
+	var user models.User
+	status := a.Do(t, http.MethodPost, "/api/v1/users", adminToken, models.UserCreateBody{
+		FirstName: "Test",
+		LastName:  "User",
+		Email:     email,
+		Password:  testPassword,
+	}, &user)
+	require.Equal(t, http.StatusCreated, status, "user creation should succeed")
+	return user
+}
+
+func (a *TestApp) CreateBucketAPI(t *testing.T, token, name string) models.Bucket {
+	t.Helper()
+
+	var bucket models.Bucket
+	status := a.Do(t, http.MethodPost, "/api/v1/buckets", token,
+		models.BucketCreateUpdateBody{Name: name}, &bucket)
+	require.Equal(t, http.StatusCreated, status, "bucket creation should succeed")
+	return bucket
+}
+
+func (a *TestApp) SetBucketMembersAPI(
+	t *testing.T,
+	token string,
+	bucketID uuid.UUID,
+	members []models.BucketMemberBody,
+) {
+	t.Helper()
+
+	status := a.Do(t, http.MethodPut,
+		"/api/v1/buckets/"+bucketID.String()+"/members", token,
+		models.UpdateMembersBody{Members: members}, nil)
+	require.Equal(t, http.StatusNoContent, status, "set bucket members should succeed")
 }
 
 func (a *TestApp) Do(

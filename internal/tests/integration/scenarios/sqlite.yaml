@@ -46,14 +46,14 @@ events:
 
 notifier:
   type: filesystem
-  # directory is injected at runtime (t.TempDir)
 
 activity:
   type: filesystem
-  # directory is injected at runtime (t.TempDir)
 
 auth:
   providers:
     local:
       name: local
       type: local
+      sharing:
+        allowed: true
