@@ -31,8 +31,6 @@ cache:
 
 storage:
   type: minio
-  # bucket_name, endpoint, external_endpoint, client_id, client_secret are
-  # injected at runtime from the container
 
 events:
   type: memory
@@ -46,11 +44,9 @@ events:
 
 notifier:
   type: filesystem
-  # directory is injected at runtime (t.TempDir)
 
 activity:
   type: filesystem
-  # directory is injected at runtime (t.TempDir)
 
 auth:
   providers:

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -57,7 +58,6 @@ func ActiveScenarios() []string {
 type TestApp struct {
 	BaseURL     string
 	Config      models.Configuration
-	DB          *gorm.DB
 	Cache       cache.ICache
 	Storage     storage.IStorage
 	Publisher   messaging.IPublisher
@@ -66,8 +66,10 @@ type TestApp struct {
 	NotifyDir   string
 	ActivityDir string
 
-	server *httptest.Server
-	client *http.Client
+	db               *gorm.DB
+	cachedAdminToken string
+	server           *httptest.Server
+	client           *http.Client
 }
 
 func LoadScenario(t *testing.T, name string) models.Configuration {
@@ -142,7 +144,7 @@ func BootTestApp(t *testing.T, cfg models.Configuration) *TestApp {
 	return &TestApp{
 		BaseURL:     server.URL,
 		Config:      cfg,
-		DB:          app.DB,
+		db:          app.DB,
 		Cache:       app.Cache,
 		Storage:     app.Storage,
 		Publisher:   app.EventRouter,
@@ -168,6 +170,19 @@ func (a *TestApp) LoginAs(t *testing.T, email string) string {
 		Password: testPassword,
 	}, &resp)
 	require.Equal(t, http.StatusCreated, status, "login should succeed")
+	require.NotEmpty(t, resp.AccessToken)
+	return resp.AccessToken
+}
+
+func (a *TestApp) LoginAdmin(t *testing.T) string {
+	t.Helper()
+
+	var resp models.AuthLoginResponse
+	status := a.Do(t, http.MethodPost, "/api/v1/auth/login", "", models.AuthLoginBody{
+		Email:    a.Config.App.AdminEmail,
+		Password: a.Config.App.AdminPassword,
+	}, &resp)
+	require.Equal(t, http.StatusCreated, status, "admin login should succeed")
 	require.NotEmpty(t, resp.AccessToken)
 	return resp.AccessToken
 }
@@ -215,6 +230,11 @@ func (a *TestApp) Do(
 	return resp.StatusCode
 }
 
+func (a *TestApp) DoStatus(t *testing.T, method, path, token string, body any) int {
+	t.Helper()
+	return a.Do(t, method, path, token, body, nil)
+}
+
 func (a *TestApp) Eventually(t *testing.T, cond func() bool, msg string) {
 	t.Helper()
 	assert.Eventually(t, cond, 5*time.Second, 50*time.Millisecond, msg)
@@ -260,6 +280,89 @@ func (a *TestApp) ReadNotifications(t *testing.T) []Notification {
 		out = append(out, n)
 	}
 	return out
+}
+
+func (a *TestApp) adminToken(t *testing.T) string {
+	t.Helper()
+	if a.cachedAdminToken == "" {
+		a.cachedAdminToken = a.LoginAdmin(t)
+	}
+	return a.cachedAdminToken
+}
+
+func (a *TestApp) CreateUser(t *testing.T, email string) models.User {
+	t.Helper()
+	var user models.User
+	status := a.Do(t, http.MethodPost, "/api/v1/users", a.adminToken(t),
+		models.UserCreateBody{FirstName: "Test", LastName: "User", Email: email, Password: testPassword},
+		&user)
+	require.Equal(t, http.StatusCreated, status, "create user %s", email)
+	return user
+}
+
+func (a *TestApp) SetUserRole(t *testing.T, email string, role models.Role) {
+	t.Helper()
+	require.NoError(t, a.db.Model(&models.User{}).Where("email = ?", email).Update("role", role).Error)
+}
+
+func (a *TestApp) CreateBucket(t *testing.T, token, name string) models.Bucket {
+	t.Helper()
+	var bucket models.Bucket
+	status := a.Do(t, http.MethodPost, "/api/v1/buckets", token,
+		models.BucketCreateUpdateBody{Name: name}, &bucket)
+	require.Equal(t, http.StatusCreated, status, "create bucket %s", name)
+	return bucket
+}
+
+func (a *TestApp) AddMembers(t *testing.T, token, bucketID string, members []models.BucketMemberBody) {
+	t.Helper()
+	status := a.DoStatus(t, http.MethodPut, "/api/v1/buckets/"+bucketID+"/members", token,
+		models.UpdateMembersBody{Members: members})
+	require.Equal(t, http.StatusNoContent, status, "set members for bucket %s", bucketID)
+}
+
+func (a *TestApp) GetMembers(t *testing.T, token, bucketID string) []models.BucketMember {
+	t.Helper()
+	var page models.Page[models.BucketMember]
+	status := a.Do(t, http.MethodGet, "/api/v1/buckets/"+bucketID+"/members", token, nil, &page)
+	require.Equal(t, http.StatusOK, status, "get members for bucket %s", bucketID)
+	return page.Data
+}
+
+func (a *TestApp) UploadTestFile(t *testing.T, token, bucketID, name string) string {
+	t.Helper()
+
+	var transfer models.FileTransferResponse
+	status := a.Do(t, http.MethodPost, "/api/v1/buckets/"+bucketID+"/files", token,
+		models.FileTransferBody{Name: name, Size: 5}, &transfer)
+	require.Equal(t, http.StatusCreated, status, "create upload slot for %s", name)
+
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	for k, v := range transfer.Body {
+		require.NoError(t, mw.WriteField(k, v))
+	}
+	fw, err := mw.CreateFormFile("file", name)
+	require.NoError(t, err)
+	_, err = fw.Write([]byte("test!"))
+	require.NoError(t, err)
+	mw.Close()
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, transfer.URL, &buf)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+
+	uploadResp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	uploadResp.Body.Close()
+	require.Less(t, uploadResp.StatusCode, 300, "MinIO presigned upload should succeed, got %d", uploadResp.StatusCode)
+
+	require.Equal(t, http.StatusNoContent,
+		a.DoStatus(t, http.MethodPatch, "/api/v1/buckets/"+bucketID+"/files/"+transfer.ID, token,
+			models.FilePatchBody{Status: string(models.FileStatusUploaded)}),
+		"confirm upload for %s", name)
+
+	return transfer.ID
 }
 
 func providerForDialect(t *testing.T, dialect string) DBProvider {

@@ -17,7 +17,7 @@ func TestUser_CreateAndLogin(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			app := BootScenario(t, scenario)
 
-			user := CreateTestUser(t, app.DB, "invitee_simple@example.com", models.RoleUser)
+			user := app.CreateUser(t, "invitee_simple@example.com")
 
 			var loginResp models.AuthLoginResponse
 			status := app.Do(t, http.MethodPost, "/api/v1/auth/login", "", models.AuthLoginBody{
