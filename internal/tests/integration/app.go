@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -316,7 +317,7 @@ func (a *TestApp) CreateBucket(t *testing.T, token, name string) models.Bucket {
 
 func (a *TestApp) AddMembers(t *testing.T, token, bucketID string, members []models.BucketMemberBody) {
 	t.Helper()
-	status := a.DoStatus(t, http.MethodPut, "/api/v1/buckets/"+bucketID+"/members", token,
+	status := a.DoStatus(t, http.MethodPut, fmt.Sprintf("/api/v1/buckets/%s/members", bucketID), token,
 		models.UpdateMembersBody{Members: members})
 	require.Equal(t, http.StatusNoContent, status, "set members for bucket %s", bucketID)
 }
@@ -324,7 +325,7 @@ func (a *TestApp) AddMembers(t *testing.T, token, bucketID string, members []mod
 func (a *TestApp) GetMembers(t *testing.T, token, bucketID string) []models.BucketMember {
 	t.Helper()
 	var page models.Page[models.BucketMember]
-	status := a.Do(t, http.MethodGet, "/api/v1/buckets/"+bucketID+"/members", token, nil, &page)
+	status := a.Do(t, http.MethodGet, fmt.Sprintf("/api/v1/buckets/%s/members", bucketID), token, nil, &page)
 	require.Equal(t, http.StatusOK, status, "get members for bucket %s", bucketID)
 	return page.Data
 }
@@ -333,7 +334,7 @@ func (a *TestApp) UploadTestFile(t *testing.T, token, bucketID, name string) str
 	t.Helper()
 
 	var transfer models.FileTransferResponse
-	status := a.Do(t, http.MethodPost, "/api/v1/buckets/"+bucketID+"/files", token,
+	status := a.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/files", bucketID), token,
 		models.FileTransferBody{Name: name, Size: 5}, &transfer)
 	require.Equal(t, http.StatusCreated, status, "create upload slot for %s", name)
 
@@ -358,7 +359,7 @@ func (a *TestApp) UploadTestFile(t *testing.T, token, bucketID, name string) str
 	require.Less(t, uploadResp.StatusCode, 300, "MinIO presigned upload should succeed, got %d", uploadResp.StatusCode)
 
 	require.Equal(t, http.StatusNoContent,
-		a.DoStatus(t, http.MethodPatch, "/api/v1/buckets/"+bucketID+"/files/"+transfer.ID, token,
+		a.DoStatus(t, http.MethodPatch, fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketID, transfer.ID), token,
 			models.FilePatchBody{Status: string(models.FileStatusUploaded)}),
 		"confirm upload for %s", name)
 
