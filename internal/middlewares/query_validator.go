@@ -79,7 +79,7 @@ func parseQueryParams(queryParams url.Values, data interface{}) error {
 
 // setFieldValue sets a struct field value from a string, handling type conversion.
 func setFieldValue(field reflect.Value, value string) error {
-	if field.Kind() == reflect.Ptr {
+	if field.Kind() == reflect.Pointer {
 		if !field.CanSet() {
 			return nil
 		}
@@ -95,7 +95,7 @@ func setFieldValue(field reflect.Value, value string) error {
 		return nil
 	}
 
-	switch field.Kind() { //nolint:exhaustive // Only handle supported types.
+	switch field.Kind() { //nolint:exhaustive // only a subset of types is supported
 	case reflect.String:
 		field.SetString(value)
 	case reflect.Int, reflect.Int32, reflect.Int64:

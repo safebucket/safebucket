@@ -93,7 +93,7 @@ func OpenIDCallbackHandler(webURL string, openidCallback OpenIDCallbackFunc) htt
 
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 
-		http.SetCookie(w, &http.Cookie{
+		http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: token needs JS access for OpenID
 			Name:     "safebucket_access_token",
 			Value:    accessToken,
 			Expires:  expiration,
@@ -102,7 +102,7 @@ func OpenIDCallbackHandler(webURL string, openidCallback OpenIDCallbackFunc) htt
 			Secure:   r.TLS != nil,
 		})
 
-		http.SetCookie(w, &http.Cookie{
+		http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: token needs JS access for OpenID
 			Name:     "safebucket_auth_provider",
 			Value:    providerName,
 			Expires:  expiration,
@@ -112,7 +112,7 @@ func OpenIDCallbackHandler(webURL string, openidCallback OpenIDCallbackFunc) htt
 		})
 
 		if refreshToken != "" {
-			http.SetCookie(w, &http.Cookie{
+			http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: token needs JS access for OpenID
 				Name:     "safebucket_refresh_token",
 				Value:    refreshToken,
 				Expires:  expiration,
