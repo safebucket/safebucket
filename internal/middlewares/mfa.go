@@ -3,6 +3,8 @@ package middlewares
 import (
 	"net/http"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
@@ -12,17 +14,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// MFAValidate middleware handles MFA enforcement for routes that require it.
-// This middleware should be applied after Authenticate and AudienceValidate middlewares.
-//
-// It checks:
-// - If MFA is required by admin configuration and user has local provider
-// - If user has MFA enabled (claims.MFA == true)
-// - If user has enrolled MFA devices in DB (stale token detection)
-// - If the route is in the MFA bypass list
-//
-// Note: Audience validation (restricted vs full access tokens) is handled by
-// AudienceValidate middleware, not here.
 func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +28,7 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 
 			claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
 
@@ -58,12 +49,12 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 			}
 
 			if mfaRequired {
-				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
 
 			if db != nil && userHasMFAEnrolled(db, claims.UserID) {
-				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
 

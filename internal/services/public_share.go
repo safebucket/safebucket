@@ -323,7 +323,7 @@ func (s PublicShareService) ConfirmShareUpload(
 
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		var file models.File
-		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		result := tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
 			Where("id = ? AND bucket_id = ?", fileID, share.BucketID).
 			Find(&file)
 

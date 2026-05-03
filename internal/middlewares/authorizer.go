@@ -3,6 +3,7 @@ package middlewares
 import (
 	"net/http"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
@@ -22,12 +23,12 @@ func AuthorizeRole(requiredRole models.Role) func(next http.Handler) http.Handle
 
 			userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{apierrors.CodeUnauthorized})
 				return
 			}
 
 			if !rbac.HasRole(userClaims.Role, requiredRole) {
-				h.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+				h.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
 
@@ -52,7 +53,7 @@ func AuthorizeGroup(
 
 			userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{apierrors.CodeUnauthorized})
 				return
 			}
 
@@ -63,12 +64,12 @@ func AuthorizeGroup(
 
 			ids, ok := h.ParseUUIDs(w, r)
 			if !ok {
-				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{apierrors.CodeUnauthorized})
 				return
 			}
 
 			if bucketIDIndex >= len(ids) {
-				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{apierrors.CodeUnauthorized})
 				return
 			}
 
@@ -76,12 +77,12 @@ func AuthorizeGroup(
 
 			hasAccess, err := rbac.HasBucketAccess(db, userClaims.UserID, bucketID, requiredGroup)
 			if err != nil {
-				h.RespondWithErrorCtx(r.Context(), w, 500, []string{"INTERNAL_SERVER_ERROR"})
+				h.RespondWithErrorCtx(r.Context(), w, 500, []string{apierrors.CodeInternalServerError})
 				return
 			}
 
 			if !hasAccess {
-				h.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+				h.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
 
@@ -90,10 +91,6 @@ func AuthorizeGroup(
 	}
 }
 
-// AuthorizeSelfOrAdmin allows the request if either:
-// 1. The authenticated user is accessing their own resource (user ID matches target ID in URL)
-// 2. The authenticated user has Admin role
-// The targetUserIdIndex parameter specifies which URL parameter contains the target user ID.
 func AuthorizeSelfOrAdmin(targetUserIDIndex int) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -103,18 +100,18 @@ func AuthorizeSelfOrAdmin(targetUserIDIndex int) func(next http.Handler) http.Ha
 
 			userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 			if !ok {
-				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{apierrors.CodeUnauthorized})
 				return
 			}
 
 			ids, ok := h.ParseUUIDs(w, r)
 			if !ok {
-				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{apierrors.CodeUnauthorized})
 				return
 			}
 
 			if targetUserIDIndex >= len(ids) {
-				h.RespondWithErrorCtx(r.Context(), w, 401, []string{"UNAUTHORIZED"})
+				h.RespondWithErrorCtx(r.Context(), w, 401, []string{apierrors.CodeUnauthorized})
 				return
 			}
 
@@ -126,7 +123,7 @@ func AuthorizeSelfOrAdmin(targetUserIDIndex int) func(next http.Handler) http.Ha
 			}
 
 			if userClaims.Role != models.RoleAdmin {
-				h.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+				h.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
 

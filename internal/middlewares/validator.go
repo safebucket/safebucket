@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 
 	"github.com/go-playground/validator/v10"
@@ -43,9 +44,6 @@ func validateFilename(fl validator.FieldLevel) bool {
 func validateFoldername(fl validator.FieldLevel) bool {
 	foldername := fl.Field().String()
 
-	// Folders can contain letters, numbers, spaces, underscores, and hyphens
-	// Must start with alphanumeric or underscore (not a space or special char)
-	// No extension allowed, no path separators
 	regex := regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9_ \-]*$`)
 
 	// Block prohibited characters: / \ < > : " | ? * and null byte
@@ -70,7 +68,7 @@ func Validate[T any](next http.Handler) http.Handler {
 		err := json.NewDecoder(r.Body).Decode(&data)
 		if err != nil {
 			zap.L().Error("failed to decode body", zap.Error(err))
-			h.RespondWithError(w, http.StatusBadRequest, []string{"BAD_REQUEST"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeBadRequest})
 			return
 		}
 

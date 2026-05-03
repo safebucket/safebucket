@@ -299,7 +299,7 @@ func (s BucketFolderService) RestoreFolder(
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		var lockedFolder models.Folder
-		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
+		result := tx.Unscoped().Clauses(clause.Locking{Strength: lockStrengthUpdate}).
 			Where("id = ? AND bucket_id = ?", folder.ID, folder.BucketID).
 			First(&lockedFolder)
 
@@ -317,7 +317,7 @@ func (s BucketFolderService) RestoreFolder(
 
 		retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
 		if time.Since(lockedFolder.DeletedAt.Time) > retentionPeriod {
-			return apierrors.NewAPIError(410, apierrors.ErrFolderTrashExpired)
+			return apierrors.NewAPIError(410, apierrors.CodeFolderTrashExpired)
 		}
 
 		parentFolders, err := s.restoreParentFolders(tx, logger, lockedFolder.FolderID, lockedFolder.BucketID)
@@ -339,7 +339,7 @@ func (s BucketFolderService) RestoreFolder(
 			query = query.Where("folder_id IS NULL")
 		}
 		if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
-			return apierrors.NewAPIError(409, apierrors.ErrFolderNameConflict)
+			return apierrors.NewAPIError(409, apierrors.CodeFolderNameConflict)
 		}
 
 		if updateErr := tx.Unscoped().

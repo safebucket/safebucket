@@ -16,6 +16,7 @@ import (
 	"github.com/safebucket/safebucket/internal/mfa"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/alexedwards/argon2id"
@@ -94,7 +95,6 @@ func (s AuthService) Login(
 	verifiedDevices := searchUser.GetVerifiedDevices()
 	hasMFA := len(verifiedDevices) > 0
 
-	// If user has MFA enabled OR MFA is required by admin, return restricted token
 	if hasMFA || s.AuthConfig.MFARequired {
 		return mfa.HandleMFARequired(logger, s.AuthConfig, &searchUser)
 	}
@@ -115,7 +115,7 @@ func (s AuthService) Login(
 		Filter: activity.NewLogFilter(models.ActivityFields{
 			Action:       activity.UserLoggedIn,
 			UserID:       searchUser.ID.String(),
-			ObjectType:   "user",
+			ObjectType:   rbac.ResourceUser.String(),
 			ProviderType: string(models.LocalProviderType),
 			ProviderName: s.Providers[string(models.LocalProviderType)].Name,
 		}),
@@ -462,7 +462,7 @@ func (s AuthService) OpenIDCallback(
 		Filter: activity.NewLogFilter(models.ActivityFields{
 			Action:       activity.UserLoggedIn,
 			UserID:       searchUser.ID.String(),
-			ObjectType:   "user",
+			ObjectType:   rbac.ResourceUser.String(),
 			ProviderType: string(models.OIDCProviderType),
 			ProviderName: provider.Name,
 		}),

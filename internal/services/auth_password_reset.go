@@ -15,6 +15,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"
@@ -125,7 +126,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	var challenge models.Challenge
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		result := tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
 			Preload("User").
 			Where("id = ? AND type = ?", challengeID, models.ChallengeTypePasswordReset).
 			First(&challenge)
@@ -204,7 +205,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 			Action:      activity.PasswordResetCodeVerified,
 			UserID:      user.ID.String(),
 			ChallengeID: challengeID.String(),
-			ObjectType:  "user",
+			ObjectType:  rbac.ResourceUser.String(),
 			MFARequired: strconv.FormatBool(hasMFA),
 		}),
 	}
@@ -298,7 +299,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 			Action:      activity.PasswordResetCompleted,
 			UserID:      user.ID.String(),
 			ChallengeID: challengeID.String(),
-			ObjectType:  "user",
+			ObjectType:  rbac.ResourceUser.String(),
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {

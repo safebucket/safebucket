@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/go-chi/chi/v5"
@@ -31,7 +32,7 @@ func ParseUUIDs(w http.ResponseWriter, r *http.Request) (uuid.UUIDs, bool) {
 
 		id, err := uuid.Parse(idStr)
 		if err != nil {
-			strErrors := []string{"INVALID_UUID"}
+			strErrors := []string{apierrors.CodeInvalidUUID}
 			RespondWithError(w, http.StatusBadRequest, strErrors)
 			return ids, false
 		}

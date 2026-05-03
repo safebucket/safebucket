@@ -67,7 +67,6 @@ func (e *FolderRestore) Trigger() {
 	}
 }
 
-// restoreState holds intermediate state during folder restore processing.
 type restoreState struct {
 	folderName     string
 	childFolderIDs []uuid.UUID

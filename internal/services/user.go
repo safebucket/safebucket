@@ -149,7 +149,6 @@ func (s UserService) UpdateUser(
 			return errors.New("INTERNAL_SERVER_ERROR")
 		}
 
-		// The password can be updated after passing all the checks
 		updatedUser.HashedPassword = hash
 	} else {
 		result := s.DB.Where(user, "id").Find(&user)
@@ -187,7 +186,6 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 			return result.Error
 		}
 
-		// Delete user-created invites
 		result = tx.Where("created_by = ?", userID.String()).Delete(&models.Invite{})
 		if result.Error != nil {
 			logger.Error(
@@ -197,8 +195,6 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 			)
 			return result.Error
 		}
-
-		// Note: User's memberships will be cascade deleted by the foreign key constraint
 
 		return nil
 	})

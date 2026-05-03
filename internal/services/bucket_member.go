@@ -95,7 +95,7 @@ func (s BucketMemberService) GetBucketMembers(
 			membersList = append(membersList, models.BucketMember{
 				Email:  invite.Email,
 				Group:  invite.Group,
-				Status: "invited",
+				Status: statusInvited,
 			})
 		}
 	}
@@ -112,8 +112,6 @@ func (s BucketMemberService) UpdateNotificationPreferences(
 	bucketID := ids[0]
 
 	var membership models.Membership
-	// Note: This check is mandatory as the handler only validates that the user belongs to the bucket
-	// not that he's updating only his own notification preferences
 	result := s.DB.Where("user_id = ? AND bucket_id = ?", user.UserID, bucketID).First(&membership)
 	if result.RowsAffected == 0 {
 		return apierrors.NewAPIError(404, "NOT_FOUND")
@@ -238,7 +236,6 @@ func (s BucketMemberService) addMember(
 		result := tx.Where("email = ?", invite.Email).Find(&invitee)
 
 		if result.RowsAffected == 0 {
-			// User doesn't exist yet - create an invite
 			inviteRecord := models.Invite{
 				Email:     invite.Email,
 				Group:     invite.Group,
@@ -269,7 +266,6 @@ func (s BucketMemberService) addMember(
 			)
 			invitationEvent.Trigger()
 		} else {
-			// User exists - create membership directly
 			bucketSharedEvent := events.NewBucketSharedWith(
 				s.Publisher,
 				bucket,
@@ -316,7 +312,7 @@ func (s BucketMemberService) updateMember(
 	member models.BucketMemberToUpdate,
 ) {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		if member.Status == "invited" {
+		if member.Status == statusInvited {
 			updateResult := tx.Model(&models.Invite{}).
 				Where("bucket_id = ? AND email = ?", bucket.ID, member.Email).
 				Update("group", member.NewGroup)
@@ -368,7 +364,7 @@ func (s BucketMemberService) deleteMember(
 	member models.BucketMember,
 ) {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		if member.Status == "invited" {
+		if member.Status == statusInvited {
 			deleteResult := tx.Where(
 				"bucket_id = ? AND email = ?", bucket.ID, member.Email,
 			).Delete(&models.Invite{})

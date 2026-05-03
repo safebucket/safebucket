@@ -37,7 +37,7 @@ func ShareAuthHandler[In any, Out any](auth ShareAuthTargetFunc[In, Out]) http.H
 		body, ok := r.Context().Value(m.BodyKey{}).(In)
 		if !ok {
 			logger.Error("Failed to extract body from context")
-			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			return
 		}
 
@@ -48,7 +48,7 @@ func ShareAuthHandler[In any, Out any](auth ShareAuthTargetFunc[In, Out]) http.H
 			if errors.As(err, &apiErr) {
 				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
 			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+				h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			}
 		} else {
 			h.RespondWithJSON(w, http.StatusOK, resp)
@@ -71,7 +71,7 @@ func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.Handler
 			if errors.As(err, &apiErr) {
 				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
 			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+				h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			}
 		} else {
 			h.RespondWithJSON(w, http.StatusOK, record)
@@ -92,7 +92,7 @@ func ShareCreateHandler[In any, Out any](create ShareCreateTargetFunc[In, Out]) 
 		body, ok := r.Context().Value(m.BodyKey{}).(In)
 		if !ok {
 			logger.Error("Failed to extract body from context")
-			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			return
 		}
 
@@ -102,7 +102,7 @@ func ShareCreateHandler[In any, Out any](create ShareCreateTargetFunc[In, Out]) 
 			if errors.As(err, &apiErr) {
 				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
 			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+				h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			}
 		} else {
 			h.RespondWithJSON(w, http.StatusCreated, resp)
@@ -125,7 +125,7 @@ func ShareActionHandler(action ShareActionTargetFunc) http.HandlerFunc {
 			if errors.As(err, &apiErr) {
 				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
 			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+				h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			}
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
@@ -35,13 +37,13 @@ func Authenticate(
 
 			userClaims, err := helpers.ParseToken(jwtSecret, accessToken, true)
 			if err != nil {
-				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
 
 			if userClaims.Audience[0] == configuration.AudienceAccessToken {
 				if userClaims.SID == "" {
-					helpers.RespondWithErrorCtx(r.Context(), w, 401, []string{"SESSION_REVOKED"})
+					helpers.RespondWithErrorCtx(r.Context(), w, 401, []string{apierrors.CodeSessionRevoked})
 					return
 				}
 
@@ -50,7 +52,7 @@ func Authenticate(
 					c, userClaims.UserID.String(), userClaims.SID, maxAge,
 				)
 				if sessionErr != nil || !active {
-					helpers.RespondWithErrorCtx(r.Context(), w, 401, []string{"SESSION_REVOKED"})
+					helpers.RespondWithErrorCtx(r.Context(), w, 401, []string{apierrors.CodeSessionRevoked})
 					return
 				}
 			}

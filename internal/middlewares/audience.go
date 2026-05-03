@@ -3,6 +3,8 @@ package middlewares
 import (
 	"net/http"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
@@ -31,8 +33,7 @@ func AudienceValidate(next http.Handler) http.Handler {
 
 		claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 		if !ok {
-			// No claims means auth middleware didn't set them (shouldn't happen if middleware order is correct)
-			helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+			helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 			return
 		}
 
@@ -42,12 +43,12 @@ func AudienceValidate(next http.Handler) http.Handler {
 
 		if allowedAudiences != nil {
 			if !isAudienceInList(tokenAudience, allowedAudiences) {
-				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
 		} else {
 			if tokenAudience != configuration.AudienceAccessToken {
-				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{"FORBIDDEN"})
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
 		}

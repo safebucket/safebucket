@@ -20,11 +20,11 @@ type ToEnrichValue struct {
 }
 
 var ToEnrich = map[string]ToEnrichValue{
-	"user_id":   {Name: "user", Object: models.User{}},
-	"bucket_id": {Name: "bucket", Object: models.Bucket{}},
-	"file_id":   {Name: "file", Object: models.File{}},
-	"folder_id": {Name: "folder", Object: models.Folder{}},
-	"share_id":  {Name: "share", Object: models.Share{}},
+	"user_id":   {Name: rbac.ResourceUser.String(), Object: models.User{}},
+	"bucket_id": {Name: rbac.ResourceBucket.String(), Object: models.Bucket{}},
+	"file_id":   {Name: rbac.ResourceFile.String(), Object: models.File{}},
+	"folder_id": {Name: rbac.ResourceFolder.String(), Object: models.Folder{}},
+	"share_id":  {Name: rbac.ResourceShare.String(), Object: models.Share{}},
 }
 
 func NewLogFilter(criteria models.ActivityFields) models.LogFilter {
@@ -68,34 +68,34 @@ func enrichLogWithMetadata(log map[string]interface{}) map[string]interface{} {
 	objectType, _ := log["object_type"].(string)
 
 	switch objectType {
-	case "bucket":
+	case rbac.ResourceBucket.String():
 		var bucket models.Bucket
 		if json.Unmarshal(jsonBytes, &bucket) == nil {
-			newLog["bucket"] = &bucket
+			newLog[rbac.ResourceBucket.String()] = &bucket
 			delete(newLog, "bucket_id")
 		}
-	case "file":
+	case rbac.ResourceFile.String():
 		var file models.File
 		if json.Unmarshal(jsonBytes, &file) == nil {
-			newLog["file"] = &file
+			newLog[rbac.ResourceFile.String()] = &file
 			delete(newLog, "file_id")
 		}
-	case "folder":
+	case rbac.ResourceFolder.String():
 		var folder models.Folder
 		if json.Unmarshal(jsonBytes, &folder) == nil {
-			newLog["folder"] = &folder
+			newLog[rbac.ResourceFolder.String()] = &folder
 			delete(newLog, "folder_id")
 		}
-	case "mfa_device":
+	case rbac.ResourceMFADevice.String():
 		var mfaDevice models.MFADeviceActivity
 		if json.Unmarshal(jsonBytes, &mfaDevice) == nil {
-			newLog["mfa_device"] = &mfaDevice
+			newLog[rbac.ResourceMFADevice.String()] = &mfaDevice
 			delete(newLog, "device_id")
 		}
-	case "share":
+	case rbac.ResourceShare.String():
 		var share models.Share
 		if json.Unmarshal(jsonBytes, &share) == nil {
-			newLog["share"] = &share
+			newLog[rbac.ResourceShare.String()] = &share
 			delete(newLog, "share_id")
 		}
 	}

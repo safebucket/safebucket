@@ -280,6 +280,9 @@ linters:
       # Default: 40
       statements: 55
 
+    goconst:
+      ignore-string-values: "deleted_at|deleted_by|status"
+
     gochecksumtype:
       # Presence of `default` case in switch statements satisfies exhaustiveness, if all members are not listed.
       # Default: true

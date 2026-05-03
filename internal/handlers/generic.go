@@ -68,7 +68,7 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 		body, ok := r.Context().Value(m.BodyKey{}).(In)
 		if !ok {
 			logger.Error("Failed to extract body from context")
-			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			return
 		}
 
@@ -145,7 +145,7 @@ func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, 
 		query, ok := r.Context().Value(models.QueryKey{}).(Q)
 		if !ok {
 			logger.Error("Failed to extract query params from context")
-			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			return
 		}
 
@@ -177,7 +177,7 @@ func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
 		body, ok := r.Context().Value(m.BodyKey{}).(In)
 		if !ok {
 			logger.Error("Failed to extract body from context")
-			h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
+			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			return
 		}
 

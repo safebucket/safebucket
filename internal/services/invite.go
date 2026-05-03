@@ -15,6 +15,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
 
@@ -166,7 +167,7 @@ func (s InviteService) createUserFromInvite(
 			Action:     activity.InviteAccepted,
 			UserID:     newUser.ID.String(),
 			InviteID:   inviteID.String(),
-			ObjectType: "user",
+			ObjectType: rbac.ResourceUser.String(),
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -253,7 +254,6 @@ func (s InviteService) CreateInviteChallenge(
 		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
-	// Create challenge with expiration and attempt limiting
 	expiresAt := time.Now().Add(configuration.SecurityChallengeExpirationMinutes * time.Minute)
 	challenge := models.Challenge{
 		Type:         models.ChallengeTypeInvite,
@@ -280,7 +280,6 @@ func (s InviteService) CreateInviteChallenge(
 	)
 	event.Trigger()
 
-	// Don't return challenge ID - it's only available in the email notification
 	return nil, nil
 }
 
@@ -301,9 +300,8 @@ func (s InviteService) ValidateInviteChallenge(
 	var challenge models.Challenge
 	var invite *models.Invite
 
-	// Use transaction with row-level locking to prevent race conditions
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		result := tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
 			Preload("Invite").
 			Where("id = ? AND invite_id = ? AND type = ?", challengeID, inviteID, models.ChallengeTypeInvite).
 			First(&challenge)

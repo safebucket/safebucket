@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/tracing"
@@ -23,12 +25,10 @@ func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 		}
 	}
 
-	// If no trusted proxies configured, use remote address directly
 	if len(trustedProxies) == 0 {
 		return remoteIP, nil
 	}
 
-	// Verify the request is coming from a trusted proxy
 	isTrustedProxy := false
 	for _, proxy := range trustedProxies {
 		if remoteIP == proxy {
@@ -37,7 +37,6 @@ func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 		}
 	}
 
-	// If not from trusted proxy, use remote address
 	if !isTrustedProxy {
 		return remoteIP, nil
 	}
@@ -50,7 +49,6 @@ func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 		}
 	}
 
-	// Fallback to remote address
 	return remoteIP, nil
 }
 
@@ -66,7 +64,7 @@ func applyRateLimit(
 
 	if err != nil {
 		zap.L().Error("error", zap.Error(err))
-		helpers.RespondWithError(w, 500, []string{"INTERNAL_SERVER_ERROR"})
+		helpers.RespondWithError(w, 500, []string{apierrors.CodeInternalServerError})
 		return
 	}
 
@@ -96,7 +94,7 @@ func RateLimit(
 				ipAddress, err2 := getClientIP(r, trustedProxies)
 				if err2 != nil {
 					zap.L().Error("error", zap.Error(err))
-					helpers.RespondWithErrorCtx(r.Context(), w, 500, []string{"INTERNAL_SERVER_ERROR"})
+					helpers.RespondWithErrorCtx(r.Context(), w, 500, []string{apierrors.CodeInternalServerError})
 					return
 				}
 				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerMinute)

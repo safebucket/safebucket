@@ -27,8 +27,8 @@ type LokiBody struct {
 }
 
 type StreamEntry struct {
-	Stream map[string]string `json:"stream"` // dynamic labels like "foo": "bar2"
-	Values []RawLogValue     `json:"values"` // each entry is a [timestamp, message]
+	Stream map[string]string `json:"stream"`
+	Values []RawLogValue     `json:"values"`
 }
 
 type LokiQueryResponse struct {
@@ -38,11 +38,10 @@ type LokiQueryResponse struct {
 }
 
 type LokiResult struct {
-	Stream map[string]string `json:"stream"` // dynamic label key-value pairs
-	Values [][]string        `json:"values"` // each value is [timestamp, logLine, structuredMetadata?]
+	Stream map[string]string `json:"stream"`
+	Values [][]string        `json:"values"`
 }
 
-// RawLogValue [timestamp, message, metadata].
 type RawLogValue [3]interface{}
 
 type LokiMatrixResponse struct {
@@ -54,7 +53,7 @@ type LokiMatrixResponse struct {
 
 type LokiMatrixResult struct {
 	Metric map[string]string `json:"metric"`
-	Values [][]interface{}   `json:"values"` // [[timestamp, "count_value"], ...]
+	Values [][]interface{}   `json:"values"`
 }
 
 type LokiClient struct {
@@ -142,7 +141,7 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 			entry := map[string]interface{}{
 				"domain":              result.Stream["domain"],
 				"user_id":             result.Stream["user_id"],
-				"action":              result.Stream["action"],
+				logKeyAction:          result.Stream[logKeyAction],
 				"object_type":         result.Stream["object_type"],
 				"bucket_id":           result.Stream["bucket_id"],
 				"file_id":             result.Stream["file_id"],
@@ -267,13 +266,11 @@ func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 		SetRetryWaitTime(3 * time.Second).
 		SetRetryMaxWaitTime(20 * time.Second).
 		AddRetryCondition(func(r *resty.Response, err error) bool {
-			// Retry on network errors
 			if err != nil {
 				zap.L().Debug("Retrying due to network error", zap.Error(err))
 				return true
 			}
 
-			// Retry on server errors (5xx)
 			if r.StatusCode() >= 500 {
 				zap.L().Debug("Retrying due to server error",
 					zap.Int("statusCode", r.StatusCode()),
@@ -281,9 +278,6 @@ func NewLokiClient(config models.ActivityConfiguration) IActivityLogger {
 				return true
 			}
 
-			// Retry on specific error codes that might be temporary
-			// 429: Too Many Requests
-			// 408: Request Timeout
 			if r.StatusCode() == 429 || r.StatusCode() == 408 {
 				zap.L().Debug("Retrying due to rate limiting or timeout",
 					zap.Int("statusCode", r.StatusCode()),

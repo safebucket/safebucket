@@ -11,6 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 )
@@ -23,7 +24,7 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 		err := parseQueryParams(queryParams, data)
 		if err != nil {
 			zap.L().Error("failed to parse query parameters", zap.Error(err))
-			h.RespondWithError(w, http.StatusBadRequest, []string{"BAD_REQUEST", err.Error()})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeBadRequest, err.Error()})
 			return
 		}
 
@@ -77,7 +78,6 @@ func parseQueryParams(queryParams url.Values, data interface{}) error {
 	return nil
 }
 
-// setFieldValue sets a struct field value from a string, handling type conversion.
 func setFieldValue(field reflect.Value, value string) error {
 	if field.Kind() == reflect.Pointer {
 		if !field.CanSet() {
