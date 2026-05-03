@@ -126,7 +126,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	var challenge models.Challenge
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Preload("User").
 			Where("id = ? AND type = ?", challengeID, models.ChallengeTypePasswordReset).
 			First(&challenge)

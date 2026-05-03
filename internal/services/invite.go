@@ -301,7 +301,7 @@ func (s InviteService) ValidateInviteChallenge(
 	var invite *models.Invite
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Preload("Invite").
 			Where("id = ? AND invite_id = ? AND type = ?", challengeID, inviteID, models.ChallengeTypeInvite).
 			First(&challenge)

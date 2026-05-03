@@ -183,7 +183,7 @@ func (s BucketFileService) HandleUploadedStatus(
 	file models.File,
 ) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ?", file.ID, file.BucketID).
 			First(&file)
 
@@ -320,7 +320,7 @@ func (s BucketFileService) TrashFile(
 	file models.File,
 ) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ?", file.ID, file.BucketID).
 			First(&file)
 
@@ -420,7 +420,7 @@ func (s BucketFileService) RestoreFile(
 	var restoredFile models.File
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Unscoped().Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ? AND deleted_at IS NOT NULL", file.ID, file.BucketID).
 			First(&file)
 
@@ -517,7 +517,7 @@ func (s BucketFileService) PurgeFile(
 ) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
 		var file models.File
-		result := tx.Unscoped().Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ?", fileID, bucketID).
 			First(&file)
 

@@ -95,7 +95,7 @@ func (s BucketMemberService) GetBucketMembers(
 			membersList = append(membersList, models.BucketMember{
 				Email:  invite.Email,
 				Group:  invite.Group,
-				Status: statusInvited,
+				Status: "invited",
 			})
 		}
 	}
@@ -312,7 +312,7 @@ func (s BucketMemberService) updateMember(
 	member models.BucketMemberToUpdate,
 ) {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		if member.Status == statusInvited {
+		if member.Status == "invited" {
 			updateResult := tx.Model(&models.Invite{}).
 				Where("bucket_id = ? AND email = ?", bucket.ID, member.Email).
 				Update("group", member.NewGroup)
@@ -364,7 +364,7 @@ func (s BucketMemberService) deleteMember(
 	member models.BucketMember,
 ) {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		if member.Status == statusInvited {
+		if member.Status == "invited" {
 			deleteResult := tx.Where(
 				"bucket_id = ? AND email = ?", bucket.ID, member.Email,
 			).Delete(&models.Invite{})

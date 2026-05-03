@@ -231,7 +231,7 @@ func (s MFAService) VerifyDevice(
 		}
 
 		var device models.MFADevice
-		result = tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND user_id = ?", deviceID, userID).
 			First(&device)
 		if result.RowsAffected == 0 {
@@ -407,7 +407,7 @@ func (s MFAService) UpdateDevice(
 		}
 
 		var device models.MFADevice
-		result = tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND user_id = ?", deviceID, userID).
 			Find(&device)
 		if result.RowsAffected == 0 {
@@ -495,7 +495,7 @@ func (s MFAService) RemoveDevice(
 		}
 
 		var device models.MFADevice
-		result = tx.Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND user_id = ?", deviceID, userID).
 			First(&device)
 		if result.RowsAffected == 0 {

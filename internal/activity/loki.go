@@ -141,7 +141,7 @@ func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]in
 			entry := map[string]interface{}{
 				"domain":              result.Stream["domain"],
 				"user_id":             result.Stream["user_id"],
-				logKeyAction:          result.Stream[logKeyAction],
+				"action":              result.Stream["action"],
 				"object_type":         result.Stream["object_type"],
 				"bucket_id":           result.Stream["bucket_id"],
 				"file_id":             result.Stream["file_id"],

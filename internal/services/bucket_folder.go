@@ -299,7 +299,7 @@ func (s BucketFolderService) RestoreFolder(
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		var lockedFolder models.Folder
-		result := tx.Unscoped().Clauses(clause.Locking{Strength: lockStrengthUpdate}).
+		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ?", folder.ID, folder.BucketID).
 			First(&lockedFolder)
 

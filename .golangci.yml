@@ -289,6 +289,9 @@ linters:
         - "user_id"
         - "object_type"
         - "is_verified"
+        - "UPDATE"
+        - "invited"
+        - "action"
 
     gochecksumtype:
       # Presence of `default` case in switch statements satisfies exhaustiveness, if all members are not listed.

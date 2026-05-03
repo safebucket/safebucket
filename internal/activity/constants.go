@@ -1,10 +1,6 @@
 package activity
 
 const (
-	logKeyAction = "action"
-)
-
-const (
 	BucketCreated                string = "BUCKET_CREATED"
 	BucketDeleted                string = "BUCKET_DELETED"
 	FileUploaded                 string = "FILE_UPLOADED"
