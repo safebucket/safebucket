@@ -16,21 +16,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useMFAAuth } from "@/context/MFAAuthContext";
 
 export interface IMFAVerificationViewProps {
   mfaToken: string;
   devices: Array<IMFADevice>;
   redirectPath?: string;
+  onClearAuth: () => void;
 }
 
 export function MFAVerificationView({
   mfaToken,
   devices,
   redirectPath,
+  onClearAuth,
 }: IMFAVerificationViewProps) {
   const { t } = useTranslation();
-  const { clearMFAAuth } = useMFAAuth();
 
   const {
     code,
@@ -46,7 +46,7 @@ export function MFAVerificationView({
     mfaToken,
     redirectPath,
     devices,
-    onClearDevices: clearMFAAuth,
+    onClearAuth,
   });
 
   if (isVerified) {

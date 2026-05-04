@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Loader2, LogOut, Shield } from "lucide-react";
@@ -7,7 +7,6 @@ import {
   MFA_CODE_LENGTH,
   MFA_SUCCESS_REDIRECT_DELAY,
 } from "../helpers/constants";
-import { MFASetupSkeleton } from "./MFASetupSkeleton";
 import { MFASuccessState } from "./MFASuccessState";
 import { MFASetupErrorState } from "./MFASetupErrorState";
 import { MFAQRCode } from "./MFAQRCode";
@@ -23,27 +22,26 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useMFAAuth } from "@/context/MFAAuthContext";
 import { useRefreshSession } from "@/hooks/useAuth";
 
-type ViewMode = "loading" | "error" | "setup" | "success";
+type ViewMode = "error" | "setup" | "success";
 
 export interface IMFASetupRequiredViewProps {
+  restrictedToken?: string;
   redirectPath?: string;
   onLogout: () => void;
 }
 
 export function MFASetupRequiredView({
+  restrictedToken,
   redirectPath,
   onLogout,
 }: IMFASetupRequiredViewProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const refreshSession = useRefreshSession();
-  const { restrictedToken } = useMFAAuth();
-  const setupStarted = useRef(false);
 
-  const [viewMode, setViewMode] = useState<ViewMode>("loading");
+  const [viewMode, setViewMode] = useState<ViewMode>("setup");
 
   const {
     step,
@@ -60,18 +58,7 @@ export function MFASetupRequiredView({
     goToVerify,
     goBack,
     verifyCode,
-  } = useMFASetup(restrictedToken ?? undefined);
-
-  useEffect(() => {
-    if (viewMode === "loading" && !setupStarted.current) {
-      if (restrictedToken) {
-        setupStarted.current = true;
-        setViewMode("setup");
-      } else {
-        navigate({ to: "/auth/login", search: { redirect: undefined } });
-      }
-    }
-  }, [viewMode, navigate, restrictedToken]);
+  } = useMFASetup(restrictedToken);
 
   useEffect(() => {
     if (step === "success") {
@@ -79,7 +66,6 @@ export function MFASetupRequiredView({
     }
   }, [step]);
 
-  // Redirect after success
   useEffect(() => {
     if (viewMode === "success") {
       setTimeout(() => {
@@ -100,10 +86,6 @@ export function MFASetupRequiredView({
   const handleRetry = () => {
     setViewMode("setup");
   };
-
-  if (viewMode === "loading") {
-    return <MFASetupSkeleton />;
-  }
 
   if (viewMode === "error") {
     return <MFASetupErrorState onLogout={onLogout} onRetry={handleRetry} />;

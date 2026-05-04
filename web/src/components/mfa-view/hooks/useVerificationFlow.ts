@@ -11,14 +11,14 @@ export interface IUseVerificationFlowProps {
   mfaToken: string;
   redirectPath?: string;
   devices: Array<IMFADevice>;
-  onClearDevices: () => void;
+  onClearAuth: () => void;
 }
 
 export function useVerificationFlow({
   mfaToken,
   redirectPath,
   devices,
-  onClearDevices,
+  onClearAuth,
 }: IUseVerificationFlowProps): IVerificationFlowState {
   const { t } = useTranslation();
   const router = useRouter();
@@ -56,7 +56,7 @@ export function useVerificationFlow({
     if (result.success) {
       setIsVerified(true);
       setTimeout(async () => {
-        onClearDevices();
+        onClearAuth();
         await router.invalidate();
         router.navigate({ to: redirectPath || "/", replace: true });
       }, MFA_VERIFICATION_SUCCESS_DELAY);
@@ -68,7 +68,7 @@ export function useVerificationFlow({
   };
 
   const handleBackToLogin = () => {
-    onClearDevices();
+    onClearAuth();
   };
 
   return {

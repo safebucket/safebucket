@@ -11,24 +11,16 @@ import {
   loginWithProvider,
 } from "@/lib/auth-service";
 
-/**
- * Hook to access current session from router context
- * Use this in components to get session state
- */
 export function useSession(): Session | null {
   const context = useRouteContext({ from: "__root__" });
   return context.session;
 }
 
-/**
- * Hook to handle login (both OAuth and credentials)
- */
 export function useLogin() {
   const router = useRouter();
   const { queryClient } = useRouteContext({ from: "__root__" });
 
   const loginOAuth = useCallback((provider: string) => {
-    // OAuth redirects to external provider
     loginWithProvider(provider);
   }, []);
 
@@ -37,8 +29,6 @@ export function useLogin() {
       const result = await loginWithCredentials(credentials);
 
       if (result.success && !result.mfaRequired) {
-        // Update router context with new session
-        // This includes mfaSetupRequired case where tokens are set but MFA setup is needed
         const session = getCurrentSession();
         router.update({
           context: {
@@ -62,7 +52,6 @@ export function useLogin() {
       const result = await authVerifyMFA(mfaToken, code, deviceId);
 
       if (result.success) {
-        // Update router context with new session
         const session = getCurrentSession();
         router.update({
           context: {
@@ -84,9 +73,6 @@ export function useLogin() {
   };
 }
 
-/**
- * Hook to handle logout
- */
 export function useLogout() {
   const router = useRouter();
   const { queryClient } = useRouteContext({ from: "__root__" });
@@ -105,10 +91,6 @@ export function useLogout() {
   }, [router, queryClient]);
 }
 
-/**
- * Hook to refresh session from cookies
- * Use after OAuth callback, password reset, invite acceptance
- */
 export function useRefreshSession() {
   const router = useRouter();
   const { queryClient } = useRouteContext({ from: "__root__" });

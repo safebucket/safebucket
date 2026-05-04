@@ -9,7 +9,7 @@ import type { SubmitHandler } from "react-hook-form";
 import type { FormEvent } from "react";
 import type { ILoginForm } from "@/components/auth-view/types/session";
 import { useLogin } from "@/hooks/useAuth";
-import { useMFAAuth } from "@/context/MFAAuthContext";
+import { mfaRestrictedToken } from "@/components/mfa-view/helpers/restrictedToken";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -44,7 +44,6 @@ function Login() {
   const providers = providersQuery.data;
 
   const { loginOAuth, loginLocal } = useLogin();
-  const { setMFAAuth } = useMFAAuth();
   const { register, handleSubmit, watch } = useForm<ILoginForm>();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,10 +74,7 @@ function Login() {
     const result = await loginLocal(data);
 
     if (result.mfaRequired && result.restrictedToken && result.userId) {
-      // Store restricted token and user ID in context
-      // Context will automatically fetch devices to determine setup vs verify
-      setMFAAuth(result.restrictedToken);
-      // Redirect to MFA page (will show setup or verify based on devices)
+      mfaRestrictedToken.set(result.restrictedToken);
       navigate({
         to: "/auth/mfa",
         search: { redirect },

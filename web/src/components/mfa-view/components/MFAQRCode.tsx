@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import QRCode from "react-qr-code";
+import { QRCode } from "react-qr-code";
 import { CheckCircle, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
