@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"net/http"
+	"slices"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 
@@ -11,21 +12,12 @@ import (
 	"github.com/safebucket/safebucket/internal/tracing"
 )
 
-// AudienceValidate middleware handles audience validation for JWT tokens.
-// It validates that the token's audience claim is appropriate for the route.
-// This middleware should be applied after Authenticate middleware.
-//
-// Logic:
-// 1. Skip validation if auth was excluded
-// 2. For routes with explicit audience rules (AuthAudienceRules), validate against those rules
-// 3. For all other routes, require the full access token audience ("app:*").
 func AudienceValidate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracing.StartSpan(r.Context(), "middleware.AudienceValidate")
 		defer span.End()
 		r = r.WithContext(ctx)
 
-		// Skip if auth was excluded (context set by Authenticate)
 		if excluded, _ := r.Context().Value(AuthExcludedKey{}).(bool); excluded {
 			next.ServeHTTP(w, r)
 			return
@@ -71,21 +63,13 @@ func getRouteAllowedAudiences(path, method string) []string {
 }
 
 func isAudienceInList(audience string, allowedAudiences []string) bool {
-	for _, allowed := range allowedAudiences {
-		if audience == allowed {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(allowedAudiences, audience)
 }
 
-// isAudienceAllowedForRoute checks if a token's audience is permitted for the route.
-// Returns false if the route has no audience rules or if the audience is not in the allowed list.
-// This function is primarily for testing and internal validation.
 func isAudienceAllowedForRoute(audience, path, method string) bool {
 	allowedAudiences := getRouteAllowedAudiences(path, method)
 	if allowedAudiences == nil {
-		return false // No rule = restricted tokens not allowed
+		return false
 	}
 	return isAudienceInList(audience, allowedAudiences)
 }

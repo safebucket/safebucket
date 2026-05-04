@@ -5,11 +5,8 @@ import (
 	"regexp"
 )
 
-// UUIDv4Pattern matches a valid UUID v4 format for use in path patterns.
 const UUIDv4Pattern = `[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}`
 
-// AuthExcludedExactPaths lists exact paths excluded from authentication.
-// Key is the exact path, value is the HTTP method ("*" for all methods).
 var AuthExcludedExactPaths = map[string]string{
 	"/api/v1/auth/login":          http.MethodPost,
 	"/api/v1/auth/verify":         http.MethodPost,
@@ -17,13 +14,11 @@ var AuthExcludedExactPaths = map[string]string{
 	"/api/v1/auth/reset-password": http.MethodPost,
 }
 
-// AuthPatternRule defines a regex pattern for path matching with dynamic segments.
 type AuthPatternRule struct {
 	Pattern *regexp.Regexp
-	Method  string // "*" for all methods
+	Method  string
 }
 
-// AuthExcludedPatterns lists regex patterns for paths with dynamic segments.
 var AuthExcludedPatterns = []AuthPatternRule{
 	{
 		Pattern: regexp.MustCompile(
@@ -57,7 +52,6 @@ var AuthExcludedPatterns = []AuthPatternRule{
 	},
 }
 
-// AuthAudienceRule defines which token audiences are allowed for a specific route.
 type AuthAudienceRule struct {
 	ExactPath        string
 	Pattern          *regexp.Regexp
@@ -65,8 +59,7 @@ type AuthAudienceRule struct {
 	AllowedAudiences []string
 }
 
-// AuthAudienceRules defines the security policy for restricted token access.
-// Routes not listed here will reject restricted tokens entirely.
+// AuthAudienceRules defines the audience policy; routes not listed here reject restricted tokens.
 var AuthAudienceRules = []AuthAudienceRule{
 	{
 		ExactPath:        "/api/v1/auth/mfa/verify",
@@ -95,12 +88,10 @@ var AuthAudienceRules = []AuthAudienceRule{
 	},
 }
 
-// MFABypassRule defines paths that bypass MFA enforcement for full access tokens.
 type MFABypassRule struct {
 	ExactPath string
 	Pattern   *regexp.Regexp
 	Method    string
 }
 
-// MFABypassRules allows full access tokens without MFA to access these endpoints.
 var MFABypassRules []MFABypassRule

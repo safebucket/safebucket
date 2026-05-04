@@ -54,7 +54,7 @@ func (p *PostgresProvider) Setup(t *testing.T) *gorm.DB {
 	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
 	require.NoError(t, err, "postgres connection string")
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: gormTestLogger()})
 	require.NoError(t, err)
 
 	sqlDB, err := db.DB()

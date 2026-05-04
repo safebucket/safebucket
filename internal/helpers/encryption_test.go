@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestEncryptSecret tests AES-256-GCM encryption.
 func TestEncryptSecret(t *testing.T) {
 	validKey := []byte("12345678901234567890123456789012") // 32 bytes
 
@@ -21,7 +20,6 @@ func TestEncryptSecret(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 
-		// Verify it's valid base64
 		decoded, err := base64.StdEncoding.DecodeString(result)
 		require.NoError(t, err)
 		assert.Greater(t, len(decoded), len(plaintext), "ciphertext should be longer due to nonce and auth tag")
@@ -68,7 +66,6 @@ func TestEncryptSecret(t *testing.T) {
 	})
 }
 
-// TestDecryptSecret tests AES-256-GCM decryption.
 func TestDecryptSecret(t *testing.T) {
 	validKey := []byte("12345678901234567890123456789012") // 32 bytes
 
@@ -114,7 +111,7 @@ func TestDecryptSecret(t *testing.T) {
 
 	t.Run("should fail with wrong key", func(t *testing.T) {
 		original := "secret-value"
-		wrongKey := []byte("abcdefghijklmnopqrstuvwxyz123456") // Different 32-byte key
+		wrongKey := []byte("abcdefghijklmnopqrstuvwxyz123456")
 
 		encrypted, err := EncryptSecret(original, validKey)
 		require.NoError(t, err)
@@ -130,7 +127,6 @@ func TestDecryptSecret(t *testing.T) {
 		encrypted, err := EncryptSecret(original, validKey)
 		require.NoError(t, err)
 
-		// Tamper with the ciphertext
 		decoded, _ := base64.StdEncoding.DecodeString(encrypted)
 		if len(decoded) > 0 {
 			decoded[len(decoded)-1] ^= 0xFF // Flip bits in last byte
@@ -143,7 +139,6 @@ func TestDecryptSecret(t *testing.T) {
 	})
 }
 
-// TestEncryptDecrypt_RoundTrip tests encryption followed by decryption.
 func TestEncryptDecrypt_RoundTrip(t *testing.T) {
 	validKey := []byte("12345678901234567890123456789012") // 32 bytes
 
@@ -184,7 +179,6 @@ func TestEncryptDecrypt_RoundTrip(t *testing.T) {
 	})
 
 	t.Run("should handle long strings", func(t *testing.T) {
-		// Generate a long string (1000 characters)
 		original := strings.Repeat("a", 1000)
 
 		encrypted, err := EncryptSecret(original, validKey)

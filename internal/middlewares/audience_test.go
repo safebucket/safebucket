@@ -30,7 +30,6 @@ func TestAudienceValidate(t *testing.T) {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
 		recorder := httptest.NewRecorder()
 
-		// Set auth excluded flag (as Authenticate middleware would)
 		ctx := context.WithValue(req.Context(), AuthExcludedKey{}, true)
 		req = req.WithContext(ctx)
 
@@ -49,7 +48,6 @@ func TestAudienceValidate(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
 		recorder := httptest.NewRecorder()
 
-		// No claims set in context (simulates middleware chain error)
 		handler := AudienceValidate(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -116,7 +114,6 @@ func TestAudienceValidate(t *testing.T) {
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
 
-		// MFA verify endpoint allows MFA tokens
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/mfa/verify", nil)
 		recorder := httptest.NewRecorder()
 
@@ -143,7 +140,6 @@ func TestAudienceValidate(t *testing.T) {
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
 
-		// Password reset completion only allows AudienceMFAReset
 		req := httptest.NewRequest(
 			http.MethodPost, "/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/complete", nil,
 		)
@@ -170,7 +166,6 @@ func TestAudienceValidate(t *testing.T) {
 		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
 		require.NoError(t, err)
 
-		// Password reset completion allows AudienceMFAReset
 		req := httptest.NewRequest(
 			http.MethodPost, "/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/complete", nil,
 		)
@@ -191,8 +186,6 @@ func TestAudienceValidate(t *testing.T) {
 	})
 }
 
-// TestRouteAudienceValidation tests the route-level audience validation
-// that prevents cross-flow attacks (e.g., login tokens accessing password reset endpoints).
 func TestRouteAudienceValidation(t *testing.T) {
 	t.Run("password reset completion rejects login MFA tokens", func(t *testing.T) {
 		allowed := isAudienceAllowedForRoute(
@@ -261,7 +254,6 @@ func TestRouteAudienceValidation(t *testing.T) {
 	})
 
 	t.Run("unconfigured route rejects all restricted tokens", func(t *testing.T) {
-		// Routes without explicit rules should reject restricted tokens
 		loginAllowed := isAudienceAllowedForRoute("auth:mfa:login", "/api/v1/buckets", "GET")
 		resetAllowed := isAudienceAllowedForRoute("auth:mfa:password-reset", "/api/v1/buckets", "GET")
 
@@ -270,7 +262,6 @@ func TestRouteAudienceValidation(t *testing.T) {
 	})
 
 	t.Run("wrong method is rejected", func(t *testing.T) {
-		// Password reset completion only allows POST
 		getNotAllowed := isAudienceAllowedForRoute(
 			"auth:mfa:password-reset",
 			"/api/v1/auth/reset-password/550e8400-e29b-41d4-a716-446655440000/complete",
@@ -280,7 +271,6 @@ func TestRouteAudienceValidation(t *testing.T) {
 	})
 
 	t.Run("access token audience is rejected for restricted endpoints", func(t *testing.T) {
-		// Full access tokens (app:*) should not match restricted token rules
 		allowed := isAudienceAllowedForRoute(
 			"app:*",
 			"/api/v1/auth/mfa/verify",
@@ -290,7 +280,6 @@ func TestRouteAudienceValidation(t *testing.T) {
 	})
 }
 
-// TestGetRouteAllowedAudiences tests the helper function that returns allowed audiences for a route.
 func TestGetRouteAllowedAudiences(t *testing.T) {
 	t.Run("returns audiences for configured route", func(t *testing.T) {
 		audiences := getRouteAllowedAudiences("/api/v1/auth/mfa/verify", "POST")
@@ -320,7 +309,6 @@ func TestGetRouteAllowedAudiences(t *testing.T) {
 	})
 }
 
-// TestIsAudienceInList tests the helper function.
 func TestIsAudienceInList(t *testing.T) {
 	t.Run("returns true when audience is in list", func(t *testing.T) {
 		result := isAudienceInList("auth:mfa:login", []string{"auth:mfa:login", "auth:mfa:password-reset"})

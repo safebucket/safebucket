@@ -61,7 +61,7 @@ func parseJWT(
 	_, err := jwt.ParseWithClaims(
 		tokenString,
 		claims,
-		func(token *jwt.Token) (interface{}, error) {
+		func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, errors.New("unexpected signing method")
 			}
@@ -87,9 +87,6 @@ func newRegisteredClaims(
 	}
 }
 
-// createToken is a generic helper for creating JWT tokens with specified configuration.
-// This private function consolidates the common token creation logic used by all public
-// token creation functions (NewAccessToken, NewRefreshToken, etc.).
 func createToken(jwtSecret string, user *models.User, config tokenConfig) (string, error) {
 	jti := generateJTI(config.audience)
 
@@ -119,10 +116,7 @@ func createToken(jwtSecret string, user *models.User, config tokenConfig) (strin
 	return signToken(jwtSecret, claims)
 }
 
-// ParseToken parses and validates a JWT token without audience validation.
-// It validates signature, expiry, and issuer only.
-// Audience validation is delegated to the AudienceValidate middleware for route-specific rules.
-// The requireBearer parameter controls whether the "Bearer " prefix is required.
+// ParseToken delegates audience validation to the AudienceValidate middleware for route-specific rules.
 func ParseToken(
 	jwtSecret string,
 	tokenString string,
@@ -220,7 +214,6 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string, sid s
 	})
 }
 
-// ParseRefreshToken validates and parses a refresh token.
 func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims, error) {
 	claims, err := ParseToken(jwtSecret, refreshToken, false)
 	if err != nil {
@@ -256,11 +249,6 @@ func GenerateSecret() (string, error) {
 	return string(secret), nil
 }
 
-// NewRestrictedAccessToken creates a restricted access token for MFA flows.
-// This token grants limited access: only MFA device management and verification endpoints.
-// Used for both login MFA and password reset MFA flows.
-// Audience: "auth:mfa:login" or "auth:mfa:password-reset".
-// For password reset flow, challengeID should be provided to link the token to the challenge.
 func NewRestrictedAccessToken(
 	jwtSecret string,
 	user *models.User,

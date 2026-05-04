@@ -10,12 +10,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// HandleMFARequired generates a restricted access token for MFA flows.
-// Returns a token with limited access that can only be used for:
-// - Listing MFA devices
-// - Adding/verifying MFA devices (during setup)
-// - Completing MFA verification
-// Frontend determines setup vs verify state by checking if devices list is empty.
 func HandleMFARequired(
 	logger *zap.Logger,
 	authConfig models.AuthConfig,
@@ -39,8 +33,6 @@ func HandleMFARequired(
 	}, nil
 }
 
-// GenerateTokens generates a session ID and full access and refresh tokens for the user.
-// Used after successful MFA verification or for users without MFA.
 func GenerateTokens(
 	authConfig models.AuthConfig,
 	user *models.User,

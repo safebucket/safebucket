@@ -1,14 +1,23 @@
 package services
 
 import (
+	"database/sql"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/safebucket/safebucket/internal/configuration"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // TestPasswordResetAudienceValidation tests that CompletePasswordReset
@@ -292,4 +301,60 @@ func TestCompletePasswordResetSecurityChecks(t *testing.T) {
 		assert.True(t, mfaBypassBlocked,
 			"Unverified MFA should be blocked regardless of audience")
 	})
+}
+
+// TestValidatePasswordResetExpiredChallenge verifies that ValidatePasswordReset
+// rejects an expired challenge with INVALID_REQUEST and deletes it.
+func TestValidatePasswordResetExpiredChallenge(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func(db *sql.DB) { _ = db.Close() }(db)
+
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+	require.NoError(t, err)
+
+	svc := AuthPasswordResetService{
+		DB:             gormDB,
+		Cache:          &MockCache{},
+		AuthConfig:     models.AuthConfig{JWTSecret: "test-secret"},
+		ActivityLogger: &MockActivityLogger{},
+	}
+
+	challengeID := uuid.New()
+	userID := uuid.New()
+	past := time.Now().Add(-time.Minute)
+
+	mock.ExpectBegin()
+
+	challengeRow := sqlmock.NewRows(
+		[]string{"id", "type", "hashed_secret", "attempts_left", "expires_at", "user_id"},
+	).AddRow(challengeID, models.ChallengeTypePasswordReset, "hash", 3, past, userID)
+	mock.ExpectQuery(`SELECT \* FROM "challenges"`).
+		WithArgs(challengeID, models.ChallengeTypePasswordReset, 1).
+		WillReturnRows(challengeRow)
+
+	userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
+		AddRow(userID, "expired@example.com", models.LocalProviderType)
+	mock.ExpectQuery(`SELECT \* FROM "users"`).
+		WillReturnRows(userRow)
+
+	mock.ExpectExec(`DELETE FROM "challenges"`).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	mock.ExpectRollback()
+
+	_, err = svc.ValidatePasswordReset(
+		zap.NewNop(),
+		models.UserClaims{},
+		uuid.UUIDs{challengeID},
+		models.PasswordResetValidateBody{Code: "ABCDEF"},
+	)
+
+	require.Error(t, err)
+	var apiErr *apierrors.APIError
+	require.True(t, errors.As(err, &apiErr), "expected APIError, got %T: %v", err, err)
+	assert.Equal(t, 400, apiErr.Code)
+	assert.Equal(t, "INVALID_REQUEST", apiErr.Message)
+
+	require.NoError(t, mock.ExpectationsWereMet())
 }

@@ -26,7 +26,7 @@ func (p *SQLiteProvider) Setup(t *testing.T) *gorm.DB {
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "test.db")
-	db, err := gorm.Open(sqlite.Open("file:"+path+"?_txlock=immediate"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file:"+path+"?_txlock=immediate"), &gorm.Config{Logger: gormTestLogger()})
 	require.NoError(t, err)
 
 	sqlDB, err := db.DB()

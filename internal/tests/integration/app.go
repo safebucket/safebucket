@@ -216,7 +216,7 @@ func (a *TestApp) Do(
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		if raw, readErr := io.ReadAll(resp.Body); readErr == nil && len(raw) > 0 {
+		if raw, readErr := io.ReadAll(resp.Body); readErr == nil && len(raw) > 0 && integrationVerbose() {
 			t.Logf("integration: %s %s -> %d body=%s", method, path, resp.StatusCode, string(raw))
 		}
 		return resp.StatusCode

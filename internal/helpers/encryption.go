@@ -9,9 +9,6 @@ import (
 	"io"
 )
 
-// EncryptSecret encrypts a plaintext string using AES-256-GCM.
-// The key must be exactly 32 bytes for AES-256.
-// Returns a base64-encoded ciphertext with the nonce prepended.
 func EncryptSecret(plaintext string, key []byte) (string, error) {
 	if len(key) != 32 {
 		return "", errors.New("encryption key must be 32 bytes for AES-256")
@@ -36,9 +33,6 @@ func EncryptSecret(plaintext string, key []byte) (string, error) {
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
-// DecryptSecret decrypts a base64-encoded ciphertext using AES-256-GCM.
-// The key must be exactly 32 bytes for AES-256.
-// Expects the nonce to be prepended to the ciphertext.
 func DecryptSecret(ciphertext string, key []byte) (string, error) {
 	if len(key) != 32 {
 		return "", errors.New("encryption key must be 32 bytes for AES-256")
