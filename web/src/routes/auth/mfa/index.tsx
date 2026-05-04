@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  redirect,
-  useNavigate,
-} from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { MFAVerificationView } from "@/components/mfa-view/components/MFAVerificationView";
@@ -33,9 +29,7 @@ function MFAVerification() {
   const { redirect: redirectPath } = Route.useSearch();
   const restrictedToken = mfaRestrictedToken.get()!;
 
-  const { data, isLoading } = useQuery(
-    mfaDevicesQueryOptions(restrictedToken),
-  );
+  const { data, isLoading } = useQuery(mfaDevicesQueryOptions(restrictedToken));
   const devices = data?.devices ?? [];
 
   const clearAuth = () => {
