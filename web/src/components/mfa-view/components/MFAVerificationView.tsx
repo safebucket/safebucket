@@ -6,7 +6,7 @@ import { MFA_CODE_LENGTH } from "../helpers/constants";
 import { MFADeviceSelector } from "./MFADeviceSelector";
 import { MFASuccessState } from "./MFASuccessState";
 import { MFAVerifyInput } from "./MFAVerifyInput";
-import type { IMFADevice } from "../helpers/types";
+import type { IMFADevice } from "@/components/auth-view/types/session";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 import { Button } from "@/components/ui/button";
 import {

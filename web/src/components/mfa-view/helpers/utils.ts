@@ -1,4 +1,4 @@
-import type { IMFADevice } from "./types";
+import type { IMFADevice } from "@/components/auth-view/types/session";
 
 export function getDefaultDevice(
   devices: Array<IMFADevice>,

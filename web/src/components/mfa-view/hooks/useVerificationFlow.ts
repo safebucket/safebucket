@@ -3,7 +3,8 @@ import { useRouter } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { getDefaultDeviceId, isCodeValid } from "../helpers/utils";
 import { MFA_VERIFICATION_SUCCESS_DELAY } from "../helpers/constants";
-import type { IMFADevice, IVerificationFlowState } from "../helpers/types";
+import type { IMFADevice } from "@/components/auth-view/types/session";
+import type { IVerificationFlowState } from "../helpers/types";
 import { useLogin } from "@/hooks/useAuth";
 
 export interface IUseVerificationFlowProps {

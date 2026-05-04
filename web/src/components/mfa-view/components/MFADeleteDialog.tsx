@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useMFADevices } from "@/components/mfa-view/hooks/useMFADevices";
+import { useRemoveMFADeviceMutation } from "@/queries/mfa";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 
 interface MFADeleteDialogProps {
@@ -22,12 +22,11 @@ interface MFADeleteDialogProps {
 
 export function MFADeleteDialog({ deviceId, onClose }: MFADeleteDialogProps) {
   const { t } = useTranslation();
-  const { removeDevice, isRemovingDevice } = useMFADevices();
+  const removeMutation = useRemoveMFADeviceMutation();
 
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Reset when dialog closes
   useEffect(() => {
     if (!deviceId) {
       setPassword("");
@@ -40,7 +39,7 @@ export function MFADeleteDialog({ deviceId, onClose }: MFADeleteDialogProps) {
 
     setError(null);
     try {
-      await removeDevice(deviceId, password);
+      await removeMutation.mutateAsync({ deviceId, password });
       onClose();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "";
@@ -75,7 +74,7 @@ export function MFADeleteDialog({ deviceId, onClose }: MFADeleteDialogProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t("auth.mfa.delete_password_placeholder")}
-              disabled={isRemovingDevice}
+              disabled={removeMutation.isPending}
             />
           </div>
         </div>
@@ -87,9 +86,11 @@ export function MFADeleteDialog({ deviceId, onClose }: MFADeleteDialogProps) {
           <Button
             variant="destructive"
             onClick={handleConfirmDelete}
-            disabled={!password || isRemovingDevice}
+            disabled={!password || removeMutation.isPending}
           >
-            {isRemovingDevice ? t("common.loading") : t("common.delete")}
+            {removeMutation.isPending
+              ? t("common.loading")
+              : t("common.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

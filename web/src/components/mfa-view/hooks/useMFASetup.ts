@@ -1,17 +1,17 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
 
-import type {
-  IMFADeviceSetupResponse,
-  SetupStep,
-} from "@/components/mfa-view/helpers/types";
+import type { IMFADeviceSetupResponse } from "@/components/auth-view/types/session";
+import type { SetupStep } from "@/components/mfa-view/helpers/types";
 import { authCookies } from "@/lib/auth-service";
 import {
   MFA_CODE_LENGTH,
   MFA_DEFAULT_DEVICE_NAME,
 } from "@/components/mfa-view/helpers/constants";
-import { useMFADevices } from "@/components/mfa-view/hooks/useMFADevices";
+import {
+  useAddMFADeviceMutation,
+  useVerifyMFADeviceMutation,
+} from "@/queries/mfa";
 
 export interface UseMFASetupReturn {
   step: SetupStep;
@@ -33,9 +33,8 @@ export interface UseMFASetupReturn {
 
 export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const { addDevice, verifyDevice, isAddingDevice, isVerifyingDevice } =
-    useMFADevices(mfaToken);
+  const addDeviceMutation = useAddMFADeviceMutation(mfaToken);
+  const verifyDeviceMutation = useVerifyMFADeviceMutation(mfaToken);
 
   const [step, setStep] = useState<SetupStep>("name");
   const [deviceName, setDeviceName] = useState(MFA_DEFAULT_DEVICE_NAME);
@@ -81,7 +80,10 @@ export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
 
     setError(null);
     try {
-      const response = await addDevice(deviceName.trim(), password, mfaToken);
+      const response = await addDeviceMutation.mutateAsync({
+        name: deviceName.trim(),
+        password,
+      });
       setSetupData(response);
       setStep("qr");
     } catch (err) {
@@ -96,7 +98,7 @@ export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
         setError(t("auth.mfa.setup_error"));
       }
     }
-  }, [deviceName, password, mfaToken, addDevice, t]);
+  }, [deviceName, password, mfaToken, addDeviceMutation, t]);
 
   const verifyCode = useCallback(async () => {
     if (code.length !== MFA_CODE_LENGTH) {
@@ -111,12 +113,11 @@ export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
 
     setError(null);
     try {
-      const response = (await verifyDevice(setupData.device_id, code)) as {
-        access_token?: string;
-        refresh_token?: string;
-      };
+      const response = await verifyDeviceMutation.mutateAsync({
+        deviceId: setupData.device_id,
+        code,
+      });
 
-      // Save the new tokens with updated MFA claim
       if (response.access_token && response.refresh_token) {
         authCookies.setAll(
           response.access_token,
@@ -126,11 +127,10 @@ export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
       }
 
       setStep("success");
-      queryClient.invalidateQueries({ queryKey: ["mfa", "devices"] });
     } catch {
       setError(t("auth.mfa.verify_error"));
     }
-  }, [code, setupData, verifyDevice, queryClient, t]);
+  }, [code, setupData, verifyDeviceMutation, t]);
 
   return {
     step,
@@ -142,7 +142,7 @@ export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
     code,
     setCode,
     error,
-    isLoading: isAddingDevice || isVerifyingDevice,
+    isLoading: addDeviceMutation.isPending || verifyDeviceMutation.isPending,
     startSetup,
     goToVerify,
     goBack,

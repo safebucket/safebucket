@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Smartphone, Star } from "lucide-react";
 import { hasMultipleDevices } from "../helpers/utils";
-import type { IMFADevice } from "../helpers/types";
+import type { IMFADevice } from "@/components/auth-view/types/session";
 import {
   Select,
   SelectContent,

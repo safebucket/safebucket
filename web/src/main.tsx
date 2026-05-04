@@ -18,7 +18,7 @@ import { getCurrentSessionWithRefresh } from "@/lib/auth-service.ts";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       retry: 1,
     },
   },
@@ -36,19 +36,15 @@ export const router = createRouter({
   defaultPreloadStaleTime: 0,
 });
 
-// Register the router instance for type safety
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
   }
 }
 
-// Initialize app with session refresh check
 async function initializeApp() {
-  // Try to get session with automatic token refresh
   const session = await getCurrentSessionWithRefresh();
 
-  // Update router context with refreshed session
   router.update({
     context: {
       queryClient,
@@ -56,7 +52,6 @@ async function initializeApp() {
     },
   });
 
-  // Render the app
   const rootElement = document.getElementById("app");
   if (rootElement && !rootElement.innerHTML) {
     const root = ReactDOM.createRoot(rootElement);

@@ -12,7 +12,7 @@ import type {
 import type {
   IMFADevice,
   IMFADevicesResponse,
-} from "@/components/mfa-view/helpers/types";
+} from "@/components/auth-view/types/session";
 import {
   api_completePasswordReset,
   api_validatePasswordReset,
@@ -34,17 +34,14 @@ export interface IPasswordFormState {
 }
 
 export interface IUsePasswordResetFlowReturn {
-  // Stage
   stage: PasswordResetStage;
   error: string | null;
   isLoading: boolean;
 
-  // Code stage
   code: string;
   setCode: (code: string) => void;
   handleCodeSubmit: (e: React.FormEvent) => Promise<void>;
 
-  // MFA stage
   mfaDevices: Array<IMFADevice>;
   mfaCode: string;
   setMfaCode: (code: string) => void;
@@ -52,7 +49,6 @@ export interface IUsePasswordResetFlowReturn {
   setSelectedDeviceId: (id: string) => void;
   handleMFASubmit: (e: React.FormEvent) => Promise<void>;
 
-  // Password stage (react-hook-form)
   passwordForm: IPasswordFormState;
   handlePasswordSubmit: (data: IPasswordResetPasswordFormData) => Promise<void>;
 }
@@ -68,24 +64,19 @@ export function usePasswordResetFlow({
   const navigate = useNavigate();
   const refreshSession = useRefreshSession();
 
-  // Stage management
   const [stage, setStage] = useState<PasswordResetStage>("code");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Code stage state
   const [code, setCode] = useState("");
 
-  // Restricted access token (from code validation, used for MFA and completion)
   const [restrictedToken, setRestrictedToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // MFA stage state
   const [mfaDevices, setMfaDevices] = useState<Array<IMFADevice>>([]);
   const [mfaCode, setMfaCode] = useState("");
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
 
-  // Password form (react-hook-form)
   const {
     register,
     handleSubmit,
@@ -95,7 +86,6 @@ export function usePasswordResetFlow({
 
   const newPassword = watch("newPassword");
 
-  // Code submission handler
   const handleCodeSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -132,7 +122,6 @@ export function usePasswordResetFlow({
     [challengeId, code, t],
   );
 
-  // Fetch MFA devices when entering MFA stage
   useEffect(() => {
     if (
       stage === "mfa" &&
@@ -158,7 +147,6 @@ export function usePasswordResetFlow({
     }
   }, [stage, userId, restrictedToken, mfaDevices.length, t]);
 
-  // MFA submission handler
   const handleMFASubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -194,7 +182,6 @@ export function usePasswordResetFlow({
     [mfaCode, restrictedToken, selectedDeviceId, t],
   );
 
-  // Password submission handler
   const handlePasswordSubmit = useCallback(
     async (data: IPasswordResetPasswordFormData) => {
       setError(null);
@@ -240,17 +227,14 @@ export function usePasswordResetFlow({
   );
 
   return {
-    // Stage
     stage,
     error,
     isLoading,
 
-    // Code stage
     code,
     setCode,
     handleCodeSubmit,
 
-    // MFA stage
     mfaDevices,
     mfaCode,
     setMfaCode,
@@ -258,7 +242,6 @@ export function usePasswordResetFlow({
     setSelectedDeviceId,
     handleMFASubmit,
 
-    // Password stage
     passwordForm: {
       register,
       handleSubmit,

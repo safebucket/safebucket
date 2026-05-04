@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import type {
   IMFADevice,
   IMFADevicesResponse,
-} from "@/components/mfa-view/helpers/types";
+} from "@/components/auth-view/types/session";
 import { fetchApi } from "@/lib/api";
 
 interface IMFAAuthContext {
@@ -50,7 +50,6 @@ export function MFAAuthProvider({ children }: { children: ReactNode }) {
           });
           setDevices(response.devices);
         } catch {
-          // If fetch fails, keep devices empty (will trigger setup flow)
           setDevices([]);
         } finally {
           setIsLoadingDevices(false);
@@ -61,7 +60,6 @@ export function MFAAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [restrictedToken, devicesFetched, isLoadingDevices]);
 
-  // Auto-clear after 15 minutes
   useEffect(() => {
     if (restrictedToken) {
       const timeout = setTimeout(

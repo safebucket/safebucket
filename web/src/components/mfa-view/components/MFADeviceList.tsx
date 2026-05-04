@@ -1,4 +1,4 @@
-import type { IMFADevice } from "@/components/mfa-view/helpers/types";
+import type { IMFADevice } from "@/components/auth-view/types/session";
 import { MFADeviceRow } from "@/components/mfa-view/components/MFADeviceRow";
 
 interface MFADeviceListProps {

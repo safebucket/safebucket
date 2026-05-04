@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { enUS, fr } from "date-fns/locale";
 import { Smartphone, Star, Trash2 } from "lucide-react";
 
-import type { IMFADevice } from "@/components/mfa-view/helpers/types";
+import type { IMFADevice } from "@/components/auth-view/types/session";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
