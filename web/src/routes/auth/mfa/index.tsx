@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { MFAVerificationView } from "@/components/mfa-view/components/MFAVerificationView";
 import { MFASetupRequiredView } from "@/components/mfa-view/components/MFASetupRequiredView";
-import { mfaRestrictedToken } from "@/components/mfa-view/helpers/restrictedToken";
+import { mfaRestrictedToken } from "@/components/mfa-view/helpers/token";
 import { mfaDevicesQueryOptions } from "@/queries/mfa";
 
 export const Route = createFileRoute("/auth/mfa/")({

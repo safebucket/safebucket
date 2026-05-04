@@ -9,7 +9,7 @@ import type { SubmitHandler } from "react-hook-form";
 import type { FormEvent } from "react";
 import type { ILoginForm } from "@/components/auth-view/types/session";
 import { useLogin } from "@/hooks/useAuth";
-import { mfaRestrictedToken } from "@/components/mfa-view/helpers/restrictedToken";
+import { mfaRestrictedToken } from "@/components/mfa-view/helpers/token";
 import { Button } from "@/components/ui/button";
 import {
   Card,
