@@ -11,7 +11,6 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,292 +19,192 @@ import (
 	"gorm.io/gorm"
 )
 
-// TestPasswordResetAudienceValidation tests that CompletePasswordReset
-// correctly validates token audience to prevent cross-flow attacks.
-//
-// Security boundary: Only tokens with AudienceMFAReset can complete password reset.
-// This prevents login-flow tokens from being used to reset passwords.
-func TestPasswordResetAudienceValidation(t *testing.T) {
-	t.Run("should allow AudienceMFAReset token", func(t *testing.T) {
-		claims := models.UserClaims{
-			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFAReset}},
-		}
+func newPasswordResetTestService(t *testing.T) (AuthPasswordResetService, sqlmock.Sqlmock, func()) {
+	t.Helper()
 
-		// This is the audience check from CompletePasswordReset
-		isValidAudience := claims.Audience[0] == configuration.AudienceMFAReset
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
 
-		assert.True(t, isValidAudience,
-			"AudienceMFAReset should be accepted for password reset completion")
-	})
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+	require.NoError(t, err)
 
-	t.Run("should block AudienceMFALogin token (cross-flow attack)", func(t *testing.T) {
-		claims := models.UserClaims{
-			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFALogin}},
-		}
+	svc := AuthPasswordResetService{
+		DB:             gormDB,
+		Cache:          &MockCache{},
+		AuthConfig:     models.AuthConfig{JWTSecret: "test-secret"},
+		ActivityLogger: &MockActivityLogger{},
+	}
+	cleanup := func() { _ = db.Close() }
+	return svc, mock, cleanup
+}
 
-		// This simulates the check in CompletePasswordReset
-		isInvalidAudience := claims.Audience[0] != configuration.AudienceMFAReset
+func requireAPIError(t *testing.T, err error, code int, message string) {
+	t.Helper()
+	require.Error(t, err)
+	var apiErr *apierrors.APIError
+	require.True(t, errors.As(err, &apiErr), "expected APIError, got %T: %v", err, err)
+	assert.Equal(t, code, apiErr.Code)
+	assert.Equal(t, message, apiErr.Message)
+}
 
-		assert.True(t, isInvalidAudience,
-			"AudienceMFALogin should be rejected for password reset completion")
-	})
+func TestRequestPasswordReset(t *testing.T) {
+	t.Run("returns success without creating challenge for non-matching email", func(t *testing.T) {
+		svc, mock, cleanup := newPasswordResetTestService(t)
+		defer cleanup()
 
-	t.Run("should block AudienceAccessToken (full access token)", func(t *testing.T) {
-		claims := models.UserClaims{
-			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
-		}
+		mock.ExpectQuery(`SELECT \* FROM "users"`).
+			WithArgs("nobody@example.com", models.LocalProviderType, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
-		isInvalidAudience := claims.Audience[0] != configuration.AudienceMFAReset
+		result, err := svc.RequestPasswordReset(
+			zap.NewNop(),
+			models.UserClaims{},
+			uuid.UUIDs{},
+			models.PasswordResetRequestBody{Email: "nobody@example.com"},
+		)
 
-		assert.True(t, isInvalidAudience,
-			"Full access token should be rejected for password reset completion")
-	})
-
-	t.Run("should block AudienceRefreshToken", func(t *testing.T) {
-		claims := models.UserClaims{
-			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceRefreshToken}},
-		}
-
-		isInvalidAudience := claims.Audience[0] != configuration.AudienceMFAReset
-
-		assert.True(t, isInvalidAudience,
-			"Refresh token should be rejected for password reset completion")
+		require.NoError(t, err)
+		assert.Nil(t, result)
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
 
-// TestMFABypassPrevention tests that MFA-enabled users cannot bypass MFA
-// during password reset by using a restricted token without MFA verification.
-//
-// Attack scenario prevented:
-// 1. Attacker requests password reset for victim
-// 2. Attacker verifies email code → gets RestrictedAccessToken (MFA=false)
-// 3. Attacker SKIPS MFA verification and calls /complete directly
-// 4. Without the fix, password would be reset bypassing MFA
-//
-// The fix: If user has MFA enabled, claims.MFA must be true.
-func TestMFABypassPrevention(t *testing.T) {
-	t.Run("should block unverified MFA token for MFA-enabled user", func(t *testing.T) {
-		userWithMFA := models.User{
-			ID:    uuid.New(),
-			Email: "mfa-user@example.com",
-			Role:  models.RoleUser,
-			MFADevices: []models.MFADevice{
-				{
-					ID:         uuid.New(),
-					IsVerified: true,
-					IsDefault:  true,
-				},
-			},
-		}
+func TestCompletePasswordReset(t *testing.T) {
+	t.Run("rejects when JWT challenge_id differs from URL", func(t *testing.T) {
+		svc, mock, cleanup := newPasswordResetTestService(t)
+		defer cleanup()
 
-		// Restricted token WITHOUT MFA verification (MFA=false)
-		unverifiedClaims := models.UserClaims{
-			MFA: false, // Not verified yet
-		}
+		urlChallengeID := uuid.New()
+		jwtChallengeID := uuid.New()
 
-		// This is the MFA bypass check from CompletePasswordReset
-		shouldBlockMFABypass := userWithMFA.HasMFAEnabled() && !unverifiedClaims.MFA
+		_, err := svc.CompletePasswordReset(
+			zap.NewNop(),
+			models.UserClaims{UserID: uuid.New(), ChallengeID: &jwtChallengeID},
+			uuid.UUIDs{urlChallengeID},
+			models.PasswordResetCompleteBody{NewPassword: "irrelevant"},
+		)
 
-		assert.True(t, shouldBlockMFABypass,
-			"MFA-enabled user with unverified token should be blocked")
+		requireAPIError(t, err, 400, "INVALID_REQUEST")
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("should allow verified MFA token for MFA-enabled user", func(t *testing.T) {
-		userWithMFA := models.User{
-			ID:    uuid.New(),
-			Email: "mfa-user@example.com",
-			Role:  models.RoleUser,
-			MFADevices: []models.MFADevice{
-				{
-					ID:         uuid.New(),
-					IsVerified: true,
-					IsDefault:  true,
-				},
-			},
-		}
+	t.Run("rejects when JWT carries no challenge_id", func(t *testing.T) {
+		svc, mock, cleanup := newPasswordResetTestService(t)
+		defer cleanup()
 
-		// Restricted token WITH MFA verification (MFA=true)
-		verifiedClaims := models.UserClaims{
-			MFA: true, // Verified via /auth/mfa/verify
-		}
+		_, err := svc.CompletePasswordReset(
+			zap.NewNop(),
+			models.UserClaims{UserID: uuid.New(), ChallengeID: nil},
+			uuid.UUIDs{uuid.New()},
+			models.PasswordResetCompleteBody{NewPassword: "irrelevant"},
+		)
 
-		shouldBlockMFABypass := userWithMFA.HasMFAEnabled() && !verifiedClaims.MFA
-
-		assert.False(t, shouldBlockMFABypass,
-			"MFA-enabled user with verified token should be allowed")
+		requireAPIError(t, err, 400, "INVALID_REQUEST")
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("should allow unverified token for user without MFA", func(t *testing.T) {
-		userWithoutMFA := models.User{
-			ID:         uuid.New(),
-			Email:      "no-mfa-user@example.com",
-			Role:       models.RoleUser,
-			MFADevices: []models.MFADevice{}, // No MFA devices
-		}
+	t.Run("rejects when challenge is not bound to the JWT user", func(t *testing.T) {
+		svc, mock, cleanup := newPasswordResetTestService(t)
+		defer cleanup()
 
-		claims := models.UserClaims{
-			MFA: false,
-		}
+		challengeID := uuid.New()
+		jwtUserID := uuid.New()
 
-		shouldBlockMFABypass := userWithoutMFA.HasMFAEnabled() && !claims.MFA
+		mock.ExpectQuery(`SELECT \* FROM "challenges"`).
+			WithArgs(challengeID, models.ChallengeTypePasswordReset, jwtUserID, 1).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
-		assert.False(t, shouldBlockMFABypass,
-			"User without MFA should be allowed with unverified token")
+		_, err := svc.CompletePasswordReset(
+			zap.NewNop(),
+			models.UserClaims{UserID: jwtUserID, ChallengeID: &challengeID},
+			uuid.UUIDs{challengeID},
+			models.PasswordResetCompleteBody{NewPassword: "irrelevant"},
+		)
+
+		requireAPIError(t, err, 400, "INVALID_REQUEST")
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("should not count unverified MFA devices", func(t *testing.T) {
-		// User started MFA setup but didn't complete verification
-		userWithUnverifiedMFA := models.User{
-			ID:    uuid.New(),
-			Email: "partial-mfa-user@example.com",
-			Role:  models.RoleUser,
-			MFADevices: []models.MFADevice{
-				{
-					ID:         uuid.New(),
-					IsVerified: false, // Setup incomplete
-					IsDefault:  false,
-				},
-			},
-		}
+	t.Run("rejects expired challenge and deletes it", func(t *testing.T) {
+		svc, mock, cleanup := newPasswordResetTestService(t)
+		defer cleanup()
 
-		claims := models.UserClaims{
-			MFA: false,
-		}
+		challengeID := uuid.New()
+		userID := uuid.New()
+		past := time.Now().Add(-time.Minute)
 
-		// HasMFAEnabled only counts verified devices
-		shouldBlockMFABypass := userWithUnverifiedMFA.HasMFAEnabled() && !claims.MFA
+		challengeRow := sqlmock.NewRows(
+			[]string{"id", "type", "hashed_secret", "attempts_left", "expires_at", "user_id"},
+		).AddRow(challengeID, models.ChallengeTypePasswordReset, "hash", 3, past, userID)
+		mock.ExpectQuery(`SELECT \* FROM "challenges"`).
+			WithArgs(challengeID, models.ChallengeTypePasswordReset, userID, 1).
+			WillReturnRows(challengeRow)
 
-		assert.False(t, shouldBlockMFABypass,
-			"User with only unverified MFA devices should be allowed")
-	})
-}
+		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
+			AddRow(userID, "expired@example.com", models.LocalProviderType)
+		mock.ExpectQuery(`SELECT \* FROM "users"`).
+			WillReturnRows(userRow)
 
-// TestCrossFlowAttackPrevention tests that tokens from one flow cannot be used
-// in another flow, preventing cross-flow attacks.
-func TestCrossFlowAttackPrevention(t *testing.T) {
-	t.Run("login token cannot complete password reset", func(t *testing.T) {
-		// Attacker obtains victim's login-flow MFA token
-		loginFlowToken := models.UserClaims{
-			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFALogin}},
-		}
+		mock.ExpectBegin()
+		mock.ExpectExec(`DELETE FROM "challenges"`).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
 
-		// CompletePasswordReset checks:
-		// 1. Audience must be AudienceMFAReset
-		audienceBlocked := loginFlowToken.Audience[0] != configuration.AudienceMFAReset
+		_, err := svc.CompletePasswordReset(
+			zap.NewNop(),
+			models.UserClaims{UserID: userID, ChallengeID: &challengeID},
+			uuid.UUIDs{challengeID},
+			models.PasswordResetCompleteBody{NewPassword: "irrelevant"},
+		)
 
-		assert.True(t, audienceBlocked,
-			"Login flow token should be blocked from password reset completion")
+		requireAPIError(t, err, 400, "INVALID_REQUEST")
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("password reset token cannot get full access via login MFA verify", func(t *testing.T) {
-		// Token from password reset flow
-		resetFlowToken := models.UserClaims{
-			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFAReset}},
-		}
+	t.Run("blocks MFA bypass when MFA-enabled user has unverified token", func(t *testing.T) {
+		svc, mock, cleanup := newPasswordResetTestService(t)
+		defer cleanup()
 
-		// VerifyMFALogin returns different response based on audience:
-		// - AudienceMFALogin -> full access + refresh tokens
-		// - AudienceMFAReset -> restricted token with MFA=true
-		returnsRestrictedToken := resetFlowToken.Audience[0] == configuration.AudienceMFAReset
+		challengeID := uuid.New()
+		userID := uuid.New()
+		future := time.Now().Add(5 * time.Minute)
 
-		assert.True(t, returnsRestrictedToken,
-			"Password reset token should get restricted token, not full access")
+		challengeRow := sqlmock.NewRows(
+			[]string{"id", "type", "hashed_secret", "attempts_left", "expires_at", "user_id"},
+		).AddRow(challengeID, models.ChallengeTypePasswordReset, "hash", 3, future, userID)
+		mock.ExpectQuery(`SELECT \* FROM "challenges"`).
+			WithArgs(challengeID, models.ChallengeTypePasswordReset, userID, 1).
+			WillReturnRows(challengeRow)
+
+		challengeUserRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
+			AddRow(userID, "mfa-user@example.com", models.LocalProviderType)
+		mock.ExpectQuery(`SELECT \* FROM "users"`).
+			WillReturnRows(challengeUserRow)
+
+		mfaUserRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
+			AddRow(userID, "mfa-user@example.com", models.LocalProviderType)
+		mock.ExpectQuery(`SELECT \* FROM "users" WHERE id = `).
+			WithArgs(userID, 1).
+			WillReturnRows(mfaUserRow)
+
+		mfaDeviceRows := sqlmock.NewRows([]string{"id", "user_id", "is_verified", "is_default"}).
+			AddRow(uuid.New(), userID, true, true)
+		mock.ExpectQuery(`SELECT \* FROM "mfa_devices"`).
+			WillReturnRows(mfaDeviceRows)
+
+		_, err := svc.CompletePasswordReset(
+			zap.NewNop(),
+			models.UserClaims{UserID: userID, ChallengeID: &challengeID, MFA: false},
+			uuid.UUIDs{challengeID},
+			models.PasswordResetCompleteBody{NewPassword: "irrelevant"},
+		)
+
+		requireAPIError(t, err, 403, "MFA_REQUIRED")
+		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
 
-// TestAudienceConstants verifies the audience constants are correctly defined
-// and distinct to prevent token type confusion.
-func TestAudienceConstants(t *testing.T) {
-	t.Run("should have expected audience values", func(t *testing.T) {
-		assert.Equal(t, "app:*", configuration.AudienceAccessToken)
-		assert.Equal(t, "auth:refresh", configuration.AudienceRefreshToken)
-		assert.Equal(t, "auth:mfa:login", configuration.AudienceMFALogin)
-		assert.Equal(t, "auth:mfa:password-reset", configuration.AudienceMFAReset)
-	})
-
-	t.Run("all audience constants must be unique", func(t *testing.T) {
-		audiences := []string{
-			configuration.AudienceAccessToken,
-			configuration.AudienceRefreshToken,
-			configuration.AudienceMFALogin,
-			configuration.AudienceMFAReset,
-		}
-
-		seen := make(map[string]bool)
-		for _, aud := range audiences {
-			assert.False(t, seen[aud], "Audience %s must be unique", aud)
-			seen[aud] = true
-		}
-	})
-
-	t.Run("restricted audiences should share common prefix", func(t *testing.T) {
-		// Both restricted audiences start with "auth:mfa:" for consistency
-		assert.Contains(t, configuration.AudienceMFALogin, "auth:mfa:")
-		assert.Contains(t, configuration.AudienceMFAReset, "auth:mfa:")
-	})
-}
-
-// TestCompletePasswordResetSecurityChecks validates both security checks
-// are correctly applied in sequence.
-func TestCompletePasswordResetSecurityChecks(t *testing.T) {
-	t.Run("both checks must pass for MFA-enabled user", func(t *testing.T) {
-		userWithMFA := models.User{
-			MFADevices: []models.MFADevice{
-				{ID: uuid.New(), IsVerified: true, IsDefault: true},
-			},
-		}
-
-		// Valid token: correct audience AND MFA verified
-		validClaims := models.UserClaims{
-			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceMFAReset}},
-			MFA:              true,
-		}
-
-		// Check 1: MFA bypass prevention
-		mfaBypassBlocked := userWithMFA.HasMFAEnabled() && !validClaims.MFA
-		// Check 2: Audience validation
-		audienceInvalid := validClaims.Audience[0] != configuration.AudienceMFAReset
-
-		assert.False(t, mfaBypassBlocked, "Valid MFA should not be blocked")
-		assert.False(t, audienceInvalid, "Valid audience should not be blocked")
-	})
-
-	t.Run("wrong audience blocks even with valid MFA", func(t *testing.T) {
-		// Wrong audience even though MFA is verified
-		wrongAudienceClaims := models.UserClaims{
-			RegisteredClaims: jwt.RegisteredClaims{
-				Audience: jwt.ClaimStrings{configuration.AudienceMFALogin},
-			},
-		}
-
-		audienceInvalid := wrongAudienceClaims.Audience[0] != configuration.AudienceMFAReset
-
-		assert.True(t, audienceInvalid,
-			"Wrong audience should be blocked regardless of MFA status")
-	})
-
-	t.Run("unverified MFA blocks even with correct audience", func(t *testing.T) {
-		userWithMFA := models.User{
-			MFADevices: []models.MFADevice{
-				{ID: uuid.New(), IsVerified: true, IsDefault: true},
-			},
-		}
-
-		// Correct audience but MFA not verified
-		unverifiedMFAClaims := models.UserClaims{
-			MFA: false, // Not verified!
-		}
-
-		mfaBypassBlocked := userWithMFA.HasMFAEnabled() && !unverifiedMFAClaims.MFA
-
-		assert.True(t, mfaBypassBlocked,
-			"Unverified MFA should be blocked regardless of audience")
-	})
-}
-
-// TestValidatePasswordResetExpiredChallenge verifies that ValidatePasswordReset
-// rejects an expired challenge with INVALID_REQUEST and deletes it.
-func TestValidatePasswordResetExpiredChallenge(t *testing.T) {
+func TestValidatePasswordReset_ExpiredChallenge(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer func(db *sql.DB) { _ = db.Close() }(db)
@@ -350,11 +249,23 @@ func TestValidatePasswordResetExpiredChallenge(t *testing.T) {
 		models.PasswordResetValidateBody{Code: "ABCDEF"},
 	)
 
-	require.Error(t, err)
-	var apiErr *apierrors.APIError
-	require.True(t, errors.As(err, &apiErr), "expected APIError, got %T: %v", err, err)
-	assert.Equal(t, 400, apiErr.Code)
-	assert.Equal(t, "INVALID_REQUEST", apiErr.Message)
-
+	requireAPIError(t, err, 400, "INVALID_REQUEST")
 	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestAudienceConstants_Unique(t *testing.T) {
+	audiences := []string{
+		configuration.AudienceAccessToken,
+		configuration.AudienceRefreshToken,
+		configuration.AudienceMFALogin,
+		configuration.AudienceMFAReset,
+	}
+
+	seen := make(map[string]struct{}, len(audiences))
+	for _, aud := range audiences {
+		require.NotEmpty(t, aud)
+		_, dup := seen[aud]
+		assert.False(t, dup, "audience %q must be unique", aud)
+		seen[aud] = struct{}{}
+	}
 }

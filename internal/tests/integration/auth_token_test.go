@@ -121,6 +121,82 @@ func TestAuthPasswordReset(t *testing.T) {
 					tokenA, models.PasswordResetCompleteBody{NewPassword: "newpassword123"})
 				assert.Equal(t, http.StatusBadRequest, status)
 			})
+
+			t.Run("wrong-audience token is rejected on complete", func(t *testing.T) {
+				user := app.CreateUser(t, "resetwrongaud@example.com")
+
+				code, challengeID := requestReset(t, app, user.Email)
+
+				var validateResp models.AuthLoginResponse
+				status := app.Do(t, http.MethodPost,
+					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
+					"", models.PasswordResetValidateBody{Code: code}, &validateResp)
+				require.Equal(t, http.StatusCreated, status)
+
+				challengeUUID := uuid.MustParse(challengeID)
+				wrongAudToken := craftTokenWithAudience(t, app.Config.App.JWTSecret,
+					user.ID, user.Email, user.Role, configuration.AudienceAccessToken, &challengeUUID)
+
+				status = app.DoStatus(t, http.MethodPost,
+					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
+					wrongAudToken, models.PasswordResetCompleteBody{NewPassword: "newpassword123"})
+				assert.Equal(t, http.StatusForbidden, status)
+			})
+
+			t.Run("password reset revokes pre-existing sessions", func(t *testing.T) {
+				user := app.CreateUser(t, "resetrevoke@example.com")
+				oldToken := app.LoginAs(t, user.Email)
+
+				require.Equal(t, http.StatusOK,
+					app.DoStatus(t, http.MethodGet, probeEndpoint, oldToken, nil),
+					"old token should work before reset")
+
+				code, challengeID := requestReset(t, app, user.Email)
+
+				var validateResp models.AuthLoginResponse
+				status := app.Do(t, http.MethodPost,
+					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
+					"", models.PasswordResetValidateBody{Code: code}, &validateResp)
+				require.Equal(t, http.StatusCreated, status)
+
+				var completeResp models.AuthLoginResponse
+				status = app.Do(t, http.MethodPost,
+					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
+					validateResp.AccessToken,
+					models.PasswordResetCompleteBody{NewPassword: "newpassword456"},
+					&completeResp)
+				require.Equal(t, http.StatusCreated, status)
+
+				assert.Equal(t, http.StatusForbidden,
+					app.DoStatus(t, http.MethodGet, probeEndpoint, oldToken, nil),
+					"old token must be rejected after password reset")
+				assert.Equal(t, http.StatusOK,
+					app.DoStatus(t, http.MethodGet, probeEndpoint, completeResp.AccessToken, nil),
+					"new token issued by reset must work")
+			})
+
+			t.Run("completed challenge cannot be reused", func(t *testing.T) {
+				user := app.CreateUser(t, "resetreuse@example.com")
+
+				code, challengeID := requestReset(t, app, user.Email)
+
+				var validateResp models.AuthLoginResponse
+				status := app.Do(t, http.MethodPost,
+					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
+					"", models.PasswordResetValidateBody{Code: code}, &validateResp)
+				require.Equal(t, http.StatusCreated, status)
+				restrictedToken := validateResp.AccessToken
+
+				status = app.DoStatus(t, http.MethodPost,
+					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
+					restrictedToken, models.PasswordResetCompleteBody{NewPassword: "firstpassword123"})
+				require.Equal(t, http.StatusCreated, status)
+
+				status = app.DoStatus(t, http.MethodPost,
+					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
+					restrictedToken, models.PasswordResetCompleteBody{NewPassword: "secondpassword123"})
+				assert.Equal(t, http.StatusBadRequest, status)
+			})
 		})
 	}
 }
@@ -200,6 +276,35 @@ func craftExpiredToken(t *testing.T, jwtSecret string, userID uuid.UUID, email s
 	return signed
 }
 
+func craftTokenWithAudience(
+	t *testing.T,
+	jwtSecret string,
+	userID uuid.UUID,
+	email string,
+	role models.Role,
+	audience string,
+	challengeID *uuid.UUID,
+) string {
+	t.Helper()
+	claims := models.UserClaims{
+		Email:       email,
+		UserID:      userID,
+		Role:        role,
+		Provider:    string(models.LocalProviderType),
+		ChallengeID: challengeID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Audience:  jwt.ClaimStrings{audience},
+			Issuer:    configuration.AppName,
+			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString([]byte(jwtSecret))
+	require.NoError(t, err)
+	return signed
+}
+
 func tamperedPayloadToken(t *testing.T, rawJWT string) string {
 	t.Helper()
 
@@ -209,7 +314,7 @@ func tamperedPayloadToken(t *testing.T, rawJWT string) string {
 	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 	require.NoError(t, err)
 
-	var payload map[string]interface{}
+	var payload map[string]any
 	require.NoError(t, json.Unmarshal(payloadBytes, &payload))
 
 	payload["_tampered"] = true
