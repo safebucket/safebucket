@@ -135,7 +135,7 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				challengeUUID := uuid.MustParse(challengeID)
 				wrongAudToken := craftTokenWithAudience(t, app.Config.App.JWTSecret,
-					user.ID, user.Email, user.Role, configuration.AudienceAccessToken, &challengeUUID)
+					user.ID, user.Email, user.Role, configuration.AudienceMFALogin, &challengeUUID)
 
 				status = app.DoStatus(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
@@ -167,9 +167,9 @@ func TestAuthPasswordReset(t *testing.T) {
 					&completeResp)
 				require.Equal(t, http.StatusCreated, status)
 
-				assert.Equal(t, http.StatusForbidden,
+				assert.Equal(t, http.StatusUnauthorized,
 					app.DoStatus(t, http.MethodGet, probeEndpoint, oldToken, nil),
-					"old token must be rejected after password reset")
+					"old token must be rejected as session-revoked after password reset")
 				assert.Equal(t, http.StatusOK,
 					app.DoStatus(t, http.MethodGet, probeEndpoint, completeResp.AccessToken, nil),
 					"new token issued by reset must work")
