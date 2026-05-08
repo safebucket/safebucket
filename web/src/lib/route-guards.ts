@@ -1,24 +1,25 @@
 import { redirect } from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
 
-/**
- * Route guard to require authentication
- * Use in route's beforeLoad to protect the route
- *
- * @example
- * export const Route = createFileRoute('/protected')({
- *   beforeLoad: requireAuth,
- *   component: ProtectedComponent
- * })
- */
-export function requireAuth({
+import type { Session } from "@/components/auth-view/types/session";
+import { meQueryOptions } from "@/queries/me";
+
+async function resolveSession(
+  queryClient: QueryClient,
+): Promise<Session | null> {
+  return queryClient.ensureQueryData(meQueryOptions()).catch(() => null);
+}
+
+export async function requireAuth({
   location,
   context,
 }: {
   location: { href: string };
-  context: { session: any };
+  context: { queryClient: QueryClient; session: Session | null };
 }) {
-  // Check session from router context (single source of truth)
-  if (!context.session) {
+  const session = await resolveSession(context.queryClient);
+
+  if (!session) {
     throw redirect({
       to: "/auth/login",
       search: {
@@ -28,26 +29,25 @@ export function requireAuth({
   }
 }
 
-/**
- * Route guard to require admin role
- * Use in route's beforeLoad to protect admin-only routes
- *
- * @example
- * export const Route = createFileRoute('/admin')({
- *   beforeLoad: requireAdmin,
- *   component: AdminComponent
- * })
- */
-export function requireAdmin({
+export async function requireAdmin({
   location,
   context,
 }: {
   location: { href: string };
-  context: { session: any };
+  context: { queryClient: QueryClient; session: Session | null };
 }) {
-  requireAuth({ location, context });
+  const session = await resolveSession(context.queryClient);
 
-  if (context.session.role !== "admin") {
+  if (!session) {
+    throw redirect({
+      to: "/auth/login",
+      search: {
+        redirect: location.href,
+      },
+    });
+  }
+
+  if (session.role !== "admin") {
     throw redirect({
       to: "/",
     });

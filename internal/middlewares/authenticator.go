@@ -3,6 +3,7 @@ package middlewares
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -33,9 +34,24 @@ func Authenticate(
 				return
 			}
 
-			accessToken := r.Header.Get("Authorization")
+			var tokenStr string
+			var requireBearer bool
 
-			userClaims, err := helpers.ParseToken(jwtSecret, accessToken, true)
+			if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
+				tokenStr = h
+				requireBearer = true
+			} else if mfaCookie, mfaErr := r.Cookie("safebucket_mfa_token"); mfaErr == nil {
+				tokenStr = mfaCookie.Value
+				requireBearer = false
+			} else if accessCookie, accessErr := r.Cookie("safebucket_access_token"); accessErr == nil {
+				tokenStr = accessCookie.Value
+				requireBearer = false
+			} else {
+				tokenStr = h
+				requireBearer = true
+			}
+
+			userClaims, err := helpers.ParseToken(jwtSecret, tokenStr, requireBearer)
 			if err != nil {
 				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return

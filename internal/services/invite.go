@@ -1,6 +1,7 @@
 package services
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -46,11 +47,19 @@ func (s InviteService) Routes() chi.Router {
 
 		r.Route("/challenges/{id1}", func(r chi.Router) {
 			r.With(m.Validate[models.InviteChallengeValidateBody]).
-				Post("/validate", handlers.CreateHandler(s.ValidateInviteChallenge))
+				Post("/validate", s.validateInviteChallengeHandler())
 		})
 	})
 
 	return r
+}
+
+func (s InviteService) validateInviteChallengeHandler() http.HandlerFunc {
+	return handlers.CreateHandlerWithRespond(s.ValidateInviteChallenge,
+		func(w http.ResponseWriter, r *http.Request, resp models.AuthLoginResult) {
+			handlers.SetAuthCookies(w, r, resp.AccessToken, resp.RefreshToken, "local", s.AuthConfig.CookieSecureForce)
+			h.RespondWithJSON(w, http.StatusNoContent, nil)
+		})
 }
 
 func (s InviteService) handleInviteChallengeFailedAttempt(
@@ -114,7 +123,7 @@ func (s InviteService) createUserFromInvite(
 	challenge *models.Challenge,
 	password string,
 	inviteID uuid.UUID,
-) (models.AuthLoginResponse, error) {
+) (models.AuthLoginResult, error) {
 	newUser := models.User{
 		Email:        invite.Email,
 		ProviderType: models.LocalProviderType,
@@ -123,13 +132,13 @@ func (s InviteService) createUserFromInvite(
 
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected > 0 {
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(401, "USER_ALREADY_EXISTS")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(401, "USER_ALREADY_EXISTS")
 	}
 
 	hashedPassword, err := h.CreateHash(password)
 	if err != nil {
 		logger.Error("Failed to hash password", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "PASSWORD_HASH_FAILED")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "PASSWORD_HASH_FAILED")
 	}
 
 	newUser.HashedPassword = hashedPassword
@@ -150,7 +159,7 @@ func (s InviteService) createUserFromInvite(
 	})
 	if err != nil {
 		logger.Error("Failed to commit transaction", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	welcomeEvent := events.NewUserWelcome(
@@ -177,7 +186,7 @@ func (s InviteService) createUserFromInvite(
 	sid := uuid.New().String()
 	if sessionErr := cache.CreateSession(s.Cache, newUser.ID.String(), sid); sessionErr != nil {
 		logger.Error("Failed to create session", zap.Error(sessionErr))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	accessToken, err := h.NewAccessToken(
@@ -188,7 +197,7 @@ func (s InviteService) createUserFromInvite(
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	refreshToken, err := h.NewRefreshToken(
@@ -199,10 +208,10 @@ func (s InviteService) createUserFromInvite(
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
-	return models.AuthLoginResponse{
+	return models.AuthLoginResult{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil
@@ -288,10 +297,10 @@ func (s InviteService) ValidateInviteChallenge(
 	_ models.UserClaims,
 	ids uuid.UUIDs,
 	body models.InviteChallengeValidateBody,
-) (models.AuthLoginResponse, error) {
+) (models.AuthLoginResult, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "FORBIDDEN")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	inviteID := ids[0]
@@ -342,7 +351,7 @@ func (s InviteService) ValidateInviteChallenge(
 	})
 
 	if err != nil {
-		return models.AuthLoginResponse{}, err
+		return models.AuthLoginResult{}, err
 	}
 
 	return s.createUserFromInvite(logger, invite, &challenge, body.NewPassword, inviteID)

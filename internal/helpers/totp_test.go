@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestGenerateTOTPSecret tests TOTP secret generation.
 func TestGenerateTOTPSecret(t *testing.T) {
 	t.Run("should generate valid secret and URL", func(t *testing.T) {
 		email := "test@example.com"
@@ -58,7 +57,6 @@ func TestGenerateTOTPSecret(t *testing.T) {
 		result, err := GenerateTOTPSecret(email)
 
 		require.NoError(t, err)
-		// Base32 characters are A-Z and 2-7
 		for _, char := range result.Secret {
 			isBase32 := (char >= 'A' && char <= 'Z') || (char >= '2' && char <= '7')
 			assert.True(t, isBase32, "secret should be base32 encoded, got char: %c", char)
@@ -77,11 +75,10 @@ func TestGenerateTOTPSecret(t *testing.T) {
 	})
 }
 
-// TestGenerateTOTPSecretWithEmail tests URL generation with existing secret.
 func TestGenerateTOTPSecretWithEmail(t *testing.T) {
 	t.Run("should create valid URL with existing secret", func(t *testing.T) {
 		email := "user@example.com"
-		secret := "JBSWY3DPEHPK3PXP" // Valid base32 secret
+		secret := "JBSWY3DPEHPK3PXP"
 
 		result, err := GenerateTOTPSecretWithEmail(email, secret)
 
@@ -116,10 +113,8 @@ func TestGenerateTOTPSecretWithEmail(t *testing.T) {
 	})
 }
 
-// TestValidateTOTPCode tests TOTP code validation.
 func TestValidateTOTPCode(t *testing.T) {
 	t.Run("should validate correct code", func(t *testing.T) {
-		// Generate a real secret and code for testing
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      "Test",
 			AccountName: "test@example.com",
@@ -127,7 +122,6 @@ func TestValidateTOTPCode(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Generate current valid code
 		code, err := totp.GenerateCode(key.Secret(), time.Now())
 		require.NoError(t, err)
 
@@ -175,8 +169,6 @@ func TestValidateTOTPCode(t *testing.T) {
 	})
 
 	t.Run("should handle code with leading zeros", func(t *testing.T) {
-		// Generate a secret and keep trying until we get a code with leading zero
-		// This test verifies that codes like "012345" are handled correctly
 		key, err := totp.Generate(totp.GenerateOpts{
 			Issuer:      "Test",
 			AccountName: "test@example.com",
@@ -184,30 +176,24 @@ func TestValidateTOTPCode(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Generate current valid code
 		code, err := totp.GenerateCode(key.Secret(), time.Now())
 		require.NoError(t, err)
 
-		// Validate the generated code (which may or may not have leading zeros)
 		result := ValidateTOTPCode(key.Secret(), code)
 		assert.True(t, result, "should validate code regardless of leading zeros")
 	})
 }
 
-// TestValidateTOTPCode_Integration tests the full flow of generating and validating.
 func TestValidateTOTPCode_Integration(t *testing.T) {
 	t.Run("should validate code generated from our own secret", func(t *testing.T) {
 		email := "integration@test.com"
 
-		// Generate secret using our function
 		totpKey, err := GenerateTOTPSecret(email)
 		require.NoError(t, err)
 
-		// Generate code using the secret
 		code, err := totp.GenerateCode(totpKey.Secret, time.Now())
 		require.NoError(t, err)
 
-		// Validate using our function
 		result := ValidateTOTPCode(totpKey.Secret, code)
 
 		assert.True(t, result, "should validate code generated from our secret")

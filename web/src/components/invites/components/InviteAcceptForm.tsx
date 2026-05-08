@@ -8,7 +8,6 @@ import type { FC } from "react";
 import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 
 import { api_validateChallenge } from "@/components/invites/helpers/api";
-import { authCookies } from "@/lib/auth-service";
 import { useRefreshSession } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,23 +69,16 @@ export const InviteAcceptForm: FC<IInviteAcceptFormProps> = ({
     }
 
     try {
-      const response = await api_validateChallenge(invitationId, challengeId, {
+      await api_validateChallenge(invitationId, challengeId, {
         code,
         new_password: data.newPassword,
       });
-
-      // Set authentication state via auth service
-      authCookies.setAll(
-        response.access_token,
-        response.refresh_token,
-        "local",
-      );
 
       setIsValidated(true);
 
       // Navigate after delay (matches password reset UX)
       setTimeout(() => {
-        refreshSession();
+        void refreshSession();
         navigate({ to: "/" });
       }, 2000);
     } catch {

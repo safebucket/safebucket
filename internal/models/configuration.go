@@ -36,6 +36,7 @@ type AppConfiguration struct {
 	UnauthenticatedRequestsPerMinute int                    `mapstructure:"unauthenticated_requests_per_minute" validate:"gte=1"`
 	TLSCertFile                      string                 `mapstructure:"tls_cert_file"                       validate:"required_with=TLSKeyFile"`
 	TLSKeyFile                       string                 `mapstructure:"tls_key_file"                        validate:"required_with=TLSCertFile"`
+	CookieSecureForce                bool                   `mapstructure:"cookie_secure_force"`
 	Profiling                        ProfilingConfiguration `mapstructure:"profiling"`
 }
 
@@ -162,8 +163,7 @@ type S3Configuration struct {
 	AccessKey        string `mapstructure:"access_key"        validate:"required"`
 	SecretKey        string `mapstructure:"secret_key"        validate:"required"`
 	Region           string `mapstructure:"region"`
-	// ForcePathStyle uses path-style URLs (endpoint/bucket/key) instead of virtual-hosted style (bucket.endpoint/key).
-	// Most S3-compatible providers require this to be true.
+	// ForcePathStyle uses path-style URLs (endpoint/bucket/key); most S3-compatible providers require this.
 	ForcePathStyle bool `mapstructure:"force_path_style"`
 	UseTLS         bool `mapstructure:"use_tls"`
 }
@@ -177,9 +177,7 @@ type RustFSStorageConfiguration struct {
 	Region           string `mapstructure:"region"`
 }
 
-// GetExternalURL returns the external URL for the configured storage provider.
-// This URL is used for browser-accessible endpoints (e.g., for CSP headers).
-// Returns empty string if no external URL is configured or applicable.
+// GetExternalURL returns the storage provider's browser-accessible URL, used for CSP headers.
 func (s *StorageConfiguration) GetExternalURL() string {
 	switch s.Type {
 	case "minio":
@@ -280,6 +278,7 @@ type AuthConfig struct {
 	RefreshTokenExpiry int
 	MFATokenExpiry     int
 	WebURL             string
+	CookieSecureForce  bool
 }
 
 func (c *AppConfiguration) GetAuthConfig() AuthConfig {
@@ -291,5 +290,6 @@ func (c *AppConfiguration) GetAuthConfig() AuthConfig {
 		RefreshTokenExpiry: c.RefreshTokenExpiry,
 		MFATokenExpiry:     c.MFATokenExpiry,
 		WebURL:             c.WebURL,
+		CookieSecureForce:  c.CookieSecureForce,
 	}
 }

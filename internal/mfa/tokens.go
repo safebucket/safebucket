@@ -14,7 +14,7 @@ func HandleMFARequired(
 	logger *zap.Logger,
 	authConfig models.AuthConfig,
 	user *models.User,
-) (models.AuthLoginResponse, error) {
+) (models.AuthLoginResult, error) {
 	restrictedToken, err := h.NewRestrictedAccessToken(
 		authConfig.JWTSecret,
 		user,
@@ -24,19 +24,19 @@ func HandleMFARequired(
 	)
 	if err != nil {
 		logger.Error("Failed to generate restricted access token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
-	return models.AuthLoginResponse{
-		AccessToken: restrictedToken,
-		MFARequired: true,
+	return models.AuthLoginResult{
+		AuthLoginResponse: models.AuthLoginResponse{MFARequired: true},
+		AccessToken:       restrictedToken,
 	}, nil
 }
 
 func GenerateTokens(
 	authConfig models.AuthConfig,
 	user *models.User,
-) (string, models.AuthLoginResponse, error) {
+) (string, models.AuthLoginResult, error) {
 	sid := uuid.New().String()
 
 	accessToken, err := h.NewAccessToken(
@@ -46,7 +46,7 @@ func GenerateTokens(
 		sid,
 	)
 	if err != nil {
-		return "", models.AuthLoginResponse{}, apierrors.ErrGenerateAccessTokenFailed
+		return "", models.AuthLoginResult{}, apierrors.ErrGenerateAccessTokenFailed
 	}
 
 	refreshToken, err := h.NewRefreshToken(
@@ -56,8 +56,11 @@ func GenerateTokens(
 		sid,
 	)
 	if err != nil {
-		return "", models.AuthLoginResponse{}, apierrors.ErrGenerateRefreshTokenFailed
+		return "", models.AuthLoginResult{}, apierrors.ErrGenerateRefreshTokenFailed
 	}
 
-	return sid, models.AuthLoginResponse{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+	return sid, models.AuthLoginResult{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }

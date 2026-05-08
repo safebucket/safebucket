@@ -12,30 +12,19 @@ import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 
 const MFA_DEVICES_KEY = ["mfa", "devices"] as const;
 
-const authHeaders = (mfaToken?: string) =>
-  mfaToken ? { headers: { Authorization: `Bearer ${mfaToken}` } } : undefined;
-
-export const mfaDevicesQueryOptions = (mfaToken?: string) =>
+export const mfaDevicesQueryOptions = () =>
   queryOptions({
     queryKey: MFA_DEVICES_KEY,
-    queryFn: () =>
-      fetchApi<IMFADevicesResponse>(
-        `/mfa/devices`,
-        authHeaders(mfaToken) ?? {},
-      ),
+    queryFn: () => fetchApi<IMFADevicesResponse>(`/mfa/devices`),
     staleTime: 5 * 60 * 1000,
   });
 
-export const useAddMFADeviceMutation = (mfaToken?: string) => {
+export const useAddMFADeviceMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ name, password }: { name: string; password?: string }) =>
-      api.post<IMFADeviceSetupResponse>(
-        `/mfa/devices`,
-        { name, password },
-        authHeaders(mfaToken),
-      ),
+      api.post<IMFADeviceSetupResponse>(`/mfa/devices`, { name, password }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });
     },
@@ -43,7 +32,7 @@ export const useAddMFADeviceMutation = (mfaToken?: string) => {
   });
 };
 
-export const useVerifyMFADeviceMutation = (mfaToken?: string) => {
+export const useVerifyMFADeviceMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -51,7 +40,6 @@ export const useVerifyMFADeviceMutation = (mfaToken?: string) => {
       api.post<{ access_token?: string; refresh_token?: string }>(
         `/mfa/devices/${deviceId}/verify`,
         { code },
-        authHeaders(mfaToken),
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });

@@ -1,5 +1,7 @@
 package models
 
+import "github.com/google/uuid"
+
 type ProviderType string
 
 const (
@@ -13,21 +15,28 @@ type AuthLoginBody struct {
 }
 
 type AuthLoginResponse struct {
-	AccessToken  string `json:"access_token,omitempty"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	MFARequired  bool   `json:"mfa_required"`
+	MFARequired bool       `json:"mfa_required"`
+	UserID      *uuid.UUID `json:"user_id,omitempty"`
+}
+
+type AuthLoginResult struct {
+	AuthLoginResponse
+
+	AccessToken  string
+	RefreshToken string
 }
 
 type AuthVerifyBody struct {
 	AccessToken string `json:"access_token" validate:"required,max=2048"`
 }
 
-type AuthRefreshBody struct {
-	RefreshToken string `json:"refresh_token" validate:"required,max=2048"`
-}
-
-type AuthRefreshResponse struct {
-	AccessToken string `json:"access_token" validate:"required"`
+type AuthMeResponse struct {
+	UserID          uuid.UUID `json:"user_id"`
+	Email           string    `json:"email"`
+	Role            string    `json:"role"`
+	AuthProvider    string    `json:"auth_provider"`
+	MFA             bool      `json:"mfa"`
+	MFADevicesCount int       `json:"mfa_devices_count"`
 }
 
 type ProviderResponse struct {

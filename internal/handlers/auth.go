@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
@@ -41,12 +40,11 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 		h.SetCallbackCookie(w, r, "state", state)
 		h.SetCallbackCookie(w, r, "nonce", nonce)
 
-		// Redirect to the OAuth provider URL
 		http.Redirect(w, r, url, http.StatusFound)
 	}
 }
 
-func OpenIDCallbackHandler(webURL string, openidCallback OpenIDCallbackFunc) http.HandlerFunc {
+func OpenIDCallbackHandler(webURL string, cookieSecureForce bool, openidCallback OpenIDCallbackFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providerName := chi.URLParam(r, "provider")
 
@@ -91,36 +89,7 @@ func OpenIDCallbackHandler(webURL string, openidCallback OpenIDCallbackFunc) htt
 			return
 		}
 
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-
-		http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: token needs JS access for OpenID
-			Name:     "safebucket_access_token",
-			Value:    accessToken,
-			Expires:  expiration,
-			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Secure:   r.TLS != nil,
-		})
-
-		http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: token needs JS access for OpenID
-			Name:     "safebucket_auth_provider",
-			Value:    providerName,
-			Expires:  expiration,
-			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Secure:   r.TLS != nil,
-		})
-
-		if refreshToken != "" {
-			http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: token needs JS access for OpenID
-				Name:     "safebucket_refresh_token",
-				Value:    refreshToken,
-				Expires:  expiration,
-				Path:     "/",
-				SameSite: http.SameSiteStrictMode,
-				Secure:   r.TLS != nil,
-			})
-		}
+		SetAuthCookies(w, r, accessToken, refreshToken, providerName, cookieSecureForce)
 
 		http.Redirect(w, r, fmt.Sprintf("%s/auth/complete", webURL), http.StatusFound)
 	}

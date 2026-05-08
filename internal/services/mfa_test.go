@@ -42,7 +42,7 @@ func (m *MockCache) Close()                                                {}
 type MockNotifier struct {
 }
 
-func (m *MockNotifier) NotifyFromTemplate(_ string, _ string, _ string, _ interface{}) error {
+func (m *MockNotifier) NotifyFromTemplate(_ string, _ string, _ string, _ any) error {
 	return nil
 }
 
@@ -127,10 +127,7 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		authResponse, ok := response.(models.AuthLoginResponse)
-		require.True(t, ok)
-
-		parsedClaims, err := helpers.ParseToken(jwtSecret, "Bearer "+authResponse.AccessToken, true)
+		parsedClaims, err := helpers.ParseToken(jwtSecret, response.AccessToken, false)
 		require.NoError(t, err, "Token should be parseable")
 
 		isRestrictedAudience := parsedClaims.Audience[0] == configuration.AudienceMFALogin ||
@@ -145,7 +142,7 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 			assert.True(t, parsedClaims.MFA, "Restricted token should have MFA=true")
 		}
 
-		assert.Empty(t, authResponse.RefreshToken, "Should not return Refresh Token for password reset flow")
+		assert.Empty(t, response.RefreshToken, "Should not return Refresh Token for password reset flow")
 	})
 }
 

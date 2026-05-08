@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
-import { authCookies } from "@/lib/auth-service";
+
 import {
   useRevokeAllSessionsMutation,
   useRevokeSessionMutation,
@@ -138,7 +138,6 @@ export function SessionsTab({ userId }: SessionsTabProps) {
             revokeSession.mutate(revokeTarget, {
               onSuccess: () => {
                 if (isRevokingCurrent) {
-                  authCookies.clearAll();
                   window.location.href = "/auth/login";
                 }
               },

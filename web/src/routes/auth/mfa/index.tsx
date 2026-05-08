@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { MFAVerificationView } from "@/components/mfa-view/components/MFAVerificationView";
 import { MFASetupRequiredView } from "@/components/mfa-view/components/MFASetupRequiredView";
-import { mfaRestrictedToken } from "@/components/mfa-view/helpers/token";
+import { mfaPending } from "@/components/mfa-view/helpers/token";
 import { mfaDevicesQueryOptions } from "@/queries/mfa";
 
 export const Route = createFileRoute("/auth/mfa/")({
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/auth/mfa/")({
     };
   },
   beforeLoad: ({ search }) => {
-    if (!mfaRestrictedToken.get()) {
+    if (!mfaPending.get()) {
       throw redirect({
         to: "/auth/login",
         search: { redirect: search.redirect },
@@ -27,13 +27,12 @@ function MFAVerification() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { redirect: redirectPath } = Route.useSearch();
-  const restrictedToken = mfaRestrictedToken.get()!;
 
-  const { data, isLoading } = useQuery(mfaDevicesQueryOptions(restrictedToken));
+  const { data, isLoading } = useQuery(mfaDevicesQueryOptions());
   const devices = data?.devices ?? [];
 
   const clearAuth = () => {
-    mfaRestrictedToken.clear();
+    mfaPending.clear();
     queryClient.removeQueries({ queryKey: ["mfa", "devices"] });
   };
 
@@ -53,7 +52,7 @@ function MFAVerification() {
   if (devices.length === 0) {
     return (
       <MFASetupRequiredView
-        restrictedToken={restrictedToken}
+        isRestricted
         redirectPath={redirectPath}
         onLogout={handleLogout}
       />
@@ -62,7 +61,6 @@ function MFAVerification() {
 
   return (
     <MFAVerificationView
-      mfaToken={restrictedToken}
       devices={devices}
       redirectPath={redirectPath}
       onClearAuth={clearAuth}

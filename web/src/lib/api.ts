@@ -1,9 +1,5 @@
 import { getApiUrl } from "@/hooks/useConfig.ts";
-import {
-  authCookies,
-  logout as authLogout,
-  refreshAccessToken,
-} from "@/lib/auth-service";
+import { logout as authLogout, refreshAccessToken } from "@/lib/auth-service";
 
 type RequestOptions = {
   method?: string;
@@ -39,19 +35,12 @@ export async function fetchApi<T>(
   const apiUrl = getApiUrl();
   const fullUrl = buildUrlWithParams(`${apiUrl}${url}`, params);
 
-  const token = authCookies.getAccessToken();
-
-  const authHeader: Record<string, string> = {};
-  if (!headers["Authorization"] && token) {
-    authHeader["Authorization"] = `Bearer ${token}`;
-  }
-
   const response = await fetch(fullUrl, {
     method,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
-      ...authHeader,
       ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -62,7 +51,6 @@ export async function fetchApi<T>(
     const errorCode = res.error?.[0];
 
     if (errorCode === "SESSION_REVOKED") {
-      authCookies.clearAll();
       window.location.href = "/auth/login";
       throw new Error(errorCode);
     }
@@ -72,7 +60,6 @@ export async function fetchApi<T>(
     const res = await response.json();
     const errorCode = res.error?.[0];
 
-    // Handle MFA setup required - redirect to MFA setup page (if not already there)
     if (errorCode === "MFA_SETUP_REQUIRED") {
       if (!window.location.pathname.startsWith("/auth/mfa/setup-required")) {
         window.location.href = "/auth/mfa/setup-required";
@@ -80,7 +67,6 @@ export async function fetchApi<T>(
       throw new Error(errorCode);
     }
 
-    // Try to refresh token for other 403 errors
     if (retry) {
       const refreshed = await refreshAccessToken();
       if (refreshed) {

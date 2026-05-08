@@ -19,14 +19,11 @@ func TestUser_CreateAndLogin(t *testing.T) {
 
 			user := app.CreateUser(t, "invitee_simple@example.com")
 
-			var loginResp models.AuthLoginResponse
-			status := app.Do(t, http.MethodPost, "/api/v1/auth/login", "", models.AuthLoginBody{
-				Email:    user.Email,
-				Password: testPassword,
-			}, &loginResp)
+			status, token := app.doGetAuthCookie(t, http.MethodPost, "/api/v1/auth/login", "",
+				models.AuthLoginBody{Email: user.Email, Password: testPassword})
 
-			require.Equal(t, http.StatusCreated, status)
-			assert.NotEmpty(t, loginResp.AccessToken)
+			require.Equal(t, http.StatusOK, status)
+			assert.NotEmpty(t, token)
 		})
 	}
 }

@@ -14,7 +14,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// setupMockDB creates a mock database for testing.
 func setupMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, *sql.DB) {
 	t.Helper()
 
@@ -29,7 +28,6 @@ func setupMockDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock, *sql.DB) {
 	return gormDB, mock, db
 }
 
-// TestGetUserMembership tests retrieving a user's membership for a bucket.
 func TestGetUserMembership(t *testing.T) {
 	t.Run("should return membership when it exists", func(t *testing.T) {
 		gormDB, mock, db := setupMockDB(t)
@@ -94,7 +92,6 @@ func TestGetUserMembership(t *testing.T) {
 	})
 }
 
-// TestGetBucketMembers tests retrieving all members of a bucket.
 func TestGetBucketMembers(t *testing.T) {
 	t.Run("should return all bucket members", func(t *testing.T) {
 		gormDB, mock, db := setupMockDB(t)
@@ -106,7 +103,6 @@ func TestGetBucketMembers(t *testing.T) {
 		membership1ID := uuid.New()
 		membership2ID := uuid.New()
 
-		// Mock the membership query with soft delete check
 		membershipRows := sqlmock.NewRows([]string{"id", "user_id", "bucket_id", "group", "created_at", "updated_at", "deleted_at"}).
 			AddRow(membership1ID, user1ID, bucketID, "owner", nil, nil, nil).
 			AddRow(membership2ID, user2ID, bucketID, "viewer", nil, nil, nil)
@@ -115,7 +111,6 @@ func TestGetBucketMembers(t *testing.T) {
 			WithArgs(bucketID).
 			WillReturnRows(membershipRows)
 
-		// Mock the User preload query
 		userRows := sqlmock.NewRows([]string{"id", "email", "role", "first_name", "last_name", "hashed_password", "is_initialized", "provider_type", "provider_key", "created_at", "updated_at", "deleted_at"}).
 			AddRow(user1ID, "owner@example.com", "user", "", "", "", false, "local", "", nil, nil, nil).
 			AddRow(user2ID, "viewer@example.com", "user", "", "", "", false, "local", "", nil, nil, nil)
@@ -154,7 +149,6 @@ func TestGetBucketMembers(t *testing.T) {
 	})
 }
 
-// TestGetUserBuckets tests retrieving all buckets a user has access to.
 func TestGetUserBuckets(t *testing.T) {
 	t.Run("should return all user buckets", func(t *testing.T) {
 		gormDB, mock, db := setupMockDB(t)
@@ -166,7 +160,6 @@ func TestGetUserBuckets(t *testing.T) {
 		membership1ID := uuid.New()
 		membership2ID := uuid.New()
 
-		// Mock the membership query with soft delete check
 		membershipRows := sqlmock.NewRows([]string{"id", "user_id", "bucket_id", "group", "created_at", "updated_at", "deleted_at"}).
 			AddRow(membership1ID, userID, bucket1ID, "owner", nil, nil, nil).
 			AddRow(membership2ID, userID, bucket2ID, "contributor", nil, nil, nil)
@@ -175,7 +168,6 @@ func TestGetUserBuckets(t *testing.T) {
 			WithArgs(userID).
 			WillReturnRows(membershipRows)
 
-		// Mock the Bucket preload query
 		bucketRows := sqlmock.NewRows([]string{"id", "name", "created_by", "created_at", "updated_at", "deleted_at"}).
 			AddRow(bucket1ID, "My Bucket", userID, nil, nil, nil).
 			AddRow(bucket2ID, "Shared Bucket", uuid.New(), nil, nil, nil)
@@ -193,7 +185,6 @@ func TestGetUserBuckets(t *testing.T) {
 	})
 }
 
-// TestCreateMembership tests creating a new membership.
 func TestCreateMembership(t *testing.T) {
 	t.Run("should create membership successfully", func(t *testing.T) {
 		gormDB, mock, db := setupMockDB(t)
@@ -234,7 +225,6 @@ func TestCreateMembership(t *testing.T) {
 	})
 }
 
-// TestUpdateMembership tests updating a membership's group.
 func TestUpdateMembership(t *testing.T) {
 	t.Run("should update membership group successfully", func(t *testing.T) {
 		gormDB, mock, db := setupMockDB(t)
@@ -275,7 +265,6 @@ func TestUpdateMembership(t *testing.T) {
 	})
 }
 
-// TestDeleteMembership tests deleting a membership.
 func TestDeleteMembership(t *testing.T) {
 	t.Run("should delete membership successfully", func(t *testing.T) {
 		gormDB, mock, db := setupMockDB(t)
@@ -314,7 +303,6 @@ func TestDeleteMembership(t *testing.T) {
 	})
 }
 
-// TestHasBucketAccess tests checking if a user has bucket access.
 func TestHasBucketAccess(t *testing.T) {
 	t.Run("should return true when user has sufficient access", func(t *testing.T) {
 		gormDB, mock, db := setupMockDB(t)
@@ -324,7 +312,6 @@ func TestHasBucketAccess(t *testing.T) {
 		bucketID := uuid.New()
 		membershipID := uuid.New()
 
-		// User is an owner, checking for contributor access
 		rows := sqlmock.NewRows([]string{"id", "user_id", "bucket_id", "group", "created_at", "updated_at", "deleted_at"}).
 			AddRow(membershipID, userID, bucketID, "owner", nil, nil, nil)
 
@@ -348,7 +335,6 @@ func TestHasBucketAccess(t *testing.T) {
 		bucketID := uuid.New()
 		membershipID := uuid.New()
 
-		// User is a viewer, checking for owner access
 		rows := sqlmock.NewRows([]string{"id", "user_id", "bucket_id", "group", "created_at", "updated_at", "deleted_at"}).
 			AddRow(membershipID, userID, bucketID, "viewer", nil, nil, nil)
 
@@ -400,7 +386,6 @@ func TestHasBucketAccess(t *testing.T) {
 	})
 }
 
-// TestHasBucketAccess_SecurityScenarios tests security-critical access control scenarios.
 func TestHasBucketAccess_SecurityScenarios(t *testing.T) {
 	t.Run("prevent privilege escalation from viewer to owner", func(t *testing.T) {
 		gormDB, mock, db := setupMockDB(t)
@@ -454,7 +439,6 @@ func TestHasBucketAccess_SecurityScenarios(t *testing.T) {
 		bucketID := uuid.New()
 		membershipID := uuid.New()
 
-		// Test owner acting as viewer
 		rows := sqlmock.NewRows([]string{"id", "user_id", "bucket_id", "group", "created_at", "updated_at", "deleted_at"}).
 			AddRow(membershipID, userID, bucketID, "owner", nil, nil, nil)
 

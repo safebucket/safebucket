@@ -22,9 +22,8 @@ function CompleteAuthComponent() {
 
   useEffect(() => {
     // Refresh session to pick up new cookies set by OAuth
-    refreshSession();
+    void refreshSession();
 
-    // Navigate immediately if session exists
     if (session) {
       navigate({ to: redirect || "/", replace: true });
     }

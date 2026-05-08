@@ -27,13 +27,13 @@ import { useRefreshSession } from "@/hooks/useAuth";
 type ViewMode = "error" | "setup" | "success";
 
 export interface IMFASetupRequiredViewProps {
-  restrictedToken?: string;
+  isRestricted?: boolean;
   redirectPath?: string;
   onLogout: () => void;
 }
 
 export function MFASetupRequiredView({
-  restrictedToken,
+  isRestricted,
   redirectPath,
   onLogout,
 }: IMFASetupRequiredViewProps) {
@@ -58,7 +58,7 @@ export function MFASetupRequiredView({
     goToVerify,
     goBack,
     verifyCode,
-  } = useMFASetup(restrictedToken);
+  } = useMFASetup(isRestricted);
 
   useEffect(() => {
     if (step === "success") {
@@ -69,7 +69,7 @@ export function MFASetupRequiredView({
   useEffect(() => {
     if (viewMode === "success") {
       setTimeout(() => {
-        refreshSession();
+        void refreshSession();
         navigate({ to: redirectPath || "/" });
       }, MFA_SUCCESS_REDIRECT_DELAY);
     }
@@ -128,7 +128,7 @@ export function MFASetupRequiredView({
                     disabled={isLoading}
                   />
                 </div>
-                {!restrictedToken && (
+                {!isRestricted && (
                   <div className="space-y-2">
                     <Label htmlFor="password">{t("auth.password")}</Label>
                     <Input
@@ -145,7 +145,7 @@ export function MFASetupRequiredView({
                   className="w-full"
                   onClick={handleStartSetup}
                   disabled={
-                    isLoading || !deviceName || (!password && !restrictedToken)
+                    isLoading || !deviceName || (!password && !isRestricted)
                   }
                 >
                   {isLoading && (

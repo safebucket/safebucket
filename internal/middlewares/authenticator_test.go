@@ -9,6 +9,7 @@ import (
 
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/tests"
 
@@ -20,7 +21,6 @@ import (
 
 const testJWTSecret = "test-secret-key-for-testing"
 
-// mockAuthenticatedNextHandler checks if UserClaims are in context.
 func mockAuthenticatedNextHandler(w http.ResponseWriter, r *http.Request) {
 	userClaims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
 	if !ok {
@@ -32,7 +32,6 @@ func mockAuthenticatedNextHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("OK:" + userClaims.Email))
 }
 
-// generateTestToken creates a valid JWT token for testing without a SID.
 func generateTestToken(secret string, user *models.User, expiresIn time.Duration) (string, error) {
 	claims := models.UserClaims{
 		Email:    user.Email,
@@ -50,15 +49,15 @@ func generateTestToken(secret string, user *models.User, expiresIn time.Duration
 	return token.SignedString([]byte(secret))
 }
 
-// generateTestTokenWithSession creates a JWT token with a SID and registers the session in cache.
+//nolint:unparam // test helper kept stable for callers; underlying token always uses default expiry.
 func generateTestTokenWithSession(
-	secret string, user *models.User, expiresIn time.Duration, mc *cache.MemoryCache,
+	secret string, user *models.User, _ time.Duration, mc *cache.MemoryCache,
 ) (string, error) {
 	sid := uuid.New().String()
 	if err := cache.CreateSession(mc, user.ID.String(), sid); err != nil {
 		return "", err
 	}
-	return generateTestTokenWithSID(secret, user, expiresIn, sid)
+	return generateTestTokenWithSID(secret, user, 0, sid)
 }
 
 func TestAuthenticate(t *testing.T) {
@@ -262,7 +261,6 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 			}
 			recorder := httptest.NewRecorder()
 
-			// For excluded paths, use a simple handler that just returns OK
 			simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte("OK"))
@@ -288,7 +286,6 @@ func TestIsAuthExcluded(t *testing.T) {
 		method   string
 		expected bool
 	}{
-		// Auth login endpoint - only POST is excluded
 		{
 			name:     "Excluded - /api/v1/auth/login with POST",
 			path:     "/api/v1/auth/login",
@@ -301,7 +298,6 @@ func TestIsAuthExcluded(t *testing.T) {
 			method:   "GET",
 			expected: false,
 		},
-		// Auth providers - wildcard method
 		{
 			name:     "Excluded - /api/v1/auth/providers with GET",
 			path:     "/api/v1/auth/providers",
@@ -314,7 +310,6 @@ func TestIsAuthExcluded(t *testing.T) {
 			method:   "GET",
 			expected: true,
 		},
-		// Auth verify and refresh - only POST is excluded
 		{
 			name:     "Excluded - /api/v1/auth/verify with POST",
 			path:     "/api/v1/auth/verify",
@@ -327,14 +322,12 @@ func TestIsAuthExcluded(t *testing.T) {
 			method:   "POST",
 			expected: true,
 		},
-		// MFA verify - requires auth (not in exclusion list)
 		{
 			name:     "Not excluded - /api/v1/auth/mfa/verify requires auth",
 			path:     "/api/v1/auth/mfa/verify",
 			method:   "POST",
 			expected: false,
 		},
-		// Password reset paths
 		{
 			name:     "Excluded - /api/v1/auth/reset-password with POST (initiate)",
 			path:     "/api/v1/auth/reset-password",
@@ -353,7 +346,6 @@ func TestIsAuthExcluded(t *testing.T) {
 			method:   "POST",
 			expected: false,
 		},
-		// Invites - wildcard method but custom requirements
 		{
 			name:     "Excluded - /api/v1/invites/123/challenges with POST",
 			path:     "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000/challenges",
@@ -378,7 +370,6 @@ func TestIsAuthExcluded(t *testing.T) {
 			method:   "POST",
 			expected: false,
 		},
-		// General paths - auth required by default
 		{
 			name:     "Not excluded - /api/v1/buckets (auth required by default)",
 			path:     "/api/v1/buckets",
@@ -438,7 +429,6 @@ func TestAuthenticate_UserClaimsInContext(t *testing.T) {
 	validToken, err := generateTestTokenWithSession(testJWTSecret, testUser, time.Hour, mc)
 	require.NoError(t, err)
 
-	// Handler that extracts and validates claims from context.
 	var capturedClaims models.UserClaims
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
@@ -458,48 +448,14 @@ func TestAuthenticate_UserClaimsInContext(t *testing.T) {
 	assert.Equal(t, testUser.Email, capturedClaims.Email)
 	assert.Equal(t, testUser.ID, capturedClaims.UserID)
 	assert.Equal(t, testUser.Role, capturedClaims.Role)
-	assert.Equal(t, "test", capturedClaims.Provider)
+	assert.Equal(t, "local", capturedClaims.Provider)
 	assert.Equal(t, configuration.AppName, capturedClaims.Issuer)
 }
 
-func generateTestTokenWithAudience(
-	secret string, user *models.User, expiresIn time.Duration, audience string,
-) (string, error) {
-	claims := models.UserClaims{
-		Email:    user.Email,
-		UserID:   user.ID,
-		Role:     user.Role,
-		Provider: "test",
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    configuration.AppName,
-			Audience:  jwt.ClaimStrings{audience},
-			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(expiresIn)},
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
-}
-
-// generateTestTokenWithSID creates a valid JWT token with a specific SID for session tests.
 func generateTestTokenWithSID(
-	secret string, user *models.User, expiresIn time.Duration, sid string,
+	secret string, user *models.User, _ time.Duration, sid string,
 ) (string, error) {
-	claims := models.UserClaims{
-		Email:    user.Email,
-		UserID:   user.ID,
-		Role:     user.Role,
-		Provider: "test",
-		SID:      sid,
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    configuration.AppName,
-			Audience:  jwt.ClaimStrings{"app:*"},
-			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(expiresIn)},
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
+	return helpers.NewAccessToken(secret, user, "local", sid)
 }
 
 func TestAuthenticate_SessionRevocation(t *testing.T) {
@@ -583,8 +539,8 @@ func TestAuthenticate_SessionRevocation(t *testing.T) {
 		mc := cache.NewMemoryCache()
 		t.Cleanup(func() { mc.Close() })
 
-		token, err := generateTestTokenWithAudience(
-			testJWTSecret, testUser, time.Hour, configuration.AudienceMFALogin,
+		token, err := helpers.NewRestrictedAccessToken(
+			testJWTSecret, testUser, configuration.AudienceMFALogin, false, nil,
 		)
 		require.NoError(t, err)
 
@@ -605,8 +561,8 @@ func TestAuthenticate_SessionRevocation(t *testing.T) {
 		mc := cache.NewMemoryCache()
 		t.Cleanup(func() { mc.Close() })
 
-		// generateTestToken does not set a SID.
-		token, err := generateTestToken(testJWTSecret, testUser, time.Hour)
+		// NewAccessToken with empty SID produces a valid JWE-wrapped token that fails session check.
+		token, err := helpers.NewAccessToken(testJWTSecret, testUser, "local", "")
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
@@ -665,4 +621,93 @@ func TestAuthenticate_ContextPropagation(t *testing.T) {
 	handler.ServeHTTP(recorder, req)
 
 	assert.Equal(t, http.StatusOK, recorder.Code)
+}
+
+func TestAuthenticate_BearerHeaderWinsOverCookie(t *testing.T) {
+	mc := cache.NewMemoryCache()
+	t.Cleanup(func() { mc.Close() })
+
+	cookieUser := &models.User{ID: uuid.New(), Email: "cookie@example.com", Role: models.RoleUser}
+	headerUser := &models.User{ID: uuid.New(), Email: "header@example.com", Role: models.RoleUser}
+
+	cookieToken, err := generateTestTokenWithSession(testJWTSecret, cookieUser, time.Hour, mc)
+	require.NoError(t, err)
+	headerToken, err := generateTestTokenWithSession(testJWTSecret, headerUser, time.Hour, mc)
+	require.NoError(t, err)
+
+	var captured models.UserClaims
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, _ := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
+		captured = c
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/mfa/verify", nil)
+	req.AddCookie(&http.Cookie{Name: "safebucket_access_token", Value: cookieToken})
+	req.Header.Set("Authorization", "Bearer "+headerToken)
+
+	recorder := httptest.NewRecorder()
+	Authenticate(testJWTSecret, mc, 600)(next).ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, headerUser.Email, captured.Email,
+		"Authorization header must take precedence over cookie")
+}
+
+func TestAuthenticate_MFACookieWinsOverAccessCookie(t *testing.T) {
+	mc := cache.NewMemoryCache()
+	t.Cleanup(func() { mc.Close() })
+
+	staleUser := &models.User{ID: uuid.New(), Email: "stale@example.com", Role: models.RoleUser}
+	mfaUser := &models.User{ID: uuid.New(), Email: "mfa@example.com", Role: models.RoleUser}
+
+	staleAccessToken, err := generateTestTokenWithSession(testJWTSecret, staleUser, time.Hour, mc)
+	require.NoError(t, err)
+	mfaToken, err := helpers.NewRestrictedAccessToken(
+		testJWTSecret, mfaUser, configuration.AudienceMFALogin, false, nil,
+	)
+	require.NoError(t, err)
+
+	var captured models.UserClaims
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, _ := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
+		captured = c
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/mfa/verify", nil)
+	req.AddCookie(&http.Cookie{Name: "safebucket_access_token", Value: staleAccessToken})
+	req.AddCookie(&http.Cookie{Name: "safebucket_mfa_token", Value: mfaToken})
+
+	recorder := httptest.NewRecorder()
+	Authenticate(testJWTSecret, mc, 600)(next).ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, mfaUser.Email, captured.Email,
+		"MFA cookie must take precedence over access cookie")
+}
+
+func TestAuthenticate_CookieFallback(t *testing.T) {
+	mc := cache.NewMemoryCache()
+	t.Cleanup(func() { mc.Close() })
+
+	user := &models.User{ID: uuid.New(), Email: "cookie@example.com", Role: models.RoleUser}
+	token, err := generateTestTokenWithSession(testJWTSecret, user, time.Hour, mc)
+	require.NoError(t, err)
+
+	var captured models.UserClaims
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c, _ := r.Context().Value(models.UserClaimKey{}).(models.UserClaims)
+		captured = c
+		w.WriteHeader(http.StatusOK)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
+	req.AddCookie(&http.Cookie{Name: "safebucket_access_token", Value: token})
+
+	recorder := httptest.NewRecorder()
+	Authenticate(testJWTSecret, mc, 600)(next).ServeHTTP(recorder, req)
+
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Equal(t, user.Email, captured.Email)
 }

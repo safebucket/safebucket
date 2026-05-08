@@ -380,6 +380,7 @@ func BuildAPIRouter(
 	authConfig := config.App.GetAuthConfig()
 
 	r.Route("/api", func(apiRouter chi.Router) {
+		apiRouter.Use(m.CSRFGuard(config.App.AllowedOrigins))
 		apiRouter.Use(m.Authenticate(authConfig.JWTSecret, cache, configuration.RefreshTokenExpiry))
 		apiRouter.Use(m.AudienceValidate)
 		apiRouter.Use(m.MFAValidate(db, authConfig.MFARequired))

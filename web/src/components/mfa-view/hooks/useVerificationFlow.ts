@@ -8,14 +8,12 @@ import type { IVerificationFlowState } from "../helpers/types";
 import { useLogin } from "@/hooks/useAuth";
 
 export interface IUseVerificationFlowProps {
-  mfaToken: string;
   redirectPath?: string;
   devices: Array<IMFADevice>;
   onClearAuth: () => void;
 }
 
 export function useVerificationFlow({
-  mfaToken,
   redirectPath,
   devices,
   onClearAuth,
@@ -51,7 +49,7 @@ export function useVerificationFlow({
     setIsLoading(true);
 
     const deviceId = devices.length > 0 ? selectedDeviceId : undefined;
-    const result = await verifyMFA(mfaToken, code, deviceId);
+    const result = await verifyMFA(code, deviceId);
 
     if (result.success) {
       setIsVerified(true);

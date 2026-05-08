@@ -31,7 +31,6 @@ func generateFullAccessToken(user *models.User) (string, error) {
 	return helpers.NewAccessToken(mfaTestJWTSecret, user, string(models.LocalProviderType), "")
 }
 
-// TestMFAValidate_MFAEnforcement tests MFA enforcement for full access tokens.
 func TestMFAValidate_MFAEnforcement(t *testing.T) {
 	t.Run("should require MFA setup for local user without MFA when mfaRequired is true", func(t *testing.T) {
 		testUser := &models.User{
@@ -106,7 +105,6 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 			Email:        "test@example.com",
 			Role:         models.RoleUser,
 			ProviderType: models.LocalProviderType,
-			// No MFA devices
 		}
 
 		token, err := generateFullAccessToken(testUser)
@@ -135,8 +133,6 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 	})
 }
 
-// TestMFAValidate_RestrictedTokensSkipMFAEnforcement tests that restricted tokens
-// (auth:mfa:* audiences) skip MFA enforcement since they're in the MFA flow.
 func TestMFAValidate_RestrictedTokensSkipMFAEnforcement(t *testing.T) {
 	testUser := &models.User{
 		ID:           uuid.New(),
@@ -205,7 +201,6 @@ func TestMFAValidate_AuthExcluded(t *testing.T) {
 	})
 }
 
-// TestMFAValidate_OAuthUsersSkipMFA tests that OAuth users don't require MFA.
 func TestMFAValidate_OAuthUsersSkipMFA(t *testing.T) {
 	t.Run("should not require MFA for OAuth users even when mfaRequired is true", func(t *testing.T) {
 		testUser := &models.User{
@@ -234,7 +229,6 @@ func TestMFAValidate_OAuthUsersSkipMFA(t *testing.T) {
 		}))
 		handler.ServeHTTP(recorder, req)
 
-		// OAuth users should bypass MFA enforcement
 		assert.True(t, nextCalled, "Next handler should be called for OAuth users")
 		assert.Equal(t, http.StatusOK, recorder.Code)
 	})
@@ -528,7 +522,6 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 			Email:        "test@example.com",
 			Role:         models.RoleUser,
 			ProviderType: models.LocalProviderType,
-			// No MFA devices = claims.MFA will be false
 		}
 
 		token, err := generateFullAccessToken(testUser)
@@ -586,7 +579,6 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 
 func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 	t.Run("should block local user with MFA=false token when user has enrolled MFA", func(t *testing.T) {
-		// Setup mock DB
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func(db *sql.DB) {

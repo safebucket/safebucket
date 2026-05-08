@@ -73,20 +73,17 @@ func TestNewAccessToken(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
-		assert.True(t, strings.Count(token, ".") == 2, "JWT should have 3 parts separated by dots")
+		// JWE compact serialization has 5 parts separated by 4 dots.
+		assert.True(t, strings.Count(token, ".") == 4, "JWE should have 5 parts separated by dots")
 	})
 
 	t.Run("should have correct claims", func(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		parsedToken, err := jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
-		assert.True(t, parsedToken.Valid)
 		assert.Equal(t, user.Email, claims.Email)
 		assert.Equal(t, user.ID, claims.UserID)
 		assert.Equal(t, user.Role, claims.Role)
@@ -99,16 +96,13 @@ func TestNewAccessToken(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		expectedExpiry := time.Now().Add(60 * time.Minute)
 		actualExpiry := claims.ExpiresAt.Time
 
-		// Allow 5 second tolerance for test execution time
+		// Allow 5 second tolerance for test execution time.
 		diff := actualExpiry.Sub(expectedExpiry).Abs()
 		assert.Less(t, diff, 5*time.Second)
 	})
@@ -117,10 +111,7 @@ func TestNewAccessToken(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		expectedExpiry := time.Now().Add(time.Duration(configuration.AccessTokenExpiry) * time.Minute)
@@ -134,7 +125,10 @@ func TestNewAccessToken(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
-		parsedToken, err := jwt.Parse(token, func(_ *jwt.Token) (interface{}, error) {
+		jws, err := decryptJWE(jwtSecret, token)
+		require.NoError(t, err)
+
+		parsedToken, err := jwt.Parse(jws, func(_ *jwt.Token) (interface{}, error) {
 			return []byte(jwtSecret), nil
 		})
 
@@ -146,10 +140,7 @@ func TestNewAccessToken(t *testing.T) {
 		token, err := NewAccessToken(jwtSecret, user, provider, "test-sid")
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		assert.True(t, strings.HasPrefix(claims.ID, "access:"), "JTI should have access: prefix")
@@ -266,11 +257,12 @@ func TestParseToken(t *testing.T) {
 				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 			},
 		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
+		jws, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
+		require.NoError(t, err)
+		jweToken, err := encryptJWE(jwtSecret, jws)
 		require.NoError(t, err)
 
-		_, err = ParseToken(jwtSecret, "Bearer "+signedToken, true)
+		_, err = ParseToken(jwtSecret, "Bearer "+jweToken, true)
 		assert.Error(t, err)
 		assert.Equal(t, "invalid token audience", err.Error())
 	})
@@ -287,11 +279,12 @@ func TestParseToken(t *testing.T) {
 				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 			},
 		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
+		jws, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
+		require.NoError(t, err)
+		jweToken, err := encryptJWE(jwtSecret, jws)
 		require.NoError(t, err)
 
-		_, err = ParseToken(jwtSecret, "Bearer "+signedToken, true)
+		_, err = ParseToken(jwtSecret, "Bearer "+jweToken, true)
 		assert.Error(t, err)
 		assert.Equal(t, "invalid token audience", err.Error())
 	})
@@ -311,17 +304,14 @@ func TestNewRefreshToken(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
-		assert.True(t, strings.Count(token, ".") == 2)
+		assert.True(t, strings.Count(token, ".") == 4, "JWE should have 5 parts separated by dots")
 	})
 
 	t.Run("should have correct refresh audience", func(t *testing.T) {
 		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		assert.Equal(t, "auth:refresh", claims.Audience[0])
@@ -331,10 +321,7 @@ func TestNewRefreshToken(t *testing.T) {
 		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		expectedExpiry := time.Now().Add(600 * time.Minute)
@@ -348,10 +335,7 @@ func TestNewRefreshToken(t *testing.T) {
 		token, err := NewRefreshToken(jwtSecret, user, provider, "")
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		expectedExpiry := time.Now().Add(time.Duration(configuration.RefreshTokenExpiry) * time.Minute)
@@ -365,10 +349,7 @@ func TestNewRefreshToken(t *testing.T) {
 		token, err := NewRefreshToken(jwtSecret, user, provider, "test-sid")
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		assert.True(t, strings.HasPrefix(claims.ID, "refresh:"), "JTI should have refresh: prefix")
@@ -449,17 +430,14 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
-		assert.True(t, strings.Count(token, ".") == 2)
+		assert.True(t, strings.Count(token, ".") == 4, "JWE should have 5 parts separated by dots")
 	})
 
 	t.Run("should have correct auth:mfa audience", func(t *testing.T) {
 		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		assert.Equal(t, configuration.AudienceMFALogin, claims.Audience[0])
@@ -471,10 +449,7 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		expectedExpiry := time.Now().Add(5 * time.Minute)
@@ -488,10 +463,7 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		expectedExpiry := time.Now().Add(time.Duration(configuration.MFATokenExpiry) * time.Minute)
@@ -505,10 +477,7 @@ func TestNewRestrictedAccessToken(t *testing.T) {
 		token, err := NewRestrictedAccessToken(jwtSecret, user, configuration.AudienceMFALogin, false, nil)
 		require.NoError(t, err)
 
-		claims := &models.UserClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseToken(jwtSecret, token, false)
 
 		require.NoError(t, err)
 		assert.Empty(t, claims.ID, "restricted tokens should have empty JTI")
@@ -579,13 +548,10 @@ func TestGenerateSecret(t *testing.T) {
 		require.NoError(t, err1)
 		require.NoError(t, err2)
 
-		// While theoretically possible they could be the same,
-		// with 36^6 possibilities, it's astronomically unlikely
 		assert.NotEqual(t, secret1, secret2)
 	})
 
 	t.Run("should generate secrets with good distribution", func(t *testing.T) {
-		// Generate 100 secrets and check they're reasonably diverse
 		secrets := make(map[string]bool)
 		for range 100 {
 			secret, err := GenerateSecret()
@@ -593,14 +559,12 @@ func TestGenerateSecret(t *testing.T) {
 			secrets[secret] = true
 		}
 
-		// All 100 should be unique
 		assert.Len(t, secrets, 100, "all generated secrets should be unique")
 	})
 
 	t.Run("should use all characters in charset", func(t *testing.T) {
 		charsSeen := make(map[rune]bool)
 
-		// Generate enough secrets to likely see all characters
 		for range 1000 {
 			secret, err := GenerateSecret()
 			require.NoError(t, err)
@@ -609,9 +573,6 @@ func TestGenerateSecret(t *testing.T) {
 			}
 		}
 
-		// We should have seen most characters (allow some statistical variance)
-		// With 1000 secrets * 6 chars = 6000 samples from 36 chars,
-		// it's extremely likely we see at least 30 different characters
 		assert.GreaterOrEqual(t, len(charsSeen), 30,
 			"should see most characters from charset in 1000 secrets")
 	})
@@ -626,20 +587,16 @@ func TestNewShareAccessToken(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
-		assert.Equal(t, 2, strings.Count(token, "."), "JWT should have 3 parts separated by dots")
+		assert.Equal(t, 4, strings.Count(token, "."), "JWE should have 5 parts separated by dots")
 	})
 
 	t.Run("should have correct claims", func(t *testing.T) {
 		token, err := NewShareAccessToken(jwtSecret, shareID)
 		require.NoError(t, err)
 
-		claims := &models.ShareClaims{}
-		parsedToken, err := jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseShareToken(jwtSecret, "Bearer "+token)
 
 		require.NoError(t, err)
-		assert.True(t, parsedToken.Valid)
 		assert.Equal(t, shareID, claims.ShareID)
 		assert.Equal(t, configuration.AppName, claims.Issuer)
 		assert.Equal(t, configuration.AudienceShareAccess, claims.Audience[0])
@@ -649,10 +606,7 @@ func TestNewShareAccessToken(t *testing.T) {
 		token, err := NewShareAccessToken(jwtSecret, shareID)
 		require.NoError(t, err)
 
-		claims := &models.ShareClaims{}
-		_, err = jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-			return []byte(jwtSecret), nil
-		})
+		claims, err := ParseShareToken(jwtSecret, "Bearer "+token)
 
 		require.NoError(t, err)
 		expectedExpiry := time.Now().Add(
@@ -744,11 +698,12 @@ func TestParseShareToken(t *testing.T) {
 				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 			},
 		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
+		jws, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
+		require.NoError(t, err)
+		jweToken, err := encryptJWE(jwtSecret, jws)
 		require.NoError(t, err)
 
-		_, err = ParseShareToken(jwtSecret, "Bearer "+signedToken)
+		_, err = ParseShareToken(jwtSecret, "Bearer "+jweToken)
 		assert.Error(t, err)
 		assert.Equal(t, "invalid token audience", err.Error())
 	})
@@ -756,11 +711,6 @@ func TestParseShareToken(t *testing.T) {
 
 func TestSecretEntropyAndSecurity(t *testing.T) {
 	t.Run("should have sufficient entropy for security", func(t *testing.T) {
-		// With 36 possible characters and 6 positions:
-		// Entropy = log2(36^6) = 6 * log2(36) ≈ 31 bits
-		// This means 2^31 = ~2 billion possible combinations
-
-		// Generate 10000 secrets to check for patterns
 		secrets := make(map[string]bool)
 		for range 10000 {
 			secret, err := GenerateSecret()
@@ -768,17 +718,14 @@ func TestSecretEntropyAndSecurity(t *testing.T) {
 			secrets[secret] = true
 		}
 
-		// All should be unique (collision probability is negligible)
 		assert.Len(t, secrets, 10000, "no collisions expected in 10000 secrets")
 	})
 
 	t.Run("should not have obvious patterns", func(t *testing.T) {
-		// Check that secrets don't follow obvious patterns
 		for range 100 {
 			secret, err := GenerateSecret()
 			require.NoError(t, err)
 
-			// Should not be all same character
 			allSame := true
 			firstChar := secret[0]
 			for j := range len(secret) {
@@ -789,7 +736,6 @@ func TestSecretEntropyAndSecurity(t *testing.T) {
 			}
 			assert.False(t, allSame, "secret %s should not be all same character", secret)
 
-			// Should not be sequential (like 012345 or ABCDEF)
 			isSequential := true
 			for j := 1; j < len(secret); j++ {
 				if secret[j] != secret[j-1]+1 {

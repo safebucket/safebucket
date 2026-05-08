@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { IMFADeviceSetupResponse } from "@/components/auth-view/types/session";
 import type { SetupStep } from "@/components/mfa-view/helpers/types";
-import { authCookies } from "@/lib/auth-service";
+
 import {
   MFA_CODE_LENGTH,
   MFA_DEFAULT_DEVICE_NAME,
@@ -31,10 +31,10 @@ export interface UseMFASetupReturn {
   reset: () => void;
 }
 
-export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
+export function useMFASetup(isRestricted = false): UseMFASetupReturn {
   const { t } = useTranslation();
-  const addDeviceMutation = useAddMFADeviceMutation(mfaToken);
-  const verifyDeviceMutation = useVerifyMFADeviceMutation(mfaToken);
+  const addDeviceMutation = useAddMFADeviceMutation();
+  const verifyDeviceMutation = useVerifyMFADeviceMutation();
 
   const [step, setStep] = useState<SetupStep>("name");
   const [deviceName, setDeviceName] = useState(MFA_DEFAULT_DEVICE_NAME);
@@ -73,7 +73,7 @@ export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
       return;
     }
 
-    if (!password && !mfaToken) {
+    if (!password && !isRestricted) {
       setError(t("auth.mfa.error_password_required"));
       return;
     }
@@ -98,7 +98,7 @@ export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
         setError(t("auth.mfa.setup_error"));
       }
     }
-  }, [deviceName, password, mfaToken, addDeviceMutation, t]);
+  }, [deviceName, password, isRestricted, addDeviceMutation, t]);
 
   const verifyCode = useCallback(async () => {
     if (code.length !== MFA_CODE_LENGTH) {
@@ -113,18 +113,10 @@ export function useMFASetup(mfaToken?: string): UseMFASetupReturn {
 
     setError(null);
     try {
-      const response = await verifyDeviceMutation.mutateAsync({
+      await verifyDeviceMutation.mutateAsync({
         deviceId: setupData.device_id,
         code,
       });
-
-      if (response.access_token && response.refresh_token) {
-        authCookies.setAll(
-          response.access_token,
-          response.refresh_token,
-          "local",
-        );
-      }
 
       setStep("success");
     } catch {

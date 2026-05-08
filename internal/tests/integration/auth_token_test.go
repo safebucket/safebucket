@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -76,29 +75,21 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				code, challengeID := requestReset(t, app, user.Email)
 
-				var validateResp models.AuthLoginResponse
-				status := app.Do(t, http.MethodPost,
+				status, restrictedToken := app.doGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
-					"", models.PasswordResetValidateBody{Code: code}, &validateResp)
+					"", models.PasswordResetValidateBody{Code: code})
 				require.Equal(t, http.StatusCreated, status)
-				require.NotEmpty(t, validateResp.AccessToken)
-
-				restrictedToken := validateResp.AccessToken
+				require.NotEmpty(t, restrictedToken, "MFA cookie should be set after reset validate")
 
 				const newPassword = "correcthorsebatterystaple2"
-				var completeResp models.AuthLoginResponse
-				status = app.Do(t, http.MethodPost,
+				status, _ = app.doGetAuthCookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
-					restrictedToken, models.PasswordResetCompleteBody{NewPassword: newPassword}, &completeResp)
-				require.Equal(t, http.StatusCreated, status)
-				assert.NotEmpty(t, completeResp.AccessToken)
-				assert.NotEmpty(t, completeResp.RefreshToken)
+					restrictedToken, models.PasswordResetCompleteBody{NewPassword: newPassword})
+				require.Equal(t, http.StatusNoContent, status)
 
-				var loginResp models.AuthLoginResponse
-				status = app.Do(t, http.MethodPost, "/api/v1/auth/login", "",
-					models.AuthLoginBody{Email: user.Email, Password: newPassword}, &loginResp)
-				require.Equal(t, http.StatusCreated, status)
-				assert.NotEmpty(t, loginResp.AccessToken)
+				status = app.DoStatus(t, http.MethodPost, "/api/v1/auth/login", "",
+					models.AuthLoginBody{Email: user.Email, Password: newPassword})
+				require.Equal(t, http.StatusOK, status)
 			})
 
 			t.Run("cross-user restricted token is rejected on complete", func(t *testing.T) {
@@ -107,12 +98,11 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				codeA, challengeIDA := requestReset(t, app, userA.Email)
 
-				var validateResp models.AuthLoginResponse
-				status := app.Do(t, http.MethodPost,
+				status, tokenA := app.doGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeIDA),
-					"", models.PasswordResetValidateBody{Code: codeA}, &validateResp)
+					"", models.PasswordResetValidateBody{Code: codeA})
 				require.Equal(t, http.StatusCreated, status)
-				tokenA := validateResp.AccessToken
+				require.NotEmpty(t, tokenA)
 
 				_, challengeIDB := requestReset(t, app, userB.Email)
 
@@ -127,10 +117,9 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				code, challengeID := requestReset(t, app, user.Email)
 
-				var validateResp models.AuthLoginResponse
-				status := app.Do(t, http.MethodPost,
+				status, _ := app.doGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
-					"", models.PasswordResetValidateBody{Code: code}, &validateResp)
+					"", models.PasswordResetValidateBody{Code: code})
 				require.Equal(t, http.StatusCreated, status)
 
 				challengeUUID := uuid.MustParse(challengeID)
@@ -153,25 +142,23 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				code, challengeID := requestReset(t, app, user.Email)
 
-				var validateResp models.AuthLoginResponse
-				status := app.Do(t, http.MethodPost,
+				status, restrictedToken := app.doGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
-					"", models.PasswordResetValidateBody{Code: code}, &validateResp)
+					"", models.PasswordResetValidateBody{Code: code})
 				require.Equal(t, http.StatusCreated, status)
+				require.NotEmpty(t, restrictedToken)
 
-				var completeResp models.AuthLoginResponse
-				status = app.Do(t, http.MethodPost,
+				completeStatus, newToken := app.doGetAuthCookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
-					validateResp.AccessToken,
-					models.PasswordResetCompleteBody{NewPassword: "newpassword456"},
-					&completeResp)
-				require.Equal(t, http.StatusCreated, status)
+					restrictedToken,
+					models.PasswordResetCompleteBody{NewPassword: "newpassword456"})
+				require.Equal(t, http.StatusNoContent, completeStatus)
 
 				assert.Equal(t, http.StatusUnauthorized,
 					app.DoStatus(t, http.MethodGet, probeEndpoint, oldToken, nil),
 					"old token must be rejected as session-revoked after password reset")
 				assert.Equal(t, http.StatusOK,
-					app.DoStatus(t, http.MethodGet, probeEndpoint, completeResp.AccessToken, nil),
+					app.DoStatus(t, http.MethodGet, probeEndpoint, newToken, nil),
 					"new token issued by reset must work")
 			})
 
@@ -180,17 +167,16 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				code, challengeID := requestReset(t, app, user.Email)
 
-				var validateResp models.AuthLoginResponse
-				status := app.Do(t, http.MethodPost,
+				status, restrictedToken := app.doGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
-					"", models.PasswordResetValidateBody{Code: code}, &validateResp)
+					"", models.PasswordResetValidateBody{Code: code})
 				require.Equal(t, http.StatusCreated, status)
-				restrictedToken := validateResp.AccessToken
+				require.NotEmpty(t, restrictedToken)
 
-				status = app.DoStatus(t, http.MethodPost,
+				firstStatus, _ := app.doGetAuthCookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
 					restrictedToken, models.PasswordResetCompleteBody{NewPassword: "firstpassword123"})
-				require.Equal(t, http.StatusCreated, status)
+				require.Equal(t, http.StatusNoContent, firstStatus)
 
 				status = app.DoStatus(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
@@ -305,23 +291,13 @@ func craftTokenWithAudience(
 	return signed
 }
 
-func tamperedPayloadToken(t *testing.T, rawJWT string) string {
+func tamperedPayloadToken(t *testing.T, jweToken string) string {
 	t.Helper()
-
-	parts := strings.Split(rawJWT, ".")
-	require.Len(t, parts, 3, "expected 3-part JWT")
-
-	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
-	require.NoError(t, err)
-
-	var payload map[string]any
-	require.NoError(t, json.Unmarshal(payloadBytes, &payload))
-
-	payload["_tampered"] = true
-
-	modifiedBytes, err := json.Marshal(payload)
-	require.NoError(t, err)
-
-	modifiedPart := base64.RawURLEncoding.EncodeToString(modifiedBytes)
-	return parts[0] + "." + modifiedPart + "." + parts[2]
+	parts := strings.Split(jweToken, ".")
+	require.Len(t, parts, 5, "expected 5-part JWE")
+	// Corrupt the ciphertext — GCM authentication tag verification will fail.
+	cs := []byte(parts[3])
+	cs[0] ^= 0x01
+	parts[3] = string(cs)
+	return strings.Join(parts, ".")
 }

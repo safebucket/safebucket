@@ -164,28 +164,63 @@ func (a *TestApp) URL(path string) string {
 
 func (a *TestApp) LoginAs(t *testing.T, email string) string {
 	t.Helper()
-
-	var resp models.AuthLoginResponse
-	status := a.Do(t, http.MethodPost, "/api/v1/auth/login", "", models.AuthLoginBody{
-		Email:    email,
-		Password: testPassword,
-	}, &resp)
-	require.Equal(t, http.StatusCreated, status, "login should succeed")
-	require.NotEmpty(t, resp.AccessToken)
-	return resp.AccessToken
+	status, token := a.doGetAuthCookie(t, http.MethodPost, "/api/v1/auth/login", "",
+		models.AuthLoginBody{Email: email, Password: testPassword})
+	require.Equal(t, http.StatusOK, status, "login should succeed")
+	require.NotEmpty(t, token, "access token cookie should be set after login")
+	return token
 }
 
 func (a *TestApp) LoginAdmin(t *testing.T) string {
 	t.Helper()
+	status, token := a.doGetAuthCookie(t, http.MethodPost, "/api/v1/auth/login", "",
+		models.AuthLoginBody{Email: a.Config.App.AdminEmail, Password: a.Config.App.AdminPassword})
+	require.Equal(t, http.StatusOK, status, "admin login should succeed")
+	require.NotEmpty(t, token, "access token cookie should be set after admin login")
+	return token
+}
 
-	var resp models.AuthLoginResponse
-	status := a.Do(t, http.MethodPost, "/api/v1/auth/login", "", models.AuthLoginBody{
-		Email:    a.Config.App.AdminEmail,
-		Password: a.Config.App.AdminPassword,
-	}, &resp)
-	require.Equal(t, http.StatusCreated, status, "admin login should succeed")
-	require.NotEmpty(t, resp.AccessToken)
-	return resp.AccessToken
+func (a *TestApp) doGetAuthCookie(t *testing.T, method, path, token string, body any) (int, string) {
+	t.Helper()
+	return a.doGetCookie(t, method, path, token, body, "safebucket_access_token")
+}
+
+func (a *TestApp) doGetMFACookie(t *testing.T, method, path, token string, body any) (int, string) {
+	t.Helper()
+	return a.doGetCookie(t, method, path, token, body, "safebucket_mfa_token")
+}
+
+func (a *TestApp) doGetCookie(
+	t *testing.T, method, path, token string, body any, cookieName string,
+) (int, string) {
+	t.Helper()
+
+	var reqBody io.Reader
+	if body != nil {
+		buf, err := json.Marshal(body)
+		require.NoError(t, err)
+		reqBody = bytes.NewReader(buf)
+	}
+
+	req, err := http.NewRequestWithContext(t.Context(), method, a.URL(path), reqBody)
+	require.NoError(t, err)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := a.client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	for _, c := range resp.Cookies() {
+		if c.Name == cookieName {
+			return resp.StatusCode, c.Value
+		}
+	}
+	return resp.StatusCode, ""
 }
 
 func (a *TestApp) Do(

@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Test structs for various scenarios.
 type BasicQueryParams struct {
 	Name   string `json:"name"   validate:"required"`
 	Status string `json:"status" validate:"omitempty,oneof=active inactive"`
@@ -62,7 +61,6 @@ type UnsupportedTypeParams struct {
 	ComplexField complex64
 }
 
-// Helper to run middleware and capture context.
 func runMiddleware[T any](_ *testing.T, queryString string) (*httptest.ResponseRecorder, context.Context) {
 	req := httptest.NewRequest(http.MethodGet, "/test"+queryString, nil)
 	recorder := httptest.NewRecorder()
@@ -125,12 +123,8 @@ func TestValidateQueryBasicTypes(t *testing.T) {
 
 	t.Run("Integer out of range (min)", func(t *testing.T) {
 		recorder, _ := runMiddleware[BasicQueryParams](t, "?name=test&limit=0")
-		// Zero is parsed successfully, but validation should fail because min=1
-		// Note: The validator DOES work correctly here
+		// limit=0 passes because the middleware parses "0" (non-empty) but validator min=1 is not triggered.
 		assert.Equal(t, http.StatusOK, recorder.Code)
-		// This test shows that 0 is accepted but should be rejected by validation
-		// The empty string case (line 84-86 in query_validator.go) skips empty values
-		// but "0" is not empty, so it gets parsed. Validator should catch this.
 	})
 
 	t.Run("Invalid integer format", func(t *testing.T) {
@@ -292,11 +286,8 @@ func TestValidateQueryJSONTagParsing(t *testing.T) {
 
 		params, err := helpers.GetQueryParams[JSONTagOptionsParams](ctx)
 		assert.NoError(t, err)
-		// BUG: The middleware doesn't strip JSON tag options like ',omitempty'
-		// So it looks for 'field1,omitempty' as the query param name instead of 'field1'
-		// This means field1 and field2 won't be parsed correctly
+		// BUG: middleware doesn't strip ',omitempty' from JSON tags, so 'field1,omitempty' is used as the param name.
 		t.Logf("Note: JSON tag options are not properly handled. Params: %+v", params)
-		// The fields will likely be empty because the middleware looks for the wrong param names
 	})
 
 	t.Run("No JSON tag uses field name", func(t *testing.T) {
@@ -319,7 +310,6 @@ func TestValidateQueryUnsupportedTypes(t *testing.T) {
 		params, err := helpers.GetQueryParams[UnsupportedTypeParams](ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, "test", params.ValidField)
-		// Unsupported types should remain at zero value
 		assert.Nil(t, params.SliceField)
 		assert.Nil(t, params.MapField)
 		assert.Equal(t, "", params.StructField.Name)
@@ -392,12 +382,10 @@ func TestValidateQueryContextStorage(t *testing.T) {
 		recorder, ctx := runMiddleware[BasicQueryParams](t, "?name=test&status=active&limit=50")
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
-		// Should be able to retrieve from context
 		params, err := helpers.GetQueryParams[BasicQueryParams](ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, "test", params.Name)
 
-		// Should be stored with correct key
 		value := ctx.Value(models.QueryKey{})
 		assert.NotNil(t, value)
 	})
@@ -444,8 +432,7 @@ func TestValidateQueryInt32Overflow(t *testing.T) {
 
 		params, err := helpers.GetQueryParams[AllTypesQueryParams](ctx)
 		assert.NoError(t, err)
-		// BUG: Values above int32 max are silently truncated/wrapped
-		// ParseInt returns int64, then SetInt truncates without error
+		// BUG: int32 overflow is silently truncated; ParseInt returns int64 then SetInt wraps without error.
 		t.Logf("Note: Int32 overflow not detected. Value: %d", params.Int32Field)
 	})
 }
@@ -464,10 +451,6 @@ func TestValidateQueryBoolVariations(t *testing.T) {
 
 func TestValidateQueryPerformance(t *testing.T) {
 	t.Run("Validator instance created per request - Performance Issue", func(t *testing.T) {
-		// BUG: Line 43 in query_validator.go creates a new validator instance for every request
-		// This is inefficient and adds unnecessary overhead
-		// The validator should be created once and reused (e.g., as a package variable)
-
 		for i := 1; i <= 10; i++ {
 			recorder, _ := runMiddleware[BasicQueryParams](t, "?name=test&status=active")
 			assert.Equal(t, http.StatusOK, recorder.Code)

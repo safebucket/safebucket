@@ -20,7 +20,6 @@ import {
 } from "@/components/auth-view/helpers/api";
 import { useRefreshSession } from "@/hooks/useAuth";
 import { fetchApi } from "@/lib/api";
-import { authCookies, decodeToken } from "@/lib/auth-service";
 
 const PASSWORD_RESET_SUCCESS_DELAY = 2000;
 
@@ -70,9 +69,6 @@ export function usePasswordResetFlow({
 
   const [code, setCode] = useState("");
 
-  const [restrictedToken, setRestrictedToken] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-
   const [mfaDevices, setMfaDevices] = useState<Array<IMFADevice>>([]);
   const [mfaCode, setMfaCode] = useState("");
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
@@ -101,13 +97,6 @@ export function usePasswordResetFlow({
       try {
         const response = await api_validatePasswordReset(challengeId, { code });
 
-        setRestrictedToken(response.access_token);
-
-        const decoded = decodeToken(response.access_token);
-        if (decoded) {
-          setUserId(decoded.payload.user_id);
-        }
-
         if (response.mfa_required) {
           setStage("mfa");
         } else {
@@ -123,17 +112,10 @@ export function usePasswordResetFlow({
   );
 
   useEffect(() => {
-    if (
-      stage === "mfa" &&
-      userId &&
-      restrictedToken &&
-      mfaDevices.length === 0
-    ) {
+    if (stage === "mfa" && mfaDevices.length === 0) {
       const fetchDevices = async () => {
         try {
-          const response = await fetchApi<IMFADevicesResponse>(`/mfa/devices`, {
-            headers: { Authorization: `Bearer ${restrictedToken}` },
-          });
+          const response = await fetchApi<IMFADevicesResponse>(`/mfa/devices`);
           setMfaDevices(response.devices);
           if (response.devices.length > 0) {
             const defaultDevice = response.devices.find((d) => d.is_default);
@@ -145,7 +127,7 @@ export function usePasswordResetFlow({
       };
       fetchDevices();
     }
-  }, [stage, userId, restrictedToken, mfaDevices.length, t]);
+  }, [stage, mfaDevices.length, t]);
 
   const handleMFASubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -157,21 +139,13 @@ export function usePasswordResetFlow({
         return;
       }
 
-      if (!restrictedToken) {
-        setError(t("auth.password_reset.validate.error_session_expired"));
-        return;
-      }
-
       setIsLoading(true);
 
       try {
-        const response = await api_verifyMFAPasswordReset(
-          restrictedToken,
+        await api_verifyMFAPasswordReset(
           mfaCode,
           selectedDeviceId || undefined,
         );
-
-        setRestrictedToken(response.access_token);
         setStage("password");
       } catch {
         setError(t("auth.mfa.error_verification_failed"));
@@ -179,7 +153,7 @@ export function usePasswordResetFlow({
         setIsLoading(false);
       }
     },
-    [mfaCode, restrictedToken, selectedDeviceId, t],
+    [mfaCode, selectedDeviceId, t],
   );
 
   const handlePasswordSubmit = useCallback(
@@ -191,30 +165,17 @@ export function usePasswordResetFlow({
         return;
       }
 
-      if (!restrictedToken) {
-        setError(t("auth.password_reset.validate.error_session_expired"));
-        return;
-      }
-
       setIsLoading(true);
 
       try {
-        const response = await api_completePasswordReset(
-          challengeId,
-          { new_password: data.newPassword },
-          restrictedToken,
-        );
-
-        authCookies.setAll(
-          response.access_token,
-          response.refresh_token,
-          "local",
-        );
+        await api_completePasswordReset(challengeId, {
+          new_password: data.newPassword,
+        });
 
         setStage("success");
 
         setTimeout(() => {
-          refreshSession();
+          void refreshSession();
           navigate({ to: "/" });
         }, PASSWORD_RESET_SUCCESS_DELAY);
       } catch {
@@ -223,7 +184,7 @@ export function usePasswordResetFlow({
         setIsLoading(false);
       }
     },
-    [challengeId, navigate, refreshSession, restrictedToken, t],
+    [challengeId, navigate, refreshSession, t],
   );
 
   return {

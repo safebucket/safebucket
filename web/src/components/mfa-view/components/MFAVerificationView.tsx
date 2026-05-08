@@ -18,14 +18,12 @@ import {
 } from "@/components/ui/card";
 
 export interface IMFAVerificationViewProps {
-  mfaToken: string;
   devices: Array<IMFADevice>;
   redirectPath?: string;
   onClearAuth: () => void;
 }
 
 export function MFAVerificationView({
-  mfaToken,
   devices,
   redirectPath,
   onClearAuth,
@@ -43,7 +41,6 @@ export function MFAVerificationView({
     handleSubmit,
     handleBackToLogin,
   } = useVerificationFlow({
-    mfaToken,
     redirectPath,
     devices,
     onClearAuth,

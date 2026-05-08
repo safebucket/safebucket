@@ -9,7 +9,7 @@ import type { SubmitHandler } from "react-hook-form";
 import type { FormEvent } from "react";
 import type { ILoginForm } from "@/components/auth-view/types/session";
 import { useLogin } from "@/hooks/useAuth";
-import { mfaRestrictedToken } from "@/components/mfa-view/helpers/token";
+import { mfaPending } from "@/components/mfa-view/helpers/token";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -73,14 +73,13 @@ function Login() {
 
     const result = await loginLocal(data);
 
-    if (result.mfaRequired && result.restrictedToken && result.userId) {
-      mfaRestrictedToken.set(result.restrictedToken);
+    if (result.mfaRequired) {
+      mfaPending.set();
       navigate({
         to: "/auth/mfa",
         search: { redirect },
       });
     } else if (result.success) {
-      // Navigate to redirect or home
       navigate({ to: redirect || "/" });
     } else {
       setError(result.error || t("auth.login_error"));

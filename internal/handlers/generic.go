@@ -196,6 +196,47 @@ func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
 	}
 }
 
+type CreateRespondFunc[Out any] func(w http.ResponseWriter, r *http.Request, resp Out)
+
+func CreateHandlerWithRespond[In any, Out any](
+	create CreateTargetFunc[In, Out],
+	respond CreateRespondFunc[Out],
+) http.HandlerFunc {
+	name := spanName(create)
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), name)
+		defer span.End()
+		r = r.WithContext(ctx)
+
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+		claims, _ := h.GetUserClaims(r.Context())
+		logger := m.GetLogger(r)
+
+		body, ok := r.Context().Value(m.BodyKey{}).(In)
+		if !ok {
+			logger.Error("Failed to extract body from context")
+			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
+			return
+		}
+
+		resp, err := create(logger, claims, ids, body)
+		if err != nil {
+			status := http.StatusBadRequest
+			var apiErr *apierrors.APIError
+			if errors.As(err, &apiErr) {
+				status = apiErr.Code
+			}
+			recordError(span, err, status)
+			h.RespondWithError(w, status, []string{err.Error()})
+			return
+		}
+		respond(w, r, resp)
+	}
+}
+
 func DeleteHandler(del DeleteTargetFunc) http.HandlerFunc {
 	name := spanName(del)
 	return func(w http.ResponseWriter, r *http.Request) {

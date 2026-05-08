@@ -6,10 +6,10 @@ import type { LoginResult } from "@/lib/auth-service";
 import {
   logout as authLogout,
   verifyMFALogin as authVerifyMFA,
-  getCurrentSession,
   loginWithCredentials,
   loginWithProvider,
 } from "@/lib/auth-service";
+import { meQueryOptions } from "@/queries/me";
 
 export function useSession(): Session | null {
   const context = useRouteContext({ from: "__root__" });
@@ -29,7 +29,8 @@ export function useLogin() {
       const result = await loginWithCredentials(credentials);
 
       if (result.success && !result.mfaRequired) {
-        const session = getCurrentSession();
+        await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+        const session = await queryClient.fetchQuery(meQueryOptions());
         router.update({
           context: {
             queryClient,
@@ -45,14 +46,14 @@ export function useLogin() {
 
   const verifyMFA = useCallback(
     async (
-      mfaToken: string,
       code: string,
       deviceId?: string,
     ): Promise<{ success: boolean; error?: string }> => {
-      const result = await authVerifyMFA(mfaToken, code, deviceId);
+      const result = await authVerifyMFA(code, deviceId);
 
       if (result.success) {
-        const session = getCurrentSession();
+        await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+        const session = await queryClient.fetchQuery(meQueryOptions());
         router.update({
           context: {
             queryClient,
@@ -80,6 +81,7 @@ export function useLogout() {
   return useCallback(async () => {
     await authLogout();
 
+    queryClient.removeQueries({ queryKey: ["auth", "me"] });
     router.update({
       context: {
         queryClient,
@@ -95,8 +97,9 @@ export function useRefreshSession() {
   const router = useRouter();
   const { queryClient } = useRouteContext({ from: "__root__" });
 
-  return useCallback(() => {
-    const session = getCurrentSession();
+  return useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    const session = await queryClient.fetchQuery(meQueryOptions());
 
     router.update({
       context: {

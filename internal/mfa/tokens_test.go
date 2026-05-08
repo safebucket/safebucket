@@ -3,7 +3,6 @@ package mfa
 import (
 	"testing"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
@@ -182,10 +181,9 @@ func TestGenerateTokens(t *testing.T) {
 		_, resp, err := GenerateTokens(cfg, user)
 		require.NoError(t, err)
 
-		parsed, parseErr := jwt.Parse(resp.AccessToken, func(_ *jwt.Token) (any, error) {
-			return []byte(cfg.JWTSecret), nil
-		})
+		// ParseToken enforces HS256 internally; a successful parse confirms the signing method.
+		claims, parseErr := helpers.ParseToken(cfg.JWTSecret, resp.AccessToken, false)
 		require.NoError(t, parseErr)
-		assert.Equal(t, "HS256", parsed.Method.Alg())
+		assert.Equal(t, "app:*", claims.Audience[0])
 	})
 }

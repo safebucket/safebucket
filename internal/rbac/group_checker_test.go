@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestGroupRank tests the internal group ranking function.
 func TestGroupRank(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -30,7 +29,6 @@ func TestGroupRank(t *testing.T) {
 	}
 }
 
-// TestHasGroup tests group hierarchy checking.
 func TestHasGroup(t *testing.T) {
 	t.Run("owner should have owner group", func(t *testing.T) {
 		result := HasGroup(models.GroupOwner, models.GroupOwner)
@@ -78,7 +76,6 @@ func TestHasGroup(t *testing.T) {
 	})
 }
 
-// TestHasGroup_EdgeCases tests edge cases and security scenarios.
 func TestHasGroup_EdgeCases(t *testing.T) {
 	t.Run("unknown group should not have any valid group", func(t *testing.T) {
 		unknownGroup := models.Group("superuser")
@@ -91,8 +88,6 @@ func TestHasGroup_EdgeCases(t *testing.T) {
 	t.Run("valid group with unknown required group returns true due to rank comparison", func(t *testing.T) {
 		unknownGroup := models.Group("admin")
 
-		// NOTE: Current implementation returns true because unknown groups have rank 0
-		// and Owner (rank 3) >= 0. This could be a security concern.
 		assert.True(t, HasGroup(models.GroupOwner, unknownGroup),
 			"Current implementation: Owner (rank 3) >= unknown (rank 0)")
 	})
@@ -106,8 +101,7 @@ func TestHasGroup_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("case sensitivity check", func(t *testing.T) {
-		// Groups are case-sensitive, "Owner" != "owner"
-		wrongCase := models.Group("Owner") // Should be "owner"
+		wrongCase := models.Group("Owner")
 
 		assert.False(t, HasGroup(wrongCase, models.GroupViewer),
 			"Case-sensitive group should not grant privileges")
@@ -146,26 +140,18 @@ func TestHasGroup_TableDriven(t *testing.T) {
 	}
 }
 
-// TestHasGroup_SecurityImplications tests security-critical scenarios.
 func TestHasGroup_SecurityImplications(t *testing.T) {
 	t.Run("prevent horizontal privilege escalation", func(t *testing.T) {
-		// A viewer trying to act as owner
 		assert.False(t, HasGroup(models.GroupViewer, models.GroupOwner),
 			"Must prevent viewer from gaining owner privileges")
 
-		// A contributor trying to act as owner
 		assert.False(t, HasGroup(models.GroupContributor, models.GroupOwner),
 			"Must prevent contributor from gaining owner privileges")
 	})
 
 	t.Run("ensure proper permission downgrade", func(t *testing.T) {
-		// Owner can safely downgrade to contributor
 		assert.True(t, HasGroup(models.GroupOwner, models.GroupContributor))
-
-		// Owner can safely downgrade to viewer
 		assert.True(t, HasGroup(models.GroupOwner, models.GroupViewer))
-
-		// Contributor can safely downgrade to viewer
 		assert.True(t, HasGroup(models.GroupContributor, models.GroupViewer))
 	})
 
@@ -178,12 +164,9 @@ func TestHasGroup_SecurityImplications(t *testing.T) {
 		}
 
 		for _, unauthorizedGroup := range unauthorizedGroups {
-			// Unauthorized groups shouldn't grant any privileges
 			assert.False(t, HasGroup(unauthorizedGroup, models.GroupViewer),
 				"Unauthorized group %s should not grant viewer access", unauthorizedGroup)
 
-			// NOTE: Current implementation returns true because Owner (rank 3) >= unknown (rank 0)
-			// This is documented behavior matching the role checker
 			assert.True(t, HasGroup(models.GroupOwner, unauthorizedGroup),
 				"Current implementation: Owner (rank 3) >= unknown group (rank 0)")
 		}

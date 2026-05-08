@@ -46,17 +46,15 @@ export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
     reset,
   } = useMFASetup();
 
-  // Reset when dialog closes
   useEffect(() => {
     if (!open) {
       reset();
     }
   }, [open, reset]);
 
-  // Refresh session when MFA device is successfully verified
   useEffect(() => {
     if (step === "success") {
-      refreshSession();
+      void refreshSession();
     }
   }, [step, refreshSession]);
 

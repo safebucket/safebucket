@@ -116,7 +116,7 @@ func TestOpenIDCallbackHandler(t *testing.T) {
 	req.AddCookie(&http.Cookie{Name: "state", Value: state})
 	req.AddCookie(&http.Cookie{Name: "nonce", Value: nonce})
 
-	handler := OpenIDCallbackHandler(webURL, mockOpenIDCallback.OpenIDCallback)
+	handler := OpenIDCallbackHandler(webURL, false, mockOpenIDCallback.OpenIDCallback)
 	handler(recorder, req)
 
 	mockOpenIDCallback.AssertExpectations(t)
@@ -125,7 +125,7 @@ func TestOpenIDCallbackHandler(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%s/auth/complete", webURL), recorder.Header().Get("Location"))
 
 	cookies := recorder.Result().Cookies()
-	assert.Len(t, cookies, 3)
+	assert.Len(t, cookies, 4)
 
 	expectedCookies := map[string]string{
 		"safebucket_access_token":  accessToken,
@@ -134,6 +134,11 @@ func TestOpenIDCallbackHandler(t *testing.T) {
 	}
 
 	for _, cookie := range cookies {
+		if cookie.Name == "safebucket_mfa_token" {
+			assert.Empty(t, cookie.Value, "MFA cookie should be cleared")
+			assert.Less(t, cookie.MaxAge, 0, "MFA cookie should be expired")
+			continue
+		}
 		expectedValue, exists := expectedCookies[cookie.Name]
 		assert.True(t, exists, "Unexpected cookie: %s", cookie.Name)
 		assert.Equal(t, expectedValue, cookie.Value)
@@ -215,7 +220,7 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 
 			tc.setupRequest(req)
 
-			handler := OpenIDCallbackHandler(webURL, mockOpenIDCallback.OpenIDCallback)
+			handler := OpenIDCallbackHandler(webURL, false, mockOpenIDCallback.OpenIDCallback)
 			handler(recorder, req)
 
 			assert.Equal(t, tc.expectedStatusCode, recorder.Code)

@@ -3,8 +3,10 @@ package helpers
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"strings"
 	"time"
@@ -13,14 +15,16 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/alexedwards/argon2id"
+	jose "github.com/go-jose/go-jose/v4"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/hkdf"
 )
 
 type tokenConfig struct {
 	audience      string
 	provider      string
-	mfa           *bool // nil = don't set (defaults to false), otherwise set to this value
+	mfa           *bool
 	expiryMinutes int
 	challengeID   *uuid.UUID
 	sid           string
@@ -41,9 +45,78 @@ func generateJTI(audience string) string {
 	}
 }
 
-func signToken(jwtSecret string, claims jwt.Claims) (string, error) {
+var jweSalt = sha256.Sum256([]byte("safebucket/jwe/v1/salt"))
+
+func deriveJWEKey(secret string) ([]byte, error) {
+	reader := hkdf.New(sha256.New, []byte(secret), jweSalt[:], []byte("safebucket-jwe-v1"))
+	key := make([]byte, 32)
+	if _, err := io.ReadFull(reader, key); err != nil {
+		return nil, fmt.Errorf("hkdf: %w", err)
+	}
+	return key, nil
+}
+
+func encryptJWE(secret, jws string) (string, error) {
+	key, err := deriveJWEKey(secret)
+	if err != nil {
+		return "", err
+	}
+	enc, err := jose.NewEncrypter(
+		jose.A256GCM,
+		jose.Recipient{Algorithm: jose.DIRECT, Key: key},
+		nil,
+	)
+	if err != nil {
+		return "", err
+	}
+	obj, err := enc.Encrypt([]byte(jws))
+	if err != nil {
+		return "", err
+	}
+	return obj.CompactSerialize()
+}
+
+func decryptJWE(secret, jweCompact string) (string, error) {
+	key, err := deriveJWEKey(secret)
+	if err != nil {
+		return "", err
+	}
+	obj, err := jose.ParseEncrypted(
+		jweCompact,
+		[]jose.KeyAlgorithm{jose.DIRECT},
+		[]jose.ContentEncryption{jose.A256GCM},
+	)
+	if err != nil {
+		return "", errors.New("invalid token")
+	}
+	plaintext, err := obj.Decrypt(key)
+	if err != nil {
+		return "", errors.New("invalid token")
+	}
+	return string(plaintext), nil
+}
+
+func signAndEncryptToken(jwtSecret string, claims jwt.Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(jwtSecret))
+	jws, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		return "", err
+	}
+	return encryptJWE(jwtSecret, jws)
+}
+
+func decryptAndParseJWT(jwtSecret string, tokenString string, claims jwt.Claims) error {
+	jws, err := decryptJWE(jwtSecret, tokenString)
+	if err != nil {
+		return errors.New("invalid token")
+	}
+	_, err = jwt.ParseWithClaims(jws, claims, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return []byte(jwtSecret), nil
+	})
+	return err
 }
 
 func stripBearer(tokenString string) (string, error) {
@@ -51,24 +124,6 @@ func stripBearer(tokenString string) (string, error) {
 		return "", errors.New("invalid token")
 	}
 	return strings.TrimPrefix(tokenString, "Bearer "), nil
-}
-
-func parseJWT(
-	jwtSecret string,
-	tokenString string,
-	claims jwt.Claims,
-) error {
-	_, err := jwt.ParseWithClaims(
-		tokenString,
-		claims,
-		func(token *jwt.Token) (any, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, errors.New("unexpected signing method")
-			}
-			return []byte(jwtSecret), nil
-		},
-	)
-	return err
 }
 
 func newRegisteredClaims(
@@ -113,10 +168,9 @@ func createToken(jwtSecret string, user *models.User, config tokenConfig) (strin
 		claims.ChallengeID = config.challengeID
 	}
 
-	return signToken(jwtSecret, claims)
+	return signAndEncryptToken(jwtSecret, claims)
 }
 
-// ParseToken delegates audience validation to the AudienceValidate middleware for route-specific rules.
 func ParseToken(
 	jwtSecret string,
 	tokenString string,
@@ -131,7 +185,7 @@ func ParseToken(
 	}
 
 	claims := &models.UserClaims{}
-	if err := parseJWT(jwtSecret, tokenString, claims); err != nil {
+	if err := decryptAndParseJWT(jwtSecret, tokenString, claims); err != nil {
 		return models.UserClaims{}, errors.New("invalid token")
 	}
 
@@ -153,7 +207,7 @@ func NewShareAccessToken(
 			configuration.ShareTokenExpiry,
 		),
 	}
-	return signToken(jwtSecret, claims)
+	return signAndEncryptToken(jwtSecret, claims)
 }
 
 func ParseShareToken(
@@ -166,7 +220,7 @@ func ParseShareToken(
 	}
 
 	claims := &models.ShareClaims{}
-	if parseErr := parseJWT(jwtSecret, raw, claims); parseErr != nil {
+	if parseErr := decryptAndParseJWT(jwtSecret, raw, claims); parseErr != nil {
 		return models.ShareClaims{}, errors.New("invalid token")
 	}
 

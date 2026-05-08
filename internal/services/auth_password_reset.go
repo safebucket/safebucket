@@ -1,6 +1,7 @@
 package services
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -51,12 +52,30 @@ func (s AuthPasswordResetService) Routes() chi.Router {
 
 	r.Route("/{id0}", func(r chi.Router) {
 		r.With(m.Validate[models.PasswordResetValidateBody]).
-			Post("/validate", handlers.CreateHandler(s.ValidatePasswordReset))
+			Post("/validate", s.validatePasswordResetHandler())
 		r.With(m.Validate[models.PasswordResetCompleteBody]).
-			Post("/complete", handlers.CreateHandler(s.CompletePasswordReset))
+			Post("/complete", s.completePasswordResetHandler())
 	})
 
 	return r
+}
+
+func (s AuthPasswordResetService) completePasswordResetHandler() http.HandlerFunc {
+	return handlers.CreateHandlerWithRespond(s.CompletePasswordReset,
+		func(w http.ResponseWriter, r *http.Request, resp models.AuthLoginResult) {
+			handlers.SetAuthCookies(w, r, resp.AccessToken, resp.RefreshToken, "local", s.AuthConfig.CookieSecureForce)
+			h.RespondWithJSON(w, http.StatusNoContent, nil)
+		})
+}
+
+func (s AuthPasswordResetService) validatePasswordResetHandler() http.HandlerFunc {
+	return handlers.CreateHandlerWithRespond(s.ValidatePasswordReset,
+		func(w http.ResponseWriter, r *http.Request, resp models.AuthLoginResult) {
+			if resp.AccessToken != "" {
+				handlers.SetMFACookie(w, r, resp.AccessToken, s.AuthConfig.CookieSecureForce)
+			}
+			h.RespondWithJSON(w, http.StatusCreated, resp.AuthLoginResponse)
+		})
 }
 
 func (s AuthPasswordResetService) RequestPasswordReset(
@@ -120,7 +139,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	_ models.UserClaims,
 	ids uuid.UUIDs,
 	body models.PasswordResetValidateBody,
-) (models.AuthLoginResponse, error) {
+) (models.AuthLoginResult, error) {
 	challengeID := ids[0]
 
 	var challenge models.Challenge
@@ -172,7 +191,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 		return nil
 	})
 	if err != nil {
-		return models.AuthLoginResponse{}, err
+		return models.AuthLoginResult{}, err
 	}
 
 	user := challenge.User
@@ -181,7 +200,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	if err = s.DB.Preload("MFADevices", "is_verified = ?", true).
 		Where("id = ?", user.ID).First(&userWithMFA).Error; err != nil {
 		logger.Error("Failed to load user with MFA devices", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	restrictedToken, tokenErr := h.NewRestrictedAccessToken(
@@ -193,7 +212,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	)
 	if tokenErr != nil {
 		logger.Error("Failed to generate restricted access token", zap.Error(tokenErr))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	hasMFA := userWithMFA.HasMFAEnabled()
@@ -218,9 +237,9 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 		zap.String("challenge_id", challengeID.String()),
 		zap.Bool("mfa_required", hasMFA))
 
-	return models.AuthLoginResponse{
-		AccessToken: restrictedToken,
-		MFARequired: hasMFA,
+	return models.AuthLoginResult{
+		AuthLoginResponse: models.AuthLoginResponse{MFARequired: hasMFA},
+		AccessToken:       restrictedToken,
 	}, nil
 }
 
@@ -229,21 +248,20 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	claims models.UserClaims,
 	ids uuid.UUIDs,
 	body models.PasswordResetCompleteBody,
-) (models.AuthLoginResponse, error) {
+) (models.AuthLoginResult, error) {
 	challengeID := ids[0]
 
-	// Verify the JWT contains a challenge_id that matches the URL
-	// This proves the code was validated (JWT only issued after successful validation)
+	// challenge_id in the JWT proves the code was validated (token only issued after successful code validation).
 	if claims.ChallengeID == nil || *claims.ChallengeID != challengeID {
 		logger.Warn("Challenge ID mismatch in password reset completion",
 			zap.String("url_challenge_id", challengeID.String()),
 			zap.Any("jwt_challenge_id", claims.ChallengeID))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(400, "INVALID_REQUEST")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(400, "INVALID_REQUEST")
 	}
 
 	challenge, err := s.getChallenge(logger, challengeID, claims.UserID)
 	if err != nil {
-		return models.AuthLoginResponse{}, err
+		return models.AuthLoginResult{}, err
 	}
 
 	user := challenge.User
@@ -252,20 +270,20 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	if dbErr := s.DB.Preload("MFADevices", "is_verified = ?", true).
 		Where("id = ?", user.ID).First(&userWithMFA).Error; dbErr != nil {
 		logger.Error("Failed to load user with MFA devices", zap.Error(dbErr))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 	user = &userWithMFA
 
 	if userWithMFA.HasMFAEnabled() && !claims.MFA {
 		logger.Warn("MFA bypass attempt in password reset",
 			zap.String("user_id", user.ID.String()))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(403, "MFA_REQUIRED")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(403, "MFA_REQUIRED")
 	}
 
 	hashedPassword, err := h.CreateHash(body.NewPassword)
 	if err != nil {
 		logger.Error("Failed to hash new password", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
@@ -280,7 +298,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 		return nil
 	})
 	if err != nil {
-		return models.AuthLoginResponse{}, err
+		return models.AuthLoginResult{}, err
 	}
 
 	resetDate := time.Now().Format("January 2, 2006 at 3:04 PM MST")
@@ -313,7 +331,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	sid := uuid.New().String()
 	if sessionErr := cache.CreateSession(s.Cache, user.ID.String(), sid); sessionErr != nil {
 		logger.Error("Failed to create session", zap.Error(sessionErr))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	accessToken, err := h.NewAccessToken(
@@ -324,7 +342,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	refreshToken, err := h.NewRefreshToken(
@@ -335,14 +353,14 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return models.AuthLoginResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
 	logger.Info("Password reset completed successfully",
 		zap.String("user_id", user.ID.String()),
 		zap.String("challenge_id", challengeID.String()))
 
-	return models.AuthLoginResponse{
+	return models.AuthLoginResult{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, nil

@@ -5,17 +5,6 @@ export type Session = {
   authProvider: string;
 };
 
-export interface IJWTPayload {
-  aud: string;
-  email: string;
-  exp: number;
-  iat: number;
-  iss: string;
-  user_id: string;
-  role: "admin" | "user" | "guest";
-  sid?: string;
-}
-
 export interface IUser {
   id: string;
   first_name: string;
@@ -61,11 +50,8 @@ export interface IMFADeviceSetupResponse {
 }
 
 export interface ILoginResponse {
-  access_token?: string;
-  refresh_token?: string;
+  user_id?: string;
   mfa_required: boolean;
-  mfa_token?: string;
-  mfa_setup_required?: boolean;
 }
 
 export interface ISessionResponse {
