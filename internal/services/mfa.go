@@ -214,11 +214,12 @@ func (s MFAService) GetDevice(
 }
 
 func (s MFAService) VerifyDevice(
+	isSecure bool,
 	logger *zap.Logger,
 	claims models.UserClaims,
 	ids uuid.UUIDs,
 	body models.MFADeviceVerifyBody,
-) (models.AuthLoginResult, error) {
+) (handlers.AuthFlowResult, error) {
 	userID := claims.UserID
 	deviceID := ids[0]
 
@@ -311,7 +312,7 @@ func (s MFAService) VerifyDevice(
 	})
 
 	if err != nil {
-		return models.AuthLoginResult{}, err
+		return handlers.AuthFlowResult{}, err
 	}
 
 	action := models.Activity{
@@ -344,15 +345,17 @@ func (s MFAService) VerifyDevice(
 		)
 		if err != nil {
 			logger.Error("Failed to generate restricted access token", zap.Error(err))
-			return models.AuthLoginResult{}, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
+			return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
 		}
 
 		logger.Info("MFA device verified (password reset flow)",
 			zap.String("user_id", userID.String()),
 			zap.String("device_id", deviceID.String()))
 
-		return models.AuthLoginResult{
-			AccessToken: restrictedToken,
+		return handlers.AuthFlowResult{
+			Status:  http.StatusOK,
+			Body:    models.AuthLoginResponse{},
+			Cookies: handlers.BuildMFACookie(isSecure, restrictedToken),
 		}, nil
 	}
 
@@ -379,32 +382,28 @@ func (s MFAService) VerifyDevice(
 
 	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user)
 	if err != nil {
-		return models.AuthLoginResult{}, err
+		return handlers.AuthFlowResult{}, err
 	}
 
 	if sessionErr := cache.CreateSession(s.Cache, userID.String(), sid); sessionErr != nil {
 		logger.Error("Failed to create session", zap.Error(sessionErr))
-		return models.AuthLoginResult{}, apierrors.ErrInternalServer
+		return handlers.AuthFlowResult{}, apierrors.ErrInternalServer
 	}
 
-	return tokens, nil
+	return handlers.AuthFlowResult{
+		Status: http.StatusOK,
+		Body:   models.AuthLoginResponse{},
+		Cookies: handlers.BuildAuthCookies(
+			isSecure,
+			tokens.AccessToken,
+			tokens.RefreshToken,
+			string(models.LocalProviderType),
+		),
+	}, nil
 }
 
 func (s MFAService) verifyDeviceHandler() http.HandlerFunc {
-	return handlers.CreateHandlerWithRespond(s.VerifyDevice,
-		func(w http.ResponseWriter, r *http.Request, resp models.AuthLoginResult) {
-			if resp.RefreshToken != "" {
-				handlers.SetAuthCookies(
-					w, r, resp.AccessToken, resp.RefreshToken, "local", s.AuthConfig.CookieSecureForce,
-				)
-				h.RespondWithJSON(w, http.StatusOK, struct{}{})
-				return
-			}
-			if resp.AccessToken != "" {
-				handlers.SetMFACookie(w, r, resp.AccessToken, s.AuthConfig.CookieSecureForce)
-			}
-			h.RespondWithJSON(w, http.StatusOK, resp.AuthLoginResponse)
-		})
+	return handlers.AuthFlowHandler(s.AuthConfig.CookieSecureForce, s.VerifyDevice)
 }
 
 func (s MFAService) UpdateDevice(

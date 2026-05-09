@@ -18,7 +18,6 @@ func AssertJSONResponse(
 
 	assert.Equal(t, expectedStatus, recorder.Code)
 	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
-	assert.Equal(t, "*", recorder.Header().Get("Access-Control-Allow-Origin"))
 
 	if expectedPayload != nil {
 		expectedJSON, err := json.Marshal(expectedPayload)

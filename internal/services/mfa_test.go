@@ -120,6 +120,7 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		logger := zap.NewNop()
 
 		response, err := service.VerifyDevice(
+			false,
 			logger,
 			claims,
 			uuid.UUIDs{deviceID},
@@ -127,7 +128,10 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		parsedClaims, err := helpers.ParseToken(jwtSecret, response.AccessToken, false)
+		mfaToken := cookieValue(response, "safebucket_mfa_token")
+		require.NotEmpty(t, mfaToken, "Password reset MFA verify should set the MFA cookie")
+
+		parsedClaims, err := helpers.ParseToken(jwtSecret, mfaToken, false)
 		require.NoError(t, err, "Token should be parseable")
 
 		isRestrictedAudience := parsedClaims.Audience[0] == configuration.AudienceMFALogin ||
@@ -142,7 +146,8 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 			assert.True(t, parsedClaims.MFA, "Restricted token should have MFA=true")
 		}
 
-		assert.Empty(t, response.RefreshToken, "Should not return Refresh Token for password reset flow")
+		assert.Empty(t, cookieValue(response, "safebucket_refresh_token"),
+			"Should not set the refresh cookie for password reset flow")
 	})
 }
 

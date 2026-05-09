@@ -77,7 +77,7 @@ func TestCompletePasswordReset(t *testing.T) {
 		urlChallengeID := uuid.New()
 		jwtChallengeID := uuid.New()
 
-		_, err := svc.CompletePasswordReset(
+		_, err := svc.CompletePasswordReset(false,
 			zap.NewNop(),
 			models.UserClaims{UserID: uuid.New(), ChallengeID: &jwtChallengeID},
 			uuid.UUIDs{urlChallengeID},
@@ -92,7 +92,7 @@ func TestCompletePasswordReset(t *testing.T) {
 		svc, mock, cleanup := newPasswordResetTestService(t)
 		defer cleanup()
 
-		_, err := svc.CompletePasswordReset(
+		_, err := svc.CompletePasswordReset(false,
 			zap.NewNop(),
 			models.UserClaims{UserID: uuid.New(), ChallengeID: nil},
 			uuid.UUIDs{uuid.New()},
@@ -114,7 +114,7 @@ func TestCompletePasswordReset(t *testing.T) {
 			WithArgs(challengeID, models.ChallengeTypePasswordReset, jwtUserID, 1).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
-		_, err := svc.CompletePasswordReset(
+		_, err := svc.CompletePasswordReset(false,
 			zap.NewNop(),
 			models.UserClaims{UserID: jwtUserID, ChallengeID: &challengeID},
 			uuid.UUIDs{challengeID},
@@ -150,7 +150,7 @@ func TestCompletePasswordReset(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		mock.ExpectCommit()
 
-		_, err := svc.CompletePasswordReset(
+		_, err := svc.CompletePasswordReset(false,
 			zap.NewNop(),
 			models.UserClaims{UserID: userID, ChallengeID: &challengeID},
 			uuid.UUIDs{challengeID},
@@ -192,7 +192,7 @@ func TestCompletePasswordReset(t *testing.T) {
 		mock.ExpectQuery(`SELECT \* FROM "mfa_devices"`).
 			WillReturnRows(mfaDeviceRows)
 
-		_, err := svc.CompletePasswordReset(
+		_, err := svc.CompletePasswordReset(false,
 			zap.NewNop(),
 			models.UserClaims{UserID: userID, ChallengeID: &challengeID, MFA: false},
 			uuid.UUIDs{challengeID},
@@ -242,7 +242,7 @@ func TestValidatePasswordReset_ExpiredChallenge(t *testing.T) {
 
 	mock.ExpectRollback()
 
-	_, err = svc.ValidatePasswordReset(
+	_, err = svc.ValidatePasswordReset(false,
 		zap.NewNop(),
 		models.UserClaims{},
 		uuid.UUIDs{challengeID},

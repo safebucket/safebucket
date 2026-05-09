@@ -40,8 +40,6 @@ func spanName(fn any) string {
 	return parts[len(parts)-2] + "." + method
 }
 
-// recordError annotates the span with the error and HTTP status. Only 5xx
-// are promoted to span Error status; 4xx are client faults and stay unset.
 func recordError(span trace.Span, err error, status int) {
 	span.RecordError(err)
 	span.SetAttributes(attribute.Int("http.status_code", status))
@@ -193,47 +191,6 @@ func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 		}
-	}
-}
-
-type CreateRespondFunc[Out any] func(w http.ResponseWriter, r *http.Request, resp Out)
-
-func CreateHandlerWithRespond[In any, Out any](
-	create CreateTargetFunc[In, Out],
-	respond CreateRespondFunc[Out],
-) http.HandlerFunc {
-	name := spanName(create)
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx, span := tracing.StartSpan(r.Context(), name)
-		defer span.End()
-		r = r.WithContext(ctx)
-
-		ids, ok := h.ParseUUIDs(w, r)
-		if !ok {
-			return
-		}
-		claims, _ := h.GetUserClaims(r.Context())
-		logger := m.GetLogger(r)
-
-		body, ok := r.Context().Value(m.BodyKey{}).(In)
-		if !ok {
-			logger.Error("Failed to extract body from context")
-			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
-			return
-		}
-
-		resp, err := create(logger, claims, ids, body)
-		if err != nil {
-			status := http.StatusBadRequest
-			var apiErr *apierrors.APIError
-			if errors.As(err, &apiErr) {
-				status = apiErr.Code
-			}
-			recordError(span, err, status)
-			h.RespondWithError(w, status, []string{err.Error()})
-			return
-		}
-		respond(w, r, resp)
 	}
 }
 

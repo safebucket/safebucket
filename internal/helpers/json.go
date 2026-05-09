@@ -51,7 +51,6 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(code)
 		_, err = w.Write(response)
 		if err != nil {
@@ -59,7 +58,6 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 		}
 	} else {
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(code)
 	}
 }
@@ -68,9 +66,6 @@ func RespondWithError(w http.ResponseWriter, code int, msg []string) {
 	RespondWithJSON(w, code, models.Error{Status: code, Error: msg})
 }
 
-// RespondWithErrorCtx writes an error response and also records the error on
-// the active span extracted from ctx, so middlewares and handlers don't need
-// to annotate spans by hand at every rejection site.
 func RespondWithErrorCtx(ctx context.Context, w http.ResponseWriter, code int, msg []string) {
 	if span := trace.SpanFromContext(ctx); span.IsRecording() {
 		errMsg := strings.Join(msg, ", ")

@@ -19,13 +19,6 @@ type AuthLoginResponse struct {
 	UserID      *uuid.UUID `json:"user_id,omitempty"`
 }
 
-type AuthLoginResult struct {
-	AuthLoginResponse
-
-	AccessToken  string
-	RefreshToken string
-}
-
 type AuthVerifyBody struct {
 	AccessToken string `json:"access_token" validate:"required,max=2048"`
 }

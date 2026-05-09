@@ -68,19 +68,20 @@ func (s AuthService) Routes() chi.Router {
 }
 
 func (s AuthService) Login(
+	isSecure bool,
 	logger *zap.Logger,
 	_ models.UserClaims,
 	_ uuid.UUIDs,
 	body models.AuthLoginBody,
-) (models.AuthLoginResult, error) {
+) (handlers.AuthFlowResult, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
-		return models.AuthLoginResult{}, apierrors.NewAPIError(403, "FORBIDDEN")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
 		logger.Debug("Domain not allowed")
-		return models.AuthLoginResult{}, apierrors.NewAPIError(403, "FORBIDDEN")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, "FORBIDDEN")
 	}
 
 	var searchUser models.User
@@ -90,29 +91,37 @@ func (s AuthService) Login(
 		First(&searchUser)
 
 	if result.RowsAffected != 1 {
-		return models.AuthLoginResult{}, errors.New("invalid email / password combination")
+		return handlers.AuthFlowResult{}, errors.New("invalid email / password combination")
 	}
 
 	match, err := argon2id.ComparePasswordAndHash(body.Password, searchUser.HashedPassword)
 	if err != nil || !match {
-		return models.AuthLoginResult{}, errors.New("invalid email / password combination")
+		return handlers.AuthFlowResult{}, errors.New("invalid email / password combination")
 	}
 
 	verifiedDevices := searchUser.GetVerifiedDevices()
 	hasMFA := len(verifiedDevices) > 0
 
 	if hasMFA || s.AuthConfig.MFARequired {
-		return mfa.HandleMFARequired(logger, s.AuthConfig, &searchUser)
+		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, &searchUser)
+		if mfaErr != nil {
+			return handlers.AuthFlowResult{}, mfaErr
+		}
+		return handlers.AuthFlowResult{
+			Status:  http.StatusOK,
+			Body:    models.AuthLoginResponse{MFARequired: true},
+			Cookies: handlers.BuildMFACookie(isSecure, restrictedToken),
+		}, nil
 	}
 
 	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &searchUser)
 	if err != nil {
-		return models.AuthLoginResult{}, err
+		return handlers.AuthFlowResult{}, err
 	}
 
 	if err = cache.CreateSession(s.Cache, searchUser.ID.String(), sid); err != nil {
 		logger.Error("Failed to create session", zap.Error(err))
-		return models.AuthLoginResult{}, apierrors.ErrInternalServer
+		return handlers.AuthFlowResult{}, apierrors.ErrInternalServer
 	}
 
 	action := models.Activity{
@@ -130,7 +139,16 @@ func (s AuthService) Login(
 		logger.Error("Failed to log login activity", zap.Error(logErr))
 	}
 
-	return tokens, nil
+	return handlers.AuthFlowResult{
+		Status: http.StatusOK,
+		Body:   models.AuthLoginResponse{},
+		Cookies: handlers.BuildAuthCookies(
+			isSecure,
+			tokens.AccessToken,
+			tokens.RefreshToken,
+			string(models.LocalProviderType),
+		),
+	}, nil
 }
 
 func (s AuthService) getMFASecretAndDevice(
@@ -242,34 +260,11 @@ func (s AuthService) Refresh(logger *zap.Logger, refreshTokenStr string) (string
 }
 
 func (s AuthService) loginHandler() http.HandlerFunc {
-	return handlers.CreateHandlerWithRespond(s.Login,
-		func(w http.ResponseWriter, r *http.Request, resp models.AuthLoginResult) {
-			if resp.MFARequired {
-				handlers.SetMFACookie(w, r, resp.AccessToken, s.AuthConfig.CookieSecureForce)
-				h.RespondWithJSON(w, http.StatusOK, resp.AuthLoginResponse)
-				return
-			}
-			handlers.SetAuthCookies(w, r, resp.AccessToken, resp.RefreshToken, "local", s.AuthConfig.CookieSecureForce)
-			h.RespondWithJSON(w, http.StatusOK, resp.AuthLoginResponse)
-		})
+	return handlers.AuthFlowHandler(s.AuthConfig.CookieSecureForce, s.Login)
 }
 
 func (s AuthService) mfaVerifyHandler() http.HandlerFunc {
-	return handlers.CreateHandlerWithRespond(s.VerifyMFALogin,
-		func(w http.ResponseWriter, r *http.Request, resp models.AuthLoginResult) {
-			if resp.RefreshToken != "" {
-				// Login MFA succeeded: upgrade the client to a full-auth cookie set.
-				handlers.SetAuthCookies(
-					w, r, resp.AccessToken, resp.RefreshToken, "local", s.AuthConfig.CookieSecureForce,
-				)
-				h.RespondWithJSON(w, http.StatusOK, resp.AuthLoginResponse)
-				return
-			}
-			if resp.AccessToken != "" {
-				handlers.SetMFACookie(w, r, resp.AccessToken, s.AuthConfig.CookieSecureForce)
-			}
-			h.RespondWithJSON(w, http.StatusOK, resp.AuthLoginResponse)
-		})
+	return handlers.AuthFlowHandler(s.AuthConfig.CookieSecureForce, s.VerifyMFALogin)
 }
 
 func (s AuthService) refreshHandler() http.HandlerFunc {
@@ -353,39 +348,40 @@ func (s AuthService) Me(
 }
 
 func (s AuthService) VerifyMFALogin(
+	isSecure bool,
 	logger *zap.Logger,
 	claims models.UserClaims,
 	_ uuid.UUIDs,
 	body models.MFALoginVerifyBody,
-) (models.AuthLoginResult, error) {
+) (handlers.AuthFlowResult, error) {
 	var user models.User
 	result := s.DB.Preload("MFADevices", "is_verified = ?", true).
 		Where("id = ? AND provider_type = ?", claims.UserID, models.LocalProviderType).
 		First(&user)
 	if result.RowsAffected == 0 {
-		return models.AuthLoginResult{}, apierrors.NewAPIError(404, "USER_NOT_FOUND")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(404, "USER_NOT_FOUND")
 	}
 
 	verifiedDevices := user.GetVerifiedDevices()
 	if len(verifiedDevices) == 0 {
-		return models.AuthLoginResult{}, apierrors.NewAPIError(400, "MFA_NOT_ENABLED")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(400, "MFA_NOT_ENABLED")
 	}
 
 	attempts, err := cache.GetMFAAttempts(s.Cache, user.ID.String())
 	if err != nil {
 		logger.Error("Rate limit check failed - denying request", zap.Error(err))
-		return models.AuthLoginResult{}, apierrors.NewAPIError(503, "SERVICE_UNAVAILABLE")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(503, "SERVICE_UNAVAILABLE")
 	}
 	if attempts >= configuration.MFAMaxAttempts {
 		logger.Warn("MFA rate limit exceeded",
 			zap.String("user_id", user.ID.String()),
 			zap.Int("attempts", attempts))
-		return models.AuthLoginResult{}, apierrors.NewAPIError(429, "MFA_RATE_LIMITED")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(429, "MFA_RATE_LIMITED")
 	}
 
 	secret, deviceID, targetDevice, err := s.getMFASecretAndDevice(logger, &user, verifiedDevices, body.DeviceID)
 	if err != nil {
-		return models.AuthLoginResult{}, err
+		return handlers.AuthFlowResult{}, err
 	}
 
 	if targetDevice != nil {
@@ -400,19 +396,19 @@ func (s AuthService) VerifyMFALogin(
 			zap.String("user_id", user.ID.String()),
 			zap.String("device_id", deviceID),
 			zap.String("email", user.Email))
-		return models.AuthLoginResult{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
 	}
 
 	unused, err := cache.MarkTOTPCodeUsed(s.Cache, deviceID, body.Code)
 	if err != nil {
 		logger.Error("Failed to atomically check/mark TOTP code", zap.Error(err))
-		return models.AuthLoginResult{}, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
 	}
 
 	if !unused {
 		logger.Warn("TOTP code replay attempt detected",
 			zap.String("device_id", deviceID))
-		return models.AuthLoginResult{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(401, "INVALID_MFA_CODE")
 	}
 
 	if resetErr := cache.ResetMFAAttempts(s.Cache, user.ID.String()); resetErr != nil {
@@ -434,25 +430,36 @@ func (s AuthService) VerifyMFALogin(
 			claims.ChallengeID,
 		)
 		if err != nil {
-			return models.AuthLoginResult{}, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
+			return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
 		}
 
-		return models.AuthLoginResult{
-			AccessToken: restrictedToken,
+		return handlers.AuthFlowResult{
+			Status:  http.StatusOK,
+			Body:    models.AuthLoginResponse{},
+			Cookies: handlers.BuildMFACookie(isSecure, restrictedToken),
 		}, nil
 	}
 
 	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user)
 	if err != nil {
-		return models.AuthLoginResult{}, err
+		return handlers.AuthFlowResult{}, err
 	}
 
 	if sessionErr := cache.CreateSession(s.Cache, user.ID.String(), sid); sessionErr != nil {
 		logger.Error("Failed to create session", zap.Error(sessionErr))
-		return models.AuthLoginResult{}, apierrors.ErrInternalServer
+		return handlers.AuthFlowResult{}, apierrors.ErrInternalServer
 	}
 
-	return tokens, nil
+	return handlers.AuthFlowResult{
+		Status: http.StatusOK,
+		Body:   models.AuthLoginResponse{},
+		Cookies: handlers.BuildAuthCookies(
+			isSecure,
+			tokens.AccessToken,
+			tokens.RefreshToken,
+			string(models.LocalProviderType),
+		),
+	}, nil
 }
 
 func (s AuthService) GetProviderList(

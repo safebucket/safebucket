@@ -16,8 +16,6 @@ export interface IPasswordResetCompleteData {
   new_password: string;
 }
 
-export type IPasswordResetCompleteResponse = null;
-
 export interface IMFAVerifyPasswordResetResponse {
   mfa_required: boolean;
 }

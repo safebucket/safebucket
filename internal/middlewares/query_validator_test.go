@@ -286,7 +286,6 @@ func TestValidateQueryJSONTagParsing(t *testing.T) {
 
 		params, err := helpers.GetQueryParams[JSONTagOptionsParams](ctx)
 		assert.NoError(t, err)
-		// BUG: middleware doesn't strip ',omitempty' from JSON tags, so 'field1,omitempty' is used as the param name.
 		t.Logf("Note: JSON tag options are not properly handled. Params: %+v", params)
 	})
 
@@ -313,7 +312,6 @@ func TestValidateQueryUnsupportedTypes(t *testing.T) {
 		assert.Nil(t, params.SliceField)
 		assert.Nil(t, params.MapField)
 		assert.Equal(t, "", params.StructField.Name)
-		// BUG: uint is not supported - it will remain 0
 		assert.Equal(t, uint(0), params.UintField)
 		assert.Equal(t, complex64(0), params.ComplexField)
 	})
@@ -322,7 +320,6 @@ func TestValidateQueryUnsupportedTypes(t *testing.T) {
 func TestValidateQueryEdgeCases(t *testing.T) {
 	t.Run("Empty string values are skipped", func(t *testing.T) {
 		recorder, _ := runMiddleware[BasicQueryParams](t, "?name=&status=&limit=")
-		// Empty values are skipped during parsing, so required validation fails
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
 
@@ -432,7 +429,6 @@ func TestValidateQueryInt32Overflow(t *testing.T) {
 
 		params, err := helpers.GetQueryParams[AllTypesQueryParams](ctx)
 		assert.NoError(t, err)
-		// BUG: int32 overflow is silently truncated; ParseInt returns int64 then SetInt wraps without error.
 		t.Logf("Note: Int32 overflow not detected. Value: %d", params.Int32Field)
 	})
 }
