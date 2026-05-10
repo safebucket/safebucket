@@ -11,7 +11,6 @@ RUN npm install && npm run build
 # Backend
 FROM golang:1.25-bookworm AS backend-builder
 
-# renovate: datasource=github-releases depName=upx/upx
 ARG UPX_VERSION=5.1.0
 ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates tzdata curl xz-utils && rm -rf /var/lib/apt/lists/*
