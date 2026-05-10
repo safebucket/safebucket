@@ -1,7 +1,4 @@
-import type {
-  IChallengeValidationResponse,
-  ICreateChallengeResponse,
-} from "@/components/invites/helpers/types";
+import type { ICreateChallengeResponse } from "@/components/invites/helpers/types";
 import { api } from "@/lib/api";
 
 export const api_createChallenge = (invitationId: string, email: string) =>
@@ -14,7 +11,7 @@ export const api_validateChallenge = (
   challengeId: string,
   data: { code: string; new_password: string },
 ) =>
-  api.post<IChallengeValidationResponse>(
+  api.post<void>(
     `/invites/${invitationId}/challenges/${challengeId}/validate`,
     data,
   );
