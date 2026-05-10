@@ -35,8 +35,7 @@ export const api_validatePasswordReset = (
 export const api_completePasswordReset = (
   challengeId: string,
   data: IPasswordResetCompleteData,
-) =>
-  api.post<void>(`/auth/reset-password/${challengeId}/complete`, data);
+) => api.post<void>(`/auth/reset-password/${challengeId}/complete`, data);
 
 export const api_verifyMFAPasswordReset = (code: string, deviceId?: string) =>
   api.post<IMFAVerifyPasswordResetResponse>("/auth/mfa/verify", {
