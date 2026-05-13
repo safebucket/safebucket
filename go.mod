@@ -32,7 +32,7 @@ require (
 	github.com/nats-io/nats.go v1.52.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.27.1
-	github.com/redis/rueidis v1.0.74
+	github.com/redis/rueidis v1.0.75
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.42.0
 	github.com/testcontainers/testcontainers-go/modules/minio v0.42.0
