@@ -56,10 +56,6 @@ export interface IPublicShareResponse {
   folders: Array<IFolder>;
 }
 
-export interface IShareAuthResponse {
-  token: string;
-}
-
 export interface IShareUploadBody {
   name: string;
   size: number;

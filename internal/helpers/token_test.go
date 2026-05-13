@@ -594,7 +594,7 @@ func TestNewShareAccessToken(t *testing.T) {
 		token, err := NewShareAccessToken(jwtSecret, shareID)
 		require.NoError(t, err)
 
-		claims, err := ParseShareToken(jwtSecret, "Bearer "+token)
+		claims, err := ParseShareToken(jwtSecret, token)
 
 		require.NoError(t, err)
 		assert.Equal(t, shareID, claims.ShareID)
@@ -606,7 +606,7 @@ func TestNewShareAccessToken(t *testing.T) {
 		token, err := NewShareAccessToken(jwtSecret, shareID)
 		require.NoError(t, err)
 
-		claims, err := ParseShareToken(jwtSecret, "Bearer "+token)
+		claims, err := ParseShareToken(jwtSecret, token)
 
 		require.NoError(t, err)
 		expectedExpiry := time.Now().Add(
@@ -621,28 +621,25 @@ func TestParseShareToken(t *testing.T) {
 	jwtSecret := "test-secret-key"
 	shareID := uuid.New()
 
-	t.Run("should parse valid share token with Bearer prefix", func(t *testing.T) {
+	t.Run("should parse valid share token", func(t *testing.T) {
 		token, err := NewShareAccessToken(jwtSecret, shareID)
 		require.NoError(t, err)
 
-		claims, err := ParseShareToken(jwtSecret, "Bearer "+token)
+		claims, err := ParseShareToken(jwtSecret, token)
 
 		require.NoError(t, err)
 		assert.Equal(t, shareID, claims.ShareID)
 		assert.Equal(t, configuration.AudienceShareAccess, claims.Audience[0])
 	})
 
-	t.Run("should reject token without Bearer prefix", func(t *testing.T) {
-		token, err := NewShareAccessToken(jwtSecret, shareID)
-		require.NoError(t, err)
-
-		_, err = ParseShareToken(jwtSecret, token)
+	t.Run("should reject empty token", func(t *testing.T) {
+		_, err := ParseShareToken(jwtSecret, "")
 		assert.Error(t, err)
 		assert.Equal(t, "invalid token", err.Error())
 	})
 
 	t.Run("should reject malformed token", func(t *testing.T) {
-		_, err := ParseShareToken(jwtSecret, "Bearer invalid.token.here")
+		_, err := ParseShareToken(jwtSecret, "invalid.token.here")
 		assert.Error(t, err)
 		assert.Equal(t, "invalid token", err.Error())
 	})
@@ -651,7 +648,7 @@ func TestParseShareToken(t *testing.T) {
 		token, err := NewShareAccessToken(jwtSecret, shareID)
 		require.NoError(t, err)
 
-		_, err = ParseShareToken("wrong-secret", "Bearer "+token)
+		_, err = ParseShareToken("wrong-secret", token)
 		assert.Error(t, err)
 		assert.Equal(t, "invalid token", err.Error())
 	})
@@ -670,7 +667,7 @@ func TestParseShareToken(t *testing.T) {
 		signedToken, err := token.SignedString([]byte(jwtSecret))
 		require.NoError(t, err)
 
-		_, err = ParseShareToken(jwtSecret, "Bearer "+signedToken)
+		_, err = ParseShareToken(jwtSecret, signedToken)
 		assert.Error(t, err)
 	})
 
@@ -683,7 +680,7 @@ func TestParseShareToken(t *testing.T) {
 		userToken, err := NewAccessToken(jwtSecret, user, "local", "")
 		require.NoError(t, err)
 
-		_, err = ParseShareToken(jwtSecret, "Bearer "+userToken)
+		_, err = ParseShareToken(jwtSecret, userToken)
 		assert.Error(t, err)
 		assert.Equal(t, "invalid token audience", err.Error())
 	})
@@ -703,7 +700,7 @@ func TestParseShareToken(t *testing.T) {
 		jweToken, err := encryptJWE(jwtSecret, jws)
 		require.NoError(t, err)
 
-		_, err = ParseShareToken(jwtSecret, "Bearer "+jweToken)
+		_, err = ParseShareToken(jwtSecret, jweToken)
 		assert.Error(t, err)
 		assert.Equal(t, "invalid token audience", err.Error())
 	})

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"net/http"
 	"path"
 	"path/filepath"
 	"time"
@@ -25,11 +26,12 @@ import (
 )
 
 type PublicShareService struct {
-	DB             *gorm.DB
-	Storage        storage.IStorage
-	ActivityLogger activity.IActivityLogger
-	Publisher      messaging.IPublisher
-	JWTSecret      string
+	DB                *gorm.DB
+	Storage           storage.IStorage
+	ActivityLogger    activity.IActivityLogger
+	Publisher         messaging.IPublisher
+	JWTSecret         string
+	CookieSecureForce bool
 }
 
 func (s PublicShareService) Routes() chi.Router {
@@ -39,7 +41,7 @@ func (s PublicShareService) Routes() chi.Router {
 		r.Use(m.ValidateShareAccess(s.DB))
 
 		r.With(m.Validate[models.ShareAuthBody]).
-			Post("/auth", handlers.ShareAuthHandler(s.AuthenticateShare))
+			Post("/auth", handlers.ShareAuthHandler(s.CookieSecureForce, s.AuthenticateShare))
 
 		r.Group(func(r chi.Router) {
 			r.Use(m.ValidateShareToken(s.JWTSecret))
@@ -56,27 +58,32 @@ func (s PublicShareService) Routes() chi.Router {
 }
 
 func (s PublicShareService) AuthenticateShare(
+	isSecure bool,
 	logger *zap.Logger,
 	share models.Share,
 	_ uuid.UUIDs,
 	body models.ShareAuthBody,
-) (models.ShareAuthResponse, error) {
+) (handlers.AuthFlowResult, error) {
 	if share.HashedPassword == "" {
-		return models.ShareAuthResponse{}, apierrors.NewAPIError(400, "SHARE_NOT_PASSWORD_PROTECTED")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(400, "SHARE_NOT_PASSWORD_PROTECTED")
 	}
 
 	match, err := argon2id.ComparePasswordAndHash(body.Password, share.HashedPassword)
 	if err != nil || !match {
-		return models.ShareAuthResponse{}, apierrors.NewAPIError(401, "SHARE_PASSWORD_INVALID")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(401, "SHARE_PASSWORD_INVALID")
 	}
 
 	token, err := h.NewShareAccessToken(s.JWTSecret, share.ID)
 	if err != nil {
 		logger.Error("Failed to create share access token", zap.Error(err))
-		return models.ShareAuthResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
 	}
 
-	return models.ShareAuthResponse{Token: token}, nil
+	return handlers.AuthFlowResult{
+		Status:  http.StatusOK,
+		Body:    struct{}{},
+		Cookies: handlers.BuildShareCookie(isSecure, share.ID.String(), token),
+	}, nil
 }
 
 func (s PublicShareService) ListShareItems(

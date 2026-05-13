@@ -2,29 +2,24 @@ import { queryOptions, useMutation } from "@tanstack/react-query";
 import type {
   IFileTransferResponse,
   IPublicShareResponse,
-  IShareAuthResponse,
   IShareUploadBody,
 } from "@/types/share";
 import { getApiUrl } from "@/hooks/useConfig";
 
 async function shareFetch<T>(
   path: string,
-  options: { method?: string; body?: object; token?: string } = {},
+  options: { method?: string; body?: object } = {},
 ): Promise<T> {
-  const { method = "GET", body, token } = options;
+  const { method = "GET", body } = options;
   const url = `${getApiUrl()}/shares${path}`;
-
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
 
   const response = await fetch(url, {
     method,
-    headers,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -43,16 +38,10 @@ async function shareFetch<T>(
   return response.json();
 }
 
-export const shareContentQueryOptions = (
-  shareId: string,
-  token: string | null,
-) =>
+export const shareContentQueryOptions = (shareId: string) =>
   queryOptions({
-    queryKey: ["shares", shareId, "content", token],
-    queryFn: () =>
-      shareFetch<IPublicShareResponse>(`/${shareId}/`, {
-        token: token ?? undefined,
-      }),
+    queryKey: ["shares", shareId, "content"],
+    queryFn: () => shareFetch<IPublicShareResponse>(`/${shareId}/`),
     enabled: false,
   });
 
@@ -65,41 +54,31 @@ export const useShareAuthMutation = () =>
       shareId: string;
       password: string;
     }) =>
-      shareFetch<IShareAuthResponse>(`/${shareId}/auth`, {
+      shareFetch<null>(`/${shareId}/auth`, {
         method: "POST",
         body: { password },
       }),
   });
 
-export const useShareDownloadMutation = (
-  shareId: string,
-  token: string | null,
-) =>
+export const useShareDownloadMutation = (shareId: string) =>
   useMutation({
     mutationFn: (fileId: string) =>
-      shareFetch<IFileTransferResponse>(`/${shareId}/files/${fileId}`, {
-        token: token ?? undefined,
-      }),
+      shareFetch<IFileTransferResponse>(`/${shareId}/files/${fileId}`),
   });
 
-export const useShareUploadMutation = (shareId: string, token: string | null) =>
+export const useShareUploadMutation = (shareId: string) =>
   useMutation({
     mutationFn: (body: IShareUploadBody) =>
       shareFetch<IFileTransferResponse>(`/${shareId}/files`, {
         method: "POST",
         body,
-        token: token ?? undefined,
       }),
   });
 
-export const useShareConfirmUploadMutation = (
-  shareId: string,
-  token: string | null,
-) =>
+export const useShareConfirmUploadMutation = (shareId: string) =>
   useMutation({
     mutationFn: (fileId: string) =>
       shareFetch<null>(`/${shareId}/files/${fileId}`, {
         method: "PATCH",
-        token: token ?? undefined,
       }),
   });

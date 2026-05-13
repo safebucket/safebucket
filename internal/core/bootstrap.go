@@ -447,11 +447,12 @@ func BuildAPIRouter(
 		}.Routes())
 
 		apiRouter.Mount("/v1/shares", services.PublicShareService{
-			DB:             db,
-			Storage:        store,
-			ActivityLogger: activityLogger,
-			Publisher:      publisher,
-			JWTSecret:      authConfig.JWTSecret,
+			DB:                db,
+			Storage:           store,
+			ActivityLogger:    activityLogger,
+			Publisher:         publisher,
+			JWTSecret:         authConfig.JWTSecret,
+			CookieSecureForce: authConfig.CookieSecureForce,
 		}.Routes())
 	})
 

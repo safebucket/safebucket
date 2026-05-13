@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 
@@ -55,13 +56,13 @@ func ValidateShareToken(jwtSecret string) func(next http.Handler) http.Handler {
 				return
 			}
 
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
+			cookie, err := r.Cookie(configuration.CookieShareToken)
+			if err != nil {
 				helpers.RespondWithError(w, 401, []string{"SHARE_TOKEN_REQUIRED"})
 				return
 			}
 
-			claims, err := helpers.ParseShareToken(jwtSecret, authHeader)
+			claims, err := helpers.ParseShareToken(jwtSecret, cookie.Value)
 			if err != nil || claims.ShareID != share.ID {
 				helpers.RespondWithError(w, 401, []string{"SHARE_TOKEN_INVALID"})
 				return

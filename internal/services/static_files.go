@@ -163,7 +163,7 @@ func (s *StaticFileService) secureServeFile(
 ) {
 	s.setSecurityHeaders(w, filePath)
 
-	http.ServeFileFS(w, r, s.fsys, filePath) //nolint:gosec // G703: path validated against whitelist
+	http.ServeFileFS(w, r, s.fsys, filePath)
 }
 
 func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath string) {

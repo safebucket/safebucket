@@ -85,10 +85,6 @@ type ShareAuthBody struct {
 	Password string `json:"password" validate:"required,min=8"`
 }
 
-type ShareAuthResponse struct {
-	Token string `json:"token"`
-}
-
 type ShareCreateBody struct {
 	Name          string      `json:"name"            validate:"required,min=1,max=255"`
 	Type          ShareType   `json:"type"            validate:"required,oneof=files folder bucket"`

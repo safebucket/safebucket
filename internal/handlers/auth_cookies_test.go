@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/safebucket/safebucket/internal/configuration"
 )
 
 func cookieByName(t *testing.T, rr *httptest.ResponseRecorder, name string) *http.Cookie {
@@ -24,7 +26,7 @@ func TestSetAuthCookies_AllAttributes(t *testing.T) {
 
 	SetAuthCookies(rr, req, "atok", "rtok", "local", false)
 
-	for _, name := range []string{cookieAccessToken, cookieRefreshToken, cookieAuthProvider} {
+	for _, name := range []string{configuration.CookieAccessToken, configuration.CookieRefreshToken, configuration.CookieAuthProvider} {
 		c := cookieByName(t, rr, name)
 		if c == nil {
 			t.Fatalf("missing cookie %q", name)
@@ -50,7 +52,7 @@ func TestSetAuthCookies_SecureOffWithoutTLS(t *testing.T) {
 
 	SetAuthCookies(rr, req, "a", "r", "local", false)
 
-	c := cookieByName(t, rr, cookieAccessToken)
+	c := cookieByName(t, rr, configuration.CookieAccessToken)
 	if c == nil {
 		t.Fatalf("missing access cookie")
 	}
@@ -65,7 +67,7 @@ func TestSetAuthCookies_ForceSecure(t *testing.T) {
 
 	SetAuthCookies(rr, req, "a", "r", "local", true)
 
-	if c := cookieByName(t, rr, cookieAccessToken); c == nil || !c.Secure {
+	if c := cookieByName(t, rr, configuration.CookieAccessToken); c == nil || !c.Secure {
 		t.Fatalf("expected forced Secure cookie")
 	}
 }
@@ -77,7 +79,7 @@ func TestSetAuthCookies_XForwardedProtoHTTPS(t *testing.T) {
 
 	SetAuthCookies(rr, req, "a", "r", "local", false)
 
-	if c := cookieByName(t, rr, cookieAccessToken); c == nil || !c.Secure {
+	if c := cookieByName(t, rr, configuration.CookieAccessToken); c == nil || !c.Secure {
 		t.Fatalf("expected Secure when X-Forwarded-Proto=https")
 	}
 }
@@ -89,7 +91,7 @@ func TestSetAuthCookies_XForwardedProtoHTTPSWithList(t *testing.T) {
 
 	SetAuthCookies(rr, req, "a", "r", "local", false)
 
-	if c := cookieByName(t, rr, cookieAccessToken); c == nil || !c.Secure {
+	if c := cookieByName(t, rr, configuration.CookieAccessToken); c == nil || !c.Secure {
 		t.Fatalf("expected Secure with list-style X-Forwarded-Proto")
 	}
 }
@@ -101,7 +103,7 @@ func TestSetAuthCookies_XForwardedProtoHTTPNoSecure(t *testing.T) {
 
 	SetAuthCookies(rr, req, "a", "r", "local", false)
 
-	if c := cookieByName(t, rr, cookieAccessToken); c == nil || c.Secure {
+	if c := cookieByName(t, rr, configuration.CookieAccessToken); c == nil || c.Secure {
 		t.Fatalf("expected Secure=false when forwarded proto is http")
 	}
 }
@@ -110,7 +112,7 @@ func TestClearAuthCookies(t *testing.T) {
 	rr := httptest.NewRecorder()
 	ClearAuthCookies(rr)
 
-	for _, name := range []string{cookieAccessToken, cookieRefreshToken, cookieAuthProvider, cookieMFAToken} {
+	for _, name := range []string{configuration.CookieAccessToken, configuration.CookieRefreshToken, configuration.CookieAuthProvider, configuration.CookieMFAToken} {
 		c := cookieByName(t, rr, name)
 		if c == nil {
 			t.Fatalf("missing cleared cookie %q", name)
@@ -130,7 +132,7 @@ func TestSetAuthCookies_AlsoClearsMFACookie(t *testing.T) {
 
 	SetAuthCookies(rr, req, "a", "r", "local", false)
 
-	mfa := cookieByName(t, rr, cookieMFAToken)
+	mfa := cookieByName(t, rr, configuration.CookieMFAToken)
 	if mfa == nil {
 		t.Fatalf("expected MFA cookie clear directive")
 	}
@@ -149,7 +151,7 @@ func TestSetMFACookie_SetsRestrictedAndClearsFullAuth(t *testing.T) {
 
 	SetMFACookie(rr, req, "mfa-tok", false)
 
-	c := cookieByName(t, rr, cookieMFAToken)
+	c := cookieByName(t, rr, configuration.CookieMFAToken)
 	if c == nil {
 		t.Fatalf("missing MFA cookie")
 	}
@@ -169,7 +171,7 @@ func TestSetMFACookie_SetsRestrictedAndClearsFullAuth(t *testing.T) {
 		t.Errorf("expected MaxAge=%d, got %d", mfaCookieMaxAgeSeconds, c.MaxAge)
 	}
 
-	for _, name := range []string{cookieAccessToken, cookieRefreshToken, cookieAuthProvider} {
+	for _, name := range []string{configuration.CookieAccessToken, configuration.CookieRefreshToken, configuration.CookieAuthProvider} {
 		cleared := cookieByName(t, rr, name)
 		if cleared == nil {
 			t.Fatalf("expected %s clear directive", name)
@@ -184,7 +186,7 @@ func TestClearMFACookie(t *testing.T) {
 	rr := httptest.NewRecorder()
 	ClearMFACookie(rr)
 
-	c := cookieByName(t, rr, cookieMFAToken)
+	c := cookieByName(t, rr, configuration.CookieMFAToken)
 	if c == nil {
 		t.Fatalf("missing cleared MFA cookie")
 	}

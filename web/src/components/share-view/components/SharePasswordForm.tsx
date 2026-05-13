@@ -25,9 +25,11 @@ export const SharePasswordForm: FC<ISharePasswordFormProps> = ({
   const { t } = useTranslation();
   const [password, setPassword] = useState("");
 
+  const isPasswordValid = password.length >= 8;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.trim()) {
+    if (isPasswordValid) {
       onSubmit(password);
     }
   };
@@ -55,6 +57,7 @@ export const SharePasswordForm: FC<ISharePasswordFormProps> = ({
               placeholder={t("share_consumer.password_placeholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              minLength={8}
             />
           </div>
 
@@ -72,7 +75,7 @@ export const SharePasswordForm: FC<ISharePasswordFormProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !password.trim()}
+              disabled={isLoading || !isPasswordValid}
               className="flex-1 gap-2"
             >
               {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}

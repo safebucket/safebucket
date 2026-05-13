@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/helpers"
 )
@@ -27,13 +28,9 @@ func CSRFGuard(allowedOrigins []string) func(next http.Handler) http.Handler {
 				return
 			}
 
-			if _, err := r.Cookie("safebucket_access_token"); err != nil {
-				if _, refErr := r.Cookie("safebucket_refresh_token"); refErr != nil {
-					if _, mfaErr := r.Cookie("safebucket_mfa_token"); mfaErr != nil {
-						next.ServeHTTP(w, r)
-						return
-					}
-				}
+			if !hasAuthCookie(r) {
+				next.ServeHTTP(w, r)
+				return
 			}
 
 			if allowAll {
@@ -62,6 +59,20 @@ func CSRFGuard(allowedOrigins []string) func(next http.Handler) http.Handler {
 				[]string{apierrors.CodeForbidden})
 		})
 	}
+}
+
+func hasAuthCookie(r *http.Request) bool {
+	for _, name := range []string{
+		configuration.CookieAccessToken,
+		configuration.CookieRefreshToken,
+		configuration.CookieMFAToken,
+		configuration.CookieShareToken,
+	} {
+		if _, err := r.Cookie(name); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func isStateChanging(method string) bool {

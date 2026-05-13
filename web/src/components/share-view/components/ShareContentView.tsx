@@ -26,18 +26,16 @@ export type ViewMode = "list" | "grid";
 interface IShareContentViewProps {
   shareId: string;
   shareContent: IPublicShareResponse;
-  token: string | null;
 }
 
 export const ShareContentView: FC<IShareContentViewProps> = ({
   shareId,
   shareContent,
-  token,
 }) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const { data: content } = useQuery({
-    ...shareContentQueryOptions(shareId, token),
+    ...shareContentQueryOptions(shareId),
     initialData: shareContent,
   });
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -47,7 +45,7 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
   const [folderHistory, setFolderHistory] = useState<Array<string>>([]);
   const uploadFilesRef = useRef<ShareUploadHandler | null>(null);
 
-  const downloadMutation = useShareDownloadMutation(shareId, token);
+  const downloadMutation = useShareDownloadMutation(shareId);
 
   const handleDownload = (file: IFile) => {
     downloadMutation.mutate(file.id, {
@@ -58,7 +56,7 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
     });
   };
 
-  const columns = useMemo(() => createColumns(t, handleDownload), [t, token]);
+  const columns = useMemo(() => createColumns(t, handleDownload), [t]);
 
   const columnVisibility = useMemo(
     (): VisibilityState =>
@@ -132,7 +130,6 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
         ) ? (
           <ShareUploadZone
             shareId={shareId}
-            token={token}
             maxUploadSize={content.max_upload_size}
             folderId={content.type === "bucket" ? currentFolderId : undefined}
             onReady={(fn) => {

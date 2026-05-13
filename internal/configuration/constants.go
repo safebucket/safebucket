@@ -19,6 +19,14 @@ const (
 )
 
 const (
+	CookieAccessToken  = "safebucket_access_token"  //nolint:gosec // not a credential, just a cookie name.
+	CookieRefreshToken = "safebucket_refresh_token" //nolint:gosec // not a credential, just a cookie name.
+	CookieAuthProvider = "safebucket_auth_provider"
+	CookieMFAToken     = "safebucket_mfa_token"   //nolint:gosec // not a credential, just a cookie name.
+	CookieShareToken   = "safebucket_share_token" //nolint:gosec // not a credential, just a cookie name.
+)
+
+const (
 	CacheMaxAppIdentityLifetime = 60
 	CacheAppIdentityKey         = "app:identity"
 	CacheAppRateLimitKey        = "app:ratelimit:%s"

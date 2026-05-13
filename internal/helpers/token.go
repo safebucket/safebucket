@@ -214,13 +214,12 @@ func ParseShareToken(
 	jwtSecret string,
 	tokenString string,
 ) (models.ShareClaims, error) {
-	raw, err := stripBearer(tokenString)
-	if err != nil {
-		return models.ShareClaims{}, err
+	if tokenString == "" {
+		return models.ShareClaims{}, errors.New("invalid token")
 	}
 
 	claims := &models.ShareClaims{}
-	if parseErr := decryptAndParseJWT(jwtSecret, raw, claims); parseErr != nil {
+	if parseErr := decryptAndParseJWT(jwtSecret, tokenString, claims); parseErr != nil {
 		return models.ShareClaims{}, errors.New("invalid token")
 	}
 

@@ -27,14 +27,11 @@ export const ShareViewPage: FC<IShareConsumerPageProps> = ({ uuid }) => {
   const [state, setState] = useState<PageState>({ step: "idle" });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [shareToken, setShareToken] = useState<string | null>(null);
 
   const authMutation = useShareAuthMutation();
 
-  const fetchShareContent = async (token: string | null) => {
-    const data = await queryClient.fetchQuery(
-      shareContentQueryOptions(uuid, token),
-    );
+  const fetchShareContent = async () => {
+    const data = await queryClient.fetchQuery(shareContentQueryOptions(uuid));
     setState({ step: "content", shareContent: data });
   };
 
@@ -43,7 +40,7 @@ export const ShareViewPage: FC<IShareConsumerPageProps> = ({ uuid }) => {
     setError(null);
 
     try {
-      await fetchShareContent(null);
+      await fetchShareContent();
     } catch (err) {
       const code = err instanceof Error ? err.message : "INTERNAL_SERVER_ERROR";
       if (code === "SHARE_TOKEN_REQUIRED") {
@@ -61,12 +58,8 @@ export const ShareViewPage: FC<IShareConsumerPageProps> = ({ uuid }) => {
     setError(null);
 
     try {
-      const { token } = await authMutation.mutateAsync({
-        shareId: uuid,
-        password,
-      });
-      setShareToken(token);
-      await fetchShareContent(token);
+      await authMutation.mutateAsync({ shareId: uuid, password });
+      await fetchShareContent();
     } catch (err) {
       const code = err instanceof Error ? err.message : "INTERNAL_SERVER_ERROR";
       setError(t(`errors.${code}`));
@@ -100,11 +93,7 @@ export const ShareViewPage: FC<IShareConsumerPageProps> = ({ uuid }) => {
       );
     case "content":
       return (
-        <ShareContentView
-          shareId={uuid}
-          shareContent={state.shareContent}
-          token={shareToken}
-        />
+        <ShareContentView shareId={uuid} shareContent={state.shareContent} />
       );
   }
 };

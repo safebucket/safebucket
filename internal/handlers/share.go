@@ -17,7 +17,7 @@ type (
 	ShareGetOneTargetFunc[Out any]         func(*zap.Logger, models.Share, uuid.UUIDs) (Out, error)
 	ShareCreateTargetFunc[In any, Out any] func(*zap.Logger, models.Share, uuid.UUIDs, In) (Out, error)
 	ShareActionTargetFunc                  func(*zap.Logger, models.Share, uuid.UUIDs) error
-	ShareAuthTargetFunc[In any, Out any]   func(*zap.Logger, models.Share, uuid.UUIDs, In) (Out, error)
+	ShareAuthTargetFunc[In any]            func(bool, *zap.Logger, models.Share, uuid.UUIDs, In) (AuthFlowResult, error)
 )
 
 func getShare(r *http.Request) models.Share {
@@ -25,7 +25,7 @@ func getShare(r *http.Request) models.Share {
 	return share
 }
 
-func ShareAuthHandler[In any, Out any](auth ShareAuthTargetFunc[In, Out]) http.HandlerFunc {
+func ShareAuthHandler[In any](forceSecure bool, auth ShareAuthTargetFunc[In]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
@@ -42,7 +42,7 @@ func ShareAuthHandler[In any, Out any](auth ShareAuthTargetFunc[In, Out]) http.H
 		}
 
 		share := getShare(r)
-		resp, err := auth(logger, share, ids, body)
+		result, err := auth(isSecureRequest(r, forceSecure), logger, share, ids, body)
 		if err != nil {
 			var apiErr *apierrors.APIError
 			if errors.As(err, &apiErr) {
@@ -50,9 +50,11 @@ func ShareAuthHandler[In any, Out any](auth ShareAuthTargetFunc[In, Out]) http.H
 			} else {
 				h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
 			}
-		} else {
-			h.RespondWithJSON(w, http.StatusOK, resp)
+			return
 		}
+
+		writeCookies(w, result.Cookies)
+		h.RespondWithJSON(w, result.Status, result.Body)
 	}
 }
 

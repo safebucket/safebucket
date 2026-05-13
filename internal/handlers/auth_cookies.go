@@ -4,16 +4,16 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/safebucket/safebucket/internal/configuration"
 )
 
 const (
-	cookieAccessToken  = "safebucket_access_token"  //nolint:gosec // G101: not a credential, just a cookie name.
-	cookieRefreshToken = "safebucket_refresh_token" //nolint:gosec // G101: not a credential, just a cookie name.
-	cookieAuthProvider = "safebucket_auth_provider"
-	cookieMFAToken     = "safebucket_mfa_token" //nolint:gosec // G101: not a credential, just a cookie name.
+	mfaCookieMaxAgeSeconds   = 15 * 60
+	shareCookieMaxAgeSeconds = 5 * 60
+	authCookieDuration       = 365 * 24 * time.Hour
 
-	mfaCookieMaxAgeSeconds = 15 * 60
-	authCookieDuration     = 365 * 24 * time.Hour
+	shareCookiePathPrefix = "/api/v1/shares/"
 )
 
 func isSecureRequest(r *http.Request, forceSecure bool) bool {
@@ -27,7 +27,7 @@ func isSecureRequest(r *http.Request, forceSecure bool) bool {
 }
 
 func longLivedCookie(name, value string, secure bool) *http.Cookie {
-	return &http.Cookie{ //nolint:gosec // G124: Secure is set conditionally based on TLS/forceSecure.
+	return &http.Cookie{
 		Name:     name,
 		Value:    value,
 		Expires:  time.Now().Add(authCookieDuration),
@@ -39,7 +39,7 @@ func longLivedCookie(name, value string, secure bool) *http.Cookie {
 }
 
 func clearedCookie(name string) *http.Cookie {
-	return &http.Cookie{ //nolint:gosec // G124: clearing cookie, Secure not needed for expiry.
+	return &http.Cookie{
 		Name:     name,
 		Value:    "",
 		MaxAge:   -1,
@@ -51,20 +51,20 @@ func clearedCookie(name string) *http.Cookie {
 
 func BuildAuthCookies(isSecure bool, access, refresh, provider string) []*http.Cookie {
 	return []*http.Cookie{
-		longLivedCookie(cookieAccessToken, access, isSecure),
-		longLivedCookie(cookieRefreshToken, refresh, isSecure),
-		longLivedCookie(cookieAuthProvider, provider, isSecure),
-		clearedCookie(cookieMFAToken),
+		longLivedCookie(configuration.CookieAccessToken, access, isSecure),
+		longLivedCookie(configuration.CookieRefreshToken, refresh, isSecure),
+		longLivedCookie(configuration.CookieAuthProvider, provider, isSecure),
+		clearedCookie(configuration.CookieMFAToken),
 	}
 }
 
 func BuildAccessCookie(isSecure bool, access string) []*http.Cookie {
-	return []*http.Cookie{longLivedCookie(cookieAccessToken, access, isSecure)}
+	return []*http.Cookie{longLivedCookie(configuration.CookieAccessToken, access, isSecure)}
 }
 
 func BuildMFACookie(isSecure bool, token string) []*http.Cookie {
-	mfa := &http.Cookie{ //nolint:gosec // G124: Secure is set conditionally based on TLS/forceSecure.
-		Name:     cookieMFAToken,
+	mfa := &http.Cookie{
+		Name:     configuration.CookieMFAToken,
 		Value:    token,
 		MaxAge:   mfaCookieMaxAgeSeconds,
 		Path:     "/",
@@ -74,18 +74,30 @@ func BuildMFACookie(isSecure bool, token string) []*http.Cookie {
 	}
 	return []*http.Cookie{
 		mfa,
-		clearedCookie(cookieAccessToken),
-		clearedCookie(cookieRefreshToken),
-		clearedCookie(cookieAuthProvider),
+		clearedCookie(configuration.CookieAccessToken),
+		clearedCookie(configuration.CookieRefreshToken),
+		clearedCookie(configuration.CookieAuthProvider),
 	}
+}
+
+func BuildShareCookie(isSecure bool, shareID, token string) []*http.Cookie {
+	return []*http.Cookie{{
+		Name:     configuration.CookieShareToken,
+		Value:    token,
+		MaxAge:   shareCookieMaxAgeSeconds,
+		Path:     shareCookiePathPrefix + shareID,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure:   isSecure,
+	}}
 }
 
 func BuildClearAuthCookies() []*http.Cookie {
 	return []*http.Cookie{
-		clearedCookie(cookieAccessToken),
-		clearedCookie(cookieRefreshToken),
-		clearedCookie(cookieAuthProvider),
-		clearedCookie(cookieMFAToken),
+		clearedCookie(configuration.CookieAccessToken),
+		clearedCookie(configuration.CookieRefreshToken),
+		clearedCookie(configuration.CookieAuthProvider),
+		clearedCookie(configuration.CookieMFAToken),
 	}
 }
 
@@ -108,7 +120,7 @@ func SetMFACookie(w http.ResponseWriter, r *http.Request, token string, forceSec
 }
 
 func ClearMFACookie(w http.ResponseWriter) {
-	http.SetCookie(w, clearedCookie(cookieMFAToken))
+	http.SetCookie(w, clearedCookie(configuration.CookieMFAToken))
 }
 
 func ClearAuthCookies(w http.ResponseWriter) {

@@ -29,7 +29,6 @@ export type ShareUploadHandler = (files: Array<File>) => void;
 
 interface IShareUploadZoneProps {
   shareId: string;
-  token: string | null;
   maxUploadSize: number | null;
   folderId?: string;
   onReady: (uploadFiles: ShareUploadHandler) => void;
@@ -38,7 +37,6 @@ interface IShareUploadZoneProps {
 
 export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
   shareId,
-  token,
   maxUploadSize,
   folderId,
   onReady,
@@ -52,8 +50,8 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
   const dragCounterRef = useRef(0);
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
-  const uploadMutation = useShareUploadMutation(shareId, token);
-  const confirmMutation = useShareConfirmUploadMutation(shareId, token);
+  const uploadMutation = useShareUploadMutation(shareId);
+  const confirmMutation = useShareConfirmUploadMutation(shareId);
 
   const processUpload = useCallback(
     async (file: File) => {
@@ -162,7 +160,6 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
     },
     [
       shareId,
-      token,
       folderId,
       maxUploadSize,
       uploadMutation,
