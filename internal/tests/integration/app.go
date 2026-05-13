@@ -365,6 +365,85 @@ func (a *TestApp) GetMembers(t *testing.T, token, bucketID string) []models.Buck
 	return page.Data
 }
 
+func (a *TestApp) CreateFolder(t *testing.T, token, bucketID, name string) models.Folder {
+	t.Helper()
+	var folder models.Folder
+	status := a.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/folders", bucketID), token,
+		models.FolderCreateBody{Name: name}, &folder)
+	require.Equal(t, http.StatusCreated, status, "create folder %s", name)
+	return folder
+}
+
+func (a *TestApp) CreateShare(
+	t *testing.T,
+	token, bucketID string,
+	body models.ShareCreateBody,
+) models.Share {
+	t.Helper()
+	var share models.Share
+	status := a.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/shares", bucketID), token,
+		body, &share)
+	require.Equal(t, http.StatusCreated, status, "create share %s", body.Name)
+	return share
+}
+
+func (a *TestApp) AuthenticateShare(t *testing.T, shareID, password string) (int, string) {
+	t.Helper()
+	return a.doGetCookie(t, http.MethodPost,
+		fmt.Sprintf("/api/v1/shares/%s/auth", shareID),
+		"",
+		models.ShareAuthBody{Password: password},
+		configuration.CookieShareToken,
+	)
+}
+
+func (a *TestApp) doPublicShare(
+	t *testing.T,
+	method, path, shareCookie string,
+	body, out any,
+) int {
+	t.Helper()
+
+	var reqBody io.Reader
+	if body != nil {
+		buf, err := json.Marshal(body)
+		require.NoError(t, err)
+		reqBody = bytes.NewReader(buf)
+	}
+
+	req, err := http.NewRequestWithContext(t.Context(), method, a.URL(path), reqBody)
+	require.NoError(t, err)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if shareCookie != "" {
+		cookie := &http.Cookie{
+			Name:  configuration.CookieShareToken,
+			Value: shareCookie,
+		}
+		req.AddCookie(cookie)
+	}
+
+	resp, err := a.client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		if raw, readErr := io.ReadAll(resp.Body); readErr == nil && len(raw) > 0 && integrationVerbose() {
+			t.Logf("integration: %s %s -> %d body=%s", method, path, resp.StatusCode, string(raw))
+		}
+		return resp.StatusCode
+	}
+
+	if out != nil && resp.StatusCode != http.StatusNoContent {
+		if decodeErr := json.NewDecoder(resp.Body).Decode(out); decodeErr != nil &&
+			!errors.Is(decodeErr, io.EOF) {
+			require.NoError(t, decodeErr)
+		}
+	}
+	return resp.StatusCode
+}
+
 func (a *TestApp) UploadTestFile(t *testing.T, token, bucketID, name string) string {
 	t.Helper()
 
