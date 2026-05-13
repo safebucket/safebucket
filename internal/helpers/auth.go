@@ -46,7 +46,7 @@ func RandString(nByte int) (string, error) {
 }
 
 func SetCallbackCookie(w http.ResponseWriter, r *http.Request, name, value string) {
-	cookie := &http.Cookie{
+	cookie := &http.Cookie{ //nolint:gosec // G124: Secure set per TLS; HttpOnly and SameSite present
 		Name:     name,
 		Value:    value,
 		MaxAge:   int(time.Hour.Seconds()),
