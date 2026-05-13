@@ -64,12 +64,6 @@ updates:
     commit-message:
       prefix: "[docker-compose:local-full]"
       include: "scope"
-    cooldown:
-      default-days: 5
-      semver-major-days: 14
-      semver-minor-days: 5
-      semver-patch-days: 2
-      include: ["*"]
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
@@ -86,12 +80,6 @@ updates:
     commit-message:
       prefix: "[docker-compose:dev]"
       include: "scope"
-    cooldown:
-      default-days: 5
-      semver-major-days: 14
-      semver-minor-days: 5
-      semver-patch-days: 2
-      include: ["*"]
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
@@ -108,12 +96,6 @@ updates:
     commit-message:
       prefix: "[docker-compose:local-lite]"
       include: "scope"
-    cooldown:
-      default-days: 5
-      semver-major-days: 14
-      semver-minor-days: 5
-      semver-patch-days: 2
-      include: ["*"]
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
@@ -129,12 +111,6 @@ updates:
     commit-message:
       prefix: "[actions]"
       include: "scope"
-    cooldown:
-      default-days: 5
-      semver-major-days: 14
-      semver-minor-days: 5
-      semver-patch-days: 2
-      include: ["*"]
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
@@ -150,12 +126,6 @@ updates:
     commit-message:
       prefix: "[terraform-aws]"
       include: "scope"
-    cooldown:
-      default-days: 5
-      semver-major-days: 14
-      semver-minor-days: 5
-      semver-patch-days: 2
-      include: ["*"]
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
@@ -171,12 +141,6 @@ updates:
     commit-message:
       prefix: "[docker]"
       include: "scope"
-    cooldown:
-      default-days: 5
-      semver-major-days: 14
-      semver-minor-days: 5
-      semver-patch-days: 2
-      include: ["*"]
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
