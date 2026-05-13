@@ -171,6 +171,31 @@ func (a *TestApp) LoginAs(t *testing.T, email string) string {
 	return token
 }
 
+func (a *TestApp) LoginRefreshToken(t *testing.T, email string) string {
+	t.Helper()
+
+	body, err := json.Marshal(models.AuthLoginBody{Email: email, Password: testPassword})
+	require.NoError(t, err)
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost,
+		a.URL("/api/v1/auth/login"), bytes.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := a.client.Do(req)
+	require.NoError(t, err)
+	defer func() { _, _ = io.Copy(io.Discard, resp.Body); _ = resp.Body.Close() }()
+	require.Equal(t, http.StatusOK, resp.StatusCode, "login should succeed")
+
+	for _, c := range resp.Cookies() {
+		if c.Name == "safebucket_refresh_token" {
+			return c.Value
+		}
+	}
+	t.Fatal("refresh token cookie not set after login")
+	return ""
+}
+
 func (a *TestApp) LoginAdmin(t *testing.T) string {
 	t.Helper()
 	status, token := a.doGetAuthCookie(t, http.MethodPost, "/api/v1/auth/login", "",

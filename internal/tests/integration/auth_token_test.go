@@ -61,6 +61,25 @@ func TestAuthTokenValidation(t *testing.T) {
 				status := app.DoStatus(t, http.MethodGet, probeEndpoint, "not.a.valid.jwt", nil)
 				assert.Equal(t, http.StatusForbidden, status)
 			})
+
+			t.Run("restricted-audience token is rejected on access routes", func(t *testing.T) {
+				mfaToken := craftTokenWithAudience(t, app.Config.App.JWTSecret,
+					user.ID, user.Email, user.Role, configuration.AudienceMFALogin, nil)
+				status := app.DoStatus(t, http.MethodGet, probeEndpoint, mfaToken, nil)
+				assert.Equal(t, http.StatusForbidden, status)
+			})
+
+			t.Run("access token is rejected on refresh route", func(t *testing.T) {
+				status := app.DoStatus(t, http.MethodPost, "/api/v1/auth/refresh", validToken, nil)
+				assert.Equal(t, http.StatusUnauthorized, status)
+			})
+
+			t.Run("refresh token is rejected on access routes", func(t *testing.T) {
+				refreshUser := app.CreateUser(t, "refreshonaccess@example.com")
+				refreshToken := app.LoginRefreshToken(t, refreshUser.Email)
+				status := app.DoStatus(t, http.MethodGet, probeEndpoint, refreshToken, nil)
+				assert.Equal(t, http.StatusForbidden, status)
+			})
 		})
 	}
 }
@@ -295,7 +314,6 @@ func tamperedPayloadToken(t *testing.T, jweToken string) string {
 	t.Helper()
 	parts := strings.Split(jweToken, ".")
 	require.Len(t, parts, 5, "expected 5-part JWE")
-	// Corrupt the ciphertext — GCM authentication tag verification will fail.
 	cs := []byte(parts[3])
 	cs[0] ^= 0x01
 	parts[3] = string(cs)
