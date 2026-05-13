@@ -194,7 +194,7 @@ services:
       - safebucket-internal
 
   nats:
-    image: nats:2.12-alpine
+    image: nats:2.14-alpine
     container_name: nats
     restart: unless-stopped
     command: [ "-c", "/etc/nats/nats.conf" ]
@@ -210,7 +210,7 @@ services:
 
   loki:
     container_name: loki
-    image: grafana/loki:3.7.1
+    image: grafana/loki:3.7.2
     command: "-config.file=/etc/loki/config.yaml"
     volumes:
       - ./config/loki.yaml:/etc/loki/config.yaml
