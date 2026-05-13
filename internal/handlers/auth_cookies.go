@@ -27,7 +27,7 @@ func isSecureRequest(r *http.Request, forceSecure bool) bool {
 }
 
 func longLivedCookie(name, value string, secure bool) *http.Cookie {
-	return &http.Cookie{ //nolint:gosec // G124: clearing cookie, Secure not needed for expiry.
+	return &http.Cookie{ //nolint:gosec // G124: Secure is set conditionally based on TLS/forceSecure.
 		Name:     name,
 		Value:    value,
 		Expires:  time.Now().Add(authCookieDuration),
@@ -63,7 +63,7 @@ func BuildAccessCookie(isSecure bool, access string) []*http.Cookie {
 }
 
 func BuildMFACookie(isSecure bool, token string) []*http.Cookie {
-	mfa := &http.Cookie{ //nolint:gosec // G124: clearing cookie, Secure not needed for expiry.
+	mfa := &http.Cookie{ //nolint:gosec // G124: Secure is set conditionally based on TLS/forceSecure.
 		Name:     configuration.CookieMFAToken,
 		Value:    token,
 		MaxAge:   mfaCookieMaxAgeSeconds,
@@ -81,7 +81,7 @@ func BuildMFACookie(isSecure bool, token string) []*http.Cookie {
 }
 
 func BuildShareCookie(isSecure bool, shareID, token string) []*http.Cookie {
-	return []*http.Cookie{{ //nolint:gosec // G124: clearing cookie, Secure not needed for expiry.
+	return []*http.Cookie{{ //nolint:gosec // G124: Secure is set conditionally based on TLS/forceSecure.
 		Name:     configuration.CookieShareToken,
 		Value:    token,
 		MaxAge:   shareCookieMaxAgeSeconds,
