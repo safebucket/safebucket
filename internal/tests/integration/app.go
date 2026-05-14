@@ -27,6 +27,7 @@ import (
 	"github.com/safebucket/safebucket/internal/notifier"
 	"github.com/safebucket/safebucket/internal/storage"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -390,6 +391,28 @@ func (a *TestApp) GetMembers(t *testing.T, token, bucketID string) []models.Buck
 	return page.Data
 }
 
+func (a *TestApp) BackdateShareExpiry(t *testing.T, shareID string, when time.Time) {
+	t.Helper()
+	require.NoError(t,
+		a.db.Exec("UPDATE shares SET expires_at = ? WHERE id = ?", when.UTC(), shareID).Error,
+	)
+}
+
+func (a *TestApp) BackdateFileExpiry(t *testing.T, fileID string, when time.Time) {
+	t.Helper()
+	require.NoError(t,
+		a.db.Exec("UPDATE files SET expires_at = ? WHERE id = ?", when.UTC(), fileID).Error,
+	)
+}
+
+func (a *TestApp) TrashFile(t *testing.T, token, bucketID, fileID string) {
+	t.Helper()
+	status := a.DoStatus(t, http.MethodPatch,
+		fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketID, fileID), token,
+		models.FilePatchBody{Status: string(models.FileStatusDeleted)})
+	require.Equal(t, http.StatusNoContent, status, "trash file %s", fileID)
+}
+
 func (a *TestApp) CreateFolder(t *testing.T, token, bucketID, name string) models.Folder {
 	t.Helper()
 	var folder models.Folder
@@ -471,10 +494,20 @@ func (a *TestApp) doPublicShare(
 
 func (a *TestApp) UploadTestFile(t *testing.T, token, bucketID, name string) string {
 	t.Helper()
+	return a.uploadFileInto(t, token, bucketID, nil, name)
+}
+
+func (a *TestApp) uploadFileInto(
+	t *testing.T,
+	token, bucketID string,
+	folderID *uuid.UUID,
+	name string,
+) string {
+	t.Helper()
 
 	var transfer models.FileTransferResponse
 	status := a.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/files", bucketID), token,
-		models.FileTransferBody{Name: name, Size: 5}, &transfer)
+		models.FileTransferBody{Name: name, Size: 5, FolderID: folderID}, &transfer)
 	require.Equal(t, http.StatusCreated, status, "create upload slot for %s", name)
 
 	var buf bytes.Buffer
