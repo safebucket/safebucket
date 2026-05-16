@@ -187,7 +187,7 @@ func (s InviteService) createUserFromInvite(
 	}
 
 	accessToken, err := h.NewAccessToken(
-		s.AuthConfig.JWTSecret,
+		s.AuthConfig.TokenSecret,
 		&newUser,
 		string(models.LocalProviderType),
 		sid,
@@ -198,7 +198,7 @@ func (s InviteService) createUserFromInvite(
 	}
 
 	refreshToken, err := h.NewRefreshToken(
-		s.AuthConfig.JWTSecret,
+		s.AuthConfig.TokenSecret,
 		&newUser,
 		string(models.LocalProviderType),
 		sid,

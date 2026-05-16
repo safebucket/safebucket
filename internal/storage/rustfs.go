@@ -226,7 +226,6 @@ func (s S3Storage) IsTrashMarkerPath(path string) (bool, string) {
 		return false, ""
 	}
 
-	// Remove "trash/" prefix
 	remainder := strings.TrimPrefix(path, trashPrefix)
 	parts := strings.SplitN(remainder, "/", 3)
 
@@ -235,21 +234,19 @@ func (s S3Storage) IsTrashMarkerPath(path string) (bool, string) {
 	}
 
 	bucketID := parts[0]
-	resourceType := parts[1] // "files" or "folders"
+	resourceType := parts[1]
 	resourceID := parts[2]
 
 	if resourceType != folderPath && resourceType != filePath {
 		return false, ""
 	}
 
-	// Reconstruct original path: buckets/{bucket-id}/{resource-id}
 	originalPath := bucketsPrefix + bucketID + "/" + resourceID
 	return true, originalPath
 }
 
 // getTrashMarkerPath converts buckets/{bucket-id}/{id} to trash/{bucket-id}/files|folders/{id}.
 func (s S3Storage) getTrashMarkerPath(objectPath string, model interface{}) string {
-	// Remove "buckets/" prefix
 	remainder := strings.TrimPrefix(objectPath, bucketsPrefix)
 
 	var resourceType string
@@ -270,7 +267,6 @@ func (s S3Storage) getTrashMarkerPath(objectPath string, model interface{}) stri
 	bucketID := parts[0]
 	resourceID := parts[1]
 
-	// Pattern: trash/{bucket-id}/files|folders/{resource-id}
 	return path.Join(trashPrefix, bucketID, resourceType, resourceID)
 }
 
@@ -285,7 +281,6 @@ func (s S3Storage) MarkAsTrashed(objectPath string, object interface{}) error {
 		}
 	}
 
-	// Create empty marker object to trigger lifecycle policy deletion
 	reader := bytes.NewReader([]byte{})
 	_, err := s.storage.PutObject(ctx, s.BucketName, markerPath, reader, 0, minio.PutObjectOptions{})
 	if err != nil {

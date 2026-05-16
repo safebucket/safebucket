@@ -206,7 +206,7 @@ func (s AuthService) Verify(
 	_ uuid.UUIDs,
 	body models.AuthVerifyBody,
 ) (any, error) {
-	claims, err := h.ParseToken(s.AuthConfig.JWTSecret, body.AccessToken, true)
+	claims, err := h.ParseToken(s.AuthConfig.TokenSecret, body.AccessToken, true)
 	if err != nil {
 		return models.UserClaims{}, errors.New("invalid access token")
 	}
@@ -219,7 +219,7 @@ func (s AuthService) Verify(
 }
 
 func (s AuthService) Refresh(logger *zap.Logger, refreshTokenStr string) (string, error) {
-	refreshToken, err := h.ParseRefreshToken(s.AuthConfig.JWTSecret, refreshTokenStr)
+	refreshToken, err := h.ParseRefreshToken(s.AuthConfig.TokenSecret, refreshTokenStr)
 	if err != nil {
 		return "", err
 	}
@@ -247,7 +247,7 @@ func (s AuthService) Refresh(logger *zap.Logger, refreshTokenStr string) (string
 	}
 
 	accessToken, err := h.NewAccessToken(
-		s.AuthConfig.JWTSecret,
+		s.AuthConfig.TokenSecret,
 		&user,
 		refreshToken.Provider,
 		refreshToken.SID,
@@ -423,7 +423,7 @@ func (s AuthService) VerifyMFALogin(
 	if claims.AudienceString() == configuration.AudienceMFAReset {
 		var restrictedToken string
 		restrictedToken, err = h.NewRestrictedAccessToken(
-			s.AuthConfig.JWTSecret,
+			s.AuthConfig.TokenSecret,
 			&user,
 			configuration.AudienceMFAReset,
 			true,
@@ -553,7 +553,7 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	accessToken, err := h.NewAccessToken(
-		s.AuthConfig.JWTSecret,
+		s.AuthConfig.TokenSecret,
 		&searchUser,
 		providerKey,
 		sid,
@@ -564,7 +564,7 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	refreshToken, err := h.NewRefreshToken(
-		s.AuthConfig.JWTSecret,
+		s.AuthConfig.TokenSecret,
 		&searchUser,
 		providerKey,
 		sid,

@@ -68,6 +68,6 @@ enable_ecs_exec    = true
 log_retention_days = 7
 
 # Application Configuration
-jwt_secret     = "your-jwt-secret-32-chars-minimum-here"
+token_secret   = "your-token-secret-32-chars-minimum-here"
 admin_password = "your-admin-password-here"
 smtp_sender    = "notifications@yourdomain.com"

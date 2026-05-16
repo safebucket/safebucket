@@ -160,7 +160,6 @@ func (s *GenericS3Storage) RemoveObjects(paths []string) error {
 		return nil
 	}
 
-	// Some S3 API enforces max 1000 objects per DeleteObjects call
 	for i := 0; i < len(paths); i += c.BulkActionsLimit {
 		end := i + c.BulkActionsLimit
 		if end > len(paths) {
@@ -192,14 +191,11 @@ func (s *GenericS3Storage) RemoveObjects(paths []string) error {
 	return nil
 }
 
-// IsTrashMarkerPath checks if the given path is a trash marker and returns the original object path.
-// Generic S3 providers lack lifecycle policies, so the trash worker triggers the expiration manually.
 func (s *GenericS3Storage) IsTrashMarkerPath(markerPath string) (bool, string) {
 	if !strings.HasPrefix(markerPath, trashPrefix) {
 		return false, ""
 	}
 
-	// Remove "trash/" prefix
 	remainder := strings.TrimPrefix(markerPath, trashPrefix)
 	parts := strings.SplitN(remainder, "/", 3)
 

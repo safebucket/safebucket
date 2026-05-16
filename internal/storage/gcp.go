@@ -146,7 +146,6 @@ func (g GCPStorage) IsTrashMarkerPath(path string) (bool, string) {
 		return false, ""
 	}
 
-	// Remove "trash/" prefix
 	remainder := strings.TrimPrefix(path, trashPrefix)
 	parts := strings.SplitN(remainder, "/", 3)
 
@@ -158,19 +157,16 @@ func (g GCPStorage) IsTrashMarkerPath(path string) (bool, string) {
 	resourceType := parts[1] // "files" or "folders"
 	resourceID := parts[2]
 
-	// Validate resource type
 	if resourceType != "files" && resourceType != "folders" {
 		return false, ""
 	}
 
-	// Reconstruct original path: buckets/{bucket-id}/{resource-id}
 	originalPath := bucketsPrefix + bucketID + "/" + resourceID
 	return true, originalPath
 }
 
 // getTrashMarkerPath converts buckets/{bucket-id}/{id} to trash/{bucket-id}/files|folders/{id}.
 func (g GCPStorage) getTrashMarkerPath(objectPath string, model interface{}) string {
-	// Remove "buckets/" prefix
 	remainder := strings.TrimPrefix(objectPath, bucketsPrefix)
 
 	var resourceType string
@@ -191,7 +187,6 @@ func (g GCPStorage) getTrashMarkerPath(objectPath string, model interface{}) str
 	bucketID := parts[0]
 	resourceID := parts[1]
 
-	// Pattern: trash/{bucket-id}/files|folders/{resource-id}
 	return path.Join(trashPrefix, bucketID, resourceType, resourceID)
 }
 
@@ -206,11 +201,9 @@ func (g GCPStorage) MarkAsTrashed(objectPath string, object interface{}) error {
 		}
 	}
 
-	// Create empty marker object to trigger lifecycle policy deletion
 	markerObj := g.storage.Bucket(g.BucketName).Object(markerPath)
 	writer := markerObj.NewWriter(ctx)
 
-	// Write empty content (0 bytes)
 	if _, err := writer.Write([]byte{}); err != nil {
 		return fmt.Errorf("failed to create marker: %w", err)
 	}
@@ -253,7 +246,6 @@ func (g GCPStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 
 	if attrs.Lifecycle.Rules != nil {
 		for i, rule := range attrs.Lifecycle.Rules {
-			// Check for trash expiration rule
 			if rule.Action.Type == trashRuleActionType &&
 				rule.Condition.MatchesPrefix != nil &&
 				len(rule.Condition.MatchesPrefix) > 0 &&
@@ -264,11 +256,9 @@ func (g GCPStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 					zap.L().Debug("Trash lifecycle policy already up-to-date",
 						zap.String("bucket", g.BucketName),
 						zap.Int("retentionDays", retentionDays))
-					// Don't return yet - need to check multipart rule too
 				}
 			}
 
-			// Check for multipart upload cleanup rule
 			if rule.Action.Type == multipartRuleActionType &&
 				rule.Condition.AgeInDays == 1 {
 				existingMultipartRuleIndex = i
@@ -300,7 +290,6 @@ func (g GCPStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	var newRules []gcs.LifecycleRule
 	if attrs.Lifecycle.Rules != nil {
 		for i, rule := range attrs.Lifecycle.Rules {
-			// Skip existing trash and multipart rules - we'll add updated versions
 			if i != existingTrashRuleIndex && i != existingMultipartRuleIndex {
 				newRules = append(newRules, rule)
 			}

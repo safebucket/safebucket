@@ -195,7 +195,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	}
 
 	restrictedToken, tokenErr := h.NewRestrictedAccessToken(
-		s.AuthConfig.JWTSecret,
+		s.AuthConfig.TokenSecret,
 		&userWithMFA,
 		configuration.AudienceMFAReset,
 		false,
@@ -328,7 +328,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	}
 
 	accessToken, err := h.NewAccessToken(
-		s.AuthConfig.JWTSecret,
+		s.AuthConfig.TokenSecret,
 		user,
 		string(models.LocalProviderType),
 		sid,
@@ -339,7 +339,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	}
 
 	refreshToken, err := h.NewRefreshToken(
-		s.AuthConfig.JWTSecret,
+		s.AuthConfig.TokenSecret,
 		user,
 		string(models.LocalProviderType),
 		sid,

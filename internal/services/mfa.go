@@ -337,7 +337,7 @@ func (s MFAService) VerifyDevice(
 	if claims.AudienceString() == configuration.AudienceMFAReset {
 		var restrictedToken string
 		restrictedToken, err = h.NewRestrictedAccessToken(
-			s.AuthConfig.JWTSecret,
+			s.AuthConfig.TokenSecret,
 			&user,
 			configuration.AudienceMFAReset,
 			true,

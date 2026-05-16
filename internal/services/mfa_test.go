@@ -49,7 +49,7 @@ func (m *MockNotifier) NotifyFromTemplate(_ string, _ string, _ string, _ any) e
 func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 	jwtSecret := "test-secret"
 	config := models.AuthConfig{
-		JWTSecret:        jwtSecret,
+		TokenSecret:      jwtSecret,
 		MFAEncryptionKey: "01234567890123456789012345678901",
 		WebURL:           "http://localhost:3000",
 	}
@@ -154,7 +154,7 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 	jwtSecret := "test-secret"
 	config := models.AuthConfig{
-		JWTSecret:        jwtSecret,
+		TokenSecret:      jwtSecret,
 		MFAEncryptionKey: "01234567890123456789012345678901",
 		WebURL:           "http://localhost:3000",
 	}
@@ -246,7 +246,7 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 	jwtSecret := "test-secret"
 	config := models.AuthConfig{
-		JWTSecret:        jwtSecret,
+		TokenSecret:      jwtSecret,
 		MFAEncryptionKey: "01234567890123456789012345678901",
 		WebURL:           "http://localhost:3000",
 	}
@@ -308,7 +308,7 @@ func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 	jwtSecret := "test-secret"
 	config := models.AuthConfig{
-		JWTSecret:        jwtSecret,
+		TokenSecret:      jwtSecret,
 		MFAEncryptionKey: "01234567890123456789012345678901",
 		WebURL:           "http://localhost:3000",
 	}
@@ -379,7 +379,7 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 	jwtSecret := "test-secret"
 	config := models.AuthConfig{
-		JWTSecret:        jwtSecret,
+		TokenSecret:      jwtSecret,
 		MFAEncryptionKey: "01234567890123456789012345678901",
 		WebURL:           "http://localhost:3000",
 	}
@@ -549,7 +549,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 func TestAddDevice_EdgeCases(t *testing.T) {
 	jwtSecret := "test-secret"
 	config := models.AuthConfig{
-		JWTSecret:        jwtSecret,
+		TokenSecret:      jwtSecret,
 		MFAEncryptionKey: "01234567890123456789012345678901",
 		WebURL:           "http://localhost:3000",
 	}

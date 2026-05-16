@@ -1,19 +1,19 @@
 # Secrets Manager for sensitive configuration
-resource "aws_secretsmanager_secret" "jwt_secret" {
-  name                    = "${var.project_name}-${var.environment}-jwt-secret"
-  description             = "JWT secret for SafeBucket application"
+resource "aws_secretsmanager_secret" "token_secret" {
+  name                    = "${var.project_name}-${var.environment}-token-secret"
+  description             = "Token signing secret for SafeBucket application"
   recovery_window_in_days = 0
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-jwt-secret"
+    Name        = "${var.project_name}-${var.environment}-token-secret"
     Environment = var.environment
     Project     = var.project_name
   }
 }
 
-resource "aws_secretsmanager_secret_version" "jwt_secret" {
-  secret_id     = aws_secretsmanager_secret.jwt_secret.id
-  secret_string = var.jwt_secret
+resource "aws_secretsmanager_secret_version" "token_secret" {
+  secret_id     = aws_secretsmanager_secret.token_secret.id
+  secret_string = var.token_secret
 }
 
 resource "aws_secretsmanager_secret" "admin_password" {

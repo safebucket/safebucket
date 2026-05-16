@@ -57,6 +57,7 @@ func TestMigrateDeprecatedKeys(t *testing.T) {
 		require.NoError(t, k.Set("database.max_open_conns", 100))
 		require.NoError(t, k.Set("app.enable_static_files", true))
 		require.NoError(t, k.Set("app.static_files_dir", "/var/www"))
+		require.NoError(t, k.Set("app.jwt_secret", "old-secret"))
 
 		migrateDeprecatedKeys(k)
 
@@ -65,6 +66,8 @@ func TestMigrateDeprecatedKeys(t *testing.T) {
 		assert.Equal(t, int64(100), k.Int64("database.postgres.max_open_conns"))
 		assert.True(t, k.Bool("app.static_files.enabled"))
 		assert.Equal(t, "/var/www", k.String("app.static_files.directory"))
+		assert.Equal(t, "old-secret", k.String("app.token_secret"))
+		assert.False(t, k.Exists("app.jwt_secret"))
 	})
 }
 

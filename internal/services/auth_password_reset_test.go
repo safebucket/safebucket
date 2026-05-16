@@ -31,7 +31,7 @@ func newPasswordResetTestService(t *testing.T) (AuthPasswordResetService, sqlmoc
 	svc := AuthPasswordResetService{
 		DB:             gormDB,
 		Cache:          &MockCache{},
-		AuthConfig:     models.AuthConfig{JWTSecret: "test-secret"},
+		AuthConfig:     models.AuthConfig{TokenSecret: "test-secret"},
 		ActivityLogger: &MockActivityLogger{},
 	}
 	cleanup := func() { _ = db.Close() }
@@ -215,7 +215,7 @@ func TestValidatePasswordReset_ExpiredChallenge(t *testing.T) {
 	svc := AuthPasswordResetService{
 		DB:             gormDB,
 		Cache:          &MockCache{},
-		AuthConfig:     models.AuthConfig{JWTSecret: "test-secret"},
+		AuthConfig:     models.AuthConfig{TokenSecret: "test-secret"},
 		ActivityLogger: &MockActivityLogger{},
 	}
 

@@ -381,7 +381,7 @@ func BuildAPIRouter(
 
 	r.Route("/api", func(apiRouter chi.Router) {
 		apiRouter.Use(m.CSRFGuard(config.App.AllowedOrigins))
-		apiRouter.Use(m.Authenticate(authConfig.JWTSecret, cache, configuration.RefreshTokenExpiry))
+		apiRouter.Use(m.Authenticate(authConfig.TokenSecret, cache, configuration.RefreshTokenExpiry))
 		apiRouter.Use(m.AudienceValidate)
 		apiRouter.Use(m.MFAValidate(db, authConfig.MFARequired))
 		apiRouter.Use(m.RateLimit(
@@ -451,7 +451,7 @@ func BuildAPIRouter(
 			Storage:           store,
 			ActivityLogger:    activityLogger,
 			Publisher:         publisher,
-			JWTSecret:         authConfig.JWTSecret,
+			JWTSecret:         authConfig.TokenSecret,
 			CookieSecureForce: authConfig.CookieSecureForce,
 		}.Routes())
 	})

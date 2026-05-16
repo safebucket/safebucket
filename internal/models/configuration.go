@@ -19,7 +19,7 @@ type AppConfiguration struct {
 	AdminPassword                    string                 `mapstructure:"admin_password"                      validate:"required"`
 	APIURL                           string                 `mapstructure:"api_url"                             validate:"required"`
 	AllowedOrigins                   []string               `mapstructure:"allowed_origins"                     validate:"required"`
-	JWTSecret                        string                 `mapstructure:"jwt_secret"                          validate:"required"`
+	TokenSecret                      string                 `mapstructure:"token_secret"                        validate:"required"`
 	MFAEncryptionKey                 string                 `mapstructure:"mfa_encryption_key"                  validate:"len=32"`
 	MFARequired                      bool                   `mapstructure:"mfa_required"`
 	AccessTokenExpiry                int                    `mapstructure:"access_token_expiry"                 validate:"gte=1,lte=1440"`
@@ -271,7 +271,7 @@ type StaticConfiguration struct {
 }
 
 type AuthConfig struct {
-	JWTSecret          string
+	TokenSecret        string
 	MFAEncryptionKey   string
 	MFARequired        bool
 	AccessTokenExpiry  int
@@ -283,7 +283,7 @@ type AuthConfig struct {
 
 func (c *AppConfiguration) GetAuthConfig() AuthConfig {
 	return AuthConfig{
-		JWTSecret:          c.JWTSecret,
+		TokenSecret:        c.TokenSecret,
 		MFAEncryptionKey:   c.MFAEncryptionKey,
 		MFARequired:        c.MFARequired,
 		AccessTokenExpiry:  c.AccessTokenExpiry,

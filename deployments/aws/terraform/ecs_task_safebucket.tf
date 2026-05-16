@@ -192,8 +192,8 @@ resource "aws_ecs_task_definition" "safebucket" {
 
       secrets = [
         {
-          name      = "APP__JWT_SECRET"
-          valueFrom = aws_secretsmanager_secret.jwt_secret.arn
+          name      = "APP__TOKEN_SECRET"
+          valueFrom = aws_secretsmanager_secret.token_secret.arn
         },
         {
           name      = "APP__ADMIN_PASSWORD"

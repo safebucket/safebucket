@@ -16,7 +16,6 @@ type signingClientOptions struct {
 	forcePathStyle   bool
 }
 
-// newSigningClient builds a *minio.Client targeted at the external storage endpoint.
 func newSigningClient(opts signingClientOptions) (*minio.Client, error) {
 	parsed, err := url.Parse(opts.externalEndpoint)
 	if err != nil {

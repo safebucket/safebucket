@@ -21,7 +21,7 @@ func HandleMFARequired(
 	user *models.User,
 ) (string, error) {
 	restrictedToken, err := h.NewRestrictedAccessToken(
-		authConfig.JWTSecret,
+		authConfig.TokenSecret,
 		user,
 		configuration.AudienceMFALogin,
 		false,
@@ -41,7 +41,7 @@ func GenerateTokens(
 	sid := uuid.New().String()
 
 	accessToken, err := h.NewAccessToken(
-		authConfig.JWTSecret,
+		authConfig.TokenSecret,
 		user,
 		string(models.LocalProviderType),
 		sid,
@@ -51,7 +51,7 @@ func GenerateTokens(
 	}
 
 	refreshToken, err := h.NewRefreshToken(
-		authConfig.JWTSecret,
+		authConfig.TokenSecret,
 		user,
 		string(models.LocalProviderType),
 		sid,

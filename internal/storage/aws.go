@@ -262,7 +262,6 @@ func (a AWSStorage) MarkAsTrashed(objectPath string, object interface{}) error {
 		}
 	}
 
-	// Create empty marker object to trigger lifecycle policy deletion
 	reader := bytes.NewReader([]byte{})
 	_, err := a.storage.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(a.BucketName),
@@ -367,7 +366,6 @@ func (a AWSStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	const trashRuleID = "safebucket-trash-retention"
 	const multipartRuleID = "safebucket-abort-incomplete-multipart"
 
-	// Validate retentionDays fits in int32 to prevent overflow
 	if retentionDays < 0 || retentionDays > math.MaxInt32 {
 		return fmt.Errorf("retentionDays %d is out of valid range (0-%d)", retentionDays, math.MaxInt32)
 	}

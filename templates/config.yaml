@@ -11,7 +11,7 @@ app:
     - http://127.0.0.1:3000
     - http://localhost:3000
   port: 8080
-  jwt_secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
+  token_secret: 6n5o+dFncio8gQA4jt7pUJrJz92WrqD25zXAa8ashxA
   access_token_expiry: 60
   refresh_token_expiry: 600
   mfa_token_expiry: 5

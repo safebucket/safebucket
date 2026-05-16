@@ -52,7 +52,7 @@ var _ activity.IActivityLogger = (*MockActivityLogger)(nil)
 func TestLogin_UserHasMFA_ConfigMFADisabled_RequiresMFA(t *testing.T) {
 	jwtSecret := "test-secret-key-for-jwt-signing"
 	config := models.AuthConfig{
-		JWTSecret:        jwtSecret,
+		TokenSecret:      jwtSecret,
 		MFAEncryptionKey: "01234567890123456789012345678901",
 		MFARequired:      false,
 		WebURL:           "http://localhost:3000",
@@ -140,7 +140,7 @@ func TestLogin_UserHasMFA_ConfigMFADisabled_RequiresMFA(t *testing.T) {
 func TestLogin_UserNoMFA_ConfigMFADisabled_NoMFARequired(t *testing.T) {
 	jwtSecret := "test-secret-key-for-jwt-signing"
 	config := models.AuthConfig{
-		JWTSecret:        jwtSecret,
+		TokenSecret:      jwtSecret,
 		MFAEncryptionKey: "01234567890123456789012345678901",
 		MFARequired:      false,
 		WebURL:           "http://localhost:3000",
@@ -220,7 +220,7 @@ func TestLogin_UserNoMFA_ConfigMFADisabled_NoMFARequired(t *testing.T) {
 func TestLogin_UserNoMFA_ConfigMFAEnabled_RequiresMFA(t *testing.T) {
 	jwtSecret := "test-secret-key-for-jwt-signing"
 	config := models.AuthConfig{
-		JWTSecret:        jwtSecret,
+		TokenSecret:      jwtSecret,
 		MFAEncryptionKey: "01234567890123456789012345678901",
 		MFARequired:      true,
 		WebURL:           "http://localhost:3000",

@@ -4,7 +4,7 @@ app:
   admin_password: admin-correct-horse-staple
   api_url: http://api.test
   allowed_origins: ["*"]
-  jwt_secret: integration-test-jwt-secret
+  token_secret: integration-test-token-secret
   mfa_encryption_key: "01234567890123456789012345678901"
   mfa_required: false
   access_token_expiry: 60

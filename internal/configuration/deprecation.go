@@ -18,6 +18,7 @@ func migrateDeprecatedKeys(k *koanf.Koanf) {
 		{"database.max_open_conns", "database.postgres.max_open_conns"},
 		{"app.enable_static_files", "app.static_files.enabled"},
 		{"app.static_files_dir", "app.static_files.directory"},
+		{"app.jwt_secret", "app.token_secret"},
 	}
 
 	for _, dk := range deprecatedKeys {

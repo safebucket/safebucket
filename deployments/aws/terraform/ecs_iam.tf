@@ -41,7 +41,7 @@ resource "aws_iam_policy" "ecs_secrets_policy" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = [
-          aws_secretsmanager_secret.jwt_secret.arn,
+          aws_secretsmanager_secret.token_secret.arn,
           aws_secretsmanager_secret.admin_password.arn,
           aws_secretsmanager_secret.db_password.arn,
           aws_secretsmanager_secret.redis_auth_token.arn

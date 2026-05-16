@@ -320,8 +320,8 @@ variable "log_retention_days" {
 }
 
 # Application Configuration
-variable "jwt_secret" {
-  description = "JWT secret for application authentication"
+variable "token_secret" {
+  description = "Token signing secret for application authentication"
   type        = string
   sensitive   = true
 }
