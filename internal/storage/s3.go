@@ -225,7 +225,7 @@ func (s *GenericS3Storage) UnmarkAsTrashed(_ string, _ any) error {
 // EnsureTrashLifecyclePolicy is a no-op for generic S3 providers.
 // Most S3-compatible providers (Storj, Hetzner, Backblaze B2, Garage) do not support lifecycle policies.
 func (s *GenericS3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
-	zap.L().Warn("S3 provider does not support lifecycle policies - trash cleanup must be handled manually",
+	zap.L().Warn("S3 provider does not support lifecycle policies - trash cleanup is handled by async workers",
 		zap.String("bucket", s.BucketName),
 		zap.Int("configuredRetentionDays", retentionDays))
 	return nil
