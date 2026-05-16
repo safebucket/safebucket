@@ -30,7 +30,7 @@ type PublicShareService struct {
 	Storage           storage.IStorage
 	ActivityLogger    activity.IActivityLogger
 	Publisher         messaging.IPublisher
-	JWTSecret         string
+	TokenSecret       string
 	CookieSecureForce bool
 }
 
@@ -44,7 +44,7 @@ func (s PublicShareService) Routes() chi.Router {
 			Post("/auth", handlers.ShareAuthHandler(s.CookieSecureForce, s.AuthenticateShare))
 
 		r.Group(func(r chi.Router) {
-			r.Use(m.ValidateShareToken(s.JWTSecret))
+			r.Use(m.ValidateShareToken(s.TokenSecret))
 
 			r.Get("/", handlers.ShareGetOneHandler(s.ListShareItems))
 			r.Get("/files/{id1}", handlers.ShareGetOneHandler(s.DownloadShareFile))
@@ -73,7 +73,7 @@ func (s PublicShareService) AuthenticateShare(
 		return handlers.AuthFlowResult{}, apierrors.NewAPIError(401, "SHARE_PASSWORD_INVALID")
 	}
 
-	token, err := h.NewShareAccessToken(s.JWTSecret, share.ID)
+	token, err := h.NewShareAccessToken(s.TokenSecret, share.ID)
 	if err != nil {
 		logger.Error("Failed to create share access token", zap.Error(err))
 		return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")

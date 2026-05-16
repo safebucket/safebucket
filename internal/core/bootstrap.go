@@ -451,7 +451,7 @@ func BuildAPIRouter(
 			Storage:           store,
 			ActivityLogger:    activityLogger,
 			Publisher:         publisher,
-			JWTSecret:         authConfig.TokenSecret,
+			TokenSecret:       authConfig.TokenSecret,
 			CookieSecureForce: authConfig.CookieSecureForce,
 		}.Routes())
 	})

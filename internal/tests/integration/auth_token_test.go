@@ -47,7 +47,7 @@ func TestAuthTokenValidation(t *testing.T) {
 			})
 
 			t.Run("expired token is rejected", func(t *testing.T) {
-				expired := craftExpiredToken(t, app.Config.App.JWTSecret, user.ID, user.Email, user.Role)
+				expired := craftExpiredToken(t, app.Config.App.TokenSecret, user.ID, user.Email, user.Role)
 				status := app.DoStatus(t, http.MethodGet, probeEndpoint, expired, nil)
 				assert.Equal(t, http.StatusForbidden, status)
 			})
@@ -63,7 +63,7 @@ func TestAuthTokenValidation(t *testing.T) {
 			})
 
 			t.Run("restricted-audience token is rejected on access routes", func(t *testing.T) {
-				mfaToken := craftTokenWithAudience(t, app.Config.App.JWTSecret,
+				mfaToken := craftTokenWithAudience(t, app.Config.App.TokenSecret,
 					user.ID, user.Email, user.Role, configuration.AudienceMFALogin, nil)
 				status := app.DoStatus(t, http.MethodGet, probeEndpoint, mfaToken, nil)
 				assert.Equal(t, http.StatusForbidden, status)
@@ -142,7 +142,7 @@ func TestAuthPasswordReset(t *testing.T) {
 				require.Equal(t, http.StatusCreated, status)
 
 				challengeUUID := uuid.MustParse(challengeID)
-				wrongAudToken := craftTokenWithAudience(t, app.Config.App.JWTSecret,
+				wrongAudToken := craftTokenWithAudience(t, app.Config.App.TokenSecret,
 					user.ID, user.Email, user.Role, configuration.AudienceMFALogin, &challengeUUID)
 
 				status = app.DoStatus(t, http.MethodPost,
