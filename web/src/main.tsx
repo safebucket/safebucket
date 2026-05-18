@@ -13,7 +13,7 @@ import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 import "./lib/i18n";
 import "./styles.css";
 import { getCurrentSessionWithRefresh } from "@/lib/auth-service.ts";
-import {configQueryOptions} from "@/queries/config.ts";
+import { configQueryOptions } from "@/queries/config.ts";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
