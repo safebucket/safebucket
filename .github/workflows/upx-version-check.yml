@@ -42,7 +42,7 @@ jobs:
 
       - name: Open or update PR
         if: steps.versions.outputs.update_needed == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: upx-update-${{ steps.versions.outputs.latest }}
