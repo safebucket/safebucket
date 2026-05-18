@@ -13,6 +13,7 @@ import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 import "./lib/i18n";
 import "./styles.css";
 import { getCurrentSessionWithRefresh } from "@/lib/auth-service.ts";
+import {configQueryOptions} from "@/queries/config.ts";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +43,7 @@ declare module "@tanstack/react-router" {
 }
 
 async function initializeApp() {
+  await queryClient.ensureQueryData(configQueryOptions());
   const session = await getCurrentSessionWithRefresh();
 
   router.update({
