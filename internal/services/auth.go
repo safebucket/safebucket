@@ -306,7 +306,7 @@ func (s AuthService) logoutHandler() http.HandlerFunc {
 		logger := m.GetLogger(r)
 		handlers.ClearAuthCookies(w)
 
-		refreshCookie, cookieErr := r.Cookie("safebucket_refresh_token")
+		refreshCookie, cookieErr := r.Cookie(configuration.CookieRefreshToken)
 		if cookieErr != nil {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 			return
