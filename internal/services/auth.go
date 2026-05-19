@@ -304,20 +304,32 @@ func (s AuthService) refreshHandler() http.HandlerFunc {
 func (s AuthService) logoutHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger := m.GetLogger(r)
-		claims, _ := h.GetUserClaims(r.Context())
-		ids, ok := h.ParseUUIDs(w, r)
-		if !ok {
+		handlers.ClearAuthCookies(w)
+
+		refreshCookie, cookieErr := r.Cookie("safebucket_refresh_token")
+		if cookieErr != nil {
+			h.RespondWithJSON(w, http.StatusNoContent, nil)
 			return
 		}
 
-		err := s.Logout(logger, claims, ids)
-		handlers.ClearAuthCookies(w)
+		claims, err := h.ParseToken(s.AuthConfig.TokenSecret, refreshCookie.Value, false)
+		if err != nil {
+			h.RespondWithJSON(w, http.StatusNoContent, nil)
+			return
+		}
+
+		if claims.AudienceString() != configuration.AudienceRefreshToken {
+			h.RespondWithJSON(w, http.StatusBadRequest, []string{"INVALID_AUDIENCE"})
+			return
+		}
+
+		err = s.Logout(logger, claims)
 		if err != nil {
 			var apiErr *apierrors.APIError
 			if errors.As(err, &apiErr) {
 				h.RespondWithError(w, apiErr.Code, []string{err.Error()})
 			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, []string{err.Error()})
+				h.RespondWithError(w, http.StatusInternalServerError, []string{"INTERNAL_SERVER_ERROR"})
 			}
 			return
 		}
@@ -595,7 +607,6 @@ func (s AuthService) OpenIDCallback(
 func (s AuthService) Logout(
 	logger *zap.Logger,
 	claims models.UserClaims,
-	_ uuid.UUIDs,
 ) error {
 	if claims.SID == "" {
 		return apierrors.NewAPIError(401, "SESSION_REVOKED")
