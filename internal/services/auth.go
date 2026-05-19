@@ -312,14 +312,9 @@ func (s AuthService) logoutHandler() http.HandlerFunc {
 			return
 		}
 
-		claims, err := h.ParseToken(s.AuthConfig.TokenSecret, refreshCookie.Value, false)
+		claims, err := h.ParseRefreshToken(s.AuthConfig.TokenSecret, refreshCookie.Value)
 		if err != nil {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
-			return
-		}
-
-		if claims.AudienceString() != configuration.AudienceRefreshToken {
-			h.RespondWithJSON(w, http.StatusBadRequest, []string{"INVALID_AUDIENCE"})
 			return
 		}
 
