@@ -1,5 +1,5 @@
 import { getApiUrl } from "@/hooks/useConfig.ts";
-import { logout as authLogout, refreshAccessToken } from "@/lib/auth-service";
+import { refreshAccessToken } from "@/lib/auth-service";
 
 type RequestOptions = {
   method?: string;
@@ -72,7 +72,8 @@ export async function fetchApi<T>(
       if (refreshed) {
         return fetchApi<T>(url, options, false);
       } else {
-        await authLogout();
+        await api.post("/auth/logout");
+        window.location.href = "/auth/login";
       }
     }
     throw new Error(errorCode);

@@ -4,12 +4,12 @@ import { useRouteContext, useRouter } from "@tanstack/react-router";
 import type { ILoginForm, Session } from "@/components/auth-view/types/session";
 import type { LoginResult } from "@/lib/auth-service";
 import {
-  logout as authLogout,
   verifyMFALogin as authVerifyMFA,
   loginWithCredentials,
   loginWithProvider,
 } from "@/lib/auth-service";
 import { meQueryOptions } from "@/queries/me";
+import { api } from "@/lib/api.ts";
 
 export function useSession(): Session | null {
   const context = useRouteContext({ from: "__root__" });
@@ -79,7 +79,7 @@ export function useLogout() {
   const { queryClient } = useRouteContext({ from: "__root__" });
 
   return useCallback(async () => {
-    await authLogout();
+    await api.post("/auth/logout");
 
     queryClient.removeQueries({ queryKey: ["auth", "me"] });
     router.update({

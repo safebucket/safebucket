@@ -55,10 +55,6 @@ export const verifyMFALogin = async (
   }
 };
 
-export const logout = async (): Promise<void> => {
-  await api.post("/auth/logout").catch(() => {});
-};
-
 let refreshPromise: Promise<boolean> | null = null;
 
 export const refreshAccessToken = async (): Promise<boolean> => {
