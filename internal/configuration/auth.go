@@ -9,6 +9,7 @@ const UUIDv4Pattern = `[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0
 
 var AuthExcludedExactPaths = map[string]string{
 	"/api/v1/auth/login":          http.MethodPost,
+	"/api/v1/auth/logout":         http.MethodPost,
 	"/api/v1/auth/verify":         http.MethodPost,
 	"/api/v1/auth/refresh":        http.MethodPost,
 	"/api/v1/auth/reset-password": http.MethodPost,
