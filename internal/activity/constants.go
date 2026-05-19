@@ -1,38 +1,45 @@
 package activity
 
-const (
-	BucketCreated                string = "BUCKET_CREATED"
-	BucketDeleted                string = "BUCKET_DELETED"
-	FileUploaded                 string = "FILE_UPLOADED"
-	FileDownloaded               string = "FILE_DOWNLOADED"
-	FileDeleted                  string = "FILE_DELETED"
-	FileExpired                  string = "FILE_EXPIRED"
-	FileTrashed                  string = "FILE_TRASHED"
-	FileRestored                 string = "FILE_RESTORED"
-	FolderCreated                string = "FOLDER_CREATED"
-	FolderUpdated                string = "FOLDER_UPDATED"
-	FolderTrashed                string = "FOLDER_TRASHED"
-	FolderRestored               string = "FOLDER_RESTORED"
-	FolderDeleted                string = "FOLDER_DELETED"
-	BucketMemberCreated          string = "BUCKET_MEMBER_CREATED"
-	BucketMemberUpdated          string = "BUCKET_MEMBER_UPDATED"
-	BucketMemberDeleted          string = "BUCKET_MEMBER_DELETED"
-	UserLoggedIn                 string = "USER_LOGGED_IN"
-	PasswordResetCodeVerified    string = "PASSWORD_RESET_CODE_VERIFIED"
-	PasswordResetCompleted       string = "PASSWORD_RESET_COMPLETED"
-	InviteAccepted               string = "INVITE_ACCEPTED"
-	InviteChallengeAttemptFailed string = "INVITE_CHALLENGE_ATTEMPT_FAILED"
-	InviteChallengeLocked        string = "INVITE_CHALLENGE_LOCKED"
-	MFADeviceEnrolled            string = "MFA_DEVICE_ENROLLED"
-	MFADeviceVerified            string = "MFA_DEVICE_VERIFIED"
-	MFADeviceUpdated             string = "MFA_DEVICE_UPDATED"
-	MFADeviceRemoved             string = "MFA_DEVICE_REMOVED"
-	SessionRevoked               string = "SESSION_REVOKED"
-	OtherSessionsRevoked         string = "OTHER_SESSIONS_REVOKED"
-	ShareCreated                 string = "SHARE_CREATED"
-	ShareDeleted                 string = "SHARE_DELETED"
-	ShareExpired                 string = "SHARE_EXPIRED"
-	ShareMaxViewsReached         string = "SHARE_MAX_VIEWS_REACHED"
-	ShareFileDownloaded          string = "SHARE_FILE_DOWNLOADED"
-	ShareFileUploaded            string = "SHARE_FILE_UPLOADED"
+var ValidActions []string
+
+func defineAction(name string) string {
+	ValidActions = append(ValidActions, name)
+	return name
+}
+
+var (
+	BucketCreated                = defineAction("BUCKET_CREATED")
+	BucketDeleted                = defineAction("BUCKET_DELETED")
+	FileUploaded                 = defineAction("FILE_UPLOADED")
+	FileDownloaded               = defineAction("FILE_DOWNLOADED")
+	FileDeleted                  = defineAction("FILE_DELETED")
+	FileExpired                  = defineAction("FILE_EXPIRED")
+	FileTrashed                  = defineAction("FILE_TRASHED")
+	FileRestored                 = defineAction("FILE_RESTORED")
+	FolderCreated                = defineAction("FOLDER_CREATED")
+	FolderUpdated                = defineAction("FOLDER_UPDATED")
+	FolderTrashed                = defineAction("FOLDER_TRASHED")
+	FolderRestored               = defineAction("FOLDER_RESTORED")
+	FolderDeleted                = defineAction("FOLDER_DELETED")
+	BucketMemberCreated          = defineAction("BUCKET_MEMBER_CREATED")
+	BucketMemberUpdated          = defineAction("BUCKET_MEMBER_UPDATED")
+	BucketMemberDeleted          = defineAction("BUCKET_MEMBER_DELETED")
+	UserLoggedIn                 = defineAction("USER_LOGGED_IN")
+	PasswordResetCodeVerified    = defineAction("PASSWORD_RESET_CODE_VERIFIED")
+	PasswordResetCompleted       = defineAction("PASSWORD_RESET_COMPLETED")
+	InviteAccepted               = defineAction("INVITE_ACCEPTED")
+	InviteChallengeAttemptFailed = defineAction("INVITE_CHALLENGE_ATTEMPT_FAILED")
+	InviteChallengeLocked        = defineAction("INVITE_CHALLENGE_LOCKED")
+	MFADeviceEnrolled            = defineAction("MFA_DEVICE_ENROLLED")
+	MFADeviceVerified            = defineAction("MFA_DEVICE_VERIFIED")
+	MFADeviceUpdated             = defineAction("MFA_DEVICE_UPDATED")
+	MFADeviceRemoved             = defineAction("MFA_DEVICE_REMOVED")
+	SessionRevoked               = defineAction("SESSION_REVOKED")
+	OtherSessionsRevoked         = defineAction("OTHER_SESSIONS_REVOKED")
+	ShareCreated                 = defineAction("SHARE_CREATED")
+	ShareDeleted                 = defineAction("SHARE_DELETED")
+	ShareExpired                 = defineAction("SHARE_EXPIRED")
+	ShareMaxViewsReached         = defineAction("SHARE_MAX_VIEWS_REACHED")
+	ShareFileDownloaded          = defineAction("SHARE_FILE_DOWNLOADED")
+	ShareFileUploaded            = defineAction("SHARE_FILE_UPLOADED")
 )

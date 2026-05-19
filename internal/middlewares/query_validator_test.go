@@ -54,11 +54,14 @@ type NoJSONTagParams struct {
 
 type UnsupportedTypeParams struct {
 	ValidField   string
-	SliceField   []string
 	MapField     map[string]string
 	StructField  struct{ Name string }
 	UintField    uint
 	ComplexField complex64
+}
+
+type SliceParams struct {
+	SliceField []string
 }
 
 func runMiddleware[T any](_ *testing.T, queryString string) (*httptest.ResponseRecorder, context.Context) {
@@ -303,17 +306,36 @@ func TestValidateQueryJSONTagParsing(t *testing.T) {
 func TestValidateQueryUnsupportedTypes(t *testing.T) {
 	t.Run("Unsupported types are silently skipped", func(t *testing.T) {
 		recorder, ctx := runMiddleware[UnsupportedTypeParams](t,
-			"?ValidField=test&SliceField=a,b,c&MapField=key:value&UintField=42&ComplexField=1+2i")
+			"?ValidField=test&MapField=key:value&UintField=42&ComplexField=1+2i")
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
 		params, err := helpers.GetQueryParams[UnsupportedTypeParams](ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, "test", params.ValidField)
-		assert.Nil(t, params.SliceField)
 		assert.Nil(t, params.MapField)
 		assert.Equal(t, "", params.StructField.Name)
 		assert.Equal(t, uint(0), params.UintField)
 		assert.Equal(t, complex64(0), params.ComplexField)
+	})
+}
+
+func TestValidateQueryStringSlice(t *testing.T) {
+	t.Run("Comma-separated values", func(t *testing.T) {
+		recorder, ctx := runMiddleware[SliceParams](t, "?SliceField=a,b,c")
+		assert.Equal(t, http.StatusOK, recorder.Code)
+
+		params, err := helpers.GetQueryParams[SliceParams](ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b", "c"}, params.SliceField)
+	})
+
+	t.Run("Repeated params", func(t *testing.T) {
+		recorder, ctx := runMiddleware[SliceParams](t, "?SliceField=a&SliceField=b&SliceField=c,d")
+		assert.Equal(t, http.StatusOK, recorder.Code)
+
+		params, err := helpers.GetQueryParams[SliceParams](ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a", "b", "c", "d"}, params.SliceField)
 	})
 }
 

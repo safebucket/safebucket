@@ -23,6 +23,7 @@ import (
 type (
 	CreateTargetFunc[In any, Out any]         func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
 	ListTargetFunc[Out any]                   func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
+	ListWithQueryTargetFunc[Q any, Out any]   func(*zap.Logger, models.UserClaims, uuid.UUIDs, Q) []Out
 	GetOneTargetFunc[Out any]                 func(*zap.Logger, models.UserClaims, uuid.UUIDs) (Out, error)
 	GetOneWithQueryTargetFunc[Q any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, Q) (Out, error)
 	GetOneListTargetFunc[Out any]             func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
@@ -108,6 +109,34 @@ func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
 		claims, _ := h.GetUserClaims(r.Context())
 		logger := m.GetLogger(r)
 		records := getList(logger, claims, ids)
+		page := models.Page[Out]{Data: records}
+		h.RespondWithJSON(w, http.StatusOK, page)
+	}
+}
+
+func GetListWithQueryHandler[Q any, Out any](getList ListWithQueryTargetFunc[Q, Out]) http.HandlerFunc {
+	name := spanName(getList)
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), name)
+		defer span.End()
+		r = r.WithContext(ctx)
+
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+
+		claims, _ := h.GetUserClaims(r.Context())
+		logger := m.GetLogger(r)
+
+		query, ok := r.Context().Value(models.QueryKey{}).(Q)
+		if !ok {
+			logger.Error("Failed to extract query params from context")
+			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
+			return
+		}
+
+		records := getList(logger, claims, ids, query)
 		page := models.Page[Out]{Data: records}
 		h.RespondWithJSON(w, http.StatusOK, page)
 	}

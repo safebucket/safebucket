@@ -4,6 +4,11 @@ type AdminStatsQueryParams struct {
 	Days int `json:"days" validate:"omitempty,oneof=30 90 180"`
 }
 
+type AdminActivityQueryParams struct {
+	Action []string `json:"action" validate:"omitempty,dive,activity_action"`
+	Type   []string `json:"type"   validate:"omitempty,dive,oneof=bucket file folder user mfa_device share"`
+}
+
 type AdminStatsResponse struct {
 	TotalUsers        int64             `json:"total_users"`
 	TotalBuckets      int64             `json:"total_buckets"`

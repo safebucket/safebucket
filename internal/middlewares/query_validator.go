@@ -6,9 +6,12 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/safebucket/safebucket/internal/activity"
 	"go.uber.org/zap"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -29,6 +32,10 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 		}
 
 		validate := validator.New()
+		_ = validate.RegisterValidation("activity_action", func(fl validator.FieldLevel) bool {
+			return slices.Contains(activity.ValidActions, fl.Field().String())
+		})
+
 		err = validate.Struct(data)
 		if err != nil {
 			var strErrors []string
@@ -51,7 +58,8 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 }
 
 // parseQueryParams uses reflection to parse URL query parameters into a struct.
-// It supports string, int, int32, int64, bool, and pointer types.
+// It supports string, int, int32, int64, bool, pointer, and []string types.
+// []string fields accept repeated params (?k=a&k=b) and/or comma-separated values (?k=a,b).
 func parseQueryParams(queryParams url.Values, data interface{}) error {
 	val := reflect.ValueOf(data).Elem()
 	typ := val.Type()
@@ -65,16 +73,46 @@ func parseQueryParams(queryParams url.Values, data interface{}) error {
 			queryParamName = fieldType.Name
 		}
 
-		queryValue := queryParams.Get(queryParamName)
-		if queryValue == "" {
+		values, present := queryParams[queryParamName]
+		if !present || len(values) == 0 {
 			continue
 		}
 
-		if err := setFieldValue(field, queryValue); err != nil {
+		if field.Kind() == reflect.Slice && field.Type().Elem().Kind() == reflect.String {
+			if err := setStringSliceField(field, values); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if values[0] == "" {
+			continue
+		}
+
+		if err := setFieldValue(field, values[0]); err != nil {
 			return err
 		}
 	}
 
+	return nil
+}
+
+func setStringSliceField(field reflect.Value, values []string) error {
+	if !field.CanSet() {
+		return nil
+	}
+
+	expanded := make([]string, 0, len(values))
+	for _, v := range values {
+		for _, part := range strings.Split(v, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				expanded = append(expanded, part)
+			}
+		}
+	}
+
+	field.Set(reflect.ValueOf(expanded))
 	return nil
 }
 

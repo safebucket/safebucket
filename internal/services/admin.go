@@ -29,7 +29,8 @@ func (s AdminService) Routes() chi.Router {
 		Get("/stats", handlers.GetOneWithQueryHandler(s.GetStats))
 
 	r.With(m.AuthorizeRole(models.RoleAdmin)).
-		Get("/activity", handlers.GetListHandler(s.GetActivity))
+		With(m.ValidateQuery[models.AdminActivityQueryParams]).
+		Get("/activity", handlers.GetListWithQueryHandler(s.GetActivity))
 
 	r.With(m.AuthorizeRole(models.RoleAdmin)).
 		Get("/buckets", handlers.GetListHandler(s.GetBucketList))
@@ -84,16 +85,25 @@ func (s AdminService) GetActivity(
 	_ *zap.Logger,
 	_ models.UserClaims,
 	_ uuid.UUIDs,
+	query models.AdminActivityQueryParams,
 ) []map[string]interface{} {
-	searchCriteria := map[string][]string{
-		"object_type": {
+	searchCriteria := map[string][]string{}
+
+	if len(query.Type) > 0 {
+		searchCriteria["object_type"] = query.Type
+	} else {
+		searchCriteria["object_type"] = []string{
 			rbac.ResourceBucket.String(),
 			rbac.ResourceFile.String(),
 			rbac.ResourceFolder.String(),
 			rbac.ResourceUser.String(),
 			rbac.ResourceMFADevice.String(),
 			rbac.ResourceShare.String(),
-		},
+		}
+	}
+
+	if len(query.Action) > 0 {
+		searchCriteria["action"] = query.Action
 	}
 
 	activities, err := s.ActivityLogger.Search(searchCriteria)
