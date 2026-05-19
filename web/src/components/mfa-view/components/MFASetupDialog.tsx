@@ -23,9 +23,14 @@ import { useRefreshSession } from "@/hooks/useAuth";
 interface MFASetupDialogProps {
   open: boolean;
   onClose: () => void;
+  requirePassword: boolean;
 }
 
-export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
+export function MFASetupDialog({
+  open,
+  onClose,
+  requirePassword,
+}: MFASetupDialogProps) {
   const { t } = useTranslation();
   const refreshSession = useRefreshSession();
   const {
@@ -44,7 +49,7 @@ export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
     goBack,
     verifyCode,
     reset,
-  } = useMFASetup();
+  } = useMFASetup(!requirePassword);
 
   useEffect(() => {
     if (!open) {
@@ -89,17 +94,19 @@ export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">{t("auth.password")}</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t("auth.mfa.password_placeholder")}
-                  disabled={isLoading}
-                />
-              </div>
+              {requirePassword && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">{t("auth.password")}</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t("auth.mfa.password_placeholder")}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
             </div>
 
             <DialogFooter className="sm:justify-between">
@@ -108,7 +115,11 @@ export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
               </Button>
               <Button
                 onClick={startSetup}
-                disabled={!deviceName.trim() || !password || isLoading}
+                disabled={
+                  !deviceName.trim() ||
+                  (requirePassword && !password) ||
+                  isLoading
+                }
               >
                 {isLoading ? t("common.loading") : t("auth.continue")}
               </Button>

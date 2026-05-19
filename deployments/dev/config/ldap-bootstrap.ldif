@@ -1,0 +1,30 @@
+dn: dc=example,dc=org
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: SafeBucket Dev
+dc: example
+
+dn: ou=people,dc=example,dc=org
+objectClass: organizationalUnit
+ou: people
+
+dn: uid=jdoe,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: jdoe
+cn: Jane Doe
+sn: Doe
+givenName: Jane
+displayName: Jane Doe
+mail: jdoe@example.org
+userPassword: TestPassword123!
+
+dn: uid=asmith,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: asmith
+cn: Alex Smith
+sn: Smith
+givenName: Alex
+displayName: Alex Smith
+mail: alex.smith@example.org
+userPassword: TestPassword123!

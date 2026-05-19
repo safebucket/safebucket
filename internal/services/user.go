@@ -127,13 +127,14 @@ func (s UserService) UpdateUser(
 		LastName:  body.LastName,
 	}
 
-	if body.OldPassword != "" && body.NewPassword != "" {
-		user.ProviderType = models.LocalProviderType
-		user.ProviderKey = string(models.LocalProviderType)
+	result := s.DB.Where(user, "id").Find(&user)
+	if result.RowsAffected == 0 {
+		return errors.New("USER_NOT_FOUND")
+	}
 
-		result := s.DB.Where(user, "id", "provider_type", "provider_key").Find(&user)
-		if result.RowsAffected == 0 {
-			return errors.New("USER_NOT_FOUND")
+	if body.OldPassword != "" && body.NewPassword != "" {
+		if user.ProviderType != models.LocalProviderType {
+			return apierrors.NewAPIError(403, apierrors.CodePasswordChangeNotAllowed)
 		}
 
 		match, err := argon2id.ComparePasswordAndHash(body.OldPassword, user.HashedPassword)
@@ -150,14 +151,9 @@ func (s UserService) UpdateUser(
 		}
 
 		updatedUser.HashedPassword = hash
-	} else {
-		result := s.DB.Where(user, "id").Find(&user)
-		if result.RowsAffected == 0 {
-			return errors.New("USER_NOT_FOUND")
-		}
 	}
 
-	result := s.DB.Model(&user).Updates(updatedUser)
+	result = s.DB.Model(&user).Updates(updatedUser)
 	if result.RowsAffected == 0 {
 		return errors.New("USER_NOT_FOUND")
 	}

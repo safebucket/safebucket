@@ -55,7 +55,7 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
   const handleContinue = (data: ISmartInviteEnrollmentData) => {
     setError(null);
     const provider = checkEmailDomain(data.email, providers);
-    if (provider) {
+    if (provider && provider.type === ProviderType.OIDC) {
       loginOAuth(provider.id);
     } else {
       api_createChallenge(invitationId, data.email)
@@ -101,7 +101,9 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
           providers={providers.filter((p) => p.type === ProviderType.OIDC)}
         />
 
-        {providers.find((p) => p.type === ProviderType.LOCAL) && (
+        {providers.some(
+          (p) => p.type === ProviderType.LOCAL || p.type === ProviderType.LDAP,
+        ) && (
           <>
             {providers.filter((p) => p.type === ProviderType.OIDC).length >
               0 && (

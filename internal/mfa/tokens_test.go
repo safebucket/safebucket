@@ -96,7 +96,7 @@ func TestGenerateTokens(t *testing.T) {
 		user := newMFATestUser()
 		cfg := newMFATestConfig()
 
-		sid, tokens, err := GenerateTokens(cfg, user)
+		sid, tokens, err := GenerateTokens(cfg, user, "local")
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, sid)
@@ -108,7 +108,7 @@ func TestGenerateTokens(t *testing.T) {
 		user := newMFATestUser()
 		cfg := newMFATestConfig()
 
-		_, tokens, err := GenerateTokens(cfg, user)
+		_, tokens, err := GenerateTokens(cfg, user, "local")
 		require.NoError(t, err)
 
 		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, "Bearer "+tokens.AccessToken, true)
@@ -120,7 +120,7 @@ func TestGenerateTokens(t *testing.T) {
 		user := newMFATestUser()
 		cfg := newMFATestConfig()
 
-		_, tokens, err := GenerateTokens(cfg, user)
+		_, tokens, err := GenerateTokens(cfg, user, "local")
 		require.NoError(t, err)
 
 		claims, parseErr := helpers.ParseRefreshToken(cfg.TokenSecret, tokens.RefreshToken)
@@ -132,7 +132,7 @@ func TestGenerateTokens(t *testing.T) {
 		user := newMFATestUser()
 		cfg := newMFATestConfig()
 
-		sid, tokens, err := GenerateTokens(cfg, user)
+		sid, tokens, err := GenerateTokens(cfg, user, "local")
 		require.NoError(t, err)
 
 		accessClaims, err := helpers.ParseToken(cfg.TokenSecret, "Bearer "+tokens.AccessToken, true)
@@ -148,7 +148,7 @@ func TestGenerateTokens(t *testing.T) {
 		user := newMFATestUser()
 		cfg := newMFATestConfig()
 
-		_, tokens, err := GenerateTokens(cfg, user)
+		_, tokens, err := GenerateTokens(cfg, user, "local")
 		require.NoError(t, err)
 
 		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, "Bearer "+tokens.AccessToken, true)
@@ -162,8 +162,8 @@ func TestGenerateTokens(t *testing.T) {
 		user := newMFATestUser()
 		cfg := newMFATestConfig()
 
-		sid1, tokens1, err1 := GenerateTokens(cfg, user)
-		sid2, tokens2, err2 := GenerateTokens(cfg, user)
+		sid1, tokens1, err1 := GenerateTokens(cfg, user, "local")
+		sid2, tokens2, err2 := GenerateTokens(cfg, user, "local")
 		require.NoError(t, err1)
 		require.NoError(t, err2)
 
@@ -176,7 +176,7 @@ func TestGenerateTokens(t *testing.T) {
 		user := newMFATestUser()
 		cfg := newMFATestConfig()
 
-		_, tokens, err := GenerateTokens(cfg, user)
+		_, tokens, err := GenerateTokens(cfg, user, "local")
 		require.NoError(t, err)
 
 		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, tokens.AccessToken, false)

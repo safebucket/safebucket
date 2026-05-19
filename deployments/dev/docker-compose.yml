@@ -130,6 +130,23 @@ services:
       - "nats_data:/data"
       - ./config/nats.conf:/etc/nats/nats.conf
 
+  ldap:
+    profiles: [ ldap ]
+    container_name: ldap
+    image: bitnami/openldap:2.6
+    environment:
+      LDAP_ROOT: "dc=example,dc=org"
+      LDAP_ADMIN_USERNAME: "admin"
+      LDAP_ADMIN_PASSWORD: "adminpassword"
+      LDAP_PORT_NUMBER: "389"
+      LDAP_CUSTOM_LDIF_DIR: "/ldifs"
+    volumes:
+      - "ldap_data:/bitnami/openldap"
+      - "./config/ldap-bootstrap.ldif:/ldifs/01-bootstrap.ldif:ro"
+    ports:
+      - "389:389"
+    restart: unless-stopped
+
   loki:
     container_name: loki
     profiles: [ loki ]
@@ -235,3 +252,4 @@ volumes:
   valkey_data:
   nats_data:
   tempo_data:
+  ldap_data:

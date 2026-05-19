@@ -86,8 +86,8 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, "hash")
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE (id = $1 AND provider_type = $2) AND "users"."deleted_at" IS NULL`)).
-			WithArgs(userID, models.LocalProviderType).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE id = $1 AND "users"."deleted_at" IS NULL`)).
+			WithArgs(userID).
 			WillReturnRows(userRow)
 
 		encryptedSecret, _ := helpers.EncryptSecret("JBSWY3DPEHPK3PXP", []byte(config.MFAEncryptionKey))
@@ -203,7 +203,7 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 			userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 				AddRow(userID, "test@example.com", models.LocalProviderType, "hash")
 			mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-				WithArgs(userID, models.LocalProviderType, 1).
+				WithArgs(userID).
 				WillReturnRows(userRow)
 
 			mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -277,7 +277,7 @@ func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -339,7 +339,7 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -410,7 +410,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -461,7 +461,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, hashedPassword)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -512,7 +512,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, hashedPassword)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -578,7 +578,7 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		}
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID).
 			WillReturnRows(sqlmock.NewRows([]string{}))
 
 		logger := zap.NewNop()
@@ -623,7 +623,7 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -672,7 +672,7 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).

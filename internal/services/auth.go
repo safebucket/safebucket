@@ -1,9 +1,7 @@
 package services
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -19,14 +17,10 @@ import (
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
-	"github.com/safebucket/safebucket/internal/sql"
 
-	"github.com/alexedwards/argon2id"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 )
 
@@ -74,36 +68,84 @@ func (s AuthService) Login(
 	_ uuid.UUIDs,
 	body models.AuthLoginBody,
 ) (handlers.AuthFlowResult, error) {
-	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
-		logger.Debug("Local auth provider not activated in the configuration")
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, "FORBIDDEN")
+	providerKey, provider, ok := s.resolveCredentialProvider(body.Email)
+	if !ok {
+		logger.Debug("No credential provider matches this email")
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, apierrors.CodeForbidden)
 	}
 
-	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
-		logger.Debug("Domain not allowed")
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, "FORBIDDEN")
+	var (
+		searchUser models.User
+		authErr    error
+	)
+	switch provider.Type {
+	case models.LocalProviderType:
+		searchUser, authErr = s.authenticateLocal(body)
+	case models.LDAPProviderType:
+		searchUser, authErr = s.authenticateLDAP(logger, providerKey, provider, body)
+	case models.OIDCProviderType:
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, apierrors.CodeForbidden)
+	default:
+		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, apierrors.CodeForbidden)
+	}
+	if authErr != nil {
+		return handlers.AuthFlowResult{}, authErr
 	}
 
-	var searchUser models.User
-	result := s.DB.Preload("MFADevices", "is_verified = ?", true).
-		Where("email = ? AND provider_type = ? AND provider_key = ?",
-			body.Email, models.LocalProviderType, string(models.LocalProviderType)).
-		First(&searchUser)
+	return s.issueLoginResult(isSecure, logger, &searchUser, providerKey, provider)
+}
 
-	if result.RowsAffected != 1 {
-		return handlers.AuthFlowResult{}, errors.New("invalid email / password combination")
+func (s AuthService) resolveCredentialProvider(
+	email string,
+) (string, configuration.Provider, bool) {
+	var (
+		bestMatchKey, bestFallbackKey string
+		bestMatch, bestFallback       configuration.Provider
+		hasMatch, hasFallback         bool
+	)
+
+	for key, provider := range s.Providers {
+		if provider.Type != models.LocalProviderType && provider.Type != models.LDAPProviderType {
+			continue
+		}
+		if len(provider.Domains) > 0 {
+			if h.IsDomainAllowed(email, provider.Domains) {
+				if !hasMatch || provider.Order < bestMatch.Order {
+					bestMatch, bestMatchKey, hasMatch = provider, key, true
+				}
+			}
+			continue
+		}
+		if !hasFallback || provider.Order < bestFallback.Order {
+			bestFallback, bestFallbackKey, hasFallback = provider, key, true
+		}
 	}
 
-	match, err := argon2id.ComparePasswordAndHash(body.Password, searchUser.HashedPassword)
-	if err != nil || !match {
-		return handlers.AuthFlowResult{}, errors.New("invalid email / password combination")
+	if hasMatch {
+		return bestMatchKey, bestMatch, true
 	}
+	if hasFallback {
+		return bestFallbackKey, bestFallback, true
+	}
+	return "", configuration.Provider{}, false
+}
 
-	verifiedDevices := searchUser.GetVerifiedDevices()
+func normalizeExternalEmail(raw string) string {
+	return strings.ToLower(strings.TrimSpace(raw))
+}
+
+func (s AuthService) issueLoginResult(
+	isSecure bool,
+	logger *zap.Logger,
+	user *models.User,
+	providerKey string,
+	provider configuration.Provider,
+) (handlers.AuthFlowResult, error) {
+	verifiedDevices := user.GetVerifiedDevices()
 	hasMFA := len(verifiedDevices) > 0
 
 	if hasMFA || s.AuthConfig.MFARequired {
-		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, &searchUser)
+		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, user)
 		if mfaErr != nil {
 			return handlers.AuthFlowResult{}, mfaErr
 		}
@@ -114,25 +156,25 @@ func (s AuthService) Login(
 		}, nil
 	}
 
-	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &searchUser)
+	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, user, providerKey)
 	if err != nil {
 		return handlers.AuthFlowResult{}, err
 	}
 
-	if err = cache.CreateSession(s.Cache, searchUser.ID.String(), sid); err != nil {
-		logger.Error("Failed to create session", zap.Error(err))
+	if sessionErr := cache.CreateSession(s.Cache, user.ID.String(), sid); sessionErr != nil {
+		logger.Error("Failed to create session", zap.Error(sessionErr))
 		return handlers.AuthFlowResult{}, apierrors.ErrInternalServer
 	}
 
 	action := models.Activity{
 		Message: activity.UserLoggedIn,
-		Object:  searchUser.ToActivity(),
+		Object:  user.ToActivity(),
 		Filter: activity.NewLogFilter(models.ActivityFields{
 			Action:       activity.UserLoggedIn,
-			UserID:       searchUser.ID.String(),
+			UserID:       user.ID.String(),
 			ObjectType:   rbac.ResourceUser.String(),
-			ProviderType: string(models.LocalProviderType),
-			ProviderName: s.Providers[string(models.LocalProviderType)].Name,
+			ProviderType: string(provider.Type),
+			ProviderName: provider.Name,
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {
@@ -146,7 +188,7 @@ func (s AuthService) Login(
 			isSecure,
 			tokens.AccessToken,
 			tokens.RefreshToken,
-			string(models.LocalProviderType),
+			providerKey,
 		),
 	}, nil
 }
@@ -356,7 +398,8 @@ func (s AuthService) VerifyMFALogin(
 ) (handlers.AuthFlowResult, error) {
 	var user models.User
 	result := s.DB.Preload("MFADevices", "is_verified = ?", true).
-		Where("id = ? AND provider_type = ?", claims.UserID, models.LocalProviderType).
+		Where("id = ? AND provider_type IN ?", claims.UserID,
+			[]models.ProviderType{models.LocalProviderType, models.LDAPProviderType}).
 		First(&user)
 	if result.RowsAffected == 0 {
 		return handlers.AuthFlowResult{}, apierrors.NewAPIError(404, "USER_NOT_FOUND")
@@ -440,7 +483,7 @@ func (s AuthService) VerifyMFALogin(
 		}, nil
 	}
 
-	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user)
+	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user, user.ProviderKey)
 	if err != nil {
 		return handlers.AuthFlowResult{}, err
 	}
@@ -457,7 +500,7 @@ func (s AuthService) VerifyMFALogin(
 			isSecure,
 			tokens.AccessToken,
 			tokens.RefreshToken,
-			string(models.LocalProviderType),
+			user.ProviderKey,
 		),
 	}, nil
 }
@@ -481,115 +524,6 @@ func (s AuthService) GetProviderList(
 		}
 	}
 	return providers
-}
-
-func (s AuthService) OpenIDBegin(providerName string, state string, nonce string) (string, error) {
-	provider, ok := s.Providers[providerName]
-	if !ok {
-		return "", errors.New("provider not found")
-	}
-
-	url := provider.OauthConfig.AuthCodeURL(state, oidc.Nonce(nonce), oauth2.AccessTypeOffline)
-	return url, nil
-}
-
-func (s AuthService) OpenIDCallback(
-	ctx context.Context, logger *zap.Logger, providerKey string, code string, nonce string,
-) (string, string, error) {
-	provider, ok := s.Providers[providerKey]
-	if !ok {
-		return "", "", errors.New("provider not found")
-	}
-
-	oauth2Token, err := provider.OauthConfig.Exchange(ctx, code)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to exchange token %s", err.Error())
-	}
-
-	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
-	if !ok {
-		return "", "", errors.New("no id_token field in oauth2 token")
-	}
-
-	idToken, err := provider.Verifier.Verify(ctx, rawIDToken)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to verify ID token %s", err.Error())
-	}
-
-	if idToken.Nonce != nonce {
-		return "", "", errors.New("nonce does not match")
-	}
-
-	userInfo, err := provider.Provider.UserInfo(ctx, oauth2.StaticTokenSource(oauth2Token))
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get user info %s", err.Error())
-	}
-
-	if !h.IsDomainAllowed(userInfo.Email, s.Providers[providerKey].Domains) {
-		logger.Debug("Domain not allowed")
-		return "", "", apierrors.NewAPIError(403, "FORBIDDEN")
-	}
-
-	searchUser := models.User{
-		Email:        userInfo.Email,
-		ProviderType: models.OIDCProviderType,
-		ProviderKey:  providerKey,
-	}
-	result := s.DB.Where(searchUser, "email", "provider_type", "provider_key").Find(&searchUser)
-	if result.RowsAffected == 0 {
-		searchUser.Role = models.RoleUser
-
-		err = sql.CreateUserWithInvites(logger, s.DB, &searchUser)
-		if err != nil {
-			logger.Error("Failed to create user with invites", zap.Error(err))
-			return "", "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-		}
-	}
-
-	sid := uuid.New().String()
-	if sessionErr := cache.CreateSession(s.Cache, searchUser.ID.String(), sid); sessionErr != nil {
-		logger.Error("Failed to create session", zap.Error(sessionErr))
-		return "", "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	accessToken, err := h.NewAccessToken(
-		s.AuthConfig.TokenSecret,
-		&searchUser,
-		providerKey,
-		sid,
-	)
-	if err != nil {
-		logger.Error("Failed to generate access token", zap.Error(err))
-		return "", "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	refreshToken, err := h.NewRefreshToken(
-		s.AuthConfig.TokenSecret,
-		&searchUser,
-		providerKey,
-		sid,
-	)
-	if err != nil {
-		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return "", "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
-	}
-
-	action := models.Activity{
-		Message: activity.UserLoggedIn,
-		Object:  searchUser.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:       activity.UserLoggedIn,
-			UserID:       searchUser.ID.String(),
-			ObjectType:   rbac.ResourceUser.String(),
-			ProviderType: string(models.OIDCProviderType),
-			ProviderName: provider.Name,
-		}),
-	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log login activity", zap.Error(logErr))
-	}
-
-	return accessToken, refreshToken, nil
 }
 
 func (s AuthService) Logout(

@@ -135,7 +135,32 @@ func setIfMissing(k *koanf.Koanf, key string, value interface{}) {
 	}
 }
 
+func applyAuthProviderDefaults(k *koanf.Koanf) {
+	providersRaw := k.Get("auth.providers")
+	providers, ok := providersRaw.(map[string]interface{})
+	if !ok {
+		return
+	}
+	for name, raw := range providers {
+		providerMap, providerOk := raw.(map[string]interface{})
+		if !providerOk {
+			continue
+		}
+		if providerMap["type"] != string(models.LDAPProviderType) {
+			continue
+		}
+		setIfMissing(k, fmt.Sprintf("auth.providers.%s.ldap.attributes.email", name), "mail")
+		setIfMissing(
+			k,
+			fmt.Sprintf("auth.providers.%s.ldap.attributes.display_name", name),
+			"displayName",
+		)
+		setIfMissing(k, fmt.Sprintf("auth.providers.%s.ldap.connect_timeout_ms", name), 5000)
+	}
+}
+
 func loadConditionalDefaults(k *koanf.Koanf) {
+	applyAuthProviderDefaults(k)
 	if k.String("database.type") == ProviderPostgres {
 		setIfMissing(k, "database.postgres.port", int32(5432))
 	}

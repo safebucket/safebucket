@@ -407,6 +407,7 @@ func BuildAPIRouter(
 			DB:             db,
 			Cache:          cache,
 			AuthConfig:     authConfig,
+			Providers:      providers,
 			Publisher:      publisher,
 			Notifier:       notify,
 			ActivityLogger: activityLogger,

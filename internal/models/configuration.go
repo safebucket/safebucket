@@ -91,8 +91,9 @@ type AuthConfiguration struct {
 
 type ProviderConfiguration struct {
 	Name                 string               `mapstructure:"name"    validate:"required_if=Type oidc"`
-	Type                 ProviderType         `mapstructure:"type"    validate:"required,oneof=local oidc"`
+	Type                 ProviderType         `mapstructure:"type"    validate:"required,oneof=local oidc ldap"`
 	OIDC                 OIDCConfiguration    `mapstructure:"oidc"    validate:"required_if=Type oidc"`
+	LDAP                 *LDAPConfiguration   `mapstructure:"ldap"    validate:"required_if=Type ldap"`
 	Domains              []string             `mapstructure:"domains"`
 	SharingConfiguration SharingConfiguration `mapstructure:"sharing"`
 }
@@ -101,6 +102,23 @@ type OIDCConfiguration struct {
 	ClientID     string `mapstructure:"client_id"     validate:"required_if=Type oidc"`
 	ClientSecret string `mapstructure:"client_secret" validate:"required_if=Type oidc"`
 	Issuer       string `mapstructure:"issuer"        validate:"required_if=Type oidc"`
+}
+
+type LDAPConfiguration struct {
+	URL              string           `mapstructure:"url"                validate:"required,url"`
+	StartTLS         bool             `mapstructure:"start_tls"`
+	SkipTLSVerify    bool             `mapstructure:"skip_tls_verify"`
+	BindDN           string           `mapstructure:"bind_dn"            validate:"required"`
+	BindPassword     string           `mapstructure:"bind_password"      validate:"required"`
+	SearchBase       string           `mapstructure:"search_base"        validate:"required"`
+	SearchFilter     string           `mapstructure:"search_filter"      validate:"required,contains={username}"`
+	Attributes       LDAPAttributeMap `mapstructure:"attributes"`
+	ConnectTimeoutMs int              `mapstructure:"connect_timeout_ms" validate:"gte=0"`
+}
+
+type LDAPAttributeMap struct {
+	Email       string `mapstructure:"email"`
+	DisplayName string `mapstructure:"display_name"`
 }
 
 type SharingConfiguration struct {

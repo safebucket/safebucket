@@ -6,10 +6,31 @@ import (
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-// CreateUserWithInvites creates a user and processes any pending invites
-// Converting them to memberships in a single transaction.
+func FindUserByProviderIdentity(
+	db *gorm.DB,
+	email string,
+	providerType models.ProviderType,
+	providerKey string,
+	preloadMFA bool,
+) (models.User, bool, error) {
+	tx := db
+	if preloadMFA {
+		tx = tx.Preload("MFADevices", "is_verified = ?", true)
+	}
+
+	var user models.User
+	result := tx.Where("email = ? AND provider_type = ? AND provider_key = ?",
+		email, providerType, providerKey).
+		Find(&user)
+	if result.Error != nil {
+		return models.User{}, false, result.Error
+	}
+	return user, result.RowsAffected > 0, nil
+}
+
 func CreateUserWithInvites(
 	logger *zap.Logger,
 	db *gorm.DB,
@@ -20,28 +41,77 @@ func CreateUserWithInvites(
 			logger.Error("Error creating user", zap.Error(err))
 			return err
 		}
+		return processPendingInvites(logger, tx, user)
+	})
+}
 
-		var invites []models.Invite
-		if err := tx.Preload("Bucket").Where("email = ?", user.Email).Find(&invites).Error; err != nil {
-			logger.Error("Failed to fetch user invites", zap.Error(err))
+func CreateOrGetUser(
+	logger *zap.Logger,
+	db *gorm.DB,
+	user *models.User,
+) (bool, error) {
+	var created bool
+	err := db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(user)
+		if result.Error != nil {
+			logger.Error("Error creating user", zap.Error(result.Error))
+			return result.Error
+		}
+		if result.RowsAffected > 0 {
+			created = true
+			return processPendingInvites(logger, tx, user)
+		}
+		return tx.Where("email = ? AND provider_type = ? AND provider_key = ?",
+			user.Email, user.ProviderType, user.ProviderKey).
+			First(user).Error
+	})
+	return created, err
+}
+
+func SyncUserAttributes(
+	logger *zap.Logger,
+	db *gorm.DB,
+	user *models.User,
+	firstName, lastName string,
+) {
+	if user.FirstName == firstName && user.LastName == lastName {
+		return
+	}
+	user.FirstName = firstName
+	user.LastName = lastName
+	if err := db.Model(user).Updates(map[string]any{
+		"first_name": firstName,
+		"last_name":  lastName,
+	}).Error; err != nil {
+		logger.Warn("Failed to sync user attributes",
+			zap.String("user_id", user.ID.String()),
+			zap.String("provider_type", string(user.ProviderType)),
+			zap.String("provider_key", user.ProviderKey),
+			zap.Error(err))
+	}
+}
+
+func processPendingInvites(logger *zap.Logger, tx *gorm.DB, user *models.User) error {
+	var invites []models.Invite
+	if err := tx.Preload("Bucket").Where("email = ?", user.Email).Find(&invites).Error; err != nil {
+		logger.Error("Failed to fetch user invites", zap.Error(err))
+		return err
+	}
+
+	for _, invite := range invites {
+		if err := rbac.CreateMembership(tx, user.ID, invite.BucketID, invite.Group); err != nil {
+			logger.Error("Failed to create membership from invite", zap.Error(err),
+				zap.String("group", string(invite.Group)),
+				zap.String("bucket_id", invite.BucketID.String()))
 			return err
 		}
 
-		for _, invite := range invites {
-			if err := rbac.CreateMembership(tx, user.ID, invite.BucketID, invite.Group); err != nil {
-				logger.Error("Failed to create membership from invite", zap.Error(err),
-					zap.String("group", string(invite.Group)),
-					zap.String("bucket_id", invite.BucketID.String()))
-				return err
-			}
-
-			if err := tx.Delete(&invite).Error; err != nil {
-				logger.Error("Failed to delete processed invite", zap.Error(err),
-					zap.String("invite_id", invite.ID.String()))
-				return err
-			}
+		if err := tx.Delete(&invite).Error; err != nil {
+			logger.Error("Failed to delete processed invite", zap.Error(err),
+				zap.String("invite_id", invite.ID.String()))
+			return err
 		}
+	}
 
-		return nil
-	})
+	return nil
 }

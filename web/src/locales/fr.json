@@ -696,7 +696,8 @@
       },
       "providers": {
         "local": "Local",
-        "oidc": "SSO (OIDC)"
+        "oidc": "SSO (OIDC)",
+        "ldap": "LDAP"
       }
     },
     "users": {

@@ -37,13 +37,14 @@ func HandleMFARequired(
 func GenerateTokens(
 	authConfig models.AuthConfig,
 	user *models.User,
+	providerKey string,
 ) (string, TokenPair, error) {
 	sid := uuid.New().String()
 
 	accessToken, err := h.NewAccessToken(
 		authConfig.TokenSecret,
 		user,
-		string(models.LocalProviderType),
+		providerKey,
 		sid,
 	)
 	if err != nil {
@@ -53,7 +54,7 @@ func GenerateTokens(
 	refreshToken, err := h.NewRefreshToken(
 		authConfig.TokenSecret,
 		user,
-		string(models.LocalProviderType),
+		providerKey,
 		sid,
 	)
 	if err != nil {

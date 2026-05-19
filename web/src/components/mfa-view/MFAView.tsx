@@ -15,9 +15,10 @@ import {
 
 interface MFAViewProps {
   className?: string;
+  requirePassword: boolean;
 }
 
-export function MFAView({ className }: MFAViewProps) {
+export function MFAView({ className, requirePassword }: MFAViewProps) {
   const { data, isLoading } = useQuery(mfaDevicesQueryOptions());
   const setDefaultMutation = useSetDefaultMFADeviceMutation();
 
@@ -69,8 +70,16 @@ export function MFAView({ className }: MFAViewProps) {
         />
         <CardContent className="space-y-4">{renderContent()}</CardContent>
       </Card>
-      <MFASetupDialog open={setupDialogOpen} onClose={closeAllDialogs} />
-      <MFADeleteDialog deviceId={deleteDeviceId} onClose={closeAllDialogs} />
+      <MFASetupDialog
+        open={setupDialogOpen}
+        onClose={closeAllDialogs}
+        requirePassword={requirePassword}
+      />
+      <MFADeleteDialog
+        deviceId={deleteDeviceId}
+        onClose={closeAllDialogs}
+        requirePassword={requirePassword}
+      />
     </>
   );
 }

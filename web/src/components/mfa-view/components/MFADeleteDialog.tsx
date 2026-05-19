@@ -18,9 +18,14 @@ import { FormErrorAlert } from "@/components/common/FormErrorAlert";
 interface MFADeleteDialogProps {
   deviceId: string | null;
   onClose: () => void;
+  requirePassword: boolean;
 }
 
-export function MFADeleteDialog({ deviceId, onClose }: MFADeleteDialogProps) {
+export function MFADeleteDialog({
+  deviceId,
+  onClose,
+  requirePassword,
+}: MFADeleteDialogProps) {
   const { t } = useTranslation();
   const removeMutation = useRemoveMFADeviceMutation();
 
@@ -35,7 +40,8 @@ export function MFADeleteDialog({ deviceId, onClose }: MFADeleteDialogProps) {
   }, [deviceId]);
 
   const handleConfirmDelete = async () => {
-    if (!deviceId || !password) return;
+    if (!deviceId) return;
+    if (requirePassword && !password) return;
 
     setError(null);
     try {
@@ -64,19 +70,21 @@ export function MFADeleteDialog({ deviceId, onClose }: MFADeleteDialogProps) {
         <div className="space-y-4">
           <FormErrorAlert error={error} />
 
-          <div className="space-y-2">
-            <Label htmlFor="delete-password">
-              {t("auth.mfa.delete_password_label")}
-            </Label>
-            <Input
-              id="delete-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t("auth.mfa.delete_password_placeholder")}
-              disabled={removeMutation.isPending}
-            />
-          </div>
+          {requirePassword && (
+            <div className="space-y-2">
+              <Label htmlFor="delete-password">
+                {t("auth.mfa.delete_password_label")}
+              </Label>
+              <Input
+                id="delete-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t("auth.mfa.delete_password_placeholder")}
+                disabled={removeMutation.isPending}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter className="sm:justify-between">
@@ -86,7 +94,9 @@ export function MFADeleteDialog({ deviceId, onClose }: MFADeleteDialogProps) {
           <Button
             variant="destructive"
             onClick={handleConfirmDelete}
-            disabled={!password || removeMutation.isPending}
+            disabled={
+              (requirePassword && !password) || removeMutation.isPending
+            }
           >
             {removeMutation.isPending
               ? t("common.loading")

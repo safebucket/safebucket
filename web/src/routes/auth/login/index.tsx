@@ -60,7 +60,7 @@ function Login() {
     if (!email.includes("@")) return;
 
     const matchingProvider = checkEmailDomain(email, providers);
-    if (matchingProvider) {
+    if (matchingProvider && matchingProvider.type === ProviderType.OIDC) {
       loginOAuth(matchingProvider.id);
     } else {
       setShowPassword(true);
@@ -103,7 +103,10 @@ function Login() {
             providers={providers.filter((p) => p.type === ProviderType.OIDC)}
           />
 
-          {providers.find((p) => p.type === ProviderType.LOCAL) && (
+          {providers.some(
+            (p) =>
+              p.type === ProviderType.LOCAL || p.type === ProviderType.LDAP,
+          ) && (
             <>
               {providers.filter((p) => p.type === ProviderType.OIDC).length >
                 0 && (
