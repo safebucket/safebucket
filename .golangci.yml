@@ -470,6 +470,9 @@ linters:
         linters: [ revive ]
       - text: 'G117'
         linters: [ gosec ]
+      - text: 'G101'
+        path: 'internal/errors/'
+        linters: [ gosec ]
       - path: '_test\.go'
         linters:
           - bodyclose

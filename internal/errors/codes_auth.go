@@ -1,8 +1,6 @@
 package apierrors
 
 // Authentication and session codes.
-//
-//nolint:gosec // G101 false positives; these are response codes sent to clients.
 const (
 	CodeSessionRevoked             = "SESSION_REVOKED"
 	CodeSessionNotFound            = "SESSION_NOT_FOUND"
@@ -17,8 +15,6 @@ const (
 )
 
 // Identity provider codes.
-//
-//nolint:gosec // G101 false positives; these are response codes, not credentials.
 const (
 	CodeInvalidProviderName = "INVALID_PROVIDER_NAME"
 	CodeProviderNotFound    = "PROVIDER_NOT_FOUND"

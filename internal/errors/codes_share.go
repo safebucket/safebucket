@@ -1,6 +1,6 @@
 package apierrors
 
-//nolint:gosec // G101 false positives; these are response codes sent to clients.
+// Share codes.
 const (
 	CodeShareNotFound             = "SHARE_NOT_FOUND"
 	CodeShareExpired              = "SHARE_EXPIRED"
