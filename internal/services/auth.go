@@ -223,7 +223,7 @@ func (s AuthService) Verify(
 func (s AuthService) Refresh(logger *zap.Logger, refreshTokenStr string) (string, error) {
 	refreshToken, err := h.ParseRefreshToken(s.AuthConfig.TokenSecret, refreshTokenStr)
 	if err != nil {
-		return "", err
+		return "", apierrors.New(http.StatusUnauthorized, apierrors.CodeUnauthorized)
 	}
 
 	if refreshToken.SID == "" {

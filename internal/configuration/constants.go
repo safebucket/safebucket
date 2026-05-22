@@ -19,18 +19,18 @@ const (
 )
 
 const (
-	CookieAccessToken  = "safebucket_access_token"  //nolint:gosec // not a credential, just a cookie name.
-	CookieRefreshToken = "safebucket_refresh_token" //nolint:gosec // not a credential, just a cookie name.
+	CookieAccessToken  = "safebucket_access_token"
+	CookieRefreshToken = "safebucket_refresh_token"
 	CookieAuthProvider = "safebucket_auth_provider"
-	CookieMFAToken     = "safebucket_mfa_token"   //nolint:gosec // not a credential, just a cookie name.
-	CookieShareToken   = "safebucket_share_token" //nolint:gosec // not a credential, just a cookie name.
+	CookieMFAToken     = "safebucket_mfa_token"
+	CookieShareToken   = "safebucket_share_token"
 )
 
 const (
 	CacheMaxAppIdentityLifetime = 60
 	CacheAppIdentityKey         = "app:identity"
 	CacheAppRateLimitKey        = "app:ratelimit:%s"
-	CacheAppWorkerLockKey       = "app:worker:lock:%s" //nolint:gosec // not a credential
+	CacheAppWorkerLockKey       = "app:worker:lock:%s"
 	CacheAppWorkerLockTTL       = 60
 	CacheAppWorkerLockRefresh   = 55
 	CacheMFAAttemptsKey         = "mfa:attempts:%s"

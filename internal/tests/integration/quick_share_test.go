@@ -129,7 +129,7 @@ func TestQuickShareCreate(t *testing.T) {
 					Type:    models.ShareTypeFiles,
 					FileIDs: []uuid.UUID{uuid.New()},
 				})
-				assert.Equal(t, http.StatusBadRequest, status)
+				assert.Equal(t, http.StatusNotFound, status)
 			})
 
 			t.Run("rejects file from another bucket", func(t *testing.T) {
@@ -138,7 +138,7 @@ func TestQuickShareCreate(t *testing.T) {
 					Type:    models.ShareTypeFiles,
 					FileIDs: []uuid.UUID{uuid.MustParse(otherFileID)},
 				})
-				assert.Equal(t, http.StatusBadRequest, status)
+				assert.Equal(t, http.StatusNotFound, status)
 			})
 
 			t.Run("rejects unknown folder id", func(t *testing.T) {
@@ -148,7 +148,7 @@ func TestQuickShareCreate(t *testing.T) {
 					Type:     models.ShareTypeFolder,
 					FolderID: &unknown,
 				})
-				assert.Equal(t, http.StatusBadRequest, status)
+				assert.Equal(t, http.StatusNotFound, status)
 			})
 
 			t.Run("rejects folder from another bucket", func(t *testing.T) {
@@ -157,7 +157,7 @@ func TestQuickShareCreate(t *testing.T) {
 					Type:     models.ShareTypeFolder,
 					FolderID: &otherFolder.ID,
 				})
-				assert.Equal(t, http.StatusBadRequest, status)
+				assert.Equal(t, http.StatusNotFound, status)
 			})
 
 			t.Run("rejects past expiry", func(t *testing.T) {
