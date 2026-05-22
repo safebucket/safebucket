@@ -1,6 +1,7 @@
 package services
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -61,7 +62,7 @@ func (s SessionService) ListSessions(
 	sessions, err := cache.ListActiveSessions(s.Cache, userID.String(), s.maxAge())
 	if err != nil {
 		logger.Error("Failed to list sessions", zap.Error(err))
-		return SessionListResponse{}, apierrors.ErrInternalServer
+		return SessionListResponse{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	resp := SessionListResponse{Sessions: make([]SessionResponse, 0, len(sessions))}
@@ -86,7 +87,7 @@ func (s SessionService) RevokeOtherSessions(
 		s.Cache, userID.String(), claims.SID, s.maxAge(),
 	); err != nil {
 		logger.Error("Failed to revoke other sessions", zap.Error(err))
-		return apierrors.ErrInternalServer
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	action := models.Activity{
@@ -115,16 +116,16 @@ func (s SessionService) RevokeSession(
 	active, err := cache.IsSessionActive(s.Cache, userID.String(), sessionSID, s.maxAge())
 	if err != nil {
 		logger.Error("Failed to check session", zap.Error(err))
-		return apierrors.ErrInternalServer
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	if !active {
-		return apierrors.NewAPIError(404, "SESSION_NOT_FOUND")
+		return apierrors.New(http.StatusNotFound, apierrors.CodeSessionNotFound)
 	}
 
 	if err = cache.RevokeSession(s.Cache, userID.String(), sessionSID); err != nil {
 		logger.Error("Failed to revoke session", zap.Error(err))
-		return apierrors.ErrInternalServer
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	action := models.Activity{

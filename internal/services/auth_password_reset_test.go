@@ -38,13 +38,13 @@ func newPasswordResetTestService(t *testing.T) (AuthPasswordResetService, sqlmoc
 	return svc, mock, cleanup
 }
 
-func requireAPIError(t *testing.T, err error, code int, message string) {
+func requireAPIError(t *testing.T, err error, status int, code string) {
 	t.Helper()
 	require.Error(t, err)
 	var apiErr *apierrors.APIError
 	require.True(t, errors.As(err, &apiErr), "expected APIError, got %T: %v", err, err)
+	assert.Equal(t, status, apiErr.Status)
 	assert.Equal(t, code, apiErr.Code)
-	assert.Equal(t, message, apiErr.Message)
 }
 
 func TestRequestPasswordReset(t *testing.T) {

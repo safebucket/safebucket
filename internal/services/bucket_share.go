@@ -1,6 +1,8 @@
 package services
 
 import (
+	"net/http"
+
 	"github.com/safebucket/safebucket/internal/activity"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
@@ -42,7 +44,7 @@ func (s BucketShareService) CreateShare(
 
 	var bucket models.Bucket
 	if s.DB.Where("id = ?", bucketID).Find(&bucket).RowsAffected == 0 {
-		return models.Share{}, apierrors.NewAPIError(404, "NOT_FOUND")
+		return models.Share{}, apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 	}
 
 	if body.Type == models.ShareTypeFolder {
@@ -50,7 +52,7 @@ func (s BucketShareService) CreateShare(
 		if s.DB.Where("id = ? AND bucket_id = ? AND status = ?", body.FolderID, bucketID, models.FolderStatusCreated).
 			Find(&folder).
 			RowsAffected == 0 {
-			return models.Share{}, apierrors.NewAPIError(400, "FOLDER_NOT_FOUND")
+			return models.Share{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 		}
 	}
 
@@ -60,7 +62,7 @@ func (s BucketShareService) CreateShare(
 			Where("id IN ? AND bucket_id = ? AND status = ?", body.FileIDs, bucketID, models.FileStatusUploaded).
 			Count(&count)
 		if count != int64(len(body.FileIDs)) {
-			return models.Share{}, apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+			return models.Share{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 		}
 	}
 
@@ -69,7 +71,7 @@ func (s BucketShareService) CreateShare(
 		hash, err := h.CreateHash(body.Password)
 		if err != nil {
 			logger.Error("Failed to hash share password", zap.Error(err))
-			return models.Share{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return models.Share{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 		hashedPassword = hash
 	}
@@ -127,7 +129,7 @@ func (s BucketShareService) CreateShare(
 	})
 
 	if txErr != nil {
-		return models.Share{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.Share{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	share.PasswordProtected = hashedPassword != ""
@@ -171,12 +173,12 @@ func (s BucketShareService) DeleteShare(
 		var share models.Share
 		result := tx.Where("id = ? AND bucket_id = ?", shareID, bucketID).First(&share)
 		if result.Error != nil {
-			return apierrors.NewAPIError(404, "NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeShareNotFound)
 		}
 
 		if err := tx.Delete(&share).Error; err != nil {
 			logger.Error("Failed to delete share", zap.Error(err))
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		err := s.ActivityLogger.Send(models.Activity{
@@ -193,7 +195,7 @@ func (s BucketShareService) DeleteShare(
 
 		if err != nil {
 			logger.Error("Failed to log share delete activity", zap.Error(err))
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		return nil

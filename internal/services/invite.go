@@ -87,7 +87,7 @@ func (s InviteService) handleInviteChallengeFailedAttempt(
 			logger.Error("Failed to log invite challenge lockout", zap.Error(logErr))
 		}
 
-		return apierrors.NewAPIError(403, "CHALLENGE_LOCKED")
+		return apierrors.New(http.StatusForbidden, apierrors.CodeChallengeLocked)
 	}
 
 	if updateErr := tx.Save(challenge).Error; updateErr != nil {
@@ -110,7 +110,7 @@ func (s InviteService) handleInviteChallengeFailedAttempt(
 		logger.Error("Failed to log failed invite attempt", zap.Error(logErr))
 	}
 
-	return apierrors.NewAPIError(401, "WRONG_CODE")
+	return apierrors.New(http.StatusUnauthorized, apierrors.CodeWrongCode)
 }
 
 func (s InviteService) createUserFromInvite(
@@ -129,13 +129,16 @@ func (s InviteService) createUserFromInvite(
 
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
 	if result.RowsAffected > 0 {
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(401, "USER_ALREADY_EXISTS")
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusConflict, apierrors.CodeUserAlreadyExists)
 	}
 
 	hashedPassword, err := h.CreateHash(password)
 	if err != nil {
 		logger.Error("Failed to hash password", zap.Error(err))
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "PASSWORD_HASH_FAILED")
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
 	newUser.HashedPassword = hashedPassword
@@ -144,19 +147,22 @@ func (s InviteService) createUserFromInvite(
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if err = sql.CreateUserWithInvites(logger, tx, &newUser); err != nil {
 			logger.Error("Failed to create user with invites", zap.Error(err))
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		if deleteResult := tx.Delete(challenge); deleteResult.Error != nil {
 			logger.Error("Failed to delete challenge", zap.Error(deleteResult.Error))
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		return nil
 	})
 	if err != nil {
 		logger.Error("Failed to commit transaction", zap.Error(err))
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
 	welcomeEvent := events.NewUserWelcome(
@@ -183,7 +189,10 @@ func (s InviteService) createUserFromInvite(
 	sid := uuid.New().String()
 	if sessionErr := cache.CreateSession(s.Cache, newUser.ID.String(), sid); sessionErr != nil {
 		logger.Error("Failed to create session", zap.Error(sessionErr))
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
 	accessToken, err := h.NewAccessToken(
@@ -194,7 +203,10 @@ func (s InviteService) createUserFromInvite(
 	)
 	if err != nil {
 		logger.Error("Failed to generate access token", zap.Error(err))
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
 	refreshToken, err := h.NewRefreshToken(
@@ -205,7 +217,10 @@ func (s InviteService) createUserFromInvite(
 	)
 	if err != nil {
 		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
 	return handlers.AuthFlowResult{
@@ -228,12 +243,12 @@ func (s InviteService) CreateInviteChallenge(
 ) (any, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
-		return nil, apierrors.NewAPIError(403, "FORBIDDEN")
+		return nil, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
 	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
 		logger.Debug("Domain not allowed")
-		return nil, apierrors.NewAPIError(403, "FORBIDDEN")
+		return nil, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
 	inviteID := ids[0]
@@ -241,14 +256,14 @@ func (s InviteService) CreateInviteChallenge(
 	result := s.DB.Preload("User").Where("id = ?", inviteID).First(&invite)
 
 	if result.RowsAffected == 0 {
-		return nil, apierrors.NewAPIError(404, "INVITE_NOT_FOUND")
+		return nil, apierrors.New(http.StatusNotFound, apierrors.CodeInviteNotFound)
 	}
 
 	if invite.Email != body.Email {
 		logger.Warn("Invite email mismatch attempt detected",
 			zap.String("invite_id", inviteID.String()),
 			zap.String("provided_email", body.Email))
-		return nil, apierrors.NewAPIError(404, "INVITE_NOT_FOUND")
+		return nil, apierrors.New(http.StatusNotFound, apierrors.CodeInviteNotFound)
 	}
 
 	s.DB.Where("invite_id = ? AND type = ?", invite.ID, models.ChallengeTypeInvite).
@@ -257,13 +272,13 @@ func (s InviteService) CreateInviteChallenge(
 	secret, err := h.GenerateSecret()
 	if err != nil {
 		logger.Error("Failed to generate secret", zap.Error(err))
-		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	hashedSecret, err := h.CreateHash(secret)
 	if err != nil {
 		logger.Error("Failed to hash secret", zap.Error(err))
-		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	expiresAt := time.Now().Add(configuration.SecurityChallengeExpirationMinutes * time.Minute)
@@ -278,7 +293,7 @@ func (s InviteService) CreateInviteChallenge(
 	result = s.DB.Create(&challenge)
 	if result.Error != nil {
 		logger.Error("Failed to create challenge", zap.Error(result.Error))
-		return nil, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	event := events.NewChallengeUserInvite(
@@ -304,7 +319,7 @@ func (s InviteService) ValidateInviteChallenge(
 ) (handlers.AuthFlowResult, error) {
 	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, "FORBIDDEN")
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
 	inviteID := ids[0]
@@ -320,19 +335,19 @@ func (s InviteService) ValidateInviteChallenge(
 			First(&challenge)
 
 		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "CHALLENGE_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeChallengeNotFound)
 		}
 
 		if challenge.Invite == nil {
 			logger.Error("Challenge has no associated invite")
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		invite = challenge.Invite
 
 		if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
 			tx.Delete(&challenge)
-			return apierrors.NewAPIError(410, "CHALLENGE_EXPIRED")
+			return apierrors.New(http.StatusGone, apierrors.CodeChallengeExpired)
 		}
 
 		if !h.IsDomainAllowed(
@@ -340,7 +355,7 @@ func (s InviteService) ValidateInviteChallenge(
 			s.Providers[string(models.LocalProviderType)].Domains,
 		) {
 			logger.Debug("Domain not allowed")
-			return apierrors.NewAPIError(403, "FORBIDDEN")
+			return apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 		}
 
 		match, err := argon2id.ComparePasswordAndHash(

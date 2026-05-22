@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/tests"
 
 	"github.com/go-chi/chi/v5"
@@ -63,7 +64,7 @@ func TestOpenIDBeginHandler_ProviderNotFound(t *testing.T) {
 		providerName,
 		mock.AnythingOfType("string"),
 		mock.AnythingOfType("string"),
-	).Return("", errors.New("PROVIDER_NOT_FOUND"))
+	).Return("", apierrors.New(http.StatusNotFound, apierrors.CodeProviderNotFound))
 
 	req := httptest.NewRequest(http.MethodGet, "/auth/github", nil)
 	recorder := httptest.NewRecorder()
@@ -167,7 +168,7 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 				req.AddCookie(&http.Cookie{Name: "nonce", Value: nonce})
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedError:      "state not found",
+			expectedError:      "OIDC_STATE_NOT_FOUND",
 		},
 		{
 			name: "State mismatch",
@@ -176,15 +177,15 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 				req.AddCookie(&http.Cookie{Name: "nonce", Value: nonce})
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedError:      "state does not match",
+			expectedError:      "OIDC_STATE_MISMATCH",
 		},
 		{
 			name: "Missing nonce cookie",
 			setupRequest: func(req *http.Request) {
 				req.AddCookie(&http.Cookie{Name: "state", Value: state})
 			},
-			expectedStatusCode: http.StatusInternalServerError,
-			expectedError:      "nonce not found",
+			expectedStatusCode: http.StatusBadRequest,
+			expectedError:      "OIDC_NONCE_NOT_FOUND",
 		},
 		{
 			name: "OpenIDCallback error",
@@ -201,7 +202,7 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 				).Return("", "", errors.New("OpenIDCallback error"))
 			},
 			expectedStatusCode: http.StatusInternalServerError,
-			expectedError:      "OpenIDCallback error",
+			expectedError:      "INTERNAL_SERVER_ERROR",
 		},
 	}
 

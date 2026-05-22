@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"time"
 
@@ -136,7 +137,7 @@ func (s BucketService) CreateBucket(
 		return nil
 	})
 	if err != nil {
-		return models.Bucket{}, apierrors.ErrCreateFailed
+		return models.Bucket{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
 	}
 
 	return newBucket, nil
@@ -219,7 +220,7 @@ func (s BucketService) GetBucket(
 
 	result := s.DB.Where("id = ?", bucketID).First(&bucket)
 	if result.RowsAffected == 0 {
-		return bucket, apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return bucket, apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 	}
 
 	status := queryParams.Status
@@ -331,7 +332,7 @@ func (s BucketService) UpdateBucket(
 	bucket := models.Bucket{ID: ids[0]}
 	result := s.DB.Model(&bucket).Updates(body)
 	if result.RowsAffected == 0 {
-		return apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 	}
 	return nil
 }
@@ -346,7 +347,7 @@ func (s BucketService) DeleteBucket(
 		result := tx.Where("id = ?", ids[0]).First(&bucket)
 
 		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 		}
 
 		if _, err := gorm.G[models.Bucket](tx).Where("id = ?", bucket.ID).Delete(context.Background()); err != nil {
@@ -381,7 +382,7 @@ func (s BucketService) DeleteBucket(
 	})
 	if err != nil {
 		logger.Error("Failed to delete bucket", zap.Error(err))
-		return apierrors.ErrDeleteFailed
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
 	}
 
 	return nil

@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
+	"github.com/safebucket/safebucket/internal/tracing"
 
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -21,10 +21,14 @@ type (
 
 func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), "handlers.OpenIDBegin")
+		defer span.End()
+		r = r.WithContext(ctx)
+
 		providerName := chi.URLParam(r, "provider")
 
 		if err := h.ValidateProviderName(providerName); err != nil {
-			h.RespondWithError(w, http.StatusBadRequest, []string{"INVALID_PROVIDER_NAME"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeInvalidProviderName})
 			return
 		}
 
@@ -33,7 +37,7 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 
 		url, err := openidBegin(providerName, state, nonce)
 		if err != nil {
-			h.RespondWithError(w, http.StatusNotFound, []string{err.Error()})
+			WriteError(span, w, err)
 			return
 		}
 
@@ -46,26 +50,30 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 
 func OpenIDCallbackHandler(webURL string, cookieSecureForce bool, openidCallback OpenIDCallbackFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), "handlers.OpenIDCallback")
+		defer span.End()
+		r = r.WithContext(ctx)
+
 		providerName := chi.URLParam(r, "provider")
 
 		if err := h.ValidateProviderName(providerName); err != nil {
-			h.RespondWithError(w, http.StatusBadRequest, []string{"INVALID_PROVIDER_NAME"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeInvalidProviderName})
 			return
 		}
 
 		state, err := r.Cookie("state")
 		if err != nil {
-			h.RespondWithError(w, http.StatusBadRequest, []string{"state not found"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeOIDCStateNotFound})
 			return
 		}
 		if r.URL.Query().Get("state") != state.Value {
-			h.RespondWithError(w, http.StatusBadRequest, []string{"state does not match"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeOIDCStateMismatch})
 			return
 		}
 
 		nonce, err := r.Cookie("nonce")
 		if err != nil {
-			h.RespondWithError(w, http.StatusInternalServerError, []string{"nonce not found"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeOIDCNonceNotFound})
 			return
 		}
 
@@ -79,13 +87,7 @@ func OpenIDCallbackHandler(webURL string, cookieSecureForce bool, openidCallback
 			nonce.Value,
 		)
 		if err != nil {
-			strErrors := []string{err.Error()}
-			var apiErr *apierrors.APIError
-			if errors.As(err, &apiErr) {
-				h.RespondWithError(w, apiErr.Code, strErrors)
-			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, strErrors)
-			}
+			WriteError(span, w, err)
 			return
 		}
 

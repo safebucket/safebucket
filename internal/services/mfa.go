@@ -90,7 +90,7 @@ func (s MFAService) AddDevice(
 	var user models.User
 	result := s.DB.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).First(&user)
 	if result.RowsAffected == 0 {
-		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(404, "USER_NOT_FOUND")
+		return models.MFADeviceSetupResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 	}
 
 	var count int64
@@ -100,7 +100,7 @@ func (s MFAService) AddDevice(
 		return models.MFADeviceSetupResponse{}, result.Error
 	}
 	if count >= int64(configuration.MaxMFADevicesPerUser) {
-		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(400, "MAX_MFA_DEVICES_REACHED")
+		return models.MFADeviceSetupResponse{}, apierrors.New(http.StatusBadRequest, apierrors.CodeMaxMFADevicesReached)
 	}
 
 	isRestricted := claims.AudienceString() == configuration.AudienceMFALogin ||
@@ -119,40 +119,53 @@ func (s MFAService) AddDevice(
 			logger.Warn("restricted token used for non-initial device setup",
 				zap.String("userID", claims.UserID.String()),
 				zap.Int64("verifiedDeviceCount", verifiedCount))
-			return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(403, "MFA_SETUP_RESTRICTED")
+			return models.MFADeviceSetupResponse{}, apierrors.New(
+				http.StatusForbidden,
+				apierrors.CodeMFASetupRestricted,
+			)
 		}
 	} else {
 		if body.Password == "" {
-			return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(400, "BAD_REQUEST")
+			return models.MFADeviceSetupResponse{}, apierrors.New(http.StatusBadRequest, apierrors.CodeBadRequest)
 		}
 
 		match, err := argon2id.ComparePasswordAndHash(body.Password, user.HashedPassword)
 		if err != nil {
 			logger.Error("failed to compare password and hash", zap.Error(err))
-			return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(400, "BAD_REQUEST")
+			return models.MFADeviceSetupResponse{}, apierrors.New(http.StatusBadRequest, apierrors.CodeBadRequest)
 		}
 		if !match {
-			logger.Warn("invalid password provided for device enrollment", zap.String("userID", claims.UserID.String()))
-			return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(401, "INVALID_PASSWORD")
+			logger.Warn(
+				"invalid password provided for device enrollment",
+				zap.String("userID", claims.UserID.String()),
+			)
+			return models.MFADeviceSetupResponse{},
+				apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidPassword)
 		}
 	}
 
 	var existing models.MFADevice
 	result = s.DB.Where("user_id = ? AND name = ? AND is_verified = ?", userID, body.Name, true).Find(&existing)
 	if result.RowsAffected > 0 {
-		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(409, "MFA_DEVICE_NAME_EXISTS")
+		return models.MFADeviceSetupResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeMFADeviceNameExists)
 	}
 
 	totpKey, err := h.GenerateTOTPSecret(user.Email)
 	if err != nil {
 		logger.Error("Failed to generate TOTP secret", zap.Error(err))
-		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(500, "MFA_SETUP_FAILED")
+		return models.MFADeviceSetupResponse{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeMFASetupFailed,
+		)
 	}
 
 	encryptedSecret, err := h.EncryptSecret(totpKey.Secret, []byte(s.AuthConfig.MFAEncryptionKey))
 	if err != nil {
 		logger.Error("Failed to encrypt TOTP secret", zap.Error(err))
-		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(500, "MFA_SETUP_FAILED")
+		return models.MFADeviceSetupResponse{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeMFASetupFailed,
+		)
 	}
 
 	device := models.MFADevice{
@@ -166,7 +179,10 @@ func (s MFAService) AddDevice(
 
 	if err = s.DB.Create(&device).Error; err != nil {
 		logger.Error("Failed to create MFA device", zap.Error(err))
-		return models.MFADeviceSetupResponse{}, apierrors.NewAPIError(500, "MFA_SETUP_FAILED")
+		return models.MFADeviceSetupResponse{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeMFASetupFailed,
+		)
 	}
 
 	action := models.Activity{
@@ -207,7 +223,7 @@ func (s MFAService) GetDevice(
 	var device models.MFADevice
 	result := s.DB.Where("id = ? AND user_id = ?", deviceID, userID).First(&device)
 	if result.RowsAffected == 0 {
-		return models.MFADevice{}, apierrors.NewAPIError(404, "MFA_DEVICE_NOT_FOUND")
+		return models.MFADevice{}, apierrors.New(http.StatusNotFound, apierrors.CodeMFADeviceNotFound)
 	}
 
 	return device, nil
@@ -229,7 +245,7 @@ func (s MFAService) VerifyDevice(
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).Find(&user)
 		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "USER_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 		}
 
 		var device models.MFADevice
@@ -237,11 +253,11 @@ func (s MFAService) VerifyDevice(
 			Where("id = ? AND user_id = ?", deviceID, userID).
 			First(&device)
 		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "MFA_DEVICE_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeMFADeviceNotFound)
 		}
 
 		if device.IsVerified {
-			return apierrors.NewAPIError(409, "MFA_DEVICE_ALREADY_VERIFIED")
+			return apierrors.New(http.StatusConflict, apierrors.CodeMFADeviceAlreadyVerified)
 		}
 
 		deviceName = device.Name
@@ -249,19 +265,19 @@ func (s MFAService) VerifyDevice(
 		secret, err := h.DecryptSecret(device.EncryptedSecret, []byte(s.AuthConfig.MFAEncryptionKey))
 		if err != nil {
 			logger.Error("Failed to decrypt TOTP secret", zap.Error(err))
-			return apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeMFAVerificationFailed)
 		}
 
 		attempts, err := cache.GetMFAAttempts(s.Cache, userID.String())
 		if err != nil {
 			logger.Error("Rate limit check failed - denying request", zap.Error(err))
-			return apierrors.NewAPIError(503, "SERVICE_UNAVAILABLE")
+			return apierrors.New(http.StatusServiceUnavailable, apierrors.CodeServiceUnavailable)
 		}
 		if attempts >= configuration.MFAMaxAttempts {
 			logger.Warn("MFA device verification rate limited",
 				zap.String("user_id", userID.String()),
 				zap.String("device_id", deviceID.String()))
-			return apierrors.NewAPIError(429, "MFA_RATE_LIMITED")
+			return apierrors.New(http.StatusTooManyRequests, apierrors.CodeMFARateLimited)
 		}
 
 		if !h.ValidateTOTPCode(secret, body.Code) {
@@ -272,7 +288,7 @@ func (s MFAService) VerifyDevice(
 			logger.Warn("MFA device verification failed - invalid code",
 				zap.String("user_id", userID.String()),
 				zap.String("device_id", deviceID.String()))
-			return apierrors.NewAPIError(401, "INVALID_MFA_CODE")
+			return apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidMFACode)
 		}
 
 		if err = cache.ResetMFAAttempts(s.Cache, userID.String()); err != nil {
@@ -282,12 +298,12 @@ func (s MFAService) VerifyDevice(
 		unused, err := cache.MarkTOTPCodeUsed(s.Cache, deviceID.String(), body.Code)
 		if err != nil {
 			logger.Error("Failed to mark TOTP code as used", zap.Error(err))
-			return apierrors.NewAPIError(500, "MFA_VERIFICATION_FAILED")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeMFAVerificationFailed)
 		}
 		if !unused {
 			logger.Warn("TOTP code replay attempt detected",
 				zap.String("device_id", deviceID.String()))
-			return apierrors.NewAPIError(401, "INVALID_MFA_CODE")
+			return apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidMFACode)
 		}
 
 		var existingDefaultCount int64
@@ -345,7 +361,10 @@ func (s MFAService) VerifyDevice(
 		)
 		if err != nil {
 			logger.Error("Failed to generate restricted access token", zap.Error(err))
-			return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "TOKEN_GENERATION_FAILED")
+			return handlers.AuthFlowResult{}, apierrors.New(
+				http.StatusInternalServerError,
+				apierrors.CodeTokenGenerationFailed,
+			)
 		}
 
 		logger.Info("MFA device verified (password reset flow)",
@@ -387,7 +406,10 @@ func (s MFAService) VerifyDevice(
 
 	if sessionErr := cache.CreateSession(s.Cache, userID.String(), sid); sessionErr != nil {
 		logger.Error("Failed to create session", zap.Error(sessionErr))
-		return handlers.AuthFlowResult{}, apierrors.ErrInternalServer
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
 	return handlers.AuthFlowResult{
@@ -419,7 +441,7 @@ func (s MFAService) UpdateDevice(
 		var user models.User
 		result := tx.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).Find(&user)
 		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "USER_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 		}
 
 		var device models.MFADevice
@@ -427,7 +449,7 @@ func (s MFAService) UpdateDevice(
 			Where("id = ? AND user_id = ?", deviceID, userID).
 			Find(&device)
 		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "MFA_DEVICE_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeMFADeviceNotFound)
 		}
 
 		updates := make(map[string]any)
@@ -437,14 +459,14 @@ func (s MFAService) UpdateDevice(
 			result = tx.Where("user_id = ? AND name = ? AND id != ? AND is_verified = ?",
 				userID, *body.Name, deviceID, true).First(&existing)
 			if result.RowsAffected > 0 {
-				return apierrors.NewAPIError(409, "MFA_DEVICE_NAME_EXISTS")
+				return apierrors.New(http.StatusConflict, apierrors.CodeMFADeviceNameExists)
 			}
 			updates["name"] = *body.Name
 		}
 
 		if body.IsDefault != nil && *body.IsDefault {
 			if !device.IsVerified {
-				return apierrors.NewAPIError(400, "UNVERIFIED_DEVICE_CANNOT_BE_DEFAULT")
+				return apierrors.New(http.StatusBadRequest, apierrors.CodeUnverifiedDeviceCannotDefault)
 			}
 			tx.Model(&models.MFADevice{}).
 				Where("user_id = ? AND id != ?", userID, deviceID).
@@ -495,19 +517,19 @@ func (s MFAService) RemoveDevice(
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).First(&user)
 		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "USER_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 		}
 
 		match, err := argon2id.ComparePasswordAndHash(body.Password, user.HashedPassword)
 		if err != nil {
 			logger.Error("Failed to verify password", zap.Error(err))
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 		if !match {
 			logger.Warn("MFA device removal failed - invalid password",
 				zap.String("user_id", userID.String()),
 				zap.String("device_id", deviceID.String()))
-			return apierrors.NewAPIError(401, "INVALID_PASSWORD")
+			return apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidPassword)
 		}
 
 		var device models.MFADevice
@@ -515,7 +537,7 @@ func (s MFAService) RemoveDevice(
 			Where("id = ? AND user_id = ?", deviceID, userID).
 			First(&device)
 		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "MFA_DEVICE_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeMFADeviceNotFound)
 		}
 
 		deviceName = device.Name

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -51,13 +50,7 @@ func AuthFlowHandler[In any](forceSecure bool, target AuthFlowTargetFunc[In]) ht
 
 		result, err := target(isSecureRequest(r, forceSecure), logger, claims, ids, body)
 		if err != nil {
-			status := http.StatusBadRequest
-			var apiErr *apierrors.APIError
-			if errors.As(err, &apiErr) {
-				status = apiErr.Code
-			}
-			recordError(span, err, status)
-			h.RespondWithError(w, status, []string{err.Error()})
+			WriteError(span, w, err)
 			return
 		}
 

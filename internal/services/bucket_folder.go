@@ -1,6 +1,7 @@
 package services
 
 import (
+	"net/http"
 	"path"
 	"time"
 
@@ -64,14 +65,14 @@ func (s BucketFolderService) CreateFolder(
 	var bucket models.Bucket
 	result := s.DB.Where("id = ?", bucketID).Find(&bucket)
 	if result.RowsAffected == 0 {
-		return models.Folder{}, apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return models.Folder{}, apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 	}
 
 	if body.FolderID != nil {
 		var parentFolder models.Folder
 		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucketID).Find(&parentFolder)
 		if result.RowsAffected == 0 {
-			return models.Folder{}, apierrors.NewAPIError(404, "PARENT_FOLDER_NOT_FOUND")
+			return models.Folder{}, apierrors.New(http.StatusNotFound, apierrors.CodeParentFolderNotFound)
 		}
 	}
 
@@ -84,7 +85,7 @@ func (s BucketFolderService) CreateFolder(
 	}
 	result = query.Find(&existingFolder)
 	if result.RowsAffected > 0 {
-		return models.Folder{}, apierrors.NewAPIError(409, "FOLDER_ALREADY_EXISTS")
+		return models.Folder{}, apierrors.New(http.StatusConflict, apierrors.CodeFolderAlreadyExists)
 	}
 
 	folder := models.Folder{
@@ -96,7 +97,7 @@ func (s BucketFolderService) CreateFolder(
 
 	if err := s.DB.Create(&folder).Error; err != nil {
 		logger.Error("Failed to create folder", zap.Error(err))
-		return models.Folder{}, apierrors.ErrCreateFailed
+		return models.Folder{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
 	}
 
 	action := models.Activity{
@@ -129,7 +130,7 @@ func (s BucketFolderService) RenameFolder(
 	var folder models.Folder
 	result := s.DB.Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
 	if result.RowsAffected == 0 {
-		return apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
+		return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 	}
 
 	var existingFolder models.Folder
@@ -141,13 +142,13 @@ func (s BucketFolderService) RenameFolder(
 	}
 	result = query.Find(&existingFolder)
 	if result.RowsAffected > 0 {
-		return apierrors.NewAPIError(409, "FOLDER_NAME_CONFLICT")
+		return apierrors.New(http.StatusConflict, apierrors.CodeFolderNameConflict)
 	}
 
 	folder.Name = body.Name
 	if err := s.DB.Model(&folder).Update("name", body.Name).Error; err != nil {
 		logger.Error("Failed to update folder", zap.Error(err))
-		return apierrors.NewAPIError(500, "UPDATE_FAILED")
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 	}
 
 	action := models.Activity{
@@ -180,7 +181,7 @@ func (s BucketFolderService) UpdateFolderStatus(
 	var folder models.Folder
 	result := s.DB.Unscoped().Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
 	if result.RowsAffected == 0 {
-		return apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
+		return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 	}
 
 	switch body.Status {
@@ -189,9 +190,9 @@ func (s BucketFolderService) UpdateFolderStatus(
 	case models.FolderStatusCreated:
 		return s.RestoreFolder(logger, user, folder)
 	case models.FolderStatusRestoring:
-		return apierrors.NewAPIError(400, "INVALID_STATUS")
+		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidStatus)
 	default:
-		return apierrors.NewAPIError(400, "INVALID_STATUS")
+		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidStatus)
 	}
 }
 
@@ -205,7 +206,7 @@ func (s BucketFolderService) DeleteFolder(
 	var folder models.Folder
 	result := s.DB.Unscoped().Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
 	if result.RowsAffected == 0 {
-		return apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
+		return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 	}
 
 	return s.PurgeFolder(logger, user, folder)
@@ -217,11 +218,11 @@ func (s BucketFolderService) TrashFolder(
 	folder models.Folder,
 ) error {
 	if folder.DeletedAt.Valid {
-		return apierrors.NewAPIError(409, "FOLDER_ALREADY_TRASHED")
+		return apierrors.New(http.StatusConflict, apierrors.CodeFolderAlreadyTrashed)
 	}
 
 	if folder.Status == models.FolderStatusRestoring {
-		return apierrors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
+		return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
 	}
 
 	updates := map[string]interface{}{
@@ -230,12 +231,12 @@ func (s BucketFolderService) TrashFolder(
 	}
 	if err := s.DB.Model(&folder).Updates(updates).Error; err != nil {
 		logger.Error("Failed to update folder for trashing", zap.Error(err))
-		return apierrors.NewAPIError(500, "UPDATE_FAILED")
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 	}
 
 	if err := s.DB.Delete(&folder).Error; err != nil {
 		logger.Error("Failed to soft delete folder", zap.Error(err))
-		return apierrors.NewAPIError(500, "DELETE_FAILED")
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
 	}
 
 	objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
@@ -304,20 +305,20 @@ func (s BucketFolderService) RestoreFolder(
 			First(&lockedFolder)
 
 		if result.Error != nil {
-			return apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 		}
 
 		if !lockedFolder.DeletedAt.Valid {
-			return apierrors.NewAPIError(409, "FOLDER_NOT_IN_TRASH")
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNotInTrash)
 		}
 
 		if lockedFolder.Status == models.FolderStatusRestoring {
-			return apierrors.NewAPIError(409, "FOLDER_RESTORE_IN_PROGRESS")
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
 		}
 
 		retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
 		if time.Since(lockedFolder.DeletedAt.Time) > retentionPeriod {
-			return apierrors.NewAPIError(410, apierrors.CodeFolderTrashExpired)
+			return apierrors.New(http.StatusGone, apierrors.CodeFolderTrashExpired)
 		}
 
 		parentFolders, err := s.restoreParentFolders(tx, logger, lockedFolder.FolderID, lockedFolder.BucketID)
@@ -339,7 +340,7 @@ func (s BucketFolderService) RestoreFolder(
 			query = query.Where("folder_id IS NULL")
 		}
 		if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
-			return apierrors.NewAPIError(409, apierrors.CodeFolderNameConflict)
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNameConflict)
 		}
 
 		if updateErr := tx.Unscoped().
@@ -347,7 +348,7 @@ func (s BucketFolderService) RestoreFolder(
 			Update("status", models.FolderStatusRestoring).
 			Error; updateErr != nil {
 			logger.Error("Failed to set folder to restoring status", zap.Error(updateErr))
-			return apierrors.NewAPIError(500, "UPDATE_FAILED")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
 		restoredFolder = lockedFolder
@@ -398,7 +399,7 @@ func (s BucketFolderService) PurgeFolder(
 	folder models.Folder,
 ) error {
 	if !folder.DeletedAt.Valid {
-		return apierrors.NewAPIError(409, "FOLDER_NOT_IN_TRASH")
+		return apierrors.New(http.StatusConflict, apierrors.CodeFolderNotInTrash)
 	}
 
 	event := events.NewFolderPurge(s.Publisher, folder.BucketID, folder.ID, user.UserID)

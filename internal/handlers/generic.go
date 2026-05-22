@@ -48,6 +48,20 @@ func recordError(span trace.Span, err error, status int) {
 	}
 }
 
+func resolveError(err error) (int, string) {
+	var apiErr *apierrors.APIError
+	if errors.As(err, &apiErr) {
+		return apiErr.Status, apiErr.Code
+	}
+	return http.StatusInternalServerError, apierrors.CodeInternalServerError
+}
+
+func WriteError(span trace.Span, w http.ResponseWriter, err error) {
+	status, code := resolveError(err)
+	recordError(span, err, status)
+	h.RespondWithError(w, status, []string{code})
+}
+
 //nolint:dupl // structurally similar to GetOneWithQueryHandler but handles body decoding and write semantics.
 func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
 	name := spanName(create)
@@ -72,8 +86,7 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 
 		resp, err := create(logger, claims, ids, body)
 		if err != nil {
-			recordError(span, err, http.StatusBadRequest)
-			h.RespondWithError(w, http.StatusBadRequest, []string{err.Error()})
+			WriteError(span, w, err)
 		} else {
 			h.RespondWithJSON(w, http.StatusCreated, resp)
 		}
@@ -116,8 +129,7 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 		logger := m.GetLogger(r)
 		record, err := getOne(logger, claims, ids)
 		if err != nil {
-			recordError(span, err, http.StatusNotFound)
-			h.RespondWithError(w, http.StatusNotFound, []string{err.Error()})
+			WriteError(span, w, err)
 		} else {
 			h.RespondWithJSON(w, http.StatusOK, record)
 		}
@@ -149,8 +161,7 @@ func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, 
 
 		record, err := getOne(logger, claims, ids, query)
 		if err != nil {
-			recordError(span, err, http.StatusNotFound)
-			h.RespondWithError(w, http.StatusNotFound, []string{err.Error()})
+			WriteError(span, w, err)
 		} else {
 			h.RespondWithJSON(w, http.StatusOK, record)
 		}
@@ -179,15 +190,8 @@ func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
 			return
 		}
 
-		err := handler(logger, claims, ids, body)
-		if err != nil {
-			status := http.StatusBadRequest
-			var apiErr *apierrors.APIError
-			if errors.As(err, &apiErr) {
-				status = apiErr.Code
-			}
-			recordError(span, err, status)
-			h.RespondWithError(w, status, []string{err.Error()})
+		if err := handler(logger, claims, ids, body); err != nil {
+			WriteError(span, w, err)
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 		}
@@ -208,10 +212,8 @@ func DeleteHandler(del DeleteTargetFunc) http.HandlerFunc {
 
 		claims, _ := h.GetUserClaims(r.Context())
 		logger := m.GetLogger(r)
-		err := del(logger, claims, ids)
-		if err != nil {
-			recordError(span, err, http.StatusNotFound)
-			h.RespondWithError(w, http.StatusNotFound, []string{err.Error()})
+		if err := del(logger, claims, ids); err != nil {
+			WriteError(span, w, err)
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 		}

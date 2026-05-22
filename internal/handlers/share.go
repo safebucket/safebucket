@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tracing"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -27,6 +27,10 @@ func getShare(r *http.Request) models.Share {
 
 func ShareAuthHandler[In any](forceSecure bool, auth ShareAuthTargetFunc[In]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), spanName(auth))
+		defer span.End()
+		r = r.WithContext(ctx)
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -44,12 +48,7 @@ func ShareAuthHandler[In any](forceSecure bool, auth ShareAuthTargetFunc[In]) ht
 		share := getShare(r)
 		result, err := auth(isSecureRequest(r, forceSecure), logger, share, ids, body)
 		if err != nil {
-			var apiErr *apierrors.APIError
-			if errors.As(err, &apiErr) {
-				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
-			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
-			}
+			WriteError(span, w, err)
 			return
 		}
 
@@ -60,6 +59,10 @@ func ShareAuthHandler[In any](forceSecure bool, auth ShareAuthTargetFunc[In]) ht
 
 func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), spanName(getOne))
+		defer span.End()
+		r = r.WithContext(ctx)
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -69,12 +72,7 @@ func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.Handler
 		logger := m.GetLogger(r)
 		record, err := getOne(logger, share, ids)
 		if err != nil {
-			var apiErr *apierrors.APIError
-			if errors.As(err, &apiErr) {
-				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
-			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
-			}
+			WriteError(span, w, err)
 		} else {
 			h.RespondWithJSON(w, http.StatusOK, record)
 		}
@@ -83,6 +81,10 @@ func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.Handler
 
 func ShareCreateHandler[In any, Out any](create ShareCreateTargetFunc[In, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), spanName(create))
+		defer span.End()
+		r = r.WithContext(ctx)
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -100,12 +102,7 @@ func ShareCreateHandler[In any, Out any](create ShareCreateTargetFunc[In, Out]) 
 
 		resp, err := create(logger, share, ids, body)
 		if err != nil {
-			var apiErr *apierrors.APIError
-			if errors.As(err, &apiErr) {
-				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
-			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
-			}
+			WriteError(span, w, err)
 		} else {
 			h.RespondWithJSON(w, http.StatusCreated, resp)
 		}
@@ -114,6 +111,10 @@ func ShareCreateHandler[In any, Out any](create ShareCreateTargetFunc[In, Out]) 
 
 func ShareActionHandler(action ShareActionTargetFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), spanName(action))
+		defer span.End()
+		r = r.WithContext(ctx)
+
 		ids, ok := h.ParseUUIDs(w, r)
 		if !ok {
 			return
@@ -121,14 +122,8 @@ func ShareActionHandler(action ShareActionTargetFunc) http.HandlerFunc {
 
 		share := getShare(r)
 		logger := m.GetLogger(r)
-		err := action(logger, share, ids)
-		if err != nil {
-			var apiErr *apierrors.APIError
-			if errors.As(err, &apiErr) {
-				h.RespondWithError(w, apiErr.Code, []string{apiErr.Message})
-			} else {
-				h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
-			}
+		if err := action(logger, share, ids); err != nil {
+			WriteError(span, w, err)
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 		}

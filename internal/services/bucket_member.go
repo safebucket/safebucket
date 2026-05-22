@@ -1,6 +1,7 @@
 package services
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -114,12 +115,12 @@ func (s BucketMemberService) UpdateNotificationPreferences(
 	var membership models.Membership
 	result := s.DB.Where("user_id = ? AND bucket_id = ?", user.UserID, bucketID).First(&membership)
 	if result.RowsAffected == 0 {
-		return apierrors.NewAPIError(404, "NOT_FOUND")
+		return apierrors.New(http.StatusNotFound, apierrors.CodeNotFound)
 	}
 
 	if err := s.DB.Model(&membership).Updates(body).Error; err != nil {
 		logger.Error("Failed to update notification preferences", zap.Error(err))
-		return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	return nil
@@ -138,17 +139,17 @@ func (s BucketMemberService) UpdateBucketMembers(
 
 	providerCfg, ok = s.Providers[user.Provider]
 	if !ok {
-		return apierrors.NewAPIError(400, "UNKNOWN_USER_PROVIDER")
+		return apierrors.New(http.StatusBadRequest, apierrors.CodeUnknownUserProvider)
 	}
 	if !providerCfg.SharingOptions.Allowed {
-		return apierrors.NewAPIError(403, "SHARING_DISABLED_FOR_PROVIDER")
+		return apierrors.New(http.StatusForbidden, apierrors.CodeSharingDisabledForProvider)
 	}
 
 	var bucket models.Bucket
 	result := s.DB.Where("id = ?", bucketID).First(&bucket)
 
 	if result.RowsAffected == 0 {
-		return apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 	}
 
 	members := s.GetBucketMembers(logger, user, ids)

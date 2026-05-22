@@ -85,8 +85,38 @@ func TestCreateHandler_BadRequest(t *testing.T) {
 	handler(recorder, req)
 
 	mockCreate.AssertExpectations(t)
-	expected := models.Error{Status: http.StatusBadRequest, Error: []string{"INVALID_DATA"}}
-	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
+	expected := models.Error{Status: http.StatusInternalServerError, Error: []string{"INTERNAL_SERVER_ERROR"}}
+	tests.AssertJSONResponse(t, recorder, http.StatusInternalServerError, expected)
+}
+
+func TestCreateHandler_APIErrorPropagatesStatus(t *testing.T) {
+	mockInput := models.BucketCreateUpdateBody{Name: "test-bucket"}
+
+	mockCreate := new(tests.MockCreateFunc[models.BucketCreateUpdateBody, models.Bucket])
+	mockCreate.On(
+		"Create",
+		mock.AnythingOfType("*zap.Logger"),
+		mock.Anything,
+		uuid.UUIDs(nil),
+		mockInput,
+	).Return(models.Bucket{}, apierrors.New(http.StatusConflict, "DUPLICATE_BUCKET"))
+
+	req := httptest.NewRequest(http.MethodPost, "/buckets", nil)
+	recorder := httptest.NewRecorder()
+
+	logger := zap.NewNop()
+	ctx := context.WithValue(req.Context(), m.LoggerKey, logger)
+	claims := models.UserClaims{UserID: uuid.New()}
+	ctx = context.WithValue(ctx, models.UserClaimKey{}, claims)
+	ctx = context.WithValue(ctx, m.BodyKey{}, mockInput)
+	req = req.WithContext(ctx)
+
+	handler := CreateHandler(mockCreate.Create)
+	handler(recorder, req)
+
+	mockCreate.AssertExpectations(t)
+	expected := models.Error{Status: http.StatusConflict, Error: []string{"DUPLICATE_BUCKET"}}
+	tests.AssertJSONResponse(t, recorder, http.StatusConflict, expected)
 }
 
 func TestCreateHandler_InvalidUUID(t *testing.T) {
@@ -238,7 +268,7 @@ func TestGetOneHandler_NotFound(t *testing.T) {
 		mock.AnythingOfType("*zap.Logger"),
 		mock.Anything,
 		uuid.UUIDs{testUUID},
-	).Return(models.Bucket{}, errors.New("RECORD_NOT_FOUND"))
+	).Return(models.Bucket{}, apierrors.New(http.StatusNotFound, "RECORD_NOT_FOUND"))
 
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()
@@ -352,7 +382,7 @@ func TestBodyHandler_NotFoundWithAPIError(t *testing.T) {
 		mock.Anything,
 		uuid.UUIDs{testUUID},
 		mockInput,
-	).Return(apierrors.NewAPIError(http.StatusNotFound, "NOT_FOUND"))
+	).Return(apierrors.New(http.StatusNotFound, "NOT_FOUND"))
 
 	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()
@@ -407,8 +437,9 @@ func TestBodyHandler_GenericError(t *testing.T) {
 	handler(recorder, req)
 
 	mockUpdate.AssertExpectations(t)
-	expected := models.Error{Status: http.StatusBadRequest, Error: []string{"GENERIC_ERROR"}}
-	tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, expected)
+	// Generic (non-APIError) errors are masked to 500 INTERNAL_SERVER_ERROR.
+	expected := models.Error{Status: http.StatusInternalServerError, Error: []string{"INTERNAL_SERVER_ERROR"}}
+	tests.AssertJSONResponse(t, recorder, http.StatusInternalServerError, expected)
 }
 
 func TestBodyHandler_BodyExtractionFailure(t *testing.T) {
@@ -476,7 +507,7 @@ func TestDeleteHandler_NotFound(t *testing.T) {
 		mock.AnythingOfType("*zap.Logger"),
 		mock.Anything,
 		uuid.UUIDs{testUUID},
-	).Return(errors.New("RECORD_NOT_FOUND"))
+	).Return(apierrors.New(http.StatusNotFound, "RECORD_NOT_FOUND"))
 
 	req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/buckets/%s", testUUID.String()), nil)
 	recorder := httptest.NewRecorder()

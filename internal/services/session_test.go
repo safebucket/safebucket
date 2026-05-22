@@ -163,8 +163,8 @@ func TestRevokeSession_NotFound(t *testing.T) {
 
 	var apiErr *apierrors.APIError
 	require.True(t, errors.As(err, &apiErr))
-	assert.Equal(t, 404, apiErr.Code)
-	assert.Equal(t, "SESSION_NOT_FOUND", apiErr.Message)
+	assert.Equal(t, 404, apiErr.Status)
+	assert.Equal(t, "SESSION_NOT_FOUND", apiErr.Code)
 }
 
 func TestRevokeOtherSessions_Success(t *testing.T) {

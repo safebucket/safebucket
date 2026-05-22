@@ -65,18 +65,21 @@ func (s PublicShareService) AuthenticateShare(
 	body models.ShareAuthBody,
 ) (handlers.AuthFlowResult, error) {
 	if share.HashedPassword == "" {
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(400, "SHARE_NOT_PASSWORD_PROTECTED")
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusBadRequest, apierrors.CodeShareNotPasswordProtected)
 	}
 
 	match, err := argon2id.ComparePasswordAndHash(body.Password, share.HashedPassword)
 	if err != nil || !match {
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(401, "SHARE_PASSWORD_INVALID")
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusUnauthorized, apierrors.CodeSharePasswordInvalid)
 	}
 
 	token, err := h.NewShareAccessToken(s.TokenSecret, share.ID)
 	if err != nil {
 		logger.Error("Failed to create share access token", zap.Error(err))
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
 	return handlers.AuthFlowResult{
@@ -96,11 +99,14 @@ func (s PublicShareService) ListShareItems(
 		UpdateColumn("current_views", gorm.Expr("current_views + 1"))
 	if result.Error != nil {
 		logger.Error("Failed to increment share views", zap.Error(result.Error))
-		return models.PublicShareResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.PublicShareResponse{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
 	if result.RowsAffected == 0 {
-		return models.PublicShareResponse{}, apierrors.NewAPIError(403, "SHARE_MAX_VIEWS_REACHED")
+		return models.PublicShareResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeShareMaxViewsReached)
 	}
 
 	response := models.PublicShareResponse{
@@ -139,8 +145,10 @@ func (s PublicShareService) ListShareItems(
 		response.Files = files
 
 		var folders []models.Folder
-		s.DB.Where("bucket_id = ? AND folder_id = ? AND status = ?", share.BucketID, share.FolderID, models.FolderStatusCreated).
-			Find(&folders)
+		s.DB.Where(
+			"bucket_id = ? AND folder_id = ? AND status = ?",
+			share.BucketID, share.FolderID, models.FolderStatusCreated,
+		).Find(&folders)
 		response.Folders = folders
 
 	case models.ShareTypeBucket:
@@ -176,7 +184,10 @@ func (s PublicShareService) DownloadShareFile(
 	)
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
-		return models.FileTransferResponse{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return models.FileTransferResponse{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
 	if activityErr := s.ActivityLogger.Send(models.Activity{
@@ -207,15 +218,18 @@ func (s PublicShareService) UploadShareFile(
 	body models.ShareUploadBody,
 ) (models.FileTransferResponse, error) {
 	if !share.AllowUpload {
-		return models.FileTransferResponse{}, apierrors.NewAPIError(403, "SHARE_UPLOAD_NOT_ALLOWED")
+		return models.FileTransferResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeShareUploadNotAllowed)
 	}
 
 	if share.MaxUploadSize != nil && body.Size > *share.MaxUploadSize {
-		return models.FileTransferResponse{}, apierrors.NewAPIError(400, "SHARE_UPLOAD_SIZE_EXCEEDED")
+		return models.FileTransferResponse{}, apierrors.New(
+			http.StatusBadRequest,
+			apierrors.CodeShareUploadSizeExceeded,
+		)
 	}
 
 	if share.MaxUploads != nil && share.CurrentUploads >= *share.MaxUploads {
-		return models.FileTransferResponse{}, apierrors.NewAPIError(403, "MAX_UPLOADS_REACHED")
+		return models.FileTransferResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeMaxUploadsReached)
 	}
 
 	var folderID *uuid.UUID
@@ -230,7 +244,7 @@ func (s PublicShareService) UploadShareFile(
 			var folder models.Folder
 			if s.DB.Where("id = ? AND bucket_id = ?", folderID, share.BucketID).
 				Find(&folder).RowsAffected == 0 {
-				return models.FileTransferResponse{}, apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
+				return models.FileTransferResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 			}
 		}
 	}
@@ -244,7 +258,7 @@ func (s PublicShareService) UploadShareFile(
 	}
 
 	if query.Find(&existingFile).RowsAffected > 0 {
-		return models.FileTransferResponse{}, apierrors.NewAPIError(409, "FILE_ALREADY_EXISTS")
+		return models.FileTransferResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyExists)
 	}
 
 	extension := filepath.Ext(body.Name)
@@ -290,7 +304,7 @@ func (s PublicShareService) UploadShareFile(
 			return uploadResult.Error
 		}
 		if uploadResult.RowsAffected == 0 {
-			return apierrors.NewAPIError(403, "SHARE_MAX_UPLOADS_REACHED")
+			return apierrors.New(http.StatusForbidden, apierrors.CodeShareMaxUploadsReached)
 		}
 
 		if activityErr := s.ActivityLogger.Send(models.Activity{
@@ -336,19 +350,19 @@ func (s PublicShareService) ConfirmShareUpload(
 
 		if result.Error != nil {
 			logger.Error("Find file failed", zap.Error(result.Error))
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		if result.RowsAffected == 0 {
-			return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 		}
 
 		if file.Status != models.FileStatusUploading {
-			return apierrors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
+			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidFileStatusTransition)
 		}
 
 		if !h.IsFileInShare(tx, share, fileID, file) {
-			return apierrors.NewAPIError(403, "SHARE_FILE_NOT_IN_SHARE")
+			return apierrors.New(http.StatusForbidden, apierrors.CodeShareFileNotInShare)
 		}
 
 		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
@@ -357,12 +371,12 @@ func (s PublicShareService) ConfirmShareUpload(
 				zap.Error(statErr),
 				zap.String("path", objectPath),
 				zap.String("file_id", file.ID.String()))
-			return apierrors.NewAPIError(404, "FILE_NOT_IN_STORAGE")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotInStorage)
 		}
 
 		if txErr := tx.Model(&file).Update("status", models.FileStatusUploaded).Error; txErr != nil {
 			logger.Error("Failed to update file status", zap.Error(txErr))
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		if activityErr := s.ActivityLogger.Send(models.Activity{

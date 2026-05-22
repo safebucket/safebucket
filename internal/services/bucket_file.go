@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"net/http"
 	"path"
 	"path/filepath"
 	"time"
@@ -64,14 +65,14 @@ func (s BucketFileService) UploadFile(
 	var bucket models.Bucket
 	result := s.DB.Where("id = ?", ids[0]).Find(&bucket)
 	if result.RowsAffected == 0 {
-		return models.FileTransferResponse{}, apierrors.NewAPIError(404, "BUCKET_NOT_FOUND")
+		return models.FileTransferResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 	}
 
 	if body.FolderID != nil {
 		var folder models.Folder
 		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucket.ID).Find(&folder)
 		if result.RowsAffected == 0 {
-			return models.FileTransferResponse{}, apierrors.NewAPIError(404, "FOLDER_NOT_FOUND")
+			return models.FileTransferResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 		}
 	}
 
@@ -84,7 +85,7 @@ func (s BucketFileService) UploadFile(
 	}
 	result = query.Find(&existingFile)
 	if result.RowsAffected > 0 {
-		return models.FileTransferResponse{}, apierrors.NewAPIError(409, "FILE_ALREADY_EXISTS")
+		return models.FileTransferResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyExists)
 	}
 
 	extension := filepath.Ext(body.Name)
@@ -128,7 +129,7 @@ func (s BucketFileService) UploadFile(
 		return nil
 	})
 	if err != nil {
-		return models.FileTransferResponse{}, apierrors.ErrCreateFailed
+		return models.FileTransferResponse{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
 	}
 
 	return models.FileTransferResponse{
@@ -151,14 +152,14 @@ func (s BucketFileService) PatchFile(
 		Where("id = ? AND bucket_id = ?", fileID, bucketID).
 		Find(&file)
 	if result.Error != nil {
-		return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 	if result.RowsAffected == 0 {
-		return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+		return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 	}
 
 	if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
-		return apierrors.NewAPIError(403, apierrors.CodeFileExpired)
+		return apierrors.New(http.StatusForbidden, apierrors.CodeFileExpired)
 	}
 
 	switch body.Status {
@@ -170,7 +171,7 @@ func (s BucketFileService) PatchFile(
 		}
 		return s.HandleUploadedStatus(logger, user, file)
 	default:
-		return apierrors.NewAPIError(400, "INVALID_STATUS")
+		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidStatus)
 	}
 }
 
@@ -189,13 +190,13 @@ func (s BucketFileService) HandleUploadedStatus(
 
 		if result.Error != nil {
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-				return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 			}
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		if file.Status != models.FileStatusUploading {
-			return apierrors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
+			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidFileStatusTransition)
 		}
 
 		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
@@ -204,12 +205,12 @@ func (s BucketFileService) HandleUploadedStatus(
 				zap.Error(err),
 				zap.String("path", objectPath),
 				zap.String("file_id", file.ID.String()))
-			return apierrors.NewAPIError(404, "FILE_NOT_IN_STORAGE")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotInStorage)
 		}
 
 		if err := tx.Model(&file).Update("status", models.FileStatusUploaded).Error; err != nil {
 			logger.Error("Failed to update file status", zap.Error(err))
-			return apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		if err := s.ActivityLogger.Send(models.Activity{
@@ -262,15 +263,15 @@ func (s BucketFileService) DownloadFile(
 	}
 
 	if file.DeletedAt.Valid {
-		return models.FileTransferResponse{}, apierrors.NewAPIError(
-			403,
+		return models.FileTransferResponse{}, apierrors.New(
+			http.StatusForbidden,
 			apierrors.CodeCannotDownloadTrashed,
 		)
 	}
 
 	if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
-		return models.FileTransferResponse{}, apierrors.NewAPIError(
-			403,
+		return models.FileTransferResponse{}, apierrors.New(
+			http.StatusForbidden,
 			apierrors.CodeFileExpired,
 		)
 	}
@@ -326,18 +327,18 @@ func (s BucketFileService) TrashFile(
 
 		if result.Error != nil {
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-				return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 			}
 			logger.Error("Failed to fetch file for trashing", zap.Error(result.Error))
-			return apierrors.NewAPIError(500, "FETCH_FAILED")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
 		}
 
 		if file.DeletedAt.Valid {
-			return apierrors.NewAPIError(409, "FILE_ALREADY_TRASHED")
+			return apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyTrashed)
 		}
 
 		if file.Status != models.FileStatusUploaded {
-			return apierrors.NewAPIError(409, "INVALID_FILE_STATUS_TRANSITION")
+			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidFileStatusTransition)
 		}
 
 		updates := map[string]interface{}{
@@ -346,12 +347,12 @@ func (s BucketFileService) TrashFile(
 		}
 		if err := tx.Model(&file).Updates(updates).Error; err != nil {
 			logger.Error("Failed to update file for trashing", zap.Error(err))
-			return apierrors.NewAPIError(500, "UPDATE_FAILED")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
 		if err := tx.Delete(&file).Error; err != nil {
 			logger.Error("Failed to soft delete file", zap.Error(err))
-			return apierrors.NewAPIError(500, "DELETE_FAILED")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
 		}
 
 		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
@@ -426,14 +427,14 @@ func (s BucketFileService) RestoreFile(
 
 		if result.Error != nil {
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-				return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 			}
 			logger.Error("Failed to fetch file for restoring", zap.Error(result.Error))
-			return apierrors.NewAPIError(500, "FETCH_FAILED")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
 		}
 
 		if file.Status == models.FileStatusRestoring {
-			return apierrors.NewAPIError(409, "FILE_RESTORE_IN_PROGRESS")
+			return apierrors.New(http.StatusConflict, apierrors.CodeFileRestoreInProgress)
 		}
 
 		folders, err := s.restoreParentFolders(tx, logger, file.FolderID, file.BucketID)
@@ -455,7 +456,7 @@ func (s BucketFileService) RestoreFile(
 		conflictResult := query.Find(&existingFile)
 
 		if conflictResult.RowsAffected > 0 {
-			return apierrors.NewAPIError(409, "FILE_NAME_CONFLICT")
+			return apierrors.New(http.StatusConflict, apierrors.CodeFileNameConflict)
 		}
 
 		updates := map[string]interface{}{
@@ -466,7 +467,7 @@ func (s BucketFileService) RestoreFile(
 
 		if updateErr := tx.Unscoped().Model(&file).Updates(updates).Error; updateErr != nil {
 			logger.Error("Failed to restore file", zap.Error(updateErr))
-			return apierrors.NewAPIError(500, "UPDATE_FAILED")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
 		restoredFile = file
@@ -523,14 +524,14 @@ func (s BucketFileService) PurgeFile(
 
 		if result.Error != nil {
 			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-				return apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 			}
 			logger.Error("Failed to fetch file for purging", zap.Error(result.Error))
-			return apierrors.NewAPIError(500, "FETCH_FAILED")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
 		}
 
 		if !file.DeletedAt.Valid {
-			return apierrors.NewAPIError(409, "FILE_NOT_IN_TRASH")
+			return apierrors.New(http.StatusConflict, apierrors.CodeFileNotInTrash)
 		}
 
 		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
@@ -549,7 +550,7 @@ func (s BucketFileService) PurgeFile(
 
 		if err := tx.Unscoped().Delete(&file).Error; err != nil {
 			logger.Error("Failed to hard delete file from database", zap.Error(err))
-			return apierrors.ErrDeleteFailed
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
 		}
 
 		action := models.Activity{

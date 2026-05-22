@@ -1,7 +1,7 @@
 package services
 
 import (
-	"errors"
+	"net/http"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
@@ -81,18 +81,18 @@ func (s UserService) CreateUser(
 	if result.RowsAffected == 0 {
 		hash, err := h.CreateHash(body.Password)
 		if err != nil {
-			return models.User{}, errors.New("can not create hash password")
+			return models.User{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 		newUser.HashedPassword = hash
 
 		err = sql.CreateUserWithInvites(logger, s.DB, &newUser)
 		if err != nil {
-			return models.User{}, apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+			return models.User{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		return newUser, nil
 	}
-	return models.User{}, errors.New("user already exists, try to reset your password")
+	return models.User{}, apierrors.New(http.StatusConflict, apierrors.CodeUserAlreadyExists)
 }
 
 func (s UserService) GetUserList(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs) []models.User {
@@ -109,7 +109,7 @@ func (s UserService) GetUser(
 	var user models.User
 	result := s.DB.Where("id = ?", ids[0]).First(&user)
 	if result.RowsAffected == 0 {
-		return user, errors.New("USER_NOT_FOUND")
+		return user, apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 	}
 	return user, nil
 }
@@ -133,33 +133,33 @@ func (s UserService) UpdateUser(
 
 		result := s.DB.Where(user, "id", "provider_type", "provider_key").Find(&user)
 		if result.RowsAffected == 0 {
-			return errors.New("USER_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 		}
 
 		match, err := argon2id.ComparePasswordAndHash(body.OldPassword, user.HashedPassword)
 		if err != nil {
-			return errors.New("INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 		if !match {
-			return errors.New("INCORRECT_PASSWORD")
+			return apierrors.New(http.StatusUnauthorized, apierrors.CodeIncorrectPassword)
 		}
 
 		hash, err := h.CreateHash(body.NewPassword)
 		if err != nil {
-			return errors.New("INTERNAL_SERVER_ERROR")
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		updatedUser.HashedPassword = hash
 	} else {
 		result := s.DB.Where(user, "id").Find(&user)
 		if result.RowsAffected == 0 {
-			return errors.New("USER_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 		}
 	}
 
 	result := s.DB.Model(&user).Updates(updatedUser)
 	if result.RowsAffected == 0 {
-		return errors.New("USER_NOT_FOUND")
+		return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 	}
 	return nil
 }
@@ -174,7 +174,7 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Where("id = ?", userID).Delete(&models.User{})
 		if result.RowsAffected == 0 {
-			return errors.New("USER_NOT_FOUND")
+			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 		}
 
 		if result.Error != nil {
@@ -199,7 +199,7 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 		return nil
 	})
 	if err != nil {
-		return apierrors.ErrInternalServer
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	logger.Info(
@@ -220,7 +220,7 @@ func (s UserService) GetUserStats(
 	var user models.User
 	result := s.DB.Where("id = ?", userID).First(&user)
 	if result.RowsAffected == 0 {
-		return models.UserStatsResponse{}, errors.New("USER_NOT_FOUND")
+		return models.UserStatsResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 	}
 
 	var totalBuckets int64

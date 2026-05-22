@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/configuration"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 
@@ -26,17 +27,17 @@ func ValidateShareAccess(db *gorm.DB) func(next http.Handler) http.Handler {
 
 			var share models.Share
 			if db.Where("id = ?", shareID).Find(&share).RowsAffected == 0 {
-				helpers.RespondWithError(w, 404, []string{"SHARE_NOT_FOUND"})
+				helpers.RespondWithError(w, http.StatusNotFound, []string{apierrors.CodeShareNotFound})
 				return
 			}
 
 			if share.ExpiresAt != nil && share.ExpiresAt.Before(time.Now()) {
-				helpers.RespondWithError(w, 410, []string{"SHARE_EXPIRED"})
+				helpers.RespondWithError(w, http.StatusGone, []string{apierrors.CodeShareExpired})
 				return
 			}
 
 			if share.MaxViews != nil && share.CurrentViews >= *share.MaxViews {
-				helpers.RespondWithError(w, 403, []string{"SHARE_MAX_VIEWS_REACHED"})
+				helpers.RespondWithError(w, http.StatusForbidden, []string{apierrors.CodeShareMaxViewsReached})
 				return
 			}
 
@@ -58,13 +59,13 @@ func ValidateShareToken(jwtSecret string) func(next http.Handler) http.Handler {
 
 			cookie, err := r.Cookie(configuration.CookieShareToken)
 			if err != nil {
-				helpers.RespondWithError(w, 401, []string{"SHARE_TOKEN_REQUIRED"})
+				helpers.RespondWithError(w, http.StatusUnauthorized, []string{apierrors.CodeShareTokenRequired})
 				return
 			}
 
 			claims, err := helpers.ParseShareToken(jwtSecret, cookie.Value)
 			if err != nil || claims.ShareID != share.ID {
-				helpers.RespondWithError(w, 401, []string{"SHARE_TOKEN_INVALID"})
+				helpers.RespondWithError(w, http.StatusUnauthorized, []string{apierrors.CodeShareTokenInvalid})
 				return
 			}
 

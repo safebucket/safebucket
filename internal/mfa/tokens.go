@@ -1,6 +1,8 @@
 package mfa
 
 import (
+	"net/http"
+
 	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
@@ -29,7 +31,7 @@ func HandleMFARequired(
 	)
 	if err != nil {
 		logger.Error("Failed to generate restricted access token", zap.Error(err))
-		return "", apierrors.NewAPIError(500, "INTERNAL_SERVER_ERROR")
+		return "", apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 	return restrictedToken, nil
 }
@@ -47,7 +49,7 @@ func GenerateTokens(
 		sid,
 	)
 	if err != nil {
-		return "", TokenPair{}, apierrors.ErrGenerateAccessTokenFailed
+		return "", TokenPair{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeGenerateAccessTokenFailed)
 	}
 
 	refreshToken, err := h.NewRefreshToken(
@@ -57,7 +59,7 @@ func GenerateTokens(
 		sid,
 	)
 	if err != nil {
-		return "", TokenPair{}, apierrors.ErrGenerateRefreshTokenFailed
+		return "", TokenPair{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeGenerateRefreshTokenFailed)
 	}
 
 	return sid, TokenPair{AccessToken: accessToken, RefreshToken: refreshToken}, nil

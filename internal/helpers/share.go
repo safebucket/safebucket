@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"net/http"
 	"time"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -26,16 +27,16 @@ func GetShareFile(db *gorm.DB, share models.Share, fileID uuid.UUID) (models.Fil
 			Where("share_files.share_id = ?", share.ID)
 	case models.ShareTypeFolder, models.ShareTypeBucket:
 	default:
-		return models.File{}, apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+		return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 	}
 
 	if err := query.First(&file).Error; err != nil {
-		return models.File{}, apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+		return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 	}
 
 	if share.Type == models.ShareTypeFolder {
 		if share.FolderID == nil || !IsFolderDescendant(db, file.FolderID, *share.FolderID) {
-			return models.File{}, apierrors.NewAPIError(404, "FILE_NOT_FOUND")
+			return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 		}
 	}
 

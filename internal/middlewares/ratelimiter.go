@@ -70,7 +70,7 @@ func applyRateLimit(
 
 	if retryAfter > 0 {
 		w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
-		helpers.RespondWithError(w, 429, []string{"RATE_LIMIT_EXCEEDED"})
+		helpers.RespondWithError(w, http.StatusTooManyRequests, []string{apierrors.CodeRateLimitExceeded})
 		return
 	}
 

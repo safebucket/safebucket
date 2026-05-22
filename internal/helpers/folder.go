@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"net/http"
+
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 
@@ -10,8 +12,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// RestoreParentFolders restores all trashed parent folders in the hierarchy.
-// Returns the list of restored folders so their trash markers can be removed after commit.
 func RestoreParentFolders(
 	tx *gorm.DB,
 	logger *zap.Logger,
@@ -79,7 +79,7 @@ func RestoreParentFolders(
 			query = query.Where("folder_id IS NULL")
 		}
 		if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
-			return nil, apierrors.NewAPIError(409, "PARENT_FOLDER_NAME_CONFLICT")
+			return nil, apierrors.New(http.StatusConflict, apierrors.CodeParentFolderNameConflict)
 		}
 
 		updates := map[string]interface{}{
