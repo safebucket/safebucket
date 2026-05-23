@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { Download, FolderPlus, Share2, Trash2 } from "lucide-react";
+import { Download, Eye, FolderPlus, Share2, Trash2 } from "lucide-react";
 import type { FC, ReactNode } from "react";
 
 import type { BucketItem } from "@/types/bucket.ts";
@@ -41,7 +41,7 @@ export const FileActions: FC<IFileActionsProps> = ({
   type,
 }: IFileActionsProps) => {
   const { t } = useTranslation();
-  const { bucketId } = useBucketViewContext();
+  const { bucketId, openItem } = useBucketViewContext();
   const { isContributor, isOwner } = useBucketPermissions(bucketId);
   const { createFolder, downloadFile, deleteFile } = useFileActions();
   const newFolderDialog = useDialog();
@@ -69,6 +69,12 @@ export const FileActions: FC<IFileActionsProps> = ({
       <Menu>
         <MenuTrigger asChild>{children}</MenuTrigger>
         <MenuContent className="w-48">
+          {isFile(file) && file.status === FileStatus.uploaded && (
+            <MenuItem onClick={() => openItem(file)}>
+              <Eye className="mr-2 h-4 w-4" />
+              {t("file_actions.preview")}
+            </MenuItem>
+          )}
           {isFile(file) && (
             <MenuItem
               onClick={() => !isTrashed && downloadFile(file.id, file.name)}

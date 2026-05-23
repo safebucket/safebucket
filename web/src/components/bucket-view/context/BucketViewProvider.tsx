@@ -4,8 +4,9 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 
 import type { BucketItem } from "@/types/bucket.ts";
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
-import { isFolder } from "@/components/bucket-view/helpers/utils";
+import { isFile, isFolder } from "@/components/bucket-view/helpers/utils";
 import { BucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
+import { FilePreviewMount } from "@/components/bucket-view/components/FilePreviewMount.tsx";
 
 export const BucketViewProvider = ({
   children,
@@ -21,13 +22,19 @@ export const BucketViewProvider = ({
 
   const [view, setView] = useState<BucketViewMode>(BucketViewMode.List);
   const [selected, setSelected] = useState<BucketItem | null>(null);
+  const [previewItem, setPreviewItem] = useState<BucketItem | null>(null);
 
-  const openFolder = (item: BucketItem) => {
+  const openItem = (item: BucketItem) => {
     if (isFolder(item)) {
-      // Navigate to /buckets/{bucketId}/{folderId}
       navigate({ to: `/buckets/${params.bucketId}/${item.id}` });
+      return;
+    }
+    if (isFile(item)) {
+      setPreviewItem(item);
     }
   };
+
+  const closePreview = () => setPreviewItem(null);
 
   return (
     <BucketViewContext.Provider
@@ -38,10 +45,13 @@ export const BucketViewProvider = ({
         setView,
         selected,
         setSelected,
-        openFolder,
+        openItem,
+        previewItem,
+        closePreview,
       }}
     >
       {children}
+      <FilePreviewMount />
     </BucketViewContext.Provider>
   );
 };

@@ -19,7 +19,7 @@ export const BucketGridView: FC<IBucketGridViewProps> = ({
   onFilesDropped,
 }: IBucketGridViewProps) => {
   const { t } = useTranslation();
-  const { selected, setSelected, openFolder } = useBucketViewContext();
+  const { selected, setSelected, openItem } = useBucketViewContext();
 
   if (items.length === 0) {
     return (
@@ -53,7 +53,7 @@ export const BucketGridView: FC<IBucketGridViewProps> = ({
             file={item}
             selected={selected}
             setSelected={setSelected}
-            onDoubleClick={openFolder}
+            onDoubleClick={openItem}
           />
         ))}
       </div>

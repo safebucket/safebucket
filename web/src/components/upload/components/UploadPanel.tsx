@@ -27,7 +27,7 @@ export const UploadPanel: FC = () => {
   const hasFinished = completedCount > 0 || failedCount > 0;
 
   return (
-    <div className="fixed inset-x-4 bottom-8 z-50 mx-auto max-w-96 rounded-lg border bg-card text-card-foreground shadow-lg md:inset-x-auto md:right-8 md:mx-0">
+    <div className="fixed inset-x-4 bottom-8 z-50 mx-auto max-w-96 rounded-lg border bg-card text-card-foreground shadow-lg md:inset-x-auto md:right-8 md:mx-0 md:w-96 md:max-w-lg">
       <button
         type="button"
         className="flex w-full items-center justify-between px-4 py-3"
@@ -76,7 +76,7 @@ export const UploadPanel: FC = () => {
             </div>
           )}
 
-          <div className="mt-2 max-h-64 space-y-1 overflow-y-auto">
+          <div className="mt-2 max-h-64 space-y-1 overflow-y-auto md:max-h-96">
             {uploads.map((upload) => (
               <div
                 key={upload.id}

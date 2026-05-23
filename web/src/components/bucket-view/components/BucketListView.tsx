@@ -164,7 +164,7 @@ export const BucketListView: FC<IBucketListViewProps> = ({
   onFilesDropped,
 }: IBucketListViewProps) => {
   const { t } = useTranslation();
-  const { selected, setSelected, openFolder } = useBucketViewContext();
+  const { selected, setSelected, openItem } = useBucketViewContext();
   const isMobile = useIsMobile();
   const columns = createColumns(t);
 
@@ -183,7 +183,7 @@ export const BucketListView: FC<IBucketListViewProps> = ({
         data={items}
         selected={selected}
         onRowClick={setSelected}
-        onRowDoubleClick={openFolder}
+        onRowDoubleClick={openItem}
         defaultColumnVisibility={columnVisibility}
       />
     </DragDropZone>

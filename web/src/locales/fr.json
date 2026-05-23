@@ -234,6 +234,9 @@
     }
   },
   "file_actions": {
+    "preview": "Aperçu",
+    "preview_unsupported": "L'aperçu n'est pas disponible pour ce type de fichier.",
+    "preview_failed": "Échec du chargement de l'aperçu.",
     "download": "Télécharger",
     "new_folder": "Nouveau dossier",
     "move_to_trash": "Déplacer vers la corbeille",

@@ -10,7 +10,9 @@ export interface IBucketViewContext {
   setView: (view: BucketViewMode) => void;
   selected: BucketItem | null;
   setSelected: (item: BucketItem) => void;
-  openFolder: (item: BucketItem) => void;
+  openItem: (item: BucketItem) => void;
+  previewItem: BucketItem | null;
+  closePreview: () => void;
 }
 
 export const BucketViewContext = createContext<IBucketViewContext | null>(null);

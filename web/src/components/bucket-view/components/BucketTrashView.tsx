@@ -120,9 +120,10 @@ const createColumns = (
         title={t("bucket.trash_view.name")}
       />
     ),
+    size: 350,
     cell: ({ row }) => (
-      <div className="flex w-[300px] items-center space-x-2">
-        <p className="opacity-70">{row.getValue("name")}</p>
+      <div className="flex items-center space-x-2 overflow-hidden max-w-[calc(100vw-8rem)] md:max-w-87.5">
+        <p className="truncate opacity-70">{row.getValue("name")}</p>
       </div>
     ),
   },
@@ -136,18 +137,19 @@ const createColumns = (
     ),
     cell: ({ row }) => {
       const item = row.original;
-      // Use original_path if available (for both files and folders)
-      if (item.original_path) {
-        return (
-          <span className="text-sm text-muted-foreground">
-            {item.original_path}
+      const path = item.original_path
+        ? item.original_path
+        : buildFolderPath(
+            "folder_id" in item ? item.folder_id : undefined,
+            bucket.folders,
+          );
+      return (
+        <div className="overflow-hidden max-w-50">
+          <span className="block truncate text-sm text-muted-foreground">
+            {path}
           </span>
-        );
-      }
-      // Fallback to building path from folder hierarchy
-      const folderId = "folder_id" in item ? item.folder_id : undefined;
-      const path = buildFolderPath(folderId, bucket.folders);
-      return <span className="text-sm text-muted-foreground">{path}</span>;
+        </div>
+      );
     },
   },
   {
