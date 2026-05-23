@@ -8,7 +8,7 @@ const (
 )
 
 type IStorage interface {
-	PresignedGetObject(path string) (string, error)
+	PresignedGetObject(path string, inlineContentType string) (string, error)
 	PresignedPostPolicy(
 		path string,
 		size int,

@@ -50,7 +50,8 @@ func (s BucketFileService) Routes() chi.Router {
 			Delete("/", handlers.DeleteHandler(s.DeleteFile))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
-			Get("/download", handlers.GetOneHandler(s.DownloadFile))
+			With(m.ValidateQuery[models.FileDownloadQuery]).
+			Get("/download", handlers.GetOneWithQueryHandler(s.DownloadFile))
 	})
 
 	return r
@@ -254,6 +255,7 @@ func (s BucketFileService) DownloadFile(
 	logger *zap.Logger,
 	user models.UserClaims,
 	ids uuid.UUIDs,
+	query models.FileDownloadQuery,
 ) (models.FileTransferResponse, error) {
 	bucketID, fileID := ids[0], ids[1]
 
@@ -276,9 +278,14 @@ func (s BucketFileService) DownloadFile(
 		)
 	}
 
-	url, err := s.Storage.PresignedGetObject(
-		path.Join("buckets", file.BucketID.String(), file.ID.String()),
-	)
+	objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
+
+	var inlineContentType string
+	if query.Disposition == "inline" {
+		inlineContentType = h.PreviewMimeFromExtension(file.Extension)
+	}
+
+	url, err := s.Storage.PresignedGetObject(objectPath, inlineContentType)
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
 		return models.FileTransferResponse{}, err

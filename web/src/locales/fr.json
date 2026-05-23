@@ -237,6 +237,7 @@
     "preview": "Aperçu",
     "preview_unsupported": "L'aperçu n'est pas disponible pour ce type de fichier.",
     "preview_failed": "Échec du chargement de l'aperçu.",
+    "preview_too_large": "Ce fichier est trop volumineux pour un aperçu.",
     "download": "Télécharger",
     "new_folder": "Nouveau dossier",
     "move_to_trash": "Déplacer vers la corbeille",

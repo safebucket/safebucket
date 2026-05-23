@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"net/url"
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
@@ -75,13 +76,21 @@ func (s *GenericS3Storage) GetBucketName() string {
 	return s.BucketName
 }
 
-func (s *GenericS3Storage) PresignedGetObject(objectPath string) (string, error) {
+func (s *GenericS3Storage) PresignedGetObject(objectPath, inlineContentType string) (string, error) {
+	var reqParams url.Values
+	if inlineContentType != "" {
+		reqParams = url.Values{
+			"response-content-disposition": []string{"inline"},
+			"response-content-type":        []string{inlineContentType},
+		}
+	}
+
 	presignedURL, err := s.signingClient.PresignedGetObject(
 		context.Background(),
 		s.BucketName,
 		objectPath,
 		c.UploadPolicyExpirationInMinutes*time.Minute,
-		nil,
+		reqParams,
 	)
 	if err != nil {
 		return "", err

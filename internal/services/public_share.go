@@ -181,6 +181,7 @@ func (s PublicShareService) DownloadShareFile(
 
 	url, err := s.Storage.PresignedGetObject(
 		path.Join("buckets", share.BucketID.String(), file.ID.String()),
+		"",
 	)
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))

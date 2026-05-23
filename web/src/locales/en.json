@@ -237,6 +237,7 @@
     "preview": "Preview",
     "preview_unsupported": "Preview is not available for this file type.",
     "preview_failed": "Failed to load preview.",
+    "preview_too_large": "This file is too large to preview.",
     "download": "Download",
     "new_folder": "New folder",
     "move_to_trash": "Move to Trash",

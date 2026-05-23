@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -45,18 +46,19 @@ func (g GCPStorage) GetBucketName() string {
 	return g.BucketName
 }
 
-func (g GCPStorage) PresignedGetObject(path string) (string, error) {
-	opts := &gcs.SignedURLOptions{
+func (g GCPStorage) PresignedGetObject(objectPath, inlineContentType string) (string, error) {
+	signOpts := &gcs.SignedURLOptions{
 		Method:  http.MethodGet,
 		Expires: time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
 	}
-
-	url, err := g.storage.Bucket(g.BucketName).SignedURL(path, opts)
-	if err != nil {
-		return "", err
+	if inlineContentType != "" {
+		signOpts.QueryParameters = url.Values{
+			"response-content-disposition": []string{"inline"},
+			"response-content-type":        []string{inlineContentType},
+		}
 	}
 
-	return url, nil
+	return g.storage.Bucket(g.BucketName).SignedURL(objectPath, signOpts)
 }
 
 func (g GCPStorage) PresignedPostPolicy(

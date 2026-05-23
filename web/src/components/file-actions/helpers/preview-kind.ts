@@ -61,26 +61,3 @@ export const getPreviewKind = (extension: string): PreviewKind => {
   if (TEXT.has(ext)) return "text";
   return "unsupported";
 };
-
-const TEXT_MIME: Record<string, string> = {
-  json: "application/json",
-  xml: "application/xml",
-  html: "text/html",
-  htm: "text/html",
-  css: "text/css",
-  csv: "text/csv",
-  tsv: "text/tab-separated-values",
-  md: "text/markdown",
-};
-
-export const getPreviewMime = (
-  kind: PreviewKind,
-  extension: string,
-): string => {
-  if (kind === "pdf") return "application/pdf";
-  if (kind === "text") {
-    const ext = extension.toLowerCase();
-    return TEXT_MIME[ext] ?? "text/plain";
-  }
-  return "application/octet-stream";
-};

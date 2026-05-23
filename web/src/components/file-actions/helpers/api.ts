@@ -4,9 +4,14 @@ import { api } from "@/lib/api";
 
 import { toast } from "@/components/ui/hooks/use-toast";
 
-export const api_downloadFile = (bucketId: string, fileId: string) =>
+export const api_downloadFile = (
+  bucketId: string,
+  fileId: string,
+  disposition?: "inline" | "attachment",
+) =>
   api.get<IDownloadFileResponse>(
     `/buckets/${bucketId}/files/${fileId}/download`,
+    { params: { disposition } },
   );
 
 export const downloadFromStorage = (url: string, filename: string) => {

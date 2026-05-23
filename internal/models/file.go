@@ -59,6 +59,10 @@ type FileTransferResponse struct {
 	Body map[string]string `json:"body"`
 }
 
+type FileDownloadQuery struct {
+	Disposition string `json:"disposition" validate:"omitempty,oneof=inline attachment"`
+}
+
 type FilePatchBody struct {
 	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
 }
