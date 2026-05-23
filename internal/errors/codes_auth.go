@@ -1,6 +1,5 @@
 package apierrors
 
-// Authentication and session codes.
 const (
 	CodeSessionRevoked             = "SESSION_REVOKED"
 	CodeSessionNotFound            = "SESSION_NOT_FOUND"
@@ -14,7 +13,6 @@ const (
 	CodeGenerateRefreshTokenFailed = "GENERATE_REFRESH_TOKEN_FAILED"
 )
 
-// Identity provider codes.
 const (
 	CodeInvalidProviderName = "INVALID_PROVIDER_NAME"
 	CodeProviderNotFound    = "PROVIDER_NOT_FOUND"

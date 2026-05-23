@@ -1,6 +1,5 @@
 package apierrors
 
-// Multi-factor authentication codes.
 const (
 	CodeMFANotEnabled                 = "MFA_NOT_ENABLED"
 	CodeMFARequired                   = "MFA_REQUIRED"

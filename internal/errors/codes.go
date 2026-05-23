@@ -1,6 +1,5 @@
 package apierrors
 
-// Generic codes shared across domains.
 const (
 	CodeBadRequest          = "BAD_REQUEST"
 	CodeForbidden           = "FORBIDDEN"
@@ -13,8 +12,6 @@ const (
 	CodeRateLimitExceeded   = "RATE_LIMIT_EXCEEDED"
 )
 
-// Generic persistence-layer codes used when a transaction fails for reasons
-// the client cannot act on.
 const (
 	CodeCreateFailed = "CREATE_FAILED"
 	CodeUpdateFailed = "UPDATE_FAILED"

@@ -1,16 +1,13 @@
 package apierrors
 
-// Bucket codes.
 const (
 	CodeBucketNotFound = "BUCKET_NOT_FOUND"
 )
 
-// Bucket membership.
 const (
 	CodeSharingDisabledForProvider = "SHARING_DISABLED_FOR_PROVIDER"
 )
 
-// File codes.
 const (
 	CodeFileNotFound                = "FILE_NOT_FOUND"
 	CodeFileAlreadyExists           = "FILE_ALREADY_EXISTS"
@@ -26,7 +23,6 @@ const (
 	CodeMaxUploadsReached           = "MAX_UPLOADS_REACHED"
 )
 
-// Folder codes.
 const (
 	CodeFolderNotFound           = "FOLDER_NOT_FOUND"
 	CodeFolderAlreadyExists      = "FOLDER_ALREADY_EXISTS"

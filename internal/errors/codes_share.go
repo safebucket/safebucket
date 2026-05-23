@@ -1,6 +1,5 @@
 package apierrors
 
-// Share codes.
 const (
 	CodeShareNotFound             = "SHARE_NOT_FOUND"
 	CodeShareExpired              = "SHARE_EXPIRED"
@@ -15,7 +14,6 @@ const (
 	CodeShareUploadSizeExceeded   = "SHARE_UPLOAD_SIZE_EXCEEDED"
 )
 
-// Invite codes.
 const (
 	CodeInviteNotFound = "INVITE_NOT_FOUND"
 )
