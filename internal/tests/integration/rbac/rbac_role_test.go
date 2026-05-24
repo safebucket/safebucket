@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/safebucket/safebucket/internal/models"
-	"github.com/safebucket/safebucket/internal/tests/integration/harness"
+	"github.com/safebucket/safebucket/internal/tests/integration/bootstrap"
 )
 
 func TestRBAC_Roles(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/models"
-	"github.com/safebucket/safebucket/internal/tests/integration/harness"
+	"github.com/safebucket/safebucket/internal/tests/integration/bootstrap"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/safebucket/safebucket/internal/tests/integration/harness"
+	"github.com/safebucket/safebucket/internal/tests/integration/bootstrap"
 )
 
 func TestMain(m *testing.M) {

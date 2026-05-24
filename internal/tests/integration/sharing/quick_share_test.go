@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/models"
-	"github.com/safebucket/safebucket/internal/tests/integration/harness"
+	"github.com/safebucket/safebucket/internal/tests/integration/bootstrap"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,11 +24,11 @@ func TestQuickShareHarness(t *testing.T) {
 			owner := app.CreateUser(t, "qsharness@example.com")
 			token := app.LoginAs(t, owner.Email)
 
-			bucket := app.CreateBucket(t, token, "qs-harness")
+			bucket := app.CreateBucket(t, token, "qs-bootstrap")
 			folder := app.CreateFolder(t, token, bucket.ID.String(), "qs-folder")
 
 			share := app.CreateShare(t, token, bucket.ID.String(), models.ShareCreateBody{
-				Name: "harness-share",
+				Name: "bootstrap-share",
 				Type: models.ShareTypeBucket,
 			})
 
