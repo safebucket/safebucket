@@ -2,41 +2,10 @@ import { queryOptions, useMutation } from "@tanstack/react-query";
 import type {
   IFileTransferResponse,
   IPublicShareResponse,
+  IShareDownloadArgs,
   IShareUploadBody,
 } from "@/types/share";
-import { getApiUrl } from "@/hooks/useConfig";
-
-async function shareFetch<T>(
-  path: string,
-  options: { method?: string; body?: object } = {},
-): Promise<T> {
-  const { method = "GET", body } = options;
-  const url = `${getApiUrl()}/shares${path}`;
-
-  const response = await fetch(url, {
-    method,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-
-  if (!response.ok) {
-    const res = await response.json();
-    throw new Error(res.error?.[0] ?? "INTERNAL_SERVER_ERROR");
-  }
-
-  if (
-    response.status === 204 ||
-    response.headers.get("Content-Length") === "0"
-  ) {
-    return null as T;
-  }
-
-  return response.json();
-}
+import { shareFetch } from "@/lib/share-api";
 
 export const shareContentQueryOptions = (shareId: string) =>
   queryOptions({
@@ -62,8 +31,10 @@ export const useShareAuthMutation = () =>
 
 export const useShareDownloadMutation = (shareId: string) =>
   useMutation({
-    mutationFn: (fileId: string) =>
-      shareFetch<IFileTransferResponse>(`/${shareId}/files/${fileId}`),
+    mutationFn: ({ fileId, context }: IShareDownloadArgs) =>
+      shareFetch<IFileTransferResponse>(`/${shareId}/files/${fileId}`, {
+        params: { context },
+      }),
   });
 
 export const useShareUploadMutation = (shareId: string) =>

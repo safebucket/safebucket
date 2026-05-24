@@ -1,17 +1,22 @@
 import { getApiUrl } from "@/hooks/useConfig.ts";
 import { refreshAccessToken } from "@/lib/auth-service";
 
+export type RequestParams = Record<
+  string,
+  string | number | boolean | undefined | null
+>;
+
 type RequestOptions = {
   method?: string;
   headers?: Record<string, string>;
   body?: object;
   cookie?: string;
-  params?: Record<string, string | number | boolean | undefined | null>;
+  params?: RequestParams;
 };
 
-function buildUrlWithParams(
+export function buildUrlWithParams(
   url: string,
-  params?: RequestOptions["params"],
+  params?: RequestParams,
 ): string {
   if (!params) return url;
   const filteredParams = Object.fromEntries(

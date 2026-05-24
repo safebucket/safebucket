@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Download } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 import type { FC } from "react";
 
 import type { BucketItem } from "@/types/bucket.ts";
@@ -8,17 +8,19 @@ import { FileIconView } from "@/components/bucket-view/components/FileIconView.t
 import { Card } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { cn, formatDate, formatFileSize } from "@/lib/utils.ts";
+import { formatDate, formatFileSize } from "@/lib/utils.ts";
 
 interface IShareFileGridCardProps {
   file: BucketItem;
   onDoubleClick?: (item: BucketItem) => void;
+  onPreview?: () => void;
   onDownload?: () => void;
 }
 
 export const ShareFileGridCard: FC<IShareFileGridCardProps> = ({
   file,
   onDoubleClick,
+  onPreview,
   onDownload,
 }) => {
   const { t } = useTranslation();
@@ -26,10 +28,7 @@ export const ShareFileGridCard: FC<IShareFileGridCardProps> = ({
 
   return (
     <Card
-      className={cn(
-        "relative flex cursor-default flex-col gap-4 p-5 transition-all hover:shadow-md min-h-45",
-        itemIsFolder && "cursor-pointer",
-      )}
+      className="relative flex cursor-pointer flex-col gap-4 p-5 transition-all hover:shadow-md min-h-45"
       onDoubleClick={() => onDoubleClick?.(file)}
     >
       <div className="flex items-start gap-4">
@@ -55,20 +54,34 @@ export const ShareFileGridCard: FC<IShareFileGridCardProps> = ({
           </p>
         </div>
 
-        {onDownload && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDownload();
-            }}
-            title={t("common.download")}
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-        )}
+        <div className="flex shrink-0 items-center">
+          {onPreview && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPreview();
+              }}
+              title={t("file_actions.preview")}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          )}
+          {onDownload && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload();
+              }}
+              title={t("common.download")}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-2 pt-2 mt-auto border-t">

@@ -67,3 +67,8 @@ export interface IFileTransferResponse {
   url: string;
   body?: Record<string, string>;
 }
+
+export interface IShareDownloadArgs {
+  fileId: string;
+  context?: "preview" | "download";
+}

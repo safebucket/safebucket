@@ -4,7 +4,6 @@ import { Download, LoaderCircle } from "lucide-react";
 import type { FC } from "react";
 
 import type { IFile } from "@/types/file.ts";
-import { api_downloadFile } from "@/components/file-actions/helpers/api";
 import { getPreviewKind } from "@/components/file-actions/helpers/preview-kind";
 import {
   Dialog,
@@ -21,16 +20,16 @@ const CAN_STREAM = new Set(["video", "audio"]);
 interface IFilePreviewDialogProps {
   open: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  bucketId: string;
   file: IFile;
+  fetchUrl: () => Promise<{ url: string }>;
   onDownload: () => void;
 }
 
 export const FilePreviewDialog: FC<IFilePreviewDialogProps> = ({
   open,
   onOpenChange,
-  bucketId,
   file,
+  fetchUrl,
   onDownload,
 }: IFilePreviewDialogProps) => {
   const { t } = useTranslation();
@@ -40,8 +39,8 @@ export const FilePreviewDialog: FC<IFilePreviewDialogProps> = ({
   const canPreview = kind !== "unsupported" && !tooLarge;
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: [bucketId, file.id, "preview"],
-    queryFn: () => api_downloadFile(bucketId, file.id, "inline"),
+    queryKey: [file.id, "preview"],
+    queryFn: fetchUrl,
     enabled: open && canPreview,
     staleTime: 0,
     gcTime: 0,

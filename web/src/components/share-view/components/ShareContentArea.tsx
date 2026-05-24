@@ -18,7 +18,8 @@ interface IShareContentAreaProps {
   folderName: string | null | undefined;
   canGoBack: boolean;
   onGoBack: () => void;
-  onOpenFolder: (item: BucketItem) => void;
+  onOpenItem: (item: BucketItem) => void;
+  onPreview: (file: IFile) => void;
   onDownload: (file: IFile) => void;
 }
 
@@ -30,7 +31,8 @@ export const ShareContentArea: FC<IShareContentAreaProps> = ({
   folderName,
   canGoBack,
   onGoBack,
-  onOpenFolder,
+  onOpenItem,
+  onPreview,
   onDownload,
 }) => {
   const { t } = useTranslation();
@@ -59,7 +61,7 @@ export const ShareContentArea: FC<IShareContentAreaProps> = ({
         <ShareListView
           columns={columns}
           data={items}
-          onRowDoubleClick={onOpenFolder}
+          onRowDoubleClick={onOpenItem}
           defaultColumnVisibility={columnVisibility}
         />
       ) : (
@@ -68,7 +70,8 @@ export const ShareContentArea: FC<IShareContentAreaProps> = ({
             <ShareFileGridCard
               key={item.id}
               file={item}
-              onDoubleClick={onOpenFolder}
+              onDoubleClick={onOpenItem}
+              onPreview={!isFolder(item) ? () => onPreview(item) : undefined}
               onDownload={!isFolder(item) ? () => onDownload(item) : undefined}
             />
           ))}

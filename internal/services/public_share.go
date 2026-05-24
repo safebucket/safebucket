@@ -47,7 +47,8 @@ func (s PublicShareService) Routes() chi.Router {
 			r.Use(m.ValidateShareToken(s.TokenSecret))
 
 			r.Get("/", handlers.ShareGetOneHandler(s.ListShareItems))
-			r.Get("/files/{id1}", handlers.ShareGetOneHandler(s.DownloadShareFile))
+			r.With(m.ValidateQuery[models.FileDownloadQuery]).
+				Get("/files/{id1}", handlers.ShareGetOneWithQueryHandler(s.DownloadShareFile))
 			r.With(m.Validate[models.ShareUploadBody]).
 				Post("/files", handlers.ShareCreateHandler(s.UploadShareFile))
 			r.Patch("/files/{id1}", handlers.ShareActionHandler(s.ConfirmShareUpload))
@@ -171,6 +172,7 @@ func (s PublicShareService) DownloadShareFile(
 	logger *zap.Logger,
 	share models.Share,
 	ids uuid.UUIDs,
+	query models.FileDownloadQuery,
 ) (models.FileTransferResponse, error) {
 	fileID := ids[1]
 
@@ -179,9 +181,14 @@ func (s PublicShareService) DownloadShareFile(
 		return models.FileTransferResponse{}, err
 	}
 
+	var inlineContentType string
+	if query.Context == "preview" {
+		inlineContentType = h.PreviewMimeFromExtension(file.Extension)
+	}
+
 	url, err := s.Storage.PresignedGetObject(
 		path.Join("buckets", share.BucketID.String(), file.ID.String()),
-		"",
+		inlineContentType,
 	)
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))

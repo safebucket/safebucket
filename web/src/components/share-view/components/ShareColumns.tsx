@@ -1,4 +1,4 @@
-import { Download } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import type { BucketItem } from "@/types/bucket.ts";
@@ -12,6 +12,7 @@ import { formatDate, formatFileSize } from "@/lib/utils.ts";
 
 export const createColumns = (
   t: (key: string) => string,
+  onPreview: (file: IFile) => void,
   onDownload: (file: IFile) => void,
 ): Array<ColumnDef<BucketItem>> => [
   {
@@ -68,22 +69,35 @@ export const createColumns = (
   },
   {
     id: "actions",
-    size: 48,
+    size: 96,
     cell: ({ row }) => {
       const item = row.original;
       if (isFolder(item)) return null;
       return (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDownload(item);
-          }}
-          title={t("common.download")}
-        >
-          <Download className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPreview(item);
+            }}
+            title={t("file_actions.preview")}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload(item);
+            }}
+            title={t("common.download")}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        </div>
       );
     },
   },

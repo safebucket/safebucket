@@ -14,10 +14,11 @@ import (
 )
 
 type (
-	ShareGetOneTargetFunc[Out any]         func(*zap.Logger, models.Share, uuid.UUIDs) (Out, error)
-	ShareCreateTargetFunc[In any, Out any] func(*zap.Logger, models.Share, uuid.UUIDs, In) (Out, error)
-	ShareActionTargetFunc                  func(*zap.Logger, models.Share, uuid.UUIDs) error
-	ShareAuthTargetFunc[In any]            func(bool, *zap.Logger, models.Share, uuid.UUIDs, In) (AuthFlowResult, error)
+	ShareGetOneTargetFunc[Out any]                 func(*zap.Logger, models.Share, uuid.UUIDs) (Out, error)
+	ShareGetOneWithQueryTargetFunc[Q any, Out any] func(*zap.Logger, models.Share, uuid.UUIDs, Q) (Out, error)
+	ShareCreateTargetFunc[In any, Out any]         func(*zap.Logger, models.Share, uuid.UUIDs, In) (Out, error)
+	ShareActionTargetFunc                          func(*zap.Logger, models.Share, uuid.UUIDs) error
+	ShareAuthTargetFunc[In any]                    func(bool, *zap.Logger, models.Share, uuid.UUIDs, In) (AuthFlowResult, error)
 )
 
 func getShare(r *http.Request) models.Share {
@@ -71,6 +72,36 @@ func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.Handler
 		share := getShare(r)
 		logger := m.GetLogger(r)
 		record, err := getOne(logger, share, ids)
+		if err != nil {
+			WriteError(span, w, err)
+		} else {
+			h.RespondWithJSON(w, http.StatusOK, record)
+		}
+	}
+}
+
+func ShareGetOneWithQueryHandler[Q any, Out any](getOne ShareGetOneWithQueryTargetFunc[Q, Out]) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), spanName(getOne))
+		defer span.End()
+		r = r.WithContext(ctx)
+
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+
+		share := getShare(r)
+		logger := m.GetLogger(r)
+
+		query, ok := r.Context().Value(models.QueryKey{}).(Q)
+		if !ok {
+			logger.Error("Failed to extract query params from context")
+			WriteError(span, w, nil)
+			return
+		}
+
+		record, err := getOne(logger, share, ids, query)
 		if err != nil {
 			WriteError(span, w, err)
 		} else {

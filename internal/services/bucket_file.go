@@ -281,7 +281,7 @@ func (s BucketFileService) DownloadFile(
 	objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
 
 	var inlineContentType string
-	if query.Disposition == "inline" {
+	if query.Context == "preview" {
 		inlineContentType = h.PreviewMimeFromExtension(file.Extension)
 	}
 

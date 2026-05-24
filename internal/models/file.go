@@ -60,7 +60,7 @@ type FileTransferResponse struct {
 }
 
 type FileDownloadQuery struct {
-	Disposition string `json:"disposition" validate:"omitempty,oneof=inline attachment"`
+	Context string `json:"context" validate:"omitempty,oneof=preview download"`
 }
 
 type FilePatchBody struct {
