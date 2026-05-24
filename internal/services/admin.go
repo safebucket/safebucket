@@ -92,14 +92,7 @@ func (s AdminService) GetActivity(
 	if len(query.Type) > 0 {
 		searchCriteria["object_type"] = query.Type
 	} else {
-		searchCriteria["object_type"] = []string{
-			rbac.ResourceBucket.String(),
-			rbac.ResourceFile.String(),
-			rbac.ResourceFolder.String(),
-			rbac.ResourceUser.String(),
-			rbac.ResourceMFADevice.String(),
-			rbac.ResourceShare.String(),
-		}
+		searchCriteria["object_type"] = rbac.ValidResources
 	}
 
 	if len(query.Action) > 0 {

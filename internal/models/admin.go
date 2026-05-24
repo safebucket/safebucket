@@ -6,7 +6,7 @@ type AdminStatsQueryParams struct {
 
 type AdminActivityQueryParams struct {
 	Action []string `json:"action" validate:"omitempty,dive,activity_action"`
-	Type   []string `json:"type"   validate:"omitempty,dive,oneof=bucket file folder user mfa_device share"`
+	Type   []string `json:"type"   validate:"omitempty,dive,rbac_resource"`
 }
 
 type AdminStatsResponse struct {

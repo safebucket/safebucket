@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/rbac"
 	"go.uber.org/zap"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -34,6 +35,9 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 		validate := validator.New()
 		_ = validate.RegisterValidation("activity_action", func(fl validator.FieldLevel) bool {
 			return slices.Contains(activity.ValidActions, fl.Field().String())
+		})
+		_ = validate.RegisterValidation("rbac_resource", func(fl validator.FieldLevel) bool {
+			return slices.Contains(rbac.ValidResources, fl.Field().String())
 		})
 
 		err = validate.Struct(data)

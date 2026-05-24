@@ -22,11 +22,18 @@ func (r Resource) String() string {
 	return string(r)
 }
 
-const (
-	ResourceBucket    = Resource("bucket")
-	ResourceFile      = Resource("file")
-	ResourceFolder    = Resource("folder")
-	ResourceUser      = Resource("user")
-	ResourceMFADevice = Resource("mfa_device")
-	ResourceShare     = Resource("share")
+var ValidResources []string
+
+func defineResource(name string) Resource {
+	ValidResources = append(ValidResources, name)
+	return Resource(name)
+}
+
+var (
+	ResourceBucket    = defineResource("bucket")
+	ResourceFile      = defineResource("file")
+	ResourceFolder    = defineResource("folder")
+	ResourceUser      = defineResource("user")
+	ResourceMFADevice = defineResource("mfa_device")
+	ResourceShare     = defineResource("share")
 )
