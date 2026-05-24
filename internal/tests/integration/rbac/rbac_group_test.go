@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package rbac_test
 
 import (
 	"fmt"
@@ -9,15 +9,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests/integration/harness"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRBAC_Group(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			cfg := LoadScenario(t, scenario)
-			cfg = WithLocalSharing(cfg, true)
-			app := BootTestApp(t, cfg)
+			cfg := harness.LoadScenario(t, scenario)
+			cfg = harness.WithLocalSharing(cfg, true)
+			app := harness.BootTestApp(t, cfg)
 
 			ownerA := app.CreateUser(t, "ownera@example.com")
 			viewerA := app.CreateUser(t, "viewera@example.com")

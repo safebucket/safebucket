@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package sharing_test
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests/integration/harness"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,9 +19,9 @@ import (
 const qsSharePassword = "horsebatterystaple"
 
 func TestQuickSharePublicAuth(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := harness.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qspublicauth@example.com")
 			ownerToken := app.LoginAs(t, owner.Email)
@@ -43,14 +44,14 @@ func TestQuickSharePublicAuth(t *testing.T) {
 
 			t.Run("open share lists without auth", func(t *testing.T) {
 				var resp models.PublicShareResponse
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", openShare.ID), "", nil, &resp)
 				require.Equal(t, http.StatusOK, status)
 				assert.Equal(t, openShare.ID, resp.ID)
 			})
 
 			t.Run("password-protected share rejects missing cookie", func(t *testing.T) {
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", secretShare.ID), "", nil, nil)
 				assert.Equal(t, http.StatusUnauthorized, status)
 			})
@@ -72,7 +73,7 @@ func TestQuickSharePublicAuth(t *testing.T) {
 				require.NotEmpty(t, cookie)
 
 				var resp models.PublicShareResponse
-				getStatus := app.doPublicShare(t, http.MethodGet,
+				getStatus := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", secretShare.ID), cookie, nil, &resp)
 				require.Equal(t, http.StatusOK, getStatus)
 				assert.Equal(t, secretShare.ID, resp.ID)
@@ -83,13 +84,13 @@ func TestQuickSharePublicAuth(t *testing.T) {
 				require.Equal(t, http.StatusOK, status)
 				require.NotEmpty(t, cookieForOther)
 
-				crossStatus := app.doPublicShare(t, http.MethodGet,
+				crossStatus := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", secretShare.ID), cookieForOther, nil, nil)
 				assert.Equal(t, http.StatusUnauthorized, crossStatus)
 			})
 
 			t.Run("unknown share returns 404", func(t *testing.T) {
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", uuid.New()), "", nil, nil)
 				assert.Equal(t, http.StatusNotFound, status)
 			})
@@ -98,9 +99,9 @@ func TestQuickSharePublicAuth(t *testing.T) {
 }
 
 func TestQuickShareExpiryAndViews(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := harness.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qsgates@example.com")
 			ownerToken := app.LoginAs(t, owner.Email)
@@ -115,7 +116,7 @@ func TestQuickShareExpiryAndViews(t *testing.T) {
 				})
 				app.BackdateShareExpiry(t, share.ID.String(), time.Now().Add(-1*time.Hour))
 
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", share.ID), "", nil, nil)
 				assert.Equal(t, http.StatusGone, status)
 			})
@@ -130,14 +131,14 @@ func TestQuickShareExpiryAndViews(t *testing.T) {
 				sharePath := fmt.Sprintf("/api/v1/shares/%s", share.ID)
 
 				var first models.PublicShareResponse
-				require.Equal(t, http.StatusOK, app.doPublicShare(t, http.MethodGet, sharePath, "", nil, &first))
+				require.Equal(t, http.StatusOK, app.DoPublicShare(t, http.MethodGet, sharePath, "", nil, &first))
 				assert.Equal(t, 1, first.CurrentViews)
 
 				var second models.PublicShareResponse
-				require.Equal(t, http.StatusOK, app.doPublicShare(t, http.MethodGet, sharePath, "", nil, &second))
+				require.Equal(t, http.StatusOK, app.DoPublicShare(t, http.MethodGet, sharePath, "", nil, &second))
 				assert.Equal(t, 2, second.CurrentViews)
 
-				third := app.doPublicShare(t, http.MethodGet, sharePath, "", nil, nil)
+				third := app.DoPublicShare(t, http.MethodGet, sharePath, "", nil, nil)
 				assert.Equal(t, http.StatusForbidden, third)
 			})
 		})
@@ -145,9 +146,9 @@ func TestQuickShareExpiryAndViews(t *testing.T) {
 }
 
 func TestQuickShareScopeFiltering(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := harness.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qsscopes@example.com")
 			ownerToken := app.LoginAs(t, owner.Email)
@@ -158,8 +159,8 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 
 			rootFile := app.UploadTestFile(t, ownerToken, bucket.ID.String(), "root.txt")
 
-			folderFileResp := app.uploadFileInto(t, ownerToken, bucket.ID.String(), &folder.ID, "in-primary.txt")
-			otherFolderFileResp := app.uploadFileInto(t, ownerToken, bucket.ID.String(),
+			folderFileResp := app.UploadFileInto(t, ownerToken, bucket.ID.String(), &folder.ID, "in-primary.txt")
+			otherFolderFileResp := app.UploadFileInto(t, ownerToken, bucket.ID.String(),
 				&otherFolder.ID, "in-secondary.txt")
 
 			rootUUID := uuid.MustParse(rootFile)
@@ -171,7 +172,7 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 					FileIDs: []uuid.UUID{rootUUID},
 				})
 				var resp models.PublicShareResponse
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", share.ID), "", nil, &resp)
 				require.Equal(t, http.StatusOK, status)
 				require.Len(t, resp.Files, 1)
@@ -186,7 +187,7 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 					FolderID: &folder.ID,
 				})
 				var resp models.PublicShareResponse
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", share.ID), "", nil, &resp)
 				require.Equal(t, http.StatusOK, status)
 
@@ -202,7 +203,7 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 					Type: models.ShareTypeBucket,
 				})
 				var resp models.PublicShareResponse
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", share.ID), "", nil, &resp)
 				require.Equal(t, http.StatusOK, status)
 
@@ -228,7 +229,7 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 					Type: models.ShareTypeBucket,
 				})
 				var resp models.PublicShareResponse
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", share.ID), "", nil, &resp)
 				require.Equal(t, http.StatusOK, status)
 
@@ -244,7 +245,7 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 					Type: models.ShareTypeBucket,
 				})
 				var resp models.PublicShareResponse
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", share.ID), "", nil, &resp)
 				require.Equal(t, http.StatusOK, status)
 

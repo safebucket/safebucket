@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package sharing_test
 
 import (
 	"fmt"
@@ -10,15 +10,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests/integration/harness"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestQuickShareHarness(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := harness.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qsharness@example.com")
 			token := app.LoginAs(t, owner.Email)
@@ -42,7 +43,7 @@ func TestQuickShareHarness(t *testing.T) {
 			assert.Equal(t, bucket.ID, folder.BucketID, "folder belongs to bucket")
 
 			var publicView models.PublicShareResponse
-			status := app.doPublicShare(t, http.MethodGet,
+			status := app.DoPublicShare(t, http.MethodGet,
 				fmt.Sprintf("/api/v1/shares/%s", share.ID), "", nil, &publicView)
 			require.Equal(t, http.StatusOK, status, "open share must be publicly listable")
 			assert.Equal(t, share.ID, publicView.ID)
@@ -52,11 +53,11 @@ func TestQuickShareHarness(t *testing.T) {
 }
 
 func TestQuickShareCreate(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			cfg := LoadScenario(t, scenario)
-			cfg = WithLocalSharing(cfg, true)
-			app := BootTestApp(t, cfg)
+			cfg := harness.LoadScenario(t, scenario)
+			cfg = harness.WithLocalSharing(cfg, true)
+			app := harness.BootTestApp(t, cfg)
 
 			owner := app.CreateUser(t, "qsowner@example.com")
 			contrib := app.CreateUser(t, "qscontrib@example.com")
@@ -242,11 +243,11 @@ func TestQuickShareCreate(t *testing.T) {
 }
 
 func TestQuickShareListAndDelete(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			cfg := LoadScenario(t, scenario)
-			cfg = WithLocalSharing(cfg, true)
-			app := BootTestApp(t, cfg)
+			cfg := harness.LoadScenario(t, scenario)
+			cfg = harness.WithLocalSharing(cfg, true)
+			app := harness.BootTestApp(t, cfg)
 
 			owner := app.CreateUser(t, "qsdelowner@example.com")
 			contrib := app.CreateUser(t, "qsdelcontrib@example.com")

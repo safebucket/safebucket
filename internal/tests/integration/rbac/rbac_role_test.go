@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package rbac_test
 
 import (
 	"fmt"
@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests/integration/harness"
 )
 
 func TestRBAC_Roles(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := harness.BootScenario(t, scenario)
 
 			guest := app.CreateUser(t, "guest@example.com")
 			app.SetUserRole(t, guest.Email, models.RoleGuest)

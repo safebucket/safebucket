@@ -1,13 +1,15 @@
 //go:build integration
 
-package integration
+package harness
 
 import (
 	"context"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/stretchr/testify/require"
@@ -52,7 +54,7 @@ func StartMinIO(t *testing.T) MinIOInstance {
 	})
 	require.NoError(t, err, "init minio client")
 
-	bucket := "sb-" + randomHex(6)
+	bucket := "sb-" + strings.Split(uuid.NewString(), "-")[0]
 	require.NoError(t,
 		client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{}),
 		"create bucket %s", bucket,

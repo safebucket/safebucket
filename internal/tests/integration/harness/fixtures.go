@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package harness
 
 import "github.com/safebucket/safebucket/internal/models"
 

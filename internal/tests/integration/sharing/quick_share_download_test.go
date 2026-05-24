@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package sharing_test
 
 import (
 	"fmt"
@@ -10,15 +10,16 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests/integration/harness"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestQuickShareDownload(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := harness.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qsdownload@example.com")
 			ownerToken := app.LoginAs(t, owner.Email)
@@ -43,7 +44,7 @@ func TestQuickShareDownload(t *testing.T) {
 
 			t.Run("happy path returns a working presigned URL", func(t *testing.T) {
 				var transfer models.FileTransferResponse
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s/files/%s", bucketShare.ID, fileID),
 					"", nil, &transfer)
 				require.Equal(t, http.StatusOK, status)
@@ -62,21 +63,21 @@ func TestQuickShareDownload(t *testing.T) {
 			})
 
 			t.Run("files scope rejects file not linked to share", func(t *testing.T) {
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s/files/%s", filesShare.ID, unlinkedID),
 					"", nil, nil)
 				assert.Equal(t, http.StatusNotFound, status)
 			})
 
 			t.Run("rejects file from another bucket", func(t *testing.T) {
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s/files/%s", bucketShare.ID, otherBucketFileID),
 					"", nil, nil)
 				assert.Equal(t, http.StatusNotFound, status)
 			})
 
 			t.Run("rejects unknown file id", func(t *testing.T) {
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s/files/%s", bucketShare.ID, uuid.New()),
 					"", nil, nil)
 				assert.Equal(t, http.StatusNotFound, status)
@@ -89,7 +90,7 @@ func TestQuickShareDownload(t *testing.T) {
 				})
 
 				var transfer models.FileTransferResponse
-				status := app.doPublicShare(t, http.MethodGet,
+				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s/files/%s", activityShare.ID, fileID),
 					"", nil, &transfer)
 				require.Equal(t, http.StatusOK, status)

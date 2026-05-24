@@ -1,0 +1,14 @@
+//go:build integration
+
+package bucket_test
+
+import (
+	"os"
+	"testing"
+
+	"github.com/safebucket/safebucket/internal/tests/integration/harness"
+)
+
+func TestMain(m *testing.M) {
+	os.Exit(harness.RunTestMain(m))
+}

@@ -12,6 +12,7 @@ import (
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/rawbytes"
 	"github.com/knadh/koanf/v2"
 	"go.uber.org/zap"
 )
@@ -106,6 +107,13 @@ func loadFile(k *koanf.Koanf, path string) error {
 	return nil
 }
 
+func loadBytes(k *koanf.Koanf, raw []byte) error {
+	if err := k.Load(rawbytes.Provider(raw), yaml.Parser()); err != nil {
+		return fmt.Errorf("load config bytes: %w", err)
+	}
+	return nil
+}
+
 func loadDefaults(k *koanf.Koanf) {
 	defaults := map[string]interface{}{
 		"app.profile":                             "default",
@@ -169,6 +177,7 @@ func loadConditionalDefaults(k *koanf.Koanf) {
 
 type LoadOptions struct {
 	ConfigFilePath string
+	ConfigBytes    []byte
 	SkipEnv        bool
 }
 
@@ -176,16 +185,23 @@ func Load(opts LoadOptions) (models.Configuration, error) {
 	k := koanf.New(".")
 	loadDefaults(k)
 
-	path := opts.ConfigFilePath
-	if path == "" {
-		path = discoverConfigFile()
-	}
-	if path != "" {
-		if err := loadFile(k, path); err != nil {
+	switch {
+	case len(opts.ConfigBytes) > 0:
+		if err := loadBytes(k, opts.ConfigBytes); err != nil {
 			return models.Configuration{}, err
 		}
-	} else if opts.ConfigFilePath == "" {
-		zap.L().Warn("No configuration file found")
+	case opts.ConfigFilePath != "":
+		if err := loadFile(k, opts.ConfigFilePath); err != nil {
+			return models.Configuration{}, err
+		}
+	default:
+		if path := discoverConfigFile(); path != "" {
+			if err := loadFile(k, path); err != nil {
+				return models.Configuration{}, err
+			}
+		} else {
+			zap.L().Warn("No configuration file found")
+		}
 	}
 
 	if !opts.SkipEnv {

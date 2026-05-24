@@ -1,10 +1,11 @@
 //go:build integration
 
-package integration
+package harness
 
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -33,26 +34,32 @@ import (
 	"gorm.io/gorm"
 )
 
-const testPassword = "correct-horse-battery-staple"
+const TestPassword = "correct-horse-battery-staple"
+
+//go:embed scenarios/*.yaml
+var scenariosFS embed.FS
 
 func ActiveScenarios() []string {
 	if s := os.Getenv("TEST_SCENARIO"); s != "" {
 		return []string{s}
 	}
 
-	matches, err := filepath.Glob(filepath.Join("scenarios", "*.yaml"))
+	entries, err := scenariosFS.ReadDir("scenarios")
 	if err != nil {
-		panic("integration: failed to glob test scenarios: " + err.Error())
+		panic("integration: failed to read embedded scenarios: " + err.Error())
 	}
 
-	if len(matches) == 0 {
-		panic("integration: no scenarios found in scenarios/")
+	if len(entries) == 0 {
+		panic("integration: no scenarios found in embedded scenarios/")
 	}
 
-	scenarios := make([]string, 0, len(matches))
-	for _, m := range matches {
-		name := filepath.Base(m)
-		scenarios = append(scenarios, name[:len(name)-5]) // strip .yaml
+	scenarios := make([]string, 0, len(entries))
+	for _, e := range entries {
+		name := e.Name()
+		if filepath.Ext(name) != ".yaml" {
+			continue
+		}
+		scenarios = append(scenarios, name[:len(name)-5])
 	}
 	return scenarios
 }
@@ -77,12 +84,12 @@ type TestApp struct {
 func LoadScenario(t *testing.T, name string) models.Configuration {
 	t.Helper()
 
-	path, err := filepath.Abs(filepath.Join("scenarios", name+".yaml"))
-	require.NoError(t, err, "resolve scenario path")
+	raw, err := scenariosFS.ReadFile(filepath.Join("scenarios", name+".yaml"))
+	require.NoError(t, err, "read embedded scenario %s", name)
 
 	cfg, err := configuration.Load(configuration.LoadOptions{
-		ConfigFilePath: path,
-		SkipEnv:        true,
+		ConfigBytes: raw,
+		SkipEnv:     true,
 	})
 	require.NoError(t, err, "load scenario %s", name)
 	return cfg
@@ -165,8 +172,8 @@ func (a *TestApp) URL(path string) string {
 
 func (a *TestApp) LoginAs(t *testing.T, email string) string {
 	t.Helper()
-	status, token := a.doGetAuthCookie(t, http.MethodPost, "/api/v1/auth/login", "",
-		models.AuthLoginBody{Email: email, Password: testPassword})
+	status, token := a.DoGetAuthCookie(t, http.MethodPost, "/api/v1/auth/login", "",
+		models.AuthLoginBody{Email: email, Password: TestPassword})
 	require.Equal(t, http.StatusOK, status, "login should succeed")
 	require.NotEmpty(t, token, "access token cookie should be set after login")
 	return token
@@ -175,7 +182,7 @@ func (a *TestApp) LoginAs(t *testing.T, email string) string {
 func (a *TestApp) LoginRefreshToken(t *testing.T, email string) string {
 	t.Helper()
 
-	body, err := json.Marshal(models.AuthLoginBody{Email: email, Password: testPassword})
+	body, err := json.Marshal(models.AuthLoginBody{Email: email, Password: TestPassword})
 	require.NoError(t, err)
 
 	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost,
@@ -199,19 +206,19 @@ func (a *TestApp) LoginRefreshToken(t *testing.T, email string) string {
 
 func (a *TestApp) LoginAdmin(t *testing.T) string {
 	t.Helper()
-	status, token := a.doGetAuthCookie(t, http.MethodPost, "/api/v1/auth/login", "",
+	status, token := a.DoGetAuthCookie(t, http.MethodPost, "/api/v1/auth/login", "",
 		models.AuthLoginBody{Email: a.Config.App.AdminEmail, Password: a.Config.App.AdminPassword})
 	require.Equal(t, http.StatusOK, status, "admin login should succeed")
 	require.NotEmpty(t, token, "access token cookie should be set after admin login")
 	return token
 }
 
-func (a *TestApp) doGetAuthCookie(t *testing.T, method, path, token string, body any) (int, string) {
+func (a *TestApp) DoGetAuthCookie(t *testing.T, method, path, token string, body any) (int, string) {
 	t.Helper()
 	return a.doGetCookie(t, method, path, token, body, "safebucket_access_token")
 }
 
-func (a *TestApp) doGetMFACookie(t *testing.T, method, path, token string, body any) (int, string) {
+func (a *TestApp) DoGetMFACookie(t *testing.T, method, path, token string, body any) (int, string) {
 	t.Helper()
 	return a.doGetCookie(t, method, path, token, body, "safebucket_mfa_token")
 }
@@ -356,7 +363,7 @@ func (a *TestApp) CreateUser(t *testing.T, email string) models.User {
 	t.Helper()
 	var user models.User
 	status := a.Do(t, http.MethodPost, "/api/v1/users", a.adminToken(t),
-		models.UserCreateBody{FirstName: "Test", LastName: "User", Email: email, Password: testPassword},
+		models.UserCreateBody{FirstName: "Test", LastName: "User", Email: email, Password: TestPassword},
 		&user)
 	require.Equal(t, http.StatusCreated, status, "create user %s", email)
 	return user
@@ -445,7 +452,7 @@ func (a *TestApp) AuthenticateShare(t *testing.T, shareID, password string) (int
 	)
 }
 
-func (a *TestApp) doPublicShare(
+func (a *TestApp) DoPublicShare(
 	t *testing.T,
 	method, path, shareCookie string,
 	body, out any,
@@ -494,10 +501,10 @@ func (a *TestApp) doPublicShare(
 
 func (a *TestApp) UploadTestFile(t *testing.T, token, bucketID, name string) string {
 	t.Helper()
-	return a.uploadFileInto(t, token, bucketID, nil, name)
+	return a.UploadFileInto(t, token, bucketID, nil, name)
 }
 
-func (a *TestApp) uploadFileInto(
+func (a *TestApp) UploadFileInto(
 	t *testing.T,
 	token, bucketID string,
 	folderID *uuid.UUID,

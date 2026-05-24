@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package auth_test
 
 import (
 	"encoding/json"
@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests/integration/harness"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,9 +23,9 @@ import (
 const probeEndpoint = "/api/v1/buckets"
 
 func TestAuthTokenValidation(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := harness.BootScenario(t, scenario)
 
 			user := app.CreateUser(t, "tokenvalidation@example.com")
 			validToken := app.LoginAs(t, user.Email)
@@ -85,23 +86,23 @@ func TestAuthTokenValidation(t *testing.T) {
 }
 
 func TestAuthPasswordReset(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := harness.BootScenario(t, scenario)
 
 			t.Run("full reset flow succeeds", func(t *testing.T) {
 				user := app.CreateUser(t, "resetfull@example.com")
 
 				code, challengeID := requestReset(t, app, user.Email)
 
-				status, restrictedToken := app.doGetMFACookie(t, http.MethodPost,
+				status, restrictedToken := app.DoGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
 					"", models.PasswordResetValidateBody{Code: code})
 				require.Equal(t, http.StatusCreated, status)
 				require.NotEmpty(t, restrictedToken, "MFA cookie should be set after reset validate")
 
 				const newPassword = "correcthorsebatterystaple2"
-				status, _ = app.doGetAuthCookie(t, http.MethodPost,
+				status, _ = app.DoGetAuthCookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
 					restrictedToken, models.PasswordResetCompleteBody{NewPassword: newPassword})
 				require.Equal(t, http.StatusNoContent, status)
@@ -117,7 +118,7 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				codeA, challengeIDA := requestReset(t, app, userA.Email)
 
-				status, tokenA := app.doGetMFACookie(t, http.MethodPost,
+				status, tokenA := app.DoGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeIDA),
 					"", models.PasswordResetValidateBody{Code: codeA})
 				require.Equal(t, http.StatusCreated, status)
@@ -136,7 +137,7 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				code, challengeID := requestReset(t, app, user.Email)
 
-				status, _ := app.doGetMFACookie(t, http.MethodPost,
+				status, _ := app.DoGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
 					"", models.PasswordResetValidateBody{Code: code})
 				require.Equal(t, http.StatusCreated, status)
@@ -161,13 +162,13 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				code, challengeID := requestReset(t, app, user.Email)
 
-				status, restrictedToken := app.doGetMFACookie(t, http.MethodPost,
+				status, restrictedToken := app.DoGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
 					"", models.PasswordResetValidateBody{Code: code})
 				require.Equal(t, http.StatusCreated, status)
 				require.NotEmpty(t, restrictedToken)
 
-				completeStatus, newToken := app.doGetAuthCookie(t, http.MethodPost,
+				completeStatus, newToken := app.DoGetAuthCookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
 					restrictedToken,
 					models.PasswordResetCompleteBody{NewPassword: "newpassword456"})
@@ -186,13 +187,13 @@ func TestAuthPasswordReset(t *testing.T) {
 
 				code, challengeID := requestReset(t, app, user.Email)
 
-				status, restrictedToken := app.doGetMFACookie(t, http.MethodPost,
+				status, restrictedToken := app.DoGetMFACookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/validate", challengeID),
 					"", models.PasswordResetValidateBody{Code: code})
 				require.Equal(t, http.StatusCreated, status)
 				require.NotEmpty(t, restrictedToken)
 
-				firstStatus, _ := app.doGetAuthCookie(t, http.MethodPost,
+				firstStatus, _ := app.DoGetAuthCookie(t, http.MethodPost,
 					fmt.Sprintf("/api/v1/auth/reset-password/%s/complete", challengeID),
 					restrictedToken, models.PasswordResetCompleteBody{NewPassword: "firstpassword123"})
 				require.Equal(t, http.StatusNoContent, firstStatus)
@@ -206,7 +207,7 @@ func TestAuthPasswordReset(t *testing.T) {
 	}
 }
 
-func requestReset(t *testing.T, app *TestApp, email string) (code, challengeID string) {
+func requestReset(t *testing.T, app *harness.TestApp, email string) (code, challengeID string) {
 	t.Helper()
 
 	status := app.DoStatus(t, http.MethodPost, "/api/v1/auth/reset-password", "",

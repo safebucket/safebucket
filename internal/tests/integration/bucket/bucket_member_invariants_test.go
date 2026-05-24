@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package bucket_test
 
 import (
 	"fmt"
@@ -8,15 +8,16 @@ import (
 	"testing"
 
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests/integration/harness"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBucketMember_Invariants(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
 			t.Run("sharing.allowed=false", func(t *testing.T) {
-				cfg := LoadScenario(t, scenario)
-				app := BootTestApp(t, cfg)
+				cfg := harness.LoadScenario(t, scenario)
+				app := harness.BootTestApp(t, cfg)
 				ownerA := app.CreateUser(t, "ownera@example.com")
 				userB := app.CreateUser(t, "userb@example.com")
 				ownerAToken := app.LoginAs(t, ownerA.Email)
@@ -37,9 +38,9 @@ func TestBucketMember_Invariants(t *testing.T) {
 			})
 
 			t.Run("sharing.allowed=true, no domains", func(t *testing.T) {
-				cfg := LoadScenario(t, scenario)
-				cfg = WithLocalSharing(cfg, true)
-				app := BootTestApp(t, cfg)
+				cfg := harness.LoadScenario(t, scenario)
+				cfg = harness.WithLocalSharing(cfg, true)
+				app := harness.BootTestApp(t, cfg)
 				ownerA := app.CreateUser(t, "ownera@example.com")
 				userB := app.CreateUser(t, "userb@example.com")
 				ownerAToken := app.LoginAs(t, ownerA.Email)
@@ -75,9 +76,9 @@ func TestBucketMember_Invariants(t *testing.T) {
 			})
 
 			t.Run("sharing.allowed=true, domains restricted", func(t *testing.T) {
-				cfg := LoadScenario(t, scenario)
-				cfg = WithLocalSharing(cfg, true, "allowed.example")
-				app := BootTestApp(t, cfg)
+				cfg := harness.LoadScenario(t, scenario)
+				cfg = harness.WithLocalSharing(cfg, true, "allowed.example")
+				app := harness.BootTestApp(t, cfg)
 				ownerA := app.CreateUser(t, "ownera@example.com")
 				foo := app.CreateUser(t, "foo@allowed.example")
 				bar := app.CreateUser(t, "bar@other.example")
@@ -108,9 +109,9 @@ func TestBucketMember_Invariants(t *testing.T) {
 			})
 
 			t.Run("Unknown email + sharing.allowed=true", func(t *testing.T) {
-				cfg := LoadScenario(t, scenario)
-				cfg = WithLocalSharing(cfg, true)
-				app := BootTestApp(t, cfg)
+				cfg := harness.LoadScenario(t, scenario)
+				cfg = harness.WithLocalSharing(cfg, true)
+				app := harness.BootTestApp(t, cfg)
 				ownerA := app.CreateUser(t, "ownera@example.com")
 				ownerAToken := app.LoginAs(t, ownerA.Email)
 				bucketA := app.CreateBucket(t, ownerAToken, "bucketA")
@@ -135,9 +136,9 @@ func TestBucketMember_Invariants(t *testing.T) {
 			})
 
 			t.Run("Owner preservation when self is omitted from body", func(t *testing.T) {
-				cfg := LoadScenario(t, scenario)
-				cfg = WithLocalSharing(cfg, true)
-				app := BootTestApp(t, cfg)
+				cfg := harness.LoadScenario(t, scenario)
+				cfg = harness.WithLocalSharing(cfg, true)
+				app := harness.BootTestApp(t, cfg)
 				ownerA := app.CreateUser(t, "ownera@example.com")
 				userB := app.CreateUser(t, "userb@example.com")
 				ownerAToken := app.LoginAs(t, ownerA.Email)
@@ -163,9 +164,9 @@ func TestBucketMember_Invariants(t *testing.T) {
 			})
 
 			t.Run("self-demotion silently ignored when other members exist", func(t *testing.T) {
-				cfg := LoadScenario(t, scenario)
-				cfg = WithLocalSharing(cfg, true)
-				app := BootTestApp(t, cfg)
+				cfg := harness.LoadScenario(t, scenario)
+				cfg = harness.WithLocalSharing(cfg, true)
+				app := harness.BootTestApp(t, cfg)
 				ownerA := app.CreateUser(t, "ownera@example.com")
 				ownerB := app.CreateUser(t, "ownerb@example.com")
 				ownerAToken := app.LoginAs(t, ownerA.Email)

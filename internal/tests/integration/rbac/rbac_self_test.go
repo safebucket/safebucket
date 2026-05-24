@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package rbac_test
 
 import (
 	"fmt"
@@ -8,13 +8,14 @@ import (
 	"testing"
 
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests/integration/harness"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRBAC_SelfOrAdmin(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range harness.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := harness.BootScenario(t, scenario)
 
 			userA := app.CreateUser(t, "usera@example.com")
 			userB := app.CreateUser(t, "userb@example.com")
