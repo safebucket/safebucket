@@ -133,7 +133,7 @@ services:
   ldap:
     profiles: [ ldap ]
     container_name: ldap
-    image: bitnami/openldap:2.6
+    image: bitnamilegacy/openldap:2.6
     environment:
       LDAP_ROOT: "dc=example,dc=org"
       LDAP_ADMIN_USERNAME: "admin"

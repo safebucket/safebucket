@@ -10,6 +10,7 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/tracing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -50,6 +51,59 @@ func AuthFlowHandler[In any](forceSecure bool, target AuthFlowTargetFunc[In]) ht
 		}
 
 		result, err := target(isSecureRequest(r, forceSecure), logger, claims, ids, body)
+		if err != nil {
+			status := http.StatusBadRequest
+			var apiErr *apierrors.APIError
+			if errors.As(err, &apiErr) {
+				status = apiErr.Code
+			}
+			recordError(span, err, status)
+			h.RespondWithError(w, status, []string{err.Error()})
+			return
+		}
+
+		writeCookies(w, result.Cookies)
+		h.RespondWithJSON(w, result.Status, result.Body)
+	}
+}
+
+type AuthFlowProviderTargetFunc[In any] func(
+	isSecure bool,
+	logger *zap.Logger,
+	claims models.UserClaims,
+	ids uuid.UUIDs,
+	provider string,
+	body In,
+) (AuthFlowResult, error)
+
+func AuthFlowProviderHandler[In any](forceSecure bool, target AuthFlowProviderTargetFunc[In]) http.HandlerFunc {
+	name := spanName(target)
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), name)
+		defer span.End()
+		r = r.WithContext(ctx)
+
+		provider := chi.URLParam(r, "provider")
+		if err := h.ValidateProviderName(provider); err != nil {
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeInvalidProviderName})
+			return
+		}
+
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+		claims, _ := h.GetUserClaims(r.Context())
+		logger := m.GetLogger(r)
+
+		body, ok := r.Context().Value(m.BodyKey{}).(In)
+		if !ok {
+			logger.Error("Failed to extract body from context")
+			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
+			return
+		}
+
+		result, err := target(isSecureRequest(r, forceSecure), logger, claims, ids, provider, body)
 		if err != nil {
 			status := http.StatusBadRequest
 			var apiErr *apierrors.APIError

@@ -56,6 +56,7 @@ func (s AuthService) Routes() chi.Router {
 				"/callback",
 				handlers.OpenIDCallbackHandler(s.AuthConfig.WebURL, s.AuthConfig.CookieSecureForce, s.OpenIDCallback),
 			)
+			r.With(m.Validate[models.AuthLoginBody]).Post("/login", s.ldapLoginHandler())
 		})
 	})
 	return r
@@ -74,20 +75,7 @@ func (s AuthService) Login(
 		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, apierrors.CodeForbidden)
 	}
 
-	var (
-		searchUser models.User
-		authErr    error
-	)
-	switch provider.Type {
-	case models.LocalProviderType:
-		searchUser, authErr = s.authenticateLocal(body)
-	case models.LDAPProviderType:
-		searchUser, authErr = s.authenticateLDAP(logger, providerKey, provider, body)
-	case models.OIDCProviderType:
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, apierrors.CodeForbidden)
-	default:
-		return handlers.AuthFlowResult{}, apierrors.NewAPIError(403, apierrors.CodeForbidden)
-	}
+	searchUser, authErr := s.authenticateLocal(body)
 	if authErr != nil {
 		return handlers.AuthFlowResult{}, authErr
 	}
@@ -105,7 +93,7 @@ func (s AuthService) resolveCredentialProvider(
 	)
 
 	for key, provider := range s.Providers {
-		if provider.Type != models.LocalProviderType && provider.Type != models.LDAPProviderType {
+		if provider.Type != models.LocalProviderType {
 			continue
 		}
 		if len(provider.Domains) > 0 {
@@ -303,6 +291,10 @@ func (s AuthService) Refresh(logger *zap.Logger, refreshTokenStr string) (string
 
 func (s AuthService) loginHandler() http.HandlerFunc {
 	return handlers.AuthFlowHandler(s.AuthConfig.CookieSecureForce, s.Login)
+}
+
+func (s AuthService) ldapLoginHandler() http.HandlerFunc {
+	return handlers.AuthFlowProviderHandler(s.AuthConfig.CookieSecureForce, s.LDAPLogin)
 }
 
 func (s AuthService) mfaVerifyHandler() http.HandlerFunc {

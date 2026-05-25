@@ -24,7 +24,7 @@ func OpenIDBeginHandler(openidBegin OpenIDBeginFunc) http.HandlerFunc {
 		providerName := chi.URLParam(r, "provider")
 
 		if err := h.ValidateProviderName(providerName); err != nil {
-			h.RespondWithError(w, http.StatusBadRequest, []string{"INVALID_PROVIDER_NAME"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeInvalidProviderName})
 			return
 		}
 
@@ -49,23 +49,23 @@ func OpenIDCallbackHandler(webURL string, cookieSecureForce bool, openidCallback
 		providerName := chi.URLParam(r, "provider")
 
 		if err := h.ValidateProviderName(providerName); err != nil {
-			h.RespondWithError(w, http.StatusBadRequest, []string{"INVALID_PROVIDER_NAME"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeInvalidProviderName})
 			return
 		}
 
 		state, err := r.Cookie("state")
 		if err != nil {
-			h.RespondWithError(w, http.StatusBadRequest, []string{"state not found"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeOIDCStateNotFound})
 			return
 		}
 		if r.URL.Query().Get("state") != state.Value {
-			h.RespondWithError(w, http.StatusBadRequest, []string{"state does not match"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeOIDCStateMismatch})
 			return
 		}
 
 		nonce, err := r.Cookie("nonce")
 		if err != nil {
-			h.RespondWithError(w, http.StatusInternalServerError, []string{"nonce not found"})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeOIDCNonceNotFound})
 			return
 		}
 

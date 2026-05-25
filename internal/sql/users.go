@@ -68,29 +68,6 @@ func CreateOrGetUser(
 	return created, err
 }
 
-func SyncUserAttributes(
-	logger *zap.Logger,
-	db *gorm.DB,
-	user *models.User,
-	firstName, lastName string,
-) {
-	if user.FirstName == firstName && user.LastName == lastName {
-		return
-	}
-	user.FirstName = firstName
-	user.LastName = lastName
-	if err := db.Model(user).Updates(map[string]any{
-		"first_name": firstName,
-		"last_name":  lastName,
-	}).Error; err != nil {
-		logger.Warn("Failed to sync user attributes",
-			zap.String("user_id", user.ID.String()),
-			zap.String("provider_type", string(user.ProviderType)),
-			zap.String("provider_key", user.ProviderKey),
-			zap.Error(err))
-	}
-}
-
 func processPendingInvites(logger *zap.Logger, tx *gorm.DB, user *models.User) error {
 	var invites []models.Invite
 	if err := tx.Preload("Bucket").Where("email = ?", user.Email).Find(&invites).Error; err != nil {

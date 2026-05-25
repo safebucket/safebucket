@@ -22,6 +22,7 @@ import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedActivityIndexRouteImport } from './routes/_authenticated/activity/index'
 import { Route as AuthResetPasswordIdIndexRouteImport } from './routes/auth/reset-password/$id/index'
 import { Route as AuthMfaSetupRequiredIndexRouteImport } from './routes/auth/mfa/setup-required/index'
+import { Route as AuthLdapProviderNameIndexRouteImport } from './routes/auth/ldap/$providerName/index'
 import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
 import { Route as AuthenticatedSettingsPreferencesIndexRouteImport } from './routes/_authenticated/settings/preferences/index'
 import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
@@ -99,6 +100,12 @@ const AuthMfaSetupRequiredIndexRoute =
     path: '/auth/mfa/setup-required/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthLdapProviderNameIndexRoute =
+  AuthLdapProviderNameIndexRouteImport.update({
+    id: '/auth/ldap/$providerName/',
+    path: '/auth/ldap/$providerName/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedSettingsProfileIndexRoute =
   AuthenticatedSettingsProfileIndexRouteImport.update({
     id: '/settings/profile/',
@@ -166,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
+  '/auth/ldap/$providerName/': typeof AuthLdapProviderNameIndexRoute
   '/auth/mfa/setup-required/': typeof AuthMfaSetupRequiredIndexRoute
   '/auth/reset-password/$id/': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId/': typeof InvitesIdChallengesChallengeIdIndexRoute
@@ -188,6 +196,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
+  '/auth/ldap/$providerName': typeof AuthLdapProviderNameIndexRoute
   '/auth/mfa/setup-required': typeof AuthMfaSetupRequiredIndexRoute
   '/auth/reset-password/$id': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId': typeof InvitesIdChallengesChallengeIdIndexRoute
@@ -212,6 +221,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/_authenticated/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
+  '/auth/ldap/$providerName/': typeof AuthLdapProviderNameIndexRoute
   '/auth/mfa/setup-required/': typeof AuthMfaSetupRequiredIndexRoute
   '/auth/reset-password/$id/': typeof AuthResetPasswordIdIndexRoute
   '/invites/$id/challenges/$challengeId/': typeof InvitesIdChallengesChallengeIdIndexRoute
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/admin/users/'
     | '/settings/preferences/'
     | '/settings/profile/'
+    | '/auth/ldap/$providerName/'
     | '/auth/mfa/setup-required/'
     | '/auth/reset-password/$id/'
     | '/invites/$id/challenges/$challengeId/'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/settings/preferences'
     | '/settings/profile'
+    | '/auth/ldap/$providerName'
     | '/auth/mfa/setup-required'
     | '/auth/reset-password/$id'
     | '/invites/$id/challenges/$challengeId'
@@ -281,6 +293,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/users/'
     | '/_authenticated/settings/preferences/'
     | '/_authenticated/settings/profile/'
+    | '/auth/ldap/$providerName/'
     | '/auth/mfa/setup-required/'
     | '/auth/reset-password/$id/'
     | '/invites/$id/challenges/$challengeId/'
@@ -294,6 +307,7 @@ export interface RootRouteChildren {
   AuthResetPasswordIndexRoute: typeof AuthResetPasswordIndexRoute
   InvitesIdIndexRoute: typeof InvitesIdIndexRoute
   SharesUuidIndexRoute: typeof SharesUuidIndexRoute
+  AuthLdapProviderNameIndexRoute: typeof AuthLdapProviderNameIndexRoute
   AuthMfaSetupRequiredIndexRoute: typeof AuthMfaSetupRequiredIndexRoute
   AuthResetPasswordIdIndexRoute: typeof AuthResetPasswordIdIndexRoute
   InvitesIdChallengesChallengeIdIndexRoute: typeof InvitesIdChallengesChallengeIdIndexRoute
@@ -390,6 +404,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/mfa/setup-required'
       fullPath: '/auth/mfa/setup-required/'
       preLoaderRoute: typeof AuthMfaSetupRequiredIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/ldap/$providerName/': {
+      id: '/auth/ldap/$providerName/'
+      path: '/auth/ldap/$providerName'
+      fullPath: '/auth/ldap/$providerName/'
+      preLoaderRoute: typeof AuthLdapProviderNameIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/settings/profile/': {
@@ -503,6 +524,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthResetPasswordIndexRoute: AuthResetPasswordIndexRoute,
   InvitesIdIndexRoute: InvitesIdIndexRoute,
   SharesUuidIndexRoute: SharesUuidIndexRoute,
+  AuthLdapProviderNameIndexRoute: AuthLdapProviderNameIndexRoute,
   AuthMfaSetupRequiredIndexRoute: AuthMfaSetupRequiredIndexRoute,
   AuthResetPasswordIdIndexRoute: AuthResetPasswordIdIndexRoute,
   InvitesIdChallengesChallengeIdIndexRoute:

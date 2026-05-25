@@ -21,42 +21,27 @@ var (
 )
 
 type Config struct {
-	URL              string
-	StartTLS         bool
-	SkipTLSVerify    bool
-	BindDN           string
-	BindPassword     string
-	SearchBase       string
-	SearchFilter     string
-	EmailAttribute   string
-	DisplayAttribute string
-	ConnectTimeout   time.Duration
+	URL            string
+	StartTLS       bool
+	SkipTLSVerify  bool
+	BindDN         string
+	BindPassword   string
+	SearchBase     string
+	SearchFilter   string
+	EmailAttribute string
+	ConnectTimeout time.Duration
 }
 
 type User struct {
-	DN          string
-	Email       string
-	DisplayName string
+	DN    string
+	Email string
 }
 
 const UsernamePlaceholder = "{username}"
 
 const searchSizeLimit = 2
 
-type Dialer func(cfg Config) (Conn, error)
-
-type Conn interface {
-	Bind(username, password string) error
-	Search(req *ldapv3.SearchRequest) (*ldapv3.SearchResult, error)
-	SetTimeout(timeout time.Duration)
-	Close() error
-}
-
 func AuthenticateAndFetch(cfg Config, login, password string) (*User, error) {
-	return authenticateAndFetch(cfg, login, password, defaultDial)
-}
-
-func authenticateAndFetch(cfg Config, login, password string, dial Dialer) (*User, error) {
 	if password == "" {
 		return nil, ErrInvalidCredentials
 	}
@@ -81,7 +66,7 @@ func authenticateAndFetch(cfg Config, login, password string, dial Dialer) (*Use
 		0,
 		false,
 		filter,
-		[]string{cfg.EmailAttribute, cfg.DisplayAttribute},
+		[]string{cfg.EmailAttribute},
 		nil,
 	)
 
@@ -110,20 +95,14 @@ func authenticateAndFetch(cfg Config, login, password string, dial Dialer) (*Use
 		return nil, ErrMissingEmail
 	}
 
-	displayName := entry.GetAttributeValue(cfg.DisplayAttribute)
-	if displayName == "" {
-		displayName = email
-	}
-
 	return &User{
-		DN:          entry.DN,
-		Email:       email,
-		DisplayName: displayName,
+		DN:    entry.DN,
+		Email: email,
 	}, nil
 }
 
 func VerifyServiceBind(cfg Config) error {
-	conn, err := defaultDial(cfg)
+	conn, err := dial(cfg)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrDirectoryUnavailable, err)
 	}
@@ -134,7 +113,7 @@ func VerifyServiceBind(cfg Config) error {
 	return nil
 }
 
-func defaultDial(cfg Config) (Conn, error) {
+func dial(cfg Config) (*ldapv3.Conn, error) {
 	parsed, err := url.Parse(cfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid ldap url %q: %w", cfg.URL, err)

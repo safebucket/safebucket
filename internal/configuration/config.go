@@ -150,11 +150,6 @@ func applyAuthProviderDefaults(k *koanf.Koanf) {
 			continue
 		}
 		setIfMissing(k, fmt.Sprintf("auth.providers.%s.ldap.attributes.email", name), "mail")
-		setIfMissing(
-			k,
-			fmt.Sprintf("auth.providers.%s.ldap.attributes.display_name", name),
-			"displayName",
-		)
 		setIfMissing(k, fmt.Sprintf("auth.providers.%s.ldap.connect_timeout_ms", name), 5000)
 	}
 }

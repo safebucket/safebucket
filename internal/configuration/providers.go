@@ -54,16 +54,15 @@ func LoadProviders(
 
 		case models.LDAPProviderType:
 			ldapCfg := ldap.Config{
-				URL:              providerCfg.LDAP.URL,
-				StartTLS:         providerCfg.LDAP.StartTLS,
-				SkipTLSVerify:    providerCfg.LDAP.SkipTLSVerify,
-				BindDN:           providerCfg.LDAP.BindDN,
-				BindPassword:     providerCfg.LDAP.BindPassword,
-				SearchBase:       providerCfg.LDAP.SearchBase,
-				SearchFilter:     providerCfg.LDAP.SearchFilter,
-				EmailAttribute:   providerCfg.LDAP.Attributes.Email,
-				DisplayAttribute: providerCfg.LDAP.Attributes.DisplayName,
-				ConnectTimeout:   time.Duration(providerCfg.LDAP.ConnectTimeoutMs) * time.Millisecond,
+				URL:            providerCfg.LDAP.URL,
+				StartTLS:       providerCfg.LDAP.StartTLS,
+				SkipTLSVerify:  providerCfg.LDAP.SkipTLSVerify,
+				BindDN:         providerCfg.LDAP.BindDN,
+				BindPassword:   providerCfg.LDAP.BindPassword,
+				SearchBase:     providerCfg.LDAP.SearchBase,
+				SearchFilter:   providerCfg.LDAP.SearchFilter,
+				EmailAttribute: providerCfg.LDAP.Attributes.Email,
+				ConnectTimeout: time.Duration(providerCfg.LDAP.ConnectTimeoutMs) * time.Millisecond,
 			}
 			if err := ldap.VerifyServiceBind(ldapCfg); err != nil {
 				zap.L().Warn(

@@ -64,6 +64,9 @@
     "signing_in": "Signing in...",
     "continue": "Continue",
     "login_error": "Login failed. Please check your credentials and try again.",
+    "back_to_login": "Back to login",
+    "ldap_sign_in_title": "Sign in with {{name}}",
+    "ldap_sign_in_subtitle": "Enter your directory credentials to continue.",
     "mfa": {
       "verify_title": "Two-Factor Authentication",
       "verify_subtitle": "Enter the code from your authenticator app",

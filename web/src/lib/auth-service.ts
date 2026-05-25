@@ -36,6 +36,29 @@ export const loginWithCredentials = async (
   }
 };
 
+export const loginWithLDAP = async (
+  provider: string,
+  credentials: ILoginForm,
+): Promise<LoginResult> => {
+  try {
+    const response = await api.post<ILoginResponse>(
+      `/auth/providers/${provider}/login`,
+      credentials,
+    );
+
+    if (response.mfa_required) {
+      return { success: false, mfaRequired: true };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Login failed",
+    };
+  }
+};
+
 export const verifyMFALogin = async (
   code: string,
   deviceId?: string,

@@ -100,16 +100,19 @@ function Login() {
         </CardHeader>
         <CardContent className="space-y-2">
           <AuthProvidersButtons
-            providers={providers.filter((p) => p.type === ProviderType.OIDC)}
+            providers={providers.filter(
+              (p) =>
+                p.type === ProviderType.OIDC || p.type === ProviderType.LDAP,
+            )}
+            redirect={redirect}
           />
 
-          {providers.some(
-            (p) =>
-              p.type === ProviderType.LOCAL || p.type === ProviderType.LDAP,
-          ) && (
+          {providers.some((p) => p.type === ProviderType.LOCAL) && (
             <>
-              {providers.filter((p) => p.type === ProviderType.OIDC).length >
-                0 && (
+              {providers.filter(
+                (p) =>
+                  p.type === ProviderType.OIDC || p.type === ProviderType.LDAP,
+              ).length > 0 && (
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />

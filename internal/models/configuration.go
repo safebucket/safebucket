@@ -117,8 +117,7 @@ type LDAPConfiguration struct {
 }
 
 type LDAPAttributeMap struct {
-	Email       string `mapstructure:"email"`
-	DisplayName string `mapstructure:"display_name"`
+	Email string `mapstructure:"email"`
 }
 
 type SharingConfiguration struct {

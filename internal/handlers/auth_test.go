@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/tests"
 
 	"github.com/go-chi/chi/v5"
@@ -167,7 +168,7 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 				req.AddCookie(&http.Cookie{Name: "nonce", Value: nonce})
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedError:      "state not found",
+			expectedError:      apierrors.CodeOIDCStateNotFound,
 		},
 		{
 			name: "State mismatch",
@@ -176,15 +177,15 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 				req.AddCookie(&http.Cookie{Name: "nonce", Value: nonce})
 			},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedError:      "state does not match",
+			expectedError:      apierrors.CodeOIDCStateMismatch,
 		},
 		{
 			name: "Missing nonce cookie",
 			setupRequest: func(req *http.Request) {
 				req.AddCookie(&http.Cookie{Name: "state", Value: state})
 			},
-			expectedStatusCode: http.StatusInternalServerError,
-			expectedError:      "nonce not found",
+			expectedStatusCode: http.StatusBadRequest,
+			expectedError:      apierrors.CodeOIDCNonceNotFound,
 		},
 		{
 			name: "OpenIDCallback error",

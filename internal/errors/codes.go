@@ -11,6 +11,7 @@ const (
 	CodeInvalidPassword     = "INVALID_PASSWORD"
 	CodeUserNotFound        = "USER_NOT_FOUND"
 	CodeProviderNotFound    = "PROVIDER_NOT_FOUND"
+	CodeInvalidProviderName = "INVALID_PROVIDER_NAME"
 )
 
 // HTTP 400 Bad Request.
@@ -33,4 +34,16 @@ const (
 // HTTP 503 Service Unavailable.
 const (
 	CodeAuthProviderUnavailable = "AUTH_PROVIDER_UNAVAILABLE"
+)
+
+// OIDC / OAuth provider flow.
+const (
+	CodeOAuthExchangeFailed = "OAUTH_EXCHANGE_FAILED"
+	CodeOAuthUserinfoFailed = "OAUTH_USERINFO_FAILED"
+	CodeIDTokenMissing      = "ID_TOKEN_MISSING"
+	CodeIDTokenVerifyFailed = "ID_TOKEN_VERIFY_FAILED" //nolint:gosec // error code name, not a secret.
+	CodeOIDCStateNotFound   = "OIDC_STATE_NOT_FOUND"
+	CodeOIDCStateMismatch   = "OIDC_STATE_MISMATCH"
+	CodeOIDCNonceNotFound   = "OIDC_NONCE_NOT_FOUND"
+	CodeOIDCNonceMismatch   = "OIDC_NONCE_MISMATCH"
 )

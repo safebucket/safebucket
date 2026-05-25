@@ -64,6 +64,9 @@
     "signing_in": "Connexion en cours...",
     "continue": "Continuer",
     "login_error": "La connexion a échoué. Veuillez vérifier vos identifiants et réessayer.",
+    "back_to_login": "Retour à la connexion",
+    "ldap_sign_in_title": "Se connecter avec {{name}}",
+    "ldap_sign_in_subtitle": "Saisissez vos identifiants d'annuaire pour continuer.",
     "mfa": {
       "verify_title": "Authentification à deux facteurs",
       "verify_subtitle": "Saisissez le code de votre application d'authentification",
