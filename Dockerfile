@@ -9,7 +9,7 @@ COPY web/ ./
 RUN npm install && npm run build
 
 # Backend
-FROM golang:1.25-bookworm AS backend-builder
+FROM golang:1.26-bookworm AS backend-builder
 
 ARG UPX_VERSION=5.1.1
 ARG TARGETARCH
