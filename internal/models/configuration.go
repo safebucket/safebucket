@@ -28,7 +28,7 @@ type AppConfiguration struct {
 	LogLevel                         string                 `mapstructure:"log_level"                           validate:"oneof=debug info warn error fatal panic"`
 	Port                             int                    `mapstructure:"port"                                validate:"gte=80,lte=65535"`
 	StaticFiles                      StaticConfiguration    `mapstructure:"static_files"`
-	TrustedProxies                   []string               `mapstructure:"trusted_proxies"                     validate:"required"`
+	TrustedProxies                   []string               `mapstructure:"trusted_proxies"                     validate:"required,dive,cidr|ip"`
 	WebURL                           string                 `mapstructure:"web_url"                             validate:"required"`
 	TrashRetentionDays               int                    `mapstructure:"trash_retention_days"                validate:"gte=1,lte=365"`
 	MaxUploadSize                    int64                  `mapstructure:"max_upload_size"                     validate:"gte=1"`
