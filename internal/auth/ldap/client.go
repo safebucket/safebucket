@@ -130,7 +130,7 @@ func dial(cfg Config) (*ldapv3.Conn, error) {
 		MinVersion:         tls.VersionTLS12,
 	}
 
-	opts := []ldapv3.DialOpt{}
+	var opts []ldapv3.DialOpt
 	if cfg.ConnectTimeout > 0 {
 		opts = append(opts, ldapv3.DialWithDialer(&net.Dialer{Timeout: cfg.ConnectTimeout}))
 	}

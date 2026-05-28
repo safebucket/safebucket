@@ -86,34 +86,13 @@ func (s AuthService) Login(
 func (s AuthService) resolveCredentialProvider(
 	email string,
 ) (string, configuration.Provider, bool) {
-	var (
-		bestMatchKey, bestFallbackKey string
-		bestMatch, bestFallback       configuration.Provider
-		hasMatch, hasFallback         bool
-	)
-
 	for key, provider := range s.Providers {
 		if provider.Type != models.LocalProviderType {
 			continue
 		}
-		if len(provider.Domains) > 0 {
-			if h.IsDomainAllowed(email, provider.Domains) {
-				if !hasMatch || provider.Order < bestMatch.Order {
-					bestMatch, bestMatchKey, hasMatch = provider, key, true
-				}
-			}
-			continue
+		if h.IsDomainAllowed(email, provider.Domains) {
+			return key, provider, true
 		}
-		if !hasFallback || provider.Order < bestFallback.Order {
-			bestFallback, bestFallbackKey, hasFallback = provider, key, true
-		}
-	}
-
-	if hasMatch {
-		return bestMatchKey, bestMatch, true
-	}
-	if hasFallback {
-		return bestFallbackKey, bestFallback, true
 	}
 	return "", configuration.Provider{}, false
 }

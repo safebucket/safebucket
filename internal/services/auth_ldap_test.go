@@ -60,24 +60,21 @@ func TestResolveCredentialProvider(t *testing.T) {
 		assert.Equal(t, models.LocalProviderType, provider.Type)
 	})
 
-	t.Run("local domain provider wins over local fallback", func(t *testing.T) {
+	t.Run("local domain provider rejects an email outside its domains", func(t *testing.T) {
 		s := AuthService{Providers: configuration.Providers{
-			"local-fallback": {Type: models.LocalProviderType, Order: 0},
-			"local-domain":   {Type: models.LocalProviderType, Order: 1, Domains: []string{"corp.example"}},
+			"local": {Type: models.LocalProviderType, Order: 0, Domains: []string{"corp.example"}},
+		}}
+		_, _, ok := s.resolveCredentialProvider("user@anywhere.test")
+		assert.False(t, ok)
+	})
+
+	t.Run("local domain provider matches an email within its domains", func(t *testing.T) {
+		s := AuthService{Providers: configuration.Providers{
+			"local": {Type: models.LocalProviderType, Order: 0, Domains: []string{"corp.example"}},
 		}}
 		key, _, ok := s.resolveCredentialProvider("user@corp.example")
 		require.True(t, ok)
-		assert.Equal(t, "local-domain", key)
-	})
-
-	t.Run("lowest Order wins on tie between two local fallbacks", func(t *testing.T) {
-		s := AuthService{Providers: configuration.Providers{
-			"local-a": {Type: models.LocalProviderType, Order: 9},
-			"local-b": {Type: models.LocalProviderType, Order: 3},
-		}}
-		key, _, ok := s.resolveCredentialProvider("user@anywhere.test")
-		require.True(t, ok)
-		assert.Equal(t, "local-b", key)
+		assert.Equal(t, "local", key)
 	})
 }
 
