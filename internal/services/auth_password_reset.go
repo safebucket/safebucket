@@ -74,6 +74,15 @@ func (s AuthPasswordResetService) RequestPasswordReset(
 	_ uuid.UUIDs,
 	body models.PasswordResetRequestBody,
 ) (any, error) {
+	if err := enforceEmailIssuanceLimit(
+		s.Cache,
+		string(models.ChallengeTypePasswordReset),
+		body.Email,
+		configuration.SecurityPasswordResetMaxPerEmailPerHour,
+	); err != nil {
+		return nil, err
+	}
+
 	var user models.User
 	result := s.DB.Where("email = ? AND provider_type = ?", body.Email, models.LocalProviderType).
 		First(&user)

@@ -251,6 +251,15 @@ func (s InviteService) CreateInviteChallenge(
 		return nil, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
+	if err := enforceEmailIssuanceLimit(
+		s.Cache,
+		string(models.ChallengeTypeInvite),
+		body.Email,
+		configuration.SecurityInviteMaxPerEmailPerHour,
+	); err != nil {
+		return nil, err
+	}
+
 	inviteID := ids[0]
 	var invite models.Invite
 	result := s.DB.Preload("User").Where("id = ?", inviteID).First(&invite)

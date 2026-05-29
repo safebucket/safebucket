@@ -1,5 +1,7 @@
 package configuration
 
+import "time"
+
 const AppName = "safebucket"
 
 const (
@@ -49,7 +51,14 @@ const UploadPolicyExpirationInMinutes = 15
 const (
 	SecurityChallengeExpirationMinutes = 5
 	SecurityChallengeMaxFailedAttempts = 3
+
+	SecurityPasswordResetMaxPerEmailPerHour = 3
+	SecurityInviteMaxPerEmailPerHour        = 5
 )
+
+const SecurityChallengeIssuanceWindow = time.Hour
+
+const CacheChallengeIssuanceEmailKey = "challenge:issuance:email:%s:%s"
 
 const (
 	MaxMFADevicesPerUser = 5

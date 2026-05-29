@@ -69,6 +69,25 @@ func GetRateLimit(c ICache, userIdentifier string, requestsPerMinute int) (int, 
 	return 0, nil
 }
 
+func RecordChallengeIssuance(c ICache, key string, limit int, window time.Duration) (bool, error) {
+	count, err := c.Incr(key)
+	if err != nil {
+		return false, err
+	}
+
+	ttl, err := c.TTL(key)
+	if err != nil {
+		return false, err
+	}
+	if ttl < 0 {
+		if expErr := c.Expire(key, window); expErr != nil {
+			return false, expErr
+		}
+	}
+
+	return int(count) <= limit, nil
+}
+
 func RefreshLock(c ICache, key string, instanceID string, ttl time.Duration) (bool, error) {
 	current, err := c.Get(key)
 	if err == nil && current == instanceID {

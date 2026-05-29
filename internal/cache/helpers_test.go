@@ -233,3 +233,79 @@ func TestSessionCleanup_DeletesEmptyKeys(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, keysAfter)
 }
+
+func TestRecordChallengeIssuance_AllowsUpToLimit(t *testing.T) {
+	mc := newTestCache(t)
+	const limit = 3
+
+	for i := 1; i <= limit; i++ {
+		allowed, err := RecordChallengeIssuance(mc, "challenge:k", limit, time.Hour)
+		require.NoError(t, err)
+		assert.Truef(t, allowed, "call %d should be within limit", i)
+	}
+}
+
+func TestRecordChallengeIssuance_DeniesBeyondLimit(t *testing.T) {
+	mc := newTestCache(t)
+	const limit = 3
+
+	for i := 1; i <= limit; i++ {
+		allowed, err := RecordChallengeIssuance(mc, "challenge:k", limit, time.Hour)
+		require.NoError(t, err)
+		require.True(t, allowed)
+	}
+
+	allowed, err := RecordChallengeIssuance(mc, "challenge:k", limit, time.Hour)
+	require.NoError(t, err)
+	assert.False(t, allowed, "call beyond the limit must be denied")
+}
+
+func TestRecordChallengeIssuance_SetsFixedWindowOnFirstCall(t *testing.T) {
+	mc := newTestCache(t)
+
+	allowed, err := RecordChallengeIssuance(mc, "challenge:k", 3, time.Hour)
+	require.NoError(t, err)
+	require.True(t, allowed)
+
+	ttl, err := mc.TTL("challenge:k")
+	require.NoError(t, err)
+	assert.Greater(t, ttl, time.Duration(0))
+	assert.LessOrEqual(t, ttl, time.Hour)
+}
+
+func TestRecordChallengeIssuance_KeysAreIndependent(t *testing.T) {
+	mc := newTestCache(t)
+	const limit = 1
+
+	allowedA, err := RecordChallengeIssuance(mc, "challenge:a", limit, time.Hour)
+	require.NoError(t, err)
+	assert.True(t, allowedA)
+
+	allowedB, err := RecordChallengeIssuance(mc, "challenge:b", limit, time.Hour)
+	require.NoError(t, err)
+	assert.True(t, allowedB, "a separate key keeps its own budget")
+
+	allowedA2, err := RecordChallengeIssuance(mc, "challenge:a", limit, time.Hour)
+	require.NoError(t, err)
+	assert.False(t, allowedA2, "the first key is now exhausted")
+}
+
+func TestRecordChallengeIssuance_ReassertsMissingTTL(t *testing.T) {
+	mc := newTestCache(t)
+
+	// Simulate a key left without a TTL by a prior failed Expire.
+	_, err := mc.Incr("challenge:k")
+	require.NoError(t, err)
+	ttl, err := mc.TTL("challenge:k")
+	require.NoError(t, err)
+	require.Less(t, ttl, time.Duration(0), "precondition: the key has no expiry")
+
+	allowed, err := RecordChallengeIssuance(mc, "challenge:k", 3, time.Hour)
+	require.NoError(t, err)
+	require.True(t, allowed)
+
+	ttl, err = mc.TTL("challenge:k")
+	require.NoError(t, err)
+	assert.Greater(t, ttl, time.Duration(0), "a missing TTL must be re-asserted so the window can reset")
+	assert.LessOrEqual(t, ttl, time.Hour)
+}

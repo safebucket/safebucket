@@ -3,9 +3,11 @@ package services
 import (
 	"database/sql"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
+	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
@@ -65,6 +67,35 @@ func TestRequestPasswordReset(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, result)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("rate limits issuance per email before the user lookup", func(t *testing.T) {
+		svc, mock, cleanup := newPasswordResetTestService(t)
+		defer cleanup()
+
+		mc := cache.NewMemoryCache()
+		t.Cleanup(mc.Close)
+		svc.Cache = mc
+
+		email := "ratelimited@example.com"
+		for range configuration.SecurityPasswordResetMaxPerEmailPerHour {
+			require.NoError(t, enforceEmailIssuanceLimit(
+				svc.Cache,
+				string(models.ChallengeTypePasswordReset),
+				email,
+				configuration.SecurityPasswordResetMaxPerEmailPerHour,
+			))
+		}
+
+		_, err := svc.RequestPasswordReset(
+			zap.NewNop(),
+			models.UserClaims{},
+			uuid.UUIDs{},
+			models.PasswordResetRequestBody{Email: email},
+		)
+
+		requireAPIError(t, err, http.StatusTooManyRequests, apierrors.CodeRateLimitExceeded)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
