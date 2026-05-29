@@ -96,7 +96,6 @@ export const ActivityFilters: FC<ActivityFiltersProps> = ({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-
     </div>
   );
 };
