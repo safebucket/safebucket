@@ -767,8 +767,7 @@
       },
       "filters": {
         "action": "Action",
-        "type": "Type",
-        "clear": "Clear filters"
+        "type": "Type"
       },
       "types": {
         "bucket": "Bucket",

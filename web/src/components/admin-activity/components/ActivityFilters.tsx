@@ -1,4 +1,4 @@
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatAction } from "../helpers/format";
 import type { FC } from "react";
@@ -40,12 +40,6 @@ export const ActivityFilters: FC<ActivityFiltersProps> = ({
   onTypesChange,
 }) => {
   const { t } = useTranslation();
-  const hasFilters = selectedActions.length > 0 || selectedTypes.length > 0;
-
-  const clear = () => {
-    onActionsChange([]);
-    onTypesChange([]);
-  };
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -103,17 +97,6 @@ export const ActivityFilters: FC<ActivityFiltersProps> = ({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {hasFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clear}
-          className="text-muted-foreground gap-1"
-        >
-          <X className="size-4" />
-          {t("admin.activity.filters.clear")}
-        </Button>
-      )}
     </div>
   );
 };
