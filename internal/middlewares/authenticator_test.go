@@ -406,12 +406,115 @@ func TestIsAuthExcluded(t *testing.T) {
 			method:   "GET",
 			expected: false,
 		},
+		{
+			name:     "Excluded - /api/v1/auth/logout with POST",
+			path:     "/api/v1/auth/logout",
+			method:   "POST",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/auth/providers/ trailing slash with GET",
+			path:     "/api/v1/auth/providers/",
+			method:   "GET",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/auth/providers/google/callback with GET",
+			path:     "/api/v1/auth/providers/google/callback",
+			method:   "GET",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/shares/{id} with GET",
+			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000",
+			method:   "GET",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/shares/{id}/ trailing slash with GET",
+			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000/",
+			method:   "GET",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/shares/{id}/auth with POST",
+			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000/auth",
+			method:   "POST",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/shares/{id}/files with POST",
+			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000/files",
+			method:   "POST",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/shares/{id}/files/{fileId} with GET",
+			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000/files/660e8400-e29b-41d4-a716-446655440000",
+			method:   "GET",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/shares/{id}/files/{fileId} with PATCH",
+			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000/files/660e8400-e29b-41d4-a716-446655440000",
+			method:   "PATCH",
+			expected: true,
+		},
 	}
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			result := isPathExcludedFromAuth(tt.path, tt.method)
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsAuthExcluded_AdversarialInputs(t *testing.T) {
+	const shareID = "550e8400-e29b-41d4-a716-446655440000"
+
+	testCases := []struct {
+		name   string
+		path   string
+		method string
+	}{
+		{"traversal out of shares prefix", "/api/v1/shares/" + shareID + "/../../buckets/" + shareID, "GET"},
+		{"traversal out of providers prefix", "/api/v1/auth/providers/../../buckets", "GET"},
+		{
+			"traversal from reset-password to complete",
+			"/api/v1/auth/reset-password/" + shareID + "/../complete",
+			"POST",
+		},
+		{"traversal in shares files segment", "/api/v1/shares/" + shareID + "/files/../../buckets", "GET"},
+
+		{"percent-encoded dot-dot in shares", "/api/v1/shares/" + shareID + "/%2e%2e/buckets", "GET"},
+		{"percent-encoded slash traversal in providers", "/api/v1/auth/providers/..%2f..%2fbuckets", "GET"},
+		{"percent-encoded shares id", "/api/v1/shares/%2e%2e", "GET"},
+
+		{"leading double slash on login", "//api/v1/auth/login", "POST"},
+		{"embedded double slash on login", "/api/v1//auth/login", "POST"},
+		{"trailing slash on login exact path", "/api/v1/auth/login/", "POST"},
+
+		{"providers prefix over-match", "/api/v1/auth/providersEVIL", "GET"},
+		{"shares uuid suffix over-match", "/api/v1/shares/" + shareID + "extra", "GET"},
+		{"shares files suffix over-match", "/api/v1/shares/" + shareID + "/filesEVIL", "GET"},
+
+		{"providers list with POST", "/api/v1/auth/providers", "POST"},
+		{"providers list with DELETE", "/api/v1/auth/providers", "DELETE"},
+		{"providers begin with POST", "/api/v1/auth/providers/google/begin", "POST"},
+
+		{"non-uuid share id", "/api/v1/shares/not-a-uuid/auth", "POST"},
+		{"non-uuid invite id", "/api/v1/invites/not-a-uuid/challenges", "POST"},
+		{"non-uuid reset-password id", "/api/v1/auth/reset-password/not-a-uuid/validate", "POST"},
+		{"uppercase uuid share id", "/api/v1/shares/550E8400-E29B-41D4-A716-446655440000", "GET"},
+
+		{"unicode lookalike slash in login", "/api/v1/auth／login", "POST"},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.False(t, isPathExcludedFromAuth(tt.path, tt.method),
+				"path %q (%s) must require authentication", tt.path, tt.method)
 		})
 	}
 }

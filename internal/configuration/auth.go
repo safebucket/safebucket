@@ -23,9 +23,15 @@ type AuthPatternRule struct {
 var AuthExcludedPatterns = []AuthPatternRule{
 	{
 		Pattern: regexp.MustCompile(
-			`^/api/v1/auth/providers`,
+			`^/api/v1/auth/providers/?$`,
 		),
-		Method: "*",
+		Method: http.MethodGet,
+	},
+	{
+		Pattern: regexp.MustCompile(
+			`^/api/v1/auth/providers/[a-zA-Z0-9_-]+/(begin|callback)$`,
+		),
+		Method: http.MethodGet,
 	},
 	{
 		Pattern: regexp.MustCompile(
@@ -35,7 +41,7 @@ var AuthExcludedPatterns = []AuthPatternRule{
 	},
 	{
 		Pattern: regexp.MustCompile(
-			`^/api/v1/shares/` + UUIDv4Pattern,
+			`^/api/v1/shares/` + UUIDv4Pattern + `(/auth|/files(/` + UUIDv4Pattern + `)?|/?)$`,
 		),
 		Method: "*",
 	},
