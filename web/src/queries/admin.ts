@@ -4,7 +4,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { IUser } from "@/components/auth-view/types/session";
-import type { IActivity } from "@/types/activity";
+import type { ActivityMessage, IActivity } from "@/types/activity";
 import type {
   AdminStatsResponse,
   CreateUserPayload,
@@ -12,6 +12,11 @@ import type {
 } from "@/types/admin.ts";
 import { api } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+
+export interface AdminActivityFilters {
+  action?: Array<ActivityMessage>;
+  type?: Array<string>;
+}
 
 export const usersQueryOptions = () =>
   queryOptions({
@@ -53,10 +58,16 @@ export const adminStatsQueryOptions = (days: number = 90) =>
     queryFn: () => api.get<AdminStatsResponse>(`/admin/stats?days=${days}`),
   });
 
-export const adminActivityQueryOptions = () =>
+export const adminActivityQueryOptions = (filters: AdminActivityFilters = {}) =>
   queryOptions({
-    queryKey: ["admin", "activity"],
-    queryFn: () => api.get<{ data: Array<IActivity> }>("/admin/activity"),
+    queryKey: ["admin", "activity", filters],
+    queryFn: () =>
+      api.get<{ data: Array<IActivity> }>("/admin/activity", {
+        params: {
+          action: filters.action?.length ? filters.action.join(",") : undefined,
+          type: filters.type?.length ? filters.type.join(",") : undefined,
+        },
+      }),
     select: (data) => data.data,
   });
 

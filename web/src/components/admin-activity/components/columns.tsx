@@ -1,10 +1,11 @@
 import { formatDistanceToNow } from "date-fns";
 import { Database, File, Folder, Link2, Smartphone, User } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { formatAction } from "../helpers/format";
 import type { TFunction } from "i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { ElementType } from "react";
-import type { ActivityMessage, IActivity } from "@/types/activity";
+import type { IActivity } from "@/types/activity";
 import {
   Tooltip,
   TooltipContent,
@@ -96,13 +97,6 @@ const getResourceLink = (activity: IActivity): string | null => {
   }
 
   return null;
-};
-
-const formatAction = (message: ActivityMessage): string => {
-  return message
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/^\w/, (c) => c.toUpperCase());
 };
 
 export const createColumns = (t: TFunction): Array<ColumnDef<IActivity>> => [

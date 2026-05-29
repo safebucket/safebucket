@@ -764,6 +764,19 @@
       },
       "tooltip": {
         "object_deleted": "This object has been deleted"
+      },
+      "filters": {
+        "action": "Action",
+        "type": "Type",
+        "clear": "Clear filters"
+      },
+      "types": {
+        "bucket": "Bucket",
+        "file": "File",
+        "folder": "Folder",
+        "user": "User",
+        "mfa_device": "MFA device",
+        "share": "Share"
       }
     }
   }
