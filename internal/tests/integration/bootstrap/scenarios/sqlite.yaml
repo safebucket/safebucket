@@ -14,7 +14,7 @@ app:
   port: 8080
   static_files:
     enabled: false
-  trusted_proxies: ["127.0.0.1"]
+  trusted_proxies: ["127.0.0.1/32"]
   web_url: http://web.test
   trash_retention_days: 7
   max_upload_size: 33554432

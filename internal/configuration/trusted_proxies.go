@@ -14,21 +14,11 @@ func ParseTrustedProxies(entries []string) ([]*net.IPNet, error) {
 			continue
 		}
 
-		if _, network, err := net.ParseCIDR(entry); err == nil {
-			nets = append(nets, network)
-			continue
+		_, network, err := net.ParseCIDR(entry)
+		if err != nil {
+			return nil, fmt.Errorf("invalid trusted proxy entry %q: must be CIDR notation (e.g. 10.0.0.0/8)", entry)
 		}
-
-		ip := net.ParseIP(entry)
-		if ip == nil {
-			return nil, fmt.Errorf("invalid trusted proxy entry %q: not a valid IP or CIDR", entry)
-		}
-
-		bits := net.IPv4len * 8
-		if ip.To4() == nil {
-			bits = net.IPv6len * 8
-		}
-		nets = append(nets, &net.IPNet{IP: ip, Mask: net.CIDRMask(bits, bits)})
+		nets = append(nets, network)
 	}
 
 	return nets, nil

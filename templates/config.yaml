@@ -16,8 +16,8 @@ app:
   refresh_token_expiry: 600
   mfa_token_expiry: 5
   trusted_proxies:
-    - 127.0.0.1
-    - ::1
+    - 127.0.0.1/32
+    - ::1/128
   static_files:
     enabled: true
     directory: "web/dist"

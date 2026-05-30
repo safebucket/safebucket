@@ -53,10 +53,10 @@ func TestGetClientIP(t *testing.T) {
 			want:           "1.2.3.4",
 		},
 		{
-			name:           "trusted single IP peer honours X-Forwarded-For",
+			name:           "trusted /32 peer honours X-Forwarded-For",
 			remoteAddr:     "10.1.2.3:443",
 			xff:            "1.2.3.4",
-			trustedProxies: []string{"10.1.2.3"},
+			trustedProxies: []string{"10.1.2.3/32"},
 			want:           "1.2.3.4",
 		},
 		{

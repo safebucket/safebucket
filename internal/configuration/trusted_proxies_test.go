@@ -15,10 +15,12 @@ func TestTrustedProxiesValidationRule(t *testing.T) {
 		entries []string
 		wantErr bool
 	}{
-		{name: "valid CIDR and IP mix", entries: []string{"10.0.0.0/8", "127.0.0.1", "::1"}},
-		{name: "empty slice rejected", entries: nil, wantErr: true},
+		{name: "valid CIDR list", entries: []string{"10.0.0.0/8", "127.0.0.1/32", "::1/128"}},
+		{name: "empty slice allowed", entries: nil},
 		{name: "garbage element rejected", entries: []string{"10.0.0.0/8", "not-an-ip"}, wantErr: true},
-		{name: "empty element rejected", entries: []string{"10.0.0.1", ""}, wantErr: true},
+		{name: "bare IPv4 rejected", entries: []string{"127.0.0.1"}, wantErr: true},
+		{name: "bare IPv6 rejected", entries: []string{"::1"}, wantErr: true},
+		{name: "empty element rejected", entries: []string{"10.0.0.1/32", ""}, wantErr: true},
 	}
 
 	for _, tt := range tests {
@@ -40,12 +42,14 @@ func TestParseTrustedProxies(t *testing.T) {
 		wantErr   bool
 	}{
 		{name: "valid CIDR", entries: []string{"10.0.0.0/8"}, wantCount: 1},
-		{name: "bare IPv4 normalised to /32", entries: []string{"192.168.1.1"}, wantCount: 1},
-		{name: "bare IPv6 normalised to /128", entries: []string{"::1"}, wantCount: 1},
-		{name: "mixed entries", entries: []string{"10.0.0.0/8", "127.0.0.1", "fd00::/8"}, wantCount: 3},
-		{name: "empty entries skipped", entries: []string{"", "  ", "10.0.0.1"}, wantCount: 1},
+		{name: "single host IPv4 CIDR", entries: []string{"192.168.1.1/32"}, wantCount: 1},
+		{name: "single host IPv6 CIDR", entries: []string{"::1/128"}, wantCount: 1},
+		{name: "mixed CIDR entries", entries: []string{"10.0.0.0/8", "127.0.0.1/32", "fd00::/8"}, wantCount: 3},
+		{name: "empty entries skipped", entries: []string{"", "  ", "10.0.0.1/32"}, wantCount: 1},
 		{name: "nil", entries: nil, wantCount: 0},
 		{name: "malformed CIDR rejected", entries: []string{"10.0.0.0/99"}, wantErr: true},
+		{name: "bare IPv4 rejected", entries: []string{"192.168.1.1"}, wantErr: true},
+		{name: "bare IPv6 rejected", entries: []string{"::1"}, wantErr: true},
 		{name: "garbage rejected", entries: []string{"not-an-ip"}, wantErr: true},
 		{name: "partial address rejected", entries: []string{"10.0.0"}, wantErr: true},
 	}
