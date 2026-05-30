@@ -3,6 +3,7 @@ package middlewares
 import (
 	"net"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -35,12 +36,9 @@ func getClientIP(r *http.Request, trustedProxies []*net.IPNet) (string, error) {
 	}
 
 	hops := strings.Split(xForwardedFor, ",")
-	for i := len(hops) - 1; i >= 0; i-- {
-		hop := strings.TrimSpace(hops[i])
-		if hop == "" {
-			continue
-		}
-		if !isTrustedProxy(hop, trustedProxies) {
+	for _, hop := range slices.Backward(hops) {
+		hop = strings.TrimSpace(hop)
+		if hop != "" && !isTrustedProxy(hop, trustedProxies) {
 			return hop, nil
 		}
 	}
