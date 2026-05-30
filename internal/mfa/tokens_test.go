@@ -20,6 +20,7 @@ func newMFATestUser() *models.User {
 		Email:        "mfatest@example.com",
 		Role:         models.RoleUser,
 		ProviderType: models.LocalProviderType,
+		ProviderKey:  string(models.LocalProviderType),
 	}
 }
 
@@ -182,5 +183,22 @@ func TestGenerateTokens(t *testing.T) {
 		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, tokens.AccessToken, false)
 		require.NoError(t, parseErr)
 		assert.Equal(t, "app:*", claims.Audience[0])
+	})
+
+	t.Run("both tokens carry the user's provider key", func(t *testing.T) {
+		user := newMFATestUser()
+		user.ProviderKey = "okta"
+		cfg := newMFATestConfig()
+
+		_, tokens, err := GenerateTokens(cfg, user)
+		require.NoError(t, err)
+
+		accessClaims, err := helpers.ParseToken(cfg.TokenSecret, "Bearer "+tokens.AccessToken, true)
+		require.NoError(t, err)
+		assert.Equal(t, "okta", accessClaims.Provider)
+
+		refreshClaims, err := helpers.ParseRefreshToken(cfg.TokenSecret, tokens.RefreshToken)
+		require.NoError(t, err)
+		assert.Equal(t, "okta", refreshClaims.Provider)
 	})
 }

@@ -45,7 +45,7 @@ func GenerateTokens(
 	accessToken, err := h.NewAccessToken(
 		authConfig.TokenSecret,
 		user,
-		string(models.LocalProviderType),
+		user.ProviderKey,
 		sid,
 	)
 	if err != nil {
@@ -55,7 +55,7 @@ func GenerateTokens(
 	refreshToken, err := h.NewRefreshToken(
 		authConfig.TokenSecret,
 		user,
-		string(models.LocalProviderType),
+		user.ProviderKey,
 		sid,
 	)
 	if err != nil {
