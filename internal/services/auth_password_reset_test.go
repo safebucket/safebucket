@@ -81,6 +81,7 @@ func TestRequestPasswordReset(t *testing.T) {
 		email := "ratelimited@example.com"
 		for range configuration.SecurityPasswordResetMaxPerEmailPerHour {
 			require.NoError(t, enforceEmailIssuanceLimit(
+				zap.NewNop(),
 				svc.Cache,
 				string(models.ChallengeTypePasswordReset),
 				email,

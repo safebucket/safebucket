@@ -252,6 +252,7 @@ func (s InviteService) CreateInviteChallenge(
 	}
 
 	if err := enforceEmailIssuanceLimit(
+		logger,
 		s.Cache,
 		string(models.ChallengeTypeInvite),
 		body.Email,

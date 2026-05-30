@@ -75,6 +75,7 @@ func (s AuthPasswordResetService) RequestPasswordReset(
 	body models.PasswordResetRequestBody,
 ) (any, error) {
 	if err := enforceEmailIssuanceLimit(
+		logger,
 		s.Cache,
 		string(models.ChallengeTypePasswordReset),
 		body.Email,
