@@ -17,9 +17,9 @@ import (
 )
 
 func TestQuickShareHarness(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qsharness@example.com")
 			token := app.LoginAs(t, owner.Email)
@@ -53,11 +53,11 @@ func TestQuickShareHarness(t *testing.T) {
 }
 
 func TestQuickShareCreate(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			cfg := harness.LoadScenario(t, scenario)
-			cfg = harness.WithLocalSharing(cfg, true)
-			app := harness.BootTestApp(t, cfg)
+			cfg := bootstrap.LoadScenario(t, scenario)
+			cfg = bootstrap.WithLocalSharing(cfg, true)
+			app := bootstrap.BootTestApp(t, cfg)
 
 			owner := app.CreateUser(t, "qsowner@example.com")
 			contrib := app.CreateUser(t, "qscontrib@example.com")
@@ -243,11 +243,11 @@ func TestQuickShareCreate(t *testing.T) {
 }
 
 func TestQuickShareListAndDelete(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			cfg := harness.LoadScenario(t, scenario)
-			cfg = harness.WithLocalSharing(cfg, true)
-			app := harness.BootTestApp(t, cfg)
+			cfg := bootstrap.LoadScenario(t, scenario)
+			cfg = bootstrap.WithLocalSharing(cfg, true)
+			app := bootstrap.BootTestApp(t, cfg)
 
 			owner := app.CreateUser(t, "qsdelowner@example.com")
 			contrib := app.CreateUser(t, "qsdelcontrib@example.com")

@@ -17,9 +17,9 @@ import (
 )
 
 func TestQuickShareDownload(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qsdownload@example.com")
 			ownerToken := app.LoginAs(t, owner.Email)

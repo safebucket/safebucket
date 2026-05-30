@@ -23,9 +23,9 @@ import (
 const probeEndpoint = "/api/v1/buckets"
 
 func TestAuthTokenValidation(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			user := app.CreateUser(t, "tokenvalidation@example.com")
 			validToken := app.LoginAs(t, user.Email)
@@ -86,9 +86,9 @@ func TestAuthTokenValidation(t *testing.T) {
 }
 
 func TestAuthPasswordReset(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			t.Run("full reset flow succeeds", func(t *testing.T) {
 				user := app.CreateUser(t, "resetfull@example.com")
@@ -207,7 +207,7 @@ func TestAuthPasswordReset(t *testing.T) {
 	}
 }
 
-func requestReset(t *testing.T, app *harness.TestApp, email string) (code, challengeID string) {
+func requestReset(t *testing.T, app *bootstrap.TestApp, email string) (code, challengeID string) {
 	t.Helper()
 
 	status := app.DoStatus(t, http.MethodPost, "/api/v1/auth/reset-password", "",

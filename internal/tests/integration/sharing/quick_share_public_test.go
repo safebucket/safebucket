@@ -19,9 +19,9 @@ import (
 const qsSharePassword = "horsebatterystaple"
 
 func TestQuickSharePublicAuth(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qspublicauth@example.com")
 			ownerToken := app.LoginAs(t, owner.Email)
@@ -99,9 +99,9 @@ func TestQuickSharePublicAuth(t *testing.T) {
 }
 
 func TestQuickShareExpiryAndViews(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qsgates@example.com")
 			ownerToken := app.LoginAs(t, owner.Email)
@@ -146,9 +146,9 @@ func TestQuickShareExpiryAndViews(t *testing.T) {
 }
 
 func TestQuickShareScopeFiltering(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			owner := app.CreateUser(t, "qsscopes@example.com")
 			ownerToken := app.LoginAs(t, owner.Email)

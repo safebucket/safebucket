@@ -12,9 +12,9 @@ import (
 )
 
 func TestRBAC_Roles(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			guest := app.CreateUser(t, "guest@example.com")
 			app.SetUserRole(t, guest.Email, models.RoleGuest)

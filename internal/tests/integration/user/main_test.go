@@ -10,5 +10,5 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Exit(harness.RunTestMain(m))
+	os.Exit(bootstrap.RunTestMain(m))
 }

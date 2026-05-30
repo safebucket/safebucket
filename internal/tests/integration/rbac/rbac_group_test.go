@@ -14,11 +14,11 @@ import (
 )
 
 func TestRBAC_Group(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			cfg := harness.LoadScenario(t, scenario)
-			cfg = harness.WithLocalSharing(cfg, true)
-			app := harness.BootTestApp(t, cfg)
+			cfg := bootstrap.LoadScenario(t, scenario)
+			cfg = bootstrap.WithLocalSharing(cfg, true)
+			app := bootstrap.BootTestApp(t, cfg)
 
 			ownerA := app.CreateUser(t, "ownera@example.com")
 			viewerA := app.CreateUser(t, "viewera@example.com")

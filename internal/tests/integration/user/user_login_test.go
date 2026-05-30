@@ -14,14 +14,14 @@ import (
 )
 
 func TestUser_CreateAndLogin(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			user := app.CreateUser(t, "invitee_simple@example.com")
 
 			status, token := app.DoGetAuthCookie(t, http.MethodPost, "/api/v1/auth/login", "",
-				models.AuthLoginBody{Email: user.Email, Password: harness.TestPassword})
+				models.AuthLoginBody{Email: user.Email, Password: bootstrap.TestPassword})
 
 			require.Equal(t, http.StatusOK, status)
 			assert.NotEmpty(t, token)

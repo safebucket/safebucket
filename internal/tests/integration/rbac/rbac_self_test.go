@@ -13,9 +13,9 @@ import (
 )
 
 func TestRBAC_SelfOrAdmin(t *testing.T) {
-	for _, scenario := range harness.ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := harness.BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			userA := app.CreateUser(t, "usera@example.com")
 			userB := app.CreateUser(t, "userb@example.com")

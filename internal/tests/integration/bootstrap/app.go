@@ -1,6 +1,6 @@
 //go:build integration
 
-package harness
+package bootstrap
 
 import (
 	"bytes"
