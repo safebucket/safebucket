@@ -1,12 +1,13 @@
 package configuration
 
 import (
-	"fmt"
 	"net"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
-func ParseTrustedProxies(entries []string) ([]*net.IPNet, error) {
+func ParseTrustedProxies(entries []string) []*net.IPNet {
 	nets := make([]*net.IPNet, 0, len(entries))
 	for _, entry := range entries {
 		entry = strings.TrimSpace(entry)
@@ -16,10 +17,11 @@ func ParseTrustedProxies(entries []string) ([]*net.IPNet, error) {
 
 		_, network, err := net.ParseCIDR(entry)
 		if err != nil {
-			return nil, fmt.Errorf("invalid trusted proxy entry %q: must be CIDR notation (e.g. 10.0.0.0/8)", entry)
+			zap.L().Fatal("Invalid trusted_proxies configuration",
+				zap.String("entry", entry), zap.Error(err))
 		}
 		nets = append(nets, network)
 	}
 
-	return nets, nil
+	return nets
 }

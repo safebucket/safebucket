@@ -8,13 +8,8 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 )
 
-func mustParseProxies(t *testing.T, entries []string) []*net.IPNet {
-	t.Helper()
-	nets, err := configuration.ParseTrustedProxies(entries)
-	if err != nil {
-		t.Fatalf("ParseTrustedProxies(%v) returned error: %v", entries, err)
-	}
-	return nets
+func mustParseProxies(_ *testing.T, entries []string) []*net.IPNet {
+	return configuration.ParseTrustedProxies(entries)
 }
 
 func newRequest(t *testing.T, remoteAddr, xff string) *http.Request {

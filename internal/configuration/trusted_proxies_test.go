@@ -39,7 +39,6 @@ func TestParseTrustedProxies(t *testing.T) {
 		name      string
 		entries   []string
 		wantCount int
-		wantErr   bool
 	}{
 		{name: "valid CIDR", entries: []string{"10.0.0.0/8"}, wantCount: 1},
 		{name: "single host IPv4 CIDR", entries: []string{"192.168.1.1/32"}, wantCount: 1},
@@ -47,25 +46,11 @@ func TestParseTrustedProxies(t *testing.T) {
 		{name: "mixed CIDR entries", entries: []string{"10.0.0.0/8", "127.0.0.1/32", "fd00::/8"}, wantCount: 3},
 		{name: "empty entries skipped", entries: []string{"", "  ", "10.0.0.1/32"}, wantCount: 1},
 		{name: "nil", entries: nil, wantCount: 0},
-		{name: "malformed CIDR rejected", entries: []string{"10.0.0.0/99"}, wantErr: true},
-		{name: "bare IPv4 rejected", entries: []string{"192.168.1.1"}, wantErr: true},
-		{name: "bare IPv6 rejected", entries: []string{"::1"}, wantErr: true},
-		{name: "garbage rejected", entries: []string{"not-an-ip"}, wantErr: true},
-		{name: "partial address rejected", entries: []string{"10.0.0"}, wantErr: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			nets, err := ParseTrustedProxies(tt.entries)
-			if tt.wantErr {
-				if err == nil {
-					t.Fatalf("expected error for %v, got none", tt.entries)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			nets := ParseTrustedProxies(tt.entries)
 			if len(nets) != tt.wantCount {
 				t.Fatalf("got %d networks, want %d", len(nets), tt.wantCount)
 			}

@@ -379,10 +379,7 @@ func BuildAPIRouter(
 
 	authConfig := config.App.GetAuthConfig()
 
-	trustedProxies, err := configuration.ParseTrustedProxies(config.App.TrustedProxies)
-	if err != nil {
-		zap.L().Fatal("Invalid trusted_proxies configuration", zap.Error(err))
-	}
+	trustedProxies := configuration.ParseTrustedProxies(config.App.TrustedProxies)
 
 	r.Route("/api", func(apiRouter chi.Router) {
 		apiRouter.Use(m.CSRFGuard(config.App.AllowedOrigins))
