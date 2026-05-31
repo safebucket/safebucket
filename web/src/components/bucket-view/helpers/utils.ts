@@ -2,7 +2,6 @@ import type { IFile } from "@/types/file.ts";
 import type { IFolder } from "@/types/folder.ts";
 import type { BucketItem } from "@/types/bucket.ts";
 
-// Type guards to distinguish between files and folders
 export const isFolder = (item: BucketItem): item is IFolder => {
   return !("extension" in item);
 };
@@ -11,7 +10,6 @@ export const isFile = (item: BucketItem): item is IFile => {
   return "extension" in item;
 };
 
-// Get all items (files + folders) for a specific folder
 export const itemsToShow = (
   files: Array<IFile>,
   folders: Array<IFolder>,

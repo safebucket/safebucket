@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { useNavigate, useParams } from "@tanstack/react-router";
 
+import type { RowSelectionState } from "@tanstack/react-table";
 import type { BucketItem } from "@/types/bucket.ts";
 import { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import { isFile, isFolder } from "@/components/bucket-view/helpers/utils";
@@ -23,6 +24,13 @@ export const BucketViewProvider = ({
   const [view, setView] = useState<BucketViewMode>(BucketViewMode.List);
   const [selected, setSelected] = useState<BucketItem | null>(null);
   const [previewItem, setPreviewItem] = useState<BucketItem | null>(null);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  const clearRowSelection = useCallback(() => setRowSelection({}), []);
+
+  useEffect(() => {
+    setRowSelection({});
+  }, [folderId, view]);
 
   const openItem = (item: BucketItem) => {
     if (isFolder(item)) {
@@ -48,6 +56,9 @@ export const BucketViewProvider = ({
         openItem,
         previewItem,
         closePreview,
+        rowSelection,
+        setRowSelection,
+        clearRowSelection,
       }}
     >
       {children}

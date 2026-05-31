@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 
+import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table";
 import type { BucketViewMode } from "@/components/bucket-view/helpers/types";
 import type { BucketItem } from "@/types/bucket.ts";
 
@@ -13,6 +14,9 @@ export interface IBucketViewContext {
   openItem: (item: BucketItem) => void;
   previewItem: BucketItem | null;
   closePreview: () => void;
+  rowSelection: RowSelectionState;
+  setRowSelection: OnChangeFn<RowSelectionState>;
+  clearRowSelection: () => void;
 }
 
 export const BucketViewContext = createContext<IBucketViewContext | null>(null);

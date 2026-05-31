@@ -5,6 +5,7 @@
     "create": "Create",
     "cancel": "Cancel",
     "close": "Close",
+    "ok": "OK",
     "loading": "Loading...",
     "success": "Success",
     "error": "Error",
@@ -399,6 +400,24 @@
       "deleting": "Deleting",
       "processing": "Processing",
       "empty_folder": "Folder is empty"
+    },
+    "bulk_download": {
+      "select_row": "Select row",
+      "select_all": "Select all rows on this page",
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "download_one": "Download {{count}} ({{size}})",
+      "download_other": "Download {{count}} ({{size}})",
+      "clear_selection": "Clear selection",
+      "over_limit_title": "Selection too large",
+      "over_limit_body": "You selected {{count}} files totaling {{size}}. Bulk download is limited to {{maxCount}} files and {{maxSize}} per archive. Please download files individually or reduce your selection.",
+      "progress_title": "Preparing your download",
+      "progress": "{{done}} of {{total}} files",
+      "success_one": "Downloaded {{count}} file.",
+      "success_other": "Downloaded {{count}} files.",
+      "partial_failure_title": "Some files could not be downloaded",
+      "partial_failure_one": "{{count}} file failed: {{files}}",
+      "partial_failure_other": "{{count}} files failed: {{files}}"
     },
     "grid_view": {
       "empty_folder": "This folder is empty",

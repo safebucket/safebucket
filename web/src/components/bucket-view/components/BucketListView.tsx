@@ -12,14 +12,53 @@ import { DataTableColumnHeader } from "@/components/common/components/DataTable/
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { DataTableRowActions } from "@/components/common/components/DataTable/DataTableRowActions";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/components/ui/hooks/use-mobile";
 import { DragDropZone } from "@/components/upload/components/DragDropZone";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { FileStatus } from "@/types/file.ts";
 
+const isItemSelectable = (item: BucketItem): boolean => {
+  if (isFolder(item)) {
+    return true;
+  }
+  return item.status === FileStatus.uploaded;
+};
+
 const createColumns = (
   t: (key: string) => string,
 ): Array<ColumnDef<BucketItem>> => [
+  {
+    id: "select",
+    size: 36,
+    enableSorting: false,
+    meta: { className: "w-10 px-2" },
+    header: ({ table }) => (
+      <Checkbox
+        aria-label={t("bucket.bulk_download.select_all")}
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) =>
+          table.toggleAllPageRowsSelected(value === true)
+        }
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    cell: ({ row }) => {
+      const disabled = !isItemSelectable(row.original);
+      return (
+        <Checkbox
+          aria-label={t("bucket.bulk_download.select_row")}
+          checked={row.getIsSelected()}
+          disabled={disabled}
+          onCheckedChange={(value) => row.toggleSelected(value === true)}
+          onClick={(e) => e.stopPropagation()}
+        />
+      );
+    },
+  },
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -164,7 +203,8 @@ export const BucketListView: FC<IBucketListViewProps> = ({
   onFilesDropped,
 }: IBucketListViewProps) => {
   const { t } = useTranslation();
-  const { selected, setSelected, openItem } = useBucketViewContext();
+  const { selected, setSelected, openItem, rowSelection, setRowSelection } =
+    useBucketViewContext();
   const isMobile = useIsMobile();
   const columns = createColumns(t);
 
@@ -185,6 +225,10 @@ export const BucketListView: FC<IBucketListViewProps> = ({
         onRowClick={setSelected}
         onRowDoubleClick={openItem}
         defaultColumnVisibility={columnVisibility}
+        rowSelection={rowSelection}
+        onRowSelectionChange={setRowSelection}
+        getRowId={(row) => row.id}
+        enableRowSelection={(row) => isItemSelectable(row.original)}
       />
     </DragDropZone>
   );

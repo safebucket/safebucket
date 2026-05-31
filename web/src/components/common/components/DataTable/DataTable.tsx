@@ -13,6 +13,9 @@ import { useTranslation } from "react-i18next";
 import type {
   ColumnDef,
   ColumnFiltersState,
+  OnChangeFn,
+  Row,
+  RowSelectionState,
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
@@ -27,6 +30,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+
+interface ColumnMeta {
+  className?: string;
+}
 
 interface DataTableProps<TData, TValue> {
   columns: Array<ColumnDef<TData, TValue>>;
@@ -38,6 +46,10 @@ interface DataTableProps<TData, TValue> {
   onRestore?: (fileId: string, fileName: string) => void;
   onPermanentDelete?: (fileId: string, fileName: string) => void;
   defaultColumnVisibility?: VisibilityState;
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  getRowId?: (row: TData) => string;
+  enableRowSelection?: boolean | ((row: Row<TData>) => boolean);
 }
 
 export function DataTable<TData extends { id: string; name: string }, TValue>({
@@ -50,6 +62,10 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
   onRestore,
   onPermanentDelete,
   defaultColumnVisibility,
+  rowSelection,
+  onRowSelectionChange,
+  getRowId,
+  enableRowSelection = true,
 }: DataTableProps<TData, TValue>) {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>(defaultColumnVisibility ?? {});
@@ -71,11 +87,14 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
       sorting,
       columnVisibility,
       columnFilters,
+      rowSelection: rowSelection ?? {},
     },
-    enableRowSelection: true,
+    enableRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: onRowSelectionChange,
+    getRowId,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -93,11 +112,14 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="bg-muted/50">
                 {headerGroup.headers.map((header) => {
+                  const meta = header.column.columnDef.meta as
+                    | ColumnMeta
+                    | undefined;
                   return (
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
-                      className="px-4"
+                      className={cn("px-4", meta?.className)}
                     >
                       {header.isPlaceholder
                         ? null
@@ -125,14 +147,22 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
                     onDoubleClick={() => onRowDoubleClick(row.original)}
                     onContextMenu={() => onRowClick(row.original)}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="select-none">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell) => {
+                      const meta = cell.column.columnDef.meta as
+                        | ColumnMeta
+                        | undefined;
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={cn("select-none", meta?.className)}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                 );
 

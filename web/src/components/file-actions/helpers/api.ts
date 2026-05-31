@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import type { IDownloadFileResponse } from "@/components/bucket-view/helpers/types";
 import { api } from "@/lib/api";
+import { triggerBlobDownload } from "@/lib/download";
 
 import { toast } from "@/components/ui/hooks/use-toast";
 
@@ -19,13 +20,7 @@ export const downloadFromStorage = (url: string, filename: string) => {
 
   xhr.onreadystatechange = () => {
     if (xhr.readyState === 4 && xhr.status === 200) {
-      const blobUrl = window.URL.createObjectURL(xhr.response);
-      const e = document.createElement("a");
-      e.href = blobUrl;
-      e.download = filename;
-      document.body.appendChild(e);
-      e.click();
-      document.body.removeChild(e);
+      triggerBlobDownload(xhr.response, filename);
     }
   };
   xhr.responseType = "blob";

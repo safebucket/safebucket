@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { IBucket } from "@/types/bucket.ts";
 import { BucketViewOptions } from "@/components/bucket-view/components/BucketViewOptions";
+import { BulkActionsHeader } from "@/components/bucket-view/components/BulkActionsHeader";
 import { NotificationPopover } from "@/components/bucket-view/components/NotificationPopover";
+import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import { useFileActions } from "@/components/file-actions/hooks/useFileActions.ts";
@@ -30,8 +32,13 @@ export const BucketHeader: FC<IBucketHeaderProps> = ({
   const { t } = useTranslation();
   const { isContributor } = useBucketPermissions(bucket.id);
   const newFolderDialog = useDialog();
+  const { rowSelection } = useBucketViewContext();
 
   const { createFolder } = useFileActions();
+
+  if (Object.keys(rowSelection).length) {
+    return <BulkActionsHeader bucket={bucket} />;
+  }
 
   return (
     <div className="shrink-0">
