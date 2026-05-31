@@ -6,7 +6,7 @@
 
 [![GitHub Release][release-img]][release]
 [![Backend Quality][backend-img]][backend]
-[![Backend Integration][integration-img]][integration]
+[![Backend Integration tests][integration-img]][integration]
 [![Frontend Quality][frontend-img]][frontend]
 [![Docker Build][docker-build-img]][docker-build]
 [![Go Report Card][go-report-img]][go-report]
