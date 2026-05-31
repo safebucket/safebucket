@@ -1,11 +1,8 @@
 package middlewares
 
 import (
-	"net"
 	"net/http"
-	"slices"
 	"strconv"
-	"strings"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 
@@ -15,49 +12,6 @@ import (
 
 	"go.uber.org/zap"
 )
-
-func getClientIP(r *http.Request, trustedProxies []*net.IPNet) (string, error) {
-	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		if net.ParseIP(r.RemoteAddr) != nil {
-			remoteIP = r.RemoteAddr
-		} else {
-			return "", err
-		}
-	}
-
-	if !isTrustedProxy(remoteIP, trustedProxies) {
-		return remoteIP, nil
-	}
-
-	xForwardedFor := r.Header.Get("X-Forwarded-For")
-	if xForwardedFor == "" {
-		return remoteIP, nil
-	}
-
-	hops := strings.Split(xForwardedFor, ",")
-	for _, hop := range slices.Backward(hops) {
-		hop = strings.TrimSpace(hop)
-		if hop != "" && !isTrustedProxy(hop, trustedProxies) {
-			return hop, nil
-		}
-	}
-
-	return remoteIP, nil
-}
-
-func isTrustedProxy(ip string, trustedProxies []*net.IPNet) bool {
-	parsed := net.ParseIP(ip)
-	if parsed == nil {
-		return false
-	}
-	for _, network := range trustedProxies {
-		if network.Contains(parsed) {
-			return true
-		}
-	}
-	return false
-}
 
 func applyRateLimit(
 	next http.Handler,
@@ -86,7 +40,6 @@ func applyRateLimit(
 
 func RateLimit(
 	cache cache.ICache,
-	trustedProxies []*net.IPNet,
 	authenticatedRequestsPerMinute int,
 	unauthenticatedRequestsPerMinute int,
 ) func(next http.Handler) http.Handler {
@@ -98,13 +51,13 @@ func RateLimit(
 
 			claims, err := helpers.GetUserClaims(r.Context())
 			if err != nil {
-				ipAddress, err2 := getClientIP(r, trustedProxies)
-				if err2 != nil {
+				info, infoErr := helpers.GetClientInfo(r.Context())
+				if infoErr != nil || info.IP == "" {
 					zap.L().Error("error", zap.Error(err))
 					helpers.RespondWithErrorCtx(r.Context(), w, 500, []string{apierrors.CodeInternalServerError})
 					return
 				}
-				applyRateLimit(next, w, r, cache, ipAddress, unauthenticatedRequestsPerMinute)
+				applyRateLimit(next, w, r, cache, info.IP, unauthenticatedRequestsPerMinute)
 			} else {
 				userID := claims.UserID.String()
 				applyRateLimit(next, w, r, cache, userID, authenticatedRequestsPerMinute)
