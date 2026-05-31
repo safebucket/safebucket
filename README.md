@@ -6,6 +6,7 @@
 
 [![GitHub Release][release-img]][release]
 [![Backend Quality][backend-img]][backend]
+[![Backend Integration][integration-img]][integration]
 [![Frontend Quality][frontend-img]][frontend]
 [![Docker Build][docker-build-img]][docker-build]
 [![Go Report Card][go-report-img]][go-report]
@@ -108,6 +109,10 @@ This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file 
 [backend]: https://github.com/safebucket/safebucket/actions/workflows/quality-backend.yml
 
 [backend-img]: https://github.com/safebucket/safebucket/actions/workflows/quality-backend.yml/badge.svg
+
+[integration]: https://github.com/safebucket/safebucket/actions/workflows/integration-backend.yml
+
+[integration-img]: https://github.com/safebucket/safebucket/actions/workflows/integration-backend.yml/badge.svg
 
 [frontend]: https://github.com/safebucket/safebucket/actions/workflows/quality-frontend.yml
 
