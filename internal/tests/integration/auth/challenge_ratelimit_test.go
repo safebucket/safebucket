@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration
+package auth_test
 
 import (
 	"net/http"
@@ -8,15 +8,16 @@ import (
 
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/tests/integration/bootstrap"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPasswordResetIssuanceRateLimit(t *testing.T) {
-	for _, scenario := range ActiveScenarios() {
+	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
-			app := BootScenario(t, scenario)
+			app := bootstrap.BootScenario(t, scenario)
 
 			body := models.PasswordResetRequestBody{Email: "issuance-cap@example.com"}
 
