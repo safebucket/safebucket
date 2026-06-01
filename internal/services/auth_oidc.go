@@ -68,7 +68,7 @@ func (s AuthService) OpenIDCallback(
 		return "", "", apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
-	searchUser, found, err := sql.FindUserByProviderIdentity(
+	searchUser, found, err := sql.FindUserByIdentityProvider(
 		s.DB, userInfo.Email, models.OIDCProviderType, providerKey, false,
 	)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s AuthService) OpenIDCallback(
 			ProviderKey:  providerKey,
 			Role:         models.RoleUser,
 		}
-		if _, createErr := sql.CreateOrGetUser(logger, s.DB, &searchUser); createErr != nil {
+		if createErr := sql.CreateUserWithInvites(logger, s.DB, &searchUser); createErr != nil {
 			logger.Error("Failed to create OIDC user", zap.Error(createErr))
 			return "", "", apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}

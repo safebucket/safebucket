@@ -6,10 +6,9 @@ import (
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
-func FindUserByProviderIdentity(
+func FindUserByIdentityProvider(
 	db *gorm.DB,
 	email string,
 	providerType models.ProviderType,
@@ -43,29 +42,6 @@ func CreateUserWithInvites(
 		}
 		return processPendingInvites(logger, tx, user)
 	})
-}
-
-func CreateOrGetUser(
-	logger *zap.Logger,
-	db *gorm.DB,
-	user *models.User,
-) (bool, error) {
-	var created bool
-	err := db.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(user)
-		if result.Error != nil {
-			logger.Error("Error creating user", zap.Error(result.Error))
-			return result.Error
-		}
-		if result.RowsAffected > 0 {
-			created = true
-			return processPendingInvites(logger, tx, user)
-		}
-		return tx.Where("email = ? AND provider_type = ? AND provider_key = ?",
-			user.Email, user.ProviderType, user.ProviderKey).
-			First(user).Error
-	})
-	return created, err
 }
 
 func processPendingInvites(logger *zap.Logger, tx *gorm.DB, user *models.User) error {

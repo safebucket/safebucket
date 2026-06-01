@@ -16,8 +16,10 @@ import (
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/tracing"
 
+	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -68,45 +70,36 @@ func (s AuthService) Login(
 	_ uuid.UUIDs,
 	body models.AuthLoginBody,
 ) (handlers.AuthFlowResult, error) {
-	provider, ok := s.resolveCredentialProvider(body.Email)
+	provider, ok := s.resolveAuthProvider(body.Email)
 	if !ok {
 		logger.Debug("No credential provider matches this email")
 		return handlers.AuthFlowResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
-	searchUser, err := s.authenticateLocal(body)
+	user, found, err := sql.FindUserByIdentityProvider(
+		s.DB, body.Email, models.LocalProviderType, string(models.LocalProviderType), true,
+	)
 	if err != nil {
-		return handlers.AuthFlowResult{}, err
+		logger.Error("Failed to look up user", zap.Error(err))
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
+	}
+	if !found {
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidCredentials)
 	}
 
-	return s.issueLoginResult(isSecure, logger, &searchUser, provider)
-}
-
-func (s AuthService) resolveCredentialProvider(
-	email string,
-) (configuration.Provider, bool) {
-	for _, provider := range s.Providers {
-		if provider.Type != models.LocalProviderType {
-			continue
-		}
-		if h.IsDomainAllowed(email, provider.Domains) {
-			return provider, true
-		}
+	match, err := argon2id.ComparePasswordAndHash(body.Password, user.HashedPassword)
+	if err != nil || !match {
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidCredentials)
 	}
-	return configuration.Provider{}, false
-}
 
-func (s AuthService) issueLoginResult(
-	isSecure bool,
-	logger *zap.Logger,
-	user *models.User,
-	provider configuration.Provider,
-) (handlers.AuthFlowResult, error) {
 	verifiedDevices := user.GetVerifiedDevices()
 	hasMFA := len(verifiedDevices) > 0
 
 	if hasMFA || s.AuthConfig.MFARequired {
-		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, user)
+		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, &user)
 		if mfaErr != nil {
 			return handlers.AuthFlowResult{}, mfaErr
 		}
@@ -117,7 +110,7 @@ func (s AuthService) issueLoginResult(
 		}, nil
 	}
 
-	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, user)
+	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user)
 	if err != nil {
 		return handlers.AuthFlowResult{}, err
 	}
@@ -155,6 +148,20 @@ func (s AuthService) issueLoginResult(
 			user.ProviderKey,
 		),
 	}, nil
+}
+
+func (s AuthService) resolveAuthProvider(
+	email string,
+) (configuration.Provider, bool) {
+	for _, provider := range s.Providers {
+		if provider.Type != models.LocalProviderType {
+			continue
+		}
+		if h.IsDomainAllowed(email, provider.Domains) {
+			return provider, true
+		}
+	}
+	return configuration.Provider{}, false
 }
 
 func (s AuthService) getMFASecretAndDevice(
@@ -476,7 +483,7 @@ func (s AuthService) VerifyMFALogin(
 			isSecure,
 			tokens.AccessToken,
 			tokens.RefreshToken,
-			string(models.LocalProviderType),
+			user.ProviderKey,
 		),
 	}, nil
 }

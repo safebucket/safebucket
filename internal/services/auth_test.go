@@ -88,8 +88,8 @@ func TestLogin_UserHasMFA_ConfigMFADisabled_RequiresMFA(t *testing.T) {
 
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key", "hashed_password", "role"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, string(models.LocalProviderType), hashedPassword, models.RoleUser)
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE (email = $1 AND provider_type = $2 AND provider_key = $3) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $4`)).
-			WithArgs("test@example.com", models.LocalProviderType, string(models.LocalProviderType), 1).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE (email = $1 AND provider_type = $2 AND provider_key = $3) AND "users"."deleted_at" IS NULL`)).
+			WithArgs("test@example.com", models.LocalProviderType, string(models.LocalProviderType)).
 			WillReturnRows(userRow)
 
 		deviceRow := sqlmock.NewRows([]string{"id", "user_id", "name", "is_verified", "is_default"}).
@@ -175,8 +175,8 @@ func TestLogin_UserNoMFA_ConfigMFADisabled_NoMFARequired(t *testing.T) {
 
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key", "hashed_password", "role"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, string(models.LocalProviderType), hashedPassword, models.RoleUser)
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE (email = $1 AND provider_type = $2 AND provider_key = $3) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $4`)).
-			WithArgs("test@example.com", models.LocalProviderType, string(models.LocalProviderType), 1).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE (email = $1 AND provider_type = $2 AND provider_key = $3) AND "users"."deleted_at" IS NULL`)).
+			WithArgs("test@example.com", models.LocalProviderType, string(models.LocalProviderType)).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices" WHERE "mfa_devices"."user_id" = $1 AND is_verified = $2`)).
@@ -255,8 +255,8 @@ func TestLogin_UserNoMFA_ConfigMFAEnabled_RequiresMFA(t *testing.T) {
 
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key", "hashed_password", "role"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, string(models.LocalProviderType), hashedPassword, models.RoleUser)
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE (email = $1 AND provider_type = $2 AND provider_key = $3) AND "users"."deleted_at" IS NULL ORDER BY "users"."id" LIMIT $4`)).
-			WithArgs("test@example.com", models.LocalProviderType, string(models.LocalProviderType), 1).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE (email = $1 AND provider_type = $2 AND provider_key = $3) AND "users"."deleted_at" IS NULL`)).
+			WithArgs("test@example.com", models.LocalProviderType, string(models.LocalProviderType)).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices" WHERE "mfa_devices"."user_id" = $1 AND is_verified = $2`)).
