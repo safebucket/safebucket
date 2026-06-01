@@ -30,7 +30,7 @@
 ## Features
 
 - Direct uploads and downloads via presigned URLs
-- Swappable infrastructure: every component (storage, database, events, cache, notifier) can be replaced.
+- Swappable infrastructure: every component (storage, database, events, cache, notifier) can be replaced
 - SSO via any OIDC provider, with local auth for external users
 - Role-based access control at platform and bucket level
 - Quick/reverse share: share file via public links with options (password, max downloads, max views, etc...)
