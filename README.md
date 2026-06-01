@@ -1,6 +1,17 @@
-<h1 align="center">
-  <a href="https://docs.safebucket.io"><img src="./assets/safebucket_banner.png" alt="SafeBucket"></a>
-</h1>
+<a href="https://docs.safebucket.io" target="_blank" rel="noopener">
+  <picture>
+    <img src="./assets/safebucket_banner.png" alt="Safebucket">
+  </picture>
+</a>
+
+<div align="center">
+  <h2>
+    An open source file sharing platform with pluggable infrastructure where files never touch your server
+  <br />
+  </h2>
+</div>
+
+<br />
 
 <div align="center">
 
@@ -14,35 +25,21 @@
 
 </div>
 
-Safebucket is an open-source file sharing platform where files never touch your server.
-Uploads and downloads go directly to your storage backend. You bring your own identity provider, your
-own storage, and your own infrastructure. Safebucket handles metadata, access control and audit logging.
-
 ![SafeBucket List View](./assets/list_view.png)
-
-## Why Safebucket?
-
-- **Files bypass the server**: Clients upload and download directly from S3-compatible storage via presigned URLs. The
-  API only handles metadata and access control.
-- **SSO-first**: Authenticate users with your existing identity providers via OIDC. No need to manage passwords for your
-  team.
-- **Bucket-scoped access**: All sharing happens through buckets with explicit membership and role-based permissions (
-  owner, contributor, viewer).
-- **Swappable infrastructure**: Every component (storage, database, events, cache, notifier) can be replaced. Use AWS S3
-  or a self-hosted MinIO. Use NATS or SQS. Use PostgreSQL or SQLite, etc...
 
 ## Features
 
 - Direct uploads and downloads via presigned URLs
-- Role-based access control at platform and bucket level
+- Swappable infrastructure: every component (storage, database, events, cache, notifier) can be replaced.
 - SSO via any OIDC provider, with local auth for external users
-- Email invitations with challenge-based validation
+- Role-based access control at platform and bucket level
+- Quick/reverse share: share file via public links with options (password, max downloads, max views, etc...)
 - Real-time activity tracking and audit logs
 - Multifactor authentication (TOTP)
 - File expiration, trash with configurable retention
 - Admin dashboard with platform-wide statistics
 
-See the [full list of features](https://docs.safebucket.io/features).
+And more... see the [full list of features](https://docs.safebucket.io/features).
 
 ## Architecture
 
