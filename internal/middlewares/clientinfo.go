@@ -61,7 +61,10 @@ func getClientIP(r *http.Request, trustedProxies []*net.IPNet) (string, error) {
 	hops := strings.Split(xForwardedFor, ",")
 	for _, hop := range slices.Backward(hops) {
 		hop = strings.TrimSpace(hop)
-		if hop != "" && !isTrustedProxy(hop, trustedProxies) {
+		if hop == "" || net.ParseIP(hop) == nil {
+			continue
+		}
+		if !isTrustedProxy(hop, trustedProxies) {
 			return hop, nil
 		}
 	}

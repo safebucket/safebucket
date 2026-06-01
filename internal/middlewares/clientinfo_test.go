@@ -94,6 +94,34 @@ func TestGetClientIP(t *testing.T) {
 			trustedProxies: []string{"10.0.0.0/8"},
 			want:           "10.0.0.1",
 		},
+		{
+			name:           "only last proxy trusted: stops at first untrusted hop from the right",
+			remoteAddr:     "201.101.101.201:443",
+			xff:            "203.0.113.195, 101.101.101.102, 201.101.101.102",
+			trustedProxies: []string{"201.0.0.0/8"},
+			want:           "101.101.101.102",
+		},
+		{
+			name:           "two trusted ranges: skips both and returns real client IP",
+			remoteAddr:     "201.101.101.201:443",
+			xff:            "203.0.113.195, 101.101.101.102, 201.101.101.102",
+			trustedProxies: []string{"101.0.0.0/8", "201.0.0.0/8"},
+			want:           "203.0.113.195",
+		},
+		{
+			name:           "invalid hop in XFF is skipped, next valid untrusted hop wins",
+			remoteAddr:     "10.0.0.1:443",
+			xff:            "203.0.113.195, not-an-ip, 10.0.0.2",
+			trustedProxies: []string{"10.0.0.0/8"},
+			want:           "203.0.113.195",
+		},
+		{
+			name:           "all XFF hops invalid or trusted falls back to RemoteAddr",
+			remoteAddr:     "10.0.0.1:443",
+			xff:            "not-an-ip, 10.0.0.2",
+			trustedProxies: []string{"10.0.0.0/8"},
+			want:           "10.0.0.1",
+		},
 	}
 
 	for _, tt := range tests {
