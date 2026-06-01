@@ -6,8 +6,7 @@
 
 <div align="center">
   <h2>
-    An open source file sharing platform with pluggable infrastructure where files never touch your server
-  <br />
+    An open source file sharing platform with pluggable infrastructure where files bypass the server
   </h2>
 </div>
 
@@ -29,7 +28,7 @@
 
 ## Features
 
-- Direct uploads and downloads via presigned URLs
+- Direct uploads and downloads via presigned URLs: files bypass the server
 - Swappable infrastructure: every component (storage, database, events, cache, notifier) can be replaced
 - SSO via any OIDC provider, with local auth for external users
 - Role-based access control at platform and bucket level
