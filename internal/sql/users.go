@@ -40,31 +40,28 @@ func CreateUserWithInvites(
 			logger.Error("Error creating user", zap.Error(err))
 			return err
 		}
-		return processPendingInvites(logger, tx, user)
+
+		var invites []models.Invite
+		if err := tx.Preload("Bucket").Where("email = ?", user.Email).Find(&invites).Error; err != nil {
+			logger.Error("Failed to fetch user invites", zap.Error(err))
+			return err
+		}
+
+		for _, invite := range invites {
+			if err := rbac.CreateMembership(tx, user.ID, invite.BucketID, invite.Group); err != nil {
+				logger.Error("Failed to create membership from invite", zap.Error(err),
+					zap.String("group", string(invite.Group)),
+					zap.String("bucket_id", invite.BucketID.String()))
+				return err
+			}
+
+			if err := tx.Delete(&invite).Error; err != nil {
+				logger.Error("Failed to delete processed invite", zap.Error(err),
+					zap.String("invite_id", invite.ID.String()))
+				return err
+			}
+		}
+
+		return nil
 	})
-}
-
-func processPendingInvites(logger *zap.Logger, tx *gorm.DB, user *models.User) error {
-	var invites []models.Invite
-	if err := tx.Preload("Bucket").Where("email = ?", user.Email).Find(&invites).Error; err != nil {
-		logger.Error("Failed to fetch user invites", zap.Error(err))
-		return err
-	}
-
-	for _, invite := range invites {
-		if err := rbac.CreateMembership(tx, user.ID, invite.BucketID, invite.Group); err != nil {
-			logger.Error("Failed to create membership from invite", zap.Error(err),
-				zap.String("group", string(invite.Group)),
-				zap.String("bucket_id", invite.BucketID.String()))
-			return err
-		}
-
-		if err := tx.Delete(&invite).Error; err != nil {
-			logger.Error("Failed to delete processed invite", zap.Error(err),
-				zap.String("invite_id", invite.ID.String()))
-			return err
-		}
-	}
-
-	return nil
 }
