@@ -7,13 +7,15 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/tracing"
 
 	"go.uber.org/zap"
 )
 
-func ClientInfo(trustedProxies []string) func(next http.Handler) http.Handler {
+func ClientInfo(rawProxies []string) func(next http.Handler) http.Handler {
+	trustedProxies := configuration.ParseTrustedProxies(rawProxies)
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx, span := tracing.StartSpan(r.Context(), "middleware.ClientInfo")
@@ -37,7 +39,7 @@ func ClientInfo(trustedProxies []string) func(next http.Handler) http.Handler {
 	}
 }
 
-func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
+func getClientIP(r *http.Request, trustedProxies []*net.IPNet) (string, error) {
 	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		if net.ParseIP(r.RemoteAddr) != nil {
@@ -47,21 +49,35 @@ func getClientIP(r *http.Request, trustedProxies []string) (string, error) {
 		}
 	}
 
-	if len(trustedProxies) == 0 {
-		return remoteIP, nil
-	}
-
-	if !slices.Contains(trustedProxies, remoteIP) {
+	if !isTrustedProxy(remoteIP, trustedProxies) {
 		return remoteIP, nil
 	}
 
 	xForwardedFor := r.Header.Get("X-Forwarded-For")
-	if xForwardedFor != "" {
-		ips := strings.Split(xForwardedFor, ",")
-		if len(ips) > 0 {
-			return strings.TrimSpace(ips[0]), nil
+	if xForwardedFor == "" {
+		return remoteIP, nil
+	}
+
+	hops := strings.Split(xForwardedFor, ",")
+	for _, hop := range slices.Backward(hops) {
+		hop = strings.TrimSpace(hop)
+		if hop != "" && !isTrustedProxy(hop, trustedProxies) {
+			return hop, nil
 		}
 	}
 
 	return remoteIP, nil
+}
+
+func isTrustedProxy(ip string, trustedProxies []*net.IPNet) bool {
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return false
+	}
+	for _, network := range trustedProxies {
+		if network.Contains(parsed) {
+			return true
+		}
+	}
+	return false
 }
