@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/safebucket/safebucket/internal/configuration"
-	"github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -197,8 +197,8 @@ func TestClientInfoMiddleware(t *testing.T) {
 
 			var captured bool
 			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				info, err := helpers.GetClientInfo(r.Context())
-				assert.NoError(t, err)
+				info, ok := r.Context().Value(models.ClientInfoKey{}).(models.ClientInfo)
+				assert.True(t, ok)
 				assert.Equal(t, tt.expectedIP, info.IP)
 				assert.Equal(t, tt.expectedUserAgent, info.UserAgent)
 				captured = true

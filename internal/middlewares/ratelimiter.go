@@ -8,6 +8,7 @@ import (
 
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/tracing"
 
 	"go.uber.org/zap"
@@ -51,8 +52,8 @@ func RateLimit(
 
 			claims, err := helpers.GetUserClaims(r.Context())
 			if err != nil {
-				info, infoErr := helpers.GetClientInfo(r.Context())
-				if infoErr != nil || info.IP == "" {
+				info, ok := r.Context().Value(models.ClientInfoKey{}).(models.ClientInfo)
+				if !ok || info.IP == "" {
 					zap.L().Error("error", zap.Error(err))
 					helpers.RespondWithErrorCtx(r.Context(), w, 500, []string{apierrors.CodeInternalServerError})
 					return
