@@ -185,6 +185,22 @@ services:
       retries: 5
       start_period: 10s
 
+  ldap:
+    container_name: ldap
+    profiles: [ ldap ]
+    image: osixia/openldap:2.6.10-alpha
+    ports:
+      - "389:3890"
+      - "636:6360"
+    environment:
+      OPENLDAP_BOOTSTRAP_ORGANIZATION: "SafeBucket Dev"
+      OPENLDAP_BOOTSTRAP_SUFFIX: "dc=example,dc=org"
+      OPENLDAP_BOOTSTRAP_DATA_ROOT_DN: "cn=admin,dc=example,dc=org"
+      OPENLDAP_BOOTSTRAP_DATA_ROOT_PASSWORD_HASHED: "{SSHA}VcB1k0xgV8sn8d7drBj8c2/Xwj+IE6WE"
+    volumes:
+      - ./config/ldap-bootstrap.ldif:/container/services/openldap-bootstrap/assets/ldif/data/custom/50-bootstrap.ldif:ro
+    restart: unless-stopped
+
   grafana:
     container_name: grafana
     profiles: [ debug ]

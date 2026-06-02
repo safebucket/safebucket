@@ -38,3 +38,7 @@ const (
 	CodeUserNotFound      = "USER_NOT_FOUND"
 	CodeUserAlreadyExists = "USER_ALREADY_EXISTS"
 )
+
+const (
+	CodeAuthProviderUnavailable = "AUTH_PROVIDER_UNAVAILABLE"
+)

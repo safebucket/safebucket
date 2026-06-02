@@ -91,10 +91,27 @@ type AuthConfiguration struct {
 
 type ProviderConfiguration struct {
 	Name                 string               `mapstructure:"name"    validate:"required_if=Type oidc"`
-	Type                 ProviderType         `mapstructure:"type"    validate:"required,oneof=local oidc"`
+	Type                 ProviderType         `mapstructure:"type"    validate:"required,oneof=local oidc ldap"`
 	OIDC                 OIDCConfiguration    `mapstructure:"oidc"    validate:"required_if=Type oidc"`
+	LDAP                 *LDAPConfiguration   `mapstructure:"ldap"    validate:"required_if=Type ldap"`
 	Domains              []string             `mapstructure:"domains"`
 	SharingConfiguration SharingConfiguration `mapstructure:"sharing"`
+}
+
+type LDAPConfiguration struct {
+	URL              string           `mapstructure:"url"                validate:"required"`
+	BindDN           string           `mapstructure:"bind_dn"            validate:"required"`
+	BindPassword     string           `mapstructure:"bind_password"      validate:"required"`
+	BaseDN           string           `mapstructure:"base_dn"            validate:"required"`
+	UserFilter       string           `mapstructure:"user_filter"        validate:"required"`
+	AttributeMap     LDAPAttributeMap `mapstructure:"attribute_map"`
+	StartTLS         bool             `mapstructure:"start_tls"`
+	TLSInsecureSkip  bool             `mapstructure:"tls_insecure_skip"`
+	ConnectTimeoutMS int              `mapstructure:"connect_timeout_ms"`
+}
+
+type LDAPAttributeMap struct {
+	Email string `mapstructure:"email"`
 }
 
 type OIDCConfiguration struct {

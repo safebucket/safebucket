@@ -112,7 +112,14 @@ var ConfigFileSearchPaths = []string{
 
 var AuthProviderKeys = []string{
 	"name",
+	// OIDC keys
 	"client_id",
 	"client_secret",
 	"issuer",
+	// LDAP keys
+	"url",
+	"bind_dn",
+	"bind_password",
+	"base_dn",
+	"user_filter",
 }

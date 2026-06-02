@@ -1,0 +1,35 @@
+dn: ou=users,dc=example,dc=org
+objectClass: organizationalUnit
+ou: users
+
+dn: uid=jdoe,ou=users,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: jdoe
+sn: Doe
+givenName: John
+cn: John Doe
+displayName: John Doe
+mail: jdoe@example.org
+uidNumber: 1000
+gidNumber: 1000
+homeDirectory: /home/jdoe
+loginShell: /bin/bash
+userPassword: TestPassword123!
+
+dn: uid=jsmith,ou=users,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: jsmith
+sn: Smith
+givenName: Jane
+cn: Jane Smith
+displayName: Jane Smith
+mail: jsmith@example.org
+uidNumber: 1001
+gidNumber: 1000
+homeDirectory: /home/jsmith
+loginShell: /bin/bash
+userPassword: TestPassword123!

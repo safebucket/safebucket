@@ -214,7 +214,23 @@ func Load(opts LoadOptions) (models.Configuration, error) {
 	if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "mapstructure"}); err != nil {
 		return models.Configuration{}, fmt.Errorf("decode config: %w", err)
 	}
+	applyAuthProviderDefaults(&cfg)
 	return cfg, nil
+}
+
+func applyAuthProviderDefaults(cfg *models.Configuration) {
+	for name, p := range cfg.Auth.Providers {
+		if p.Type != models.LDAPProviderType || p.LDAP == nil {
+			continue
+		}
+		if p.LDAP.AttributeMap.Email == "" {
+			p.LDAP.AttributeMap.Email = "mail"
+		}
+		if p.LDAP.ConnectTimeoutMS == 0 {
+			p.LDAP.ConnectTimeoutMS = 5000
+		}
+		cfg.Auth.Providers[name] = p
+	}
 }
 
 func Validate(cfg models.Configuration) error {

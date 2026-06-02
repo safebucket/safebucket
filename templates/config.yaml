@@ -122,6 +122,24 @@ auth:
 #      sharing:
 #        enabled: true
 #        domains: []
+#    myldap:
+#      type: ldap
+#      name: "Corporate LDAP"
+#      domains: []
+#      ldap:
+#        url: ldap://localhost:389
+#        bind_dn: cn=admin,dc=example,dc=org
+#        bind_password: admin
+#        base_dn: ou=users,dc=example,dc=org
+#        user_filter: "(mail=%s)"
+#        attribute_map:
+#          email: mail             # default: mail
+#        start_tls: false
+#        tls_insecure_skip: false
+#        connect_timeout_ms: 5000  # default: 5000
+#      sharing:
+#        allowed: false
+#        domains: []
 
 activity:
   type: filesystem

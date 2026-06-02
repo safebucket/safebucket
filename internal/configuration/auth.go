@@ -35,6 +35,12 @@ var AuthExcludedPatterns = []AuthPatternRule{
 	},
 	{
 		Pattern: regexp.MustCompile(
+			`^/api/v1/auth/providers/[a-zA-Z0-9_-]+/login$`,
+		),
+		Method: http.MethodPost,
+	},
+	{
+		Pattern: regexp.MustCompile(
 			`^/api/v1/auth/reset-password/` + UUIDv4Pattern + `/validate$`,
 		),
 		Method: http.MethodPost,

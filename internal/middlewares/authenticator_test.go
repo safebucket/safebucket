@@ -212,6 +212,14 @@ func TestAuthenticate_ExcludedPaths(t *testing.T) {
 			description:    "Auth provider list should be public",
 		},
 		{
+			name:           "Excluded path - /api/v1/auth/providers/*/login without token (POST)",
+			path:           "/api/v1/auth/providers/myldap/login",
+			method:         http.MethodPost,
+			authHeader:     "",
+			expectedStatus: http.StatusOK,
+			description:    "Provider login (POST) should not require authentication",
+		},
+		{
 			name:           "Excluded path - /api/v1/invites/*/challenges without token (POST)",
 			path:           "/api/v1/invites/550e8400-e29b-41d4-a716-446655440000/challenges",
 			method:         http.MethodPost,
@@ -309,6 +317,18 @@ func TestIsAuthExcluded(t *testing.T) {
 			path:     "/api/v1/auth/providers/google/begin",
 			method:   "GET",
 			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/auth/providers/myldap/login with POST",
+			path:     "/api/v1/auth/providers/myldap/login",
+			method:   "POST",
+			expected: true,
+		},
+		{
+			name:     "Not excluded - /api/v1/auth/providers/myldap/login with GET (method mismatch)",
+			path:     "/api/v1/auth/providers/myldap/login",
+			method:   "GET",
+			expected: false,
 		},
 		{
 			name:     "Excluded - /api/v1/auth/verify with POST",

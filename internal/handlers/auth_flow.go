@@ -58,3 +58,47 @@ func AuthFlowHandler[In any](forceSecure bool, target AuthFlowTargetFunc[In]) ht
 		h.RespondWithJSON(w, result.Status, result.Body)
 	}
 }
+
+// AuthFlowProviderFunc is the function signature for credential provider login handlers.
+// Unlike AuthFlowTargetFunc, it receives the provider key extracted from the URL instead of
+// JWT claims and UUID path params.
+type AuthFlowProviderFunc[In any] func(
+	isSecure bool,
+	logger *zap.Logger,
+	providerKey string,
+	body In,
+) (AuthFlowResult, error)
+
+// AuthFlowProviderHandler wraps a credential provider login function into an http.HandlerFunc.
+// It extracts the {provider} URL param and the validated request body, then delegates to target.
+func AuthFlowProviderHandler[In any](forceSecure bool, target AuthFlowProviderFunc[In]) http.HandlerFunc {
+	name := spanName(target)
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), name)
+		defer span.End()
+		r = r.WithContext(ctx)
+
+		logger := m.GetLogger(r)
+
+		providerKey, ok := providerKeyFromURL(w, r)
+		if !ok {
+			return
+		}
+
+		body, ok := r.Context().Value(m.BodyKey{}).(In)
+		if !ok {
+			logger.Error("Failed to extract body from context")
+			h.RespondWithError(w, http.StatusInternalServerError, []string{apierrors.CodeInternalServerError})
+			return
+		}
+
+		result, err := target(isSecureRequest(r, forceSecure), logger, providerKey, body)
+		if err != nil {
+			WriteError(span, w, err)
+			return
+		}
+
+		writeCookies(w, result.Cookies)
+		h.RespondWithJSON(w, result.Status, result.Body)
+	}
+}

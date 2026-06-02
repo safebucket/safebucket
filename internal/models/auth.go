@@ -7,6 +7,7 @@ type ProviderType string
 const (
 	LocalProviderType ProviderType = "local"
 	OIDCProviderType  ProviderType = "oidc"
+	LDAPProviderType  ProviderType = "ldap"
 )
 
 type AuthLoginBody struct {

@@ -58,6 +58,10 @@ func (s AuthService) Routes() chi.Router {
 				"/callback",
 				handlers.OpenIDCallbackHandler(s.AuthConfig.WebURL, s.AuthConfig.CookieSecureForce, s.OpenIDCallback),
 			)
+			r.With(m.Validate[models.AuthLoginBody]).Post(
+				"/login",
+				handlers.AuthFlowProviderHandler(s.AuthConfig.CookieSecureForce, s.LDAPLogin),
+			)
 		})
 	})
 	return r
