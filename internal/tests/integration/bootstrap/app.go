@@ -34,6 +34,11 @@ import (
 	"gorm.io/gorm"
 )
 
+type OIDCSetup struct {
+	ProviderKey string
+	Users       []DexUser
+}
+
 const TestPassword = "correct-horse-battery-staple"
 
 //go:embed scenarios/*.yaml
@@ -101,6 +106,17 @@ func BootScenario(t *testing.T, name string) *TestApp {
 
 func BootTestApp(t *testing.T, cfg models.Configuration) *TestApp {
 	t.Helper()
+	return bootTestApp(t, cfg, nil)
+}
+
+func BootScenarioWithOIDC(t *testing.T, name string, setup OIDCSetup) *TestApp {
+	t.Helper()
+	require.NotEmpty(t, setup.ProviderKey, "OIDCSetup.ProviderKey is required")
+	return bootTestApp(t, LoadScenario(t, name), &setup)
+}
+
+func bootTestApp(t *testing.T, cfg models.Configuration, oidc *OIDCSetup) *TestApp {
+	t.Helper()
 
 	provider := providerForDialect(t, cfg.Database.Type)
 	db := provider.Setup(t)
@@ -127,6 +143,29 @@ func BootTestApp(t *testing.T, cfg models.Configuration) *TestApp {
 	require.NoError(t, os.MkdirAll(activityDir, 0o750))
 	cfg.Activity.Filesystem = &models.FilesystemActivityConfiguration{Directory: activityDir}
 
+	server := httptest.NewUnstartedServer(nil)
+	t.Cleanup(func() { server.Close() })
+	baseURL := "http://" + server.Listener.Addr().String()
+
+	if oidc != nil {
+		cfg.App.APIURL = baseURL
+		callbackURL := fmt.Sprintf("%s/api/v1/auth/providers/%s/callback", baseURL, oidc.ProviderKey)
+		dex := StartDex(t, callbackURL, oidc.Users)
+
+		if cfg.Auth.Providers == nil {
+			cfg.Auth.Providers = map[string]models.ProviderConfiguration{}
+		}
+		cfg.Auth.Providers[oidc.ProviderKey] = models.ProviderConfiguration{
+			Name: "Dex",
+			Type: models.OIDCProviderType,
+			OIDC: models.OIDCConfiguration{
+				ClientID:     dex.ClientID,
+				ClientSecret: dex.ClientSecret,
+				Issuer:       dex.Issuer,
+			},
+		}
+	}
+
 	require.NoError(t, configuration.Validate(cfg), "final scenario config failed validation")
 	middlewares.InitValidator(cfg.App.MaxUploadSize)
 
@@ -136,11 +175,10 @@ func BootTestApp(t *testing.T, cfg models.Configuration) *TestApp {
 	t.Cleanup(func() { app.Cache.Close() })
 	t.Cleanup(func() { _ = app.ActivityLogger.Close() })
 
-	server := httptest.NewServer(app.Router)
+	server.Config.Handler = app.Router
+	server.Start()
 
 	t.Cleanup(func() {
-		server.Close()
-
 		cancel()
 
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -164,6 +202,10 @@ func BootTestApp(t *testing.T, cfg models.Configuration) *TestApp {
 		server:      server,
 		client:      server.Client(),
 	}
+}
+
+func (a *TestApp) DB() *gorm.DB {
+	return a.db
 }
 
 func (a *TestApp) URL(path string) string {
