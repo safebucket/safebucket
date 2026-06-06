@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/safebucket/safebucket/internal/activity"
@@ -62,15 +63,25 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 }
 
 // parseQueryParams uses reflection to parse URL query parameters into a struct.
-// It supports string, int, int32, int64, bool, pointer, and []string types.
+// It supports string, int, int32, int64, bool, time.Time (RFC 3339), pointer, and []string types.
 // []string fields accept repeated params (?k=a&k=b) and/or comma-separated values (?k=a,b).
 func parseQueryParams(queryParams url.Values, data interface{}) error {
-	val := reflect.ValueOf(data).Elem()
+	return parseStructFields(queryParams, reflect.ValueOf(data).Elem())
+}
+
+func parseStructFields(queryParams url.Values, val reflect.Value) error {
 	typ := val.Type()
 
 	for i := range val.NumField() {
 		field := val.Field(i)
 		fieldType := typ.Field(i)
+
+		if fieldType.Anonymous && field.Kind() == reflect.Struct {
+			if err := parseStructFields(queryParams, field); err != nil {
+				return err
+			}
+			continue
+		}
 
 		queryParamName := fieldType.Tag.Get("json")
 		if queryParamName == "" {
@@ -134,6 +145,15 @@ func setFieldValue(field reflect.Value, value string) error {
 	}
 
 	if !field.CanSet() {
+		return nil
+	}
+
+	if field.Type() == reflect.TypeOf(time.Time{}) {
+		parsed, err := time.Parse(time.RFC3339, value)
+		if err != nil {
+			return err
+		}
+		field.Set(reflect.ValueOf(parsed.UTC()))
 		return nil
 	}
 

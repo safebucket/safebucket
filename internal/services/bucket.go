@@ -11,6 +11,7 @@ import (
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
+	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
@@ -44,7 +45,8 @@ func (s BucketService) Routes() chi.Router {
 		Post("/", handlers.CreateHandler(s.CreateBucket))
 
 	r.With(m.AuthorizeRole(models.RoleGuest)).
-		Get("/activity", handlers.GetListHandler(s.GetActivity))
+		With(m.ValidateQuery[models.ActivityQueryParams]).
+		Get("/activity", handlers.GetOneWithQueryHandler(s.GetActivity))
 
 	r.Route("/{id0}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
@@ -59,7 +61,8 @@ func (s BucketService) Routes() chi.Router {
 			Delete("/", handlers.DeleteHandler(s.DeleteBucket))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
-			Get("/activity", handlers.GetOneHandler(s.GetBucketActivity))
+			With(m.ValidateQuery[models.ActivityQueryParams]).
+			Get("/activity", handlers.GetOneWithQueryHandler(s.GetBucketActivity))
 
 		r.Mount("/members", BucketMemberService{
 			DB:             s.DB,
@@ -392,7 +395,8 @@ func (s BucketService) GetActivity(
 	logger *zap.Logger,
 	user models.UserClaims,
 	ids uuid.UUIDs,
-) []map[string]interface{} {
+	query models.ActivityQueryParams,
+) (models.Page[map[string]interface{}], error) {
 	buckets := s.GetBucketList(logger, user, ids)
 
 	var bucketIDs []string
@@ -400,37 +404,32 @@ func (s BucketService) GetActivity(
 		bucketIDs = append(bucketIDs, bucket.ID.String())
 	}
 
-	if len(bucketIDs) > 0 {
-		searchCriteria := map[string][]string{
-			"object_type": {
-				rbac.ResourceBucket.String(),
-				rbac.ResourceFile.String(),
-				rbac.ResourceFolder.String(),
-				rbac.ResourceShare.String(),
-			},
-			"bucket_id": bucketIDs,
-		}
-
-		history, err := s.ActivityLogger.Search(searchCriteria)
-		if err != nil {
-			logger.Error("Search history failed", zap.Error(err))
-			return []map[string]interface{}{}
-		}
-
-		if len(history) == 0 {
-			return []map[string]interface{}{}
-		}
-
-		return activity.EnrichActivity(s.DB, history)
+	if len(bucketIDs) == 0 {
+		return models.Page[map[string]interface{}]{Data: []map[string]interface{}{}}, nil
 	}
 
-	return []map[string]interface{}{}
+	searchCriteria := map[string][]string{
+		"object_type": {
+			rbac.ResourceBucket.String(),
+			rbac.ResourceFile.String(),
+			rbac.ResourceFolder.String(),
+			rbac.ResourceShare.String(),
+		},
+		"bucket_id": bucketIDs,
+	}
+
+	return h.SearchActivityPage(
+		s.DB, logger, s.ActivityLogger,
+		searchCriteria,
+		query,
+	)
 }
 
 func (s BucketService) GetBucketActivity(
 	logger *zap.Logger,
 	user models.UserClaims,
 	ids uuid.UUIDs,
+	query models.ActivityQueryParams,
 ) (models.Page[map[string]interface{}], error) {
 	bucket, err := s.GetBucket(logger, user, ids, models.BucketQueryParams{})
 	if err != nil {
@@ -447,17 +446,9 @@ func (s BucketService) GetBucketActivity(
 		"bucket_id": {bucket.ID.String()},
 	}
 
-	history, err := s.ActivityLogger.Search(searchCriteria)
-	if err != nil {
-		logger.Error("Search history failed", zap.Error(err))
-		return models.Page[map[string]interface{}]{}, err
-	}
-
-	if len(history) == 0 {
-		return models.Page[map[string]interface{}]{Data: []map[string]interface{}{}}, nil
-	}
-
-	enriched := activity.EnrichActivity(s.DB, history)
-
-	return models.Page[map[string]interface{}]{Data: enriched}, nil
+	return h.SearchActivityPage(
+		s.DB, logger, s.ActivityLogger,
+		searchCriteria,
+		query,
+	)
 }

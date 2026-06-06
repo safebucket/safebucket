@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/handlers"
+	h "github.com/safebucket/safebucket/internal/helpers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 
@@ -30,7 +31,7 @@ func (s AdminService) Routes() chi.Router {
 
 	r.With(m.AuthorizeRole(models.RoleAdmin)).
 		With(m.ValidateQuery[models.AdminActivityQueryParams]).
-		Get("/activity", handlers.GetListWithQueryHandler(s.GetActivity))
+		Get("/activity", handlers.GetOneWithQueryHandler(s.GetActivity))
 
 	r.With(m.AuthorizeRole(models.RoleAdmin)).
 		Get("/buckets", handlers.GetListHandler(s.GetBucketList))
@@ -82,11 +83,11 @@ func (s AdminService) GetStats(
 }
 
 func (s AdminService) GetActivity(
-	_ *zap.Logger,
+	logger *zap.Logger,
 	_ models.UserClaims,
 	_ uuid.UUIDs,
 	query models.AdminActivityQueryParams,
-) []map[string]interface{} {
+) (models.Page[map[string]interface{}], error) {
 	searchCriteria := map[string][]string{}
 
 	if len(query.Type) > 0 {
@@ -99,12 +100,11 @@ func (s AdminService) GetActivity(
 		searchCriteria["action"] = query.Action
 	}
 
-	activities, err := s.ActivityLogger.Search(searchCriteria)
-	if err != nil {
-		return []map[string]interface{}{}
-	}
-
-	return activity.EnrichActivity(s.DB, activities)
+	return h.SearchActivityPage(
+		s.DB, logger, s.ActivityLogger,
+		searchCriteria,
+		query.ActivityQueryParams,
+	)
 }
 
 func (s AdminService) GetBucketList(

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
@@ -393,6 +394,36 @@ func TestValidateQueryMultipleValues(t *testing.T) {
 		// BUG: Only the first value is used because queryParams.Get() returns first value
 		assert.Equal(t, "uploaded", *params.Status)
 		t.Log("Note: Multiple query parameters with same name - only first value is used")
+	})
+}
+
+func TestValidateQueryActivityParams(t *testing.T) {
+	t.Run("Valid range, cursor and limit", func(t *testing.T) {
+		recorder, ctx := runMiddleware[models.ActivityQueryParams](
+			t, "?from=2026-05-01T00:00:00Z&to=2026-06-01T00:00:00Z&cursor=1720000000000000000&limit=50",
+		)
+		assert.Equal(t, http.StatusOK, recorder.Code)
+
+		params, err := helpers.GetQueryParams[models.ActivityQueryParams](ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, time.Date(2026, time.May, 1, 0, 0, 0, 0, time.UTC), params.From)
+		assert.Equal(t, "1720000000000000000", params.Cursor)
+		assert.Equal(t, 50, params.Limit)
+	})
+
+	t.Run("Empty range is allowed", func(t *testing.T) {
+		recorder, _ := runMiddleware[models.ActivityQueryParams](t, "")
+		assert.Equal(t, http.StatusOK, recorder.Code)
+	})
+
+	t.Run("Malformed from is rejected", func(t *testing.T) {
+		recorder, _ := runMiddleware[models.ActivityQueryParams](t, "?from=2026-05-01")
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("Limit above max is rejected", func(t *testing.T) {
+		recorder, _ := runMiddleware[models.ActivityQueryParams](t, "?limit=500")
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
 }
 

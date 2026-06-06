@@ -91,13 +91,17 @@ func (s *LokiClient) Send(activity models.Activity) error {
 	return nil
 }
 
-func (s *LokiClient) Search(searchCriteria map[string][]string) ([]map[string]interface{}, error) {
+func (s *LokiClient) Search(
+	searchCriteria map[string][]string,
+	start, end time.Time,
+	limit int,
+) ([]map[string]interface{}, error) {
 	query := generateSearchQuery(searchCriteria)
 
-	thirtyDaysAgo := time.Now().AddDate(0, 0, -30).Unix()
 	params := map[string]string{
-		"start":     strconv.FormatInt(thirtyDaysAgo, 10),
-		"limit":     "100",
+		"start":     strconv.FormatInt(start.UnixNano(), 10),
+		"end":       strconv.FormatInt(end.UnixNano(), 10),
+		"limit":     strconv.Itoa(limit + 1),
 		"query":     query,
 		"direction": "backward",
 	}

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/models"
@@ -97,7 +98,7 @@ func TestQuickShareDownload(t *testing.T) {
 
 				results, err := app.Activity.Search(map[string][]string{
 					"share_id": {activityShare.ID.String()},
-				})
+				}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
 				require.NoError(t, err)
 				require.NotEmpty(t, results, "share download must produce an activity entry")
 

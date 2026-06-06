@@ -218,18 +218,20 @@ func (c *FilesystemClient) Send(activity models.Activity) error {
 	return nil
 }
 
-func (c *FilesystemClient) Search(searchCriteria map[string][]string) ([]map[string]any, error) {
+func (c *FilesystemClient) Search(
+	searchCriteria map[string][]string,
+	start, end time.Time,
+	limit int,
+) ([]map[string]any, error) {
 	criteriaQuery := buildBleveQuery(searchCriteria)
 
-	now := time.Now()
-	thirtyDaysAgo := now.AddDate(0, 0, -30)
-	dateQuery := bleve.NewDateRangeQuery(thirtyDaysAgo, now)
+	dateQuery := bleve.NewDateRangeQuery(start, end)
 	dateQuery.SetField("timestamp")
 
 	conjunction := bleve.NewConjunctionQuery(criteriaQuery, dateQuery)
 
 	searchRequest := bleve.NewSearchRequest(conjunction)
-	searchRequest.Size = 100
+	searchRequest.Size = limit + 1
 	searchRequest.SortBy([]string{"-timestamp"})
 	searchRequest.Fields = []string{"*"}
 

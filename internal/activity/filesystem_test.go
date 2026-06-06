@@ -59,7 +59,7 @@ func TestFilesystemSendAndSearch(t *testing.T) {
 
 	results, err := client.Search(map[string][]string{
 		"action": {"create"},
-	})
+	}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}
@@ -118,7 +118,7 @@ func TestFilesystemSearchWithORCriteria(t *testing.T) {
 
 	results, err := client.Search(map[string][]string{
 		"action": {"create", "delete"},
-	})
+	}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestFilesystemSearchRespectsTimeWindow(t *testing.T) {
 
 	results, err := client.Search(map[string][]string{
 		"action": {"create"},
-	})
+	}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}
@@ -192,6 +192,50 @@ func TestFilesystemSearchRespectsTimeWindow(t *testing.T) {
 
 	if results[0]["bucket_id"] != "bucket-new" {
 		t.Errorf("expected bucket_id=bucket-new, got %v", results[0]["bucket_id"])
+	}
+}
+
+func TestFilesystemSearchCursorPaging(t *testing.T) {
+	client := newTestFilesystemClient(t)
+
+	base := time.Now()
+	for i := range 3 {
+		sendTestActivity(
+			t, client, "create", "bucket", "user-1",
+			"bucket-"+strconv.Itoa(i), "event", base.Add(-time.Duration(i)*time.Second),
+		)
+	}
+
+	start := base.AddDate(0, 0, -30)
+	end := base.Add(time.Second)
+
+	firstPage, err := client.Search(map[string][]string{"action": {"create"}}, start, end, 2)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if len(firstPage) != 3 {
+		t.Fatalf("expected limit+1 (3) rows for first page, got %d", len(firstPage))
+	}
+
+	cursorStr, ok := firstPage[1]["timestamp"].(string)
+	if !ok {
+		t.Fatal("timestamp should be a string")
+	}
+	cursorNanos, err := strconv.ParseInt(cursorStr, 10, 64)
+	if err != nil {
+		t.Fatalf("cursor not parseable: %v", err)
+	}
+	cursorEnd := time.Unix(0, cursorNanos)
+
+	secondPage, err := client.Search(map[string][]string{"action": {"create"}}, start, cursorEnd, 2)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if len(secondPage) != 1 {
+		t.Fatalf("expected 1 row on last page, got %d", len(secondPage))
+	}
+	if secondPage[0]["bucket_id"] != "bucket-2" {
+		t.Errorf("expected oldest item bucket-2, got %v", secondPage[0]["bucket_id"])
 	}
 }
 
@@ -271,7 +315,7 @@ func TestFilesystemMigrateIndex(t *testing.T) {
 		t.Errorf("expected schema version %s, got %s", schemaVersion, string(storedVersion))
 	}
 
-	results, err := client.Search(map[string][]string{})
+	results, err := client.Search(map[string][]string{}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}
