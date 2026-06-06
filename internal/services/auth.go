@@ -99,11 +99,21 @@ func (s AuthService) Login(
 		return handlers.AuthFlowResult{}, apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidCredentials)
 	}
 
+	return s.finalizeLogin(isSecure, logger, &user, provider.Type, provider.Name)
+}
+
+func (s AuthService) finalizeLogin(
+	isSecure bool,
+	logger *zap.Logger,
+	user *models.User,
+	providerType models.ProviderType,
+	providerName string,
+) (handlers.AuthFlowResult, error) {
 	verifiedDevices := user.GetVerifiedDevices()
 	hasMFA := len(verifiedDevices) > 0
 
 	if hasMFA || s.AuthConfig.MFARequired {
-		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, &user)
+		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, user)
 		if mfaErr != nil {
 			return handlers.AuthFlowResult{}, mfaErr
 		}
@@ -114,7 +124,7 @@ func (s AuthService) Login(
 		}, nil
 	}
 
-	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user)
+	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, user)
 	if err != nil {
 		return handlers.AuthFlowResult{}, err
 	}
@@ -134,8 +144,8 @@ func (s AuthService) Login(
 			Action:       activity.UserLoggedIn,
 			UserID:       user.ID.String(),
 			ObjectType:   rbac.ResourceUser.String(),
-			ProviderType: string(provider.Type),
-			ProviderName: provider.Name,
+			ProviderType: string(providerType),
+			ProviderName: providerName,
 		}),
 	}
 	if logErr := s.ActivityLogger.Send(action); logErr != nil {

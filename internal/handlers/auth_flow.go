@@ -59,9 +59,6 @@ func AuthFlowHandler[In any](forceSecure bool, target AuthFlowTargetFunc[In]) ht
 	}
 }
 
-// AuthFlowProviderFunc is the function signature for credential provider login handlers.
-// Unlike AuthFlowTargetFunc, it receives the provider key extracted from the URL instead of
-// JWT claims and UUID path params.
 type AuthFlowProviderFunc[In any] func(
 	isSecure bool,
 	logger *zap.Logger,
@@ -69,8 +66,6 @@ type AuthFlowProviderFunc[In any] func(
 	body In,
 ) (AuthFlowResult, error)
 
-// AuthFlowProviderHandler wraps a credential provider login function into an http.HandlerFunc.
-// It extracts the {provider} URL param and the validated request body, then delegates to target.
 func AuthFlowProviderHandler[In any](forceSecure bool, target AuthFlowProviderFunc[In]) http.HandlerFunc {
 	name := spanName(target)
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -80,8 +75,9 @@ func AuthFlowProviderHandler[In any](forceSecure bool, target AuthFlowProviderFu
 
 		logger := m.GetLogger(r)
 
-		providerKey, ok := providerKeyFromURL(w, r)
-		if !ok {
+		providerKey, err := providerKeyFromURL(r)
+		if err != nil {
+			WriteError(span, w, err)
 			return
 		}
 

@@ -5,15 +5,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/safebucket/safebucket/internal/activity"
 	ldapclient "github.com/safebucket/safebucket/internal/auth/ldap"
-	"github.com/safebucket/safebucket/internal/cache"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/mfa"
 	"github.com/safebucket/safebucket/internal/models"
-	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
 	"go.uber.org/zap"
@@ -35,89 +31,11 @@ func (s AuthService) LDAPLogin(
 		return handlers.AuthFlowResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
-	ldapUser, err := s.authenticateLDAP(logger, providerKey, provider.LDAPConfig, body.Email, body.Password)
+	ldapUser, err := ldapclient.AuthenticateAndFetch(*provider.LDAPConfig, body.Email, body.Password)
 	if err != nil {
-		return handlers.AuthFlowResult{}, err
+		return handlers.AuthFlowResult{}, mapLDAPAuthError(logger, providerKey, err)
 	}
 
-	user, err := s.findOrCreateLDAPUser(logger, providerKey, ldapUser)
-	if err != nil {
-		return handlers.AuthFlowResult{}, err
-	}
-
-	verifiedDevices := user.GetVerifiedDevices()
-	hasMFA := len(verifiedDevices) > 0
-
-	if hasMFA || s.AuthConfig.MFARequired {
-		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, &user)
-		if mfaErr != nil {
-			return handlers.AuthFlowResult{}, mfaErr
-		}
-		return handlers.AuthFlowResult{
-			Status:  http.StatusOK,
-			Body:    models.AuthLoginResponse{MFARequired: true},
-			Cookies: handlers.BuildMFACookie(isSecure, restrictedToken),
-		}, nil
-	}
-
-	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user)
-	if err != nil {
-		return handlers.AuthFlowResult{}, err
-	}
-
-	if err = cache.CreateSession(s.Cache, user.ID.String(), sid); err != nil {
-		logger.Error("Failed to create LDAP session", zap.Error(err))
-		return handlers.AuthFlowResult{}, apierrors.New(
-			http.StatusInternalServerError,
-			apierrors.CodeInternalServerError,
-		)
-	}
-
-	action := models.Activity{
-		Message: activity.UserLoggedIn,
-		Object:  user.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:       activity.UserLoggedIn,
-			UserID:       user.ID.String(),
-			ObjectType:   rbac.ResourceUser.String(),
-			ProviderType: string(models.LDAPProviderType),
-			ProviderName: provider.Name,
-		}),
-	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log LDAP login activity", zap.Error(logErr))
-	}
-
-	return handlers.AuthFlowResult{
-		Status: http.StatusOK,
-		Body:   models.AuthLoginResponse{},
-		Cookies: handlers.BuildAuthCookies(
-			isSecure,
-			tokens.AccessToken,
-			tokens.RefreshToken,
-			user.ProviderKey,
-		),
-	}, nil
-}
-
-func (s AuthService) authenticateLDAP(
-	logger *zap.Logger,
-	providerKey string,
-	cfg *ldapclient.Config,
-	email, password string,
-) (ldapclient.User, error) {
-	ldapUser, err := ldapclient.AuthenticateAndFetch(*cfg, email, password)
-	if err != nil {
-		return ldapclient.User{}, mapLDAPAuthError(logger, providerKey, err)
-	}
-	return ldapUser, nil
-}
-
-func (s AuthService) findOrCreateLDAPUser(
-	logger *zap.Logger,
-	providerKey string,
-	ldapUser ldapclient.User,
-) (models.User, error) {
 	email := normalizeExternalEmail(ldapUser.Email)
 
 	user, found, err := sql.FindUserByIdentityProvider(
@@ -125,23 +43,29 @@ func (s AuthService) findOrCreateLDAPUser(
 	)
 	if err != nil {
 		logger.Error("Failed to look up LDAP user", zap.Error(err))
-		return models.User{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-	}
-	if found {
-		return user, nil
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 
-	user = models.User{
-		Email:        email,
-		ProviderType: models.LDAPProviderType,
-		ProviderKey:  providerKey,
-		Role:         models.RoleUser,
+	if !found {
+		user = models.User{
+			Email:        email,
+			ProviderType: models.LDAPProviderType,
+			ProviderKey:  providerKey,
+			Role:         models.RoleUser,
+		}
+		if createErr := sql.CreateUserWithInvites(logger, s.DB, &user); createErr != nil {
+			logger.Error("Failed to create LDAP user", zap.Error(createErr))
+			return handlers.AuthFlowResult{}, apierrors.New(
+				http.StatusInternalServerError,
+				apierrors.CodeInternalServerError,
+			)
+		}
 	}
-	if createErr := sql.CreateUserWithInvites(logger, s.DB, &user); createErr != nil {
-		logger.Error("Failed to create LDAP user", zap.Error(createErr))
-		return models.User{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-	}
-	return user, nil
+
+	return s.finalizeLogin(isSecure, logger, &user, models.LDAPProviderType, provider.Name)
 }
 
 func mapLDAPAuthError(logger *zap.Logger, providerKey string, err error) error {

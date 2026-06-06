@@ -16,6 +16,11 @@ var (
 	ErrServiceUnavailable = errors.New("ldap service unavailable")
 )
 
+const (
+	defaultEmailAttribute   = "mail"
+	defaultConnectTimeoutMS = 5000
+)
+
 type Config struct {
 	URL              string
 	BindDN           string
@@ -49,6 +54,10 @@ func AuthenticateAndFetch(cfg Config, username, password string) (User, error) {
 	}
 
 	emailAttr := cfg.AttributeMap.Email
+	if emailAttr == "" {
+		emailAttr = defaultEmailAttribute
+	}
+
 	filter := fmt.Sprintf(cfg.UserFilter, ldap.EscapeFilter(username))
 	searchReq := ldap.NewSearchRequest(
 		cfg.BaseDN,
@@ -103,7 +112,11 @@ func VerifyServiceBind(cfg Config) error {
 }
 
 func dial(cfg Config) (*ldap.Conn, error) {
-	timeout := time.Duration(cfg.ConnectTimeoutMS) * time.Millisecond
+	connectTimeoutMS := cfg.ConnectTimeoutMS
+	if connectTimeoutMS == 0 {
+		connectTimeoutMS = defaultConnectTimeoutMS
+	}
+	timeout := time.Duration(connectTimeoutMS) * time.Millisecond
 	tlsCfg := &tls.Config{InsecureSkipVerify: cfg.TLSInsecureSkip} //nolint:gosec // controlled by config
 
 	var conn *ldap.Conn
