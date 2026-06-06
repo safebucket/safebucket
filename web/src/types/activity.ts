@@ -64,6 +64,7 @@ export enum ActivityMessage {
   SHARE_FILE_UPLOADED = "SHARE_FILE_UPLOADED",
 }
 
-export interface IListBucketActivity {
+export interface IActivityPage {
   data: Array<IActivity>;
+  next_cursor?: string | null;
 }

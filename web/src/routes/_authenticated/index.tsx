@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { BarChart3, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { bucketsActivityQueryOptions } from "@/queries/bucket.ts";
+import { bucketsActivityInfiniteQueryOptions } from "@/queries/bucket.ts";
 import { ActivityItem } from "@/components/activity-view/components/ActivityItem.tsx";
 import { ActivityViewSkeleton } from "@/components/activity-view/components/ActivityViewSkeleton.tsx";
 import { useCurrentUser, useUserStatsQuery } from "@/queries/user";
@@ -22,9 +22,11 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 function Homepage() {
-  const { data: activity, isLoading: isActivityLoading } = useQuery(
-    bucketsActivityQueryOptions(),
-  );
+  const { data: activity = [], isLoading: isActivityLoading } =
+    useInfiniteQuery({
+      ...bucketsActivityInfiniteQueryOptions(),
+      select: (data) => data.pages[0]?.data ?? [],
+    });
 
   const { t } = useTranslation();
   const { data: user } = useCurrentUser();
@@ -61,7 +63,7 @@ function Homepage() {
               <CardContent>
                 {isActivityLoading ? (
                   <ActivityViewSkeleton count={3} />
-                ) : activity && activity.length > 0 ? (
+                ) : activity.length > 0 ? (
                   <div className="space-y-4">
                     {activity.slice(0, 3).map((item, idx) => (
                       <div
@@ -73,7 +75,7 @@ function Homepage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-1 items-center justify-center min-h-[300px]">
+                  <div className="flex flex-1 items-center justify-center min-h-75">
                     <p className="text-center text-muted-foreground">
                       {t("activity.no_activity_yet")}
                     </p>

@@ -1,9 +1,11 @@
 import {
+  infiniteQueryOptions,
   queryOptions,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import type { IActivity, IListBucketActivity } from "@/types/activity";
+import type { IActivityPage } from "@/types/activity";
+import type { ActivityRange } from "@/components/activity-view/components/ActivityDateRangePicker";
 import type {
   IBucketMember,
   INotificationPreferences,
@@ -21,11 +23,24 @@ export const bucketsQueryOptions = () =>
     select: (data) => data.data,
   });
 
-export const bucketsActivityQueryOptions = () =>
-  queryOptions({
-    queryKey: ["buckets", "activity"],
-    queryFn: () => api.get<IListBucketActivity>("/buckets/activity"),
-    select: (data) => data.data,
+const ACTIVITY_PAGE_SIZE = 50;
+
+export const bucketsActivityInfiniteQueryOptions = (
+  filters: ActivityRange = {},
+) =>
+  infiniteQueryOptions({
+    queryKey: ["buckets", "activity", filters],
+    queryFn: ({ pageParam }) =>
+      api.get<IActivityPage>("/buckets/activity", {
+        params: {
+          from: filters.from,
+          to: filters.to,
+          limit: ACTIVITY_PAGE_SIZE,
+          cursor: pageParam ?? undefined,
+        },
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
   });
 
 export const bucketDataQueryOptions = (bucketId: string) =>
@@ -34,12 +49,23 @@ export const bucketDataQueryOptions = (bucketId: string) =>
     queryFn: () => api.get<IBucket>(`/buckets/${bucketId}`),
   });
 
-export const bucketActivityQueryOptions = (bucketId: string) =>
-  queryOptions({
-    queryKey: ["buckets", bucketId, "activity"],
-    queryFn: () =>
-      api.get<{ data: Array<IActivity> }>(`/buckets/${bucketId}/activity`),
-    select: (response) => response.data,
+export const bucketActivityInfiniteQueryOptions = (
+  bucketId: string,
+  filters: ActivityRange = {},
+) =>
+  infiniteQueryOptions({
+    queryKey: ["buckets", bucketId, "activity", filters],
+    queryFn: ({ pageParam }) =>
+      api.get<IActivityPage>(`/buckets/${bucketId}/activity`, {
+        params: {
+          from: filters.from,
+          to: filters.to,
+          limit: ACTIVITY_PAGE_SIZE,
+          cursor: pageParam ?? undefined,
+        },
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
   });
 
 export const bucketMembersQueryOptions = (bucketId: string) =>

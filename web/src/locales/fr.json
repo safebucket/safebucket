@@ -22,6 +22,7 @@
     "MAX_DEVICES_REACHED": "Nombre maximum d'appareils atteint.",
     "INVALID_CODE": "Code de vérification invalide. Veuillez réessayer.",
     "FORBIDDEN": "Vous n'avez pas la permission d'effectuer cette action.",
+    "BAD_REQUEST": "La requête est invalide. Veuillez vérifier votre saisie et réessayer.",
     "NOT_FOUND": "La ressource demandée n'a pas été trouvée.",
     "INTERNAL_SERVER_ERROR": "Une erreur inattendue s'est produite. Veuillez réessayer.",
     "SHARE_NOT_FOUND": "Ce lien de partage n'existe pas.",
@@ -321,6 +322,12 @@
     "title": "Flux d'activité",
     "no_activity_yet": "Aucune activité au cours des 30 derniers jours.",
     "share_link": "Lien de partage",
+    "load_more": "Charger plus",
+    "loading_more": "Chargement...",
+    "date_range": {
+      "placeholder": "30 derniers jours",
+      "clear": "Effacer la plage de dates"
+    },
     "messages": {
       "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
       "bucket_deleted": "A définitivement supprimé un bucket '%%BUCKET_NAME%%'.",

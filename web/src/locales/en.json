@@ -22,6 +22,7 @@
     "MAX_DEVICES_REACHED": "Maximum number of devices reached.",
     "INVALID_CODE": "Invalid verification code. Please try again.",
     "FORBIDDEN": "You don't have permission to perform this action.",
+    "BAD_REQUEST": "The request is invalid. Please check your input and try again.",
     "NOT_FOUND": "The requested resource was not found.",
     "INTERNAL_SERVER_ERROR": "An unexpected error occurred. Please try again.",
     "SHARE_NOT_FOUND": "This share link does not exist.",
@@ -321,6 +322,12 @@
     "title": "Activity Feed",
     "no_activity_yet": "No activity in the last 30 days.",
     "share_link": "Share link",
+    "load_more": "Load more",
+    "loading_more": "Loading...",
+    "date_range": {
+      "placeholder": "Last 30 days",
+      "clear": "Clear date range"
+    },
     "messages": {
       "bucket_created": "Created a bucket '%%BUCKET_NAME%%' and shared it with you.",
       "bucket_deleted": "Permanently deleted a bucket '%%BUCKET_NAME%%'.",

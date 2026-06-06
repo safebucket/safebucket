@@ -5,8 +5,13 @@ import { useAdminActivityData } from "./hooks/useAdminActivityData";
 import { createColumns } from "./components/columns";
 import { AdminActivityTable } from "./components/AdminActivityTable";
 import { ActivityFilters } from "./components/ActivityFilters";
+import type { DateRange } from "react-day-picker";
 import type { FC } from "react";
 import type { ActivityMessage } from "@/types/activity";
+import {
+  ActivityDateRangePicker,
+  dateRangeToQuery,
+} from "@/components/activity-view/components/ActivityDateRangePicker";
 import {
   Card,
   CardContent,
@@ -25,10 +30,20 @@ export const AdminActivityView: FC = () => {
     Array<ActivityMessage>
   >([]);
   const [selectedTypes, setSelectedTypes] = useState<Array<string>>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  const { activities, isLoading, isFetching, refetch } = useAdminActivityData({
+  const {
+    activities,
+    isLoading,
+    isFetching,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useAdminActivityData({
     action: selectedActions,
     type: selectedTypes,
+    ...dateRangeToQuery(dateRange),
   });
 
   if (isLoading) {
@@ -41,37 +56,59 @@ export const AdminActivityView: FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <Card>
-        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle>{t("admin.activity.title")}</CardTitle>
-            <CardDescription>{t("admin.activity.description")}</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <ActivityFilters
-              selectedActions={selectedActions}
-              selectedTypes={selectedTypes}
-              onActionsChange={setSelectedActions}
-              onTypesChange={setSelectedTypes}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => refetch()}
-              disabled={isFetching}
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle>{t("admin.activity.title")}</CardTitle>
+              <CardDescription>
+                {t("admin.activity.description")}
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <ActivityFilters
+                selectedActions={selectedActions}
+                selectedTypes={selectedTypes}
+                onActionsChange={setSelectedActions}
+                onTypesChange={setSelectedTypes}
               />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <AdminActivityTable columns={columns} data={activities} />
-        </CardContent>
-      </Card>
+              <ActivityDateRangePicker
+                value={dateRange}
+                onChange={setDateRange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => refetch()}
+                disabled={isFetching}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+                />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <AdminActivityTable columns={columns} data={activities} />
+            {hasNextPage && (
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage
+                    ? t("activity.loading_more")
+                    : t("activity.load_more")}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

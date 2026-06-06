@@ -1,10 +1,11 @@
 import {
+  infiniteQueryOptions,
   queryOptions,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import type { IUser } from "@/components/auth-view/types/session";
-import type { ActivityMessage, IActivity } from "@/types/activity";
+import type { ActivityMessage, IActivityPage } from "@/types/activity";
 import type {
   AdminStatsResponse,
   CreateUserPayload,
@@ -13,9 +14,13 @@ import type {
 import { api } from "@/lib/api";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
 
+const ACTIVITY_PAGE_SIZE = 50;
+
 export interface AdminActivityFilters {
   action?: Array<ActivityMessage>;
   type?: Array<string>;
+  from?: string;
+  to?: string;
 }
 
 export const usersQueryOptions = () =>
@@ -58,17 +63,24 @@ export const adminStatsQueryOptions = (days: number = 90) =>
     queryFn: () => api.get<AdminStatsResponse>(`/admin/stats?days=${days}`),
   });
 
-export const adminActivityQueryOptions = (filters: AdminActivityFilters = {}) =>
-  queryOptions({
+export const adminActivityInfiniteQueryOptions = (
+  filters: AdminActivityFilters = {},
+) =>
+  infiniteQueryOptions({
     queryKey: ["admin", "activity", filters],
-    queryFn: () =>
-      api.get<{ data: Array<IActivity> }>("/admin/activity", {
+    queryFn: ({ pageParam }) =>
+      api.get<IActivityPage>("/admin/activity", {
         params: {
           action: filters.action?.length ? filters.action.join(",") : undefined,
           type: filters.type?.length ? filters.type.join(",") : undefined,
+          from: filters.from,
+          to: filters.to,
+          limit: ACTIVITY_PAGE_SIZE,
+          cursor: pageParam ?? undefined,
         },
       }),
-    select: (data) => data.data,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.next_cursor ?? undefined,
   });
 
 export const adminBucketsQueryOptions = () =>
