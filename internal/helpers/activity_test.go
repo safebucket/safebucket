@@ -46,6 +46,20 @@ func TestResolveActivityRangeFromAfterTo(t *testing.T) {
 	}
 }
 
+func TestResolveActivityRangeMaxWindow(t *testing.T) {
+	to := time.Date(2026, time.June, 1, 0, 0, 0, 0, time.UTC)
+
+	withinMax := to.AddDate(0, 0, -maxActivityWindowDays)
+	if _, _, err := ResolveActivityRange(withinMax, to); err != nil {
+		t.Fatalf("unexpected error for 90d range: %v", err)
+	}
+
+	overMax := to.AddDate(0, 0, -(maxActivityWindowDays + 1))
+	if _, _, err := ResolveActivityRange(overMax, to); err == nil {
+		t.Fatal("expected error when range exceeds 90 days")
+	}
+}
+
 func TestParseActivityCursor(t *testing.T) {
 	now := time.Unix(0, 1_700_000_000_000_000_000).UTC()
 	cursor := strconv.FormatInt(now.UnixNano(), 10)

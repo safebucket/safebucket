@@ -15,6 +15,7 @@ import (
 
 const (
 	defaultActivityWindowDays = 30
+	maxActivityWindowDays     = 90
 	defaultActivityLimit      = 100
 )
 
@@ -31,6 +32,10 @@ func ResolveActivityRange(from, to time.Time) (time.Time, time.Time, error) {
 
 	if start.After(end) {
 		return time.Time{}, time.Time{}, apierrors.New(http.StatusBadRequest, apierrors.CodeBadRequest)
+	}
+
+	if end.Sub(start) > maxActivityWindowDays*24*time.Hour {
+		return time.Time{}, time.Time{}, apierrors.New(http.StatusBadRequest, apierrors.CodeActivityRangeTooLarge)
 	}
 
 	return start, end, nil

@@ -38,6 +38,7 @@
     "SHARE_FILE_NOT_IN_SHARE": "Ce fichier ne fait pas partie du partage.",
     "FILE_ALREADY_EXISTS": "Un fichier avec ce nom existe déjà.",
     "MAX_UPLOADS_REACHED": "Ce lien de partage a atteint son nombre maximum d'envois.",
+    "ACTIVITY_RANGE_TOO_LARGE": "La période sélectionnée ne peut pas dépasser 90 jours.",
     "default": "Une erreur s'est produite. Veuillez réessayer."
   },
   "toast": {
