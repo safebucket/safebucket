@@ -12,6 +12,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+export const MAX_RANGE_DAYS = 90;
+
 export interface ActivityRange {
   from?: string;
   to?: string;
@@ -55,6 +57,7 @@ export const ActivityDateRangePicker: FC<ActivityDateRangePickerProps> = ({
         <PopoverContent className="w-auto p-0" align="end">
           <Calendar
             mode="range"
+            max={MAX_RANGE_DAYS - 1}
             numberOfMonths={2}
             selected={value}
             onSelect={onChange}
