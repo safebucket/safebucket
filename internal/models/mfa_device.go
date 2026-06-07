@@ -33,6 +33,7 @@ type MFADevicesListResponse struct {
 type MFADeviceSetupBody struct {
 	Name     string `json:"name"     validate:"required,min=1,max=50"`
 	Password string `json:"password" validate:"omitempty"`
+	Code     string `json:"code"     validate:"omitempty,len=6,numeric"`
 }
 
 type MFADeviceSetupResponse struct {
@@ -52,7 +53,8 @@ type MFADeviceUpdateBody struct {
 }
 
 type MFADeviceRemoveBody struct {
-	Password string `json:"password" validate:"required,min=1"`
+	Password string `json:"password" validate:"omitempty"`
+	Code     string `json:"code"     validate:"omitempty,len=6,numeric"`
 }
 
 type MFADeviceActivity struct {

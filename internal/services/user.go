@@ -128,13 +128,14 @@ func (s UserService) UpdateUser(
 	}
 
 	if body.OldPassword != "" && body.NewPassword != "" {
-		user.ProviderType = models.LocalProviderType
-		user.ProviderKey = string(models.LocalProviderType)
-
-		result := s.DB.Where(user, "id", "provider_type", "provider_key").Find(&user)
-		if result.RowsAffected == 0 {
-			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
+		loaded, err := loadUser(s.DB, ids[0])
+		if err != nil {
+			return err
 		}
+		if loaded.ProviderType != models.LocalProviderType {
+			return apierrors.New(http.StatusForbidden, apierrors.CodePasswordChangeNotAllowed)
+		}
+		user = loaded
 
 		match, err := argon2id.ComparePasswordAndHash(body.OldPassword, user.HashedPassword)
 		if err != nil {

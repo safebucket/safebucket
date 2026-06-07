@@ -65,7 +65,7 @@ func (s AuthService) LDAPLogin(
 		}
 	}
 
-	return s.finalizeLogin(isSecure, logger, &user, models.LDAPProviderType, provider.Name)
+	return s.finalizeLogin(isSecure, logger, &user, models.LDAPProviderType, provider.Name, provider.MFARequired)
 }
 
 func mapLDAPAuthError(logger *zap.Logger, providerKey string, err error) error {

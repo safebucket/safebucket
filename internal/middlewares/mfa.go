@@ -14,7 +14,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Handler {
+func MFAValidate(
+	db *gorm.DB,
+	mfaRequired bool,
+	providers configuration.Providers,
+) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx, span := tracing.StartSpan(r.Context(), "middleware.MFAValidate")
@@ -32,8 +36,17 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 				return
 			}
 
-			if claims.AudienceString() != configuration.AudienceAccessToken ||
-				claims.Provider != string(models.LocalProviderType) {
+			if claims.AudienceString() != configuration.AudienceAccessToken {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			isLocal := claims.Provider == string(models.LocalProviderType)
+			providerRequiresMFA := false
+			if p, found := providers[claims.Provider]; found {
+				providerRequiresMFA = p.MFARequired
+			}
+			if !isLocal && !providerRequiresMFA {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -48,7 +61,7 @@ func MFAValidate(db *gorm.DB, mfaRequired bool) func(next http.Handler) http.Han
 				return
 			}
 
-			if mfaRequired {
+			if (isLocal && mfaRequired) || providerRequiresMFA {
 				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}

@@ -384,7 +384,7 @@ func BuildAPIRouter(
 		apiRouter.Use(m.ClientInfo(config.App.TrustedProxies))
 		apiRouter.Use(m.Authenticate(authConfig.TokenSecret, cache, configuration.RefreshTokenExpiry))
 		apiRouter.Use(m.AudienceValidate)
-		apiRouter.Use(m.MFAValidate(db, authConfig.MFARequired))
+		apiRouter.Use(m.MFAValidate(db, authConfig.MFARequired, providers))
 		apiRouter.Use(m.RateLimit(
 			cache,
 			config.App.AuthenticatedRequestsPerMinute,
@@ -407,6 +407,7 @@ func BuildAPIRouter(
 			DB:             db,
 			Cache:          cache,
 			AuthConfig:     authConfig,
+			Providers:      providers,
 			Publisher:      publisher,
 			Notifier:       notify,
 			ActivityLogger: activityLogger,

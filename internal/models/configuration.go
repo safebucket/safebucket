@@ -90,11 +90,12 @@ type AuthConfiguration struct {
 }
 
 type ProviderConfiguration struct {
-	Name                 string               `mapstructure:"name"    validate:"required_if=Type oidc"`
-	Type                 ProviderType         `mapstructure:"type"    validate:"required,oneof=local oidc ldap"`
-	OIDC                 OIDCConfiguration    `mapstructure:"oidc"    validate:"required_if=Type oidc"`
-	LDAP                 *LDAPConfiguration   `mapstructure:"ldap"    validate:"required_if=Type ldap"`
+	Name                 string               `mapstructure:"name"         validate:"required_if=Type oidc"`
+	Type                 ProviderType         `mapstructure:"type"         validate:"required,oneof=local oidc ldap"`
+	OIDC                 OIDCConfiguration    `mapstructure:"oidc"         validate:"required_if=Type oidc"`
+	LDAP                 *LDAPConfiguration   `mapstructure:"ldap"         validate:"required_if=Type ldap"`
 	Domains              []string             `mapstructure:"domains"`
+	MFARequired          bool                 `mapstructure:"mfa_required"`
 	SharingConfiguration SharingConfiguration `mapstructure:"sharing"`
 }
 

@@ -29,9 +29,9 @@ func (m *MockOpenIDCallbackFunc) OpenIDCallback(
 	providerName,
 	code,
 	nonce string,
-) (string, string, error) {
+) (models.OIDCCallbackResult, error) {
 	args := m.Called(ctx, logger, providerName, code, nonce)
-	return args.String(0), args.String(1), args.Error(2)
+	return args.Get(0).(models.OIDCCallbackResult), args.Error(1) //nolint:errcheck // test mock type assertion
 }
 
 type MockCreateFunc[In any, Out any] struct {

@@ -37,6 +37,13 @@ import (
 type OIDCSetup struct {
 	ProviderKey string
 	Users       []DexUser
+	MFARequired bool
+}
+
+type LDAPSetup struct {
+	ProviderKey string
+	Users       []LDAPUser
+	MFARequired bool
 }
 
 const TestPassword = "correct-horse-battery-staple"
@@ -106,16 +113,22 @@ func BootScenario(t *testing.T, name string) *TestApp {
 
 func BootTestApp(t *testing.T, cfg models.Configuration) *TestApp {
 	t.Helper()
-	return bootTestApp(t, cfg, nil)
+	return bootTestApp(t, cfg, nil, nil)
 }
 
 func BootScenarioWithOIDC(t *testing.T, name string, setup OIDCSetup) *TestApp {
 	t.Helper()
 	require.NotEmpty(t, setup.ProviderKey, "OIDCSetup.ProviderKey is required")
-	return bootTestApp(t, LoadScenario(t, name), &setup)
+	return bootTestApp(t, LoadScenario(t, name), &setup, nil)
 }
 
-func bootTestApp(t *testing.T, cfg models.Configuration, oidc *OIDCSetup) *TestApp {
+func BootScenarioWithLDAP(t *testing.T, name string, setup LDAPSetup) *TestApp {
+	t.Helper()
+	require.NotEmpty(t, setup.ProviderKey, "LDAPSetup.ProviderKey is required")
+	return bootTestApp(t, LoadScenario(t, name), nil, &setup)
+}
+
+func bootTestApp(t *testing.T, cfg models.Configuration, oidc *OIDCSetup, ldap *LDAPSetup) *TestApp {
 	t.Helper()
 
 	provider := providerForDialect(t, cfg.Database.Type)
@@ -156,12 +169,35 @@ func bootTestApp(t *testing.T, cfg models.Configuration, oidc *OIDCSetup) *TestA
 			cfg.Auth.Providers = map[string]models.ProviderConfiguration{}
 		}
 		cfg.Auth.Providers[oidc.ProviderKey] = models.ProviderConfiguration{
-			Name: "Dex",
-			Type: models.OIDCProviderType,
+			Name:        "Dex",
+			Type:        models.OIDCProviderType,
+			MFARequired: oidc.MFARequired,
 			OIDC: models.OIDCConfiguration{
 				ClientID:     dex.ClientID,
 				ClientSecret: dex.ClientSecret,
 				Issuer:       dex.Issuer,
+			},
+		}
+	}
+
+	if ldap != nil {
+		instance := StartLDAP(t, ldap.Users)
+
+		if cfg.Auth.Providers == nil {
+			cfg.Auth.Providers = map[string]models.ProviderConfiguration{}
+		}
+		cfg.Auth.Providers[ldap.ProviderKey] = models.ProviderConfiguration{
+			Name:        "LDAP",
+			Type:        models.LDAPProviderType,
+			MFARequired: ldap.MFARequired,
+			LDAP: &models.LDAPConfiguration{
+				URL:              instance.URL,
+				BindDN:           instance.BindDN,
+				BindPassword:     instance.BindPassword,
+				BaseDN:           instance.BaseDN,
+				UserFilter:       "(mail=%s)",
+				AttributeMap:     models.LDAPAttributeMap{Email: "mail"},
+				ConnectTimeoutMS: 5000,
 			},
 		}
 	}
@@ -298,6 +334,38 @@ func (a *TestApp) doGetCookie(
 	return resp.StatusCode, ""
 }
 
+func (a *TestApp) DoLoginCookies(t *testing.T, method, path string, body any) (int, string, string) {
+	t.Helper()
+
+	var reqBody io.Reader
+	if body != nil {
+		buf, err := json.Marshal(body)
+		require.NoError(t, err)
+		reqBody = bytes.NewReader(buf)
+	}
+
+	req, err := http.NewRequestWithContext(t.Context(), method, a.URL(path), reqBody)
+	require.NoError(t, err)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := a.client.Do(req)
+	require.NoError(t, err)
+	defer func() { _, _ = io.Copy(io.Discard, resp.Body); _ = resp.Body.Close() }()
+
+	var access, mfa string
+	for _, c := range resp.Cookies() {
+		switch c.Name {
+		case "safebucket_access_token":
+			access = c.Value
+		case "safebucket_mfa_token":
+			mfa = c.Value
+		}
+	}
+	return resp.StatusCode, access, mfa
+}
+
 func (a *TestApp) Do(
 	t *testing.T,
 	method, path, token string,
@@ -344,6 +412,37 @@ func (a *TestApp) Do(
 func (a *TestApp) DoStatus(t *testing.T, method, path, token string, body any) int {
 	t.Helper()
 	return a.Do(t, method, path, token, body, nil)
+}
+
+func (a *TestApp) DoExpectError(t *testing.T, method, path, token string, body any) (int, []string) {
+	t.Helper()
+
+	var reqBody io.Reader
+	if body != nil {
+		buf, err := json.Marshal(body)
+		require.NoError(t, err)
+		reqBody = bytes.NewReader(buf)
+	}
+
+	req, err := http.NewRequestWithContext(t.Context(), method, a.URL(path), reqBody)
+	require.NoError(t, err)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := a.client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	var payload models.Error
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&payload); decodeErr != nil &&
+		!errors.Is(decodeErr, io.EOF) {
+		require.NoError(t, decodeErr)
+	}
+	return resp.StatusCode, payload.Error
 }
 
 func (a *TestApp) Eventually(t *testing.T, cond func() bool, msg string) {

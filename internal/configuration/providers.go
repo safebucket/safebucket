@@ -21,6 +21,7 @@ type Provider struct {
 	OauthConfig    oauth2.Config
 	LDAPConfig     *ldapclient.Config
 	Order          int
+	MFARequired    bool
 	SharingOptions models.SharingConfiguration
 }
 
@@ -48,6 +49,7 @@ func LoadProviders(
 				Type:           providerCfg.Type,
 				Order:          idx,
 				Domains:        providerCfg.Domains,
+				MFARequired:    providerCfg.MFARequired,
 				SharingOptions: providerCfg.SharingConfiguration,
 			}
 			countLocalProviders++
@@ -81,6 +83,7 @@ func LoadProviders(
 				Verifier:       verifier,
 				OauthConfig:    oauthConfig,
 				Order:          idx,
+				MFARequired:    providerCfg.MFARequired,
 				SharingOptions: providerCfg.SharingConfiguration,
 			}
 			idx++
@@ -124,6 +127,7 @@ func LoadProviders(
 				Domains:        providerCfg.Domains,
 				LDAPConfig:     ldapCfg,
 				Order:          idx,
+				MFARequired:    providerCfg.MFARequired,
 				SharingOptions: providerCfg.SharingConfiguration,
 			}
 			idx++

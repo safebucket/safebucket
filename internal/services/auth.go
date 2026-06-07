@@ -99,7 +99,7 @@ func (s AuthService) Login(
 		return handlers.AuthFlowResult{}, apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidCredentials)
 	}
 
-	return s.finalizeLogin(isSecure, logger, &user, provider.Type, provider.Name)
+	return s.finalizeLogin(isSecure, logger, &user, provider.Type, provider.Name, provider.MFARequired)
 }
 
 func (s AuthService) finalizeLogin(
@@ -108,11 +108,12 @@ func (s AuthService) finalizeLogin(
 	user *models.User,
 	providerType models.ProviderType,
 	providerName string,
+	providerMFARequired bool,
 ) (handlers.AuthFlowResult, error) {
 	verifiedDevices := user.GetVerifiedDevices()
 	hasMFA := len(verifiedDevices) > 0
 
-	if hasMFA || s.AuthConfig.MFARequired {
+	if hasMFA || s.AuthConfig.MFARequired || providerMFARequired {
 		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, user)
 		if mfaErr != nil {
 			return handlers.AuthFlowResult{}, mfaErr
@@ -387,7 +388,7 @@ func (s AuthService) VerifyMFALogin(
 ) (handlers.AuthFlowResult, error) {
 	var user models.User
 	result := s.DB.Preload("MFADevices", "is_verified = ?", true).
-		Where("id = ? AND provider_type = ?", claims.UserID, models.LocalProviderType).
+		Where("id = ?", claims.UserID).
 		First(&user)
 	if result.RowsAffected == 0 {
 		return handlers.AuthFlowResult{}, apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)

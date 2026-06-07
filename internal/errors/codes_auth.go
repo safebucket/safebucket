@@ -40,5 +40,6 @@ const (
 )
 
 const (
-	CodeAuthProviderUnavailable = "AUTH_PROVIDER_UNAVAILABLE"
+	CodeAuthProviderUnavailable  = "AUTH_PROVIDER_UNAVAILABLE"
+	CodePasswordChangeNotAllowed = "PASSWORD_CHANGE_NOT_ALLOWED"
 )

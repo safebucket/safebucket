@@ -24,6 +24,13 @@ type AuthVerifyBody struct {
 	AccessToken string `json:"access_token" validate:"required,max=2048"`
 }
 
+type OIDCCallbackResult struct {
+	AccessToken  string
+	RefreshToken string
+	MFAToken     string
+	MFARequired  bool
+}
+
 type AuthMeResponse struct {
 	UserID          uuid.UUID `json:"user_id"`
 	Email           string    `json:"email"`

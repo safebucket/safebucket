@@ -10,6 +10,7 @@ import (
 	"time"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
+	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/tests"
 
 	"github.com/go-chi/chi/v5"
@@ -101,7 +102,10 @@ func TestOpenIDCallbackHandler(t *testing.T) {
 		providerName,
 		code,
 		nonce,
-	).Return(accessToken, refreshToken, nil)
+	).Return(models.OIDCCallbackResult{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -199,7 +203,7 @@ func TestOpenIDCallbackHandler_Errors(t *testing.T) {
 					providerName,
 					code,
 					nonce,
-				).Return("", "", errors.New("OpenIDCallback error"))
+				).Return(models.OIDCCallbackResult{}, errors.New("OpenIDCallback error"))
 			},
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedError:      "INTERNAL_SERVER_ERROR",

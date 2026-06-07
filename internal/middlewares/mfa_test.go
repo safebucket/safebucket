@@ -54,7 +54,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -89,7 +89,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -122,7 +122,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(nil, false)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, false, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -155,7 +155,7 @@ func TestMFAValidate_RestrictedTokensSkipMFAEnforcement(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -171,7 +171,7 @@ func TestMFAValidate_NoClaims(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
 		recorder := httptest.NewRecorder()
 
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -190,7 +190,7 @@ func TestMFAValidate_AuthExcluded(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -223,13 +223,62 @@ func TestMFAValidate_OAuthUsersSkipMFA(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
 
 		assert.True(t, nextCalled, "Next handler should be called for OAuth users")
+		assert.Equal(t, http.StatusOK, recorder.Code)
+	})
+}
+
+func TestMFAValidate_OIDCProviderRequiresMFA(t *testing.T) {
+	providers := configuration.Providers{
+		"google": {Type: models.OIDCProviderType, MFARequired: true},
+		"okta":   {Type: models.OIDCProviderType, MFARequired: false},
+	}
+
+	newReq := func(t *testing.T, providerKey string) *http.Request {
+		t.Helper()
+		testUser := &models.User{
+			ID:           uuid.New(),
+			Email:        "oidc@example.com",
+			Role:         models.RoleUser,
+			ProviderType: models.OIDCProviderType,
+		}
+		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, providerKey, "")
+		require.NoError(t, err)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
+		return req.WithContext(context.WithValue(req.Context(), models.UserClaimKey{}, claims))
+	}
+
+	t.Run("should block OIDC user when provider enforces MFA and token lacks MFA", func(t *testing.T) {
+		var nextCalled bool
+		handler := MFAValidate(nil, false, providers)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			nextCalled = true
+			w.WriteHeader(http.StatusOK)
+		}))
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, newReq(t, "google"))
+
+		assert.False(t, nextCalled)
+		assert.Equal(t, http.StatusForbidden, recorder.Code)
+	})
+
+	t.Run("should skip OIDC user when provider does not enforce MFA", func(t *testing.T) {
+		var nextCalled bool
+		handler := MFAValidate(nil, false, providers)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			nextCalled = true
+			w.WriteHeader(http.StatusOK)
+		}))
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, newReq(t, "okta"))
+
+		assert.True(t, nextCalled)
 		assert.Equal(t, http.StatusOK, recorder.Code)
 	})
 }
@@ -292,7 +341,7 @@ func TestMFAValidate_TokenUserStateMismatch(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -327,7 +376,7 @@ func TestMFAValidate_TokenUserStateMismatch(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -360,7 +409,7 @@ func TestMFAValidate_ProviderTypeMismatch(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -393,7 +442,7 @@ func TestMFAValidate_CrossFlowTokenAccess(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(nil, false)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, false, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -506,7 +555,7 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -537,7 +586,7 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -567,7 +616,7 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := MFAValidate(nil, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(nil, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -615,7 +664,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := MFAValidate(gormDB, false)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(gormDB, false, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)
@@ -662,7 +711,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(gormDB, false)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(gormDB, false, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -705,7 +754,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(gormDB, false)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(gormDB, false, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -752,7 +801,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		var nextCalled bool
-		handler := MFAValidate(gormDB, false)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(gormDB, false, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			nextCalled = true
 			w.WriteHeader(http.StatusOK)
 		}))
@@ -795,7 +844,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
 		req = req.WithContext(ctx)
 
-		handler := MFAValidate(gormDB, true)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handler := MFAValidate(gormDB, true, nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}))
 		handler.ServeHTTP(recorder, req)

@@ -8,6 +8,7 @@ import (
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
+	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/tracing"
 
 	"github.com/go-chi/chi/v5"
@@ -16,7 +17,7 @@ import (
 
 type (
 	OpenIDBeginFunc    func(string, string, string) (string, error)
-	OpenIDCallbackFunc func(context.Context, *zap.Logger, string, string, string) (string, string, error)
+	OpenIDCallbackFunc func(context.Context, *zap.Logger, string, string, string) (models.OIDCCallbackResult, error)
 )
 
 func providerKeyFromURL(r *http.Request) (string, error) {
@@ -85,7 +86,7 @@ func OpenIDCallbackHandler(webURL string, cookieSecureForce bool, openidCallback
 
 		logger := m.GetLogger(r)
 
-		accessToken, refreshToken, err := openidCallback(
+		result, err := openidCallback(
 			r.Context(),
 			logger,
 			providerName,
@@ -97,7 +98,13 @@ func OpenIDCallbackHandler(webURL string, cookieSecureForce bool, openidCallback
 			return
 		}
 
-		SetAuthCookies(w, r, accessToken, refreshToken, providerName, cookieSecureForce)
+		if result.MFARequired {
+			SetMFACookie(w, r, result.MFAToken, cookieSecureForce)
+			http.Redirect(w, r, fmt.Sprintf("%s/auth/complete?mfa=required", webURL), http.StatusFound)
+			return
+		}
+
+		SetAuthCookies(w, r, result.AccessToken, result.RefreshToken, providerName, cookieSecureForce)
 
 		http.Redirect(w, r, fmt.Sprintf("%s/auth/complete", webURL), http.StatusFound)
 	}

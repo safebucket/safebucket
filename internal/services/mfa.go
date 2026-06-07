@@ -17,7 +17,6 @@ import (
 	"github.com/safebucket/safebucket/internal/notifier"
 	"github.com/safebucket/safebucket/internal/rbac"
 
-	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -29,6 +28,7 @@ type MFAService struct {
 	DB             *gorm.DB
 	Cache          cache.ICache
 	AuthConfig     models.AuthConfig
+	Providers      configuration.Providers
 	Publisher      messaging.IPublisher
 	Notifier       notifier.INotifier
 	ActivityLogger activity.IActivityLogger
@@ -87,14 +87,13 @@ func (s MFAService) AddDevice(
 ) (models.MFADeviceSetupResponse, error) {
 	userID := claims.UserID
 
-	var user models.User
-	result := s.DB.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).First(&user)
-	if result.RowsAffected == 0 {
-		return models.MFADeviceSetupResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
+	user, err := loadUser(s.DB, userID)
+	if err != nil {
+		return models.MFADeviceSetupResponse{}, err
 	}
 
 	var count int64
-	result = s.DB.Model(&models.MFADevice{}).Where("user_id = ?", userID).Count(&count)
+	result := s.DB.Model(&models.MFADevice{}).Where("user_id = ?", userID).Count(&count)
 	if result.Error != nil {
 		logger.Error("Failed to count MFA devices", zap.Error(result.Error))
 		return models.MFADeviceSetupResponse{}, result.Error
@@ -125,22 +124,8 @@ func (s MFAService) AddDevice(
 			)
 		}
 	} else {
-		if body.Password == "" {
-			return models.MFADeviceSetupResponse{}, apierrors.New(http.StatusBadRequest, apierrors.CodeBadRequest)
-		}
-
-		match, err := argon2id.ComparePasswordAndHash(body.Password, user.HashedPassword)
-		if err != nil {
-			logger.Error("failed to compare password and hash", zap.Error(err))
-			return models.MFADeviceSetupResponse{}, apierrors.New(http.StatusBadRequest, apierrors.CodeBadRequest)
-		}
-		if !match {
-			logger.Warn(
-				"invalid password provided for device enrollment",
-				zap.String("userID", claims.UserID.String()),
-			)
-			return models.MFADeviceSetupResponse{},
-				apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidPassword)
+		if err = s.verifyAddDeviceStepUp(logger, &user, body.Password, body.Code); err != nil {
+			return models.MFADeviceSetupResponse{}, err
 		}
 	}
 
@@ -243,13 +228,12 @@ func (s MFAService) VerifyDevice(
 	var deviceName string
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).Find(&user)
-		if result.RowsAffected == 0 {
-			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
+		if _, err := loadUser(tx, userID); err != nil {
+			return err
 		}
 
 		var device models.MFADevice
-		result = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND user_id = ?", deviceID, userID).
 			First(&device)
 		if result.RowsAffected == 0 {
@@ -419,7 +403,7 @@ func (s MFAService) VerifyDevice(
 			isSecure,
 			tokens.AccessToken,
 			tokens.RefreshToken,
-			string(models.LocalProviderType),
+			user.ProviderKey,
 		),
 	}, nil
 }
@@ -438,14 +422,12 @@ func (s MFAService) UpdateDevice(
 	deviceID := ids[0]
 
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		var user models.User
-		result := tx.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).Find(&user)
-		if result.RowsAffected == 0 {
-			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
+		if _, err := loadUser(tx, userID); err != nil {
+			return err
 		}
 
 		var device models.MFADevice
-		result = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND user_id = ?", deviceID, userID).
 			Find(&device)
 		if result.RowsAffected == 0 {
@@ -511,29 +493,20 @@ func (s MFAService) RemoveDevice(
 	userID := claims.UserID
 	deviceID := ids[0]
 
-	var user models.User
+	user, err := loadUser(s.DB, userID)
+	if err != nil {
+		return err
+	}
+
+	if err = s.verifyMFAStepUp(logger, &user, body.Password, body.Code); err != nil {
+		return err
+	}
+
 	var deviceName string
 
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Where("id = ? AND provider_type = ?", userID, models.LocalProviderType).First(&user)
-		if result.RowsAffected == 0 {
-			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
-		}
-
-		match, err := argon2id.ComparePasswordAndHash(body.Password, user.HashedPassword)
-		if err != nil {
-			logger.Error("Failed to verify password", zap.Error(err))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-		if !match {
-			logger.Warn("MFA device removal failed - invalid password",
-				zap.String("user_id", userID.String()),
-				zap.String("device_id", deviceID.String()))
-			return apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidPassword)
-		}
-
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		var device models.MFADevice
-		result = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND user_id = ?", deviceID, userID).
 			First(&device)
 		if result.RowsAffected == 0 {
@@ -544,8 +517,8 @@ func (s MFAService) RemoveDevice(
 		wasDefault := device.IsDefault
 		wasVerified := device.IsVerified
 
-		if err = tx.Delete(&device).Error; err != nil {
-			return err
+		if delErr := tx.Delete(&device).Error; delErr != nil {
+			return delErr
 		}
 
 		if wasDefault && wasVerified {

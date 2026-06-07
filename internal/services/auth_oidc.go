@@ -8,6 +8,7 @@ import (
 	"github.com/safebucket/safebucket/internal/cache"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
+	"github.com/safebucket/safebucket/internal/mfa"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
@@ -30,42 +31,42 @@ func (s AuthService) OpenIDBegin(providerName string, state string, nonce string
 
 func (s AuthService) OpenIDCallback(
 	ctx context.Context, logger *zap.Logger, providerKey string, code string, nonce string,
-) (string, string, error) {
+) (models.OIDCCallbackResult, error) {
 	provider, ok := s.Providers[providerKey]
 	if !ok || provider.Type != models.OIDCProviderType {
-		return "", "", apierrors.New(http.StatusNotFound, apierrors.CodeProviderNotFound)
+		return models.OIDCCallbackResult{}, apierrors.New(http.StatusNotFound, apierrors.CodeProviderNotFound)
 	}
 
 	oauth2Token, err := provider.OauthConfig.Exchange(ctx, code)
 	if err != nil {
 		logger.Error("Failed to exchange OAuth2 token", zap.Error(err))
-		return "", "", apierrors.New(http.StatusBadRequest, apierrors.CodeOAuthExchangeFailed)
+		return models.OIDCCallbackResult{}, apierrors.New(http.StatusBadRequest, apierrors.CodeOAuthExchangeFailed)
 	}
 
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
-		return "", "", apierrors.New(http.StatusBadRequest, apierrors.CodeIDTokenMissing)
+		return models.OIDCCallbackResult{}, apierrors.New(http.StatusBadRequest, apierrors.CodeIDTokenMissing)
 	}
 
 	idToken, err := provider.Verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		logger.Error("Failed to verify ID token", zap.Error(err))
-		return "", "", apierrors.New(http.StatusUnauthorized, apierrors.CodeIDTokenVerifyFailed)
+		return models.OIDCCallbackResult{}, apierrors.New(http.StatusUnauthorized, apierrors.CodeIDTokenVerifyFailed)
 	}
 
 	if idToken.Nonce != nonce {
-		return "", "", apierrors.New(http.StatusBadRequest, apierrors.CodeOIDCNonceMismatch)
+		return models.OIDCCallbackResult{}, apierrors.New(http.StatusBadRequest, apierrors.CodeOIDCNonceMismatch)
 	}
 
 	userInfo, err := provider.Provider.UserInfo(ctx, oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
 		logger.Error("Failed to get user info from provider", zap.Error(err))
-		return "", "", apierrors.New(http.StatusBadGateway, apierrors.CodeOAuthUserinfoFailed)
+		return models.OIDCCallbackResult{}, apierrors.New(http.StatusBadGateway, apierrors.CodeOAuthUserinfoFailed)
 	}
 
 	if !h.IsDomainAllowed(userInfo.Email, provider.Domains) {
 		logger.Debug("Domain not allowed")
-		return "", "", apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
+		return models.OIDCCallbackResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
 	searchUser, found, err := sql.FindUserByIdentityProvider(
@@ -73,7 +74,10 @@ func (s AuthService) OpenIDCallback(
 	)
 	if err != nil {
 		logger.Error("Failed to look up OIDC user", zap.Error(err))
-		return "", "", apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		return models.OIDCCallbackResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
 	}
 	if !found {
 		searchUser = models.User{
@@ -84,36 +88,11 @@ func (s AuthService) OpenIDCallback(
 		}
 		if createErr := sql.CreateUserWithInvites(logger, s.DB, &searchUser); createErr != nil {
 			logger.Error("Failed to create OIDC user", zap.Error(createErr))
-			return "", "", apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+			return models.OIDCCallbackResult{}, apierrors.New(
+				http.StatusInternalServerError,
+				apierrors.CodeInternalServerError,
+			)
 		}
-	}
-
-	sid := uuid.New().String()
-	if sessionErr := cache.CreateSession(s.Cache, searchUser.ID.String(), sid); sessionErr != nil {
-		logger.Error("Failed to create session", zap.Error(sessionErr))
-		return "", "", apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-	}
-
-	accessToken, err := h.NewAccessToken(
-		s.AuthConfig.TokenSecret,
-		&searchUser,
-		providerKey,
-		sid,
-	)
-	if err != nil {
-		logger.Error("Failed to generate access token", zap.Error(err))
-		return "", "", apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-	}
-
-	refreshToken, err := h.NewRefreshToken(
-		s.AuthConfig.TokenSecret,
-		&searchUser,
-		providerKey,
-		sid,
-	)
-	if err != nil {
-		logger.Error("Failed to generate refresh token", zap.Error(err))
-		return "", "", apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	action := models.Activity{
@@ -131,5 +110,57 @@ func (s AuthService) OpenIDCallback(
 		logger.Error("Failed to log login activity", zap.Error(logErr))
 	}
 
-	return accessToken, refreshToken, nil
+	var verifiedCount int64
+	if countErr := s.DB.Model(&models.MFADevice{}).
+		Where("user_id = ? AND is_verified = ?", searchUser.ID, true).
+		Count(&verifiedCount).Error; countErr != nil {
+		logger.Error("Failed to count verified MFA devices", zap.Error(countErr))
+		return models.OIDCCallbackResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
+	}
+
+	if provider.MFARequired || verifiedCount > 0 {
+		mfaToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, &searchUser)
+		if mfaErr != nil {
+			return models.OIDCCallbackResult{}, mfaErr
+		}
+		return models.OIDCCallbackResult{MFAToken: mfaToken, MFARequired: true}, nil
+	}
+
+	return s.issueOIDCSession(logger, &searchUser, providerKey)
+}
+
+func (s AuthService) issueOIDCSession(
+	logger *zap.Logger, user *models.User, providerKey string,
+) (models.OIDCCallbackResult, error) {
+	sid := uuid.New().String()
+	if sessionErr := cache.CreateSession(s.Cache, user.ID.String(), sid); sessionErr != nil {
+		logger.Error("Failed to create session", zap.Error(sessionErr))
+		return models.OIDCCallbackResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
+	}
+
+	accessToken, err := h.NewAccessToken(s.AuthConfig.TokenSecret, user, providerKey, sid)
+	if err != nil {
+		logger.Error("Failed to generate access token", zap.Error(err))
+		return models.OIDCCallbackResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
+	}
+
+	refreshToken, err := h.NewRefreshToken(s.AuthConfig.TokenSecret, user, providerKey, sid)
+	if err != nil {
+		logger.Error("Failed to generate refresh token", zap.Error(err))
+		return models.OIDCCallbackResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
+	}
+
+	return models.OIDCCallbackResult{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }

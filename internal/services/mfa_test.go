@@ -86,8 +86,8 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, "hash")
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE (id = $1 AND provider_type = $2) AND "users"."deleted_at" IS NULL`)).
-			WithArgs(userID, models.LocalProviderType).
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+			WithArgs(userID, 1).
 			WillReturnRows(userRow)
 
 		encryptedSecret, _ := helpers.EncryptSecret("JBSWY3DPEHPK3PXP", []byte(config.MFAEncryptionKey))
@@ -203,7 +203,7 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 			userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 				AddRow(userID, "test@example.com", models.LocalProviderType, "hash")
 			mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-				WithArgs(userID, models.LocalProviderType, 1).
+				WithArgs(userID, 1).
 				WillReturnRows(userRow)
 
 			mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -277,7 +277,7 @@ func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID, 1).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -339,7 +339,7 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID, 1).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -410,7 +410,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID, 1).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -461,7 +461,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, hashedPassword)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID, 1).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -512,7 +512,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType, hashedPassword)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID, 1).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -554,7 +554,7 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		WebURL:           "http://localhost:3000",
 	}
 
-	t.Run("should reject OAuth users", func(t *testing.T) {
+	t.Run("should reject unknown user", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func(db *sql.DB) { _ = db.Close() }(db)
@@ -578,7 +578,7 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		}
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID, 1).
 			WillReturnRows(sqlmock.NewRows([]string{}))
 
 		logger := zap.NewNop()
@@ -623,7 +623,7 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID, 1).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -672,7 +672,7 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
 			AddRow(userID, "test@example.com", models.LocalProviderType)
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, models.LocalProviderType, 1).
+			WithArgs(userID, 1).
 			WillReturnRows(userRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
@@ -703,5 +703,285 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "MFA_DEVICE_NAME_EXISTS")
+	})
+
+	t.Run("should allow OIDC user without password", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func(db *sql.DB) { _ = db.Close() }(db)
+
+		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+		require.NoError(t, err)
+
+		service := MFAService{
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
+		}
+
+		userID := uuid.New()
+		claims := models.UserClaims{
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
+			MFA:              false,
+		}
+
+		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
+			AddRow(userID, "oidc@example.com", models.OIDCProviderType)
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+			WithArgs(userID, 1).
+			WillReturnRows(userRow)
+
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
+			WithArgs(userID, true).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
+			WithArgs(userID, "OIDC Device", true).
+			WillReturnRows(sqlmock.NewRows([]string{}))
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
+		mock.ExpectCommit()
+
+		logger := zap.NewNop()
+
+		response, err := service.AddDevice(
+			logger,
+			claims,
+			uuid.UUIDs{},
+			models.MFADeviceSetupBody{
+				Name:     "OIDC Device",
+				Password: "",
+			},
+		)
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, response.DeviceID)
+		assert.NotEmpty(t, response.Secret)
+	})
+
+	t.Run("should reject empty password for LDAP user", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func(db *sql.DB) { _ = db.Close() }(db)
+
+		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+		require.NoError(t, err)
+
+		service := MFAService{
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
+		}
+
+		userID := uuid.New()
+		claims := models.UserClaims{
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
+			MFA:              true,
+		}
+
+		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
+			AddRow(userID, "jdoe@example.org", models.LDAPProviderType, "corp")
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+			WithArgs(userID, 1).
+			WillReturnRows(userRow)
+
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+
+		logger := zap.NewNop()
+
+		_, err = service.AddDevice(
+			logger,
+			claims,
+			uuid.UUIDs{},
+			models.MFADeviceSetupBody{
+				Name:     "LDAP Device",
+				Password: "",
+			},
+		)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "BAD_REQUEST")
+	})
+}
+
+func TestRemoveDevice_OIDCStepUp(t *testing.T) {
+	config := models.AuthConfig{
+		TokenSecret:      "test-secret",
+		MFAEncryptionKey: "01234567890123456789012345678901",
+		WebURL:           "http://localhost:3000",
+	}
+
+	newOIDCService := func(t *testing.T) (MFAService, sqlmock.Sqlmock, uuid.UUID) {
+		t.Helper()
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+		require.NoError(t, err)
+
+		service := MFAService{
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
+		}
+		return service, mock, uuid.New()
+	}
+
+	claimsFor := func(userID uuid.UUID) models.UserClaims {
+		return models.UserClaims{
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
+			MFA:              true,
+		}
+	}
+
+	t.Run("should reject removal without a code for OIDC user", func(t *testing.T) {
+		service, mock, userID := newOIDCService(t)
+		deviceID := uuid.New()
+
+		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
+			AddRow(userID, "oidc@example.com", models.OIDCProviderType, "google")
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+			WithArgs(userID, 1).
+			WillReturnRows(userRow)
+
+		err := service.RemoveDevice(zap.NewNop(), claimsFor(userID), uuid.UUIDs{deviceID},
+			models.MFADeviceRemoveBody{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "BAD_REQUEST")
+	})
+
+	t.Run("should reject removal with an invalid code for OIDC user", func(t *testing.T) {
+		service, mock, userID := newOIDCService(t)
+		deviceID := uuid.New()
+
+		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
+			AddRow(userID, "oidc@example.com", models.OIDCProviderType, "google")
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+			WithArgs(userID, 1).
+			WillReturnRows(userRow)
+
+		encryptedSecret, err := helpers.EncryptSecret("JBSWY3DPEHPK3PXP", []byte(config.MFAEncryptionKey))
+		require.NoError(t, err)
+		deviceRow := sqlmock.NewRows([]string{"id", "user_id", "encrypted_secret", "is_verified"}).
+			AddRow(deviceID, userID, encryptedSecret, true)
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
+			WithArgs(userID, true).
+			WillReturnRows(deviceRow)
+
+		// A code generated from a different secret can never match the stored one.
+		wrongCode, err := totp.GenerateCode("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", time.Now())
+		require.NoError(t, err)
+
+		err = service.RemoveDevice(zap.NewNop(), claimsFor(userID), uuid.UUIDs{deviceID},
+			models.MFADeviceRemoveBody{Code: wrongCode})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "INVALID_MFA_CODE")
+	})
+}
+
+func TestAddDevice_OIDCStepUp(t *testing.T) {
+	config := models.AuthConfig{
+		TokenSecret:      "test-secret",
+		MFAEncryptionKey: "01234567890123456789012345678901",
+		WebURL:           "http://localhost:3000",
+	}
+
+	newService := func(t *testing.T) (MFAService, sqlmock.Sqlmock, uuid.UUID) {
+		t.Helper()
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = db.Close() })
+
+		gormDB, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{})
+		require.NoError(t, err)
+
+		service := MFAService{
+			DB:             gormDB,
+			Cache:          &MockCache{},
+			AuthConfig:     config,
+			Notifier:       &MockNotifier{},
+			ActivityLogger: &MockActivityLogger{},
+		}
+		return service, mock, uuid.New()
+	}
+
+	appClaims := func(userID uuid.UUID) models.UserClaims {
+		return models.UserClaims{
+			UserID:           userID,
+			RegisteredClaims: jwt.RegisteredClaims{Audience: jwt.ClaimStrings{configuration.AudienceAccessToken}},
+			MFA:              true,
+		}
+	}
+
+	// expectUserAndCounts mocks the user load, the total-device count, and the verified-device
+	// count an OIDC user with one existing verified device hits before the step-up is evaluated.
+	expectUserAndCounts := func(mock sqlmock.Sqlmock, userID uuid.UUID) {
+		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
+			AddRow(userID, "oidc@example.com", models.OIDCProviderType, "google")
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+			WithArgs(userID, 1).
+			WillReturnRows(userRow)
+
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices"`)).
+			WithArgs(userID, true).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	}
+
+	t.Run("should reject a second device without a code for OIDC user", func(t *testing.T) {
+		service, mock, userID := newService(t)
+		expectUserAndCounts(mock, userID)
+
+		_, err := service.AddDevice(zap.NewNop(), appClaims(userID), uuid.UUIDs{},
+			models.MFADeviceSetupBody{Name: "second"})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "BAD_REQUEST")
+	})
+
+	t.Run("should reject a second device with an invalid code for OIDC user", func(t *testing.T) {
+		service, mock, userID := newService(t)
+		expectUserAndCounts(mock, userID)
+
+		encryptedSecret, err := helpers.EncryptSecret("JBSWY3DPEHPK3PXP", []byte(config.MFAEncryptionKey))
+		require.NoError(t, err)
+		deviceRow := sqlmock.NewRows([]string{"id", "user_id", "encrypted_secret", "is_verified"}).
+			AddRow(uuid.New(), userID, encryptedSecret, true)
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
+			WithArgs(userID, true).
+			WillReturnRows(deviceRow)
+
+		// A code generated from a different secret can never match the stored one.
+		wrongCode, err := totp.GenerateCode("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", time.Now())
+		require.NoError(t, err)
+
+		_, err = service.AddDevice(zap.NewNop(), appClaims(userID), uuid.UUIDs{},
+			models.MFADeviceSetupBody{Name: "second", Code: wrongCode})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "INVALID_MFA_CODE")
 	})
 }
