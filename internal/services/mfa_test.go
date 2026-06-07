@@ -134,17 +134,9 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		parsedClaims, err := helpers.ParseToken(jwtSecret, mfaToken, false)
 		require.NoError(t, err, "Token should be parseable")
 
-		isRestrictedAudience := parsedClaims.Audience[0] == configuration.AudienceMFALogin ||
-			parsedClaims.Audience[0] == configuration.AudienceMFAReset
-		if !isRestrictedAudience {
-			assert.NotEqual(t, configuration.AudienceAccessToken, parsedClaims.Audience[0],
-				"VULNERABILITY CONFIRMED: Returned a valid Full Access Token instead of Restricted Token")
-		} else {
-			assert.Equal(t, configuration.AudienceMFAReset, parsedClaims.Audience[0],
-				"Should preserve the Password Reset audience")
-
-			assert.True(t, parsedClaims.MFA, "Restricted token should have MFA=true")
-		}
+		require.Equal(t, configuration.AudienceMFAReset, parsedClaims.Audience[0],
+			"Should preserve the Password Reset audience")
+		assert.True(t, parsedClaims.MFA, "Restricted token should have MFA=true")
 
 		assert.Empty(t, cookieValue(response, "safebucket_refresh_token"),
 			"Should not set the refresh cookie for password reset flow")
@@ -887,7 +879,6 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 			WithArgs(userID, true).
 			WillReturnRows(deviceRow)
 
-		// A code generated from a different secret can never match the stored one.
 		wrongCode, err := totp.GenerateCode("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", time.Now())
 		require.NoError(t, err)
 
@@ -933,8 +924,6 @@ func TestAddDevice_OIDCStepUp(t *testing.T) {
 		}
 	}
 
-	// expectUserAndCounts mocks the user load, the total-device count, and the verified-device
-	// count an OIDC user with one existing verified device hits before the step-up is evaluated.
 	expectUserAndCounts := func(mock sqlmock.Sqlmock, userID uuid.UUID) {
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
 			AddRow(userID, "oidc@example.com", models.OIDCProviderType, "google")
@@ -974,7 +963,6 @@ func TestAddDevice_OIDCStepUp(t *testing.T) {
 			WithArgs(userID, true).
 			WillReturnRows(deviceRow)
 
-		// A code generated from a different secret can never match the stored one.
 		wrongCode, err := totp.GenerateCode("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", time.Now())
 		require.NoError(t, err)
 
