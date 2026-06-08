@@ -154,7 +154,7 @@ services:
   pyroscope:
     container_name: pyroscope
     profiles: [ debug ]
-    image: grafana/pyroscope:2.0.2
+    image: grafana/pyroscope:2.0.3
     command: [ "server" ]
     ports:
       - "4040:4040"
