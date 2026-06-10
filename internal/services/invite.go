@@ -121,10 +121,16 @@ func (s InviteService) createUserFromInvite(
 	password string,
 	inviteID uuid.UUID,
 ) (handlers.AuthFlowResult, error) {
+	localKey, _, ok := s.Providers.Local()
+	if !ok {
+		logger.Debug("Local auth provider not activated in the configuration")
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
+	}
+
 	newUser := models.User{
 		Email:        invite.Email,
 		ProviderType: models.LocalProviderType,
-		ProviderKey:  string(models.LocalProviderType),
+		ProviderKey:  localKey,
 	}
 
 	result := s.DB.Where("email = ?", newUser.Email).First(&newUser)
@@ -198,7 +204,7 @@ func (s InviteService) createUserFromInvite(
 	accessToken, err := h.NewAccessToken(
 		s.AuthConfig.TokenSecret,
 		&newUser,
-		string(models.LocalProviderType),
+		newUser.ProviderKey,
 		sid,
 	)
 	if err != nil {
@@ -212,7 +218,7 @@ func (s InviteService) createUserFromInvite(
 	refreshToken, err := h.NewRefreshToken(
 		s.AuthConfig.TokenSecret,
 		&newUser,
-		string(models.LocalProviderType),
+		newUser.ProviderKey,
 		sid,
 	)
 	if err != nil {
@@ -230,7 +236,7 @@ func (s InviteService) createUserFromInvite(
 			isSecure,
 			accessToken,
 			refreshToken,
-			string(models.LocalProviderType),
+			newUser.ProviderKey,
 		),
 	}, nil
 }
@@ -241,12 +247,13 @@ func (s InviteService) CreateInviteChallenge(
 	ids uuid.UUIDs,
 	body models.InviteChallengeCreateBody,
 ) (any, error) {
-	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
+	_, localProvider, ok := s.Providers.Local()
+	if !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
 		return nil, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
-	if !h.IsDomainAllowed(body.Email, s.Providers[string(models.LocalProviderType)].Domains) {
+	if !h.IsDomainAllowed(body.Email, localProvider.Domains) {
 		logger.Debug("Domain not allowed")
 		return nil, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
@@ -327,7 +334,8 @@ func (s InviteService) ValidateInviteChallenge(
 	ids uuid.UUIDs,
 	body models.InviteChallengeValidateBody,
 ) (handlers.AuthFlowResult, error) {
-	if _, ok := s.Providers[string(models.LocalProviderType)]; !ok {
+	_, localProvider, ok := s.Providers.Local()
+	if !ok {
 		logger.Debug("Local auth provider not activated in the configuration")
 		return handlers.AuthFlowResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
@@ -360,10 +368,7 @@ func (s InviteService) ValidateInviteChallenge(
 			return apierrors.New(http.StatusGone, apierrors.CodeChallengeExpired)
 		}
 
-		if !h.IsDomainAllowed(
-			challenge.Invite.Email,
-			s.Providers[string(models.LocalProviderType)].Domains,
-		) {
+		if !h.IsDomainAllowed(challenge.Invite.Email, localProvider.Domains) {
 			logger.Debug("Domain not allowed")
 			return apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 		}

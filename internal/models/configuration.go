@@ -21,7 +21,6 @@ type AppConfiguration struct {
 	AllowedOrigins                   []string               `mapstructure:"allowed_origins"                     validate:"required"`
 	TokenSecret                      string                 `mapstructure:"token_secret"                        validate:"required"`
 	MFAEncryptionKey                 string                 `mapstructure:"mfa_encryption_key"                  validate:"len=32"`
-	MFARequired                      bool                   `mapstructure:"mfa_required"`
 	AccessTokenExpiry                int                    `mapstructure:"access_token_expiry"                 validate:"gte=1,lte=1440"`
 	RefreshTokenExpiry               int                    `mapstructure:"refresh_token_expiry"                validate:"gte=1,lte=720"`
 	MFATokenExpiry                   int                    `mapstructure:"mfa_token_expiry"                    validate:"gte=1,lte=30"`
@@ -291,7 +290,6 @@ type StaticConfiguration struct {
 type AuthConfig struct {
 	TokenSecret        string
 	MFAEncryptionKey   string
-	MFARequired        bool
 	AccessTokenExpiry  int
 	RefreshTokenExpiry int
 	MFATokenExpiry     int
@@ -303,7 +301,6 @@ func (c *AppConfiguration) GetAuthConfig() AuthConfig {
 	return AuthConfig{
 		TokenSecret:        c.TokenSecret,
 		MFAEncryptionKey:   c.MFAEncryptionKey,
-		MFARequired:        c.MFARequired,
 		AccessTokenExpiry:  c.AccessTokenExpiry,
 		RefreshTokenExpiry: c.RefreshTokenExpiry,
 		MFATokenExpiry:     c.MFATokenExpiry,

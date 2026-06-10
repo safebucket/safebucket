@@ -1,12 +1,30 @@
 package sql
 
 import (
+	"errors"
+	"net/http"
+
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
+
+func GetUserByID(db *gorm.DB, userID uuid.UUID) (models.User, error) {
+	var user models.User
+
+	if err := db.Where("id = ?", userID).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.User{}, apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
+		}
+		return models.User{}, err
+	}
+
+	return user, nil
+}
 
 func FindUserByIdentityProvider(
 	db *gorm.DB,

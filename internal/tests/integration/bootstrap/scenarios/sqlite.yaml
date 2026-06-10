@@ -6,7 +6,6 @@ app:
   allowed_origins: ["*"]
   token_secret: integration-test-token-secret
   mfa_encryption_key: "01234567890123456789012345678901"
-  mfa_required: false
   access_token_expiry: 60
   refresh_token_expiry: 600
   mfa_token_expiry: 5

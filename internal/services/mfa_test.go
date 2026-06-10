@@ -844,15 +844,28 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 		}
 	}
 
+	expectUser := func(mock sqlmock.Sqlmock, userID uuid.UUID, providerType models.ProviderType, key string) {
+		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
+			AddRow(userID, "user@example.com", providerType, key)
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
+			WithArgs(userID, 1).
+			WillReturnRows(userRow)
+	}
+
+	expectDeviceRead := func(mock sqlmock.Sqlmock, deviceID, userID uuid.UUID, verified bool) {
+		deviceRow := sqlmock.NewRows([]string{"id", "user_id", "is_default", "is_verified"}).
+			AddRow(deviceID, userID, false, verified)
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
+			WithArgs(deviceID, userID, 1).
+			WillReturnRows(deviceRow)
+	}
+
 	t.Run("should reject removal without a code for OIDC user", func(t *testing.T) {
 		service, mock, userID := newOIDCService(t)
 		deviceID := uuid.New()
 
-		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
-			AddRow(userID, "oidc@example.com", models.OIDCProviderType, "google")
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, 1).
-			WillReturnRows(userRow)
+		expectUser(mock, userID, models.OIDCProviderType, "google")
+		expectDeviceRead(mock, deviceID, userID, true)
 
 		err := service.RemoveDevice(zap.NewNop(), claimsFor(userID), uuid.UUIDs{deviceID},
 			models.MFADeviceRemoveBody{})
@@ -865,11 +878,8 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 		service, mock, userID := newOIDCService(t)
 		deviceID := uuid.New()
 
-		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
-			AddRow(userID, "oidc@example.com", models.OIDCProviderType, "google")
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
-			WithArgs(userID, 1).
-			WillReturnRows(userRow)
+		expectUser(mock, userID, models.OIDCProviderType, "google")
+		expectDeviceRead(mock, deviceID, userID, true)
 
 		encryptedSecret, err := helpers.EncryptSecret("JBSWY3DPEHPK3PXP", []byte(config.MFAEncryptionKey))
 		require.NoError(t, err)
@@ -887,6 +897,67 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "INVALID_MFA_CODE")
+	})
+
+	t.Run("should remove an unverified device without re-auth for OIDC user", func(t *testing.T) {
+		service, mock, userID := newOIDCService(t)
+		deviceID := uuid.New()
+
+		expectUser(mock, userID, models.OIDCProviderType, "google")
+		expectDeviceRead(mock, deviceID, userID, false)
+
+		mock.ExpectBegin()
+		expectDeviceRead(mock, deviceID, userID, false)
+		mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "mfa_devices"`)).
+			WithArgs(deviceID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		err := service.RemoveDevice(zap.NewNop(), claimsFor(userID), uuid.UUIDs{deviceID},
+			models.MFADeviceRemoveBody{})
+
+		require.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("should remove an unverified device without a password for local user", func(t *testing.T) {
+		service, mock, userID := newOIDCService(t)
+		deviceID := uuid.New()
+
+		expectUser(mock, userID, models.LocalProviderType, "local")
+		expectDeviceRead(mock, deviceID, userID, false)
+
+		mock.ExpectBegin()
+		expectDeviceRead(mock, deviceID, userID, false)
+		mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "mfa_devices"`)).
+			WithArgs(deviceID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		err := service.RemoveDevice(zap.NewNop(), claimsFor(userID), uuid.UUIDs{deviceID},
+			models.MFADeviceRemoveBody{})
+
+		require.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("should reject when the device is verified concurrently", func(t *testing.T) {
+		service, mock, userID := newOIDCService(t)
+		deviceID := uuid.New()
+
+		expectUser(mock, userID, models.OIDCProviderType, "google")
+		expectDeviceRead(mock, deviceID, userID, false)
+
+		mock.ExpectBegin()
+		expectDeviceRead(mock, deviceID, userID, true)
+		mock.ExpectRollback()
+
+		err := service.RemoveDevice(zap.NewNop(), claimsFor(userID), uuid.UUIDs{deviceID},
+			models.MFADeviceRemoveBody{})
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "BAD_REQUEST")
+		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
 

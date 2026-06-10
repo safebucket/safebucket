@@ -11,6 +11,7 @@ import (
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/alexedwards/argon2id"
 	"go.uber.org/zap"
@@ -29,7 +30,11 @@ func (s MFAService) verifyTOTPStepUp(logger *zap.Logger, user *models.User, code
 	}
 
 	var devices []models.MFADevice
-	s.DB.Where("user_id = ? AND is_verified = ?", user.ID, true).Find(&devices)
+	result := s.DB.Where("user_id = ? AND is_verified = ?", user.ID, true).Find(&devices)
+	if result.Error != nil {
+		logger.Error("Failed to load verified MFA devices for step-up", zap.Error(result.Error))
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+	}
 	if len(devices) == 0 {
 		return apierrors.New(http.StatusBadRequest, apierrors.CodeMFANotEnabled)
 	}
@@ -80,10 +85,8 @@ func (s MFAService) verifyTOTPStepUp(logger *zap.Logger, user *models.User, code
 
 func (s MFAService) verifyAddDeviceStepUp(logger *zap.Logger, user *models.User, password, code string) error {
 	if user.ProviderType == models.OIDCProviderType {
-		var verifiedCount int64
-		if err := s.DB.Model(&models.MFADevice{}).
-			Where("user_id = ? AND is_verified = ?", user.ID, true).
-			Count(&verifiedCount).Error; err != nil {
+		verifiedCount, err := sql.CountVerifiedMFADevices(s.DB, user.ID)
+		if err != nil {
 			logger.Error("Failed to count verified MFA devices for step-up", zap.Error(err))
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}

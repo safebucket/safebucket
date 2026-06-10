@@ -59,13 +59,18 @@ func StartTracer(config models.Configuration) func() {
 	}
 }
 
-func CreateAdminUser(db *gorm.DB, config models.Configuration) {
+func CreateAdminUser(db *gorm.DB, config models.Configuration, providers configuration.Providers) {
+	localKey, _, ok := providers.Local()
+	if !ok {
+		localKey = string(models.LocalProviderType)
+	}
+
 	adminUser := models.User{
 		FirstName:    "admin",
 		LastName:     "admin",
 		Email:        config.App.AdminEmail,
 		ProviderType: models.LocalProviderType,
-		ProviderKey:  string(models.LocalProviderType),
+		ProviderKey:  localKey,
 		Role:         models.RoleAdmin,
 	}
 
@@ -384,7 +389,7 @@ func BuildAPIRouter(
 		apiRouter.Use(m.ClientInfo(config.App.TrustedProxies))
 		apiRouter.Use(m.Authenticate(authConfig.TokenSecret, cache, configuration.RefreshTokenExpiry))
 		apiRouter.Use(m.AudienceValidate)
-		apiRouter.Use(m.MFAValidate(db, authConfig.MFARequired, providers))
+		apiRouter.Use(m.MFAValidate(db, providers))
 		apiRouter.Use(m.RateLimit(
 			cache,
 			config.App.AuthenticatedRequestsPerMinute,
@@ -395,6 +400,7 @@ func BuildAPIRouter(
 			DB:                 db,
 			Cache:              cache,
 			AuthConfig:         authConfig,
+			Providers:          providers,
 			Publisher:          publisher,
 			Notifier:           notify,
 			ActivityLogger:     activityLogger,

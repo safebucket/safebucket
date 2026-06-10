@@ -106,3 +106,51 @@ func TestMigrateDeprecatedKeys_Logging(t *testing.T) {
 		assert.Equal(t, "Deprecated configuration key ignored, new key takes precedence", entries[0].Message)
 	})
 }
+
+func TestMigrateGlobalMFARequired(t *testing.T) {
+	t.Run("true migrates onto the local provider regardless of its key", func(t *testing.T) {
+		k := koanf.New(".")
+		require.NoError(t, k.Set("app.mfa_required", true))
+		require.NoError(t, k.Set("auth.providers.passwords.type", "local"))
+		require.NoError(t, k.Set("auth.providers.okta.type", "oidc"))
+
+		migrateGlobalMFARequired(k)
+
+		assert.True(t, k.Bool("auth.providers.passwords.mfa_required"))
+		assert.False(t, k.Exists("auth.providers.okta.mfa_required"))
+		assert.False(t, k.Exists("app.mfa_required"))
+	})
+
+	t.Run("false is dropped without touching providers", func(t *testing.T) {
+		k := koanf.New(".")
+		require.NoError(t, k.Set("app.mfa_required", false))
+		require.NoError(t, k.Set("auth.providers.local.type", "local"))
+
+		migrateGlobalMFARequired(k)
+
+		assert.False(t, k.Exists("auth.providers.local.mfa_required"))
+		assert.False(t, k.Exists("app.mfa_required"))
+	})
+
+	t.Run("explicit provider value is not overridden", func(t *testing.T) {
+		k := koanf.New(".")
+		require.NoError(t, k.Set("app.mfa_required", true))
+		require.NoError(t, k.Set("auth.providers.local.type", "local"))
+		require.NoError(t, k.Set("auth.providers.local.mfa_required", false))
+
+		migrateGlobalMFARequired(k)
+
+		assert.False(t, k.Bool("auth.providers.local.mfa_required"))
+		assert.False(t, k.Exists("app.mfa_required"))
+	})
+
+	t.Run("missing key is a no-op", func(t *testing.T) {
+		k := koanf.New(".")
+		require.NoError(t, k.Set("auth.providers.local.type", "local"))
+
+		migrateGlobalMFARequired(k)
+
+		assert.False(t, k.Exists("app.mfa_required"))
+		assert.False(t, k.Exists("auth.providers.local.mfa_required"))
+	})
+}

@@ -8,6 +8,7 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/tracing"
 
 	"github.com/google/uuid"
@@ -16,7 +17,6 @@ import (
 
 func MFAValidate(
 	db *gorm.DB,
-	mfaRequired bool,
 	providers configuration.Providers,
 ) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -36,22 +36,7 @@ func MFAValidate(
 				return
 			}
 
-			if claims.AudienceString() != configuration.AudienceAccessToken {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			isLocal := claims.Provider == string(models.LocalProviderType)
-			providerRequiresMFA := false
-			if p, found := providers[claims.Provider]; found {
-				providerRequiresMFA = p.MFARequired
-			}
-			if !isLocal && !providerRequiresMFA {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			if claims.MFA {
+			if claims.AudienceString() != configuration.AudienceAccessToken || claims.MFA {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -61,12 +46,7 @@ func MFAValidate(
 				return
 			}
 
-			if (isLocal && mfaRequired) || providerRequiresMFA {
-				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
-				return
-			}
-
-			if db != nil && userHasMFAEnrolled(db, claims.UserID) {
+			if providers[claims.Provider].MFARequired || (db != nil && userHasMFAEnrolled(db, claims.UserID)) {
 				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}
@@ -78,11 +58,8 @@ func MFAValidate(
 }
 
 func userHasMFAEnrolled(db *gorm.DB, userID uuid.UUID) bool {
-	var count int64
-	db.Model(&models.MFADevice{}).
-		Where("user_id = ? AND is_verified = ?", userID, true).
-		Count(&count)
-	return count > 0
+	count, err := sql.CountVerifiedMFADevices(db, userID)
+	return err == nil && count > 0
 }
 
 func isMFABypassPath(path, method string) bool {

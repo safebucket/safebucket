@@ -95,25 +95,8 @@ func (s AuthService) OpenIDCallback(
 		}
 	}
 
-	action := models.Activity{
-		Message: activity.UserLoggedIn,
-		Object:  searchUser.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:       activity.UserLoggedIn,
-			UserID:       searchUser.ID.String(),
-			ObjectType:   rbac.ResourceUser.String(),
-			ProviderType: string(models.OIDCProviderType),
-			ProviderName: provider.Name,
-		}),
-	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log login activity", zap.Error(logErr))
-	}
-
-	var verifiedCount int64
-	if countErr := s.DB.Model(&models.MFADevice{}).
-		Where("user_id = ? AND is_verified = ?", searchUser.ID, true).
-		Count(&verifiedCount).Error; countErr != nil {
+	verifiedCount, countErr := sql.CountVerifiedMFADevices(s.DB, searchUser.ID)
+	if countErr != nil {
 		logger.Error("Failed to count verified MFA devices", zap.Error(countErr))
 		return models.OIDCCallbackResult{}, apierrors.New(
 			http.StatusInternalServerError,
@@ -160,6 +143,21 @@ func (s AuthService) issueOIDCSession(
 			http.StatusInternalServerError,
 			apierrors.CodeInternalServerError,
 		)
+	}
+
+	action := models.Activity{
+		Message: activity.UserLoggedIn,
+		Object:  user.ToActivity(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:       activity.UserLoggedIn,
+			UserID:       user.ID.String(),
+			ObjectType:   rbac.ResourceUser.String(),
+			ProviderType: string(models.OIDCProviderType),
+			ProviderName: s.Providers[providerKey].Name,
+		}),
+	}
+	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		logger.Error("Failed to log login activity", zap.Error(logErr))
 	}
 
 	return models.OIDCCallbackResult{AccessToken: accessToken, RefreshToken: refreshToken}, nil

@@ -74,14 +74,14 @@ func (s AuthService) Login(
 	_ uuid.UUIDs,
 	body models.AuthLoginBody,
 ) (handlers.AuthFlowResult, error) {
-	provider, ok := s.resolveAuthProvider(body.Email)
+	providerKey, provider, ok := s.resolveAuthProvider(body.Email)
 	if !ok {
 		logger.Debug("No credential provider matches this email")
 		return handlers.AuthFlowResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
 	user, found, err := sql.FindUserByIdentityProvider(
-		s.DB, body.Email, models.LocalProviderType, string(models.LocalProviderType), true,
+		s.DB, body.Email, models.LocalProviderType, providerKey, true,
 	)
 	if err != nil {
 		logger.Error("Failed to look up user", zap.Error(err))
@@ -113,7 +113,7 @@ func (s AuthService) finalizeLogin(
 	verifiedDevices := user.GetVerifiedDevices()
 	hasMFA := len(verifiedDevices) > 0
 
-	if hasMFA || s.AuthConfig.MFARequired || providerMFARequired {
+	if hasMFA || providerMFARequired {
 		restrictedToken, mfaErr := mfa.HandleMFARequired(logger, s.AuthConfig, user)
 		if mfaErr != nil {
 			return handlers.AuthFlowResult{}, mfaErr
@@ -167,16 +167,12 @@ func (s AuthService) finalizeLogin(
 
 func (s AuthService) resolveAuthProvider(
 	email string,
-) (configuration.Provider, bool) {
-	for _, provider := range s.Providers {
-		if provider.Type != models.LocalProviderType {
-			continue
-		}
-		if h.IsDomainAllowed(email, provider.Domains) {
-			return provider, true
-		}
+) (string, configuration.Provider, bool) {
+	key, provider, ok := s.Providers.Local()
+	if !ok || !h.IsDomainAllowed(email, provider.Domains) {
+		return "", configuration.Provider{}, false
 	}
-	return configuration.Provider{}, false
+	return key, provider, true
 }
 
 func (s AuthService) getMFASecretAndDevice(
@@ -489,6 +485,21 @@ func (s AuthService) VerifyMFALogin(
 			http.StatusInternalServerError,
 			apierrors.CodeInternalServerError,
 		)
+	}
+
+	action := models.Activity{
+		Message: activity.UserLoggedIn,
+		Object:  user.ToActivity(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:       activity.UserLoggedIn,
+			UserID:       user.ID.String(),
+			ObjectType:   rbac.ResourceUser.String(),
+			ProviderType: string(user.ProviderType),
+			ProviderName: s.Providers[user.ProviderKey].Name,
+		}),
+	}
+	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		logger.Error("Failed to log login activity", zap.Error(logErr))
 	}
 
 	return handlers.AuthFlowResult{

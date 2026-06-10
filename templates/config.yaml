@@ -25,7 +25,6 @@ app:
   admin_password: ChangeMePlease
   trash_retention_days: 7
   mfa_encryption_key: "ChangeMe32CharacterKeyForAES256!"
-  mfa_required: false
   max_upload_size: 53687091200 # 50 Gb
 
 tracing:
@@ -97,6 +96,7 @@ auth:
     local:
       type: local
       domains:
+#      mfa_required: false
       sharing:
         allowed: true
         domains: [ ]

@@ -31,9 +31,12 @@ func newPasswordResetTestService(t *testing.T) (AuthPasswordResetService, sqlmoc
 	require.NoError(t, err)
 
 	svc := AuthPasswordResetService{
-		DB:             gormDB,
-		Cache:          &MockCache{},
-		AuthConfig:     models.AuthConfig{TokenSecret: "test-secret"},
+		DB:         gormDB,
+		Cache:      &MockCache{},
+		AuthConfig: models.AuthConfig{TokenSecret: "test-secret"},
+		Providers: configuration.Providers{
+			string(models.LocalProviderType): {Type: models.LocalProviderType},
+		},
 		ActivityLogger: &MockActivityLogger{},
 	}
 	cleanup := func() { _ = db.Close() }
@@ -55,7 +58,7 @@ func TestRequestPasswordReset(t *testing.T) {
 		defer cleanup()
 
 		mock.ExpectQuery(`SELECT \* FROM "users"`).
-			WithArgs("nobody@example.com", models.LocalProviderType, 1).
+			WithArgs("nobody@example.com", models.LocalProviderType, string(models.LocalProviderType), 1).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
 		result, err := svc.RequestPasswordReset(
@@ -213,8 +216,8 @@ func TestCompletePasswordReset(t *testing.T) {
 		mock.ExpectQuery(`SELECT \* FROM "users"`).
 			WillReturnRows(challengeUserRow)
 
-		mfaUserRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
-			AddRow(userID, "mfa-user@example.com", models.LocalProviderType)
+		mfaUserRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
+			AddRow(userID, "mfa-user@example.com", models.LocalProviderType, string(models.LocalProviderType))
 		mock.ExpectQuery(`SELECT \* FROM "users" WHERE id = `).
 			WithArgs(userID, 1).
 			WillReturnRows(mfaUserRow)
@@ -234,6 +237,46 @@ func TestCompletePasswordReset(t *testing.T) {
 		requireAPIError(t, err, 403, "MFA_REQUIRED")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
+
+	t.Run("rejects completion for a user orphaned by a provider key rename", func(t *testing.T) {
+		svc, mock, cleanup := newPasswordResetTestService(t)
+		defer cleanup()
+
+		challengeID := uuid.New()
+		userID := uuid.New()
+		future := time.Now().Add(5 * time.Minute)
+
+		challengeRow := sqlmock.NewRows(
+			[]string{"id", "type", "hashed_secret", "attempts_left", "expires_at", "user_id"},
+		).AddRow(challengeID, models.ChallengeTypePasswordReset, "hash", 3, future, userID)
+		mock.ExpectQuery(`SELECT \* FROM "challenges"`).
+			WithArgs(challengeID, models.ChallengeTypePasswordReset, userID, 1).
+			WillReturnRows(challengeRow)
+
+		challengeUserRow := sqlmock.NewRows([]string{"id", "email", "provider_type"}).
+			AddRow(userID, "orphaned@example.com", models.LocalProviderType)
+		mock.ExpectQuery(`SELECT \* FROM "users"`).
+			WillReturnRows(challengeUserRow)
+
+		orphanedUserRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "provider_key"}).
+			AddRow(userID, "orphaned@example.com", models.LocalProviderType, "old-local-key")
+		mock.ExpectQuery(`SELECT \* FROM "users" WHERE id = `).
+			WithArgs(userID, 1).
+			WillReturnRows(orphanedUserRow)
+
+		mock.ExpectQuery(`SELECT \* FROM "mfa_devices"`).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+		_, err := svc.CompletePasswordReset(false,
+			zap.NewNop(),
+			models.UserClaims{UserID: userID, ChallengeID: &challengeID, MFA: true},
+			uuid.UUIDs{challengeID},
+			models.PasswordResetCompleteBody{NewPassword: "irrelevant"},
+		)
+
+		requireAPIError(t, err, http.StatusForbidden, apierrors.CodeForbidden)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
 }
 
 func TestValidatePasswordReset_ExpiredChallenge(t *testing.T) {
@@ -245,9 +288,12 @@ func TestValidatePasswordReset_ExpiredChallenge(t *testing.T) {
 	require.NoError(t, err)
 
 	svc := AuthPasswordResetService{
-		DB:             gormDB,
-		Cache:          &MockCache{},
-		AuthConfig:     models.AuthConfig{TokenSecret: "test-secret"},
+		DB:         gormDB,
+		Cache:      &MockCache{},
+		AuthConfig: models.AuthConfig{TokenSecret: "test-secret"},
+		Providers: configuration.Providers{
+			string(models.LocalProviderType): {Type: models.LocalProviderType},
+		},
 		ActivityLogger: &MockActivityLogger{},
 	}
 

@@ -16,6 +16,7 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/notifier"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -87,7 +88,7 @@ func (s MFAService) AddDevice(
 ) (models.MFADeviceSetupResponse, error) {
 	userID := claims.UserID
 
-	user, err := loadUser(s.DB, userID)
+	user, err := sql.GetUserByID(s.DB, userID)
 	if err != nil {
 		return models.MFADeviceSetupResponse{}, err
 	}
@@ -106,13 +107,10 @@ func (s MFAService) AddDevice(
 		claims.AudienceString() == configuration.AudienceMFAReset
 
 	if isRestricted {
-		var verifiedCount int64
-		result = s.DB.Model(&models.MFADevice{}).
-			Where("user_id = ? AND is_verified = ?", userID, true).
-			Count(&verifiedCount)
-		if result.Error != nil {
-			logger.Error("Failed to count verified MFA devices", zap.Error(result.Error))
-			return models.MFADeviceSetupResponse{}, result.Error
+		verifiedCount, countErr := sql.CountVerifiedMFADevices(s.DB, userID)
+		if countErr != nil {
+			logger.Error("Failed to count verified MFA devices", zap.Error(countErr))
+			return models.MFADeviceSetupResponse{}, countErr
 		}
 		if verifiedCount > 0 {
 			logger.Warn("restricted token used for non-initial device setup",
@@ -228,7 +226,7 @@ func (s MFAService) VerifyDevice(
 	var deviceName string
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		if _, err := loadUser(tx, userID); err != nil {
+		if _, err := sql.GetUserByID(tx, userID); err != nil {
 			return err
 		}
 
@@ -422,7 +420,7 @@ func (s MFAService) UpdateDevice(
 	deviceID := ids[0]
 
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		if _, err := loadUser(tx, userID); err != nil {
+		if _, err := sql.GetUserByID(tx, userID); err != nil {
 			return err
 		}
 
@@ -493,31 +491,43 @@ func (s MFAService) RemoveDevice(
 	userID := claims.UserID
 	deviceID := ids[0]
 
-	user, err := loadUser(s.DB, userID)
+	user, err := sql.GetUserByID(s.DB, userID)
 	if err != nil {
 		return err
 	}
 
-	if err = s.verifyMFAStepUp(logger, &user, body.Password, body.Code); err != nil {
-		return err
+	var device models.MFADevice
+	result := s.DB.Where("id = ? AND user_id = ?", deviceID, userID).First(&device)
+	if result.RowsAffected == 0 {
+		return apierrors.New(http.StatusNotFound, apierrors.CodeMFADeviceNotFound)
+	}
+	stepUpDone := device.IsVerified
+	if stepUpDone {
+		if err = s.verifyMFAStepUp(logger, &user, body.Password, body.Code); err != nil {
+			return err
+		}
 	}
 
 	var deviceName string
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		var device models.MFADevice
-		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		var locked models.MFADevice
+		lockResult := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND user_id = ?", deviceID, userID).
-			First(&device)
-		if result.RowsAffected == 0 {
+			First(&locked)
+		if lockResult.RowsAffected == 0 {
 			return apierrors.New(http.StatusNotFound, apierrors.CodeMFADeviceNotFound)
 		}
 
-		deviceName = device.Name
-		wasDefault := device.IsDefault
-		wasVerified := device.IsVerified
+		if locked.IsVerified && !stepUpDone {
+			return apierrors.New(http.StatusBadRequest, apierrors.CodeBadRequest)
+		}
 
-		if delErr := tx.Delete(&device).Error; delErr != nil {
+		deviceName = locked.Name
+		wasDefault := locked.IsDefault
+		wasVerified := locked.IsVerified
+
+		if delErr := tx.Delete(&locked).Error; delErr != nil {
 			return delErr
 		}
 
@@ -534,7 +544,7 @@ func (s MFAService) RemoveDevice(
 
 		action := models.Activity{
 			Message: activity.MFADeviceRemoved,
-			Object:  device.ToActivity(),
+			Object:  locked.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
 				Action:     activity.MFADeviceRemoved,
 				UserID:     userID.String(),

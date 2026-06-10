@@ -208,6 +208,7 @@ func Load(opts LoadOptions) (models.Configuration, error) {
 		readEnvVars(k)
 	}
 	migrateDeprecatedKeys(k)
+	migrateGlobalMFARequired(k)
 	loadConditionalDefaults(k)
 
 	var cfg models.Configuration
@@ -218,7 +219,21 @@ func Load(opts LoadOptions) (models.Configuration, error) {
 }
 
 func Validate(cfg models.Configuration) error {
-	return validator.New().Struct(cfg)
+	if err := validator.New().Struct(cfg); err != nil {
+		return err
+	}
+	return validateProviderKeys(cfg.Auth.Providers)
+}
+
+func validateProviderKeys(providers map[string]models.ProviderConfiguration) error {
+	localKey := string(models.LocalProviderType)
+	if provider, ok := providers[localKey]; ok && provider.Type != models.LocalProviderType {
+		return fmt.Errorf(
+			"auth.providers: the %q key is reserved for the local provider type, got type %q",
+			localKey, provider.Type,
+		)
+	}
+	return nil
 }
 
 func Read() models.Configuration {

@@ -128,7 +128,7 @@ func TestOIDCMFADeviceRemovalRequiresTOTP(t *testing.T) {
 
 			status = app.DoStatus(t, http.MethodDelete,
 				"/api/v1/mfa/devices/"+deviceID.String(), access,
-				models.MFADeviceRemoveBody{Code: totpAt(t, secret, 0)})
+				models.MFADeviceRemoveBody{Code: totpAt(t, secret, 30*time.Second)})
 			assert.Equal(t, http.StatusNoContent, status, "removal with a valid code should succeed")
 		})
 	}
