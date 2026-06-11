@@ -5,7 +5,6 @@ import (
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
-	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
@@ -26,7 +25,6 @@ type UserService struct {
 	DB                 *gorm.DB
 	Cache              cache.ICache
 	AuthConfig         models.AuthConfig
-	Providers          configuration.Providers
 	Publisher          messaging.IPublisher
 	Notifier           notifier.INotifier
 	ActivityLogger     activity.IActivityLogger
@@ -70,18 +68,12 @@ func (s UserService) CreateUser(
 	_ uuid.UUIDs,
 	body models.UserCreateBody,
 ) (models.User, error) {
-	localKey, _, ok := s.Providers.Local()
-	if !ok {
-		logger.Warn("User creation failed, local auth provider not activated in the configuration")
-		return models.User{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
-	}
-
 	newUser := models.User{
 		FirstName:    body.FirstName,
 		LastName:     body.LastName,
 		Email:        body.Email,
 		ProviderType: models.LocalProviderType,
-		ProviderKey:  localKey,
+		ProviderKey:  string(models.LocalProviderType),
 		Role:         models.RoleUser,
 	}
 

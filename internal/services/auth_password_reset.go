@@ -30,13 +30,18 @@ type AuthPasswordResetService struct {
 	DB             *gorm.DB
 	Cache          cache.ICache
 	AuthConfig     models.AuthConfig
-	Providers      configuration.Providers
 	Publisher      messaging.IPublisher
 	ActivityLogger activity.IActivityLogger
 }
 
 func NewAuthPasswordResetService(s AuthService) AuthPasswordResetService {
-	return AuthPasswordResetService(s)
+	return AuthPasswordResetService{
+		DB:             s.DB,
+		Cache:          s.Cache,
+		AuthConfig:     s.AuthConfig,
+		Publisher:      s.Publisher,
+		ActivityLogger: s.ActivityLogger,
+	}
 }
 
 func (s AuthPasswordResetService) Routes() chi.Router {
@@ -79,14 +84,8 @@ func (s AuthPasswordResetService) RequestPasswordReset(
 		return nil, err
 	}
 
-	localKey, _, ok := s.Providers.Local()
-	if !ok {
-		return nil, nil
-	}
-
 	var user models.User
-	result := s.DB.Where("email = ? AND provider_type = ? AND provider_key = ?",
-		body.Email, models.LocalProviderType, localKey).
+	result := s.DB.Where("email = ? AND provider_type = ?", body.Email, models.LocalProviderType).
 		First(&user)
 
 	if result.RowsAffected == 0 {
@@ -287,13 +286,6 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	}
 	user = &userWithMFA
 
-	localKey, _, ok := s.Providers.Local()
-	if !ok || user.ProviderKey != localKey {
-		logger.Warn("Password reset completion rejected for orphaned local user",
-			zap.String("user_id", user.ID.String()))
-		return handlers.AuthFlowResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
-	}
-
 	if userWithMFA.HasMFAEnabled() && !claims.MFA {
 		logger.Warn("MFA bypass attempt in password reset",
 			zap.String("user_id", user.ID.String()))
@@ -363,7 +355,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	accessToken, err := h.NewAccessToken(
 		s.AuthConfig.TokenSecret,
 		user,
-		user.ProviderKey,
+		string(models.LocalProviderType),
 		sid,
 	)
 	if err != nil {
@@ -377,7 +369,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 	refreshToken, err := h.NewRefreshToken(
 		s.AuthConfig.TokenSecret,
 		user,
-		user.ProviderKey,
+		string(models.LocalProviderType),
 		sid,
 	)
 	if err != nil {
@@ -399,7 +391,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 			isSecure,
 			accessToken,
 			refreshToken,
-			user.ProviderKey,
+			string(models.LocalProviderType),
 		),
 	}, nil
 }

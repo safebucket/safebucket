@@ -27,15 +27,6 @@ type Provider struct {
 
 type Providers map[string]Provider
 
-func (p Providers) Local() (string, Provider, bool) {
-	for key, provider := range p {
-		if provider.Type == models.LocalProviderType {
-			return key, provider, true
-		}
-	}
-	return "", Provider{}, false
-}
-
 type ProvidersConfiguration map[string]models.ProviderConfiguration
 
 func LoadProviders(

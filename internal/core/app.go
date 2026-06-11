@@ -55,10 +55,8 @@ func Boot(ctx context.Context, cfg models.Configuration, opts BootOptions) *Boot
 		eventRouter = NewEventRouter(eventsManager)
 	}
 
-	providers := configuration.LoadProviders(ctx, cfg.App.APIURL, cfg.Auth.Providers)
-
 	if profile.HTTPServer {
-		CreateAdminUser(db, cfg, providers)
+		CreateAdminUser(db, cfg)
 	}
 
 	workers := NewWorkersHandle()
@@ -82,6 +80,7 @@ func Boot(ctx context.Context, cfg models.Configuration, opts BootOptions) *Boot
 		)
 	}
 
+	providers := configuration.LoadProviders(ctx, cfg.App.APIURL, cfg.Auth.Providers)
 	router := BuildAPIRouter(cfg, db, cache, store, activityLogger, notify, eventRouter, providers)
 
 	return &BootedApp{

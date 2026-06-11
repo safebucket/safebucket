@@ -74,14 +74,14 @@ func (s AuthService) Login(
 	_ uuid.UUIDs,
 	body models.AuthLoginBody,
 ) (handlers.AuthFlowResult, error) {
-	providerKey, provider, ok := s.resolveAuthProvider(body.Email)
+	provider, ok := s.resolveAuthProvider(body.Email)
 	if !ok {
 		logger.Debug("No credential provider matches this email")
 		return handlers.AuthFlowResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
 	user, found, err := sql.FindUserByIdentityProvider(
-		s.DB, body.Email, models.LocalProviderType, providerKey, true,
+		s.DB, body.Email, models.LocalProviderType, string(models.LocalProviderType), true,
 	)
 	if err != nil {
 		logger.Error("Failed to look up user", zap.Error(err))
@@ -167,12 +167,16 @@ func (s AuthService) finalizeLogin(
 
 func (s AuthService) resolveAuthProvider(
 	email string,
-) (string, configuration.Provider, bool) {
-	key, provider, ok := s.Providers.Local()
-	if !ok || !h.IsDomainAllowed(email, provider.Domains) {
-		return "", configuration.Provider{}, false
+) (configuration.Provider, bool) {
+	for _, provider := range s.Providers {
+		if provider.Type != models.LocalProviderType {
+			continue
+		}
+		if h.IsDomainAllowed(email, provider.Domains) {
+			return provider, true
+		}
 	}
-	return key, provider, true
+	return configuration.Provider{}, false
 }
 
 func (s AuthService) getMFASecretAndDevice(

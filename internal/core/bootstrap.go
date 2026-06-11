@@ -59,18 +59,13 @@ func StartTracer(config models.Configuration) func() {
 	}
 }
 
-func CreateAdminUser(db *gorm.DB, config models.Configuration, providers configuration.Providers) {
-	localKey, _, ok := providers.Local()
-	if !ok {
-		localKey = string(models.LocalProviderType)
-	}
-
+func CreateAdminUser(db *gorm.DB, config models.Configuration) {
 	adminUser := models.User{
 		FirstName:    "admin",
 		LastName:     "admin",
 		Email:        config.App.AdminEmail,
 		ProviderType: models.LocalProviderType,
-		ProviderKey:  localKey,
+		ProviderKey:  string(models.LocalProviderType),
 		Role:         models.RoleAdmin,
 	}
 
@@ -400,7 +395,6 @@ func BuildAPIRouter(
 			DB:                 db,
 			Cache:              cache,
 			AuthConfig:         authConfig,
-			Providers:          providers,
 			Publisher:          publisher,
 			Notifier:           notify,
 			ActivityLogger:     activityLogger,

@@ -305,54 +305,6 @@ func TestMFAValidate_OIDCProviderRequiresMFA(t *testing.T) {
 	})
 }
 
-func TestMFAValidate_LocalProviderCustomKey(t *testing.T) {
-	providers := configuration.Providers{
-		"passwords": {Type: models.LocalProviderType, MFARequired: true},
-	}
-
-	newReq := func(t *testing.T, tokenProviderKey string) *http.Request {
-		t.Helper()
-		testUser := &models.User{
-			ID:           uuid.New(),
-			Email:        "local@example.com",
-			Role:         models.RoleUser,
-			ProviderType: models.LocalProviderType,
-		}
-		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, tokenProviderKey, "")
-		require.NoError(t, err)
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
-		require.NoError(t, err)
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
-		return req.WithContext(context.WithValue(req.Context(), models.UserClaimKey{}, claims))
-	}
-
-	t.Run("should enforce MFA when the token carries the provider config key", func(t *testing.T) {
-		var nextCalled bool
-		handler := MFAValidate(nil, providers)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			nextCalled = true
-			w.WriteHeader(http.StatusOK)
-		}))
-		recorder := httptest.NewRecorder()
-		handler.ServeHTTP(recorder, newReq(t, "passwords"))
-
-		assert.False(t, nextCalled)
-		assert.Equal(t, http.StatusForbidden, recorder.Code)
-	})
-
-	t.Run("should not apply provider enforcement to a token orphaned by a key rename", func(t *testing.T) {
-		var nextCalled bool
-		handler := MFAValidate(nil, providers)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			nextCalled = true
-			w.WriteHeader(http.StatusOK)
-		}))
-		recorder := httptest.NewRecorder()
-		handler.ServeHTTP(recorder, newReq(t, "local"))
-
-		assert.True(t, nextCalled)
-		assert.Equal(t, http.StatusOK, recorder.Code)
-	})
-}
-
 func TestIsMFABypassPath(t *testing.T) {
 	testCases := []struct {
 		name     string
