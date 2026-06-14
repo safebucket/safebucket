@@ -1,6 +1,8 @@
 package configuration
 
 import (
+	"fmt"
+
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/knadh/koanf/v2"
@@ -56,10 +58,10 @@ func migrateGlobalMFARequired(k *koanf.Koanf) {
 
 	if k.Bool(oldKey) {
 		for _, name := range k.MapKeys("auth.providers") {
-			if k.String("auth.providers."+name+".type") != string(models.LocalProviderType) {
+			if k.String(fmt.Sprintf("auth.providers.%s.type", name)) != string(models.LocalProviderType) {
 				continue
 			}
-			newKey := "auth.providers." + name + ".mfa_required"
+			newKey := fmt.Sprintf("auth.providers.%s.mfa_required", name)
 			if k.Exists(newKey) {
 				continue
 			}
