@@ -15,6 +15,7 @@ import (
 )
 
 type DBProvider interface {
+	Connect(t *testing.T) *gorm.DB
 	Setup(t *testing.T) *gorm.DB
 	Dialect() string
 	Teardown()
@@ -22,7 +23,7 @@ type DBProvider interface {
 
 type SQLiteProvider struct{}
 
-func (p *SQLiteProvider) Setup(t *testing.T) *gorm.DB {
+func (p *SQLiteProvider) Connect(t *testing.T) *gorm.DB {
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "test.db")
@@ -35,10 +36,21 @@ func (p *SQLiteProvider) Setup(t *testing.T) *gorm.DB {
 	_, err = sqlDB.ExecContext(context.Background(), "PRAGMA foreign_keys = ON")
 	require.NoError(t, err)
 
+	t.Cleanup(func() { _ = sqlDB.Close() })
+
+	return db
+}
+
+func (p *SQLiteProvider) Setup(t *testing.T) *gorm.DB {
+	t.Helper()
+
+	db := p.Connect(t)
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+
 	database.RunMigrations(sqlDB, database.DialectSQLite)
 	database.RegisterCallbacks(db)
-
-	t.Cleanup(func() { _ = sqlDB.Close() })
 
 	return db
 }

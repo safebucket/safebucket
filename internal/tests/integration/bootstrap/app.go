@@ -587,6 +587,10 @@ func (a *TestApp) UploadFileInto(
 	return transfer.ID
 }
 
+func NewDBProvider(t *testing.T, dialect string) DBProvider {
+	return providerForDialect(t, dialect)
+}
+
 func providerForDialect(t *testing.T, dialect string) DBProvider {
 	t.Helper()
 	switch dialect {

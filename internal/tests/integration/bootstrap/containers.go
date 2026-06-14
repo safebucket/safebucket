@@ -28,7 +28,7 @@ type PostgresProvider struct {
 	container *tcpostgres.PostgresContainer
 }
 
-func (p *PostgresProvider) Setup(t *testing.T) *gorm.DB {
+func (p *PostgresProvider) Connect(t *testing.T) *gorm.DB {
 	t.Helper()
 
 	ctx := context.Background()
@@ -61,6 +61,17 @@ func (p *PostgresProvider) Setup(t *testing.T) *gorm.DB {
 	require.NoError(t, err)
 
 	t.Cleanup(func() { _ = sqlDB.Close() })
+
+	return db
+}
+
+func (p *PostgresProvider) Setup(t *testing.T) *gorm.DB {
+	t.Helper()
+
+	db := p.Connect(t)
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
 
 	database.RunMigrations(sqlDB, database.DialectPostgres)
 	database.RegisterCallbacks(db)
