@@ -592,6 +592,15 @@
       "english": "English",
       "french": "French"
     },
+    "datetime": {
+      "title": "Date & time",
+      "description": "Choose the time zone used to display activity dates and times",
+      "timezone": {
+        "label": "Time zone",
+        "local": "Local time",
+        "utc": "UTC"
+      }
+    },
     "sessions": {
       "title": "Active Sessions",
       "description": "Manage your active sessions across devices",

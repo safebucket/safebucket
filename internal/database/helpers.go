@@ -9,13 +9,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// FormatDateStr returns the correct SQL expression to extract a formatted date (YYYY-MM-DD)
-// depending on the underlying database dialect.
-func FormatDateStr(db *gorm.DB, column string) string {
+// FormatHourStr returns the SQL expression that formats a timestamp column as an
+// RFC3339 UTC hour bucket (e.g. 2026-06-16T14:00:00Z) for the underlying dialect.
+func FormatHourStr(db *gorm.DB, column string) string {
 	if db.Dialector.Name() == DialectSQLite {
-		return fmt.Sprintf("strftime('%%Y-%%m-%%d', %s)", column)
+		return fmt.Sprintf("strftime('%%Y-%%m-%%dT%%H:00:00Z', %s)", column)
 	}
-	return fmt.Sprintf("TO_CHAR(%s, 'YYYY-MM-DD')", column)
+	return fmt.Sprintf("TO_CHAR(%s, 'YYYY-MM-DD\"T\"HH24\":00:00Z\"')", column)
 }
 
 func UpsertAdminUser(db *gorm.DB, adminUser *models.User) {

@@ -9,6 +9,6 @@ import (
 type IActivityLogger interface {
 	Search(searchCriteria map[string][]string, start, end time.Time, limit int) ([]map[string]interface{}, error)
 	Send(message models.Activity) error
-	CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error)
+	CountByHour(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error)
 	Close() error
 }

@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import type { TimeDisplayMode } from "@/components/time-display/context/TimeDisplayProvider.tsx";
 import {
   Card,
   CardContent,
@@ -16,10 +17,12 @@ import {
 } from "@/components/ui/select.tsx";
 import { useTheme } from "@/components/theme/hooks/useTheme.ts";
 import { ThemeSelector } from "@/components/theme/components/ThemeSelector.tsx";
+import { useTimeDisplay } from "@/components/time-display/hooks/useTimeDisplay.ts";
 
 export function PreferencesTab() {
   const { t, i18n } = useTranslation();
   const { mode, colorTheme, setMode, setColorTheme } = useTheme();
+  const { mode: timezone, setMode: setTimezone } = useTimeDisplay();
 
   const handleLanguageChange = (value: string) => {
     i18n.changeLanguage(value);
@@ -36,6 +39,11 @@ export function PreferencesTab() {
     { value: "light", label: t("settings.appearance.theme_mode.light") },
     { value: "dark", label: t("settings.appearance.theme_mode.dark") },
     { value: "system", label: t("settings.appearance.theme_mode.system") },
+  ];
+
+  const timezoneModes = [
+    { value: "local", label: t("settings.datetime.timezone.local") },
+    { value: "utc", label: t("settings.datetime.timezone.utc") },
   ];
 
   return (
@@ -101,6 +109,39 @@ export function PreferencesTab() {
                   {languages.map((lang) => (
                     <SelectItem key={lang.value} value={lang.value}>
                       {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FieldContent>
+          </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("settings.datetime.title")}</CardTitle>
+          <CardDescription>
+            {t("settings.datetime.description")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Field orientation="horizontal" className="items-center!">
+            <FieldLabel className="sm:min-w-50">
+              {t("settings.datetime.timezone.label")}
+            </FieldLabel>
+            <FieldContent className="items-end">
+              <Select
+                value={timezone}
+                onValueChange={(value) => setTimezone(value as TimeDisplayMode)}
+              >
+                <SelectTrigger className="w-full sm:w-50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {timezoneModes.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value}>
+                      {tz.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

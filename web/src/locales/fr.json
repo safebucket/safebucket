@@ -597,6 +597,15 @@
       "english": "Anglais",
       "french": "Français"
     },
+    "datetime": {
+      "title": "Date et heure",
+      "description": "Choisissez le fuseau horaire utilisé pour afficher les dates et heures d'activité",
+      "timezone": {
+        "label": "Fuseau horaire",
+        "local": "Heure locale",
+        "utc": "UTC"
+      }
+    },
     "sessions": {
       "title": "Sessions actives",
       "description": "Gérez vos sessions actives sur vos appareils",

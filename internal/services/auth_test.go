@@ -45,7 +45,7 @@ func (m *MockActivityLogger) Search(
 ) ([]map[string]any, error) {
 	return nil, nil
 }
-func (m *MockActivityLogger) CountByDay(_ map[string][]string, _ int) ([]models.TimeSeriesPoint, error) {
+func (m *MockActivityLogger) CountByHour(_ map[string][]string, _ int) ([]models.TimeSeriesPoint, error) {
 	return nil, nil
 }
 func (m *MockActivityLogger) Close() error { return nil }

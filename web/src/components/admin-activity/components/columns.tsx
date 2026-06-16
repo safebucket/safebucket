@@ -1,6 +1,7 @@
 import { formatDistanceToNow } from "date-fns";
 import { Database, File, Folder, Link2, Smartphone, User } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { formatAction } from "../helpers/format";
 import type { TFunction } from "i18next";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -11,6 +12,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTimeDisplay } from "@/components/time-display/hooks/useTimeDisplay";
+import { formatAbsoluteTimestamp } from "@/components/time-display/helpers/format";
 
 interface ResourceTypeConfig {
   icon: ElementType;
@@ -99,16 +102,35 @@ const getResourceLink = (activity: IActivity): string | null => {
   return null;
 };
 
+function TimestampCell({ timestamp }: { timestamp: string }) {
+  const { i18n } = useTranslation();
+  const { mode } = useTimeDisplay();
+
+  if (!timestamp) {
+    return <span>-</span>;
+  }
+
+  const relative = formatDistanceToNow(new Date(Number(timestamp) / 1000000), {
+    addSuffix: true,
+  });
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="cursor-default">
+          {formatAbsoluteTimestamp(timestamp, mode, i18n.language)}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>{relative}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export const createColumns = (t: TFunction): Array<ColumnDef<IActivity>> => [
   {
     accessorKey: "timestamp",
     header: t("admin.activity.columns.timestamp"),
-    cell: ({ row }) => {
-      const timestamp = row.original.timestamp;
-      if (!timestamp) return "-";
-      const date = new Date(Number(timestamp) / 1000000);
-      return formatDistanceToNow(date, { addSuffix: true });
-    },
+    cell: ({ row }) => <TimestampCell timestamp={row.original.timestamp} />,
   },
   {
     accessorKey: "user",

@@ -71,12 +71,12 @@ func (s AdminService) GetStats(
 		"object_type": {rbac.ResourceFile.String()},
 	}
 
-	timeSeries, err := s.ActivityLogger.CountByDay(searchCriteria, queryParams.Days)
+	timeSeries, err := s.ActivityLogger.CountByHour(searchCriteria, queryParams.Days)
 	if err != nil {
-		zap.L().Error("Failed to get uploads per day from Loki, falling back to DB", zap.Error(err))
-		response.SharedFilesPerDay = sql.GetSharedFilesByDay(s.DB, queryParams.Days)
+		zap.L().Error("Failed to get uploads per hour from Loki, falling back to DB", zap.Error(err))
+		response.SharedFilesPerHour = sql.GetSharedFilesByHour(s.DB, queryParams.Days)
 	} else {
-		response.SharedFilesPerDay = timeSeries
+		response.SharedFilesPerHour = timeSeries
 	}
 
 	return response, nil

@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import type { IActivity } from "@/types/activity.ts";
 
 import { cn } from "@/lib/utils.ts";
+import { useTimeDisplay } from "@/components/time-display/hooks/useTimeDisplay";
+import { formatAbsoluteTimestamp } from "@/components/time-display/helpers/format";
 
 import {
   Avatar,
@@ -28,7 +30,8 @@ interface ActivityItemProps {
 }
 
 export function ActivityItem({ item }: ActivityItemProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { mode } = useTimeDisplay();
   const { icon: Icon, iconColor, iconBg } = getActivityMapping(item.message);
 
   return (
@@ -58,7 +61,10 @@ export function ActivityItem({ item }: ActivityItemProps) {
           </div>
         </ItemTitle>
         <ItemDescription>{formatMessage(item, t)}</ItemDescription>
-        <p className="text-muted-foreground text-xs">
+        <p
+          className="text-muted-foreground text-xs"
+          title={formatAbsoluteTimestamp(item.timestamp, mode, i18n.language)}
+        >
           {timeAgo(item.timestamp, t)}
         </p>
       </ItemContent>

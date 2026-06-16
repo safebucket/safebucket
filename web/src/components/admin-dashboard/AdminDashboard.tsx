@@ -60,7 +60,7 @@ export const AdminDashboard: FC = () => {
       </div>
 
       <SharedFilesChart
-        data={stats?.shared_files_per_day ?? []}
+        data={stats?.shared_files_per_hour ?? []}
         timeRange={timeRange}
         onTimeRangeChange={setTimeRange}
       />

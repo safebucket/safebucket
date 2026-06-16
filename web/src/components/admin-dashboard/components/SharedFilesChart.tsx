@@ -1,8 +1,12 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import type { FC } from "react";
 import type { ChartConfig } from "@/components/ui/chart";
 import type { TimeSeriesPoint } from "@/types/admin.ts";
+import { useTimeDisplay } from "@/components/time-display/hooks/useTimeDisplay";
+import { formatDayLabel } from "@/components/time-display/helpers/format";
+import { rollupHourlyToDaily } from "@/components/admin-dashboard/helpers/rollup";
 import {
   ChartContainer,
   ChartTooltip,
@@ -41,15 +45,17 @@ export const SharedFilesChart: FC<SharedFilesChartProps> = ({
   timeRange,
   onTimeRangeChange,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { mode } = useTimeDisplay();
 
-  const formattedData = data.map((point) => ({
-    ...point,
-    formattedDate: new Date(point.date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    }),
-  }));
+  const formattedData = useMemo(
+    () =>
+      rollupHourlyToDaily(data, mode).map((point) => ({
+        ...point,
+        formattedDate: formatDayLabel(point.date, i18n.language),
+      })),
+    [data, mode, i18n.language],
+  );
 
   return (
     <Card>

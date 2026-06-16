@@ -27,19 +27,19 @@ func GetFileByID(db *gorm.DB, bucketID uuid.UUID, fileID uuid.UUID) (models.File
 	return file, nil
 }
 
-func GetSharedFilesByDay(db *gorm.DB, days int) []models.TimeSeriesPoint {
+func GetSharedFilesByHour(db *gorm.DB, days int) []models.TimeSeriesPoint {
 	var result []models.TimeSeriesPoint
 
-	startDate := time.Now().AddDate(0, 0, -days)
+	startDate := time.Now().UTC().Add(-time.Duration(days) * 24 * time.Hour)
 
-	dateExpr := database.FormatDateStr(db, "files.created_at")
+	hourExpr := database.FormatHourStr(db, "files.created_at")
 
 	db.Model(&models.File{}).
-		Select(fmt.Sprintf("%s as date, COUNT(*) as count", dateExpr)).
+		Select(fmt.Sprintf("%s as timestamp, COUNT(*) as count", hourExpr)).
 		Where("status = ?", models.FileStatusUploaded).
 		Where("files.created_at >= ?", startDate).
-		Group(dateExpr).
-		Order("date ASC").
+		Group(hourExpr).
+		Order("timestamp ASC").
 		Scan(&result)
 
 	return result

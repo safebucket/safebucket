@@ -136,7 +136,7 @@ func TestFilesystemSearchWithORCriteria(t *testing.T) {
 	}
 }
 
-func TestFilesystemCountByDay(t *testing.T) {
+func TestFilesystemCountByHour(t *testing.T) {
 	client := newTestFilesystemClient(t)
 
 	today := time.Now()
@@ -152,9 +152,9 @@ func TestFilesystemCountByDay(t *testing.T) {
 		t, client, "delete", "bucket", "user-1", "bucket-3", "Deleted bucket", yesterday,
 	)
 
-	points, err := client.CountByDay(map[string][]string{}, 7)
+	points, err := client.CountByHour(map[string][]string{}, 7)
 	if err != nil {
-		t.Fatalf("CountByDay failed: %v", err)
+		t.Fatalf("CountByHour failed: %v", err)
 	}
 
 	totalCount := int64(0)
@@ -164,6 +164,36 @@ func TestFilesystemCountByDay(t *testing.T) {
 
 	if totalCount != 3 {
 		t.Errorf("expected total count of 3, got %d (points: %+v)", totalCount, points)
+	}
+}
+
+func TestFilesystemCountByHourReturnsHourAlignedUTCBuckets(t *testing.T) {
+	client := newTestFilesystemClient(t)
+
+	sendTestActivity(
+		t, client, "create", "file", "user-1", "bucket-1", "Uploaded file", time.Now(),
+	)
+
+	points, err := client.CountByHour(map[string][]string{}, 7)
+	if err != nil {
+		t.Fatalf("CountByHour failed: %v", err)
+	}
+	if len(points) == 0 {
+		t.Fatal("expected at least one hourly bucket")
+	}
+
+	for _, p := range points {
+		parsed, perr := time.Parse(time.RFC3339, p.Timestamp)
+		if perr != nil {
+			t.Errorf("bucket timestamp %q is not RFC3339: %v", p.Timestamp, perr)
+			continue
+		}
+		if _, offset := parsed.Zone(); offset != 0 {
+			t.Errorf("bucket timestamp %q is not UTC (offset %d seconds)", p.Timestamp, offset)
+		}
+		if parsed.Minute() != 0 || parsed.Second() != 0 {
+			t.Errorf("bucket timestamp %q is not hour-aligned", p.Timestamp)
+		}
 	}
 }
 

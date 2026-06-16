@@ -6,7 +6,7 @@ export interface CreateUserPayload {
 }
 
 export interface TimeSeriesPoint {
-  date: string;
+  timestamp: string;
   count: number;
 }
 
@@ -16,7 +16,7 @@ export interface AdminStatsResponse {
   total_files: number;
   total_folders: number;
   total_storage: number;
-  shared_files_per_day: Array<TimeSeriesPoint>;
+  shared_files_per_hour: Array<TimeSeriesPoint>;
 }
 
 export interface IAdminBucket {

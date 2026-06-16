@@ -177,18 +177,18 @@ func (s *LokiClient) Search(
 	return activity, nil
 }
 
-func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
+func (s *LokiClient) CountByHour(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
 	baseQuery := generateSearchQuery(searchCriteria)
-	countQuery := fmt.Sprintf("sum(count_over_time(%s[1d]))", baseQuery)
+	countQuery := fmt.Sprintf("sum(count_over_time(%s[1h]))", baseQuery)
 
-	startTime := time.Now().AddDate(0, 0, -days)
-	endTime := time.Now()
+	endTime := time.Now().UTC().Truncate(time.Hour)
+	startTime := endTime.Add(-time.Duration(days) * 24 * time.Hour)
 
 	params := map[string]string{
 		"query": countQuery,
 		"start": strconv.FormatInt(startTime.Unix(), 10),
 		"end":   strconv.FormatInt(endTime.Unix(), 10),
-		"step":  "1d",
+		"step":  "1h",
 	}
 
 	zap.L().Debug("Search query", zap.String("query", countQuery), zap.Any("params", params))
@@ -248,17 +248,17 @@ func (s *LokiClient) CountByDay(searchCriteria map[string][]string, days int) ([
 			continue
 		}
 
-		// Loki returns the END of the bucket as timestamp, subtract 1 day to get the actual date
-		dateStr := time.Unix(int64(timestamp), 0).UTC().AddDate(0, 0, -1).Format("2006-01-02")
+		// Loki returns the END of the bucket as timestamp; subtract 1 hour to get the bucket start.
+		bucketStart := time.Unix(int64(timestamp), 0).UTC().Add(-time.Hour)
 
 		result = append(result, models.TimeSeriesPoint{
-			Date:  dateStr,
-			Count: count,
+			Timestamp: bucketStart.Format(time.RFC3339),
+			Count:     count,
 		})
 	}
 
 	slices.SortFunc(result, func(a, b models.TimeSeriesPoint) int {
-		return strings.Compare(a.Date, b.Date)
+		return strings.Compare(a.Timestamp, b.Timestamp)
 	})
 
 	return result, nil

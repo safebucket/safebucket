@@ -7,6 +7,7 @@ import ReactDOM from "react-dom/client";
 import reportWebVitals from "./reportWebVitals.ts";
 import { routeTree } from "./routeTree.gen";
 import { ThemeProvider } from "@/components/theme/context/ThemeProvider.tsx";
+import { TimeDisplayProvider } from "@/components/time-display/context/TimeDisplayProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 
@@ -60,11 +61,13 @@ async function initializeApp() {
       <StrictMode>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            <SidebarProvider>
-              <UploadProvider>
-                <RouterProvider router={router} />
-              </UploadProvider>
-            </SidebarProvider>
+            <TimeDisplayProvider>
+              <SidebarProvider>
+                <UploadProvider>
+                  <RouterProvider router={router} />
+                </UploadProvider>
+              </SidebarProvider>
+            </TimeDisplayProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </StrictMode>,

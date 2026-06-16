@@ -264,12 +264,13 @@ func (c *FilesystemClient) Search(
 	return activities, nil
 }
 
-func (c *FilesystemClient) CountByDay(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
+func (c *FilesystemClient) CountByHour(searchCriteria map[string][]string, days int) ([]models.TimeSeriesPoint, error) {
 	criteriaQuery := buildBleveQuery(searchCriteria)
 
-	now := time.Now()
-	startTime := now.AddDate(0, 0, -days)
-	dateQuery := bleve.NewDateRangeQuery(startTime, now)
+	end := time.Now().UTC().Truncate(time.Hour).Add(time.Hour)
+	start := end.Add(-time.Duration(days*24+1) * time.Hour)
+
+	dateQuery := bleve.NewDateRangeQuery(start, end)
 	dateQuery.SetField("timestamp")
 
 	conjunction := bleve.NewConjunctionQuery(criteriaQuery, dateQuery)
@@ -277,37 +278,39 @@ func (c *FilesystemClient) CountByDay(searchCriteria map[string][]string, days i
 	searchRequest := bleve.NewSearchRequest(conjunction)
 	searchRequest.Size = 0
 
-	facet := bleve.NewFacetRequest("timestamp", days+1)
-	for i := days; i >= 0; i-- {
-		dayStart := now.AddDate(0, 0, -i).Truncate(24 * time.Hour)
-		dayEnd := dayStart.Add(24 * time.Hour)
-		name := dayStart.Format("2006-01-02")
-		facet.AddDateTimeRange(name, dayStart, dayEnd)
+	var bucketStarts []time.Time
+	for t := start; t.Before(end); t = t.Add(time.Hour) {
+		bucketStarts = append(bucketStarts, t)
 	}
-	searchRequest.AddFacet("daily_counts", facet)
+
+	facet := bleve.NewFacetRequest("timestamp", len(bucketStarts)+1)
+	for _, bucketStart := range bucketStarts {
+		facet.AddDateTimeRange(bucketStart.Format(time.RFC3339), bucketStart, bucketStart.Add(time.Hour))
+	}
+	searchRequest.AddFacet("hourly_counts", facet)
 
 	result, err := c.index.Search(searchRequest)
 	if err != nil {
-		return nil, fmt.Errorf("failed to count activity by day: %w", err)
+		return nil, fmt.Errorf("failed to count activity by hour: %w", err)
 	}
 
-	dailyFacet, ok := result.Facets["daily_counts"]
+	hourlyFacet, ok := result.Facets["hourly_counts"]
 	if !ok {
 		return []models.TimeSeriesPoint{}, nil
 	}
 
-	points := make([]models.TimeSeriesPoint, 0, len(dailyFacet.DateRanges))
-	for _, dr := range dailyFacet.DateRanges {
+	points := make([]models.TimeSeriesPoint, 0, len(hourlyFacet.DateRanges))
+	for _, dr := range hourlyFacet.DateRanges {
 		if dr.Count > 0 {
 			points = append(points, models.TimeSeriesPoint{
-				Date:  dr.Name,
-				Count: int64(dr.Count),
+				Timestamp: dr.Name,
+				Count:     int64(dr.Count),
 			})
 		}
 	}
 
 	slices.SortFunc(points, func(a, b models.TimeSeriesPoint) int {
-		return strings.Compare(a.Date, b.Date)
+		return strings.Compare(a.Timestamp, b.Timestamp)
 	})
 
 	return points, nil
