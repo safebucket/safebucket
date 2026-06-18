@@ -15,6 +15,7 @@
   },
   "errors": {
     "INVALID_PASSWORD": "Mot de passe invalide. Veuillez réessayer.",
+    "INVALID_CREDENTIALS": "Adresse e-mail ou mot de passe invalide. Veuillez réessayer.",
     "WRONG_CODE": "Code de vérification invalide. Veuillez réessayer.",
     "CHALLENGE_EXPIRED": "Le code de vérification a expiré. Veuillez recommencer.",
     "CHALLENGE_LOCKED": "Trop de tentatives échouées. Veuillez recommencer.",

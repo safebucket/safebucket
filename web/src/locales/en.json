@@ -15,6 +15,7 @@
   },
   "errors": {
     "INVALID_PASSWORD": "Invalid password. Please try again.",
+    "INVALID_CREDENTIALS": "Invalid email or password. Please try again.",
     "WRONG_CODE": "Invalid verification code. Please try again.",
     "CHALLENGE_EXPIRED": "The verification code has expired. Please start over.",
     "CHALLENGE_LOCKED": "Too many failed attempts. Please start over.",

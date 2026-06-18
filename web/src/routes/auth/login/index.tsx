@@ -6,7 +6,6 @@ import { useTranslation } from "react-i18next";
 import { LogIn } from "lucide-react";
 import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
-import type { FormEvent } from "react";
 import type { ILoginForm } from "@/components/auth-view/types/session";
 import { useLogin } from "@/hooks/useAuth";
 import { mfaPending } from "@/components/mfa-view/helpers/token";
@@ -22,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authProvidersQueryOptions } from "@/queries/auth_providers.ts";
 import { ProviderType } from "@/types/auth_providers.ts";
-import { checkEmailDomain } from "@/components/reset-password/helpers/utils.ts";
 import { AuthProvidersButtons } from "@/components/auth-providers-buttons/AuthProvidersButtons.tsx";
 
 export const Route = createFileRoute("/auth/login/")({
@@ -43,29 +41,13 @@ function Login() {
   const providersQuery = useSuspenseQuery(authProvidersQueryOptions());
   const providers = providersQuery.data;
 
-  const { loginOAuth, loginLocal } = useLogin();
+  const { loginLocal } = useLogin();
   const { register, handleSubmit, watch } = useForm<ILoginForm>();
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const emailValue = watch("email") || "";
-
-  const handleContinue = (event: FormEvent) => {
-    event.preventDefault();
-    const formData = new FormData(event.target as HTMLFormElement);
-    const email = formData.get("email") as string;
-
-    if (!email) return;
-    if (!email.includes("@")) return;
-
-    const matchingProvider = checkEmailDomain(email, providers);
-    if (matchingProvider) {
-      loginOAuth(matchingProvider.id);
-    } else {
-      setShowPassword(true);
-    }
-  };
+  const passwordValue = watch("password") || "";
 
   const handleLocalLogin: SubmitHandler<ILoginForm> = async (data) => {
     setIsLoading(true);
@@ -82,7 +64,10 @@ function Login() {
     } else if (result.success) {
       navigate({ to: redirect || "/" });
     } else {
-      setError(result.error || t("auth.login_error"));
+      const translated = result.error
+        ? t(`errors.${result.error}`, { defaultValue: "" })
+        : "";
+      setError(translated || t("auth.login_error"));
     }
 
     setIsLoading(false);
@@ -119,11 +104,7 @@ function Login() {
                 </div>
               )}
 
-              <form
-                onSubmit={
-                  showPassword ? handleSubmit(handleLocalLogin) : handleContinue
-                }
-              >
+              <form onSubmit={handleSubmit(handleLocalLogin)}>
                 <div className="grid gap-2">
                   <Label htmlFor="email">{t("auth.email")}</Label>
                   <Input
@@ -135,27 +116,23 @@ function Login() {
                   />
                 </div>
 
-                {showPassword && (
-                  <div className="grid gap-2 mt-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">{t("auth.password")}</Label>
-                      <Link
-                        to="/auth/reset-password"
-                        className="text-primary text-sm font-medium hover:underline"
-                      >
-                        {t("auth.forgot_password")}
-                      </Link>
-                    </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      {...register("password", {
-                        required: showPassword,
-                      })}
-                      disabled={isLoading}
-                    />
+                <div className="grid gap-2 mt-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">{t("auth.password")}</Label>
+                    <Link
+                      to="/auth/reset-password"
+                      className="text-primary text-sm font-medium hover:underline"
+                    >
+                      {t("auth.forgot_password")}
+                    </Link>
                   </div>
-                )}
+                  <Input
+                    id="password"
+                    type="password"
+                    {...register("password", { required: true })}
+                    disabled={isLoading}
+                  />
+                </div>
 
                 {error && (
                   <div className="text-sm text-red-600 mt-2">{error}</div>
@@ -165,16 +142,10 @@ function Login() {
                   type="submit"
                   className="w-full mt-4"
                   disabled={
-                    isLoading ||
-                    !emailValue.trim() ||
-                    (showPassword && !watch("password"))
+                    isLoading || !emailValue.trim() || !passwordValue.trim()
                   }
                 >
-                  {isLoading
-                    ? t("auth.signing_in")
-                    : showPassword
-                      ? t("auth.sign_in")
-                      : t("auth.continue")}
+                  {isLoading ? t("auth.signing_in") : t("auth.sign_in")}
                 </Button>
               </form>
             </>

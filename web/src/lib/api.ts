@@ -51,42 +51,40 @@ export async function fetchApi<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  if (response.status === 401) {
-    const res = await response.json();
-    const errorCode = res.error?.[0];
+  if (!response.ok) {
+    let errorCode: string | undefined;
+    try {
+      const res = await response.json();
+      errorCode = res.error?.[0];
+    } catch {
+      errorCode = undefined;
+    }
 
-    if (errorCode === "SESSION_REVOKED") {
+    if (response.status === 401 && errorCode === "SESSION_REVOKED") {
       window.location.href = "/auth/login";
       throw new Error(errorCode);
     }
-  }
 
-  if (response.status === 403) {
-    const res = await response.json();
-    const errorCode = res.error?.[0];
-
-    if (errorCode === "MFA_SETUP_REQUIRED") {
-      if (!window.location.pathname.startsWith("/auth/mfa/setup-required")) {
-        window.location.href = "/auth/mfa/setup-required";
+    if (response.status === 403) {
+      if (errorCode === "MFA_SETUP_REQUIRED") {
+        if (!window.location.pathname.startsWith("/auth/mfa/setup-required")) {
+          window.location.href = "/auth/mfa/setup-required";
+        }
+        throw new Error(errorCode);
       }
-      throw new Error(errorCode);
-    }
 
-    if (retry) {
-      const refreshed = await refreshAccessToken();
-      if (refreshed) {
-        return fetchApi<T>(url, options, false);
-      } else {
-        await api.post("/auth/logout");
-        window.location.href = "/auth/login";
+      if (retry) {
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+          return fetchApi<T>(url, options, false);
+        } else {
+          await api.post("/auth/logout");
+          window.location.href = "/auth/login";
+        }
       }
     }
-    throw new Error(errorCode);
-  }
 
-  if (!response.ok) {
-    const res = await response.json();
-    throw new Error(res.error[0]);
+    throw new Error(errorCode ?? "INTERNAL_SERVER_ERROR");
   }
 
   if (
