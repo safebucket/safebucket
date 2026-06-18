@@ -48,5 +48,8 @@ jobs:
       - name: Check i18n translations
         run: npm run i18n:status
 
+      - name: Run tests
+        run: npm run test
+
       - name: Build app
         run: npm run build

@@ -8,8 +8,6 @@
     "tailwindcss",
     "@trivago/prettier-plugin-sort-imports",
     "prettier-plugin-tailwindcss",
-    "@testing-library/dom",
-    "@testing-library/react",
     "@tanstack/eslint-config",
     "eslint-plugin-i18next",
     "eslint-plugin-jsx-a11y"

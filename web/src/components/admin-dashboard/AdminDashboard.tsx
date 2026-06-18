@@ -15,7 +15,7 @@ export const AdminDashboard: FC = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto min-h-0 flex-1 overflow-y-auto p-6">
         <Skeleton className="mb-6 h-8 w-48" />
         <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Skeleton className="h-[120px]" />
@@ -33,7 +33,7 @@ export const AdminDashboard: FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 pt-0">
+    <div className="container mx-auto min-h-0 flex-1 overflow-y-auto p-6 pt-0">
       <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t("admin.dashboard.stats.users")}
