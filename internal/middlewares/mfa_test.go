@@ -81,7 +81,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 		)
 		handler.ServeHTTP(recorder, req)
 
-		expected := models.Error{Status: http.StatusForbidden, Error: []string{"FORBIDDEN"}}
+		expected := models.Error{Status: http.StatusForbidden, Error: []string{"MFA_SETUP_REQUIRED"}}
 		tests.AssertJSONResponse(t, recorder, http.StatusForbidden, expected)
 	})
 
@@ -624,7 +624,7 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		}))
 		handler.ServeHTTP(recorder, req)
 
-		expected := models.Error{Status: http.StatusForbidden, Error: []string{"FORBIDDEN"}}
+		expected := models.Error{Status: http.StatusForbidden, Error: []string{"MFA_SETUP_REQUIRED"}}
 		tests.AssertJSONResponse(t, recorder, http.StatusForbidden, expected)
 	})
 
@@ -654,7 +654,7 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		}))
 		handler.ServeHTTP(recorder, req)
 
-		expected := models.Error{Status: http.StatusForbidden, Error: []string{"FORBIDDEN"}}
+		expected := models.Error{Status: http.StatusForbidden, Error: []string{"MFA_SETUP_REQUIRED"}}
 		tests.AssertJSONResponse(t, recorder, http.StatusForbidden, expected)
 	})
 }
@@ -851,7 +851,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		)
 		handler.ServeHTTP(recorder, req)
 
-		expected := models.Error{Status: http.StatusForbidden, Error: []string{"FORBIDDEN"}}
+		expected := models.Error{Status: http.StatusForbidden, Error: []string{"MFA_SETUP_REQUIRED"}}
 		tests.AssertJSONResponse(t, recorder, http.StatusForbidden, expected)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})

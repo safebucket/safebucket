@@ -1,18 +1,35 @@
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "@tanstack/react-router";
 import type { FC } from "react";
 import type { IProvider } from "@/types/auth_providers.ts";
+import { ProviderType } from "@/types/auth_providers.ts";
 import { useLogin } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button.tsx";
 
 interface IAuthProvidersButtonsProps {
   providers: Array<IProvider>;
+  redirect?: string;
 }
 
 export const AuthProvidersButtons: FC<IAuthProvidersButtonsProps> = ({
   providers,
+  redirect,
 }) => {
   const { loginOAuth } = useLogin();
+  const navigate = useNavigate();
   const { t } = useTranslation();
+
+  const handleClick = (provider: IProvider) => {
+    if (provider.type === ProviderType.LDAP) {
+      navigate({
+        to: "/auth/providers/$provider",
+        params: { provider: provider.id },
+        search: { redirect },
+      });
+    } else {
+      loginOAuth(provider.id);
+    }
+  };
 
   return (
     <div
@@ -21,8 +38,9 @@ export const AuthProvidersButtons: FC<IAuthProvidersButtonsProps> = ({
       {providers.map((provider) => (
         <Button
           key={provider.id}
+          type="button"
           variant="outline"
-          onClick={() => loginOAuth(provider.id)}
+          onClick={() => handleClick(provider)}
         >
           <img
             width={15}

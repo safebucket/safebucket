@@ -46,7 +46,12 @@ func MFAValidate(
 				return
 			}
 
-			if providers[claims.Provider].MFARequired || (db != nil && userHasMFAEnrolled(db, claims.UserID)) {
+			if providers[claims.Provider].MFARequired {
+				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeMFASetupRequired})
+				return
+			}
+
+			if db != nil && userHasMFAEnrolled(db, claims.UserID) {
 				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}

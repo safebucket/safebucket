@@ -22,6 +22,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
   const updateUserMutation = useUpdateUserMutation(user.id);
 
   const isLocalProvider = user.provider_type === ProviderType.LOCAL;
+  const supportsMFA =
+    isLocalProvider || user.provider_type === ProviderType.LDAP;
 
   const handleUpdateField = (field: string, value: string) => {
     updateUserMutation.mutate({ [field]: value });
@@ -76,7 +78,9 @@ export function ProfileForm({ user }: ProfileFormProps) {
         </CardContent>
       </Card>
 
-      {isLocalProvider && <MFAView className="mt-2" />}
+      {supportsMFA && (
+        <MFAView className="mt-2" providerType={user.provider_type} />
+      )}
     </>
   );
 }

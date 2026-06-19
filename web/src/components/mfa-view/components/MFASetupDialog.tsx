@@ -23,9 +23,16 @@ import { useRefreshSession } from "@/hooks/useAuth";
 interface MFASetupDialogProps {
   open: boolean;
   onClose: () => void;
+  providerType: string;
+  hasExistingDevices: boolean;
 }
 
-export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
+export function MFASetupDialog({
+  open,
+  onClose,
+  providerType,
+  hasExistingDevices,
+}: MFASetupDialogProps) {
   const { t } = useTranslation();
   const refreshSession = useRefreshSession();
   const {
@@ -34,6 +41,10 @@ export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
     setDeviceName,
     password,
     setPassword,
+    stepUpCode,
+    setStepUpCode,
+    needsPassword,
+    needsStepUpCode,
     setupData,
     code,
     setCode,
@@ -44,7 +55,7 @@ export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
     goBack,
     verifyCode,
     reset,
-  } = useMFASetup();
+  } = useMFASetup({ providerType, hasExistingDevices });
 
   useEffect(() => {
     if (!open) {
@@ -57,6 +68,12 @@ export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
       void refreshSession();
     }
   }, [step, refreshSession]);
+
+  const canSubmitName =
+    !!deviceName.trim() &&
+    !isLoading &&
+    (!needsPassword || !!password) &&
+    (!needsStepUpCode || stepUpCode.length === MFA_CODE_LENGTH);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -89,27 +106,40 @@ export function MFASetupDialog({ open, onClose }: MFASetupDialogProps) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">{t("auth.password")}</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t("auth.mfa.password_placeholder")}
-                  disabled={isLoading}
-                />
-              </div>
+              {needsPassword && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">{t("auth.password")}</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t("auth.mfa.password_placeholder")}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+
+              {needsStepUpCode && (
+                <div className="space-y-2">
+                  <Label>{t("auth.mfa.stepup_label")}</Label>
+                  <p className="text-muted-foreground text-sm">
+                    {t("auth.mfa.stepup_instruction")}
+                  </p>
+                  <MFAVerifyInput
+                    value={stepUpCode}
+                    onChange={setStepUpCode}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
             </div>
 
             <DialogFooter className="sm:justify-between">
               <Button variant="outline" onClick={onClose}>
                 {t("common.cancel")}
               </Button>
-              <Button
-                onClick={startSetup}
-                disabled={!deviceName.trim() || !password || isLoading}
-              >
+              <Button onClick={startSetup} disabled={!canSubmitName}>
                 {isLoading ? t("common.loading") : t("auth.continue")}
               </Button>
             </DialogFooter>

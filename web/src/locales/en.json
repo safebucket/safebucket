@@ -68,6 +68,11 @@
     "signing_in": "Signing in...",
     "continue": "Continue",
     "login_error": "Login failed. Please check your credentials and try again.",
+    "back_to_login": "Back to login",
+    "ldap": {
+      "title": "Sign in to {{name}}",
+      "description": "Enter your {{name}} credentials to continue."
+    },
     "mfa": {
       "verify_title": "Two-Factor Authentication",
       "verify_subtitle": "Enter the code from your authenticator app",
@@ -97,6 +102,12 @@
       "delete_password_placeholder": "Enter your password to confirm",
       "delete_invalid_password": "Invalid password. Please try again.",
       "delete_error": "Failed to remove device. Please try again.",
+      "stepup_label": "Existing device code",
+      "stepup_instruction": "Enter a 6-digit code from one of your existing authenticators to add a new device.",
+      "error_stepup_required": "A verification code from an existing device is required.",
+      "delete_code_label": "Verification code",
+      "delete_code_instruction": "Enter a 6-digit code from one of your authenticators to remove this device.",
+      "invalid_code": "Invalid verification code. Please try again.",
       "error_device_name_required": "Device name is required",
       "error_device_name_exists": "A device with this name already exists",
       "error_max_devices": "Maximum number of devices reached",

@@ -4,6 +4,7 @@ const (
 	CodeMFANotEnabled                 = "MFA_NOT_ENABLED"
 	CodeMFARequired                   = "MFA_REQUIRED"
 	CodeMFASetupFailed                = "MFA_SETUP_FAILED"
+	CodeMFASetupRequired              = "MFA_SETUP_REQUIRED"
 	CodeMFASetupRestricted            = "MFA_SETUP_RESTRICTED"
 	CodeMFAVerificationFailed         = "MFA_VERIFICATION_FAILED"
 	CodeMFARateLimited                = "MFA_RATE_LIMITED"

@@ -68,6 +68,11 @@
     "signing_in": "Connexion en cours...",
     "continue": "Continuer",
     "login_error": "La connexion a échoué. Veuillez vérifier vos identifiants et réessayer.",
+    "back_to_login": "Retour à la connexion",
+    "ldap": {
+      "title": "Se connecter à {{name}}",
+      "description": "Saisissez vos identifiants {{name}} pour continuer."
+    },
     "mfa": {
       "verify_title": "Authentification à deux facteurs",
       "verify_subtitle": "Saisissez le code de votre application d'authentification",
@@ -97,6 +102,12 @@
       "delete_password_placeholder": "Saisissez votre mot de passe pour confirmer",
       "delete_invalid_password": "Mot de passe invalide. Veuillez réessayer.",
       "delete_error": "Échec de la suppression de l'appareil. Veuillez réessayer.",
+      "stepup_label": "Code d'un appareil existant",
+      "stepup_instruction": "Saisissez un code à 6 chiffres depuis l'un de vos authentificateurs existants pour ajouter un nouvel appareil.",
+      "error_stepup_required": "Un code de vérification d'un appareil existant est requis.",
+      "delete_code_label": "Code de vérification",
+      "delete_code_instruction": "Saisissez un code à 6 chiffres depuis l'un de vos authentificateurs pour supprimer cet appareil.",
+      "invalid_code": "Code de vérification invalide. Veuillez réessayer.",
       "error_device_name_required": "Le nom de l'appareil est requis",
       "error_device_name_exists": "Un appareil avec ce nom existe déjà",
       "error_max_devices": "Nombre maximum d'appareils atteint",

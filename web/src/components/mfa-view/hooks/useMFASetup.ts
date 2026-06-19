@@ -12,6 +12,13 @@ import {
   useAddMFADeviceMutation,
   useVerifyMFADeviceMutation,
 } from "@/queries/mfa";
+import { ProviderType } from "@/types/auth_providers.ts";
+
+export interface UseMFASetupOptions {
+  isRestricted?: boolean;
+  providerType?: string;
+  hasExistingDevices?: boolean;
+}
 
 export interface UseMFASetupReturn {
   step: SetupStep;
@@ -19,6 +26,10 @@ export interface UseMFASetupReturn {
   setDeviceName: (name: string) => void;
   password: string;
   setPassword: (password: string) => void;
+  stepUpCode: string;
+  setStepUpCode: (code: string) => void;
+  needsPassword: boolean;
+  needsStepUpCode: boolean;
   setupData: IMFADeviceSetupResponse | null;
   code: string;
   setCode: (code: string) => void;
@@ -31,10 +42,21 @@ export interface UseMFASetupReturn {
   reset: () => void;
 }
 
-export function useMFASetup(isRestricted = false): UseMFASetupReturn {
+export function useMFASetup(
+  options: UseMFASetupOptions = {},
+): UseMFASetupReturn {
+  const {
+    isRestricted = false,
+    providerType,
+    hasExistingDevices = false,
+  } = options;
   const { t } = useTranslation();
   const addDeviceMutation = useAddMFADeviceMutation();
   const verifyDeviceMutation = useVerifyMFADeviceMutation();
+
+  const isOIDC = providerType === ProviderType.OIDC;
+  const needsPassword = !isRestricted && !isOIDC;
+  const needsStepUpCode = !isRestricted && isOIDC && hasExistingDevices;
 
   const [step, setStep] = useState<SetupStep>("name");
   const [deviceName, setDeviceName] = useState(MFA_DEFAULT_DEVICE_NAME);
@@ -45,11 +67,13 @@ export function useMFASetup(isRestricted = false): UseMFASetupReturn {
   const [error, setError] = useState<string | null>(null);
 
   const [password, setPassword] = useState("");
+  const [stepUpCode, setStepUpCode] = useState("");
 
   const reset = useCallback(() => {
     setStep("name");
     setDeviceName(MFA_DEFAULT_DEVICE_NAME);
     setPassword("");
+    setStepUpCode("");
     setSetupData(null);
     setCode("");
     setError(null);
@@ -73,8 +97,13 @@ export function useMFASetup(isRestricted = false): UseMFASetupReturn {
       return;
     }
 
-    if (!password && !isRestricted) {
+    if (needsPassword && !password) {
       setError(t("auth.mfa.error_password_required"));
+      return;
+    }
+
+    if (needsStepUpCode && stepUpCode.length !== MFA_CODE_LENGTH) {
+      setError(t("auth.mfa.error_stepup_required"));
       return;
     }
 
@@ -82,7 +111,8 @@ export function useMFASetup(isRestricted = false): UseMFASetupReturn {
     try {
       const response = await addDeviceMutation.mutateAsync({
         name: deviceName.trim(),
-        password,
+        password: needsPassword ? password : undefined,
+        code: needsStepUpCode ? stepUpCode : undefined,
       });
       setSetupData(response);
       setStep("qr");
@@ -94,11 +124,21 @@ export function useMFASetup(isRestricted = false): UseMFASetupReturn {
         setError(t("auth.mfa.error_max_devices"));
       } else if (errorMessage.includes("INVALID_PASSWORD")) {
         setError(t("auth.mfa.error_invalid_password"));
+      } else if (errorMessage.includes("INVALID_MFA_CODE")) {
+        setError(t("auth.mfa.invalid_code"));
       } else {
         setError(t("auth.mfa.setup_error"));
       }
     }
-  }, [deviceName, password, isRestricted, addDeviceMutation, t]);
+  }, [
+    deviceName,
+    password,
+    stepUpCode,
+    needsPassword,
+    needsStepUpCode,
+    addDeviceMutation,
+    t,
+  ]);
 
   const verifyCode = useCallback(async () => {
     if (code.length !== MFA_CODE_LENGTH) {
@@ -130,6 +170,10 @@ export function useMFASetup(isRestricted = false): UseMFASetupReturn {
     setDeviceName,
     password,
     setPassword,
+    stepUpCode,
+    setStepUpCode,
+    needsPassword,
+    needsStepUpCode,
     setupData,
     code,
     setCode,

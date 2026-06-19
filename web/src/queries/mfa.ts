@@ -23,8 +23,20 @@ export const useAddMFADeviceMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ name, password }: { name: string; password?: string }) =>
-      api.post<IMFADeviceSetupResponse>(`/mfa/devices`, { name, password }),
+    mutationFn: ({
+      name,
+      password,
+      code,
+    }: {
+      name: string;
+      password?: string;
+      code?: string;
+    }) =>
+      api.post<IMFADeviceSetupResponse>(`/mfa/devices`, {
+        name,
+        password,
+        code,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });
     },
@@ -56,10 +68,12 @@ export const useRemoveMFADeviceMutation = () => {
     mutationFn: ({
       deviceId,
       password,
+      code,
     }: {
       deviceId: string;
-      password: string;
-    }) => api.delete(`/mfa/devices/${deviceId}`, { password }),
+      password?: string;
+      code?: string;
+    }) => api.delete(`/mfa/devices/${deviceId}`, { password, code }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });
       successToast("MFA device removed");

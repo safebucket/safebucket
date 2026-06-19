@@ -46,6 +46,8 @@ function Login() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const ssoProviders = providers.filter((p) => p.type !== ProviderType.LOCAL);
+  const hasLocal = providers.some((p) => p.type === ProviderType.LOCAL);
   const emailValue = watch("email") || "";
   const passwordValue = watch("password") || "";
 
@@ -84,14 +86,11 @@ function Login() {
           <CardDescription>{t("auth.sign_in_subtitle")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <AuthProvidersButtons
-            providers={providers.filter((p) => p.type === ProviderType.OIDC)}
-          />
+          <AuthProvidersButtons providers={ssoProviders} redirect={redirect} />
 
-          {providers.find((p) => p.type === ProviderType.LOCAL) && (
+          {hasLocal && (
             <>
-              {providers.filter((p) => p.type === ProviderType.OIDC).length >
-                0 && (
+              {ssoProviders.length > 0 && (
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t" />

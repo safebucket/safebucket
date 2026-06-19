@@ -1,6 +1,7 @@
 export enum ProviderType {
   LOCAL = "local",
   OIDC = "oidc",
+  LDAP = "ldap",
 }
 
 export interface IProvider {

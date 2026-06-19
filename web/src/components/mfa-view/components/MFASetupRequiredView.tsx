@@ -28,12 +28,14 @@ type ViewMode = "error" | "setup" | "success";
 
 export interface IMFASetupRequiredViewProps {
   isRestricted?: boolean;
+  providerType?: string;
   redirectPath?: string;
   onLogout: () => void;
 }
 
 export function MFASetupRequiredView({
   isRestricted,
+  providerType,
   redirectPath,
   onLogout,
 }: IMFASetupRequiredViewProps) {
@@ -49,6 +51,7 @@ export function MFASetupRequiredView({
     setDeviceName,
     password,
     setPassword,
+    needsPassword,
     setupData,
     code,
     setCode,
@@ -58,7 +61,7 @@ export function MFASetupRequiredView({
     goToVerify,
     goBack,
     verifyCode,
-  } = useMFASetup(isRestricted);
+  } = useMFASetup({ isRestricted, providerType });
 
   useEffect(() => {
     if (step === "success") {
@@ -128,7 +131,7 @@ export function MFASetupRequiredView({
                     disabled={isLoading}
                   />
                 </div>
-                {!isRestricted && (
+                {needsPassword && (
                   <div className="space-y-2">
                     <Label htmlFor="password">{t("auth.password")}</Label>
                     <Input
@@ -145,7 +148,7 @@ export function MFASetupRequiredView({
                   className="w-full"
                   onClick={handleStartSetup}
                   disabled={
-                    isLoading || !deviceName || (!password && !isRestricted)
+                    isLoading || !deviceName || (needsPassword && !password)
                   }
                 >
                   {isLoading && (
