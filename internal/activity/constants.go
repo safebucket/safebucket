@@ -9,6 +9,7 @@ func defineAction(name string) string {
 
 var (
 	BucketCreated                = defineAction("BUCKET_CREATED")
+	BucketUpdated                = defineAction("BUCKET_UPDATED")
 	BucketDeleted                = defineAction("BUCKET_DELETED")
 	FileUploaded                 = defineAction("FILE_UPLOADED")
 	FileDownloaded               = defineAction("FILE_DOWNLOADED")
@@ -24,6 +25,7 @@ var (
 	BucketMemberCreated          = defineAction("BUCKET_MEMBER_CREATED")
 	BucketMemberUpdated          = defineAction("BUCKET_MEMBER_UPDATED")
 	BucketMemberDeleted          = defineAction("BUCKET_MEMBER_DELETED")
+	UserCreated                  = defineAction("USER_CREATED")
 	UserLoggedIn                 = defineAction("USER_LOGGED_IN")
 	PasswordResetCodeVerified    = defineAction("PASSWORD_RESET_CODE_VERIFIED")
 	PasswordResetCompleted       = defineAction("PASSWORD_RESET_COMPLETED")
