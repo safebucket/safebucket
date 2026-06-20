@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -12,6 +13,7 @@ import (
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/notifier"
+	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/alexedwards/argon2id"
@@ -172,15 +174,53 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 		logger.Error("Failed to revoke user sessions", zap.Error(err))
 	}
 
+	var deletedUser models.User
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("id = ?", userID).First(&deletedUser).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
+			}
+			return err
+		}
+
 		result := tx.Where("id = ?", userID).Delete(&models.User{})
+		if result.Error != nil {
+			logger.Error(
+				"Failed to delete user",
+				zap.Error(result.Error),
+				zap.String("user_id", userID.String()),
+			)
+			return result.Error
+		}
+
 		if result.RowsAffected == 0 {
 			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 		}
 
+		result = tx.Where("user_id = ?", userID).Delete(&models.Membership{})
 		if result.Error != nil {
 			logger.Error(
-				"Failed to delete user",
+				"Failed to delete user memberships",
+				zap.Error(result.Error),
+				zap.String("user_id", userID.String()),
+			)
+			return result.Error
+		}
+
+		result = tx.Unscoped().Where("user_id = ?", userID).Delete(&models.Challenge{})
+		if result.Error != nil {
+			logger.Error(
+				"Failed to delete user challenges",
+				zap.Error(result.Error),
+				zap.String("user_id", userID.String()),
+			)
+			return result.Error
+		}
+
+		result = tx.Unscoped().Where("user_id = ?", userID).Delete(&models.MFADevice{})
+		if result.Error != nil {
+			logger.Error(
+				"Failed to delete user MFA devices",
 				zap.Error(result.Error),
 				zap.String("user_id", userID.String()),
 			)
@@ -197,9 +237,27 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 			return result.Error
 		}
 
+		action := models.Activity{
+			Message: activity.UserDeleted,
+			Object:  deletedUser.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				ObjectType: rbac.ResourceUser.String(),
+				UserID:     user.UserID.String(),
+			}),
+		}
+		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+			logger.Error("Failed to log user deletion activity", zap.Error(logErr))
+			return logErr
+		}
+
 		return nil
 	})
+
 	if err != nil {
+		if apiErr, ok := errors.AsType[*apierrors.APIError](err); ok {
+			return apiErr
+		}
 		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 

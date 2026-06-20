@@ -25,6 +25,7 @@ var (
 	BucketMemberUpdated          = defineAction("BUCKET_MEMBER_UPDATED")
 	BucketMemberDeleted          = defineAction("BUCKET_MEMBER_DELETED")
 	UserLoggedIn                 = defineAction("USER_LOGGED_IN")
+	UserDeleted                  = defineAction("USER_DELETED")
 	PasswordResetCodeVerified    = defineAction("PASSWORD_RESET_CODE_VERIFIED")
 	PasswordResetCompleted       = defineAction("PASSWORD_RESET_COMPLETED")
 	InviteAccepted               = defineAction("INVITE_ACCEPTED")
