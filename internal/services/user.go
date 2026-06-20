@@ -86,7 +86,23 @@ func (s UserService) CreateUser(
 		}
 		newUser.HashedPassword = hash
 
-		err = sql.CreateUserWithInvites(logger, s.DB, &newUser)
+		err = s.DB.Transaction(func(tx *gorm.DB) error {
+			if createErr := sql.CreateUserWithInvites(logger, tx, &newUser); createErr != nil {
+				return createErr
+			}
+
+			action := models.Activity{
+				Message: activity.UserCreated,
+				Object:  newUser.ToActivity(),
+				Filter: activity.NewLogFilter(models.ActivityFields{
+					Action:     rbac.ActionCreate.String(),
+					ObjectType: rbac.ResourceUser.String(),
+					UserID:     newUser.ID.String(),
+				}),
+			}
+
+			return s.ActivityLogger.Send(action)
+		})
 		if err != nil {
 			return models.User{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}

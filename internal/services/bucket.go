@@ -332,27 +332,36 @@ func (s BucketService) UpdateBucket(
 	ids uuid.UUIDs,
 	body models.BucketCreateUpdateBody,
 ) error {
-	bucket := models.Bucket{ID: ids[0]}
-	result := s.DB.Model(&bucket).Updates(body)
-	if result.RowsAffected == 0 {
-		return apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		bucket := models.Bucket{}
+		result := tx.Where("id = ?", ids[0]).First(&bucket)
+		if result.RowsAffected == 0 {
+			return apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
+		}
+
+		bucket.Name = body.Name
+		if err := tx.Model(&bucket).Update("name", body.Name).Error; err != nil {
+			return err
+		}
+
+		action := models.Activity{
+			Message: activity.BucketUpdated,
+			Object:  bucket.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionUpdate.String(),
+				BucketID:   bucket.ID.String(),
+				ObjectType: rbac.ResourceBucket.String(),
+				UserID:     user.UserID.String(),
+			}),
+		}
+
+		return s.ActivityLogger.Send(action)
+	})
+	if err != nil {
+		logger.Error("Failed to update bucket", zap.Error(err))
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 	}
 
-	updated := models.Bucket{ID: ids[0], Name: body.Name}
-	action := models.Activity{
-		Message: activity.BucketUpdated,
-		Object:  updated.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionUpdate.String(),
-			BucketID:   ids[0].String(),
-			ObjectType: rbac.ResourceBucket.String(),
-			UserID:     user.UserID.String(),
-		}),
-	}
-	if err := s.ActivityLogger.Send(action); err != nil {
-		logger.Error("Failed to log bucket update activity", zap.Error(err))
-		return err
-	}
 	return nil
 }
 
