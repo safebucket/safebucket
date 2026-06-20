@@ -175,14 +175,14 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 	}
 
 	var deletedUser models.User
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("id = ?", userID).First(&deletedUser).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
-			}
-			return err
+	if err := s.DB.Where("id = ?", userID).First(&deletedUser).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 		}
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+	}
 
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Where("id = ?", userID).Delete(&models.User{})
 		if result.Error != nil {
 			logger.Error(
@@ -191,10 +191,6 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 				zap.String("user_id", userID.String()),
 			)
 			return result.Error
-		}
-
-		if result.RowsAffected == 0 {
-			return apierrors.New(http.StatusNotFound, apierrors.CodeUserNotFound)
 		}
 
 		result = tx.Where("user_id = ?", userID).Delete(&models.Membership{})
@@ -255,9 +251,6 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 	})
 
 	if err != nil {
-		if apiErr, ok := errors.AsType[*apierrors.APIError](err); ok {
-			return apiErr
-		}
 		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
