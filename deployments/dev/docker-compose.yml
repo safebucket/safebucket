@@ -99,7 +99,7 @@ services:
       - "valkey_data:/data"
 
   mailpit:
-    image: axllent/mailpit:v1.30.1
+    image: axllent/mailpit:v1.30.2
     container_name: mailpit
     restart: unless-stopped
     volumes:
@@ -154,7 +154,7 @@ services:
   pyroscope:
     container_name: pyroscope
     profiles: [ debug ]
-    image: grafana/pyroscope:2.0.3
+    image: grafana/pyroscope:2.1.0
     command: [ "server" ]
     ports:
       - "4040:4040"
