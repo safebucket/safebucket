@@ -14,10 +14,11 @@ import (
 )
 
 type TestValidate struct {
-	Name     string `json:"name"     validate:"required"`
-	Email    string `json:"email"    validate:"required,email"`
-	Filename string `json:"filename" validate:"filename"`
-	Type     string `json:"type"     validate:"omitempty,oneof=file folder"`
+	Name       string `json:"name"       validate:"required"`
+	Email      string `json:"email"      validate:"required,email"`
+	Filename   string `json:"filename"   validate:"filename"`
+	Foldername string `json:"foldername" validate:"omitempty,foldername"`
+	Type       string `json:"type"       validate:"omitempty,oneof=file folder"`
 }
 
 func mockNextHandler(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +81,32 @@ func TestValidateMiddleware(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectedErrors: []string{
 				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
+			},
+		},
+		{
+			name:           "Valid foldername with dots",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "folder", "filename": "file.txt", "foldername": "humanlog_0.7.8_linux_amd64"}`,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "Valid foldername with parentheses and brackets",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "folder", "filename": "file.txt", "foldername": "backup (1) [old]"}`,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "Invalid foldername - prohibited characters",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "folder", "filename": "file.txt", "foldername": "sub/folder"}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedErrors: []string{
+				"Key: 'TestValidate.Foldername' Error:Field validation for 'Foldername' failed on the 'foldername' tag",
+			},
+		},
+		{
+			name:           "Invalid foldername - dot only",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "folder", "filename": "file.txt", "foldername": ".."}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedErrors: []string{
+				"Key: 'TestValidate.Foldername' Error:Field validation for 'Foldername' failed on the 'foldername' tag",
 			},
 		},
 	}
