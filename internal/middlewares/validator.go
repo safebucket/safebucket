@@ -49,10 +49,6 @@ func validateFoldername(fl validator.FieldLevel) bool {
 	// Block prohibited characters: / \ < > : " | ? * and null byte
 	prohibited := regexp.MustCompile(`[/\\<>:"|?*\x00]`)
 
-	if foldername == "." || foldername == ".." {
-		return false
-	}
-
 	return regex.MatchString(foldername) && !prohibited.MatchString(foldername)
 }
 
