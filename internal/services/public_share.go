@@ -3,7 +3,6 @@ package services
 import (
 	"net/http"
 	"path"
-	"path/filepath"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -269,15 +268,10 @@ func (s PublicShareService) UploadShareFile(
 		return models.FileTransferResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyExists)
 	}
 
-	extension := filepath.Ext(body.Name)
-	if len(extension) > 0 {
-		extension = extension[1:]
-	}
-
 	file := &models.File{
 		Status:    models.FileStatusUploading,
 		Name:      body.Name,
-		Extension: extension,
+		Extension: h.ExtensionFromName(body.Name),
 		BucketID:  share.BucketID,
 		FolderID:  folderID,
 		Size:      int(body.Size),

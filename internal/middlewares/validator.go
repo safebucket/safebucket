@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -27,29 +28,22 @@ func validateMaxUploadSize(fl validator.FieldLevel) bool {
 	return fl.Field().Int() <= maxUploadSize
 }
 
+var prohibitedNameChars = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]`)
+
+var reservedNames = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)`)
+
 func validateFilename(fl validator.FieldLevel) bool {
-	filename := fl.Field().String()
+	name := fl.Field().String()
 
-	// Must have an extension (at least one dot followed by 1-10 alphanumeric chars)
-	// Filename part can contain letters, numbers, spaces, underscores, hyphens, dots, and parentheses
-	// Must start with alphanumeric or underscore (not a dot or special char)
-	regex := regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9_ \-.()\[\]]*\.[a-zA-Z0-9]{1,10}$`)
+	if name == "" || name == "." || name == ".." {
+		return false
+	}
 
-	// Block prohibited characters: / \ < > : " | ? * and null byte
-	prohibited := regexp.MustCompile(`[/\\<>:"|?*\x00]`)
+	if name != strings.TrimSpace(name) || strings.HasSuffix(name, ".") {
+		return false
+	}
 
-	return regex.MatchString(filename) && !prohibited.MatchString(filename)
-}
-
-func validateFoldername(fl validator.FieldLevel) bool {
-	foldername := fl.Field().String()
-
-	regex := regexp.MustCompile(`^[a-zA-Z0-9_][a-zA-Z0-9_ \-.()\[\]]*$`)
-
-	// Block prohibited characters: / \ < > : " | ? * and null byte
-	prohibited := regexp.MustCompile(`[/\\<>:"|?*\x00]`)
-
-	return regex.MatchString(foldername) && !prohibited.MatchString(foldername)
+	return !prohibitedNameChars.MatchString(name) && !reservedNames.MatchString(name)
 }
 
 func validateFutureDate(fl validator.FieldLevel) bool {
@@ -74,7 +68,7 @@ func Validate[T any](next http.Handler) http.Handler {
 
 		validate := validator.New()
 		_ = validate.RegisterValidation("filename", validateFilename)
-		_ = validate.RegisterValidation("foldername", validateFoldername)
+		_ = validate.RegisterValidation("foldername", validateFilename)
 		_ = validate.RegisterValidation("maxuploadsize", validateMaxUploadSize)
 		_ = validate.RegisterValidation("futuredate", validateFutureDate)
 

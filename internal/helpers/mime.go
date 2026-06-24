@@ -1,8 +1,17 @@
 package helpers
 
 import (
+	"path/filepath"
 	"strings"
 )
+
+func ExtensionFromName(name string) string {
+	ext := filepath.Ext(name)
+	if ext == name {
+		return ""
+	}
+	return strings.TrimPrefix(ext, ".")
+}
 
 var previewMimeByExt = map[string]string{
 	"png":  "image/png",
