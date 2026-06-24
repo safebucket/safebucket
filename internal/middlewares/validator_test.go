@@ -120,6 +120,27 @@ func TestValidateMiddleware(t *testing.T) {
 			},
 		},
 		{
+			name:           "Invalid filename - rtl override spoof",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "Invoice` + "\u202e" + `fdp.exe"}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedErrors: []string{
+				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
+			},
+		},
+		{
+			name:           "Valid filename with extra allowed symbols",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "@100%$ data{v2}~=;!^.txt"}`,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "Invalid filename - disallowed ascii symbol",
+			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "report|home.txt"}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedErrors: []string{
+				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
+			},
+		},
+		{
 			name:           "Valid foldername with dots",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "folder", "filename": "file.txt", "foldername": "humanlog_0.7.8_linux_amd64"}`,
 			expectedStatus: http.StatusOK,

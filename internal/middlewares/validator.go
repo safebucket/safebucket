@@ -28,7 +28,7 @@ func validateMaxUploadSize(fl validator.FieldLevel) bool {
 	return fl.Field().Int() <= maxUploadSize
 }
 
-var prohibitedNameChars = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]`)
+var allowedNameChars = regexp.MustCompile(`^[\p{L}\p{M}\p{N} ._()&+#@!~=%$;{}^',\[\]-]+$`)
 
 var reservedNames = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)`)
 
@@ -43,7 +43,7 @@ func validateFilename(fl validator.FieldLevel) bool {
 		return false
 	}
 
-	return !prohibitedNameChars.MatchString(name) && !reservedNames.MatchString(name)
+	return allowedNameChars.MatchString(name) && !reservedNames.MatchString(name)
 }
 
 func validateFutureDate(fl validator.FieldLevel) bool {
