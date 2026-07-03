@@ -80,6 +80,29 @@ func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.Handler
 	}
 }
 
+func ShareDownloadRedirectHandler(getOne ShareGetOneTargetFunc[models.FileTransferResponse]) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracing.StartSpan(r.Context(), spanName(getOne))
+		defer span.End()
+		r = r.WithContext(ctx)
+
+		ids, ok := h.ParseUUIDs(w, r)
+		if !ok {
+			return
+		}
+
+		share := getShare(r)
+		logger := m.GetLogger(r)
+		record, err := getOne(logger, share, ids)
+		if err != nil {
+			WriteError(span, w, err)
+			return
+		}
+
+		http.Redirect(w, r, record.URL, http.StatusFound)
+	}
+}
+
 func ShareGetOneWithQueryHandler[Q any, Out any](getOne ShareGetOneWithQueryTargetFunc[Q, Out]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracing.StartSpan(r.Context(), spanName(getOne))

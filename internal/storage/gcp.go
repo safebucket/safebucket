@@ -46,15 +46,19 @@ func (g GCPStorage) GetBucketName() string {
 	return g.BucketName
 }
 
-func (g GCPStorage) PresignedGetObject(objectPath, inlineContentType string) (string, error) {
+func (g GCPStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
 	signOpts := &gcs.SignedURLOptions{
 		Method:  http.MethodGet,
 		Expires: time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
 	}
-	if inlineContentType != "" {
+	if opts.InlineContentType != "" {
 		signOpts.QueryParameters = url.Values{
-			"response-content-disposition": []string{"inline"},
-			"response-content-type":        []string{inlineContentType},
+			respContentDisposition: []string{"inline"},
+			respContentType:        []string{opts.InlineContentType},
+		}
+	} else if opts.DownloadFilename != "" {
+		signOpts.QueryParameters = url.Values{
+			respContentDisposition: []string{attachmentDisposition(opts.DownloadFilename)},
 		}
 	}
 

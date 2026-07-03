@@ -279,7 +279,10 @@ func (s BucketFileService) DownloadFile(
 		inlineContentType = h.PreviewMimeFromExtension(file.Extension)
 	}
 
-	url, err := s.Storage.PresignedGetObject(objectPath, inlineContentType)
+	url, err := s.Storage.PresignedGetObject(objectPath, storage.GetObjectOptions{
+		InlineContentType: inlineContentType,
+		DownloadFilename:  file.Name,
+	})
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
 		return models.FileTransferResponse{}, err

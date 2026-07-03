@@ -12,6 +12,8 @@ const (
 	CodeShareUploadNotAllowed     = "SHARE_UPLOAD_NOT_ALLOWED"
 	CodeShareMaxUploadsReached    = "SHARE_MAX_UPLOADS_REACHED"
 	CodeShareUploadSizeExceeded   = "SHARE_UPLOAD_SIZE_EXCEEDED"
+	CodeShareNotSingleFile        = "SHARE_NOT_SINGLE_FILE"
+	CodeRedirectDownloadDisabled  = "REDIRECT_DOWNLOAD_DISABLED"
 )
 
 const (

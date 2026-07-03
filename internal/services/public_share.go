@@ -25,12 +25,13 @@ import (
 )
 
 type PublicShareService struct {
-	DB                *gorm.DB
-	Storage           storage.IStorage
-	ActivityLogger    activity.IActivityLogger
-	Publisher         messaging.IPublisher
-	TokenSecret       string
-	CookieSecureForce bool
+	DB                    *gorm.DB
+	Storage               storage.IStorage
+	ActivityLogger        activity.IActivityLogger
+	Publisher             messaging.IPublisher
+	TokenSecret           string
+	CookieSecureForce     bool
+	AllowRedirectDownload bool
 }
 
 func (s PublicShareService) Routes() chi.Router {
@@ -46,6 +47,7 @@ func (s PublicShareService) Routes() chi.Router {
 			r.Use(m.ValidateShareToken(s.TokenSecret))
 
 			r.Get("/", handlers.ShareGetOneHandler(s.ListShareItems))
+			r.Get("/download", handlers.ShareDownloadRedirectHandler(s.DownloadSingleShareFile))
 			r.With(m.ValidateQuery[models.FileDownloadQuery]).
 				Get("/files/{id1}/url", handlers.ShareGetOneWithQueryHandler(s.DownloadShareFile))
 			r.With(m.Validate[models.ShareUploadBody]).
@@ -187,7 +189,10 @@ func (s PublicShareService) DownloadShareFile(
 
 	url, err := s.Storage.PresignedGetObject(
 		path.Join("buckets", share.BucketID.String(), file.ID.String()),
-		inlineContentType,
+		storage.GetObjectOptions{
+			InlineContentType: inlineContentType,
+			DownloadFilename:  file.Name,
+		},
 	)
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
@@ -216,6 +221,37 @@ func (s PublicShareService) DownloadShareFile(
 		ID:  file.ID.String(),
 		URL: url,
 	}, nil
+}
+
+func (s PublicShareService) DownloadSingleShareFile(
+	logger *zap.Logger,
+	share models.Share,
+	_ uuid.UUIDs,
+) (models.FileTransferResponse, error) {
+	if !s.AllowRedirectDownload {
+		return models.FileTransferResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeRedirectDownloadDisabled)
+	}
+
+	if share.Type != models.ShareTypeFiles {
+		return models.FileTransferResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeShareNotSingleFile)
+	}
+
+	now := time.Now()
+
+	var files []models.File
+	s.DB.Joins("JOIN share_files ON share_files.file_id = files.id").
+		Where("share_files.share_id = ?", share.ID).
+		Where("files.status = ?", models.FileStatusUploaded).
+		Where("files.expires_at IS NULL OR files.expires_at > ?", now).
+		Find(&files)
+
+	if len(files) != 1 {
+		return models.FileTransferResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeShareNotSingleFile)
+	}
+
+	ids := uuid.UUIDs{share.ID, files[0].ID}
+
+	return s.DownloadShareFile(logger, share, ids, models.FileDownloadQuery{Context: "download"})
 }
 
 func (s PublicShareService) UploadShareFile(

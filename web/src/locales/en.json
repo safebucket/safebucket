@@ -38,6 +38,8 @@
     "SHARE_MAX_UPLOADS_REACHED": "This share link has reached its maximum number of uploads.",
     "SHARE_UPLOAD_SIZE_EXCEEDED": "The file exceeds the maximum upload size for this share.",
     "SHARE_FILE_NOT_IN_SHARE": "This file is not part of the share.",
+    "SHARE_NOT_SINGLE_FILE": "This share does not contain exactly one file.",
+    "REDIRECT_DOWNLOAD_DISABLED": "Redirect download is not enabled on this server.",
     "FILE_ALREADY_EXISTS": "A file with this name already exists.",
     "MAX_UPLOADS_REACHED": "This share link has reached its maximum number of uploads.",
     "ACTIVITY_RANGE_TOO_LARGE": "The selected date range cannot exceed 90 days.",

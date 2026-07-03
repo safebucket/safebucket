@@ -36,6 +36,7 @@ type AppConfiguration struct {
 	TLSCertFile                      string                 `mapstructure:"tls_cert_file"                       validate:"required_with=TLSKeyFile"`
 	TLSKeyFile                       string                 `mapstructure:"tls_key_file"                        validate:"required_with=TLSCertFile"`
 	CookieSecureForce                bool                   `mapstructure:"cookie_secure_force"`
+	AllowRedirectDownload            bool                   `mapstructure:"allow_redirect_download"`
 	Profiling                        ProfilingConfiguration `mapstructure:"profiling"`
 }
 

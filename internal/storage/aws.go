@@ -51,14 +51,16 @@ func (a AWSStorage) GetBucketName() string {
 	return a.BucketName
 }
 
-func (a AWSStorage) PresignedGetObject(objectPath, inlineContentType string) (string, error) {
+func (a AWSStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
 	req := &s3.GetObjectInput{
 		Bucket: aws.String(a.BucketName),
 		Key:    aws.String(objectPath),
 	}
-	if inlineContentType != "" {
+	if opts.InlineContentType != "" {
 		req.ResponseContentDisposition = aws.String("inline")
-		req.ResponseContentType = aws.String(inlineContentType)
+		req.ResponseContentType = aws.String(opts.InlineContentType)
+	} else if opts.DownloadFilename != "" {
+		req.ResponseContentDisposition = aws.String(attachmentDisposition(opts.DownloadFilename))
 	}
 
 	resp, err := a.presigner.PresignGetObject(

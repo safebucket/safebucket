@@ -111,12 +111,16 @@ func (s S3Storage) GetBucketName() string {
 	return s.BucketName
 }
 
-func (s S3Storage) PresignedGetObject(objectPath, inlineContentType string) (string, error) {
+func (s S3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
 	var reqParams url.Values
-	if inlineContentType != "" {
+	if opts.InlineContentType != "" {
 		reqParams = url.Values{
-			"response-content-disposition": []string{"inline"},
-			"response-content-type":        []string{inlineContentType},
+			respContentDisposition: []string{"inline"},
+			respContentType:        []string{opts.InlineContentType},
+		}
+	} else if opts.DownloadFilename != "" {
+		reqParams = url.Values{
+			respContentDisposition: []string{attachmentDisposition(opts.DownloadFilename)},
 		}
 	}
 

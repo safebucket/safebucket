@@ -1,14 +1,34 @@
 package storage
 
+import "mime"
+
 const (
 	bucketsPrefix = "buckets/"
 	trashPrefix   = "trash/"
 	folderPath    = "folders"
 	filePath      = "files"
+
+	respContentDisposition = "response-content-disposition"
+	respContentType        = "response-content-type"
 )
 
+type GetObjectOptions struct {
+	InlineContentType string
+	DownloadFilename  string
+}
+
+func attachmentDisposition(filename string) string {
+	if filename == "" {
+		return "attachment"
+	}
+	if disposition := mime.FormatMediaType("attachment", map[string]string{"filename": filename}); disposition != "" {
+		return disposition
+	}
+	return "attachment"
+}
+
 type IStorage interface {
-	PresignedGetObject(path string, inlineContentType string) (string, error)
+	PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error)
 	PresignedPostPolicy(
 		path string,
 		size int,

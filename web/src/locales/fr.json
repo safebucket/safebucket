@@ -38,6 +38,8 @@
     "SHARE_MAX_UPLOADS_REACHED": "Ce lien de partage a atteint son nombre maximum d'envois.",
     "SHARE_UPLOAD_SIZE_EXCEEDED": "Le fichier dépasse la taille maximale d'envoi pour ce partage.",
     "SHARE_FILE_NOT_IN_SHARE": "Ce fichier ne fait pas partie du partage.",
+    "SHARE_NOT_SINGLE_FILE": "Ce partage ne contient pas exactement un fichier.",
+    "REDIRECT_DOWNLOAD_DISABLED": "Le téléchargement par redirection n'est pas activé sur ce serveur.",
     "FILE_ALREADY_EXISTS": "Un fichier avec ce nom existe déjà.",
     "MAX_UPLOADS_REACHED": "Ce lien de partage a atteint son nombre maximum d'envois.",
     "ACTIVITY_RANGE_TOO_LARGE": "La période sélectionnée ne peut pas dépasser 90 jours.",

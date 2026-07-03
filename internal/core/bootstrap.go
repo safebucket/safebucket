@@ -448,12 +448,13 @@ func BuildAPIRouter(
 		}.Routes())
 
 		apiRouter.Mount("/v1/shares", services.PublicShareService{
-			DB:                db,
-			Storage:           store,
-			ActivityLogger:    activityLogger,
-			Publisher:         publisher,
-			TokenSecret:       authConfig.TokenSecret,
-			CookieSecureForce: authConfig.CookieSecureForce,
+			DB:                    db,
+			Storage:               store,
+			ActivityLogger:        activityLogger,
+			Publisher:             publisher,
+			TokenSecret:           authConfig.TokenSecret,
+			CookieSecureForce:     authConfig.CookieSecureForce,
+			AllowRedirectDownload: config.App.AllowRedirectDownload,
 		}.Routes())
 	})
 
