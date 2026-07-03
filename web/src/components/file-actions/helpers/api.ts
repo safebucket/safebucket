@@ -10,10 +10,9 @@ export const api_downloadFile = (
   fileId: string,
   context?: "preview" | "download",
 ) =>
-  api.get<IDownloadFileResponse>(
-    `/buckets/${bucketId}/files/${fileId}/url`,
-    { params: { context } },
-  );
+  api.get<IDownloadFileResponse>(`/buckets/${bucketId}/files/${fileId}/url`, {
+    params: { context },
+  });
 
 export const downloadFromStorage = (url: string, filename: string) => {
   const xhr = new XMLHttpRequest();
