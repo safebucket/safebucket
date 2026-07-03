@@ -229,7 +229,9 @@ func (s PublicShareService) DownloadSingleShareFile(
 	_ uuid.UUIDs,
 ) (models.FileTransferResponse, error) {
 	if !s.AllowRedirectDownload {
-		return models.FileTransferResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeRedirectDownloadDisabled)
+		return models.FileTransferResponse{}, apierrors.New(
+			http.StatusForbidden, apierrors.CodeRedirectDownloadDisabled,
+		)
 	}
 
 	if share.Type != models.ShareTypeFiles {
