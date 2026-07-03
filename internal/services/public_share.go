@@ -47,7 +47,7 @@ func (s PublicShareService) Routes() chi.Router {
 
 			r.Get("/", handlers.ShareGetOneHandler(s.ListShareItems))
 			r.With(m.ValidateQuery[models.FileDownloadQuery]).
-				Get("/files/{id1}", handlers.ShareGetOneWithQueryHandler(s.DownloadShareFile))
+				Get("/files/{id1}/url", handlers.ShareGetOneWithQueryHandler(s.DownloadShareFile))
 			r.With(m.Validate[models.ShareUploadBody]).
 				Post("/files", handlers.ShareCreateHandler(s.UploadShareFile))
 			r.Patch("/files/{id1}", handlers.ShareActionHandler(s.ConfirmShareUpload))

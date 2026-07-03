@@ -32,7 +32,7 @@ export const useShareAuthMutation = () =>
 export const useShareDownloadMutation = (shareId: string) =>
   useMutation({
     mutationFn: ({ fileId, context }: IShareDownloadArgs) =>
-      shareFetch<IFileTransferResponse>(`/${shareId}/files/${fileId}`, {
+      shareFetch<IFileTransferResponse>(`/${shareId}/files/${fileId}/url`, {
         params: { context },
       }),
   });

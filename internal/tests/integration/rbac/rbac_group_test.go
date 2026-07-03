@@ -109,7 +109,7 @@ func TestRBAC_Group(t *testing.T) {
 				{"GET bucket", http.MethodGet, func() string { return fmt.Sprintf("/api/v1/buckets/%s", bucketA.ID) }, func() any { return nil }, "viewer", 200},
 				{"GET activity", http.MethodGet, func() string { return fmt.Sprintf("/api/v1/buckets/%s/activity", bucketA.ID) }, func() any { return nil }, "viewer", 200},
 				{"GET members", http.MethodGet, func() string { return fmt.Sprintf("/api/v1/buckets/%s/members", bucketA.ID) }, func() any { return nil }, "viewer", 200},
-				{"GET file", http.MethodGet, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/%s/download", bucketA.ID, createFile()) }, func() any { return nil }, "viewer", 200},
+				{"GET file", http.MethodGet, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/%s/url", bucketA.ID, createFile()) }, func() any { return nil }, "viewer", 200},
 				{"PATCH notifications", http.MethodPatch, func() string { return fmt.Sprintf("/api/v1/buckets/%s/members/notifications", bucketA.ID) }, func() any {
 					return models.MembershipNotificationBody{UploadNotifications: &trueVal, DownloadNotifications: &trueVal}
 				}, "viewer", 204},

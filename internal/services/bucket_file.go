@@ -50,7 +50,7 @@ func (s BucketFileService) Routes() chi.Router {
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
 			With(m.ValidateQuery[models.FileDownloadQuery]).
-			Get("/download", handlers.GetOneWithQueryHandler(s.DownloadFile))
+			Get("/url", handlers.GetOneWithQueryHandler(s.DownloadFile))
 	})
 
 	return r

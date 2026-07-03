@@ -11,7 +11,7 @@ export const api_downloadFile = (
   context?: "preview" | "download",
 ) =>
   api.get<IDownloadFileResponse>(
-    `/buckets/${bucketId}/files/${fileId}/download`,
+    `/buckets/${bucketId}/files/${fileId}/url`,
     { params: { context } },
   );
 

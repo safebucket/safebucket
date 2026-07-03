@@ -46,7 +46,7 @@ func TestQuickShareDownload(t *testing.T) {
 			t.Run("happy path returns a working presigned URL", func(t *testing.T) {
 				var transfer models.FileTransferResponse
 				status := app.DoPublicShare(t, http.MethodGet,
-					fmt.Sprintf("/api/v1/shares/%s/files/%s", bucketShare.ID, fileID),
+					fmt.Sprintf("/api/v1/shares/%s/files/%s/url", bucketShare.ID, fileID),
 					"", nil, &transfer)
 				require.Equal(t, http.StatusOK, status)
 				require.NotEmpty(t, transfer.URL, "response must include a presigned URL")
@@ -65,21 +65,21 @@ func TestQuickShareDownload(t *testing.T) {
 
 			t.Run("files scope rejects file not linked to share", func(t *testing.T) {
 				status := app.DoPublicShare(t, http.MethodGet,
-					fmt.Sprintf("/api/v1/shares/%s/files/%s", filesShare.ID, unlinkedID),
+					fmt.Sprintf("/api/v1/shares/%s/files/%s/url", filesShare.ID, unlinkedID),
 					"", nil, nil)
 				assert.Equal(t, http.StatusNotFound, status)
 			})
 
 			t.Run("rejects file from another bucket", func(t *testing.T) {
 				status := app.DoPublicShare(t, http.MethodGet,
-					fmt.Sprintf("/api/v1/shares/%s/files/%s", bucketShare.ID, otherBucketFileID),
+					fmt.Sprintf("/api/v1/shares/%s/files/%s/url", bucketShare.ID, otherBucketFileID),
 					"", nil, nil)
 				assert.Equal(t, http.StatusNotFound, status)
 			})
 
 			t.Run("rejects unknown file id", func(t *testing.T) {
 				status := app.DoPublicShare(t, http.MethodGet,
-					fmt.Sprintf("/api/v1/shares/%s/files/%s", bucketShare.ID, uuid.New()),
+					fmt.Sprintf("/api/v1/shares/%s/files/%s/url", bucketShare.ID, uuid.New()),
 					"", nil, nil)
 				assert.Equal(t, http.StatusNotFound, status)
 			})
@@ -92,7 +92,7 @@ func TestQuickShareDownload(t *testing.T) {
 
 				var transfer models.FileTransferResponse
 				status := app.DoPublicShare(t, http.MethodGet,
-					fmt.Sprintf("/api/v1/shares/%s/files/%s", activityShare.ID, fileID),
+					fmt.Sprintf("/api/v1/shares/%s/files/%s/url", activityShare.ID, fileID),
 					"", nil, &transfer)
 				require.Equal(t, http.StatusOK, status)
 
