@@ -4,6 +4,15 @@ import { ChevronDown, Upload, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -76,47 +85,60 @@ export const UploadPanel: FC = () => {
             </div>
           )}
 
-          <div className="mt-2 max-h-64 space-y-1 overflow-y-auto md:max-h-96">
-            {uploads.map((upload) => (
-              <div
-                key={upload.id}
-                className="hover:bg-muted/30 flex items-center gap-3 rounded p-2"
-              >
-                <div className="shrink-0">
-                  {getStatusIcon(upload.status, upload.progress)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div
-                    className="truncate text-sm font-medium"
-                    title={upload.path}
-                  >
-                    {upload.name}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {upload.status === "uploading" && (
-                      <Progress
-                        value={upload.progress}
-                        className="h-2 flex-1"
-                      />
+          <div className="mt-2 flex max-h-64 flex-col gap-2 overflow-y-auto md:max-h-96">
+            {uploads.map((upload) => {
+              const state =
+                upload.status === "success"
+                  ? "done"
+                  : upload.status === "error"
+                    ? "error"
+                    : upload.progress === 0
+                      ? "processing"
+                      : "uploading";
+
+              return (
+                <Attachment
+                  key={upload.id}
+                  size="sm"
+                  state={state}
+                  className="w-full"
+                >
+                  <AttachmentMedia>
+                    {getStatusIcon(upload.status, upload.progress)}
+                  </AttachmentMedia>
+                  <AttachmentContent>
+                    <AttachmentTitle title={upload.path}>
+                      {upload.name}
+                    </AttachmentTitle>
+                    {upload.status === "uploading" ? (
+                      <div className="mt-1 flex items-center gap-2">
+                        <Progress
+                          value={upload.progress}
+                          className="h-1.5 flex-1"
+                        />
+                        <span className="text-muted-foreground text-xs whitespace-nowrap">
+                          {getStatusText(upload.status, upload.progress, t)}
+                        </span>
+                      </div>
+                    ) : (
+                      <AttachmentDescription>
+                        {getStatusText(upload.status, upload.progress, t)}
+                      </AttachmentDescription>
                     )}
-                    <div className="text-muted-foreground text-xs whitespace-nowrap">
-                      {getStatusText(upload.status, upload.progress, t)}
-                    </div>
-                  </div>
-                </div>
-                {upload.status === "uploading" && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0"
-                    onClick={() => cancelUpload(upload.id)}
-                    aria-label={`Cancel upload: ${upload.name}`}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-              </div>
-            ))}
+                  </AttachmentContent>
+                  {upload.status === "uploading" && (
+                    <AttachmentActions>
+                      <AttachmentAction
+                        onClick={() => cancelUpload(upload.id)}
+                        aria-label={`Cancel upload: ${upload.name}`}
+                      >
+                        <X />
+                      </AttachmentAction>
+                    </AttachmentActions>
+                  )}
+                </Attachment>
+              );
+            })}
           </div>
         </div>
       )}

@@ -3,8 +3,15 @@ import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { StagedFile } from "@/components/upload/helpers/types";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment";
 import { formatFileSize } from "@/lib/utils";
 
 interface UploadFileListProps {
@@ -27,47 +34,33 @@ export const UploadFileList: FC<UploadFileListProps> = ({
       <p className="text-muted-foreground text-xs">
         {t("upload.dialog.file_count", { count: files.length })}
       </p>
-      <div className="max-h-60 space-y-1 overflow-y-auto">
-        {files.map((staged) => (
-          <div
-            key={staged.id}
-            className="bg-muted/50 flex items-center gap-3 rounded-md px-3 py-2"
-          >
-            <FileIconView
-              className="text-primary h-5 w-5 shrink-0"
-              isFolder={false}
-              extension={staged.extension}
-            />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{staged.file.name}</p>
-              {staged.relativePath && (
-                <p className="text-muted-foreground truncate text-xs">
-                  {t("upload.dialog.folder_path", {
-                    path: staged.relativePath,
-                  })}
-                </p>
-              )}
-            </div>
-            {staged.extension && (
-              <Badge variant="secondary" className="shrink-0 text-xs">
-                {staged.extension.toUpperCase()}
-              </Badge>
-            )}
-            <span className="text-muted-foreground shrink-0 text-xs">
-              {formatFileSize(staged.file.size)}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0"
-              onClick={() => onRemoveFile(staged.id)}
-              aria-label={`${t("upload.dialog.remove_file")}: ${staged.file.name}`}
-            >
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ))}
+      <div className="flex max-h-60 flex-col gap-2 overflow-y-auto">
+        {files.map((staged) => {
+          const size = formatFileSize(staged.file.size);
+          const description = staged.relativePath
+            ? `${t("upload.dialog.folder_path", { path: staged.relativePath })} · ${size}`
+            : size;
+
+          return (
+            <Attachment key={staged.id} size="sm" className="w-full">
+              <AttachmentMedia>
+                <FileIconView isFolder={false} extension={staged.extension} />
+              </AttachmentMedia>
+              <AttachmentContent>
+                <AttachmentTitle>{staged.file.name}</AttachmentTitle>
+                <AttachmentDescription>{description}</AttachmentDescription>
+              </AttachmentContent>
+              <AttachmentActions>
+                <AttachmentAction
+                  onClick={() => onRemoveFile(staged.id)}
+                  aria-label={`${t("upload.dialog.remove_file")}: ${staged.file.name}`}
+                >
+                  <X />
+                </AttachmentAction>
+              </AttachmentActions>
+            </Attachment>
+          );
+        })}
       </div>
     </div>
   );

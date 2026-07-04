@@ -13,13 +13,13 @@ import {
 import type { FC } from "react";
 
 interface IFileIconViewProps {
-  className: string;
+  className?: string;
   extension?: string;
   isFolder: boolean;
 }
 
 export const FileIconView: FC<IFileIconViewProps> = ({
-  className,
+  className = "",
   extension,
   isFolder,
 }: IFileIconViewProps) => {
