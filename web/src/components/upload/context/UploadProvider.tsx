@@ -17,6 +17,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
 
   const uploadMutation = useMutation({
+    meta: { skipGlobalErrorToast: true },
     mutationFn: async ({
       file,
       bucketId,

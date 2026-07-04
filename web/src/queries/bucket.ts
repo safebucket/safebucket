@@ -13,7 +13,7 @@ import type {
 import type { IBucket } from "@/types/bucket.ts";
 import type { IShare, IShareCreateBody } from "@/types/share.ts";
 import { api } from "@/lib/api";
-import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/components/ui/hooks/use-toast";
 import i18n from "@/lib/i18n";
 
 export const bucketsQueryOptions = () =>
@@ -88,7 +88,6 @@ export const useUpdateNotificationPreferencesMutation = (bucketId: string) => {
       });
       successToast(i18n.t("bucket.notifications.updated"));
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 
@@ -111,7 +110,6 @@ export const useCreateShareMutation = (bucketId: string) => {
         queryKey: ["buckets", bucketId, "shares"],
       });
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 
@@ -127,7 +125,6 @@ export const useDeleteShareMutation = (bucketId: string) => {
       });
       successToast(i18n.t("bucket.settings.shares.deleted"));
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 

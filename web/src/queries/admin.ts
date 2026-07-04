@@ -12,7 +12,7 @@ import type {
   IAdminBucket,
 } from "@/types/admin.ts";
 import { api } from "@/lib/api";
-import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/components/ui/hooks/use-toast";
 
 const ACTIVITY_PAGE_SIZE = 50;
 
@@ -40,7 +40,6 @@ export const useCreateUserMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       successToast("User created successfully");
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 
@@ -53,7 +52,6 @@ export const useDeleteUserMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       successToast("User deleted successfully");
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 
@@ -101,6 +99,5 @@ export const useDeleteAdminBucketMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
       successToast("Bucket deleted successfully");
     },
-    onError: (error: Error) => errorToast(error),
   });
 };

@@ -43,6 +43,15 @@
     "FILE_ALREADY_EXISTS": "A file with this name already exists.",
     "MAX_UPLOADS_REACHED": "This share link has reached its maximum number of uploads.",
     "ACTIVITY_RANGE_TOO_LARGE": "The selected date range cannot exceed 90 days.",
+    "FIELD_REQUIRED": "A required field is missing.",
+    "INVALID_FILENAME": "This name contains invalid characters.",
+    "VALUE_TOO_LONG": "A value is too long.",
+    "VALUE_TOO_SMALL": "A value is too small.",
+    "FILE_TOO_LARGE": "This file exceeds the maximum allowed size.",
+    "INVALID_DATE": "The provided date is invalid.",
+    "INVALID_EMAIL": "The email address is invalid.",
+    "INVALID_UUID": "An invalid identifier was provided.",
+    "INVALID_VALUE": "A provided value is invalid.",
     "default": "An error occurred. Please try again."
   },
   "toast": {

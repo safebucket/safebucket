@@ -1,11 +1,16 @@
 import { StrictMode } from "react";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  MutationCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import reportWebVitals from "./reportWebVitals.ts";
 import { routeTree } from "./routeTree.gen";
+import { errorToast } from "@/components/ui/hooks/use-toast.ts";
 import { ThemeProvider } from "@/components/theme/context/ThemeProvider.tsx";
 import { TimeDisplayProvider } from "@/components/time-display/context/TimeDisplayProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
@@ -16,6 +21,14 @@ import "./styles.css";
 import { getCurrentSessionWithRefresh } from "@/lib/auth-service.ts";
 import { configQueryOptions } from "@/queries/config.ts";
 
+declare module "@tanstack/react-query" {
+  interface Register {
+    mutationMeta: {
+      skipGlobalErrorToast?: boolean;
+    };
+  }
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -23,6 +36,12 @@ export const queryClient = new QueryClient({
       retry: 1,
     },
   },
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      if (mutation.options.meta?.skipGlobalErrorToast) return;
+      errorToast(error);
+    },
+  }),
 });
 
 export const router = createRouter({

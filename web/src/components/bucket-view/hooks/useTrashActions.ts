@@ -5,7 +5,7 @@ import type { IFile } from "@/types/file.ts";
 import { FileStatus } from "@/types/file.ts";
 import { FolderStatus } from "@/types/folder.ts";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/components/ui/hooks/use-toast";
 import { api } from "@/lib/api";
 import { bucketTrashedFilesQueryOptions } from "@/queries/bucket";
 
@@ -80,7 +80,6 @@ export const useTrashActions = (): ITrashActions => {
         }),
       );
     },
-    onError: (error: Error) => errorToast(error),
   });
 
   const purgeItemMutation = useMutation({
@@ -106,7 +105,6 @@ export const useTrashActions = (): ITrashActions => {
         t("bucket.trash_view.purge_success", { fileName: variables.itemName }),
       );
     },
-    onError: (error: Error) => errorToast(error),
   });
 
   const restoreItem = (

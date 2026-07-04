@@ -29,7 +29,7 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 		err := parseQueryParams(queryParams, data)
 		if err != nil {
 			zap.L().Error("failed to parse query parameters", zap.Error(err))
-			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeBadRequest, err.Error()})
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeBadRequest})
 			return
 		}
 
@@ -43,16 +43,16 @@ func ValidateQuery[T any](next http.Handler) http.Handler {
 
 		err = validate.Struct(data)
 		if err != nil {
-			var strErrors []string
 			var validationErrors validator.ValidationErrors
-			if errors.As(err, &validationErrors) {
-				for _, validationErr := range validationErrors {
-					strErrors = append(strErrors, validationErr.Error())
-				}
-			} else {
-				strErrors = append(strErrors, err.Error())
+			if !errors.As(err, &validationErrors) {
+				h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeInvalidRequest})
+				return
 			}
-			h.RespondWithError(w, http.StatusBadRequest, strErrors)
+			codes := make([]string, 0, len(validationErrors))
+			for _, fe := range validationErrors {
+				codes = append(codes, validationErrorCode(fe))
+			}
+			h.RespondWithError(w, http.StatusBadRequest, codes)
 			return
 		}
 

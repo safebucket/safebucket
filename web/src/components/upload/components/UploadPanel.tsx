@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { resolveErrorMessage } from "@/components/ui/hooks/use-toast";
 import {
   getStatusIcon,
   getStatusText,
@@ -122,7 +123,9 @@ export const UploadPanel: FC = () => {
                       </div>
                     ) : (
                       <AttachmentDescription>
-                        {getStatusText(upload.status, upload.progress, t)}
+                        {upload.status === "error" && upload.error
+                          ? resolveErrorMessage(upload.error)
+                          : getStatusText(upload.status, upload.progress, t)}
                       </AttachmentDescription>
                     )}
                   </AttachmentContent>

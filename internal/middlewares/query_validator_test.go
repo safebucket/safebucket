@@ -108,9 +108,7 @@ func TestValidateQueryBasicTypes(t *testing.T) {
 
 		errors := models.Error{
 			Status: http.StatusBadRequest,
-			Error: []string{
-				"Key: 'BasicQueryParams.Name' Error:Field validation for 'Name' failed on the 'required' tag",
-			},
+			Error:  []string{"FIELD_REQUIRED"},
 		}
 		tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, errors)
 	})

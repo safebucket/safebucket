@@ -5,7 +5,7 @@ import {
   downloadFromStorage,
 } from "@/components/file-actions/helpers/api";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
-import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/components/ui/hooks/use-toast";
 import {
   createFolderMutationFn,
   deleteFileMutationFn,
@@ -21,7 +21,6 @@ export const useFileActions = (): IFileActions => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
       successToast(`Folder ${variables.name} has been created.`);
     },
-    onError: (error: Error) => errorToast(error),
   });
 
   const deleteFileMutation = useMutation({
@@ -32,7 +31,6 @@ export const useFileActions = (): IFileActions => {
         successToast(`File "${filename}" has been moved to trash.`);
       }
     },
-    onError: (error: Error) => errorToast(error),
   });
 
   const createFolder = (name: string) => {

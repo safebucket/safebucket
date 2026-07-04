@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IBucket } from "@/types/bucket.ts";
-import { errorToast, toast } from "@/components/ui/hooks/use-toast";
+import { toast } from "@/components/ui/hooks/use-toast";
 import { api } from "@/lib/api.ts";
 
 export interface IBucketInformationData {
@@ -43,7 +43,6 @@ export const useBucketInformation = (
       });
       setIsEditingName(false);
     },
-    onError: (error: Error) => errorToast(error),
   });
 
   const bucketUrl = `${window.location.origin}/buckets/${bucket.id}`;

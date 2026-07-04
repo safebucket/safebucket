@@ -16,6 +16,7 @@ export const shareContentQueryOptions = (shareId: string) =>
 
 export const useShareAuthMutation = () =>
   useMutation({
+    meta: { skipGlobalErrorToast: true },
     mutationFn: ({
       shareId,
       password,
@@ -39,6 +40,7 @@ export const useShareDownloadMutation = (shareId: string) =>
 
 export const useShareUploadMutation = (shareId: string) =>
   useMutation({
+    meta: { skipGlobalErrorToast: true },
     mutationFn: (body: IShareUploadBody) =>
       shareFetch<IFileTransferResponse>(`/${shareId}/files`, {
         method: "POST",
@@ -48,6 +50,7 @@ export const useShareUploadMutation = (shareId: string) =>
 
 export const useShareConfirmUploadMutation = (shareId: string) =>
   useMutation({
+    meta: { skipGlobalErrorToast: true },
     mutationFn: (fileId: string) =>
       shareFetch<null>(`/${shareId}/files/${fileId}`, {
         method: "PATCH",

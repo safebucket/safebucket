@@ -54,6 +54,29 @@ func validateFutureDate(fl validator.FieldLevel) bool {
 	return t.After(time.Now())
 }
 
+func validationErrorCode(fe validator.FieldError) string {
+	switch fe.Tag() {
+	case "required", "required_if", "required_with":
+		return apierrors.CodeFieldRequired
+	case "filename", "foldername":
+		return apierrors.CodeInvalidFilename
+	case "max", "lte":
+		return apierrors.CodeValueTooLong
+	case "min", "gte":
+		return apierrors.CodeValueTooSmall
+	case "maxuploadsize":
+		return apierrors.CodeFileTooLarge
+	case "futuredate":
+		return apierrors.CodeInvalidDate
+	case "uuid":
+		return apierrors.CodeInvalidUUID
+	case "email":
+		return apierrors.CodeInvalidEmail
+	default:
+		return apierrors.CodeInvalidValue
+	}
+}
+
 func Validate[T any](next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 10<<20) // 10MB limit
@@ -74,15 +97,16 @@ func Validate[T any](next http.Handler) http.Handler {
 
 		err = validate.Struct(data)
 		if err != nil {
-			var strErrors []string
-			for _, err := range func() validator.ValidationErrors {
-				var target validator.ValidationErrors
-				_ = errors.As(err, &target)
-				return target
-			}() {
-				strErrors = append(strErrors, err.Error())
+			var target validator.ValidationErrors
+			if !errors.As(err, &target) {
+				h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeInvalidRequest})
+				return
 			}
-			h.RespondWithError(w, http.StatusBadRequest, strErrors)
+			codes := make([]string, 0, len(target))
+			for _, fe := range target {
+				codes = append(codes, validationErrorCode(fe))
+			}
+			h.RespondWithError(w, http.StatusBadRequest, codes)
 			return
 		}
 

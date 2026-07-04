@@ -4,7 +4,7 @@ import type {
   IUser,
 } from "@/components/auth-view/types/session";
 import { api, fetchApi } from "@/lib/api";
-import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/components/ui/hooks/use-toast";
 import i18n from "@/lib/i18n";
 import { useSession } from "@/hooks/useAuth";
 
@@ -41,7 +41,6 @@ export const useUpdateUserMutation = (userId: string) => {
       queryClient.invalidateQueries({ queryKey: ["users", userId] });
       successToast("Profile updated successfully");
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 
@@ -75,7 +74,6 @@ export const useRevokeSessionMutation = (userId: string) => {
       });
       successToast(i18n.t("settings.sessions.revoked"));
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 
@@ -90,6 +88,5 @@ export const useRevokeAllSessionsMutation = (userId: string) => {
       });
       successToast(i18n.t("settings.sessions.all_revoked"));
     },
-    onError: (error: Error) => errorToast(error),
   });
 };

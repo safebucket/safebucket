@@ -197,16 +197,17 @@ function successToast(message: string) {
   });
 }
 
-function errorToast(error: Error) {
-  const key = `errors.${error.message}`;
-  const translated = i18n.t(key, { defaultValue: "" });
-  const description = translated || i18n.t("errors.default");
+function resolveErrorMessage(error: Error): string {
+  const translated = i18n.t(`errors.${error.message}`, { defaultValue: "" });
+  return translated || i18n.t("errors.default");
+}
 
+function errorToast(error: Error) {
   toast({
     variant: "destructive",
     title: i18n.t("common.error"),
-    description,
+    description: resolveErrorMessage(error),
   });
 }
 
-export { useToast, toast, successToast, errorToast };
+export { useToast, toast, successToast, errorToast, resolveErrorMessage };

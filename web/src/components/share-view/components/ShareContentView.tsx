@@ -20,7 +20,6 @@ import {
   useShareDownloadMutation,
 } from "@/queries/share.ts";
 import { downloadFromStorage } from "@/components/file-actions/helpers/api.ts";
-import { errorToast } from "@/components/ui/hooks/use-toast.ts";
 
 export type ViewMode = "list" | "grid";
 
@@ -56,7 +55,6 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
         onSuccess: (data) => {
           downloadFromStorage(data.url, file.name);
         },
-        onError: (error: Error) => errorToast(error),
       },
     );
   };

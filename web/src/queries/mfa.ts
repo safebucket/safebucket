@@ -8,7 +8,7 @@ import type {
   IMFADevicesResponse,
 } from "@/components/auth-view/types/session";
 import { api, fetchApi } from "@/lib/api";
-import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/components/ui/hooks/use-toast";
 
 const MFA_DEVICES_KEY = ["mfa", "devices"] as const;
 
@@ -40,7 +40,6 @@ export const useAddMFADeviceMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 
@@ -57,7 +56,6 @@ export const useVerifyMFADeviceMutation = () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });
       successToast("MFA device verified successfully");
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 
@@ -78,7 +76,6 @@ export const useRemoveMFADeviceMutation = () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });
       successToast("MFA device removed");
     },
-    onError: (error: Error) => errorToast(error),
   });
 };
 
@@ -92,6 +89,5 @@ export const useSetDefaultMFADeviceMutation = () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });
       successToast("MFA device updated");
     },
-    onError: (error: Error) => errorToast(error),
   });
 };

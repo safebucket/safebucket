@@ -5,7 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IBucket } from "@/types/bucket.ts";
-import { errorToast, toast } from "@/components/ui/hooks/use-toast";
+import { toast } from "@/components/ui/hooks/use-toast";
 import { api } from "@/lib/api.ts";
 
 export interface IBucketDeletionData {
@@ -34,7 +34,6 @@ export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
         description: t("toast.bucket_deleted", { name: bucket.name }),
       });
     },
-    onError: (error: Error) => errorToast(error),
   });
 
   const expectedDeleteText = `delete ${bucket.name}`;

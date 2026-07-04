@@ -74,58 +74,43 @@ func TestValidateMiddleware(t *testing.T) {
 			name:           "Missing required fields",
 			inputBody:      `{"name": "", "email": "", "filename": "file.txt"}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Name' Error:Field validation for 'Name' failed on the 'required' tag",
-				"Key: 'TestValidate.Email' Error:Field validation for 'Email' failed on the 'required' tag",
-			},
+			expectedErrors: []string{"FIELD_REQUIRED", "FIELD_REQUIRED"},
 		},
 		{
 			name:           "Invalid email format",
 			inputBody:      `{"name": "John Doe", "email": "invalid-email", "type": "file", "filename": "file.txt"}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Email' Error:Field validation for 'Email' failed on the 'email' tag",
-			},
+			expectedErrors: []string{"INVALID_EMAIL"},
 		},
 		{
 			name:           "Invalid filename - prohibited characters",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "file/path.txt"}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
-			},
+			expectedErrors: []string{"INVALID_FILENAME"},
 		},
 		{
 			name:           "Invalid filename - windows reserved name",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "CON.txt"}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
-			},
+			expectedErrors: []string{"INVALID_FILENAME"},
 		},
 		{
 			name:           "Invalid filename - trailing space",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "file.txt "}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
-			},
+			expectedErrors: []string{"INVALID_FILENAME"},
 		},
 		{
 			name:           "Invalid filename - trailing dot",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "file."}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
-			},
+			expectedErrors: []string{"INVALID_FILENAME"},
 		},
 		{
 			name:           "Invalid filename - rtl override spoof",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "Invoice` + "\u202e" + `fdp.exe"}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
-			},
+			expectedErrors: []string{"INVALID_FILENAME"},
 		},
 		{
 			name:           "Valid filename with extra allowed symbols",
@@ -136,9 +121,7 @@ func TestValidateMiddleware(t *testing.T) {
 			name:           "Invalid filename - disallowed ascii symbol",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "file", "filename": "report|home.txt"}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Filename' Error:Field validation for 'Filename' failed on the 'filename' tag",
-			},
+			expectedErrors: []string{"INVALID_FILENAME"},
 		},
 		{
 			name:           "Valid foldername with dots",
@@ -159,17 +142,13 @@ func TestValidateMiddleware(t *testing.T) {
 			name:           "Invalid foldername - prohibited characters",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "folder", "filename": "file.txt", "foldername": "sub/folder"}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Foldername' Error:Field validation for 'Foldername' failed on the 'foldername' tag",
-			},
+			expectedErrors: []string{"INVALID_FILENAME"},
 		},
 		{
 			name:           "Invalid foldername - dot only",
 			inputBody:      `{"name": "John Doe", "email": "john@example.com", "type": "folder", "filename": "file.txt", "foldername": ".."}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedErrors: []string{
-				"Key: 'TestValidate.Foldername' Error:Field validation for 'Foldername' failed on the 'foldername' tag",
-			},
+			expectedErrors: []string{"INVALID_FILENAME"},
 		},
 	}
 

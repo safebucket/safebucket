@@ -43,6 +43,15 @@
     "FILE_ALREADY_EXISTS": "Un fichier avec ce nom existe déjà.",
     "MAX_UPLOADS_REACHED": "Ce lien de partage a atteint son nombre maximum d'envois.",
     "ACTIVITY_RANGE_TOO_LARGE": "La période sélectionnée ne peut pas dépasser 90 jours.",
+    "FIELD_REQUIRED": "Un champ obligatoire est manquant.",
+    "INVALID_FILENAME": "Ce nom contient des caractères non autorisés.",
+    "VALUE_TOO_LONG": "Une valeur est trop longue.",
+    "VALUE_TOO_SMALL": "Une valeur est trop petite.",
+    "FILE_TOO_LARGE": "Ce fichier dépasse la taille maximale autorisée.",
+    "INVALID_DATE": "La date fournie est invalide.",
+    "INVALID_EMAIL": "L'adresse e-mail est invalide.",
+    "INVALID_UUID": "Un identifiant invalide a été fourni.",
+    "INVALID_VALUE": "Une valeur fournie est invalide.",
     "default": "Une erreur s'est produite. Veuillez réessayer."
   },
   "toast": {
