@@ -50,6 +50,7 @@ func (s PublicShareService) Routes() chi.Router {
 			r.Get("/download", handlers.ShareDownloadRedirectHandler(s.DownloadSingleShareFile))
 			r.With(m.ValidateQuery[models.FileDownloadQuery]).
 				Get("/files/{id1}/url", handlers.ShareGetOneWithQueryHandler(s.DownloadShareFile))
+			r.Get("/files/{id1}/download", handlers.ShareDownloadRedirectHandler(s.DownloadShareFileRedirect))
 			r.With(m.Validate[models.ShareUploadBody]).
 				Post("/files", handlers.ShareCreateHandler(s.UploadShareFile))
 			r.Patch("/files/{id1}", handlers.ShareActionHandler(s.ConfirmShareUpload))
@@ -252,6 +253,20 @@ func (s PublicShareService) DownloadSingleShareFile(
 	}
 
 	ids := uuid.UUIDs{share.ID, files[0].ID}
+
+	return s.DownloadShareFile(logger, share, ids, models.FileDownloadQuery{Context: "download"})
+}
+
+func (s PublicShareService) DownloadShareFileRedirect(
+	logger *zap.Logger,
+	share models.Share,
+	ids uuid.UUIDs,
+) (models.FileTransferResponse, error) {
+	if !s.AllowRedirectDownload {
+		return models.FileTransferResponse{}, apierrors.New(
+			http.StatusForbidden, apierrors.CodeRedirectDownloadDisabled,
+		)
+	}
 
 	return s.DownloadShareFile(logger, share, ids, models.FileDownloadQuery{Context: "download"})
 }
