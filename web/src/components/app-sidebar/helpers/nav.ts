@@ -3,10 +3,9 @@ import {
   FolderOpen,
   Home,
   LayoutDashboard,
-  LifeBuoy,
-  Send,
-  Settings2,
   Shield,
+  SlidersHorizontal,
+  User,
   Users,
 } from "lucide-react";
 
@@ -60,33 +59,16 @@ export const nav = {
       ],
     },
   ],
-  settings: [
-    {
-      title: "navigation.settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "navigation.profile",
-          url: "/settings/profile",
-        },
-        {
-          title: "navigation.preferences",
-          url: "/settings/preferences",
-        },
-      ],
-    },
-  ],
   help: [
     {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
+      title: "navigation.profile",
+      url: "/settings/profile",
+      icon: User,
     },
     {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
+      title: "navigation.preferences",
+      url: "/settings/preferences",
+      icon: SlidersHorizontal,
     },
   ],
 };
