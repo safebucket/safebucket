@@ -480,6 +480,24 @@ func TestIsAuthExcluded(t *testing.T) {
 			method:   "PATCH",
 			expected: true,
 		},
+		{
+			name:     "Excluded - /api/v1/shares/{id}/files/{fileId}/url with GET",
+			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000/files/660e8400-e29b-41d4-a716-446655440000/url",
+			method:   "GET",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/shares/{id}/files/{fileId}/download with GET",
+			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000/files/660e8400-e29b-41d4-a716-446655440000/download",
+			method:   "GET",
+			expected: true,
+		},
+		{
+			name:     "Excluded - /api/v1/shares/{id}/download with GET",
+			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000/download",
+			method:   "GET",
+			expected: true,
+		},
 	}
 
 	for _, tt := range testCases {
