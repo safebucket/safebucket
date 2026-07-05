@@ -27,8 +27,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuAction,
@@ -183,27 +181,6 @@ export const AppSidebar: FC = () => {
             </SidebarMenuItem>
           </SidebarGroup>
         </SidebarMenu>
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel>{t("navigation.account")}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {nav.help.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    size="sm"
-                    isActive={location.pathname === item.url}
-                  >
-                    <Link to={item.url}>
-                      <item.icon />
-                      {t(item.title)}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
@@ -251,6 +228,15 @@ export const AppSidebar: FC = () => {
                     </div>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {nav.help.map((item) => (
+                  <DropdownMenuItem key={item.title} asChild>
+                    <Link to={item.url}>
+                      <item.icon className="mr-2" />
+                      {t(item.title)}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
                   <LogOut className="mr-2" />

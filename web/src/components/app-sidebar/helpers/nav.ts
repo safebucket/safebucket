@@ -61,7 +61,7 @@ export const nav = {
   ],
   help: [
     {
-      title: "navigation.profile",
+      title: "navigation.account",
       url: "/settings/profile",
       icon: User,
     },
