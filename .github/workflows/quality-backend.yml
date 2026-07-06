@@ -37,7 +37,7 @@ jobs:
         run: mkdir -p web/dist && touch web/dist/index.html
 
       - name: Run Go linter
-        uses: golangci/golangci-lint-action@v9.2.1
+        uses: golangci/golangci-lint-action@v9.3.0
         with:
           args: --timeout=5m
           working-directory: ${{ github.workspace }}
