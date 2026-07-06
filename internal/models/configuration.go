@@ -1,5 +1,14 @@
 package models
 
+import (
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"go.uber.org/zap"
+)
+
 type Configuration struct {
 	App       AppConfiguration       `mapstructure:"app"       validate:"required"`
 	Database  DatabaseConfiguration  `mapstructure:"database"  validate:"required"`
@@ -157,26 +166,27 @@ type StorageConfiguration struct {
 type MinioStorageConfiguration struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
 	Endpoint         string `mapstructure:"endpoint"          validate:"required"`
-	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"omitempty,http_url"`
 	ClientID         string `mapstructure:"client_id"         validate:"required"`
 	ClientSecret     string `mapstructure:"client_secret"     validate:"required"`
 	Region           string `mapstructure:"region"`
 }
 
 type CloudStorage struct {
-	BucketName string `mapstructure:"bucket_name" validate:"required"`
-	ProjectID  string `mapstructure:"project_id"  validate:"required"`
+	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
+	ProjectID        string `mapstructure:"project_id"        validate:"required"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"omitempty,http_url"`
 }
 
 type AWSConfiguration struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
-	ExternalEndpoint string `mapstructure:"external_endpoint"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"omitempty,http_url"`
 }
 
 type S3Configuration struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
 	Endpoint         string `mapstructure:"endpoint"          validate:"required"`
-	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"omitempty,http_url"`
 	AccessKey        string `mapstructure:"access_key"        validate:"required"`
 	SecretKey        string `mapstructure:"secret_key"        validate:"required"`
 	Region           string `mapstructure:"region"`
@@ -188,7 +198,7 @@ type S3Configuration struct {
 type RustFSStorageConfiguration struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
 	Endpoint         string `mapstructure:"endpoint"          validate:"required"`
-	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"required,http_url"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"omitempty,http_url"`
 	AccessKey        string `mapstructure:"access_key"        validate:"required"`
 	SecretKey        string `mapstructure:"secret_key"        validate:"required"`
 	Region           string `mapstructure:"region"`
@@ -199,22 +209,51 @@ func (s *StorageConfiguration) GetExternalURL() string {
 	switch s.Type {
 	case "minio":
 		if s.Minio != nil {
-			return s.Minio.ExternalEndpoint
+			if s.Minio.ExternalEndpoint != "" {
+				return s.Minio.ExternalEndpoint
+			}
+			return s.Minio.Endpoint
 		}
 	case "rustfs":
 		if s.RustFS != nil {
-			return s.RustFS.ExternalEndpoint
+			if s.RustFS.ExternalEndpoint != "" {
+				return s.RustFS.ExternalEndpoint
+			}
+			return s.RustFS.Endpoint
 		}
 	case "gcp":
-		return ""
+		if s.CloudStorage != nil && s.CloudStorage.ExternalEndpoint != "" {
+			return s.CloudStorage.ExternalEndpoint
+		}
+		return "https://storage.googleapis.com"
 	case "aws":
-		if s.AWS != nil && s.AWS.ExternalEndpoint != "" {
-			return s.AWS.ExternalEndpoint
+		if s.AWS != nil {
+			if s.AWS.ExternalEndpoint != "" {
+				return s.AWS.ExternalEndpoint
+			}
+			cfg, err := awsConfig.LoadDefaultConfig(context.Background())
+			if err != nil {
+				zap.L().Fatal("Failed to load AWS configuration to resolve S3 endpoint", zap.Error(err))
+			}
+
+			params := s3.EndpointParameters{
+				Region: aws.String(cfg.Region),
+				Bucket: aws.String(s.AWS.BucketName),
+			}
+			resolver := s3.NewDefaultEndpointResolverV2()
+			resolved, err := resolver.ResolveEndpoint(context.Background(), params)
+			if err != nil {
+				zap.L().Fatal("Failed to resolve AWS S3 endpoint", zap.Error(err))
+			}
+			return resolved.URI.String()
 		}
 		return ""
 	case "s3":
 		if s.S3 != nil {
-			return s.S3.ExternalEndpoint
+			if s.S3.ExternalEndpoint != "" {
+				return s.S3.ExternalEndpoint
+			}
+			return s.S3.Endpoint
 		}
 	}
 	return ""
