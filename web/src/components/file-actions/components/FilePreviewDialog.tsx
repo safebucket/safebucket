@@ -114,6 +114,7 @@ export const FilePreviewDialog: FC<IFilePreviewDialogProps> = ({
             <iframe
               src={url}
               title={file.name}
+              sandbox=""
               className="h-[70vh] w-full border-0"
             />
           )}
