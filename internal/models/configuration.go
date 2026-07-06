@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
@@ -177,12 +176,12 @@ type MinioStorageConfiguration struct {
 type CloudStorage struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
 	ProjectID        string `mapstructure:"project_id"        validate:"required"`
-	ExternalEndpoint string `mapstructure:"external_endpoint"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"omitempty,http_url"`
 }
 
 type AWSConfiguration struct {
 	BucketName       string `mapstructure:"bucket_name"       validate:"required"`
-	ExternalEndpoint string `mapstructure:"external_endpoint"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"omitempty,http_url"`
 }
 
 type S3Configuration struct {
@@ -247,7 +246,7 @@ func (s *StorageConfiguration) GetExternalURL() string {
 			if err != nil {
 				zap.L().Fatal("Failed to resolve AWS S3 endpoint", zap.Error(err))
 			}
-			return fmt.Sprintf("%s://%s", resolved.URI.Scheme, resolved.URI.Host)
+			return resolved.URI.String()
 		}
 		return ""
 	case "s3":
