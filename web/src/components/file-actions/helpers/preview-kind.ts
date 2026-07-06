@@ -1,10 +1,5 @@
 export type PreviewKind =
-  | "image"
-  | "video"
-  | "audio"
-  | "pdf"
-  | "text"
-  | "unsupported";
+  "image" | "video" | "audio" | "pdf" | "text" | "unsupported";
 
 const IMAGE = new Set([
   "png",

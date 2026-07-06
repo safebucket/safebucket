@@ -113,8 +113,7 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
               <TableRow key={headerGroup.id} className="bg-muted/50">
                 {headerGroup.headers.map((header) => {
                   const meta = header.column.columnDef.meta as
-                    | ColumnMeta
-                    | undefined;
+                    ColumnMeta | undefined;
                   return (
                     <TableHead
                       key={header.id}
@@ -149,8 +148,7 @@ export function DataTable<TData extends { id: string; name: string }, TValue>({
                   >
                     {row.getVisibleCells().map((cell) => {
                       const meta = cell.column.columnDef.meta as
-                        | ColumnMeta
-                        | undefined;
+                        ColumnMeta | undefined;
                       return (
                         <TableCell
                           key={cell.id}
