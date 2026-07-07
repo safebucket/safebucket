@@ -19,7 +19,6 @@
 [![Backend Integration tests][integration-img]][integration]
 [![Frontend Quality][frontend-img]][frontend]
 [![Docker Build][docker-build-img]][docker-build]
-[![Go Report Card][go-report-img]][go-report]
 [![License: Apache-2.0][license-img]][license]
 
 </div>
@@ -123,10 +122,6 @@ This project is licensed under the Apache 2.0 - see the [LICENSE](LICENSE) file 
 [docker-build]: https://github.com/safebucket/safebucket/actions/workflows/docker-build.yml
 
 [docker-build-img]: https://github.com/safebucket/safebucket/actions/workflows/docker-build.yml/badge.svg
-
-[go-report]: https://goreportcard.com/report/github.com/safebucket/safebucket
-
-[go-report-img]: https://goreportcard.com/badge/github.com/safebucket/safebucket
 
 [license]: https://github.com/safebucket/safebucket/blob/main/LICENSE
 
