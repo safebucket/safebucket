@@ -145,7 +145,7 @@ func StartWorkers(
 	if notificationsSub := eventsManager.GetSubscriber(configuration.EventsNotifications); notificationsSub != nil {
 		notifications := notificationsSub.Subscribe()
 		handle.wg.Go(func() {
-			events.HandleEvents(ctx, eventParams, notifications)
+			events.HandleEvents(ctx, "notifications", eventParams, notifications)
 		})
 		zap.L().Info("Started notifications worker")
 	}
@@ -180,7 +180,7 @@ func StartWorkers(
 		deletionMessages := deletionSub.Subscribe()
 		startWorker(ctx, handle.wg, profile.Workers.ObjectDeletion, "object_deletion", cache, appIdentity,
 			func(workerCtx context.Context) {
-				events.HandleEvents(workerCtx, eventParams, deletionMessages)
+				events.HandleEvents(workerCtx, "object_deletion", eventParams, deletionMessages)
 			})
 	}
 

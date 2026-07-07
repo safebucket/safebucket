@@ -266,7 +266,7 @@ type QueueConfig struct {
 
 type EventsConfiguration struct {
 	Type      string                 `mapstructure:"type"      validate:"required,oneof=jetstream gcp aws memory"`
-	Queues    map[string]QueueConfig `mapstructure:"queues"    validate:"required"`
+	Queues    map[string]QueueConfig `mapstructure:"queues"    validate:"required,dive"`
 	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream" validate:"required_if=Type jetstream"`
 	PubSub    *PubSubConfiguration   `mapstructure:"gcp"       validate:"required_if=Type gcp"`
 }

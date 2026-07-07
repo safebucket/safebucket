@@ -38,10 +38,11 @@ type Event interface {
 }
 
 func getEventFromMessage(eventType string, msg *message.Message) (Event, error) {
-	payloadType, exists := eventRegistry[fmt.Sprintf("%sPayload", eventType)]
+	payloadTypeName := fmt.Sprintf("%sPayload", eventType)
+	payloadType, exists := eventRegistry[payloadTypeName]
 
 	if !exists {
-		return nil, fmt.Errorf("payload type %s not found in event registry", eventType)
+		return nil, fmt.Errorf("payload type %s not found in event registry", payloadTypeName)
 	}
 
 	payload := reflect.New(payloadType).Interface()
@@ -72,7 +73,7 @@ func getEventFromMessage(eventType string, msg *message.Message) (Event, error) 
 	return event, nil
 }
 
-func HandleEvents(ctx context.Context, params *EventParams, messages <-chan *message.Message) {
+func HandleEvents(ctx context.Context, workerName string, params *EventParams, messages <-chan *message.Message) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -87,7 +88,11 @@ func HandleEvents(ctx context.Context, params *EventParams, messages <-chan *mes
 			eventType := msg.Metadata.Get("type")
 			event, err := getEventFromMessage(eventType, msg)
 			if err != nil {
-				zap.L().Error("event is misconfigured", zap.Error(err))
+				zap.L().Error("event is misconfigured",
+					zap.Error(err),
+					zap.String("eventType", eventType),
+					zap.String("worker", workerName),
+				)
 				msg.Ack()
 				continue
 			}

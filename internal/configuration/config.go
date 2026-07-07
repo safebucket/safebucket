@@ -220,6 +220,9 @@ func Load(opts LoadOptions) (models.Configuration, error) {
 }
 
 func Validate(cfg models.Configuration) error {
+	if err := validateUniqueQueueNames(cfg.Events); err != nil {
+		return err
+	}
 	return validator.New().Struct(cfg)
 }
 
