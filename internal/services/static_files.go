@@ -171,9 +171,11 @@ func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath s
 
 	if strings.HasSuffix(filePath, ".html") {
 		connectSrc := fmt.Sprintf("'self' %s", s.storageExternalURL)
+		imgSrc := fmt.Sprintf("'self' data: https: %s", s.storageExternalURL)
 
 		csp := fmt.Sprintf(
-			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src %s",
+			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src %s; font-src 'self' data:; connect-src %s",
+			imgSrc,
 			connectSrc,
 		)
 		w.Header().Set("Content-Security-Policy", csp)
