@@ -82,7 +82,13 @@ Replace `<tag>` with the image tag you want to verify (e.g., `latest`, `v1.0.0`)
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=safebucket/safebucket&type=date&legend=top-left)](https://www.star-history.com/#safebucket/safebucket&type=date&legend=top-left)
+<a href="https://www.star-history.com/?type=date&legend=top-left&repos=safebucket%2Fsafebucket">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=safebucket/safebucket&type=date&theme=dark&legend=top-left&sealed_token=dHsVUeCTzOInC_KmU8r_6IlKegsMgz60XuyDH4mZ4hI7kvjW4mWJ1P3OhR50H_hzOLkuPqeT62gAOoVX8tiKV8qANvyEreqgJ1gCnJlkCP9rroF8NtqiiHO8GxxpRmTpTboXm1GFOLuxnOXIu8jwDVTffF_P0wXQ14JAl8_ipDL6kFsr3Jd3X7EBMiKN" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=safebucket/safebucket&type=date&legend=top-left&sealed_token=dHsVUeCTzOInC_KmU8r_6IlKegsMgz60XuyDH4mZ4hI7kvjW4mWJ1P3OhR50H_hzOLkuPqeT62gAOoVX8tiKV8qANvyEreqgJ1gCnJlkCP9rroF8NtqiiHO8GxxpRmTpTboXm1GFOLuxnOXIu8jwDVTffF_P0wXQ14JAl8_ipDL6kFsr3Jd3X7EBMiKN" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=safebucket/safebucket&type=date&legend=top-left&sealed_token=dHsVUeCTzOInC_KmU8r_6IlKegsMgz60XuyDH4mZ4hI7kvjW4mWJ1P3OhR50H_hzOLkuPqeT62gAOoVX8tiKV8qANvyEreqgJ1gCnJlkCP9rroF8NtqiiHO8GxxpRmTpTboXm1GFOLuxnOXIu8jwDVTffF_P0wXQ14JAl8_ipDL6kFsr3Jd3X7EBMiKN" />
+ </picture>
+</a>
 
 ## License
 
