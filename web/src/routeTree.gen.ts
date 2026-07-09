@@ -12,24 +12,26 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedActivityIndexRouteImport } from './routes/_authenticated/activity/index'
-import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
-import { Route as AuthCompleteIndexRouteImport } from './routes/auth/complete/index'
-import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
-import { Route as AuthMfaIndexRouteImport } from './routes/auth/mfa/index'
-import { Route as AuthResetPasswordIndexRouteImport } from './routes/auth/reset-password/index'
-import { Route as InvitesIdIndexRouteImport } from './routes/invites/$id/index'
 import { Route as SharesUuidIndexRouteImport } from './routes/shares/$uuid/index'
-import { Route as AuthenticatedAdminActivityIndexRouteImport } from './routes/_authenticated/admin/activity/index'
-import { Route as AuthenticatedAdminBucketsIndexRouteImport } from './routes/_authenticated/admin/buckets/index'
-import { Route as AuthenticatedAdminDashboardIndexRouteImport } from './routes/_authenticated/admin/dashboard/index'
-import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
-import { Route as AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport } from './routes/_authenticated/buckets/$bucketId/{-$folderId}'
-import { Route as AuthenticatedSettingsPreferencesIndexRouteImport } from './routes/_authenticated/settings/preferences/index'
-import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
-import { Route as AuthMfaSetupRequiredIndexRouteImport } from './routes/auth/mfa/setup-required/index'
-import { Route as AuthProvidersProviderIndexRouteImport } from './routes/auth/providers/$provider/index'
+import { Route as InvitesIdIndexRouteImport } from './routes/invites/$id/index'
+import { Route as AuthResetPasswordIndexRouteImport } from './routes/auth/reset-password/index'
+import { Route as AuthMfaIndexRouteImport } from './routes/auth/mfa/index'
+import { Route as AuthLoginIndexRouteImport } from './routes/auth/login/index'
+import { Route as AuthCompleteIndexRouteImport } from './routes/auth/complete/index'
+import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
+import { Route as AuthenticatedActivityIndexRouteImport } from './routes/_authenticated/activity/index'
 import { Route as AuthResetPasswordIdIndexRouteImport } from './routes/auth/reset-password/$id/index'
+import { Route as AuthProvidersProviderIndexRouteImport } from './routes/auth/providers/$provider/index'
+import { Route as AuthMfaSetupRequiredIndexRouteImport } from './routes/auth/mfa/setup-required/index'
+import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
+import { Route as AuthenticatedSettingsPreferencesIndexRouteImport } from './routes/_authenticated/settings/preferences/index'
+import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_authenticated/admin/users/index'
+import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated/admin/settings/index'
+import { Route as AuthenticatedAdminDashboardIndexRouteImport } from './routes/_authenticated/admin/dashboard/index'
+import { Route as AuthenticatedAdminBucketsIndexRouteImport } from './routes/_authenticated/admin/buckets/index'
+import { Route as AuthenticatedAdminActivityIndexRouteImport } from './routes/_authenticated/admin/activity/index'
+import { Route as AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport } from './routes/_authenticated/buckets/$bucketId/{-$folderId}'
+import { Route as AuthenticatedAdminSettingsDetailsRouteImport } from './routes/_authenticated/admin/settings/details'
 import { Route as InvitesIdChallengesChallengeIdIndexRouteImport } from './routes/invites/$id/challenges/$challengeId/index'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
@@ -46,36 +48,9 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedActivityIndexRoute =
-  AuthenticatedActivityIndexRouteImport.update({
-    id: '/activity/',
-    path: '/activity/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedSettingsIndexRoute =
-  AuthenticatedSettingsIndexRouteImport.update({
-    id: '/settings/',
-    path: '/settings/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthCompleteIndexRoute = AuthCompleteIndexRouteImport.update({
-  id: '/auth/complete/',
-  path: '/auth/complete/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
-  id: '/auth/login/',
-  path: '/auth/login/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthMfaIndexRoute = AuthMfaIndexRouteImport.update({
-  id: '/auth/mfa/',
-  path: '/auth/mfa/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthResetPasswordIndexRoute = AuthResetPasswordIndexRouteImport.update({
-  id: '/auth/reset-password/',
-  path: '/auth/reset-password/',
+const SharesUuidIndexRoute = SharesUuidIndexRouteImport.update({
+  id: '/shares/$uuid/',
+  path: '/shares/$uuid/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InvitesIdIndexRoute = InvitesIdIndexRouteImport.update({
@@ -83,57 +58,42 @@ const InvitesIdIndexRoute = InvitesIdIndexRouteImport.update({
   path: '/invites/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SharesUuidIndexRoute = SharesUuidIndexRouteImport.update({
-  id: '/shares/$uuid/',
-  path: '/shares/$uuid/',
+const AuthResetPasswordIndexRoute = AuthResetPasswordIndexRouteImport.update({
+  id: '/auth/reset-password/',
+  path: '/auth/reset-password/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedAdminActivityIndexRoute =
-  AuthenticatedAdminActivityIndexRouteImport.update({
+const AuthMfaIndexRoute = AuthMfaIndexRouteImport.update({
+  id: '/auth/mfa/',
+  path: '/auth/mfa/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginIndexRoute = AuthLoginIndexRouteImport.update({
+  id: '/auth/login/',
+  path: '/auth/login/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCompleteIndexRoute = AuthCompleteIndexRouteImport.update({
+  id: '/auth/complete/',
+  path: '/auth/complete/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedSettingsIndexRoute =
+  AuthenticatedSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedActivityIndexRoute =
+  AuthenticatedActivityIndexRouteImport.update({
     id: '/activity/',
     path: '/activity/',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminBucketsIndexRoute =
-  AuthenticatedAdminBucketsIndexRouteImport.update({
-    id: '/buckets/',
-    path: '/buckets/',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminDashboardIndexRoute =
-  AuthenticatedAdminDashboardIndexRouteImport.update({
-    id: '/dashboard/',
-    path: '/dashboard/',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedAdminUsersIndexRoute =
-  AuthenticatedAdminUsersIndexRouteImport.update({
-    id: '/users/',
-    path: '/users/',
-    getParentRoute: () => AuthenticatedAdminRoute,
-  } as any)
-const AuthenticatedBucketsBucketIdChar123FolderIdChar125Route =
-  AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport.update({
-    id: '/buckets/$bucketId/{-$folderId}',
-    path: '/buckets/$bucketId/{-$folderId}',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedSettingsPreferencesIndexRoute =
-  AuthenticatedSettingsPreferencesIndexRouteImport.update({
-    id: '/settings/preferences/',
-    path: '/settings/preferences/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedSettingsProfileIndexRoute =
-  AuthenticatedSettingsProfileIndexRouteImport.update({
-    id: '/settings/profile/',
-    path: '/settings/profile/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthMfaSetupRequiredIndexRoute =
-  AuthMfaSetupRequiredIndexRouteImport.update({
-    id: '/auth/mfa/setup-required/',
-    path: '/auth/mfa/setup-required/',
+const AuthResetPasswordIdIndexRoute =
+  AuthResetPasswordIdIndexRouteImport.update({
+    id: '/auth/reset-password/$id/',
+    path: '/auth/reset-password/$id/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthProvidersProviderIndexRoute =
@@ -142,11 +102,65 @@ const AuthProvidersProviderIndexRoute =
     path: '/auth/providers/$provider/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AuthResetPasswordIdIndexRoute =
-  AuthResetPasswordIdIndexRouteImport.update({
-    id: '/auth/reset-password/$id/',
-    path: '/auth/reset-password/$id/',
+const AuthMfaSetupRequiredIndexRoute =
+  AuthMfaSetupRequiredIndexRouteImport.update({
+    id: '/auth/mfa/setup-required/',
+    path: '/auth/mfa/setup-required/',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedSettingsProfileIndexRoute =
+  AuthenticatedSettingsProfileIndexRouteImport.update({
+    id: '/settings/profile/',
+    path: '/settings/profile/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSettingsPreferencesIndexRoute =
+  AuthenticatedSettingsPreferencesIndexRouteImport.update({
+    id: '/settings/preferences/',
+    path: '/settings/preferences/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdminUsersIndexRoute =
+  AuthenticatedAdminUsersIndexRouteImport.update({
+    id: '/users/',
+    path: '/users/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminSettingsIndexRoute =
+  AuthenticatedAdminSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminDashboardIndexRoute =
+  AuthenticatedAdminDashboardIndexRouteImport.update({
+    id: '/dashboard/',
+    path: '/dashboard/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminBucketsIndexRoute =
+  AuthenticatedAdminBucketsIndexRouteImport.update({
+    id: '/buckets/',
+    path: '/buckets/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminActivityIndexRoute =
+  AuthenticatedAdminActivityIndexRouteImport.update({
+    id: '/activity/',
+    path: '/activity/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedBucketsBucketIdChar123FolderIdChar125Route =
+  AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport.update({
+    id: '/buckets/$bucketId/{-$folderId}',
+    path: '/buckets/$bucketId/{-$folderId}',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdminSettingsDetailsRoute =
+  AuthenticatedAdminSettingsDetailsRouteImport.update({
+    id: '/settings/details',
+    path: '/settings/details',
+    getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const InvitesIdChallengesChallengeIdIndexRoute =
   InvitesIdChallengesChallengeIdIndexRouteImport.update({
@@ -166,10 +180,12 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
   '/shares/$uuid/': typeof SharesUuidIndexRoute
+  '/admin/settings/details': typeof AuthenticatedAdminSettingsDetailsRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/admin/activity/': typeof AuthenticatedAdminActivityIndexRoute
   '/admin/buckets/': typeof AuthenticatedAdminBucketsIndexRoute
   '/admin/dashboard/': typeof AuthenticatedAdminDashboardIndexRoute
+  '/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
@@ -189,10 +205,12 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordIndexRoute
   '/invites/$id': typeof InvitesIdIndexRoute
   '/shares/$uuid': typeof SharesUuidIndexRoute
+  '/admin/settings/details': typeof AuthenticatedAdminSettingsDetailsRoute
   '/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/admin/activity': typeof AuthenticatedAdminActivityIndexRoute
   '/admin/buckets': typeof AuthenticatedAdminBucketsIndexRoute
   '/admin/dashboard': typeof AuthenticatedAdminDashboardIndexRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/settings/preferences': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
@@ -214,10 +232,12 @@ export interface FileRoutesById {
   '/auth/reset-password/': typeof AuthResetPasswordIndexRoute
   '/invites/$id/': typeof InvitesIdIndexRoute
   '/shares/$uuid/': typeof SharesUuidIndexRoute
+  '/_authenticated/admin/settings/details': typeof AuthenticatedAdminSettingsDetailsRoute
   '/_authenticated/buckets/$bucketId/{-$folderId}': typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125Route
   '/_authenticated/admin/activity/': typeof AuthenticatedAdminActivityIndexRoute
   '/_authenticated/admin/buckets/': typeof AuthenticatedAdminBucketsIndexRoute
   '/_authenticated/admin/dashboard/': typeof AuthenticatedAdminDashboardIndexRoute
+  '/_authenticated/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/_authenticated/settings/preferences/': typeof AuthenticatedSettingsPreferencesIndexRoute
   '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
@@ -239,10 +259,12 @@ export interface FileRouteTypes {
     | '/auth/reset-password/'
     | '/invites/$id/'
     | '/shares/$uuid/'
+    | '/admin/settings/details'
     | '/buckets/$bucketId/{-$folderId}'
     | '/admin/activity/'
     | '/admin/buckets/'
     | '/admin/dashboard/'
+    | '/admin/settings/'
     | '/admin/users/'
     | '/settings/preferences/'
     | '/settings/profile/'
@@ -262,10 +284,12 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/invites/$id'
     | '/shares/$uuid'
+    | '/admin/settings/details'
     | '/buckets/$bucketId/{-$folderId}'
     | '/admin/activity'
     | '/admin/buckets'
     | '/admin/dashboard'
+    | '/admin/settings'
     | '/admin/users'
     | '/settings/preferences'
     | '/settings/profile'
@@ -286,10 +310,12 @@ export interface FileRouteTypes {
     | '/auth/reset-password/'
     | '/invites/$id/'
     | '/shares/$uuid/'
+    | '/_authenticated/admin/settings/details'
     | '/_authenticated/buckets/$bucketId/{-$folderId}'
     | '/_authenticated/admin/activity/'
     | '/_authenticated/admin/buckets/'
     | '/_authenticated/admin/dashboard/'
+    | '/_authenticated/admin/settings/'
     | '/_authenticated/admin/users/'
     | '/_authenticated/settings/preferences/'
     | '/_authenticated/settings/profile/'
@@ -336,46 +362,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/activity/': {
-      id: '/_authenticated/activity/'
-      path: '/activity'
-      fullPath: '/activity/'
-      preLoaderRoute: typeof AuthenticatedActivityIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/settings/': {
-      id: '/_authenticated/settings/'
-      path: '/settings'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/auth/complete/': {
-      id: '/auth/complete/'
-      path: '/auth/complete'
-      fullPath: '/auth/complete/'
-      preLoaderRoute: typeof AuthCompleteIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/login/': {
-      id: '/auth/login/'
-      path: '/auth/login'
-      fullPath: '/auth/login/'
-      preLoaderRoute: typeof AuthLoginIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/mfa/': {
-      id: '/auth/mfa/'
-      path: '/auth/mfa'
-      fullPath: '/auth/mfa/'
-      preLoaderRoute: typeof AuthMfaIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/reset-password/': {
-      id: '/auth/reset-password/'
-      path: '/auth/reset-password'
-      fullPath: '/auth/reset-password/'
-      preLoaderRoute: typeof AuthResetPasswordIndexRouteImport
+    '/shares/$uuid/': {
+      id: '/shares/$uuid/'
+      path: '/shares/$uuid'
+      fullPath: '/shares/$uuid/'
+      preLoaderRoute: typeof SharesUuidIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invites/$id/': {
@@ -385,67 +376,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvitesIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/shares/$uuid/': {
-      id: '/shares/$uuid/'
-      path: '/shares/$uuid'
-      fullPath: '/shares/$uuid/'
-      preLoaderRoute: typeof SharesUuidIndexRouteImport
+    '/auth/reset-password/': {
+      id: '/auth/reset-password/'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password/'
+      preLoaderRoute: typeof AuthResetPasswordIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/admin/activity/': {
-      id: '/_authenticated/admin/activity/'
+    '/auth/mfa/': {
+      id: '/auth/mfa/'
+      path: '/auth/mfa'
+      fullPath: '/auth/mfa/'
+      preLoaderRoute: typeof AuthMfaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login/': {
+      id: '/auth/login/'
+      path: '/auth/login'
+      fullPath: '/auth/login/'
+      preLoaderRoute: typeof AuthLoginIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/complete/': {
+      id: '/auth/complete/'
+      path: '/auth/complete'
+      fullPath: '/auth/complete/'
+      preLoaderRoute: typeof AuthCompleteIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/settings/': {
+      id: '/_authenticated/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/activity/': {
+      id: '/_authenticated/activity/'
       path: '/activity'
-      fullPath: '/admin/activity/'
-      preLoaderRoute: typeof AuthenticatedAdminActivityIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/buckets/': {
-      id: '/_authenticated/admin/buckets/'
-      path: '/buckets'
-      fullPath: '/admin/buckets/'
-      preLoaderRoute: typeof AuthenticatedAdminBucketsIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/dashboard/': {
-      id: '/_authenticated/admin/dashboard/'
-      path: '/dashboard'
-      fullPath: '/admin/dashboard/'
-      preLoaderRoute: typeof AuthenticatedAdminDashboardIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/admin/users/': {
-      id: '/_authenticated/admin/users/'
-      path: '/users'
-      fullPath: '/admin/users/'
-      preLoaderRoute: typeof AuthenticatedAdminUsersIndexRouteImport
-      parentRoute: typeof AuthenticatedAdminRoute
-    }
-    '/_authenticated/buckets/$bucketId/{-$folderId}': {
-      id: '/_authenticated/buckets/$bucketId/{-$folderId}'
-      path: '/buckets/$bucketId/{-$folderId}'
-      fullPath: '/buckets/$bucketId/{-$folderId}'
-      preLoaderRoute: typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport
+      fullPath: '/activity/'
+      preLoaderRoute: typeof AuthenticatedActivityIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/settings/preferences/': {
-      id: '/_authenticated/settings/preferences/'
-      path: '/settings/preferences'
-      fullPath: '/settings/preferences/'
-      preLoaderRoute: typeof AuthenticatedSettingsPreferencesIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/settings/profile/': {
-      id: '/_authenticated/settings/profile/'
-      path: '/settings/profile'
-      fullPath: '/settings/profile/'
-      preLoaderRoute: typeof AuthenticatedSettingsProfileIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/auth/mfa/setup-required/': {
-      id: '/auth/mfa/setup-required/'
-      path: '/auth/mfa/setup-required'
-      fullPath: '/auth/mfa/setup-required/'
-      preLoaderRoute: typeof AuthMfaSetupRequiredIndexRouteImport
+    '/auth/reset-password/$id/': {
+      id: '/auth/reset-password/$id/'
+      path: '/auth/reset-password/$id'
+      fullPath: '/auth/reset-password/$id/'
+      preLoaderRoute: typeof AuthResetPasswordIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/providers/$provider/': {
@@ -455,12 +432,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthProvidersProviderIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/reset-password/$id/': {
-      id: '/auth/reset-password/$id/'
-      path: '/auth/reset-password/$id'
-      fullPath: '/auth/reset-password/$id/'
-      preLoaderRoute: typeof AuthResetPasswordIdIndexRouteImport
+    '/auth/mfa/setup-required/': {
+      id: '/auth/mfa/setup-required/'
+      path: '/auth/mfa/setup-required'
+      fullPath: '/auth/mfa/setup-required/'
+      preLoaderRoute: typeof AuthMfaSetupRequiredIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/settings/profile/': {
+      id: '/_authenticated/settings/profile/'
+      path: '/settings/profile'
+      fullPath: '/settings/profile/'
+      preLoaderRoute: typeof AuthenticatedSettingsProfileIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/settings/preferences/': {
+      id: '/_authenticated/settings/preferences/'
+      path: '/settings/preferences'
+      fullPath: '/settings/preferences/'
+      preLoaderRoute: typeof AuthenticatedSettingsPreferencesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/users/': {
+      id: '/_authenticated/admin/users/'
+      path: '/users'
+      fullPath: '/admin/users/'
+      preLoaderRoute: typeof AuthenticatedAdminUsersIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/settings/': {
+      id: '/_authenticated/admin/settings/'
+      path: '/settings'
+      fullPath: '/admin/settings/'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/dashboard/': {
+      id: '/_authenticated/admin/dashboard/'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard/'
+      preLoaderRoute: typeof AuthenticatedAdminDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/buckets/': {
+      id: '/_authenticated/admin/buckets/'
+      path: '/buckets'
+      fullPath: '/admin/buckets/'
+      preLoaderRoute: typeof AuthenticatedAdminBucketsIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/activity/': {
+      id: '/_authenticated/admin/activity/'
+      path: '/activity'
+      fullPath: '/admin/activity/'
+      preLoaderRoute: typeof AuthenticatedAdminActivityIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/buckets/$bucketId/{-$folderId}': {
+      id: '/_authenticated/buckets/$bucketId/{-$folderId}'
+      path: '/buckets/$bucketId/{-$folderId}'
+      fullPath: '/buckets/$bucketId/{-$folderId}'
+      preLoaderRoute: typeof AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/settings/details': {
+      id: '/_authenticated/admin/settings/details'
+      path: '/settings/details'
+      fullPath: '/admin/settings/details'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsDetailsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/invites/$id/challenges/$challengeId/': {
       id: '/invites/$id/challenges/$challengeId/'
@@ -473,16 +513,21 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminSettingsDetailsRoute: typeof AuthenticatedAdminSettingsDetailsRoute
   AuthenticatedAdminActivityIndexRoute: typeof AuthenticatedAdminActivityIndexRoute
   AuthenticatedAdminBucketsIndexRoute: typeof AuthenticatedAdminBucketsIndexRoute
   AuthenticatedAdminDashboardIndexRoute: typeof AuthenticatedAdminDashboardIndexRoute
+  AuthenticatedAdminSettingsIndexRoute: typeof AuthenticatedAdminSettingsIndexRoute
   AuthenticatedAdminUsersIndexRoute: typeof AuthenticatedAdminUsersIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminSettingsDetailsRoute:
+    AuthenticatedAdminSettingsDetailsRoute,
   AuthenticatedAdminActivityIndexRoute: AuthenticatedAdminActivityIndexRoute,
   AuthenticatedAdminBucketsIndexRoute: AuthenticatedAdminBucketsIndexRoute,
   AuthenticatedAdminDashboardIndexRoute: AuthenticatedAdminDashboardIndexRoute,
+  AuthenticatedAdminSettingsIndexRoute: AuthenticatedAdminSettingsIndexRoute,
   AuthenticatedAdminUsersIndexRoute: AuthenticatedAdminUsersIndexRoute,
 }
 

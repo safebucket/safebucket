@@ -7,6 +7,7 @@ import {
 import type { IUser } from "@/components/auth-view/types/session";
 import type { ActivityMessage, IActivityPage } from "@/types/activity";
 import type {
+  AdminSettingsResponse,
   AdminStatsResponse,
   CreateUserPayload,
   IAdminBucket,
@@ -59,6 +60,13 @@ export const adminStatsQueryOptions = (days: number = 90) =>
   queryOptions({
     queryKey: ["admin", "stats", days],
     queryFn: () => api.get<AdminStatsResponse>(`/admin/stats?days=${days}`),
+  });
+
+export const adminSettingsQueryOptions = () =>
+  queryOptions({
+    queryKey: ["admin", "settings"],
+    queryFn: () => api.get<AdminSettingsResponse>("/admin/settings"),
+    staleTime: 5 * 60 * 1000,
   });
 
 export const adminActivityInfiniteQueryOptions = (

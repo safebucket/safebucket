@@ -26,6 +26,19 @@ export function formatFileSize(size: number) {
   return `${formattedSize} ${units[i]}`;
 }
 
+export function formatDurationParts(minutes: number): {
+  value: number;
+  unit: "days" | "hours" | "minutes";
+} {
+  if (minutes > 0 && minutes % 1440 === 0) {
+    return { value: minutes / 1440, unit: "days" };
+  }
+  if (minutes > 0 && minutes % 60 === 0) {
+    return { value: minutes / 60, unit: "hours" };
+  }
+  return { value: minutes, unit: "minutes" };
+}
+
 export function generateRandomString(length: number = 12): string {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

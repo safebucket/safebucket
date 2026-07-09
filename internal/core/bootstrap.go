@@ -151,7 +151,7 @@ func StartWorkers(
 	}
 
 	if RequiresUploadConfirmation(config.Storage.Type, config.Events.Type) {
-		startWorker(ctx, handle.wg, profile.Workers.TrashCleanup, "trash_cleanup", cache, appIdentity,
+		startWorker(ctx, handle.wg, profile.Workers.TrashCleanup, configuration.WorkerTrashCleanup, cache, appIdentity,
 			func(workerCtx context.Context) {
 				worker := &workers.TrashCleanupWorker{
 					DB:                 db,
@@ -163,7 +163,13 @@ func StartWorkers(
 			})
 	}
 
-	startWorker(ctx, handle.wg, profile.Workers.GarbageCollector, "garbage_collector", cache, appIdentity,
+	startWorker(
+		ctx,
+		handle.wg,
+		profile.Workers.GarbageCollector,
+		configuration.WorkerGarbageCollector,
+		cache,
+		appIdentity,
 		func(workerCtx context.Context) {
 			worker := &workers.GarbageCollectorWorker{
 				DB:                 db,
@@ -174,19 +180,27 @@ func StartWorkers(
 				RefreshTokenExpiry: config.App.RefreshTokenExpiry,
 			}
 			worker.Start(workerCtx)
-		})
+		},
+	)
 
 	if deletionSub := eventsManager.GetSubscriber(configuration.EventsObjectDeletion); deletionSub != nil {
 		deletionMessages := deletionSub.Subscribe()
-		startWorker(ctx, handle.wg, profile.Workers.ObjectDeletion, "object_deletion", cache, appIdentity,
+		startWorker(
+			ctx,
+			handle.wg,
+			profile.Workers.ObjectDeletion,
+			configuration.WorkerObjectDeletion,
+			cache,
+			appIdentity,
 			func(workerCtx context.Context) {
 				events.HandleEvents(workerCtx, "object_deletion", eventParams, deletionMessages)
-			})
+			},
+		)
 	}
 
 	if bucketSub := eventsManager.GetSubscriber(configuration.EventsBucketEvents); bucketSub != nil {
 		bucketMessages := bucketSub.Subscribe()
-		startWorker(ctx, handle.wg, profile.Workers.BucketEvents, "bucket_events", cache, appIdentity,
+		startWorker(ctx, handle.wg, profile.Workers.BucketEvents, configuration.WorkerBucketEvents, cache, appIdentity,
 			func(workerCtx context.Context) {
 				events.HandleBucketEvents(
 					workerCtx,
@@ -220,6 +234,7 @@ func startWorker(
 			startSingletonWorker(ctx, wg, cache, appIdentity, workerName, runWorker)
 		})
 	} else {
+		startCoverageHeartbeat(ctx, wg, cache, workerName, appIdentity)
 		wg.Go(func() { runWorker(ctx) })
 		zap.L().Info("Started worker", zap.String("worker", workerName))
 	}
@@ -340,6 +355,46 @@ func StartIdentityTicker(ctx context.Context, wg *sync.WaitGroup, cache c.ICache
 	})
 }
 
+// startCoverageHeartbeat registers this instance in a per-component active set so the admin
+// coverage reader can observe "all"-mode workers and the HTTP server; singleton workers are
+// already observable via their lock.
+func startCoverageHeartbeat(ctx context.Context, wg *sync.WaitGroup, cache c.ICache, name, instanceID string) {
+	key := fmt.Sprintf(configuration.CacheAppWorkerActiveKey, name)
+	register := func() error {
+		return cache.ZAdd(key, float64(time.Now().Unix()), instanceID)
+	}
+	prune := func() error {
+		cutoff := float64(time.Now().Unix()) - float64(configuration.CacheAppWorkerActiveLifetime)
+		return cache.ZRemRangeByScore(key, "-inf", fmt.Sprintf("%f", cutoff))
+	}
+
+	if err := register(); err != nil {
+		zap.L().Error("Failed to register worker heartbeat", zap.String("worker", name), zap.Error(err))
+	}
+	if err := prune(); err != nil {
+		zap.L().Error("Failed to prune worker heartbeats", zap.String("worker", name), zap.Error(err))
+	}
+
+	wg.Go(func() {
+		ticker := time.NewTicker(time.Duration(configuration.CacheAppWorkerActiveRefresh) * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+
+			if err := register(); err != nil {
+				zap.L().Error("Worker heartbeat failed to register", zap.String("worker", name), zap.Error(err))
+			}
+			if err := prune(); err != nil {
+				zap.L().Error("Worker heartbeat failed to prune", zap.String("worker", name), zap.Error(err))
+			}
+		}
+	})
+}
+
 func BuildAPIRouter(
 	config models.Configuration,
 	db *gorm.DB,
@@ -445,7 +500,9 @@ func BuildAPIRouter(
 
 		apiRouter.Mount("/v1/admin", services.AdminService{
 			DB:             db,
+			Cache:          cache,
 			ActivityLogger: activityLogger,
+			Config:         config,
 		}.Routes())
 
 		apiRouter.Mount("/v1/shares", services.PublicShareService{

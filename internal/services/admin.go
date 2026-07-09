@@ -1,15 +1,18 @@
 package services
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/cache"
+	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
-
-	"github.com/safebucket/safebucket/internal/sql"
-
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -19,7 +22,9 @@ import (
 
 type AdminService struct {
 	DB             *gorm.DB
+	Cache          cache.ICache
 	ActivityLogger activity.IActivityLogger
+	Config         models.Configuration
 }
 
 func (s AdminService) Routes() chi.Router {
@@ -35,6 +40,9 @@ func (s AdminService) Routes() chi.Router {
 
 	r.With(m.AuthorizeRole(models.RoleAdmin)).
 		Get("/buckets", handlers.GetListHandler(s.GetBucketList))
+
+	r.With(m.AuthorizeRole(models.RoleAdmin)).
+		Get("/settings", handlers.GetOneHandler(s.GetSettings))
 
 	return r
 }
@@ -107,6 +115,14 @@ func (s AdminService) GetActivity(
 	)
 }
 
+func (s AdminService) GetSettings(
+	_ *zap.Logger,
+	_ models.UserClaims,
+	_ uuid.UUIDs,
+) (models.AdminSettingsResponse, error) {
+	return models.BuildAdminSettings(s.Config, s.countPlatforms(), s.workerCoverage()), nil
+}
+
 func (s AdminService) GetBucketList(
 	_ *zap.Logger,
 	_ models.UserClaims,
@@ -154,4 +170,60 @@ func (s AdminService) GetBucketList(
 	}
 
 	return result
+}
+
+// workerCoverage resolves each component's fleet-wide coverage. With an in-memory cache the
+// reader and the workers must be the same process for this to be meaningful.
+func (s AdminService) workerCoverage() models.WorkerCoverage {
+	return models.WorkerCoverage{
+		HTTPServer:       s.workerCovered(configuration.CoverageHTTPServer),
+		ObjectDeletion:   s.workerCovered(configuration.WorkerObjectDeletion),
+		BucketEvents:     s.workerCovered(configuration.WorkerBucketEvents),
+		TrashCleanup:     s.workerCovered(configuration.WorkerTrashCleanup),
+		GarbageCollector: s.workerCovered(configuration.WorkerGarbageCollector),
+	}
+}
+
+// workerCovered reports whether a worker is live somewhere in the fleet. Singleton workers
+// hold app:worker:lock:<name> while running; "all"-mode workers publish a heartbeat into the
+// app:worker:active:<name> set. Either marker means covered.
+func (s AdminService) workerCovered(name string) bool {
+	lockKey := fmt.Sprintf(configuration.CacheAppWorkerLockKey, name)
+	if _, err := s.Cache.Get(lockKey); err == nil {
+		return true
+	}
+
+	activeKey := fmt.Sprintf(configuration.CacheAppWorkerActiveKey, name)
+	cutoff := float64(time.Now().Unix()) - float64(configuration.CacheAppWorkerActiveLifetime)
+
+	entries, err := s.Cache.ZRangeByScoreWithScores(
+		activeKey,
+		fmt.Sprintf("%f", cutoff),
+		"+inf",
+	)
+	if err != nil {
+		zap.L().Error("Failed to check worker coverage", zap.String("worker", name), zap.Error(err))
+		return false
+	}
+
+	return len(entries) > 0
+}
+
+// countPlatforms returns the number of app instances that have registered a recent
+// identity heartbeat in the cache (see StartIdentityTicker). Stale entries are
+// excluded by only counting members with a score newer than the identity lifetime.
+func (s AdminService) countPlatforms() int {
+	cutoff := float64(time.Now().Unix()) - float64(configuration.CacheMaxAppIdentityLifetime)
+
+	entries, err := s.Cache.ZRangeByScoreWithScores(
+		configuration.CacheAppIdentityKey,
+		fmt.Sprintf("%f", cutoff),
+		"+inf",
+	)
+	if err != nil {
+		zap.L().Error("Failed to count active platforms", zap.Error(err))
+		return 0
+	}
+
+	return len(entries)
 }

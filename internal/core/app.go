@@ -63,6 +63,10 @@ func Boot(ctx context.Context, cfg models.Configuration, opts BootOptions) *Boot
 	appIdentity := uuid.New().String()
 	StartIdentityTicker(ctx, workers.WG(), cache, appIdentity)
 
+	if profile.HTTPServer {
+		startCoverageHeartbeat(ctx, workers.WG(), cache, configuration.CoverageHTTPServer, appIdentity)
+	}
+
 	if profile.Workers.AnyEnabled() {
 		StartWorkers(
 			ctx,
