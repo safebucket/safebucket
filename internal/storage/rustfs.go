@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -138,11 +139,11 @@ func (s S3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) 
 	return presignedURL.String(), nil
 }
 
-func (s S3Storage) PresignedPostPolicy(
+func (s S3Storage) PresignedUpload(
 	path string,
 	size int,
 	metadata map[string]string,
-) (string, map[string]string, error) {
+) (UploadTarget, error) {
 	policy := minio.NewPostPolicy()
 	_ = policy.SetBucket(s.BucketName)
 	_ = policy.SetKey(path)
@@ -155,10 +156,10 @@ func (s S3Storage) PresignedPostPolicy(
 
 	presignedURL, formData, err := s.signingClient.PresignedPostPolicy(context.Background(), policy)
 	if err != nil {
-		return "", map[string]string{}, err
+		return UploadTarget{}, err
 	}
 
-	return presignedURL.String(), formData, nil
+	return UploadTarget{URL: presignedURL.String(), Method: http.MethodPost, FormData: formData}, nil
 }
 
 func (s S3Storage) StatObject(path string) (map[string]string, error) {

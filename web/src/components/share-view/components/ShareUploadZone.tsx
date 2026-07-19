@@ -92,6 +92,7 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
           {
             id: presigned.id,
             url: presigned.url,
+            method: presigned.method,
             body: presigned.body ?? {},
             path: "",
           },

@@ -2,7 +2,9 @@ package storage
 
 import (
 	"context"
+	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
@@ -17,6 +19,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	uploadMethodPut  = "put"
+	uploadMethodPost = "post"
+)
+
 // GenericS3Storage implements IStorage for generic S3-compatible providers
 // (Storj, Hetzner, Backblaze B2, Garage, etc.).
 // This provider assumes NO lifecycle policy or bucket notification support.
@@ -24,6 +31,7 @@ type GenericS3Storage struct {
 	BucketName    string
 	storage       *minio.Client
 	signingClient *minio.Client
+	uploadMethod  string
 }
 
 func NewGenericS3Storage(config *models.S3Configuration) IStorage {
@@ -65,10 +73,16 @@ func NewGenericS3Storage(config *models.S3Configuration) IStorage {
 		zap.L().Fatal("Failed to create S3 signing client", zap.Error(err))
 	}
 
+	uploadMethod := uploadMethodPost
+	if config.UploadMethod == uploadMethodPut {
+		uploadMethod = uploadMethodPut
+	}
+
 	return &GenericS3Storage{
 		BucketName:    bucketName,
 		storage:       minioClient,
 		signingClient: signingClient,
+		uploadMethod:  uploadMethod,
 	}
 }
 
@@ -103,11 +117,15 @@ func (s *GenericS3Storage) PresignedGetObject(objectPath string, opts GetObjectO
 	return presignedURL.String(), nil
 }
 
-func (s *GenericS3Storage) PresignedPostPolicy(
+func (s *GenericS3Storage) PresignedUpload(
 	objectPath string,
 	size int,
 	metadata map[string]string,
-) (string, map[string]string, error) {
+) (UploadTarget, error) {
+	if s.uploadMethod == uploadMethodPut {
+		return s.presignedPut(objectPath, size)
+	}
+
 	policy := minio.NewPostPolicy()
 	_ = policy.SetBucket(s.BucketName)
 	_ = policy.SetKey(objectPath)
@@ -120,10 +138,30 @@ func (s *GenericS3Storage) PresignedPostPolicy(
 
 	presignedURL, formData, err := s.signingClient.PresignedPostPolicy(context.Background(), policy)
 	if err != nil {
-		return "", map[string]string{}, err
+		return UploadTarget{}, err
 	}
 
-	return presignedURL.String(), formData, nil
+	return UploadTarget{URL: presignedURL.String(), Method: http.MethodPost, FormData: formData}, nil
+}
+
+func (s *GenericS3Storage) presignedPut(objectPath string, size int) (UploadTarget, error) {
+	headers := http.Header{}
+	headers.Set("Content-Length", strconv.Itoa(size))
+
+	presignedURL, err := s.signingClient.PresignHeader(
+		context.Background(),
+		http.MethodPut,
+		s.BucketName,
+		objectPath,
+		c.UploadPolicyExpirationInMinutes*time.Minute,
+		url.Values{},
+		headers,
+	)
+	if err != nil {
+		return UploadTarget{}, err
+	}
+
+	return UploadTarget{URL: presignedURL.String(), Method: http.MethodPut}, nil
 }
 
 func (s *GenericS3Storage) StatObject(objectPath string) (map[string]string, error) {

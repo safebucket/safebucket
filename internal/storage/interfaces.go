@@ -17,6 +17,12 @@ type GetObjectOptions struct {
 	DownloadFilename  string
 }
 
+type UploadTarget struct {
+	URL      string
+	Method   string
+	FormData map[string]string
+}
+
 func attachmentDisposition(filename string) string {
 	if filename == "" {
 		return "attachment"
@@ -29,11 +35,11 @@ func attachmentDisposition(filename string) string {
 
 type IStorage interface {
 	PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error)
-	PresignedPostPolicy(
+	PresignedUpload(
 		path string,
 		size int,
 		metadata map[string]string,
-	) (string, map[string]string, error)
+	) (UploadTarget, error)
 	StatObject(path string) (map[string]string, error)
 	ListObjects(prefix string, maxKeys int32) ([]string, error)
 	RemoveObject(path string) error

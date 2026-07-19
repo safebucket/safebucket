@@ -98,8 +98,7 @@ func (s BucketFileService) UploadFile(
 		ExpiresAt: body.ExpiresAt,
 	}
 
-	var url string
-	var formData map[string]string
+	var target storage.UploadTarget
 	var err error
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		res := tx.Create(file)
@@ -107,7 +106,7 @@ func (s BucketFileService) UploadFile(
 			return res.Error
 		}
 
-		url, formData, err = s.Storage.PresignedPostPolicy(
+		target, err = s.Storage.PresignedUpload(
 			path.Join("buckets", bucket.ID.String(), file.ID.String()),
 			body.Size,
 			map[string]string{
@@ -128,9 +127,10 @@ func (s BucketFileService) UploadFile(
 	}
 
 	return models.FileTransferResponse{
-		ID:   file.ID.String(),
-		URL:  url,
-		Body: formData,
+		ID:     file.ID.String(),
+		URL:    target.URL,
+		Method: target.Method,
+		Body:   target.FormData,
 	}, nil
 }
 

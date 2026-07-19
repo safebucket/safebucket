@@ -330,15 +330,14 @@ func (s PublicShareService) UploadShareFile(
 		Size:      int(body.Size),
 	}
 
-	var url string
-	var formData map[string]string
+	var target storage.UploadTarget
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		if txErr := tx.Create(file).Error; txErr != nil {
 			return txErr
 		}
 
 		var presignErr error
-		url, formData, presignErr = s.Storage.PresignedPostPolicy(
+		target, presignErr = s.Storage.PresignedUpload(
 			path.Join("buckets", share.BucketID.String(), file.ID.String()),
 			int(body.Size),
 			map[string]string{
@@ -384,9 +383,10 @@ func (s PublicShareService) UploadShareFile(
 	}
 
 	return models.FileTransferResponse{
-		ID:   file.ID.String(),
-		URL:  url,
-		Body: formData,
+		ID:     file.ID.String(),
+		URL:    target.URL,
+		Method: target.Method,
+		Body:   target.FormData,
 	}, nil
 }
 

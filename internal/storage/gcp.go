@@ -65,11 +65,11 @@ func (g GCPStorage) PresignedGetObject(objectPath string, opts GetObjectOptions)
 	return g.storage.Bucket(g.BucketName).SignedURL(objectPath, signOpts)
 }
 
-func (g GCPStorage) PresignedPostPolicy(
+func (g GCPStorage) PresignedUpload(
 	path string,
 	size int,
 	metadata map[string]string,
-) (string, map[string]string, error) {
+) (UploadTarget, error) {
 	opts := &gcs.PostPolicyV4Options{
 		Expires: time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
 		Fields: &gcs.PolicyV4Fields{
@@ -87,10 +87,10 @@ func (g GCPStorage) PresignedPostPolicy(
 	postPolicy, err := g.storage.Bucket(g.BucketName).GenerateSignedPostPolicyV4(path, opts)
 	if err != nil {
 		zap.L().Error("Failed to generate post policy", zap.Error(err))
-		return "", nil, err
+		return UploadTarget{}, err
 	}
 
-	return postPolicy.URL, postPolicy.Fields, nil
+	return UploadTarget{URL: postPolicy.URL, Method: http.MethodPost, FormData: postPolicy.Fields}, nil
 }
 
 func (g GCPStorage) StatObject(path string) (map[string]string, error) {

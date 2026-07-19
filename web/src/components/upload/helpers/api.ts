@@ -56,9 +56,15 @@ export const uploadToStorage = async (
       reject(new Error("Upload cancelled"));
     });
 
+    if (presignedUpload.method?.toUpperCase() === "PUT") {
+      xhr.open("PUT", presignedUpload.url, true);
+      xhr.send(file);
+      return;
+    }
+
     xhr.open("POST", presignedUpload.url, true);
     const formData = new FormData();
-    Object.entries(presignedUpload.body).forEach(([key, value]) => {
+    Object.entries(presignedUpload.body || {}).forEach(([key, value]) => {
       formData.append(key, value);
     });
     formData.append("file", file);

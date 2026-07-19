@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net/http"
 	"path"
 	"strings"
 	"time"
@@ -75,11 +76,11 @@ func (a AWSStorage) PresignedGetObject(objectPath string, opts GetObjectOptions)
 	return resp.URL, nil
 }
 
-func (a AWSStorage) PresignedPostPolicy(
+func (a AWSStorage) PresignedUpload(
 	path string,
 	size int,
 	metadata map[string]string,
-) (string, map[string]string, error) {
+) (UploadTarget, error) {
 	req := &s3.PutObjectInput{
 		Bucket:        aws.String(a.BucketName),
 		Key:           aws.String(path),
@@ -108,7 +109,7 @@ func (a AWSStorage) PresignedPostPolicy(
 		},
 	)
 	if err != nil {
-		return "", nil, err
+		return UploadTarget{}, err
 	}
 
 	for _, field := range metaFields {
@@ -116,7 +117,7 @@ func (a AWSStorage) PresignedPostPolicy(
 		presignedPost.Values[key] = metadata[field]
 	}
 
-	return presignedPost.URL, presignedPost.Values, nil
+	return UploadTarget{URL: presignedPost.URL, Method: http.MethodPost, FormData: presignedPost.Values}, nil
 }
 
 func (a AWSStorage) StatObject(path string) (map[string]string, error) {

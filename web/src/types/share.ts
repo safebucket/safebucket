@@ -65,6 +65,7 @@ export interface IShareUploadBody {
 export interface IFileTransferResponse {
   id: string;
   url: string;
+  method?: string;
   body?: Record<string, string>;
 }
 

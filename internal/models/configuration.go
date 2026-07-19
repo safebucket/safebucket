@@ -194,6 +194,7 @@ type S3Configuration struct {
 	// ForcePathStyle uses path-style URLs (endpoint/bucket/key); most S3-compatible providers require this.
 	ForcePathStyle bool `mapstructure:"force_path_style"`
 	UseTLS         bool `mapstructure:"use_tls"`
+	UploadMethod string `mapstructure:"upload_method" validate:"omitempty,oneof=post put"`
 }
 
 type RustFSStorageConfiguration struct {

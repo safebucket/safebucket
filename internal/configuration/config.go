@@ -158,6 +158,7 @@ func loadConditionalDefaults(k *koanf.Koanf) {
 		setIfMissing(k, "storage.s3.region", "us-east-1")
 		setIfMissing(k, "storage.s3.force_path_style", true)
 		setIfMissing(k, "storage.s3.use_tls", true)
+		setIfMissing(k, "storage.s3.upload_method", "post")
 	}
 	if k.String("events.type") == "gcp" {
 		setIfMissing(k, "events.gcp.subscription_suffix", "-sub")

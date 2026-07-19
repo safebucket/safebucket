@@ -14,7 +14,8 @@ export interface ICreateFile {
   id: string;
   path: string;
   url: string;
-  body: Record<string, string>;
+  method?: string;
+  body?: Record<string, string>;
 }
 
 export interface IUploadContext {
