@@ -125,6 +125,7 @@ func loadDefaults(k *koanf.Koanf) {
 		"app.trash_retention_days":                7,
 		"app.max_upload_size":                     int64(53687091200),
 		"app.allow_redirect_download":             true,
+		"app.request_timeout_seconds":             5,
 		"app.authenticated_requests_per_minute":   200,
 		"app.unauthenticated_requests_per_minute": 20,
 		"app.static_files.enabled":                true,

@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
@@ -47,6 +48,7 @@ type AppConfiguration struct {
 	TLSKeyFile                       string                 `mapstructure:"tls_key_file"                        validate:"required_with=TLSCertFile"`
 	CookieSecureForce                bool                   `mapstructure:"cookie_secure_force"`
 	AllowRedirectDownload            bool                   `mapstructure:"allow_redirect_download"`
+	RequestTimeoutSeconds            int                    `mapstructure:"request_timeout_seconds"            validate:"gte=1,lte=300"`
 	Profiling                        ProfilingConfiguration `mapstructure:"profiling"`
 }
 
@@ -373,4 +375,14 @@ func (c *AppConfiguration) GetAuthConfig() AuthConfig {
 		WebURL:             c.WebURL,
 		CookieSecureForce:  c.CookieSecureForce,
 	}
+}
+
+const defaultRequestTimeoutSeconds = 5
+
+func (c *AppConfiguration) RequestTimeout() time.Duration {
+	seconds := c.RequestTimeoutSeconds
+	if seconds <= 0 {
+		seconds = defaultRequestTimeoutSeconds
+	}
+	return time.Duration(seconds) * time.Second
 }

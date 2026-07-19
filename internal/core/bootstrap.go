@@ -364,7 +364,7 @@ func BuildAPIRouter(
 		))
 	}
 
-	r.Use(middleware.Timeout(5 * time.Second))
+	r.Use(middleware.Timeout(config.App.RequestTimeout()))
 	r.Use(m.Logger)
 	r.Use(middleware.Recoverer)
 
@@ -488,12 +488,13 @@ func StartHTTPServer(
 		zap.L().Info("static file service disabled")
 	}
 
+	requestTimeout := config.App.RequestTimeout()
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", config.App.Port),
 		Handler:      router,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		IdleTimeout:  5 * time.Second,
+		ReadTimeout:  requestTimeout,
+		WriteTimeout: requestTimeout,
+		IdleTimeout:  requestTimeout,
 	}
 
 	errCh := make(chan error, 1)

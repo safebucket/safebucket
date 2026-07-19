@@ -29,6 +29,7 @@ app:
   allow_redirect_download: true
   authenticated_requests_per_minute: 200
   unauthenticated_requests_per_minute: 20
+  request_timeout_seconds: 5
 
 tracing:
   enabled: true
