@@ -12,7 +12,20 @@ type RequestOptions = {
   body?: object;
   cookie?: string;
   params?: RequestParams;
+  retryOnRateLimit?: boolean;
 };
+
+export const MAX_RATE_LIMIT_RETRIES = 3;
+
+export const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+export function getRetryAfterMs(response: Response, attempt: number): number {
+  const raw = parseInt(response.headers.get("Retry-After") ?? "", 10);
+  const seconds =
+    Number.isFinite(raw) && raw > 0 ? Math.min(raw, 60) : 2 ** attempt;
+  return seconds * 1000 + Math.floor(Math.random() * 1000);
+}
 
 export function buildUrlWithParams(
   url: string,
@@ -35,6 +48,7 @@ export async function fetchApi<T>(
   url: string,
   options: RequestOptions = {},
   retry = true,
+  rateLimitAttempt = 0,
 ): Promise<T> {
   const { method = "GET", headers = {}, body, params } = options;
   const apiUrl = getApiUrl();
@@ -58,6 +72,17 @@ export async function fetchApi<T>(
       errorCode = res.error?.[0];
     } catch {
       errorCode = undefined;
+    }
+
+    if (
+      response.status === 429 &&
+      errorCode === "RATE_LIMIT_EXCEEDED" &&
+      options.retryOnRateLimit !== false
+    ) {
+      if (rateLimitAttempt < MAX_RATE_LIMIT_RETRIES) {
+        await sleep(getRetryAfterMs(response, rateLimitAttempt));
+        return fetchApi<T>(url, options, retry, rateLimitAttempt + 1);
+      }
     }
 
     if (response.status === 401 && errorCode === "SESSION_REVOKED") {

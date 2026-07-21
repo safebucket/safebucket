@@ -1,16 +1,23 @@
 import type { RequestParams } from "@/lib/api";
 import { getApiUrl } from "@/hooks/useConfig";
-import { buildUrlWithParams } from "@/lib/api";
+import {
+  MAX_RATE_LIMIT_RETRIES,
+  buildUrlWithParams,
+  getRetryAfterMs,
+  sleep,
+} from "@/lib/api";
 
 type ShareRequestOptions = {
   method?: string;
   body?: object;
   params?: RequestParams;
+  retryOnRateLimit?: boolean;
 };
 
 export async function shareFetch<T>(
   path: string,
   options: ShareRequestOptions = {},
+  rateLimitAttempt = 0,
 ): Promise<T> {
   const { method = "GET", body, params } = options;
   const url = buildUrlWithParams(`${getApiUrl()}/shares${path}`, params);
@@ -27,7 +34,20 @@ export async function shareFetch<T>(
 
   if (!response.ok) {
     const res = await response.json();
-    throw new Error(res.error?.[0] ?? "INTERNAL_SERVER_ERROR");
+    const errorCode = res.error?.[0];
+
+    if (
+      response.status === 429 &&
+      errorCode === "RATE_LIMIT_EXCEEDED" &&
+      options.retryOnRateLimit !== false
+    ) {
+      if (rateLimitAttempt < MAX_RATE_LIMIT_RETRIES) {
+        await sleep(getRetryAfterMs(response, rateLimitAttempt));
+        return shareFetch<T>(path, options, rateLimitAttempt + 1);
+      }
+    }
+
+    throw new Error(errorCode ?? "INTERNAL_SERVER_ERROR");
   }
 
   if (

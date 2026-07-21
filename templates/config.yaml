@@ -27,6 +27,8 @@ app:
   mfa_encryption_key: "ChangeMe32CharacterKeyForAES256!"
   max_upload_size: 53687091200 # 50 Gb
   allow_redirect_download: true
+  authenticated_requests_per_minute: 200
+  unauthenticated_requests_per_minute: 20
 
 tracing:
   enabled: true

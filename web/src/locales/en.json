@@ -26,6 +26,8 @@
     "BAD_REQUEST": "The request is invalid. Please check your input and try again.",
     "NOT_FOUND": "The requested resource was not found.",
     "INTERNAL_SERVER_ERROR": "An unexpected error occurred. Please try again.",
+    "RATE_LIMIT_EXCEEDED": "Too many attempts. Please wait and try again.",
+    "MFA_RATE_LIMITED": "$t(errors.RATE_LIMIT_EXCEEDED)",
     "SHARE_NOT_FOUND": "This share link does not exist.",
     "SHARE_EXPIRED": "This share link has expired.",
     "SHARE_PASSWORD_REQUIRED": "This share is password protected.",

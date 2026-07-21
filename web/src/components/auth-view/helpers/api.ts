@@ -21,7 +21,7 @@ export interface IMFAVerifyPasswordResetResponse {
 }
 
 export const api_requestPasswordReset = (data: IPasswordResetRequestData) =>
-  api.post<void>("/auth/reset-password", data);
+  api.post<void>("/auth/reset-password", data, { retryOnRateLimit: false });
 
 export const api_validatePasswordReset = (
   challengeId: string,
@@ -30,15 +30,23 @@ export const api_validatePasswordReset = (
   api.post<IPasswordResetValidateResponse>(
     `/auth/reset-password/${challengeId}/validate`,
     data,
+    { retryOnRateLimit: false },
   );
 
 export const api_completePasswordReset = (
   challengeId: string,
   data: IPasswordResetCompleteData,
-) => api.post<void>(`/auth/reset-password/${challengeId}/complete`, data);
+) =>
+  api.post<void>(`/auth/reset-password/${challengeId}/complete`, data, {
+    retryOnRateLimit: false,
+  });
 
 export const api_verifyMFAPasswordReset = (code: string, deviceId?: string) =>
-  api.post<IMFAVerifyPasswordResetResponse>("/auth/mfa/verify", {
-    code,
-    ...(deviceId && { device_id: deviceId }),
-  });
+  api.post<IMFAVerifyPasswordResetResponse>(
+    "/auth/mfa/verify",
+    {
+      code,
+      ...(deviceId && { device_id: deviceId }),
+    },
+    { retryOnRateLimit: false },
+  );

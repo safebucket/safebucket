@@ -27,6 +27,7 @@ export const useShareAuthMutation = () =>
       shareFetch<null>(`/${shareId}/auth`, {
         method: "POST",
         body: { password },
+        retryOnRateLimit: false,
       }),
   });
 

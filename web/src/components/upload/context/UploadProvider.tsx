@@ -11,10 +11,40 @@ import {
 import { configQueryOptions } from "@/queries/config";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
 
+const MAX_CONCURRENT_UPLOADS = 4;
+
+interface UploadTask {
+  file: File;
+  bucketId: string;
+  folderId: string | undefined;
+  uploadId: string;
+  expiresAt: string | null;
+}
+
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
   const [uploads, setUploads] = useState<Array<IUpload>>([]);
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
+  const queueRef = useRef<Array<UploadTask>>([]);
+  const activeRef = useRef(0);
+  const invalidateTimersRef = useRef<
+    Map<string, ReturnType<typeof setTimeout>>
+  >(new Map());
+
+  const scheduleInvalidate = useCallback(
+    (bucketId: string) => {
+      const timers = invalidateTimersRef.current;
+      clearTimeout(timers.get(bucketId));
+      timers.set(
+        bucketId,
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
+          timers.delete(bucketId);
+        }, 1000),
+      );
+    },
+    [queryClient],
+  );
 
   const uploadMutation = useMutation({
     meta: { skipGlobalErrorToast: true },
@@ -43,8 +73,6 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           expiresAt,
         );
 
-        queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-
         await uploadToStorage(
           presignedUpload,
           file,
@@ -72,9 +100,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
         prev.map((u) => (u.id === uploadId ? { ...u, status: "success" } : u)),
       );
 
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-      }, 1000);
+      scheduleInvalidate(bucketId);
     },
     onError: (error: Error, { uploadId }) => {
       setUploads((prev) =>
@@ -84,6 +110,23 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
       );
     },
   });
+
+  const pump = useCallback(() => {
+    while (
+      activeRef.current < MAX_CONCURRENT_UPLOADS &&
+      queueRef.current.length > 0
+    ) {
+      const task = queueRef.current.shift()!;
+      activeRef.current += 1;
+      uploadMutation
+        .mutateAsync(task)
+        .catch(() => {})
+        .finally(() => {
+          activeRef.current -= 1;
+          pump();
+        });
+    }
+  }, [uploadMutation]);
 
   const startUpload = useCallback(
     (
@@ -107,7 +150,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           },
         ]);
 
-        uploadMutation.mutate({
+        queueRef.current.push({
           file,
           bucketId,
           folderId,
@@ -115,11 +158,15 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           expiresAt,
         });
       });
+
+      pump();
     },
-    [uploadMutation],
+    [pump],
   );
 
   const cancelUpload = useCallback((uploadId: string) => {
+    queueRef.current = queueRef.current.filter((t) => t.uploadId !== uploadId);
+
     const abortController = abortControllersRef.current.get(uploadId);
     if (abortController) {
       abortController.abort();

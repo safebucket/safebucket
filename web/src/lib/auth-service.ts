@@ -21,7 +21,13 @@ export const loginWithCredentials = async (
   credentials: ILoginForm,
 ): Promise<LoginResult> => {
   try {
-    const response = await api.post<ILoginResponse>("/auth/login", credentials);
+    const response = await api.post<ILoginResponse>(
+      "/auth/login",
+      credentials,
+      {
+        retryOnRateLimit: false,
+      },
+    );
 
     if (response.mfa_required) {
       return { success: false, mfaRequired: true };
@@ -44,6 +50,7 @@ export const loginWithLDAP = async (
     const response = await api.post<ILoginResponse>(
       `/auth/providers/${provider}/login`,
       credentials,
+      { retryOnRateLimit: false },
     );
 
     if (response.mfa_required) {
@@ -64,10 +71,14 @@ export const verifyMFALogin = async (
   deviceId?: string,
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    await api.post<ILoginResponse>("/auth/mfa/verify", {
-      code,
-      ...(deviceId && { device_id: deviceId }),
-    });
+    await api.post<ILoginResponse>(
+      "/auth/mfa/verify",
+      {
+        code,
+        ...(deviceId && { device_id: deviceId }),
+      },
+      { retryOnRateLimit: false },
+    );
 
     return { success: true };
   } catch (error) {

@@ -26,6 +26,8 @@
     "BAD_REQUEST": "La requête est invalide. Veuillez vérifier votre saisie et réessayer.",
     "NOT_FOUND": "La ressource demandée n'a pas été trouvée.",
     "INTERNAL_SERVER_ERROR": "Une erreur inattendue s'est produite. Veuillez réessayer.",
+    "RATE_LIMIT_EXCEEDED": "Trop de tentatives. Veuillez patienter et réessayer.",
+    "MFA_RATE_LIMITED": "$t(errors.RATE_LIMIT_EXCEEDED)",
     "SHARE_NOT_FOUND": "Ce lien de partage n'existe pas.",
     "SHARE_EXPIRED": "Ce lien de partage a expiré.",
     "SHARE_PASSWORD_REQUIRED": "Ce partage est protégé par un mot de passe.",
