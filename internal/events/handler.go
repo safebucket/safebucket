@@ -135,6 +135,11 @@ func handleUploadEvents(
 			continue
 		}
 
+		if file.Status != models.FileStatusUploading {
+			zap.L().Error("file is already uploaded", zap.Error(err))
+			continue
+		}
+
 		db.Model(&file).Update("status", models.FileStatusUploaded)
 
 		action := models.Activity{
