@@ -78,7 +78,7 @@ type PublicShareResponse struct {
 type ShareUploadBody struct {
 	Name     string     `json:"name"      validate:"required,filename,max=255"`
 	FolderID *uuid.UUID `json:"folder_id" validate:"omitempty,uuid"`
-	Size     int64      `json:"size"      validate:"required,gte=1"`
+	Size     int64      `json:"size"      validate:"required,gte=1,maxuploadsize"`
 }
 
 type ShareAuthBody struct {
