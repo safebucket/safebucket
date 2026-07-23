@@ -77,6 +77,7 @@ func (g GCPStorage) PresignedPostPolicy(
 				"x-goog-meta-bucket-id": metadata["bucket_id"],
 				"x-goog-meta-file-id":   metadata["file_id"],
 				"x-goog-meta-user-id":   metadata["user_id"],
+				"x-goog-meta-share-id":  metadata["share_id"],
 			},
 		},
 		Conditions: []gcs.PostPolicyV4Condition{

@@ -91,7 +91,7 @@ func (a AWSStorage) PresignedPostPolicy(
 
 	// FIXME(YLB): Workaround to sign the metadata
 	// https://github.com/aws/aws-sdk-go-v2/issues/3119
-	metaFields := []string{"bucket_id", "file_id", "user_id"}
+	metaFields := []string{"bucket_id", "file_id", "user_id", "share_id"}
 
 	var conditions []interface{}
 	for _, field := range metaFields {
