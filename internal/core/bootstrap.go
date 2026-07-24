@@ -355,7 +355,6 @@ func StartIdentityTicker(ctx context.Context, wg *sync.WaitGroup, cache c.ICache
 	})
 }
 
-// startCoverageHeartbeat makes components observable that have no singleton lock to observe.
 func startCoverageHeartbeat(ctx context.Context, wg *sync.WaitGroup, cache c.ICache, name, instanceID string) {
 	key := fmt.Sprintf(configuration.CacheAppWorkerActiveKey, name)
 	register := func() error {

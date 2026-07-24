@@ -44,7 +44,6 @@ const (
 	CacheMultipartStateKey       = "multipart:state:%s"
 )
 
-// Component names shared by the worker run path and the admin coverage reader.
 const (
 	WorkerObjectDeletion   = "object_deletion"
 	WorkerBucketEvents     = "bucket_events"

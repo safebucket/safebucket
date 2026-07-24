@@ -1,7 +1,5 @@
 package models
 
-// AdminSettingsResponse is a whitelisted, secret-free projection of the loaded configuration;
-// the raw Configuration is never serialized.
 type AdminSettingsResponse struct {
 	Platforms     *int                  `json:"platforms"`
 	App           AppSettings           `json:"app"`
@@ -30,8 +28,6 @@ type AppSettings struct {
 	TLSEnabled            bool   `json:"tls_enabled"`
 }
 
-// CoverageStatus keeps "not running" distinct from "never runs here" and "cache unreadable",
-// so an outage is not reported as a misconfiguration.
 type CoverageStatus string
 
 const (
@@ -41,7 +37,6 @@ const (
 	CoverageUnknown       CoverageStatus = "unknown"
 )
 
-// WorkerSettings reports fleet-wide coverage, not the reading process's own profile.
 type WorkerSettings struct {
 	HTTPServer       CoverageStatus `json:"http_server"`
 	ObjectDeletion   CoverageStatus `json:"object_deletion"`
@@ -106,8 +101,6 @@ type AuthSettings struct {
 	Providers []AuthProviderSettings `json:"providers"`
 }
 
-// AuthProviderSettings uses pointer booleans so an omitted flag means "not applicable to this
-// provider type" rather than false.
 type AuthProviderSettings struct {
 	Key             string   `json:"key"`
 	Name            string   `json:"name,omitempty"`
