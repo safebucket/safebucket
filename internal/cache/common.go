@@ -21,8 +21,9 @@ func newRueidisCache(
 	errorContext string,
 ) (*RueidisCache, error) {
 	clientOption := rueidis.ClientOption{
-		InitAddress: hosts,
-		Password:    password,
+		InitAddress:  hosts,
+		Password:     password,
+		DisableCache: true,
 	}
 
 	if tlsEnabled {
