@@ -152,8 +152,39 @@ func sessionKey(userID string) string {
 	return fmt.Sprintf(configuration.CacheUserSessionsKey, userID)
 }
 
-func sessionCutoff(maxAge time.Duration) string {
+func scoreCutoff(maxAge time.Duration) string {
 	return strconv.FormatFloat(float64(time.Now().Add(-maxAge).Unix()), 'f', 0, 64)
+}
+
+func IsWorkerCovered(c ICache, name string) (bool, error) {
+	lockKey := fmt.Sprintf(configuration.CacheAppWorkerLockKey, name)
+	switch _, err := c.Get(lockKey); {
+	case err == nil:
+		return true, nil
+	case !errors.Is(err, ErrKeyNotFound):
+		return false, err
+	}
+
+	activeKey := fmt.Sprintf(configuration.CacheAppWorkerActiveKey, name)
+	cutoff := scoreCutoff(time.Duration(configuration.CacheAppWorkerActiveLifetime) * time.Second)
+
+	entries, err := c.ZRangeByScoreWithScores(activeKey, cutoff, "+inf")
+	if err != nil {
+		return false, err
+	}
+
+	return len(entries) > 0, nil
+}
+
+func CountActivePlatforms(c ICache) (int, error) {
+	cutoff := scoreCutoff(time.Duration(configuration.CacheMaxAppIdentityLifetime) * time.Second)
+
+	entries, err := c.ZRangeByScoreWithScores(configuration.CacheAppIdentityKey, cutoff, "+inf")
+	if err != nil {
+		return 0, err
+	}
+
+	return len(entries), nil
 }
 
 func CreateSession(c ICache, userID string, sid string) error {
@@ -174,7 +205,7 @@ func IsSessionActive(c ICache, userID string, sid string, maxAge time.Duration) 
 
 func ListActiveSessions(c ICache, userID string, maxAge time.Duration) ([]ActiveSession, error) {
 	key := sessionKey(userID)
-	cutoff := sessionCutoff(maxAge)
+	cutoff := scoreCutoff(maxAge)
 
 	_ = c.ZRemRangeByScore(key, "-inf", cutoff)
 
@@ -199,7 +230,7 @@ func RevokeSession(c ICache, userID string, sid string) error {
 
 func RevokeOtherSessions(c ICache, userID string, currentSID string, maxAge time.Duration) error {
 	key := sessionKey(userID)
-	cutoff := sessionCutoff(maxAge)
+	cutoff := scoreCutoff(maxAge)
 
 	entries, err := c.ZRangeByScoreWithScores(key, cutoff, "+inf")
 	if err != nil {

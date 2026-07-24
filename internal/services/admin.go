@@ -1,9 +1,6 @@
 package services
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
@@ -116,11 +113,18 @@ func (s AdminService) GetActivity(
 }
 
 func (s AdminService) GetSettings(
-	_ *zap.Logger,
+	logger *zap.Logger,
 	_ models.UserClaims,
 	_ uuid.UUIDs,
 ) (models.AdminSettingsResponse, error) {
-	return models.BuildAdminSettings(s.Config, s.countPlatforms(), s.workerCoverage()), nil
+	var platforms *int
+	if count, err := cache.CountActivePlatforms(s.Cache); err != nil {
+		logger.Error("Failed to count active platforms", zap.Error(err))
+	} else {
+		platforms = &count
+	}
+
+	return buildAdminSettings(s.Config, platforms, s.workerCoverage(logger)), nil
 }
 
 func (s AdminService) GetBucketList(
@@ -172,58 +176,33 @@ func (s AdminService) GetBucketList(
 	return result
 }
 
-// workerCoverage resolves each component's fleet-wide coverage. With an in-memory cache the
-// reader and the workers must be the same process for this to be meaningful.
-func (s AdminService) workerCoverage() models.WorkerCoverage {
-	return models.WorkerCoverage{
-		HTTPServer:       s.workerCovered(configuration.CoverageHTTPServer),
-		ObjectDeletion:   s.workerCovered(configuration.WorkerObjectDeletion),
-		BucketEvents:     s.workerCovered(configuration.WorkerBucketEvents),
-		TrashCleanup:     s.workerCovered(configuration.WorkerTrashCleanup),
-		GarbageCollector: s.workerCovered(configuration.WorkerGarbageCollector),
+func (s AdminService) workerCoverage(logger *zap.Logger) models.WorkerSettings {
+	_, deletionQueued := s.Config.Events.Queues[configuration.EventsObjectDeletion]
+	_, bucketQueued := s.Config.Events.Queues[configuration.EventsBucketEvents]
+	confirmsUploads := configuration.RequiresUploadConfirmation(s.Config.Storage.Type, s.Config.Events.Type)
+
+	return models.WorkerSettings{
+		HTTPServer:       s.coverage(logger, configuration.CoverageHTTPServer, true),
+		ObjectDeletion:   s.coverage(logger, configuration.WorkerObjectDeletion, deletionQueued),
+		BucketEvents:     s.coverage(logger, configuration.WorkerBucketEvents, bucketQueued),
+		TrashCleanup:     s.coverage(logger, configuration.WorkerTrashCleanup, confirmsUploads),
+		GarbageCollector: s.coverage(logger, configuration.WorkerGarbageCollector, true),
 	}
 }
 
-// workerCovered reports whether a worker is live somewhere in the fleet. Singleton workers
-// hold app:worker:lock:<name> while running; "all"-mode workers publish a heartbeat into the
-// app:worker:active:<name> set. Either marker means covered.
-func (s AdminService) workerCovered(name string) bool {
-	lockKey := fmt.Sprintf(configuration.CacheAppWorkerLockKey, name)
-	if _, err := s.Cache.Get(lockKey); err == nil {
-		return true
+func (s AdminService) coverage(logger *zap.Logger, name string, applicable bool) models.CoverageStatus {
+	if !applicable {
+		return models.CoverageNotApplicable
 	}
 
-	activeKey := fmt.Sprintf(configuration.CacheAppWorkerActiveKey, name)
-	cutoff := float64(time.Now().Unix()) - float64(configuration.CacheAppWorkerActiveLifetime)
-
-	entries, err := s.Cache.ZRangeByScoreWithScores(
-		activeKey,
-		fmt.Sprintf("%f", cutoff),
-		"+inf",
-	)
+	covered, err := cache.IsWorkerCovered(s.Cache, name)
 	if err != nil {
-		zap.L().Error("Failed to check worker coverage", zap.String("worker", name), zap.Error(err))
-		return false
+		logger.Error("Failed to check worker coverage", zap.String("worker", name), zap.Error(err))
+		return models.CoverageUnknown
+	}
+	if covered {
+		return models.CoverageCovered
 	}
 
-	return len(entries) > 0
-}
-
-// countPlatforms returns the number of app instances that have registered a recent
-// identity heartbeat in the cache (see StartIdentityTicker). Stale entries are
-// excluded by only counting members with a score newer than the identity lifetime.
-func (s AdminService) countPlatforms() int {
-	cutoff := float64(time.Now().Unix()) - float64(configuration.CacheMaxAppIdentityLifetime)
-
-	entries, err := s.Cache.ZRangeByScoreWithScores(
-		configuration.CacheAppIdentityKey,
-		fmt.Sprintf("%f", cutoff),
-		"+inf",
-	)
-	if err != nil {
-		zap.L().Error("Failed to count active platforms", zap.Error(err))
-		return 0
-	}
-
-	return len(entries)
+	return models.CoverageNotCovered
 }

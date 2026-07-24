@@ -150,7 +150,7 @@ func StartWorkers(
 		zap.L().Info("Started notifications worker")
 	}
 
-	if RequiresUploadConfirmation(config.Storage.Type, config.Events.Type) {
+	if configuration.RequiresUploadConfirmation(config.Storage.Type, config.Events.Type) {
 		startWorker(ctx, handle.wg, profile.Workers.TrashCleanup, configuration.WorkerTrashCleanup, cache, appIdentity,
 			func(workerCtx context.Context) {
 				worker := &workers.TrashCleanupWorker{
@@ -355,9 +355,7 @@ func StartIdentityTicker(ctx context.Context, wg *sync.WaitGroup, cache c.ICache
 	})
 }
 
-// startCoverageHeartbeat registers this instance in a per-component active set so the admin
-// coverage reader can observe "all"-mode workers and the HTTP server; singleton workers are
-// already observable via their lock.
+// startCoverageHeartbeat makes components observable that have no singleton lock to observe.
 func startCoverageHeartbeat(ctx context.Context, wg *sync.WaitGroup, cache c.ICache, name, instanceID string) {
 	key := fmt.Sprintf(configuration.CacheAppWorkerActiveKey, name)
 	register := func() error {
@@ -534,7 +532,7 @@ func StartHTTPServer(
 			webFS,
 			config.App.APIURL,
 			config.Storage.GetExternalURL(),
-			RequiresUploadConfirmation(config.Storage.Type, config.Events.Type),
+			configuration.RequiresUploadConfirmation(config.Storage.Type, config.Events.Type),
 		)
 		if err != nil {
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))

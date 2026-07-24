@@ -1,18 +1,18 @@
-package models
+package services
 
 import (
 	"encoding/json"
 	"testing"
 
+	"github.com/safebucket/safebucket/internal/models"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// fullConfig returns a Configuration populated across every section with distinctive
-// secret sentinels, so tests can assert those secrets never reach the response.
-func fullConfig() Configuration {
-	return Configuration{
-		App: AppConfiguration{
+func fullConfig() models.Configuration {
+	return models.Configuration{
+		App: models.AppConfiguration{
 			Profile:                          "default",
 			AdminEmail:                       "admin@sentinel.io",
 			AdminPassword:                    "SECRET-admin-pass",
@@ -25,7 +25,7 @@ func fullConfig() Configuration {
 			MFATokenExpiry:                   5,
 			LogLevel:                         "info",
 			Port:                             8080,
-			StaticFiles:                      StaticConfiguration{Enabled: true},
+			StaticFiles:                      models.StaticConfiguration{Enabled: true},
 			TrustedProxies:                   []string{"10.0.0.0/8"},
 			WebURL:                           "https://app.example.com",
 			TrashRetentionDays:               30,
@@ -37,9 +37,9 @@ func fullConfig() Configuration {
 			CookieSecureForce:                true,
 			AllowRedirectDownload:            true,
 		},
-		Database: DatabaseConfiguration{
+		Database: models.DatabaseConfiguration{
 			Type: "postgres",
-			Postgres: &PostgresDatabaseConfig{
+			Postgres: &models.PostgresDatabaseConfig{
 				Host:     "db-host",
 				Port:     5432,
 				User:     "SECRET-db-user",
@@ -48,13 +48,13 @@ func fullConfig() Configuration {
 				SSLMode:  "disable",
 			},
 		},
-		Auth: AuthConfiguration{
-			Providers: map[string]ProviderConfiguration{
-				"local": {Type: LocalProviderType},
+		Auth: models.AuthConfiguration{
+			Providers: map[string]models.ProviderConfiguration{
+				"local": {Type: models.LocalProviderType},
 				"okta": {
 					Name: "Okta",
-					Type: OIDCProviderType,
-					OIDC: OIDCConfiguration{
+					Type: models.OIDCProviderType,
+					OIDC: models.OIDCConfiguration{
 						ClientID:     "SECRET-oidc-client-id",
 						ClientSecret: "SECRET-oidc-secret",
 						Issuer:       "https://okta.example.com",
@@ -64,31 +64,31 @@ func fullConfig() Configuration {
 				},
 				"corp": {
 					Name: "Corp LDAP",
-					Type: LDAPProviderType,
-					LDAP: &LDAPConfiguration{
+					Type: models.LDAPProviderType,
+					LDAP: &models.LDAPConfiguration{
 						URL:          "ldaps://ldap.example.com",
 						BindDN:       "SECRET-bind-dn",
 						BindPassword: "SECRET-bind-pass",
 						BaseDN:       "dc=example,dc=com",
 						UserFilter:   "(uid=%s)",
-						AttributeMap: LDAPAttributeMap{Email: "mail"},
+						AttributeMap: models.LDAPAttributeMap{Email: "mail"},
 						StartTLS:     true,
 					},
 				},
 			},
 		},
-		Cache: CacheConfiguration{
+		Cache: models.CacheConfiguration{
 			Type: "redis",
-			Redis: &RedisCacheConfiguration{
+			Redis: &models.RedisCacheConfiguration{
 				Hosts:         []string{"redis-host:6379"},
 				Password:      "SECRET-redis-pass",
 				TLSEnabled:    true,
 				TLSServerName: "redis.tls.example.com",
 			},
 		},
-		Storage: StorageConfiguration{
+		Storage: models.StorageConfiguration{
 			Type: "s3",
-			S3: &S3Configuration{
+			S3: &models.S3Configuration{
 				BucketName:     "safebucket-data",
 				Endpoint:       "s3.example.com",
 				AccessKey:      "SECRET-access-key",
@@ -98,40 +98,40 @@ func fullConfig() Configuration {
 				UseTLS:         true,
 			},
 		},
-		Events: EventsConfiguration{
+		Events: models.EventsConfiguration{
 			Type:      "jetstream",
-			Queues:    map[string]QueueConfig{"notifications": {Name: "sb-notifications"}},
-			Jetstream: &JetStreamEventsConfig{Host: "nats-host", Port: "4222"},
+			Queues:    map[string]models.QueueConfig{"notifications": {Name: "sb-notifications"}},
+			Jetstream: &models.JetStreamEventsConfig{Host: "nats-host", Port: "4222"},
 		},
-		Notifier: NotifierConfiguration{
+		Notifier: models.NotifierConfiguration{
 			Type: "smtp",
-			SMTP: &MailerConfiguration{
+			SMTP: &models.MailerConfiguration{
 				Host:          "smtp-host",
 				Port:          587,
 				Username:      "SECRET-smtp-user",
 				Password:      "SECRET-smtp-pass",
 				Sender:        "no-reply@example.com",
-				TLSMode:       TLSModeStartTLS,
+				TLSMode:       models.TLSModeStartTLS,
 				SkipVerifyTLS: false,
 			},
 		},
-		Activity: ActivityConfiguration{
+		Activity: models.ActivityConfiguration{
 			Type: "loki",
-			Loki: &LokiConfiguration{Endpoint: "http://loki.example.com"},
+			Loki: &models.LokiConfiguration{Endpoint: "http://loki.example.com"},
 		},
-		Profiling: ProfilingConfiguration{
+		Profiling: models.ProfilingConfiguration{
 			Enabled: true,
 			Type:    "pyroscope",
-			Pyroscope: &PyroscopeConfiguration{
+			Pyroscope: &models.PyroscopeConfiguration{
 				ServerAddress:   "http://pyroscope.example.com",
 				ApplicationName: "safebucket",
 				UploadRate:      10,
 			},
 		},
-		Tracing: TracingConfiguration{
+		Tracing: models.TracingConfiguration{
 			Enabled: true,
 			Type:    "tempo",
-			Tempo: &TempoConfiguration{
+			Tempo: &models.TempoConfiguration{
 				Endpoint:     "http://tempo.example.com",
 				ServiceName:  "safebucket",
 				SamplingRate: 0.5,
@@ -140,19 +140,18 @@ func fullConfig() Configuration {
 	}
 }
 
-// coverageFixture mixes covered and uncovered components so tests assert both True and False.
-func coverageFixture() WorkerCoverage {
-	return WorkerCoverage{
-		HTTPServer:       true,
-		ObjectDeletion:   true,
-		BucketEvents:     true,
-		TrashCleanup:     true,
-		GarbageCollector: false,
+func coverageFixture() models.WorkerSettings {
+	return models.WorkerSettings{
+		HTTPServer:       models.CoverageCovered,
+		ObjectDeletion:   models.CoverageCovered,
+		BucketEvents:     models.CoverageUnknown,
+		TrashCleanup:     models.CoverageNotApplicable,
+		GarbageCollector: models.CoverageNotCovered,
 	}
 }
 
 func TestBuildAdminSettingsRedactsSecrets(t *testing.T) {
-	settings := BuildAdminSettings(fullConfig(), 3, coverageFixture())
+	settings := buildAdminSettings(fullConfig(), ptrOf(3), coverageFixture())
 
 	raw, err := json.Marshal(settings)
 	require.NoError(t, err)
@@ -181,16 +180,18 @@ func TestBuildAdminSettingsRedactsSecrets(t *testing.T) {
 }
 
 func TestBuildAdminSettingsExposesNonSecrets(t *testing.T) {
-	settings := BuildAdminSettings(fullConfig(), 3, coverageFixture())
+	settings := buildAdminSettings(fullConfig(), ptrOf(3), coverageFixture())
 
-	assert.Equal(t, 3, settings.Platforms)
+	require.NotNil(t, settings.Platforms)
+	assert.Equal(t, 3, *settings.Platforms)
 	assert.Equal(t, "default", settings.App.Profile)
 	assert.True(t, settings.App.TLSEnabled)
 	assert.True(t, settings.App.StaticFilesEnabled)
 
-	assert.True(t, settings.Workers.ObjectDeletion)
-	assert.False(t, settings.Workers.GarbageCollector)
-	assert.True(t, settings.Workers.HTTPServer)
+	assert.Equal(t, models.CoverageCovered, settings.Workers.ObjectDeletion)
+	assert.Equal(t, models.CoverageNotCovered, settings.Workers.GarbageCollector)
+	assert.Equal(t, models.CoverageNotApplicable, settings.Workers.TrashCleanup)
+	assert.Equal(t, models.CoverageUnknown, settings.Workers.BucketEvents)
 
 	assert.Equal(t, "postgres", settings.Database.Type)
 	assert.Equal(t, "db-host", settings.Database.Host)
@@ -224,23 +225,23 @@ func TestBuildAdminSettingsExposesNonSecrets(t *testing.T) {
 }
 
 func TestBuildAdminSettingsAuthProviders(t *testing.T) {
-	settings := BuildAdminSettings(fullConfig(), 3, coverageFixture())
+	settings := buildAdminSettings(fullConfig(), ptrOf(3), coverageFixture())
 
 	require.Len(t, settings.Auth.Providers, 3)
 
-	byKey := map[string]AuthProviderSettings{}
+	byKey := map[string]models.AuthProviderSettings{}
 	for _, provider := range settings.Auth.Providers {
 		byKey[provider.Key] = provider
 	}
 
 	okta := byKey["okta"]
-	assert.Equal(t, string(OIDCProviderType), okta.Type)
+	assert.Equal(t, string(models.OIDCProviderType), okta.Type)
 	assert.Equal(t, "https://okta.example.com", okta.Issuer)
 	assert.True(t, okta.MFARequired)
 	assert.Empty(t, okta.URL)
 
 	corp := byKey["corp"]
-	assert.Equal(t, string(LDAPProviderType), corp.Type)
+	assert.Equal(t, string(models.LDAPProviderType), corp.Type)
 	assert.Equal(t, "ldaps://ldap.example.com", corp.URL)
 	assert.Equal(t, "dc=example,dc=com", corp.BaseDN)
 	require.NotNil(t, corp.StartTLS)
@@ -248,5 +249,5 @@ func TestBuildAdminSettingsAuthProviders(t *testing.T) {
 	assert.Empty(t, corp.Issuer)
 
 	local := byKey["local"]
-	assert.Equal(t, string(LocalProviderType), local.Type)
+	assert.Equal(t, string(models.LocalProviderType), local.Type)
 }

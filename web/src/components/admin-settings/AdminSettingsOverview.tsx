@@ -58,7 +58,11 @@ export function AdminSettingsOverview() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <OverviewCard
                 title={t("admin.settings.fields.platforms")}
-                value={String(settings.platforms)}
+                value={
+                  settings.platforms === null
+                    ? t("admin.settings.coverage.unknown")
+                    : String(settings.platforms)
+                }
                 icon={Server}
               />
               <OverviewCard
@@ -116,19 +120,19 @@ export function AdminSettingsOverview() {
               icon={Cpu}
             >
               <SettingRow label={t("admin.settings.fields.http_server")}>
-                <CoverageValue covered={settings.workers.http_server} />
+                <CoverageValue status={settings.workers.http_server} />
               </SettingRow>
               <SettingRow label={t("admin.settings.fields.object_deletion")}>
-                <CoverageValue covered={settings.workers.object_deletion} />
+                <CoverageValue status={settings.workers.object_deletion} />
               </SettingRow>
               <SettingRow label={t("admin.settings.fields.bucket_events")}>
-                <CoverageValue covered={settings.workers.bucket_events} />
+                <CoverageValue status={settings.workers.bucket_events} />
               </SettingRow>
               <SettingRow label={t("admin.settings.fields.trash_cleanup")}>
-                <CoverageValue covered={settings.workers.trash_cleanup} />
+                <CoverageValue status={settings.workers.trash_cleanup} />
               </SettingRow>
               <SettingRow label={t("admin.settings.fields.garbage_collector")}>
-                <CoverageValue covered={settings.workers.garbage_collector} />
+                <CoverageValue status={settings.workers.garbage_collector} />
               </SettingRow>
             </SettingsSection>
 

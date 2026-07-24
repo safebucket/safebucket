@@ -114,24 +114,28 @@ export function AdminSettingsDetails() {
                 icon={Cpu}
               >
                 <SettingRow label={t("admin.settings.fields.platforms")}>
-                  <TextValue value={settings.platforms} />
+                  <TextValue
+                    value={
+                      settings.platforms ?? t("admin.settings.coverage.unknown")
+                    }
+                  />
                 </SettingRow>
                 <SettingRow label={t("admin.settings.fields.http_server")}>
-                  <CoverageValue covered={settings.workers.http_server} />
+                  <CoverageValue status={settings.workers.http_server} />
                 </SettingRow>
                 <SettingRow label={t("admin.settings.fields.object_deletion")}>
-                  <CoverageValue covered={settings.workers.object_deletion} />
+                  <CoverageValue status={settings.workers.object_deletion} />
                 </SettingRow>
                 <SettingRow label={t("admin.settings.fields.bucket_events")}>
-                  <CoverageValue covered={settings.workers.bucket_events} />
+                  <CoverageValue status={settings.workers.bucket_events} />
                 </SettingRow>
                 <SettingRow label={t("admin.settings.fields.trash_cleanup")}>
-                  <CoverageValue covered={settings.workers.trash_cleanup} />
+                  <CoverageValue status={settings.workers.trash_cleanup} />
                 </SettingRow>
                 <SettingRow
                   label={t("admin.settings.fields.garbage_collector")}
                 >
-                  <CoverageValue covered={settings.workers.garbage_collector} />
+                  <CoverageValue status={settings.workers.garbage_collector} />
                 </SettingRow>
               </SettingsSection>
 
@@ -499,10 +503,7 @@ export function AdminSettingsDetails() {
                 <SettingRow
                   label={t("admin.settings.fields.cookie_secure_force")}
                 >
-                  <BoolValue
-                    value={settings.security.cookie_secure_force}
-                    insecureWhen={false}
-                  />
+                  <BoolValue value={settings.security.cookie_secure_force} />
                 </SettingRow>
               </SettingsSection>
             </div>

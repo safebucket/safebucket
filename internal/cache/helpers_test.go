@@ -199,7 +199,7 @@ func TestSessionCleanup_RemovesExpiredAndRevoked(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, keys, 1)
 
-	cutoff := sessionCutoff(testMaxAge)
+	cutoff := scoreCutoff(testMaxAge)
 	for _, key := range keys {
 		require.NoError(t, mc.ZRemRangeByScore(key, "-inf", cutoff))
 	}
@@ -218,7 +218,7 @@ func TestSessionCleanup_DeletesEmptyKeys(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, keys, 1)
 
-	cutoff := sessionCutoff(testMaxAge)
+	cutoff := scoreCutoff(testMaxAge)
 	for _, key := range keys {
 		require.NoError(t, mc.ZRemRangeByScore(key, "-inf", cutoff))
 

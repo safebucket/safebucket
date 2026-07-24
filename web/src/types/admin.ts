@@ -48,12 +48,18 @@ export interface AdminAppSettings {
   tls_enabled: boolean;
 }
 
+export type CoverageStatus =
+  | "covered"
+  | "not_covered"
+  | "not_applicable"
+  | "unknown";
+
 export interface AdminWorkerSettings {
-  http_server: boolean;
-  object_deletion: boolean;
-  bucket_events: boolean;
-  trash_cleanup: boolean;
-  garbage_collector: boolean;
+  http_server: CoverageStatus;
+  object_deletion: CoverageStatus;
+  bucket_events: CoverageStatus;
+  trash_cleanup: CoverageStatus;
+  garbage_collector: CoverageStatus;
 }
 
 export interface AdminDatabaseSettings {
@@ -161,7 +167,7 @@ export interface AdminSecuritySettings {
 }
 
 export interface AdminSettingsResponse {
-  platforms: number;
+  platforms: number | null;
   app: AdminAppSettings;
   workers: AdminWorkerSettings;
   database: AdminDatabaseSettings;

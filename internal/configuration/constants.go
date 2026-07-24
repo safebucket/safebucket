@@ -114,6 +114,10 @@ const (
 	ProviderAzure     = "azure"
 )
 
+func RequiresUploadConfirmation(storageProvider, eventsProvider string) bool {
+	return storageProvider == ProviderS3 || eventsProvider == ProviderMemory
+}
+
 const (
 	CacheNotifyBatchCountKey = "notify:batch:count:%s"
 	CacheNotifyBatchMetaKey  = "notify:batch:meta:%s"

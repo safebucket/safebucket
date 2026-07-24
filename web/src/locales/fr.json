@@ -856,7 +856,7 @@
       "sections": {
         "app": "Application",
         "workers": "Workers",
-        "workers_description": "Workers d'arrière-plan activés pour le profil actuel.",
+        "workers_description": "Indique si chaque composant est actif quelque part dans la flotte.",
         "database": "Base de données",
         "cache": "Cache",
         "storage": "Stockage",
@@ -939,9 +939,13 @@
         "duration_days": "{{value}} j",
         "duration_hours": "{{value}} h",
         "duration_minutes": "{{value}} min",
-        "per_minute": "{{value}} / min",
-        "enabled": "Activé",
-        "disabled": "Désactivé"
+        "per_minute": "{{value}} / min"
+      },
+      "coverage": {
+        "covered": "Actif",
+        "not_covered": "Inactif",
+        "not_applicable": "Non applicable",
+        "unknown": "Inconnu"
       },
       "provider_types": {
         "local": "Local",

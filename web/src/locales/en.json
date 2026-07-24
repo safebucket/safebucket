@@ -851,7 +851,7 @@
       "sections": {
         "app": "Application",
         "workers": "Workers",
-        "workers_description": "Background workers enabled for the current profile.",
+        "workers_description": "Whether each component is running somewhere in the fleet.",
         "database": "Database",
         "cache": "Cache",
         "storage": "Storage",
@@ -934,9 +934,13 @@
         "duration_days": "{{value}} d",
         "duration_hours": "{{value}} h",
         "duration_minutes": "{{value}} min",
-        "per_minute": "{{value}} / min",
-        "enabled": "Enabled",
-        "disabled": "Disabled"
+        "per_minute": "{{value}} / min"
+      },
+      "coverage": {
+        "covered": "Running",
+        "not_covered": "Not running",
+        "not_applicable": "Not applicable",
+        "unknown": "Unknown"
       },
       "provider_types": {
         "local": "Local",
