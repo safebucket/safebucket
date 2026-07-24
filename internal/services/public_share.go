@@ -175,12 +175,12 @@ func (s PublicShareService) DownloadShareFile(
 	share models.Share,
 	ids uuid.UUIDs,
 	query models.FileDownloadQuery,
-) (models.FileTransferResponse, error) {
+) (models.FileDownloadResponse, error) {
 	fileID := ids[1]
 
 	file, err := h.GetShareFile(s.DB, share, fileID)
 	if err != nil {
-		return models.FileTransferResponse{}, err
+		return models.FileDownloadResponse{}, err
 	}
 
 	var inlineContentType string
@@ -197,7 +197,7 @@ func (s PublicShareService) DownloadShareFile(
 	)
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
-		return models.FileTransferResponse{}, apierrors.New(
+		return models.FileDownloadResponse{}, apierrors.New(
 			http.StatusInternalServerError,
 			apierrors.CodeInternalServerError,
 		)
@@ -215,10 +215,10 @@ func (s PublicShareService) DownloadShareFile(
 		}),
 	}); activityErr != nil {
 		logger.Error("Failed to log share download activity", zap.Error(activityErr))
-		return models.FileTransferResponse{}, activityErr
+		return models.FileDownloadResponse{}, activityErr
 	}
 
-	return models.FileTransferResponse{
+	return models.FileDownloadResponse{
 		ID:  file.ID.String(),
 		URL: url,
 	}, nil
@@ -228,15 +228,15 @@ func (s PublicShareService) DownloadSingleShareFile(
 	logger *zap.Logger,
 	share models.Share,
 	_ uuid.UUIDs,
-) (models.FileTransferResponse, error) {
+) (models.FileDownloadResponse, error) {
 	if !s.AllowRedirectDownload {
-		return models.FileTransferResponse{}, apierrors.New(
+		return models.FileDownloadResponse{}, apierrors.New(
 			http.StatusForbidden, apierrors.CodeRedirectDownloadDisabled,
 		)
 	}
 
 	if share.Type != models.ShareTypeFiles {
-		return models.FileTransferResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeShareNotSingleFile)
+		return models.FileDownloadResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeShareNotSingleFile)
 	}
 
 	now := time.Now()
@@ -249,7 +249,7 @@ func (s PublicShareService) DownloadSingleShareFile(
 		Find(&files)
 
 	if len(files) != 1 {
-		return models.FileTransferResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeShareNotSingleFile)
+		return models.FileDownloadResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeShareNotSingleFile)
 	}
 
 	ids := uuid.UUIDs{share.ID, files[0].ID}
@@ -261,9 +261,9 @@ func (s PublicShareService) DownloadShareFileRedirect(
 	logger *zap.Logger,
 	share models.Share,
 	ids uuid.UUIDs,
-) (models.FileTransferResponse, error) {
+) (models.FileDownloadResponse, error) {
 	if !s.AllowRedirectDownload {
-		return models.FileTransferResponse{}, apierrors.New(
+		return models.FileDownloadResponse{}, apierrors.New(
 			http.StatusForbidden, apierrors.CodeRedirectDownloadDisabled,
 		)
 	}
@@ -330,17 +330,18 @@ func (s PublicShareService) UploadShareFile(
 		Size:      int(body.Size),
 	}
 
-	var url string
-	var formData map[string]string
+	var response models.FileTransferResponse
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		if txErr := tx.Create(file).Error; txErr != nil {
 			return txErr
 		}
 
 		var presignErr error
-		url, formData, presignErr = s.Storage.PresignedPostPolicy(
+		response, presignErr = presignUpload(
+			logger,
+			s.Storage,
 			path.Join("buckets", share.BucketID.String(), file.ID.String()),
-			int(body.Size),
+			body.Size,
 			map[string]string{
 				"bucket_id": share.BucketID.String(),
 				"file_id":   file.ID.String(),
@@ -348,7 +349,6 @@ func (s PublicShareService) UploadShareFile(
 			},
 		)
 		if presignErr != nil {
-			logger.Error("Generate presigned URL failed", zap.Error(presignErr))
 			return presignErr
 		}
 
@@ -383,11 +383,9 @@ func (s PublicShareService) UploadShareFile(
 		return models.FileTransferResponse{}, err
 	}
 
-	return models.FileTransferResponse{
-		ID:   file.ID.String(),
-		URL:  url,
-		Body: formData,
-	}, nil
+	response.ID = file.ID.String()
+
+	return response, nil
 }
 
 func (s PublicShareService) ConfirmShareUpload(

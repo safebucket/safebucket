@@ -111,6 +111,10 @@ func (s S3Storage) GetBucketName() string {
 	return s.BucketName
 }
 
+func (s S3Storage) UploadMethod() string {
+	return c.UploadMethodPost
+}
+
 func (s S3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
 	var reqParams url.Values
 	if opts.InlineContentType != "" {

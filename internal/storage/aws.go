@@ -47,6 +47,10 @@ func NewAWSStorage(bucketName string) IStorage {
 	return AWSStorage{BucketName: bucketName, storage: client, presigner: presigner}
 }
 
+func (a AWSStorage) UploadMethod() string {
+	return c.UploadMethodPost
+}
+
 func (a AWSStorage) GetBucketName() string {
 	return a.BucketName
 }

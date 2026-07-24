@@ -44,7 +44,7 @@ func TestQuickShareDownload(t *testing.T) {
 			})
 
 			t.Run("happy path returns a working presigned URL", func(t *testing.T) {
-				var transfer models.FileTransferResponse
+				var transfer models.FileDownloadResponse
 				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s/files/%s/url", bucketShare.ID, fileID),
 					"", nil, &transfer)
@@ -90,7 +90,7 @@ func TestQuickShareDownload(t *testing.T) {
 					Type: models.ShareTypeBucket,
 				})
 
-				var transfer models.FileTransferResponse
+				var transfer models.FileDownloadResponse
 				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s/files/%s/url", activityShare.ID, fileID),
 					"", nil, &transfer)

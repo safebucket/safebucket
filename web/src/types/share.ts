@@ -62,10 +62,9 @@ export interface IShareUploadBody {
   folder_id?: string;
 }
 
-export interface IFileTransferResponse {
+export interface IShareDownloadResponse {
   id: string;
   url: string;
-  body?: Record<string, string>;
 }
 
 export interface IShareDownloadArgs {

@@ -10,12 +10,9 @@ export interface StagedFile {
   extension: string;
 }
 
-export interface ICreateFile {
-  id: string;
-  path: string;
-  url: string;
-  body: Record<string, string>;
-}
+export type IUploadPresign =
+  | { id: string; method: "post"; url: string; body: Record<string, string> }
+  | { id: string; method: "put"; url: string; headers: Record<string, string> };
 
 export interface IUploadContext {
   uploads: Array<IUpload>;

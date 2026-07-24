@@ -1,10 +1,11 @@
 import { queryOptions, useMutation } from "@tanstack/react-query";
 import type {
-  IFileTransferResponse,
   IPublicShareResponse,
   IShareDownloadArgs,
+  IShareDownloadResponse,
   IShareUploadBody,
 } from "@/types/share";
+import type { IUploadPresign } from "@/components/upload/helpers/types";
 import { shareFetch } from "@/lib/share-api";
 
 export const shareContentQueryOptions = (shareId: string) =>
@@ -34,7 +35,7 @@ export const useShareAuthMutation = () =>
 export const useShareDownloadMutation = (shareId: string) =>
   useMutation({
     mutationFn: ({ fileId, context }: IShareDownloadArgs) =>
-      shareFetch<IFileTransferResponse>(`/${shareId}/files/${fileId}/url`, {
+      shareFetch<IShareDownloadResponse>(`/${shareId}/files/${fileId}/url`, {
         params: { context },
       }),
   });
@@ -43,7 +44,7 @@ export const useShareUploadMutation = (shareId: string) =>
   useMutation({
     meta: { skipGlobalErrorToast: true },
     mutationFn: (body: IShareUploadBody) =>
-      shareFetch<IFileTransferResponse>(`/${shareId}/files`, {
+      shareFetch<IUploadPresign>(`/${shareId}/files`, {
         method: "POST",
         body,
       }),

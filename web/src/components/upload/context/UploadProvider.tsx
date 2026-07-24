@@ -6,8 +6,8 @@ import { generateRandomString } from "@/lib/utils";
 import {
   api_confirmUpload,
   api_createFile,
-  uploadToStorage,
 } from "@/components/upload/helpers/api";
+import { uploadToStorage } from "@/components/upload/helpers/upload-engine";
 import { configQueryOptions } from "@/queries/config";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
 

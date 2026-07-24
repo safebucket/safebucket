@@ -54,9 +54,16 @@ type FileTransferBody struct {
 }
 
 type FileTransferResponse struct {
-	ID   string            `json:"id"`
-	URL  string            `json:"url"`
-	Body map[string]string `json:"body"`
+	ID      string            `json:"id"`
+	Method  string            `json:"method"`
+	URL     string            `json:"url,omitempty"`
+	Body    map[string]string `json:"body,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
+}
+
+type FileDownloadResponse struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
 }
 
 type FileDownloadQuery struct {

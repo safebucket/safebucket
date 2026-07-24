@@ -98,40 +98,35 @@ func (s BucketFileService) UploadFile(
 		ExpiresAt: body.ExpiresAt,
 	}
 
-	var url string
-	var formData map[string]string
-	var err error
-	err = s.DB.Transaction(func(tx *gorm.DB) error {
+	var response models.FileTransferResponse
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		res := tx.Create(file)
 		if res.Error != nil {
 			return res.Error
 		}
 
-		url, formData, err = s.Storage.PresignedPostPolicy(
+		var presignErr error
+		response, presignErr = presignUpload(
+			logger,
+			s.Storage,
 			path.Join("buckets", bucket.ID.String(), file.ID.String()),
-			body.Size,
+			int64(body.Size),
 			map[string]string{
 				"bucket_id": bucket.ID.String(),
 				"file_id":   file.ID.String(),
 				"user_id":   user.UserID.String(),
 			},
 		)
-		if err != nil {
-			logger.Error("Generate presigned URL failed", zap.Error(err))
-			return err
-		}
 
-		return nil
+		return presignErr
 	})
 	if err != nil {
 		return models.FileTransferResponse{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
 	}
 
-	return models.FileTransferResponse{
-		ID:   file.ID.String(),
-		URL:  url,
-		Body: formData,
-	}, nil
+	response.ID = file.ID.String()
+
+	return response, nil
 }
 
 func (s BucketFileService) PatchFile(
@@ -250,23 +245,23 @@ func (s BucketFileService) DownloadFile(
 	user models.UserClaims,
 	ids uuid.UUIDs,
 	query models.FileDownloadQuery,
-) (models.FileTransferResponse, error) {
+) (models.FileDownloadResponse, error) {
 	bucketID, fileID := ids[0], ids[1]
 
 	file, err := sql.GetFileByID(s.DB, bucketID, fileID)
 	if err != nil {
-		return models.FileTransferResponse{}, err
+		return models.FileDownloadResponse{}, err
 	}
 
 	if file.DeletedAt.Valid {
-		return models.FileTransferResponse{}, apierrors.New(
+		return models.FileDownloadResponse{}, apierrors.New(
 			http.StatusForbidden,
 			apierrors.CodeCannotDownloadTrashed,
 		)
 	}
 
 	if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
-		return models.FileTransferResponse{}, apierrors.New(
+		return models.FileDownloadResponse{}, apierrors.New(
 			http.StatusForbidden,
 			apierrors.CodeFileExpired,
 		)
@@ -285,7 +280,7 @@ func (s BucketFileService) DownloadFile(
 	})
 	if err != nil {
 		logger.Error("Generate presigned URL failed", zap.Error(err))
-		return models.FileTransferResponse{}, err
+		return models.FileDownloadResponse{}, err
 	}
 
 	action := models.Activity{
@@ -301,7 +296,7 @@ func (s BucketFileService) DownloadFile(
 	}
 	err = s.ActivityLogger.Send(action)
 	if err != nil {
-		return models.FileTransferResponse{}, err
+		return models.FileDownloadResponse{}, err
 	}
 
 	var bucket models.Bucket
@@ -313,7 +308,7 @@ func (s BucketFileService) DownloadFile(
 		evt.Trigger()
 	}
 
-	return models.FileTransferResponse{
+	return models.FileDownloadResponse{
 		ID:  file.ID.String(),
 		URL: url,
 	}, nil

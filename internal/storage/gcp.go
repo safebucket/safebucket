@@ -46,6 +46,10 @@ func (g GCPStorage) GetBucketName() string {
 	return g.BucketName
 }
 
+func (g GCPStorage) UploadMethod() string {
+	return c.UploadMethodPost
+}
+
 func (g GCPStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
 	signOpts := &gcs.SignedURLOptions{
 		Method:  http.MethodGet,

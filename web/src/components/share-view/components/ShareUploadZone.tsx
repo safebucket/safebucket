@@ -9,7 +9,7 @@ import type { IUpload } from "@/components/upload/helpers/types";
 import type { IPublicShareResponse } from "@/types/share";
 import { FileStatus } from "@/types/file";
 import { extractFilesFromDrop } from "@/components/upload/helpers/file-processing";
-import { uploadToStorage } from "@/components/upload/helpers/api";
+import { uploadToStorage } from "@/components/upload/helpers/upload-engine";
 import {
   getStatusIcon,
   getStatusText,
@@ -89,12 +89,7 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
         });
 
         await uploadToStorage(
-          {
-            id: presigned.id,
-            url: presigned.url,
-            body: presigned.body ?? {},
-            path: "",
-          },
+          presigned,
           file,
           (progress) => {
             setUploads((prev) =>

@@ -76,6 +76,10 @@ func (s *GenericS3Storage) GetBucketName() string {
 	return s.BucketName
 }
 
+func (s *GenericS3Storage) UploadMethod() string {
+	return c.UploadMethodPost
+}
+
 func (s *GenericS3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
 	var reqParams url.Values
 	if opts.InlineContentType != "" {

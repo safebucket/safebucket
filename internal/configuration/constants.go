@@ -49,6 +49,12 @@ const (
 const UploadPolicyExpirationInMinutes = 15
 
 const (
+	UploadMethodPost      = "post"
+	UploadMethodPut       = "put"
+	UploadMethodMultipart = "multipart"
+)
+
+const (
 	SecurityChallengeExpirationMinutes = 5
 	SecurityChallengeMaxFailedAttempts = 3
 

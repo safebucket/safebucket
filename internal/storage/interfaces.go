@@ -28,6 +28,7 @@ func attachmentDisposition(filename string) string {
 }
 
 type IStorage interface {
+	UploadMethod() string
 	PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error)
 	PresignedPostPolicy(
 		path string,

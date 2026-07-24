@@ -80,7 +80,7 @@ func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.Handler
 	}
 }
 
-func ShareDownloadRedirectHandler(getOne ShareGetOneTargetFunc[models.FileTransferResponse]) http.HandlerFunc {
+func ShareDownloadRedirectHandler(getOne ShareGetOneTargetFunc[models.FileDownloadResponse]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracing.StartSpan(r.Context(), spanName(getOne))
 		defer span.End()
