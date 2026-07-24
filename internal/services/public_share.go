@@ -276,20 +276,20 @@ func (s PublicShareService) UploadShareFile(
 	share models.Share,
 	_ uuid.UUIDs,
 	body models.ShareUploadBody,
-) (models.FileTransferResponse, error) {
+) (models.FileUploadResponse, error) {
 	if !share.AllowUpload {
-		return models.FileTransferResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeShareUploadNotAllowed)
+		return models.FileUploadResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeShareUploadNotAllowed)
 	}
 
 	if share.MaxUploadSize != nil && body.Size > *share.MaxUploadSize {
-		return models.FileTransferResponse{}, apierrors.New(
+		return models.FileUploadResponse{}, apierrors.New(
 			http.StatusBadRequest,
 			apierrors.CodeShareUploadSizeExceeded,
 		)
 	}
 
 	if share.MaxUploads != nil && share.CurrentUploads >= *share.MaxUploads {
-		return models.FileTransferResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeMaxUploadsReached)
+		return models.FileUploadResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeMaxUploadsReached)
 	}
 
 	var folderID *uuid.UUID
@@ -304,7 +304,7 @@ func (s PublicShareService) UploadShareFile(
 			var folder models.Folder
 			if s.DB.Where("id = ? AND bucket_id = ?", folderID, share.BucketID).
 				Find(&folder).RowsAffected == 0 {
-				return models.FileTransferResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
+				return models.FileUploadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 			}
 		}
 	}
@@ -318,7 +318,7 @@ func (s PublicShareService) UploadShareFile(
 	}
 
 	if query.Find(&existingFile).RowsAffected > 0 {
-		return models.FileTransferResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyExists)
+		return models.FileUploadResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyExists)
 	}
 
 	file := &models.File{
@@ -330,18 +330,18 @@ func (s PublicShareService) UploadShareFile(
 		Size:      int(body.Size),
 	}
 
-	var response models.FileTransferResponse
+	var response models.FileUploadResponse
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		if txErr := tx.Create(file).Error; txErr != nil {
 			return txErr
 		}
 
 		var presignErr error
-		response, presignErr = presignUpload(
+		response, presignErr = storage.PresignUpload(
 			logger,
 			s.Storage,
 			path.Join("buckets", share.BucketID.String(), file.ID.String()),
-			body.Size,
+			int(body.Size),
 			map[string]string{
 				"bucket_id": share.BucketID.String(),
 				"file_id":   file.ID.String(),
@@ -380,7 +380,7 @@ func (s PublicShareService) UploadShareFile(
 	})
 
 	if err != nil {
-		return models.FileTransferResponse{}, err
+		return models.FileUploadResponse{}, err
 	}
 
 	response.ID = file.ID.String()

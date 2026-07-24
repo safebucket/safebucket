@@ -37,7 +37,7 @@ func (s BucketFileService) Routes() chi.Router {
 	r := chi.NewRouter()
 
 	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
-		With(m.Validate[models.FileTransferBody]).
+		With(m.Validate[models.FileUploadBody]).
 		Post("/files", handlers.CreateHandler(s.UploadFile))
 
 	r.Route("/files/{id1}", func(r chi.Router) {
@@ -60,19 +60,19 @@ func (s BucketFileService) UploadFile(
 	logger *zap.Logger,
 	user models.UserClaims,
 	ids uuid.UUIDs,
-	body models.FileTransferBody,
-) (models.FileTransferResponse, error) {
+	body models.FileUploadBody,
+) (models.FileUploadResponse, error) {
 	var bucket models.Bucket
 	result := s.DB.Where("id = ?", ids[0]).Find(&bucket)
 	if result.RowsAffected == 0 {
-		return models.FileTransferResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
+		return models.FileUploadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 	}
 
 	if body.FolderID != nil {
 		var folder models.Folder
 		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucket.ID).Find(&folder)
 		if result.RowsAffected == 0 {
-			return models.FileTransferResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
+			return models.FileUploadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 		}
 	}
 
@@ -85,7 +85,7 @@ func (s BucketFileService) UploadFile(
 	}
 	result = query.Find(&existingFile)
 	if result.RowsAffected > 0 {
-		return models.FileTransferResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyExists)
+		return models.FileUploadResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyExists)
 	}
 
 	file := &models.File{
@@ -98,7 +98,7 @@ func (s BucketFileService) UploadFile(
 		ExpiresAt: body.ExpiresAt,
 	}
 
-	var response models.FileTransferResponse
+	var response models.FileUploadResponse
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		res := tx.Create(file)
 		if res.Error != nil {
@@ -106,11 +106,11 @@ func (s BucketFileService) UploadFile(
 		}
 
 		var presignErr error
-		response, presignErr = presignUpload(
+		response, presignErr = storage.PresignUpload(
 			logger,
 			s.Storage,
 			path.Join("buckets", bucket.ID.String(), file.ID.String()),
-			int64(body.Size),
+			body.Size,
 			map[string]string{
 				"bucket_id": bucket.ID.String(),
 				"file_id":   file.ID.String(),
@@ -121,7 +121,7 @@ func (s BucketFileService) UploadFile(
 		return presignErr
 	})
 	if err != nil {
-		return models.FileTransferResponse{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
+		return models.FileUploadResponse{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
 	}
 
 	response.ID = file.ID.String()

@@ -653,9 +653,9 @@ func (a *TestApp) UploadFileInto(
 ) string {
 	t.Helper()
 
-	var transfer models.FileTransferResponse
+	var transfer models.FileUploadResponse
 	status := a.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/files", bucketID), token,
-		models.FileTransferBody{Name: name, Size: 5, FolderID: folderID}, &transfer)
+		models.FileUploadBody{Name: name, Size: 5, FolderID: folderID}, &transfer)
 	require.Equal(t, http.StatusCreated, status, "create upload slot for %s", name)
 	require.Equal(t, configuration.UploadMethodPost, transfer.Method, "upload init must declare its method")
 

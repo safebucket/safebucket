@@ -115,7 +115,7 @@ func TestRBAC_Group(t *testing.T) {
 				}, "viewer", 204},
 
 				{"POST file", http.MethodPost, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files", bucketA.ID) }, func() any {
-					return models.FileTransferBody{Name: fmt.Sprintf("new_%s.txt", uuid.New()), Size: 1}
+					return models.FileUploadBody{Name: fmt.Sprintf("new_%s.txt", uuid.New()), Size: 1}
 				}, "contrib", 201},
 				{"PATCH file", http.MethodPatch, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketA.ID, createFile()) }, func() any {
 					return models.FilePatchBody{Status: string(models.FileStatusDeleted)}

@@ -46,17 +46,17 @@ func (f *File) ToActivity() FileActivity {
 	}
 }
 
-type FileTransferBody struct {
+type FileUploadBody struct {
 	Name      string     `json:"name"                 validate:"required,filename,max=255"`
 	FolderID  *uuid.UUID `json:"folder_id"            validate:"omitempty,uuid"`
 	Size      int        `json:"size"                 validate:"required,gte=1,maxuploadsize"`
 	ExpiresAt *time.Time `json:"expires_at,omitempty" validate:"omitempty,futuredate"`
 }
 
-type FileTransferResponse struct {
+type FileUploadResponse struct {
 	ID      string            `json:"id"`
 	Method  string            `json:"method"`
-	URL     string            `json:"url,omitempty"`
+	URL     string            `json:"url"`
 	Body    map[string]string `json:"body,omitempty"`
 	Headers map[string]string `json:"headers,omitempty"`
 }
