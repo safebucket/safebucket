@@ -77,83 +77,83 @@ const AuthCompleteIndexRoute = AuthCompleteIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSettingsIndexRoute =
-    AuthenticatedSettingsIndexRouteImport.update({
-      id: '/settings/',
-      path: '/settings/',
-      getParentRoute: () => AuthenticatedRoute,
-    } as any)
+  AuthenticatedSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedActivityIndexRoute =
-    AuthenticatedActivityIndexRouteImport.update({
-      id: '/activity/',
-      path: '/activity/',
-      getParentRoute: () => AuthenticatedRoute,
-    } as any)
+  AuthenticatedActivityIndexRouteImport.update({
+    id: '/activity/',
+    path: '/activity/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthResetPasswordIdIndexRoute =
-    AuthResetPasswordIdIndexRouteImport.update({
-      id: '/auth/reset-password/$id/',
-      path: '/auth/reset-password/$id/',
-      getParentRoute: () => rootRouteImport,
-    } as any)
+  AuthResetPasswordIdIndexRouteImport.update({
+    id: '/auth/reset-password/$id/',
+    path: '/auth/reset-password/$id/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthProvidersProviderIndexRoute =
-    AuthProvidersProviderIndexRouteImport.update({
-      id: '/auth/providers/$provider/',
-      path: '/auth/providers/$provider/',
-      getParentRoute: () => rootRouteImport,
-    } as any)
+  AuthProvidersProviderIndexRouteImport.update({
+    id: '/auth/providers/$provider/',
+    path: '/auth/providers/$provider/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthMfaSetupRequiredIndexRoute =
-    AuthMfaSetupRequiredIndexRouteImport.update({
-      id: '/auth/mfa/setup-required/',
-      path: '/auth/mfa/setup-required/',
-      getParentRoute: () => rootRouteImport,
-    } as any)
+  AuthMfaSetupRequiredIndexRouteImport.update({
+    id: '/auth/mfa/setup-required/',
+    path: '/auth/mfa/setup-required/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedSettingsProfileIndexRoute =
-    AuthenticatedSettingsProfileIndexRouteImport.update({
-      id: '/settings/profile/',
-      path: '/settings/profile/',
-      getParentRoute: () => AuthenticatedRoute,
-    } as any)
+  AuthenticatedSettingsProfileIndexRouteImport.update({
+    id: '/settings/profile/',
+    path: '/settings/profile/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSettingsPreferencesIndexRoute =
-    AuthenticatedSettingsPreferencesIndexRouteImport.update({
-      id: '/settings/preferences/',
-      path: '/settings/preferences/',
-      getParentRoute: () => AuthenticatedRoute,
-    } as any)
+  AuthenticatedSettingsPreferencesIndexRouteImport.update({
+    id: '/settings/preferences/',
+    path: '/settings/preferences/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminUsersIndexRoute =
-    AuthenticatedAdminUsersIndexRouteImport.update({
-      id: '/users/',
-      path: '/users/',
-      getParentRoute: () => AuthenticatedAdminRoute,
-    } as any)
+  AuthenticatedAdminUsersIndexRouteImport.update({
+    id: '/users/',
+    path: '/users/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminDashboardIndexRoute =
-    AuthenticatedAdminDashboardIndexRouteImport.update({
-      id: '/dashboard/',
-      path: '/dashboard/',
-      getParentRoute: () => AuthenticatedAdminRoute,
-    } as any)
+  AuthenticatedAdminDashboardIndexRouteImport.update({
+    id: '/dashboard/',
+    path: '/dashboard/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminBucketsIndexRoute =
-    AuthenticatedAdminBucketsIndexRouteImport.update({
-      id: '/buckets/',
-      path: '/buckets/',
-      getParentRoute: () => AuthenticatedAdminRoute,
-    } as any)
+  AuthenticatedAdminBucketsIndexRouteImport.update({
+    id: '/buckets/',
+    path: '/buckets/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminActivityIndexRoute =
-    AuthenticatedAdminActivityIndexRouteImport.update({
-      id: '/activity/',
-      path: '/activity/',
-      getParentRoute: () => AuthenticatedAdminRoute,
-    } as any)
+  AuthenticatedAdminActivityIndexRouteImport.update({
+    id: '/activity/',
+    path: '/activity/',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedBucketsBucketIdChar123FolderIdChar125Route =
-    AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport.update({
-      id: '/buckets/$bucketId/{-$folderId}',
-      path: '/buckets/$bucketId/{-$folderId}',
-      getParentRoute: () => AuthenticatedRoute,
-    } as any)
+  AuthenticatedBucketsBucketIdChar123FolderIdChar125RouteImport.update({
+    id: '/buckets/$bucketId/{-$folderId}',
+    path: '/buckets/$bucketId/{-$folderId}',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const InvitesIdChallengesChallengeIdIndexRoute =
-    InvitesIdChallengesChallengeIdIndexRouteImport.update({
-      id: '/invites/$id/challenges/$challengeId/',
-      path: '/invites/$id/challenges/$challengeId/',
-      getParentRoute: () => rootRouteImport,
-    } as any)
+  InvitesIdChallengesChallengeIdIndexRouteImport.update({
+    id: '/invites/$id/challenges/$challengeId/',
+    path: '/invites/$id/challenges/$challengeId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -229,74 +229,74 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-      | '/'
-      | '/admin'
-      | '/activity/'
-      | '/settings/'
-      | '/auth/complete/'
-      | '/auth/login/'
-      | '/auth/mfa/'
-      | '/auth/reset-password/'
-      | '/invites/$id/'
-      | '/shares/$uuid/'
-      | '/buckets/$bucketId/{-$folderId}'
-      | '/admin/activity/'
-      | '/admin/buckets/'
-      | '/admin/dashboard/'
-      | '/admin/users/'
-      | '/settings/preferences/'
-      | '/settings/profile/'
-      | '/auth/mfa/setup-required/'
-      | '/auth/providers/$provider/'
-      | '/auth/reset-password/$id/'
-      | '/invites/$id/challenges/$challengeId/'
+    | '/'
+    | '/admin'
+    | '/activity/'
+    | '/settings/'
+    | '/auth/complete/'
+    | '/auth/login/'
+    | '/auth/mfa/'
+    | '/auth/reset-password/'
+    | '/invites/$id/'
+    | '/shares/$uuid/'
+    | '/buckets/$bucketId/{-$folderId}'
+    | '/admin/activity/'
+    | '/admin/buckets/'
+    | '/admin/dashboard/'
+    | '/admin/users/'
+    | '/settings/preferences/'
+    | '/settings/profile/'
+    | '/auth/mfa/setup-required/'
+    | '/auth/providers/$provider/'
+    | '/auth/reset-password/$id/'
+    | '/invites/$id/challenges/$challengeId/'
   fileRoutesByTo: FileRoutesByTo
   to:
-      | '/admin'
-      | '/'
-      | '/activity'
-      | '/settings'
-      | '/auth/complete'
-      | '/auth/login'
-      | '/auth/mfa'
-      | '/auth/reset-password'
-      | '/invites/$id'
-      | '/shares/$uuid'
-      | '/buckets/$bucketId/{-$folderId}'
-      | '/admin/activity'
-      | '/admin/buckets'
-      | '/admin/dashboard'
-      | '/admin/users'
-      | '/settings/preferences'
-      | '/settings/profile'
-      | '/auth/mfa/setup-required'
-      | '/auth/providers/$provider'
-      | '/auth/reset-password/$id'
-      | '/invites/$id/challenges/$challengeId'
+    | '/admin'
+    | '/'
+    | '/activity'
+    | '/settings'
+    | '/auth/complete'
+    | '/auth/login'
+    | '/auth/mfa'
+    | '/auth/reset-password'
+    | '/invites/$id'
+    | '/shares/$uuid'
+    | '/buckets/$bucketId/{-$folderId}'
+    | '/admin/activity'
+    | '/admin/buckets'
+    | '/admin/dashboard'
+    | '/admin/users'
+    | '/settings/preferences'
+    | '/settings/profile'
+    | '/auth/mfa/setup-required'
+    | '/auth/providers/$provider'
+    | '/auth/reset-password/$id'
+    | '/invites/$id/challenges/$challengeId'
   id:
-      | '__root__'
-      | '/_authenticated'
-      | '/_authenticated/admin'
-      | '/_authenticated/'
-      | '/_authenticated/activity/'
-      | '/_authenticated/settings/'
-      | '/auth/complete/'
-      | '/auth/login/'
-      | '/auth/mfa/'
-      | '/auth/reset-password/'
-      | '/invites/$id/'
-      | '/shares/$uuid/'
-      | '/_authenticated/buckets/$bucketId/{-$folderId}'
-      | '/_authenticated/admin/activity/'
-      | '/_authenticated/admin/buckets/'
-      | '/_authenticated/admin/dashboard/'
-      | '/_authenticated/admin/users/'
-      | '/_authenticated/settings/preferences/'
-      | '/_authenticated/settings/profile/'
-      | '/auth/mfa/setup-required/'
-      | '/auth/providers/$provider/'
-      | '/auth/reset-password/$id/'
-      | '/invites/$id/challenges/$challengeId/'
+    | '__root__'
+    | '/_authenticated'
+    | '/_authenticated/admin'
+    | '/_authenticated/'
+    | '/_authenticated/activity/'
+    | '/_authenticated/settings/'
+    | '/auth/complete/'
+    | '/auth/login/'
+    | '/auth/mfa/'
+    | '/auth/reset-password/'
+    | '/invites/$id/'
+    | '/shares/$uuid/'
+    | '/_authenticated/buckets/$bucketId/{-$folderId}'
+    | '/_authenticated/admin/activity/'
+    | '/_authenticated/admin/buckets/'
+    | '/_authenticated/admin/dashboard/'
+    | '/_authenticated/admin/users/'
+    | '/_authenticated/settings/preferences/'
+    | '/_authenticated/settings/profile/'
+    | '/auth/mfa/setup-required/'
+    | '/auth/providers/$provider/'
+    | '/auth/reset-password/$id/'
+    | '/invites/$id/challenges/$challengeId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -487,7 +487,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
 }
 
 const AuthenticatedAdminRouteWithChildren =
-    AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
@@ -505,15 +505,15 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedActivityIndexRoute: AuthenticatedActivityIndexRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
   AuthenticatedBucketsBucketIdChar123FolderIdChar125Route:
-  AuthenticatedBucketsBucketIdChar123FolderIdChar125Route,
+    AuthenticatedBucketsBucketIdChar123FolderIdChar125Route,
   AuthenticatedSettingsPreferencesIndexRoute:
-  AuthenticatedSettingsPreferencesIndexRoute,
+    AuthenticatedSettingsPreferencesIndexRoute,
   AuthenticatedSettingsProfileIndexRoute:
-  AuthenticatedSettingsProfileIndexRoute,
+    AuthenticatedSettingsProfileIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
-    AuthenticatedRouteChildren,
+  AuthenticatedRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
@@ -528,8 +528,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthProvidersProviderIndexRoute: AuthProvidersProviderIndexRoute,
   AuthResetPasswordIdIndexRoute: AuthResetPasswordIdIndexRoute,
   InvitesIdChallengesChallengeIdIndexRoute:
-  InvitesIdChallengesChallengeIdIndexRoute,
+    InvitesIdChallengesChallengeIdIndexRoute,
 }
 export const routeTree = rootRouteImport
-    ._addFileChildren(rootRouteChildren)
-    ._addFileTypes<FileRouteTypes>()
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
