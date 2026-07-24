@@ -15,6 +15,7 @@ type RueidisCache struct {
 
 func newRueidisCache(
 	hosts []string,
+	username string,
 	password string,
 	tlsEnabled bool,
 	tlsServerName,
@@ -22,6 +23,7 @@ func newRueidisCache(
 ) (*RueidisCache, error) {
 	clientOption := rueidis.ClientOption{
 		InitAddress:  hosts,
+		Username:     username,
 		Password:     password,
 		DisableCache: true,
 	}

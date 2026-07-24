@@ -143,6 +143,7 @@ type CacheConfiguration struct {
 
 type RedisCacheConfiguration struct {
 	Hosts         []string `mapstructure:"hosts"`
+	Username      string   `mapstructure:"username"`
 	Password      string   `mapstructure:"password"`
 	TLSEnabled    bool     `mapstructure:"tls_enabled"`
 	TLSServerName string   `mapstructure:"tls_server_name"`
@@ -150,6 +151,7 @@ type RedisCacheConfiguration struct {
 
 type ValkeyCacheConfiguration struct {
 	Hosts         []string `mapstructure:"hosts"`
+	Username      string   `mapstructure:"username"`
 	Password      string   `mapstructure:"password"`
 	TLSEnabled    bool     `mapstructure:"tls_enabled"`
 	TLSServerName string   `mapstructure:"tls_server_name"`

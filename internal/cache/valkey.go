@@ -9,6 +9,7 @@ type ValkeyCache = RueidisCache
 func NewValkeyCache(cacheConfig models.ValkeyCacheConfiguration) (*ValkeyCache, error) {
 	return newRueidisCache(
 		cacheConfig.Hosts,
+		cacheConfig.Username,
 		cacheConfig.Password,
 		cacheConfig.TLSEnabled,
 		cacheConfig.TLSServerName,

@@ -9,6 +9,7 @@ type RedisCache = RueidisCache
 func NewRedisCache(config models.RedisCacheConfiguration) (*RedisCache, error) {
 	return newRueidisCache(
 		config.Hosts,
+		config.Username,
 		config.Password,
 		config.TLSEnabled,
 		config.TLSServerName,
