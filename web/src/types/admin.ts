@@ -49,10 +49,7 @@ export interface AdminAppSettings {
 }
 
 export type CoverageStatus =
-  | "covered"
-  | "not_covered"
-  | "not_applicable"
-  | "unknown";
+  "covered" | "not_covered" | "not_applicable" | "unknown";
 
 export interface AdminWorkerSettings {
   http_server: CoverageStatus;
