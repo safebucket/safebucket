@@ -6,7 +6,6 @@ import (
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
-	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 
 	"strings"
@@ -96,15 +95,15 @@ func (s *GenericS3Storage) SupportsMultipart() bool {
 }
 
 func (s *GenericS3Storage) ListUploadedParts(_, _ string) ([]PartInfo, error) {
-	return nil, apierrors.ErrMultipartNotSupported
+	return nil, ErrMultipartNotSupported
 }
 
 func (s *GenericS3Storage) CompleteMultipartUpload(_, _ string, _ []PartInfo) error {
-	return apierrors.ErrMultipartNotSupported
+	return ErrMultipartNotSupported
 }
 
 func (s *GenericS3Storage) AbortMultipartUpload(_, _ string) error {
-	return apierrors.ErrMultipartNotSupported
+	return ErrMultipartNotSupported
 }
 
 func (s *GenericS3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {

@@ -22,11 +22,6 @@ type GetObjectOptions struct {
 	DownloadFilename  string
 }
 
-type PresignedPut struct {
-	URL     string
-	Headers map[string]string
-}
-
 type PartInfo struct {
 	PartNumber   int
 	Size         int64
@@ -34,9 +29,6 @@ type PartInfo struct {
 	LastModified time.Time
 }
 
-// PresignedUpload is what PresignUpload returns: the client-facing response plus server-only
-// multipart bookkeeping the service seeds into the cache. UploadID is "" and PartSize 0 for
-// single PUTs and POST uploads.
 type PresignedUpload struct {
 	Response models.FileUploadResponse
 	UploadID string

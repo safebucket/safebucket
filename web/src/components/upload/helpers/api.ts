@@ -37,13 +37,6 @@ export const api_confirmUpload = async (
   });
 };
 
-export const api_cancelUpload = async (
-  bucketId: string,
-  fileId: string,
-): Promise<void> => {
-  await api.delete(`/buckets/${bucketId}/files/${fileId}`);
-};
-
 export const deleteFileMutationFn = async (params: {
   bucketId: string;
   fileId: string;

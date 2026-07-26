@@ -10,7 +10,6 @@ import (
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
-	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -71,15 +70,15 @@ func (a AWSStorage) SupportsMultipart() bool {
 }
 
 func (a AWSStorage) ListUploadedParts(_, _ string) ([]PartInfo, error) {
-	return nil, apierrors.ErrMultipartNotSupported
+	return nil, ErrMultipartNotSupported
 }
 
 func (a AWSStorage) CompleteMultipartUpload(_, _ string, _ []PartInfo) error {
-	return apierrors.ErrMultipartNotSupported
+	return ErrMultipartNotSupported
 }
 
 func (a AWSStorage) AbortMultipartUpload(_, _ string) error {
-	return apierrors.ErrMultipartNotSupported
+	return ErrMultipartNotSupported
 }
 
 func (a AWSStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {

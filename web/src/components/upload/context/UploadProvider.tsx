@@ -4,10 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IUpload } from "@/components/upload/helpers/types";
 import { generateRandomString } from "@/lib/utils";
 import {
-  api_cancelUpload,
   api_confirmUpload,
   api_createFile,
 } from "@/components/upload/helpers/api";
+import { api } from "@/lib/api";
 import { uploadToStorage } from "@/components/upload/helpers/upload-engine";
 import { configQueryOptions } from "@/queries/config";
 import { UploadContext } from "@/components/upload/hooks/useUploadContext";
@@ -185,7 +185,9 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
 
     const target = uploadTargetsRef.current.get(uploadId);
     if (target) {
-      void api_cancelUpload(target.bucketId, target.fileId).catch(() => {});
+      void api
+        .delete(`/buckets/${target.bucketId}/files/${target.fileId}`)
+        .catch(() => {});
       uploadTargetsRef.current.delete(uploadId);
     }
 

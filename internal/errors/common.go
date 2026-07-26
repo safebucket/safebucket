@@ -1,9 +1,5 @@
 package apierrors
 
-import "errors"
-
-var ErrMultipartNotSupported = errors.New("multipart upload not supported by storage provider")
-
 type APIError struct {
 	Status int
 	Code   string

@@ -124,9 +124,17 @@ func (s BucketFileService) UploadFile(
 		}
 		response = presigned.Response
 
-		return storeMultipartState(
-			logger, s.Cache, s.Storage, file.ID.String(), objectPath, presigned.UploadID, presigned.PartSize,
-		)
+		if presigned.UploadID != "" {
+			state := cache.MultipartState{UploadID: presigned.UploadID, PartSize: presigned.PartSize}
+			if cacheErr := cache.SetMultipartState(s.Cache, file.ID.String(), state); cacheErr != nil {
+				if abortErr := s.Storage.AbortMultipartUpload(objectPath, presigned.UploadID); abortErr != nil {
+					logger.Warn("Failed to abort orphaned multipart upload", zap.Error(abortErr))
+				}
+				return cacheErr
+			}
+		}
+
+		return nil
 	})
 	if err != nil {
 		return models.FileUploadResponse{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
@@ -206,10 +214,15 @@ func (s BucketFileService) HandleUploadedStatus(
 		}
 
 		if isMultipart {
-			if err := completeMultipartUpload(
-				logger, s.Storage, objectPath, multipart.UploadID, multipart.PartSize, file.Size,
-			); err != nil {
-				return err
+			if completeErr := storage.FinalizeMultipartUpload(
+				s.Storage, objectPath, multipart.UploadID, multipart.PartSize, int64(file.Size),
+			); completeErr != nil {
+				if errors.Is(completeErr, storage.ErrMultipartPartMismatch) {
+					return apierrors.New(http.StatusBadRequest, apierrors.CodeMultipartSizeMismatch)
+				}
+				logger.Error("Failed to complete multipart upload",
+					zap.Error(completeErr), zap.String("path", objectPath))
+				return apierrors.New(http.StatusInternalServerError, apierrors.CodeMultipartCompleteFailed)
 			}
 		}
 

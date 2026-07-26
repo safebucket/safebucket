@@ -106,22 +106,6 @@ func HandleEvents(ctx context.Context, workerName string, params *EventParams, m
 	}
 }
 
-func confirmFileUpload(db *gorm.DB, bucketUUID, fileUUID uuid.UUID) (models.File, bool, error) {
-	file, err := sql.GetFileByID(db, bucketUUID, fileUUID)
-	if err != nil {
-		return models.File{}, false, err
-	}
-
-	result := db.Model(&models.File{}).
-		Where("id = ? AND bucket_id = ? AND status = ?", fileUUID, bucketUUID, models.FileStatusUploading).
-		Update("status", models.FileStatusUploaded)
-	if result.Error != nil {
-		return models.File{}, false, result.Error
-	}
-
-	return file, result.RowsAffected > 0, nil
-}
-
 func handleUploadEvents(
 	parser eventparser.IBucketEventParser,
 	msg *message.Message,
@@ -145,12 +129,20 @@ func handleUploadEvents(
 			continue
 		}
 
-		file, confirmed, err := confirmFileUpload(db, bucketUUID, fileUUID)
+		file, err := sql.GetFileByID(db, bucketUUID, fileUUID)
 		if err != nil {
 			zap.L().Error("event is misconfigured", zap.Error(err))
 			continue
 		}
-		if !confirmed {
+
+		result := db.Model(&models.File{}).
+			Where("id = ? AND bucket_id = ? AND status = ?", fileUUID, bucketUUID, models.FileStatusUploading).
+			Update("status", models.FileStatusUploaded)
+		if result.Error != nil {
+			zap.L().Error("failed to confirm upload", zap.Error(result.Error))
+			continue
+		}
+		if result.RowsAffected == 0 {
 			zap.L().Debug("skipping duplicate upload confirmation event",
 				zap.String("file_id", event.FileID), zap.String("bucket_id", event.BucketID))
 			continue

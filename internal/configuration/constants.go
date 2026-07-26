@@ -51,8 +51,6 @@ const (
 
 const UploadPolicyExpirationInMinutes = 15
 
-const UploadPartURLExpirationInMinutes = 60
-
 const (
 	UploadMethodPost = "post"
 	UploadMethodPut  = "put"

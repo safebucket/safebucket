@@ -11,7 +11,6 @@ import (
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
-	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 
 	gcs "cloud.google.com/go/storage"
@@ -66,15 +65,15 @@ func (g GCPStorage) SupportsMultipart() bool {
 }
 
 func (g GCPStorage) ListUploadedParts(_, _ string) ([]PartInfo, error) {
-	return nil, apierrors.ErrMultipartNotSupported
+	return nil, ErrMultipartNotSupported
 }
 
 func (g GCPStorage) CompleteMultipartUpload(_, _ string, _ []PartInfo) error {
-	return apierrors.ErrMultipartNotSupported
+	return ErrMultipartNotSupported
 }
 
 func (g GCPStorage) AbortMultipartUpload(_, _ string) error {
-	return apierrors.ErrMultipartNotSupported
+	return ErrMultipartNotSupported
 }
 
 func (g GCPStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
