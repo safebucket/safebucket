@@ -15,36 +15,43 @@ type MultipartState struct {
 	PartSize int64  `json:"part_size"`
 }
 
-func SetMultipartState(c ICache, fileID string, state MultipartState) error {
-	payload, err := json.Marshal(state)
+func setJSON[T any](c ICache, key string, value T, ttl time.Duration) error {
+	payload, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	key := fmt.Sprintf(configuration.CacheMultipartStateKey, fileID)
-	_, err = c.SetNX(key, string(payload), configuration.CacheMultipartStateExpiry)
+	_, err = c.SetNX(key, string(payload), ttl)
 	return err
+}
+
+
+func getJSON[T any](c ICache, key string) (T, bool, error) {
+	var value T
+	val, err := c.Get(key)
+	if err != nil {
+		if errors.Is(err, ErrKeyNotFound) {
+			return value, false, nil
+		}
+		return value, false, err
+	}
+	if err = json.Unmarshal([]byte(val), &value); err != nil {
+		return value, false, err
+	}
+	return value, true, nil
+}
+
+func SetMultipartState(c ICache, fileID string, state MultipartState) error {
+	key := fmt.Sprintf(configuration.CacheMultipartStateKey, fileID)
+	return setJSON(c, key, state, configuration.CacheMultipartStateExpiry)
 }
 
 func GetMultipartState(c ICache, fileID string) (MultipartState, bool, error) {
 	key := fmt.Sprintf(configuration.CacheMultipartStateKey, fileID)
-	val, err := c.Get(key)
-	if err != nil {
-		if errors.Is(err, ErrKeyNotFound) {
-			return MultipartState{}, false, nil
-		}
-		return MultipartState{}, false, err
-	}
-
-	var state MultipartState
-	if err = json.Unmarshal([]byte(val), &state); err != nil {
-		return MultipartState{}, false, err
-	}
-	return state, true, nil
+	return getJSON[MultipartState](c, key)
 }
 
 func DeleteMultipartState(c ICache, fileID string) error {
-	key := fmt.Sprintf(configuration.CacheMultipartStateKey, fileID)
-	return c.Del(key)
+	return c.Del(fmt.Sprintf(configuration.CacheMultipartStateKey, fileID))
 }
 
 func GetMFAAttempts(c ICache, userID string) (int, error) {

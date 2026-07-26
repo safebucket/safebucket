@@ -135,18 +135,13 @@ func handleUploadEvents(
 			continue
 		}
 
-		result := db.Model(&models.File{}).
-			Where("id = ? AND bucket_id = ? AND status = ?", fileUUID, bucketUUID, models.FileStatusUploading).
-			Update("status", models.FileStatusUploaded)
-		if result.Error != nil {
-			zap.L().Error("failed to confirm upload", zap.Error(result.Error))
-			continue
-		}
-		if result.RowsAffected == 0 {
-			zap.L().Debug("skipping duplicate upload confirmation event",
+		if file.Status != models.FileStatusUploading {
+			zap.L().Warn("file is already uploaded",
 				zap.String("file_id", event.FileID), zap.String("bucket_id", event.BucketID))
 			continue
 		}
+
+		db.Model(&file).Update("status", models.FileStatusUploaded)
 
 		action := models.Activity{
 			Message: activity.FileUploaded,

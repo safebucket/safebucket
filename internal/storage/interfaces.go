@@ -49,7 +49,7 @@ type IStorage interface {
 	PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error)
 	PresignUpload(objectPath string, size int, metadata map[string]string) (PresignedUpload, error)
 	SupportsMultipart() bool
-	ListUploadedParts(path, uploadID string) ([]PartInfo, error)
+	ListObjectParts(path, uploadID string) ([]PartInfo, error)
 	CompleteMultipartUpload(path, uploadID string, parts []PartInfo) error
 	AbortMultipartUpload(path, uploadID string) error
 	StatObject(path string) (map[string]string, error)

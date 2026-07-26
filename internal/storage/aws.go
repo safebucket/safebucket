@@ -56,12 +56,45 @@ func (a AWSStorage) PresignUpload(
 	size int,
 	metadata map[string]string,
 ) (PresignedUpload, error) {
-	url, body, err := a.presignedPostPolicy(objectPath, size, metadata)
+	req := &s3.PutObjectInput{
+		Bucket:        aws.String(a.BucketName),
+		Key:           aws.String(objectPath),
+		ContentLength: aws.Int64(int64(size)),
+		Expires: aws.Time(
+			time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
+		),
+	}
+
+	// FIXME(YLB): Workaround to sign the metadata
+	// https://github.com/aws/aws-sdk-go-v2/issues/3119
+	metaFields := []string{"bucket_id", "file_id", "user_id", "share_id"}
+
+	var conditions []interface{}
+	for _, field := range metaFields {
+		conditions = append(conditions, map[string]string{
+			"x-amz-meta-" + field: metadata[field],
+		})
+	}
+
+	presignedPost, err := a.presigner.PresignPostObject(
+		context.Background(),
+		req,
+		func(opts *s3.PresignPostOptions) {
+			opts.Conditions = conditions
+		},
+	)
 	if err != nil {
 		return PresignedUpload{}, err
 	}
+
+	for _, field := range metaFields {
+		presignedPost.Values["x-amz-meta-"+field] = metadata[field]
+	}
+
 	return PresignedUpload{Response: models.FileUploadResponse{
-		Method: c.UploadMethodPost, URL: url, Body: []map[string]string{body},
+		Method: c.UploadMethodPost,
+		URL:    presignedPost.URL,
+		Body:   []map[string]string{presignedPost.Values},
 	}}, nil
 }
 
@@ -69,7 +102,7 @@ func (a AWSStorage) SupportsMultipart() bool {
 	return false
 }
 
-func (a AWSStorage) ListUploadedParts(_, _ string) ([]PartInfo, error) {
+func (a AWSStorage) ListObjectParts(_, _ string) ([]PartInfo, error) {
 	return nil, ErrMultipartNotSupported
 }
 
@@ -103,50 +136,6 @@ func (a AWSStorage) PresignedGetObject(objectPath string, opts GetObjectOptions)
 	}
 
 	return resp.URL, nil
-}
-
-func (a AWSStorage) presignedPostPolicy(
-	path string,
-	size int,
-	metadata map[string]string,
-) (string, map[string]string, error) {
-	req := &s3.PutObjectInput{
-		Bucket:        aws.String(a.BucketName),
-		Key:           aws.String(path),
-		ContentLength: aws.Int64(int64(size)),
-		Expires: aws.Time(
-			time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
-		),
-	}
-
-	// FIXME(YLB): Workaround to sign the metadata
-	// https://github.com/aws/aws-sdk-go-v2/issues/3119
-	metaFields := []string{"bucket_id", "file_id", "user_id", "share_id"}
-
-	var conditions []interface{}
-	for _, field := range metaFields {
-		conditions = append(conditions, map[string]string{
-			"x-amz-meta-" + field: metadata[field],
-		})
-	}
-
-	presignedPost, err := a.presigner.PresignPostObject(
-		context.Background(),
-		req,
-		func(opts *s3.PresignPostOptions) {
-			opts.Conditions = conditions
-		},
-	)
-	if err != nil {
-		return "", nil, err
-	}
-
-	for _, field := range metaFields {
-		key := "x-amz-meta-" + field
-		presignedPost.Values[key] = metadata[field]
-	}
-
-	return presignedPost.URL, presignedPost.Values, nil
 }
 
 func (a AWSStorage) StatObject(path string) (map[string]string, error) {

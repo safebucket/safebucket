@@ -72,7 +72,7 @@ func (w *GarbageCollectorWorker) cleanupStaleUploads(_ context.Context) (int, er
 		if isMultipart && w.Storage.SupportsMultipart() {
 			objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
 
-			parts, err := w.Storage.ListUploadedParts(objectPath, multipart.UploadID)
+			parts, err := w.Storage.ListObjectParts(objectPath, multipart.UploadID)
 			if err != nil {
 				zap.L().Warn("Failed to list parts for stale multipart upload, skipping this cycle",
 					zap.String("file_id", file.ID.String()), zap.Error(err))

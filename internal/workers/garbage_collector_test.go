@@ -17,8 +17,8 @@ import (
 )
 
 type gcStubStorage struct {
-	listUploadedPartsFn func(path, uploadID string) ([]storage.PartInfo, error)
-	abortedUploadIDs    []string
+	listObjectPartsFn func(path, uploadID string) ([]storage.PartInfo, error)
+	abortedUploadIDs  []string
 }
 
 func (s *gcStubStorage) PresignedGetObject(string, storage.GetObjectOptions) (string, error) {
@@ -31,9 +31,9 @@ func (s *gcStubStorage) PresignUpload(string, int, map[string]string) (storage.P
 
 func (s *gcStubStorage) SupportsMultipart() bool { return true }
 
-func (s *gcStubStorage) ListUploadedParts(path, uploadID string) ([]storage.PartInfo, error) {
-	if s.listUploadedPartsFn != nil {
-		return s.listUploadedPartsFn(path, uploadID)
+func (s *gcStubStorage) ListObjectParts(path, uploadID string) ([]storage.PartInfo, error) {
+	if s.listObjectPartsFn != nil {
+		return s.listObjectPartsFn(path, uploadID)
 	}
 	return nil, nil
 }
@@ -157,7 +157,7 @@ func TestCleanupStaleUploads(t *testing.T) {
 			cache.MultipartState{UploadID: "upload-1", PartSize: 32 * 1024 * 1024}))
 
 		store := &gcStubStorage{
-			listUploadedPartsFn: func(string, string) ([]storage.PartInfo, error) {
+			listObjectPartsFn: func(string, string) ([]storage.PartInfo, error) {
 				return []storage.PartInfo{{PartNumber: 1, LastModified: time.Now()}}, nil
 			},
 		}
@@ -179,7 +179,7 @@ func TestCleanupStaleUploads(t *testing.T) {
 			cache.MultipartState{UploadID: "upload-2", PartSize: 32 * 1024 * 1024}))
 
 		store := &gcStubStorage{
-			listUploadedPartsFn: func(string, string) ([]storage.PartInfo, error) {
+			listObjectPartsFn: func(string, string) ([]storage.PartInfo, error) {
 				return []storage.PartInfo{{PartNumber: 1, LastModified: staleCreatedAt}}, nil
 			},
 		}
@@ -205,7 +205,7 @@ func TestCleanupStaleUploads(t *testing.T) {
 			cache.MultipartState{UploadID: "upload-3", PartSize: 32 * 1024 * 1024}))
 
 		store := &gcStubStorage{
-			listUploadedPartsFn: func(string, string) ([]storage.PartInfo, error) {
+			listObjectPartsFn: func(string, string) ([]storage.PartInfo, error) {
 				return nil, assert.AnError
 			},
 		}

@@ -20,7 +20,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type S3Storage struct {
+type RustFSStorage struct {
 	BucketName    string
 	storage       *minio.Client
 	signingClient *minio.Client
@@ -78,7 +78,7 @@ func newS3Storage(cfg s3Config) IStorage {
 			zap.Error(err))
 	}
 
-	return S3Storage{
+	return RustFSStorage{
 		BucketName:    bucketName,
 		storage:       minioClient,
 		signingClient: signingClient,
@@ -109,11 +109,11 @@ func NewRustFSStorage(config *models.RustFSStorageConfiguration) IStorage {
 	})
 }
 
-func (s S3Storage) GetBucketName() string {
+func (s RustFSStorage) GetBucketName() string {
 	return s.BucketName
 }
 
-func (s S3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
+func (s RustFSStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
 	var reqParams url.Values
 	if opts.InlineContentType != "" {
 		reqParams = url.Values{
@@ -140,7 +140,7 @@ func (s S3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) 
 	return presignedURL.String(), nil
 }
 
-func (s S3Storage) PresignUpload(
+func (s RustFSStorage) PresignUpload(
 	objectPath string,
 	size int,
 	metadata map[string]string,
@@ -223,11 +223,11 @@ func (s S3Storage) PresignUpload(
 	}, nil
 }
 
-func (s S3Storage) SupportsMultipart() bool {
+func (s RustFSStorage) SupportsMultipart() bool {
 	return true
 }
 
-func (s S3Storage) ListUploadedParts(path, uploadID string) ([]PartInfo, error) {
+func (s RustFSStorage) ListObjectParts(path, uploadID string) ([]PartInfo, error) {
 	core := minio.Core{Client: s.storage}
 
 	var parts []PartInfo
@@ -256,7 +256,7 @@ func (s S3Storage) ListUploadedParts(path, uploadID string) ([]PartInfo, error) 
 	return parts, nil
 }
 
-func (s S3Storage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo) error {
+func (s RustFSStorage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo) error {
 	core := minio.Core{Client: s.storage}
 
 	completeParts := make([]minio.CompletePart, len(parts))
@@ -270,7 +270,7 @@ func (s S3Storage) CompleteMultipartUpload(path, uploadID string, parts []PartIn
 	return err
 }
 
-func (s S3Storage) AbortMultipartUpload(path, uploadID string) error {
+func (s RustFSStorage) AbortMultipartUpload(path, uploadID string) error {
 	core := minio.Core{Client: s.storage}
 
 	err := core.AbortMultipartUpload(context.Background(), s.BucketName, path, uploadID)
@@ -280,7 +280,7 @@ func (s S3Storage) AbortMultipartUpload(path, uploadID string) error {
 	return err
 }
 
-func (s S3Storage) StatObject(path string) (map[string]string, error) {
+func (s RustFSStorage) StatObject(path string) (map[string]string, error) {
 	file, err := s.storage.StatObject(
 		context.Background(),
 		s.BucketName,
@@ -294,7 +294,7 @@ func (s S3Storage) StatObject(path string) (map[string]string, error) {
 	return file.UserMetadata, err
 }
 
-func (s S3Storage) ListObjects(prefix string, maxKeys int32) ([]string, error) {
+func (s RustFSStorage) ListObjects(prefix string, maxKeys int32) ([]string, error) {
 	opts := minio.ListObjectsOptions{
 		Prefix:    prefix,
 		Recursive: true,
@@ -313,7 +313,7 @@ func (s S3Storage) ListObjects(prefix string, maxKeys int32) ([]string, error) {
 	return objects, nil
 }
 
-func (s S3Storage) RemoveObject(path string) error {
+func (s RustFSStorage) RemoveObject(path string) error {
 	return s.storage.RemoveObject(
 		context.Background(),
 		s.BucketName,
@@ -322,7 +322,7 @@ func (s S3Storage) RemoveObject(path string) error {
 	)
 }
 
-func (s S3Storage) RemoveObjects(paths []string) error {
+func (s RustFSStorage) RemoveObjects(paths []string) error {
 	objectsCh := make(chan minio.ObjectInfo)
 
 	go func() {
@@ -353,7 +353,7 @@ func (s S3Storage) RemoveObjects(paths []string) error {
 // Patterns:
 //   - trash/{bucket-id}/files/{file-id} -> buckets/{bucket-id}/{file-id}
 //   - trash/{bucket-id}/folders/{folder-id} -> buckets/{bucket-id}/{folder-id}
-func (s S3Storage) IsTrashMarkerPath(path string) (bool, string) {
+func (s RustFSStorage) IsTrashMarkerPath(path string) (bool, string) {
 	if !strings.HasPrefix(path, trashPrefix) {
 		return false, ""
 	}
@@ -378,7 +378,7 @@ func (s S3Storage) IsTrashMarkerPath(path string) (bool, string) {
 }
 
 // getTrashMarkerPath converts buckets/{bucket-id}/{id} to trash/{bucket-id}/files|folders/{id}.
-func (s S3Storage) getTrashMarkerPath(objectPath string, model interface{}) string {
+func (s RustFSStorage) getTrashMarkerPath(objectPath string, model interface{}) string {
 	remainder := strings.TrimPrefix(objectPath, bucketsPrefix)
 
 	var resourceType string
@@ -402,7 +402,7 @@ func (s S3Storage) getTrashMarkerPath(objectPath string, model interface{}) stri
 	return path.Join(trashPrefix, bucketID, resourceType, resourceID)
 }
 
-func (s S3Storage) MarkAsTrashed(objectPath string, object interface{}) error {
+func (s RustFSStorage) MarkAsTrashed(objectPath string, object interface{}) error {
 	ctx := context.Background()
 	markerPath := s.getTrashMarkerPath(objectPath, object)
 
@@ -421,7 +421,7 @@ func (s S3Storage) MarkAsTrashed(objectPath string, object interface{}) error {
 	return nil
 }
 
-func (s S3Storage) UnmarkAsTrashed(objectPath string, object interface{}) error {
+func (s RustFSStorage) UnmarkAsTrashed(objectPath string, object interface{}) error {
 	ctx := context.Background()
 	markerPath := s.getTrashMarkerPath(objectPath, object)
 	err := s.storage.RemoveObject(ctx, s.BucketName, markerPath, minio.RemoveObjectOptions{})
@@ -432,7 +432,7 @@ func (s S3Storage) UnmarkAsTrashed(objectPath string, object interface{}) error 
 }
 
 // processExistingLifecycleRules processes existing lifecycle rules and returns the updated configuration.
-func (s S3Storage) processExistingLifecycleRules(
+func (s RustFSStorage) processExistingLifecycleRules(
 	existingConfig *lifecycle.Configuration,
 	err error,
 	trashRuleID, multipartRuleID string,
@@ -488,7 +488,7 @@ func (s S3Storage) processExistingLifecycleRules(
 // References:
 // - https://github.com/minio/minio/issues/16120
 // - https://github.com/minio/minio/issues/19115
-func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
+func (s RustFSStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 	const trashRuleID = "safebucket-trash-retention"
 	const multipartRuleID = "safebucket-abort-incomplete-multipart"
 

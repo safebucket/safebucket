@@ -51,12 +51,31 @@ func (g GCPStorage) PresignUpload(
 	size int,
 	metadata map[string]string,
 ) (PresignedUpload, error) {
-	url, body, err := g.presignedPostPolicy(objectPath, size, metadata)
+	opts := &gcs.PostPolicyV4Options{
+		Expires: time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
+		Fields: &gcs.PolicyV4Fields{
+			Metadata: map[string]string{
+				"x-goog-meta-bucket-id": metadata["bucket_id"],
+				"x-goog-meta-file-id":   metadata["file_id"],
+				"x-goog-meta-user-id":   metadata["user_id"],
+				"x-goog-meta-share-id":  metadata["share_id"],
+			},
+		},
+		Conditions: []gcs.PostPolicyV4Condition{
+			gcs.ConditionContentLengthRange(uint64(size), uint64(size)), // #nosec G115
+		},
+	}
+
+	postPolicy, err := g.storage.Bucket(g.BucketName).GenerateSignedPostPolicyV4(objectPath, opts)
 	if err != nil {
+		zap.L().Error("Failed to generate post policy", zap.Error(err))
 		return PresignedUpload{}, err
 	}
+
 	return PresignedUpload{Response: models.FileUploadResponse{
-		Method: c.UploadMethodPost, URL: url, Body: []map[string]string{body},
+		Method: c.UploadMethodPost,
+		URL:    postPolicy.URL,
+		Body:   []map[string]string{postPolicy.Fields},
 	}}, nil
 }
 
@@ -64,7 +83,7 @@ func (g GCPStorage) SupportsMultipart() bool {
 	return false
 }
 
-func (g GCPStorage) ListUploadedParts(_, _ string) ([]PartInfo, error) {
+func (g GCPStorage) ListObjectParts(_, _ string) ([]PartInfo, error) {
 	return nil, ErrMultipartNotSupported
 }
 
@@ -93,35 +112,6 @@ func (g GCPStorage) PresignedGetObject(objectPath string, opts GetObjectOptions)
 	}
 
 	return g.storage.Bucket(g.BucketName).SignedURL(objectPath, signOpts)
-}
-
-func (g GCPStorage) presignedPostPolicy(
-	path string,
-	size int,
-	metadata map[string]string,
-) (string, map[string]string, error) {
-	opts := &gcs.PostPolicyV4Options{
-		Expires: time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
-		Fields: &gcs.PolicyV4Fields{
-			Metadata: map[string]string{
-				"x-goog-meta-bucket-id": metadata["bucket_id"],
-				"x-goog-meta-file-id":   metadata["file_id"],
-				"x-goog-meta-user-id":   metadata["user_id"],
-				"x-goog-meta-share-id":  metadata["share_id"],
-			},
-		},
-		Conditions: []gcs.PostPolicyV4Condition{
-			gcs.ConditionContentLengthRange(uint64(size), uint64(size)), // #nosec G115
-		},
-	}
-
-	postPolicy, err := g.storage.Bucket(g.BucketName).GenerateSignedPostPolicyV4(path, opts)
-	if err != nil {
-		zap.L().Error("Failed to generate post policy", zap.Error(err))
-		return "", nil, err
-	}
-
-	return postPolicy.URL, postPolicy.Fields, nil
 }
 
 func (g GCPStorage) StatObject(path string) (map[string]string, error) {

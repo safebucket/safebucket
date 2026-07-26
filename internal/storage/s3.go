@@ -81,12 +81,25 @@ func (s *GenericS3Storage) PresignUpload(
 	size int,
 	metadata map[string]string,
 ) (PresignedUpload, error) {
-	url, body, err := s.presignedPostPolicy(objectPath, size, metadata)
+	policy := minio.NewPostPolicy()
+	_ = policy.SetBucket(s.BucketName)
+	_ = policy.SetKey(objectPath)
+	_ = policy.SetContentLengthRange(int64(size), int64(size))
+	_ = policy.SetExpires(time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute))
+	_ = policy.SetUserMetadata("Bucket-Id", metadata["bucket_id"])
+	_ = policy.SetUserMetadata("File-Id", metadata["file_id"])
+	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
+	_ = policy.SetUserMetadata("Share-Id", metadata["share_id"])
+
+	presignedURL, formData, err := s.signingClient.PresignedPostPolicy(context.Background(), policy)
 	if err != nil {
 		return PresignedUpload{}, err
 	}
+
 	return PresignedUpload{Response: models.FileUploadResponse{
-		Method: c.UploadMethodPost, URL: url, Body: []map[string]string{body},
+		Method: c.UploadMethodPost,
+		URL:    presignedURL.String(),
+		Body:   []map[string]string{formData},
 	}}, nil
 }
 
@@ -94,7 +107,7 @@ func (s *GenericS3Storage) SupportsMultipart() bool {
 	return false
 }
 
-func (s *GenericS3Storage) ListUploadedParts(_, _ string) ([]PartInfo, error) {
+func (s *GenericS3Storage) ListObjectParts(_, _ string) ([]PartInfo, error) {
 	return nil, ErrMultipartNotSupported
 }
 
@@ -131,29 +144,6 @@ func (s *GenericS3Storage) PresignedGetObject(objectPath string, opts GetObjectO
 	}
 
 	return presignedURL.String(), nil
-}
-
-func (s *GenericS3Storage) presignedPostPolicy(
-	objectPath string,
-	size int,
-	metadata map[string]string,
-) (string, map[string]string, error) {
-	policy := minio.NewPostPolicy()
-	_ = policy.SetBucket(s.BucketName)
-	_ = policy.SetKey(objectPath)
-	_ = policy.SetContentLengthRange(int64(size), int64(size))
-	_ = policy.SetExpires(time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute))
-	_ = policy.SetUserMetadata("Bucket-Id", metadata["bucket_id"])
-	_ = policy.SetUserMetadata("File-Id", metadata["file_id"])
-	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
-	_ = policy.SetUserMetadata("Share-Id", metadata["share_id"])
-
-	presignedURL, formData, err := s.signingClient.PresignedPostPolicy(context.Background(), policy)
-	if err != nil {
-		return "", map[string]string{}, err
-	}
-
-	return presignedURL.String(), formData, nil
 }
 
 func (s *GenericS3Storage) StatObject(objectPath string) (map[string]string, error) {
