@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -111,10 +113,6 @@ func (s S3Storage) GetBucketName() string {
 	return s.BucketName
 }
 
-func (s S3Storage) UploadMethod() string {
-	return c.UploadMethodPost
-}
-
 func (s S3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
 	var reqParams url.Values
 	if opts.InlineContentType != "" {
@@ -142,27 +140,66 @@ func (s S3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) 
 	return presignedURL.String(), nil
 }
 
-func (s S3Storage) PresignedPostPolicy(
-	path string,
+func (s S3Storage) PresignUpload(
+	objectPath string,
 	size int,
 	metadata map[string]string,
-) (string, map[string]string, error) {
-	policy := minio.NewPostPolicy()
-	_ = policy.SetBucket(s.BucketName)
-	_ = policy.SetKey(path)
-	_ = policy.SetContentLengthRange(int64(size), int64(size))
-	_ = policy.SetExpires(time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute))
-	_ = policy.SetUserMetadata("Bucket-Id", metadata["bucket_id"])
-	_ = policy.SetUserMetadata("File-Id", metadata["file_id"])
-	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
-	_ = policy.SetUserMetadata("Share-Id", metadata["share_id"])
+) (PresignedUpload, error) {
+	ctx := context.Background()
 
-	presignedURL, formData, err := s.signingClient.PresignedPostPolicy(context.Background(), policy)
-	if err != nil {
-		return "", map[string]string{}, err
+	if int64(size) <= c.MultipartPartSize {
+		put, err := presignedPutObjectS3(ctx, s.signingClient, s.BucketName, objectPath, int64(size), metadata)
+		if err != nil {
+			return PresignedUpload{}, err
+		}
+		return PresignedUpload{Response: models.FileUploadResponse{
+			Method: c.UploadMethodPut,
+			Parts:  []models.FilePartURL{{PartNumber: 1, URL: put.URL, Size: int64(size), Headers: put.Headers}},
+		}}, nil
 	}
 
-	return presignedURL.String(), formData, nil
+	uploadID, err := createMultipartUploadS3(ctx, s.storage, s.BucketName, objectPath, metadata)
+	if err != nil {
+		return PresignedUpload{}, err
+	}
+
+	partSize, partCount := ComputeMultipartLayout(int64(size))
+	parts := make([]models.FilePartURL, 0, partCount)
+	for partNumber := 1; partNumber <= partCount; partNumber++ {
+		expected := ExpectedPartSize(int64(size), partSize, partNumber, partCount)
+		url, partErr := presignedUploadPartURLS3(
+			ctx, s.signingClient, s.BucketName, objectPath, uploadID, partNumber, expected,
+		)
+		if partErr != nil {
+			if abortErr := abortMultipartUploadS3(ctx, s.storage, s.BucketName, objectPath, uploadID); abortErr != nil {
+				zap.L().Warn("Failed to abort multipart upload after part URL error", zap.Error(abortErr))
+			}
+			return PresignedUpload{}, partErr
+		}
+		parts = append(parts, models.FilePartURL{PartNumber: partNumber, URL: url, Size: expected})
+	}
+
+	return PresignedUpload{
+		Response: models.FileUploadResponse{Method: c.UploadMethodPut, Parts: parts},
+		UploadID: uploadID,
+		PartSize: partSize,
+	}, nil
+}
+
+func (s S3Storage) SupportsMultipart() bool {
+	return true
+}
+
+func (s S3Storage) ListUploadedParts(path, uploadID string) ([]PartInfo, error) {
+	return listUploadedPartsS3(context.Background(), s.storage, s.BucketName, path, uploadID)
+}
+
+func (s S3Storage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo) error {
+	return completeMultipartUploadS3(context.Background(), s.storage, s.BucketName, path, uploadID, parts)
+}
+
+func (s S3Storage) AbortMultipartUpload(path, uploadID string) error {
+	return abortMultipartUploadS3(context.Background(), s.storage, s.BucketName, path, uploadID)
 }
 
 func (s S3Storage) StatObject(path string) (map[string]string, error) {
@@ -432,4 +469,149 @@ func (s S3Storage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 		zap.Int("trashRetentionDays", retentionDays),
 		zap.Int("multipartCleanupDays", 1))
 	return nil
+}
+
+// minio-go multipart helpers backing S3Storage's upload methods.
+
+func s3MetadataHeaders(metadata map[string]string) http.Header {
+	headers := http.Header{}
+	headers.Set("X-Amz-Meta-Bucket-Id", metadata["bucket_id"])
+	headers.Set("X-Amz-Meta-File-Id", metadata["file_id"])
+	headers.Set("X-Amz-Meta-User-Id", metadata["user_id"])
+	headers.Set("X-Amz-Meta-Share-Id", metadata["share_id"])
+	return headers
+}
+
+func presignedPutObjectS3(
+	ctx context.Context,
+	signingClient *minio.Client,
+	bucket, objectPath string,
+	size int64,
+	metadata map[string]string,
+) (PresignedPut, error) {
+	metaHeaders := s3MetadataHeaders(metadata)
+
+	signHeaders := metaHeaders.Clone()
+	signHeaders.Set("Content-Length", strconv.FormatInt(size, 10))
+
+	presignedURL, err := signingClient.PresignHeader(
+		ctx, http.MethodPut, bucket, objectPath,
+		c.UploadPolicyExpirationInMinutes*time.Minute, nil, signHeaders,
+	)
+	if err != nil {
+		return PresignedPut{}, err
+	}
+
+	clientHeaders := make(map[string]string, len(metaHeaders))
+	for key := range metaHeaders {
+		clientHeaders[key] = metaHeaders.Get(key)
+	}
+
+	return PresignedPut{URL: presignedURL.String(), Headers: clientHeaders}, nil
+}
+
+func createMultipartUploadS3(
+	ctx context.Context,
+	storageClient *minio.Client,
+	bucket, objectPath string,
+	metadata map[string]string,
+) (string, error) {
+	core := minio.Core{Client: storageClient}
+	return core.NewMultipartUpload(ctx, bucket, objectPath, minio.PutObjectOptions{
+		UserMetadata: map[string]string{
+			"Bucket-Id": metadata["bucket_id"],
+			"File-Id":   metadata["file_id"],
+			"User-Id":   metadata["user_id"],
+			"Share-Id":  metadata["share_id"],
+		},
+	})
+}
+
+func presignedUploadPartURLS3(
+	ctx context.Context,
+	signingClient *minio.Client,
+	bucket, objectPath, uploadID string,
+	partNumber int,
+	partSize int64,
+) (string, error) {
+	reqParams := url.Values{
+		"uploadId":   []string{uploadID},
+		"partNumber": []string{strconv.Itoa(partNumber)},
+	}
+	extraHeaders := http.Header{}
+	extraHeaders.Set("Content-Length", strconv.FormatInt(partSize, 10))
+
+	presignedURL, err := signingClient.PresignHeader(
+		ctx, http.MethodPut, bucket, objectPath,
+		c.UploadPartURLExpirationInMinutes*time.Minute, reqParams, extraHeaders,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	return presignedURL.String(), nil
+}
+
+func listUploadedPartsS3(
+	ctx context.Context,
+	storageClient *minio.Client,
+	bucket, objectPath, uploadID string,
+) ([]PartInfo, error) {
+	core := minio.Core{Client: storageClient}
+
+	var parts []PartInfo
+	partNumberMarker := 0
+	for {
+		result, err := core.ListObjectParts(ctx, bucket, objectPath, uploadID, partNumberMarker, 1000)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, part := range result.ObjectParts {
+			parts = append(parts, PartInfo{
+				PartNumber:   part.PartNumber,
+				Size:         part.Size,
+				ETag:         part.ETag,
+				LastModified: part.LastModified,
+			})
+		}
+
+		if !result.IsTruncated {
+			break
+		}
+		partNumberMarker = result.NextPartNumberMarker
+	}
+
+	return parts, nil
+}
+
+func completeMultipartUploadS3(
+	ctx context.Context,
+	storageClient *minio.Client,
+	bucket, objectPath, uploadID string,
+	parts []PartInfo,
+) error {
+	core := minio.Core{Client: storageClient}
+
+	completeParts := make([]minio.CompletePart, len(parts))
+	for i, part := range parts {
+		completeParts[i] = minio.CompletePart{PartNumber: part.PartNumber, ETag: part.ETag}
+	}
+
+	_, err := core.CompleteMultipartUpload(ctx, bucket, objectPath, uploadID, completeParts, minio.PutObjectOptions{})
+	return err
+}
+
+func abortMultipartUploadS3(
+	ctx context.Context,
+	storageClient *minio.Client,
+	bucket, objectPath, uploadID string,
+) error {
+	core := minio.Core{Client: storageClient}
+
+	err := core.AbortMultipartUpload(ctx, bucket, objectPath, uploadID)
+	if err != nil && minio.ToErrorResponse(err).Code == "NoSuchUpload" {
+		return nil
+	}
+	return err
 }

@@ -33,7 +33,8 @@ func (p *MinIOEventParser) GetBucketEventType(msg *message.Message) string {
 		decodedKey = objectKey
 	}
 
-	if eventName == "s3:ObjectCreated:Post" || eventName == "s3:ObjectCreated:Put" {
+	if eventName == "s3:ObjectCreated:Post" || eventName == "s3:ObjectCreated:Put" ||
+		eventName == "s3:ObjectCreated:CompleteMultipartUpload" {
 		if strings.HasPrefix(decodedKey, "trash/") {
 			zap.L().Debug("Ignoring trash marker creation event",
 				zap.String("event_name", eventName),

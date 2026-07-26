@@ -10,6 +10,7 @@ import (
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -47,12 +48,38 @@ func NewAWSStorage(bucketName string) IStorage {
 	return AWSStorage{BucketName: bucketName, storage: client, presigner: presigner}
 }
 
-func (a AWSStorage) UploadMethod() string {
-	return c.UploadMethodPost
-}
-
 func (a AWSStorage) GetBucketName() string {
 	return a.BucketName
+}
+
+func (a AWSStorage) PresignUpload(
+	objectPath string,
+	size int,
+	metadata map[string]string,
+) (PresignedUpload, error) {
+	url, body, err := a.presignedPostPolicy(objectPath, size, metadata)
+	if err != nil {
+		return PresignedUpload{}, err
+	}
+	return PresignedUpload{Response: models.FileUploadResponse{
+		Method: c.UploadMethodPost, URL: url, Body: []map[string]string{body},
+	}}, nil
+}
+
+func (a AWSStorage) SupportsMultipart() bool {
+	return false
+}
+
+func (a AWSStorage) ListUploadedParts(_, _ string) ([]PartInfo, error) {
+	return nil, apierrors.ErrMultipartNotSupported
+}
+
+func (a AWSStorage) CompleteMultipartUpload(_, _ string, _ []PartInfo) error {
+	return apierrors.ErrMultipartNotSupported
+}
+
+func (a AWSStorage) AbortMultipartUpload(_, _ string) error {
+	return apierrors.ErrMultipartNotSupported
 }
 
 func (a AWSStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
@@ -79,7 +106,7 @@ func (a AWSStorage) PresignedGetObject(objectPath string, opts GetObjectOptions)
 	return resp.URL, nil
 }
 
-func (a AWSStorage) PresignedPostPolicy(
+func (a AWSStorage) presignedPostPolicy(
 	path string,
 	size int,
 	metadata map[string]string,

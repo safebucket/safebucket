@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IUpload } from "@/components/upload/helpers/types";
 import { generateRandomString } from "@/lib/utils";
 import {
+  api_cancelUpload,
   api_confirmUpload,
   api_createFile,
 } from "@/components/upload/helpers/api";
@@ -25,6 +26,9 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
   const [uploads, setUploads] = useState<Array<IUpload>>([]);
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
+  const uploadTargetsRef = useRef<
+    Map<string, { bucketId: string; fileId: string }>
+  >(new Map());
   const queueRef = useRef<Array<UploadTask>>([]);
   const activeRef = useRef(0);
   const invalidateTimersRef = useRef<
@@ -72,6 +76,10 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           folderId,
           expiresAt,
         );
+        uploadTargetsRef.current.set(uploadId, {
+          bucketId,
+          fileId: presignedUpload.id,
+        });
 
         await uploadToStorage(
           presignedUpload,
@@ -84,15 +92,17 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           abortController.signal,
         );
 
-        // Confirm upload if required by storage provider (e.g., generic S3 without bucket notifications)
         const config = await queryClient.ensureQueryData(configQueryOptions());
-        if (config.requiresUploadConfirmation) {
+        const isMultipart =
+          presignedUpload.method === "put" && presignedUpload.parts.length > 1;
+        if (isMultipart || config.requiresUploadConfirmation) {
           await api_confirmUpload(bucketId, presignedUpload.id);
         }
 
         return { uploadId, fileName: file.name, bucketId };
       } finally {
         abortControllersRef.current.delete(uploadId);
+        uploadTargetsRef.current.delete(uploadId);
       }
     },
     onSuccess: ({ uploadId, bucketId }) => {
@@ -171,6 +181,12 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     if (abortController) {
       abortController.abort();
       abortControllersRef.current.delete(uploadId);
+    }
+
+    const target = uploadTargetsRef.current.get(uploadId);
+    if (target) {
+      void api_cancelUpload(target.bucketId, target.fileId).catch(() => {});
+      uploadTargetsRef.current.delete(uploadId);
     }
 
     setUploads((prev) => prev.filter((u) => u.id !== uploadId));

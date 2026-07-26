@@ -11,6 +11,7 @@ import (
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 
 	gcs "cloud.google.com/go/storage"
@@ -46,8 +47,34 @@ func (g GCPStorage) GetBucketName() string {
 	return g.BucketName
 }
 
-func (g GCPStorage) UploadMethod() string {
-	return c.UploadMethodPost
+func (g GCPStorage) PresignUpload(
+	objectPath string,
+	size int,
+	metadata map[string]string,
+) (PresignedUpload, error) {
+	url, body, err := g.presignedPostPolicy(objectPath, size, metadata)
+	if err != nil {
+		return PresignedUpload{}, err
+	}
+	return PresignedUpload{Response: models.FileUploadResponse{
+		Method: c.UploadMethodPost, URL: url, Body: []map[string]string{body},
+	}}, nil
+}
+
+func (g GCPStorage) SupportsMultipart() bool {
+	return false
+}
+
+func (g GCPStorage) ListUploadedParts(_, _ string) ([]PartInfo, error) {
+	return nil, apierrors.ErrMultipartNotSupported
+}
+
+func (g GCPStorage) CompleteMultipartUpload(_, _ string, _ []PartInfo) error {
+	return apierrors.ErrMultipartNotSupported
+}
+
+func (g GCPStorage) AbortMultipartUpload(_, _ string) error {
+	return apierrors.ErrMultipartNotSupported
 }
 
 func (g GCPStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
@@ -69,7 +96,7 @@ func (g GCPStorage) PresignedGetObject(objectPath string, opts GetObjectOptions)
 	return g.storage.Bucket(g.BucketName).SignedURL(objectPath, signOpts)
 }
 
-func (g GCPStorage) PresignedPostPolicy(
+func (g GCPStorage) presignedPostPolicy(
 	path string,
 	size int,
 	metadata map[string]string,

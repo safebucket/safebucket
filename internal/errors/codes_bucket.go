@@ -21,6 +21,8 @@ const (
 	CodeInvalidFileStatusTransition = "INVALID_FILE_STATUS_TRANSITION"
 	CodeInvalidStatus               = "INVALID_STATUS"
 	CodeMaxUploadsReached           = "MAX_UPLOADS_REACHED"
+	CodeMultipartSizeMismatch       = "MULTIPART_SIZE_MISMATCH"
+	CodeMultipartCompleteFailed     = "MULTIPART_COMPLETE_FAILED"
 )
 
 const (

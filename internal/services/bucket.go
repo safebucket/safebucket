@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/cache"
 	c "github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
@@ -26,6 +27,7 @@ import (
 
 type BucketService struct {
 	DB                 *gorm.DB
+	Cache              cache.ICache
 	Storage            storage.IStorage
 	Publisher          messaging.IPublisher
 	Providers          c.Providers
@@ -74,6 +76,7 @@ func (s BucketService) Routes() chi.Router {
 
 		r.Mount("/", BucketFileService{
 			DB:                 s.DB,
+			Cache:              s.Cache,
 			Storage:            s.Storage,
 			Publisher:          s.Publisher,
 			ActivityLogger:     s.ActivityLogger,

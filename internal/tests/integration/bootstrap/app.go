@@ -657,27 +657,9 @@ func (a *TestApp) UploadFileInto(
 	status := a.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/files", bucketID), token,
 		models.FileUploadBody{Name: name, Size: 5, FolderID: folderID}, &transfer)
 	require.Equal(t, http.StatusCreated, status, "create upload slot for %s", name)
-	require.Equal(t, configuration.UploadMethodPost, transfer.Method, "upload init must declare its method")
+	require.NotEmpty(t, transfer.Method, "upload init must declare its method")
 
-	var buf bytes.Buffer
-	mw := multipart.NewWriter(&buf)
-	for k, v := range transfer.Body {
-		require.NoError(t, mw.WriteField(k, v))
-	}
-	fw, err := mw.CreateFormFile("file", name)
-	require.NoError(t, err)
-	_, err = fw.Write([]byte("test!"))
-	require.NoError(t, err)
-	mw.Close()
-
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, transfer.URL, &buf)
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", mw.FormDataContentType())
-
-	uploadResp, err := http.DefaultClient.Do(req)
-	require.NoError(t, err)
-	uploadResp.Body.Close()
-	require.Less(t, uploadResp.StatusCode, 300, "MinIO presigned upload should succeed, got %d", uploadResp.StatusCode)
+	a.PutPresigned(t, transfer, []byte("test!"))
 
 	require.Equal(t, http.StatusNoContent,
 		a.DoStatus(t, http.MethodPatch, fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketID, transfer.ID), token,
@@ -685,6 +667,52 @@ func (a *TestApp) UploadFileInto(
 		"confirm upload for %s", name)
 
 	return transfer.ID
+}
+
+func (a *TestApp) PutPresigned(t *testing.T, transfer models.FileUploadResponse, content []byte) {
+	t.Helper()
+
+	switch transfer.Method {
+	case configuration.UploadMethodPut:
+		require.Len(t, transfer.Parts, 1, "helper only uploads single-part files")
+		part := transfer.Parts[0]
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodPut, part.URL, bytes.NewReader(content))
+		require.NoError(t, err)
+		for k, v := range part.Headers {
+			req.Header.Set(k, v)
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+		require.Less(t, resp.StatusCode, 300, "presigned PUT upload should succeed, got %d", resp.StatusCode)
+
+	case configuration.UploadMethodPost:
+		var buf bytes.Buffer
+		mw := multipart.NewWriter(&buf)
+		for _, form := range transfer.Body {
+			for k, v := range form {
+				require.NoError(t, mw.WriteField(k, v))
+			}
+		}
+		fw, err := mw.CreateFormFile("file", "file")
+		require.NoError(t, err)
+		_, err = fw.Write(content)
+		require.NoError(t, err)
+		require.NoError(t, mw.Close())
+
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, transfer.URL, &buf)
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", mw.FormDataContentType())
+
+		resp, err := http.DefaultClient.Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+		require.Less(t, resp.StatusCode, 300, "presigned POST upload should succeed, got %d", resp.StatusCode)
+
+	default:
+		require.Failf(t, "unsupported upload method", "method %q not handled by PutPresigned", transfer.Method)
+	}
 }
 
 func NewDBProvider(t *testing.T, dialect string) DBProvider {

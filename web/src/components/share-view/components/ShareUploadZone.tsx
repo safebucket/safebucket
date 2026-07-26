@@ -100,7 +100,9 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
         );
 
         const config = await queryClient.ensureQueryData(configQueryOptions());
-        if (config.requiresUploadConfirmation) {
+        const isMultipart =
+          presigned.method === "put" && presigned.parts.length > 1;
+        if (isMultipart || config.requiresUploadConfirmation) {
           await confirmMutation.mutateAsync(presigned.id);
         }
 

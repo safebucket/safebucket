@@ -54,11 +54,18 @@ type FileUploadBody struct {
 }
 
 type FileUploadResponse struct {
-	ID      string            `json:"id"`
-	Method  string            `json:"method"`
-	URL     string            `json:"url"`
-	Body    map[string]string `json:"body,omitempty"`
-	Headers map[string]string `json:"headers,omitempty"`
+	ID     string              `json:"id"`
+	Method string              `json:"method"`
+	URL    string              `json:"url,omitempty"`
+	Body   []map[string]string `json:"body,omitempty"` // POST policy form-field objects (one per form POST)
+	Parts  []FilePartURL       `json:"parts,omitempty"`
+}
+
+type FilePartURL struct {
+	PartNumber int               `json:"part_number"`
+	URL        string            `json:"url"`
+	Size       int64             `json:"size"`
+	Headers    map[string]string `json:"headers,omitempty"` // single-PUT signed metadata headers
 }
 
 type FileDownloadResponse struct {

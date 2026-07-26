@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -8,6 +9,43 @@ import (
 
 	"github.com/safebucket/safebucket/internal/configuration"
 )
+
+type MultipartState struct {
+	UploadID string `json:"upload_id"`
+	PartSize int64  `json:"part_size"`
+}
+
+func SetMultipartState(c ICache, fileID string, state MultipartState) error {
+	payload, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
+	key := fmt.Sprintf(configuration.CacheMultipartStateKey, fileID)
+	_, err = c.SetNX(key, string(payload), configuration.CacheMultipartStateExpiry)
+	return err
+}
+
+func GetMultipartState(c ICache, fileID string) (MultipartState, bool, error) {
+	key := fmt.Sprintf(configuration.CacheMultipartStateKey, fileID)
+	val, err := c.Get(key)
+	if err != nil {
+		if errors.Is(err, ErrKeyNotFound) {
+			return MultipartState{}, false, nil
+		}
+		return MultipartState{}, false, err
+	}
+
+	var state MultipartState
+	if err = json.Unmarshal([]byte(val), &state); err != nil {
+		return MultipartState{}, false, err
+	}
+	return state, true, nil
+}
+
+func DeleteMultipartState(c ICache, fileID string) error {
+	key := fmt.Sprintf(configuration.CacheMultipartStateKey, fileID)
+	return c.Del(key)
+}
 
 func GetMFAAttempts(c ICache, userID string) (int, error) {
 	key := fmt.Sprintf(configuration.CacheMFAAttemptsKey, userID)

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 
 	"strings"
@@ -76,8 +77,34 @@ func (s *GenericS3Storage) GetBucketName() string {
 	return s.BucketName
 }
 
-func (s *GenericS3Storage) UploadMethod() string {
-	return c.UploadMethodPost
+func (s *GenericS3Storage) PresignUpload(
+	objectPath string,
+	size int,
+	metadata map[string]string,
+) (PresignedUpload, error) {
+	url, body, err := s.presignedPostPolicy(objectPath, size, metadata)
+	if err != nil {
+		return PresignedUpload{}, err
+	}
+	return PresignedUpload{Response: models.FileUploadResponse{
+		Method: c.UploadMethodPost, URL: url, Body: []map[string]string{body},
+	}}, nil
+}
+
+func (s *GenericS3Storage) SupportsMultipart() bool {
+	return false
+}
+
+func (s *GenericS3Storage) ListUploadedParts(_, _ string) ([]PartInfo, error) {
+	return nil, apierrors.ErrMultipartNotSupported
+}
+
+func (s *GenericS3Storage) CompleteMultipartUpload(_, _ string, _ []PartInfo) error {
+	return apierrors.ErrMultipartNotSupported
+}
+
+func (s *GenericS3Storage) AbortMultipartUpload(_, _ string) error {
+	return apierrors.ErrMultipartNotSupported
 }
 
 func (s *GenericS3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
@@ -107,7 +134,7 @@ func (s *GenericS3Storage) PresignedGetObject(objectPath string, opts GetObjectO
 	return presignedURL.String(), nil
 }
 
-func (s *GenericS3Storage) PresignedPostPolicy(
+func (s *GenericS3Storage) presignedPostPolicy(
 	objectPath string,
 	size int,
 	metadata map[string]string,

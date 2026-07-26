@@ -415,6 +415,7 @@ func BuildAPIRouter(
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
 			DB:                 db,
+			Cache:              cache,
 			Storage:            store,
 			Publisher:          publisher,
 			ActivityLogger:     activityLogger,
@@ -449,6 +450,7 @@ func BuildAPIRouter(
 
 		apiRouter.Mount("/v1/shares", services.PublicShareService{
 			DB:                    db,
+			Cache:                 cache,
 			Storage:               store,
 			ActivityLogger:        activityLogger,
 			Publisher:             publisher,

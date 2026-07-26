@@ -48,11 +48,58 @@ func (w *GarbageCollectorWorker) Start(ctx context.Context) {
 func (w *GarbageCollectorWorker) cleanupStaleUploads(_ context.Context) (int, error) {
 	threshold := time.Now().Add(-GCStaleUploadThreshold)
 
-	result := w.DB.Unscoped().
+	var staleFiles []models.File
+	if err := w.DB.Unscoped().
 		Where("status = ? AND created_at < ?", models.FileStatusUploading, threshold).
 		Limit(GCBatchSize).
-		Delete(&models.File{})
+		Find(&staleFiles).Error; err != nil {
+		return 0, err
+	}
 
+	if len(staleFiles) == 0 {
+		return 0, nil
+	}
+
+	var toDelete []uuid.UUID
+	for _, file := range staleFiles {
+		multipart, isMultipart, cacheErr := cache.GetMultipartState(w.Cache, file.ID.String())
+		if cacheErr != nil {
+			zap.L().Warn("Failed to read multipart state for stale upload, skipping this cycle",
+				zap.String("file_id", file.ID.String()), zap.Error(cacheErr))
+			continue
+		}
+
+		if isMultipart && w.Storage.SupportsMultipart() {
+			objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
+
+			parts, err := w.Storage.ListUploadedParts(objectPath, multipart.UploadID)
+			if err != nil {
+				zap.L().Warn("Failed to list parts for stale multipart upload, skipping this cycle",
+					zap.String("file_id", file.ID.String()), zap.Error(err))
+				continue
+			}
+			if hasRecentPart(parts, threshold) {
+				continue
+			}
+
+			if abortErr := w.Storage.AbortMultipartUpload(objectPath, multipart.UploadID); abortErr != nil {
+				zap.L().Warn("Failed to abort stale multipart upload",
+					zap.String("file_id", file.ID.String()), zap.Error(abortErr))
+			}
+			if delErr := cache.DeleteMultipartState(w.Cache, file.ID.String()); delErr != nil {
+				zap.L().Warn("Failed to delete multipart state from cache",
+					zap.String("file_id", file.ID.String()), zap.Error(delErr))
+			}
+		}
+
+		toDelete = append(toDelete, file.ID)
+	}
+
+	if len(toDelete) == 0 {
+		return 0, nil
+	}
+
+	result := w.DB.Unscoped().Delete(&models.File{}, toDelete)
 	if result.Error != nil {
 		return 0, result.Error
 	}
@@ -62,6 +109,15 @@ func (w *GarbageCollectorWorker) cleanupStaleUploads(_ context.Context) (int, er
 	}
 
 	return int(result.RowsAffected), nil
+}
+
+func hasRecentPart(parts []storage.PartInfo, threshold time.Time) bool {
+	for _, part := range parts {
+		if part.LastModified.After(threshold) {
+			return true
+		}
+	}
+	return false
 }
 
 // cleanupExpiredChallenges hard-deletes challenges that have expired.
