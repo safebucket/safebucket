@@ -24,7 +24,6 @@ func setJSON[T any](c ICache, key string, value T, ttl time.Duration) error {
 	return err
 }
 
-
 func getJSON[T any](c ICache, key string) (T, bool, error) {
 	var value T
 	val, err := c.Get(key)
