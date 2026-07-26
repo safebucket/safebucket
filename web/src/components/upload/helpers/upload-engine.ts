@@ -144,7 +144,6 @@ async function multipartUpload(
   onProgress: (progress: number) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  // Each part is self-describing (url + size); derive its byte range from a running offset.
   let offset = 0;
   const tasks = [...parts]
     .sort((a, b) => a.part_number - b.part_number)
