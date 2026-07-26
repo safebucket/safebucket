@@ -44,7 +44,6 @@ func ExpectedPartSize(size, partSize int64, partNumber, partCount int) int64 {
 	return partSize
 }
 
-
 func FinalizeMultipartUpload(store IStorage, objectPath, uploadID string, partSize, fileSize int64) error {
 	parts, err := store.ListObjectParts(objectPath, uploadID)
 	if err != nil {
