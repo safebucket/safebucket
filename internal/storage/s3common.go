@@ -14,11 +14,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// presignS3Upload builds a presigned upload for any minio-backed S3 provider
-// (MinIO, RustFS, and generic S3-compatible providers). Small files get a
-// single presigned PUT; larger files get a multipart upload with one presigned
-// PUT per part. storage runs the multipart control-plane calls (internal
-// endpoint); signingClient signs the URLs the client uses (external endpoint).
 func presignS3Upload(
 	storage, signingClient *minio.Client,
 	bucketName, objectPath string,
