@@ -16,6 +16,7 @@ export default [
       "i18next/no-literal-string": "warn",
       // Relaxed rules for existing code - tighten these over time
       "@typescript-eslint/no-unnecessary-condition": "warn",
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
       "jsx-a11y/click-events-have-key-events": "warn",
       "jsx-a11y/no-static-element-interactions": "warn",
       "jsx-a11y/no-autofocus": "warn",
