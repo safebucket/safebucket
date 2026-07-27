@@ -16,4 +16,9 @@ export default defineConfig({
       "@": resolve(import.meta.dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      "/config.json": "http://localhost:8080",
+    },
+  },
 });
