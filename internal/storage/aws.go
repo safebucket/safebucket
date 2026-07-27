@@ -3,8 +3,10 @@ package storage
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"path"
 	"strings"
 	"time"
@@ -56,62 +58,155 @@ func (a AWSStorage) PresignUpload(
 	size int,
 	metadata map[string]string,
 ) (PresignedUpload, error) {
-	req := &s3.PutObjectInput{
-		Bucket:        aws.String(a.BucketName),
-		Key:           aws.String(objectPath),
-		ContentLength: aws.Int64(int64(size)),
-		Expires: aws.Time(
-			time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
-		),
+	ctx := context.Background()
+	expires := c.UploadPolicyExpirationInMinutes * time.Minute
+
+	if int64(size) <= c.MultipartPartSize {
+		presigned, err := a.presigner.PresignPutObject(
+			ctx,
+			&s3.PutObjectInput{
+				Bucket:        aws.String(a.BucketName),
+				Key:           aws.String(objectPath),
+				ContentLength: aws.Int64(int64(size)),
+				Metadata:      metadata,
+			},
+			s3.WithPresignExpires(expires),
+		)
+		if err != nil {
+			return PresignedUpload{}, err
+		}
+
+		clientHeaders := make(map[string]string, len(presigned.SignedHeader))
+		for key := range presigned.SignedHeader {
+			switch http.CanonicalHeaderKey(key) {
+			case "Content-Length", "Host":
+				continue
+			}
+
+			clientHeaders[key] = presigned.SignedHeader.Get(key)
+		}
+
+		return PresignedUpload{Response: models.FileUploadResponse{
+			Method: c.UploadMethodPut,
+			Parts: []models.FilePartURL{
+				{
+					PartNumber: 1,
+					URL:        presigned.URL,
+					Size:       int64(size),
+					Headers:    clientHeaders,
+				},
+			},
+		}}, nil
 	}
 
-	// FIXME(YLB): Workaround to sign the metadata
-	// https://github.com/aws/aws-sdk-go-v2/issues/3119
-	metaFields := []string{"bucket_id", "file_id", "user_id", "share_id"}
-
-	var conditions []interface{}
-	for _, field := range metaFields {
-		conditions = append(conditions, map[string]string{
-			"x-amz-meta-" + field: metadata[field],
-		})
-	}
-
-	presignedPost, err := a.presigner.PresignPostObject(
-		context.Background(),
-		req,
-		func(opts *s3.PresignPostOptions) {
-			opts.Conditions = conditions
-		},
-	)
+	created, err := a.storage.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket:   aws.String(a.BucketName),
+		Key:      aws.String(objectPath),
+		Metadata: metadata,
+	})
 	if err != nil {
 		return PresignedUpload{}, err
 	}
+	uploadID := aws.ToString(created.UploadId)
 
-	for _, field := range metaFields {
-		presignedPost.Values["x-amz-meta-"+field] = metadata[field]
+	partSize, partCount := ComputeMultipartLayout(int64(size))
+	parts := make([]models.FilePartURL, 0, partCount)
+	for partNumber := 1; partNumber <= partCount; partNumber++ {
+		expected := ExpectedPartSize(int64(size), partSize, partNumber, partCount)
+
+		presigned, partErr := a.presigner.PresignUploadPart(
+			ctx,
+			&s3.UploadPartInput{
+				Bucket:     aws.String(a.BucketName),
+				Key:        aws.String(objectPath),
+				UploadId:   aws.String(uploadID),
+				PartNumber: aws.Int32(int32(partNumber)),
+			},
+			s3.WithPresignExpires(expires),
+		)
+		if partErr != nil {
+			if abortErr := a.AbortMultipartUpload(objectPath, uploadID); abortErr != nil {
+				zap.L().Warn("Failed to abort multipart upload after part URL error", zap.Error(abortErr))
+			}
+			return PresignedUpload{}, partErr
+		}
+		parts = append(parts, models.FilePartURL{PartNumber: partNumber, URL: presigned.URL, Size: expected})
 	}
 
-	return PresignedUpload{Response: models.FileUploadResponse{
-		Method: c.UploadMethodPost,
-		URL:    presignedPost.URL,
-		Body:   []map[string]string{presignedPost.Values},
-	}}, nil
+	return PresignedUpload{
+		Response: models.FileUploadResponse{Method: c.UploadMethodPut, Parts: parts},
+		UploadID: uploadID,
+		PartSize: partSize,
+	}, nil
 }
 
 func (a AWSStorage) SupportsMultipart() bool {
-	return false
+	return true
 }
 
-func (a AWSStorage) ListObjectParts(_, _ string) ([]PartInfo, error) {
-	return nil, ErrMultipartNotSupported
+func (a AWSStorage) ListObjectParts(objectPath, uploadID string) ([]PartInfo, error) {
+	ctx := context.Background()
+
+	var parts []PartInfo
+	var partNumberMarker *string
+	for {
+		result, err := a.storage.ListParts(ctx, &s3.ListPartsInput{
+			Bucket:           aws.String(a.BucketName),
+			Key:              aws.String(objectPath),
+			UploadId:         aws.String(uploadID),
+			PartNumberMarker: partNumberMarker,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, part := range result.Parts {
+			parts = append(parts, PartInfo{
+				PartNumber:   int(aws.ToInt32(part.PartNumber)),
+				Size:         aws.ToInt64(part.Size),
+				ETag:         aws.ToString(part.ETag),
+				LastModified: aws.ToTime(part.LastModified),
+			})
+		}
+
+		if !aws.ToBool(result.IsTruncated) {
+			break
+		}
+		partNumberMarker = result.NextPartNumberMarker
+	}
+
+	return parts, nil
 }
 
-func (a AWSStorage) CompleteMultipartUpload(_, _ string, _ []PartInfo) error {
-	return ErrMultipartNotSupported
+func (a AWSStorage) CompleteMultipartUpload(objectPath, uploadID string, parts []PartInfo) error {
+	completeParts := make([]types.CompletedPart, len(parts))
+	for i, part := range parts {
+		completeParts[i] = types.CompletedPart{
+			PartNumber: aws.Int32(int32(part.PartNumber)),
+			ETag:       aws.String(part.ETag),
+		}
+	}
+
+	_, err := a.storage.CompleteMultipartUpload(context.Background(), &s3.CompleteMultipartUploadInput{
+		Bucket:          aws.String(a.BucketName),
+		Key:             aws.String(objectPath),
+		UploadId:        aws.String(uploadID),
+		MultipartUpload: &types.CompletedMultipartUpload{Parts: completeParts},
+	})
+	return err
 }
 
-func (a AWSStorage) AbortMultipartUpload(_, _ string) error {
-	return ErrMultipartNotSupported
+func (a AWSStorage) AbortMultipartUpload(objectPath, uploadID string) error {
+	_, err := a.storage.AbortMultipartUpload(context.Background(), &s3.AbortMultipartUploadInput{
+		Bucket:   aws.String(a.BucketName),
+		Key:      aws.String(objectPath),
+		UploadId: aws.String(uploadID),
+	})
+
+	if _, ok := errors.AsType[*types.NoSuchUpload](err); ok {
+		return nil
+	}
+	return err
 }
 
 func (a AWSStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
@@ -196,9 +291,9 @@ func (a AWSStorage) RemoveObjects(paths []string) error {
 		batch := paths[i:end]
 		objects := make([]types.ObjectIdentifier, len(batch))
 
-		for j, path := range batch {
+		for j, p := range batch {
 			objects[j] = types.ObjectIdentifier{
-				Key: aws.String(path),
+				Key: aws.String(p),
 			}
 		}
 
