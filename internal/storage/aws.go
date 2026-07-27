@@ -181,8 +181,9 @@ func (a AWSStorage) ListObjectParts(objectPath, uploadID string) ([]PartInfo, er
 func (a AWSStorage) CompleteMultipartUpload(objectPath, uploadID string, parts []PartInfo) error {
 	completeParts := make([]types.CompletedPart, len(parts))
 	for i, part := range parts {
+		partNumber := int32(part.PartNumber) //nolint:gosec // bounded by MultipartMaxParts
 		completeParts[i] = types.CompletedPart{
-			PartNumber: aws.Int32(int32(part.PartNumber)),
+			PartNumber: aws.Int32(partNumber),
 			ETag:       aws.String(part.ETag),
 		}
 	}
