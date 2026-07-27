@@ -81,42 +81,23 @@ func (s *GenericS3Storage) PresignUpload(
 	size int,
 	metadata map[string]string,
 ) (PresignedUpload, error) {
-	policy := minio.NewPostPolicy()
-	_ = policy.SetBucket(s.BucketName)
-	_ = policy.SetKey(objectPath)
-	_ = policy.SetContentLengthRange(int64(size), int64(size))
-	_ = policy.SetExpires(time.Now().UTC().Add(c.UploadPolicyExpirationInMinutes * time.Minute))
-	_ = policy.SetUserMetadata("Bucket-Id", metadata["bucket_id"])
-	_ = policy.SetUserMetadata("File-Id", metadata["file_id"])
-	_ = policy.SetUserMetadata("User-Id", metadata["user_id"])
-	_ = policy.SetUserMetadata("Share-Id", metadata["share_id"])
-
-	presignedURL, formData, err := s.signingClient.PresignedPostPolicy(context.Background(), policy)
-	if err != nil {
-		return PresignedUpload{}, err
-	}
-
-	return PresignedUpload{Response: models.FileUploadResponse{
-		Method: c.UploadMethodPost,
-		URL:    presignedURL.String(),
-		Body:   []map[string]string{formData},
-	}}, nil
+	return presignS3Upload(s.storage, s.signingClient, s.BucketName, objectPath, size, metadata)
 }
 
 func (s *GenericS3Storage) SupportsMultipart() bool {
-	return false
+	return true
 }
 
-func (s *GenericS3Storage) ListObjectParts(_, _ string) ([]PartInfo, error) {
-	return nil, ErrMultipartNotSupported
+func (s *GenericS3Storage) ListObjectParts(path, uploadID string) ([]PartInfo, error) {
+	return s3ListObjectParts(s.storage, s.BucketName, path, uploadID)
 }
 
-func (s *GenericS3Storage) CompleteMultipartUpload(_, _ string, _ []PartInfo) error {
-	return ErrMultipartNotSupported
+func (s *GenericS3Storage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo) error {
+	return s3CompleteMultipartUpload(s.storage, s.BucketName, path, uploadID, parts)
 }
 
-func (s *GenericS3Storage) AbortMultipartUpload(_, _ string) error {
-	return ErrMultipartNotSupported
+func (s *GenericS3Storage) AbortMultipartUpload(path, uploadID string) error {
+	return s3AbortMultipartUpload(s.storage, s.BucketName, path, uploadID)
 }
 
 func (s *GenericS3Storage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {
