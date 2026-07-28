@@ -2,11 +2,14 @@ package storage
 
 import (
 	"context"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,30 +18,40 @@ import (
 
 	gcs "cloud.google.com/go/storage"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2/google"
 	"google.golang.org/api/iterator"
 )
 
 type GCPStorage struct {
-	BucketName string
-	storage    *gcs.Client
+	BucketName   string
+	storage      *gcs.Client
+	authedClient *http.Client
 }
 
 func NewGCPStorage(bucketName string) IStorage {
-	client, err := gcs.NewClient(context.Background())
+	ctx := context.Background()
+
+	client, err := gcs.NewClient(ctx)
 	if err != nil {
 		zap.L().Fatal("Failed to create storage client", zap.Error(err))
 	}
 
-	_, err = client.Bucket(bucketName).Attrs(context.Background())
+	_, err = client.Bucket(bucketName).Attrs(ctx)
 	if err != nil {
 		zap.L().Fatal("Failed to connect to storage or bucket does not exist",
 			zap.String("bucketName", bucketName),
 			zap.Error(err))
 	}
 
+	authedClient, err := google.DefaultClient(ctx, gcs.ScopeReadWrite)
+	if err != nil {
+		zap.L().Fatal("Failed to create authenticated storage client", zap.Error(err))
+	}
+
 	return &GCPStorage{
-		BucketName: bucketName,
-		storage:    client,
+		BucketName:   bucketName,
+		storage:      client,
+		authedClient: authedClient,
 	}
 }
 
@@ -51,48 +64,275 @@ func (g GCPStorage) PresignUpload(
 	size int,
 	metadata map[string]string,
 ) (PresignedUpload, error) {
-	opts := &gcs.PostPolicyV4Options{
-		Expires: time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute),
-		Fields: &gcs.PolicyV4Fields{
-			Metadata: map[string]string{
-				"x-goog-meta-bucket-id": metadata["bucket_id"],
-				"x-goog-meta-file-id":   metadata["file_id"],
-				"x-goog-meta-user-id":   metadata["user_id"],
-				"x-goog-meta-share-id":  metadata["share_id"],
-			},
-		},
-		Conditions: []gcs.PostPolicyV4Condition{
-			gcs.ConditionContentLengthRange(uint64(size), uint64(size)), // #nosec G115
-		},
+	expires := time.Now().Add(c.UploadPolicyExpirationInMinutes * time.Minute)
+
+	headers := map[string]string{}
+	for header, value := range map[string]string{
+		"x-goog-meta-bucket-id": metadata["bucket_id"],
+		"x-goog-meta-file-id":   metadata["file_id"],
+		"x-goog-meta-user-id":   metadata["user_id"],
+		"x-goog-meta-share-id":  metadata["share_id"],
+	} {
+		if value != "" {
+			headers[header] = value
+		}
 	}
 
-	postPolicy, err := g.storage.Bucket(g.BucketName).GenerateSignedPostPolicyV4(objectPath, opts)
+	if int64(size) <= c.MultipartPartSize {
+		// GCS ignores x-goog-content-length
+		headers["x-goog-content-length-range"] = fmt.Sprintf("%d,%d", int64(size), int64(size))
+
+		opts := &gcs.SignedURLOptions{
+			Method:  http.MethodPut,
+			Expires: expires,
+			Scheme:  gcs.SigningSchemeV4,
+		}
+		for key, value := range headers {
+			opts.Headers = append(opts.Headers, key+":"+value)
+		}
+
+		signedURL, err := g.storage.Bucket(g.BucketName).SignedURL(objectPath, opts)
+		if err != nil {
+			return PresignedUpload{}, err
+		}
+
+		return PresignedUpload{Response: models.FileUploadResponse{
+			Method: c.UploadMethodPut,
+			Parts: []models.FilePartURL{
+				{PartNumber: 1, URL: signedURL, Size: int64(size), Headers: headers},
+			},
+		}}, nil
+	}
+
+	uploadID, err := g.initiateMultipartUpload(objectPath, headers)
 	if err != nil {
-		zap.L().Error("Failed to generate post policy", zap.Error(err))
 		return PresignedUpload{}, err
 	}
 
-	return PresignedUpload{Response: models.FileUploadResponse{
-		Method: c.UploadMethodPost,
-		URL:    postPolicy.URL,
-		Body:   []map[string]string{postPolicy.Fields},
-	}}, nil
+	partSize, partCount := ComputeMultipartLayout(int64(size))
+	parts := make([]models.FilePartURL, 0, partCount)
+	for partNumber := 1; partNumber <= partCount; partNumber++ {
+		expected := ExpectedPartSize(int64(size), partSize, partNumber, partCount)
+		rangeHeader := fmt.Sprintf("%d,%d", expected, expected)
+
+		opts := &gcs.SignedURLOptions{
+			Method:  http.MethodPut,
+			Expires: expires,
+			Scheme:  gcs.SigningSchemeV4,
+			// GCS ignores x-goog-content-length
+			Headers: []string{fmt.Sprintf("x-goog-content-length-range:%s", rangeHeader)},
+			QueryParameters: url.Values{
+				"uploadId":   []string{uploadID},
+				"partNumber": []string{strconv.Itoa(partNumber)},
+			},
+		}
+
+		signedURL, partErr := g.storage.Bucket(g.BucketName).SignedURL(objectPath, opts)
+		if partErr != nil {
+			if abortErr := g.AbortMultipartUpload(objectPath, uploadID); abortErr != nil {
+				zap.L().Warn("Failed to abort multipart upload after part URL error", zap.Error(abortErr))
+			}
+			return PresignedUpload{}, partErr
+		}
+		parts = append(parts, models.FilePartURL{
+			PartNumber: partNumber,
+			URL:        signedURL,
+			Size:       expected,
+			// GCS ignores x-goog-content-length
+			Headers: map[string]string{"x-goog-content-length-range": rangeHeader},
+		})
+	}
+
+	return PresignedUpload{
+		Response: models.FileUploadResponse{Method: c.UploadMethodPut, Parts: parts},
+		UploadID: uploadID,
+		PartSize: partSize,
+	}, nil
 }
 
 func (g GCPStorage) SupportsMultipart() bool {
-	return false
+	return true
 }
 
-func (g GCPStorage) ListObjectParts(_, _ string) ([]PartInfo, error) {
-	return nil, ErrMultipartNotSupported
+func (g GCPStorage) objectURL(objectPath string) *url.URL {
+	return &url.URL{
+		Scheme: "https",
+		Host:   "storage.googleapis.com",
+		Path:   fmt.Sprintf("/%s/%s", g.BucketName, objectPath),
+	}
 }
 
-func (g GCPStorage) CompleteMultipartUpload(_, _ string, _ []PartInfo) error {
-	return ErrMultipartNotSupported
+func (g GCPStorage) initiateMultipartUpload(objectPath string, metaHeaders map[string]string) (string, error) {
+	u := g.objectURL(objectPath)
+	u.RawQuery = "uploads"
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, u.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	for key, value := range metaHeaders {
+		req.Header.Set(key, value)
+	}
+
+	resp, err := g.authedClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("initiate multipart upload failed: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result struct {
+		UploadID string `xml:"UploadId"`
+	}
+	if err = xml.Unmarshal(body, &result); err != nil {
+		return "", err
+	}
+	if result.UploadID == "" {
+		return "", errors.New("initiate multipart upload: empty upload id")
+	}
+
+	return result.UploadID, nil
 }
 
-func (g GCPStorage) AbortMultipartUpload(_, _ string) error {
-	return ErrMultipartNotSupported
+func (g GCPStorage) ListObjectParts(objectPath, uploadID string) ([]PartInfo, error) {
+	var parts []PartInfo
+	partNumberMarker := ""
+	for {
+		values := url.Values{"uploadId": {uploadID}}
+		if partNumberMarker != "" {
+			values.Set("part-number-marker", partNumberMarker)
+		}
+		u := g.objectURL(objectPath)
+		u.RawQuery = values.Encode()
+
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, u.String(), nil)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := g.authedClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("list multipart parts failed: status %d: %s", resp.StatusCode, string(body))
+		}
+
+		var result struct {
+			IsTruncated          bool   `xml:"IsTruncated"`
+			NextPartNumberMarker string `xml:"NextPartNumberMarker"`
+			Parts                []struct {
+				PartNumber   int       `xml:"PartNumber"`
+				ETag         string    `xml:"ETag"`
+				Size         int64     `xml:"Size"`
+				LastModified time.Time `xml:"LastModified"`
+			} `xml:"Part"`
+		}
+		if err = xml.Unmarshal(body, &result); err != nil {
+			return nil, err
+		}
+
+		for _, part := range result.Parts {
+			parts = append(parts, PartInfo{
+				PartNumber:   part.PartNumber,
+				Size:         part.Size,
+				ETag:         part.ETag,
+				LastModified: part.LastModified,
+			})
+		}
+
+		if !result.IsTruncated {
+			break
+		}
+		partNumberMarker = result.NextPartNumberMarker
+	}
+
+	return parts, nil
+}
+
+func (g GCPStorage) CompleteMultipartUpload(objectPath, uploadID string, parts []PartInfo) error {
+	type completePart struct {
+		PartNumber int    `xml:"PartNumber"`
+		ETag       string `xml:"ETag"`
+	}
+	payload := struct {
+		XMLName xml.Name       `xml:"CompleteMultipartUpload"`
+		Parts   []completePart `xml:"Part"`
+	}{}
+	for _, part := range parts {
+		payload.Parts = append(payload.Parts, completePart{PartNumber: part.PartNumber, ETag: part.ETag})
+	}
+
+	body, err := xml.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	u := g.objectURL(objectPath)
+	u.RawQuery = url.Values{"uploadId": {uploadID}}.Encode()
+
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodPost, u.String(), strings.NewReader(string(body)),
+	)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/xml")
+
+	resp, err := g.authedClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("complete multipart upload failed: status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	return nil
+}
+
+func (g GCPStorage) AbortMultipartUpload(objectPath, uploadID string) error {
+	u := g.objectURL(objectPath)
+	u.RawQuery = url.Values{"uploadId": {uploadID}}.Encode()
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := g.authedClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("abort multipart upload failed: status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
 }
 
 func (g GCPStorage) PresignedGetObject(objectPath string, opts GetObjectOptions) (string, error) {

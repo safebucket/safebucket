@@ -89,12 +89,17 @@ function putWithXhr(
 
 function putPartWithXhr(
   url: string,
+  headers: Record<string, string>,
   body: Blob,
   onLoaded: (loaded: number) => void,
   signal?: AbortSignal,
 ): Promise<void> {
   const xhr = new XMLHttpRequest();
   xhr.open("PUT", url, true);
+
+  Object.entries(headers).forEach(([key, value]) => {
+    xhr.setRequestHeader(key, value);
+  });
 
   return new Promise((resolve, reject) => {
     const onAbort = () => {
@@ -150,7 +155,7 @@ async function multipartUpload(
     .map((part) => {
       const start = offset;
       offset += part.size;
-      return { url: part.url, start, end: offset };
+      return { url: part.url, headers: part.headers ?? {}, start, end: offset };
     });
 
   const loaded = new Array<number>(tasks.length).fill(0);
@@ -161,7 +166,7 @@ async function multipartUpload(
   };
 
   const uploadTask = async (index: number): Promise<void> => {
-    const { url, start, end } = tasks[index];
+    const { url, headers, start, end } = tasks[index];
     const blob = file.slice(start, end);
 
     for (let attempt = 1; attempt <= MAX_PART_ATTEMPTS; attempt++) {
@@ -172,6 +177,7 @@ async function multipartUpload(
       try {
         await putPartWithXhr(
           url,
+          headers,
           blob,
           (n) => {
             loaded[index] = n;
