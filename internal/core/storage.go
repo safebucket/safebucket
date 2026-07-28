@@ -22,6 +22,8 @@ func NewStorage(config models.StorageConfiguration, trashRetentionDays int) stor
 		store = storage.NewRustFSStorage(config.RustFS)
 	case configuration.ProviderS3:
 		store = storage.NewGenericS3Storage(config.S3)
+	case configuration.ProviderAzure:
+		store = storage.NewAzureStorage(config.Azure)
 	default:
 		return nil
 	}

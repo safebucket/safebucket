@@ -60,6 +60,17 @@ type AWSEvent struct {
 	} `json:"Records"`
 }
 
+type AzureBlobEvent struct {
+	EventType string             `json:"eventType"`
+	Type      string             `json:"type"`
+	Subject   string             `json:"subject"`
+	Data      AzureBlobEventData `json:"data"`
+}
+
+type AzureBlobEventData struct {
+	URL string `json:"url"`
+}
+
 type MinIOEvent struct {
 	Records []MinIOEventRecord `json:"Records"`
 }

@@ -99,6 +99,7 @@ const (
 	ProviderRustFS    = "rustfs"
 	ProviderS3        = "s3"
 	ProviderMemory    = "memory"
+	ProviderAzure     = "azure"
 )
 
 const (

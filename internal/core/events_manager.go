@@ -50,6 +50,8 @@ func (em *EventsManager) initializePublishers() {
 			}, topicConfig.Name)
 		case configuration.ProviderAWS:
 			publisher = messaging.NewAWSPublisher(topicConfig.Name)
+		case configuration.ProviderAzure:
+			publisher = messaging.NewAzurePublisher(em.config.Azure, topicConfig.Name)
 		case configuration.ProviderMemory:
 			ch := messaging.NewMemoryChannel()
 			publisher = messaging.NewMemoryPublisher(ch, topicConfig.Name)
@@ -82,6 +84,8 @@ func (em *EventsManager) initializeSubscribers() {
 			}, topicConfig.Name)
 		case configuration.ProviderAWS:
 			subscriber = messaging.NewAWSSubscriber(topicConfig.Name)
+		case configuration.ProviderAzure:
+			subscriber = messaging.NewAzureSubscriber(em.config.Azure, topicConfig.Name)
 		case configuration.ProviderMemory:
 			// Memory subscribers are already created in initializePublishers() (shared GoChannel).
 			continue

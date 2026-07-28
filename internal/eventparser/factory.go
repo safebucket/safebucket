@@ -17,6 +17,8 @@ func NewBucketEventParser(storageType string, store storage.IStorage) IBucketEve
 		return &AWSEventParser{Storage: store}
 	case configuration.ProviderGCP:
 		return &GCPEventParser{}
+	case configuration.ProviderAzure:
+		return &AzureEventParser{Storage: store}
 	case configuration.ProviderS3:
 		return &MinIOEventParser{}
 	default:

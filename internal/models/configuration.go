@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
@@ -158,12 +159,13 @@ type ValkeyCacheConfiguration struct {
 }
 
 type StorageConfiguration struct {
-	Type         string                      `mapstructure:"type"   validate:"required,oneof=minio gcp aws rustfs s3"`
+	Type         string                      `mapstructure:"type"   validate:"required,oneof=minio gcp aws rustfs s3 azure"`
 	Minio        *MinioStorageConfiguration  `mapstructure:"minio"  validate:"required_if=Type minio"`
 	CloudStorage *CloudStorage               `mapstructure:"gcp"    validate:"required_if=Type gcp"`
 	AWS          *AWSConfiguration           `mapstructure:"aws"    validate:"required_if=Type aws"`
 	RustFS       *RustFSStorageConfiguration `mapstructure:"rustfs" validate:"required_if=Type rustfs"`
 	S3           *S3Configuration            `mapstructure:"s3"     validate:"required_if=Type s3"`
+	Azure        *AzureConfiguration         `mapstructure:"azure"  validate:"required_if=Type azure"`
 }
 
 type MinioStorageConfiguration struct {
@@ -205,6 +207,15 @@ type RustFSStorageConfiguration struct {
 	AccessKey        string `mapstructure:"access_key"        validate:"required"`
 	SecretKey        string `mapstructure:"secret_key"        validate:"required"`
 	Region           string `mapstructure:"region"`
+}
+
+type AzureConfiguration struct {
+	AccountName      string `mapstructure:"account_name"      validate:"required"`
+	ContainerName    string `mapstructure:"container_name"    validate:"required"`
+	Endpoint         string `mapstructure:"endpoint"          validate:"omitempty,http_url"`
+	ExternalEndpoint string `mapstructure:"external_endpoint" validate:"omitempty,http_url"`
+	SubscriptionID   string `mapstructure:"subscription_id"   validate:"required"`
+	ResourceGroup    string `mapstructure:"resource_group"    validate:"required"`
 }
 
 // GetExternalURL returns the storage provider's browser-accessible URL, used for CSP headers.
@@ -258,6 +269,13 @@ func (s *StorageConfiguration) GetExternalURL() string {
 			}
 			return s.S3.Endpoint
 		}
+	case "azure":
+		if s.Azure != nil {
+			if s.Azure.ExternalEndpoint != "" {
+				return s.Azure.ExternalEndpoint
+			}
+			return fmt.Sprintf("https://%s.blob.core.windows.net", s.Azure.AccountName)
+		}
 	}
 	return ""
 }
@@ -267,10 +285,15 @@ type QueueConfig struct {
 }
 
 type EventsConfiguration struct {
-	Type      string                 `mapstructure:"type"      validate:"required,oneof=jetstream gcp aws memory"`
-	Queues    map[string]QueueConfig `mapstructure:"queues"    validate:"required,dive"`
-	Jetstream *JetStreamEventsConfig `mapstructure:"jetstream" validate:"required_if=Type jetstream"`
-	PubSub    *PubSubConfiguration   `mapstructure:"gcp"       validate:"required_if=Type gcp"`
+	Type      string                    `mapstructure:"type"      validate:"required,oneof=jetstream gcp aws memory azure"`
+	Queues    map[string]QueueConfig    `mapstructure:"queues"    validate:"required,dive"`
+	Jetstream *JetStreamEventsConfig    `mapstructure:"jetstream" validate:"required_if=Type jetstream"`
+	PubSub    *PubSubConfiguration      `mapstructure:"gcp"       validate:"required_if=Type gcp"`
+	Azure     *AzureEventsConfiguration `mapstructure:"azure"     validate:"required_if=Type azure"`
+}
+
+type AzureEventsConfiguration struct {
+	AccountName string `mapstructure:"account_name" validate:"required"`
 }
 
 type PubSubConfiguration struct {
