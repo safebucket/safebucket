@@ -3,31 +3,32 @@ package services
 import (
 	"sort"
 
+	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 )
 
-func buildAdminSettings(
+func (s AdminService) buildAdminSettings(
 	cfg models.Configuration,
 	platforms *int,
 	coverage models.WorkerSettings,
 ) models.AdminSettingsResponse {
 	return models.AdminSettingsResponse{
 		Platforms:     platforms,
-		App:           buildAppSettings(cfg.App),
+		App:           s.buildAppSettings(cfg.App),
 		Workers:       coverage,
-		Database:      buildDatabaseSettings(cfg.Database),
-		Cache:         buildCacheSettings(cfg.Cache),
-		Storage:       buildStorageSettings(cfg.Storage),
-		Events:        buildEventsSettings(cfg.Events),
-		Notifier:      buildNotifierSettings(cfg.Notifier),
-		Activity:      buildActivitySettings(cfg.Activity),
-		Auth:          buildAuthSettings(cfg.Auth),
-		Observability: buildObservabilitySettings(cfg),
-		Security:      buildSecuritySettings(cfg.App),
+		Database:      s.buildDatabaseSettings(cfg.Database),
+		Cache:         s.buildCacheSettings(cfg.Cache),
+		Storage:       s.buildStorageSettings(cfg.Storage),
+		Events:        s.buildEventsSettings(cfg.Events),
+		Notifier:      s.buildNotifierSettings(cfg.Notifier),
+		Activity:      s.buildActivitySettings(cfg.Activity),
+		Auth:          s.buildAuthSettings(cfg.Auth),
+		Observability: s.buildObservabilitySettings(cfg),
+		Security:      s.buildSecuritySettings(cfg.App),
 	}
 }
 
-func buildAppSettings(app models.AppConfiguration) models.AppSettings {
+func (s AdminService) buildAppSettings(app models.AppConfiguration) models.AppSettings {
 	return models.AppSettings{
 		Profile:               app.Profile,
 		APIURL:                app.APIURL,
@@ -42,7 +43,7 @@ func buildAppSettings(app models.AppConfiguration) models.AppSettings {
 	}
 }
 
-func buildDatabaseSettings(db models.DatabaseConfiguration) models.DatabaseSettings {
+func (s AdminService) buildDatabaseSettings(db models.DatabaseConfiguration) models.DatabaseSettings {
 	settings := models.DatabaseSettings{Type: db.Type}
 
 	switch db.Type {
@@ -62,7 +63,7 @@ func buildDatabaseSettings(db models.DatabaseConfiguration) models.DatabaseSetti
 	return settings
 }
 
-func buildCacheSettings(cache models.CacheConfiguration) models.CacheSettings {
+func (s AdminService) buildCacheSettings(cache models.CacheConfiguration) models.CacheSettings {
 	settings := models.CacheSettings{Type: cache.Type}
 
 	switch cache.Type {
@@ -83,7 +84,7 @@ func buildCacheSettings(cache models.CacheConfiguration) models.CacheSettings {
 	return settings
 }
 
-func buildStorageSettings(storage models.StorageConfiguration) models.StorageSettings {
+func (s AdminService) buildStorageSettings(storage models.StorageConfiguration) models.StorageSettings {
 	settings := models.StorageSettings{Type: storage.Type}
 
 	switch storage.Type {
@@ -107,8 +108,8 @@ func buildStorageSettings(storage models.StorageConfiguration) models.StorageSet
 			settings.Endpoint = storage.S3.Endpoint
 			settings.ExternalEndpoint = storage.S3.ExternalEndpoint
 			settings.Region = storage.S3.Region
-			settings.ForcePathStyle = ptrOf(storage.S3.ForcePathStyle)
-			settings.UseTLS = ptrOf(storage.S3.UseTLS)
+			settings.ForcePathStyle = h.BoolPtr(storage.S3.ForcePathStyle)
+			settings.UseTLS = h.BoolPtr(storage.S3.UseTLS)
 		}
 	case "gcp":
 		if storage.CloudStorage != nil {
@@ -126,7 +127,7 @@ func buildStorageSettings(storage models.StorageConfiguration) models.StorageSet
 	return settings
 }
 
-func buildEventsSettings(events models.EventsConfiguration) models.EventsSettings {
+func (s AdminService) buildEventsSettings(events models.EventsConfiguration) models.EventsSettings {
 	settings := models.EventsSettings{Type: events.Type}
 
 	if len(events.Queues) > 0 {
@@ -154,7 +155,7 @@ func buildEventsSettings(events models.EventsConfiguration) models.EventsSetting
 	return settings
 }
 
-func buildNotifierSettings(notifier models.NotifierConfiguration) models.NotifierSettings {
+func (s AdminService) buildNotifierSettings(notifier models.NotifierConfiguration) models.NotifierSettings {
 	settings := models.NotifierSettings{Type: notifier.Type}
 
 	switch notifier.Type {
@@ -164,7 +165,7 @@ func buildNotifierSettings(notifier models.NotifierConfiguration) models.Notifie
 			settings.Port = notifier.SMTP.Port
 			settings.Sender = notifier.SMTP.Sender
 			settings.TLSMode = string(notifier.SMTP.TLSMode)
-			settings.SkipVerifyTLS = ptrOf(notifier.SMTP.SkipVerifyTLS)
+			settings.SkipVerifyTLS = h.BoolPtr(notifier.SMTP.SkipVerifyTLS)
 		}
 	case "filesystem":
 		if notifier.Filesystem != nil {
@@ -175,7 +176,7 @@ func buildNotifierSettings(notifier models.NotifierConfiguration) models.Notifie
 	return settings
 }
 
-func buildActivitySettings(activity models.ActivityConfiguration) models.ActivitySettings {
+func (s AdminService) buildActivitySettings(activity models.ActivityConfiguration) models.ActivitySettings {
 	settings := models.ActivitySettings{Type: activity.Type}
 
 	switch activity.Type {
@@ -192,7 +193,7 @@ func buildActivitySettings(activity models.ActivityConfiguration) models.Activit
 	return settings
 }
 
-func buildAuthSettings(auth models.AuthConfiguration) models.AuthSettings {
+func (s AdminService) buildAuthSettings(auth models.AuthConfiguration) models.AuthSettings {
 	keys := make([]string, 0, len(auth.Providers))
 	for key := range auth.Providers {
 		keys = append(keys, key)
@@ -219,8 +220,8 @@ func buildAuthSettings(auth models.AuthConfiguration) models.AuthSettings {
 				settings.URL = provider.LDAP.URL
 				settings.BaseDN = provider.LDAP.BaseDN
 				settings.UserFilter = provider.LDAP.UserFilter
-				settings.StartTLS = ptrOf(provider.LDAP.StartTLS)
-				settings.TLSInsecureSkip = ptrOf(provider.LDAP.TLSInsecureSkip)
+				settings.StartTLS = h.BoolPtr(provider.LDAP.StartTLS)
+				settings.TLSInsecureSkip = h.BoolPtr(provider.LDAP.TLSInsecureSkip)
 				settings.AttributeEmail = provider.LDAP.AttributeMap.Email
 			}
 		case models.LocalProviderType:
@@ -232,7 +233,7 @@ func buildAuthSettings(auth models.AuthConfiguration) models.AuthSettings {
 	return models.AuthSettings{Providers: providers}
 }
 
-func buildObservabilitySettings(cfg models.Configuration) models.ObservabilitySettings {
+func (s AdminService) buildObservabilitySettings(cfg models.Configuration) models.ObservabilitySettings {
 	profiling := models.ProfilingSettings{
 		Enabled: cfg.Profiling.Enabled,
 		Type:    cfg.Profiling.Type,
@@ -256,7 +257,7 @@ func buildObservabilitySettings(cfg models.Configuration) models.ObservabilitySe
 	return models.ObservabilitySettings{Profiling: profiling, Tracing: tracing}
 }
 
-func buildSecuritySettings(app models.AppConfiguration) models.SecuritySettings {
+func (s AdminService) buildSecuritySettings(app models.AppConfiguration) models.SecuritySettings {
 	return models.SecuritySettings{
 		AuthenticatedRequestsPerMinute:   app.AuthenticatedRequestsPerMinute,
 		UnauthenticatedRequestsPerMinute: app.UnauthenticatedRequestsPerMinute,
@@ -267,8 +268,4 @@ func buildSecuritySettings(app models.AppConfiguration) models.SecuritySettings 
 		AllowedOrigins:                   app.AllowedOrigins,
 		CookieSecureForce:                app.CookieSecureForce,
 	}
-}
-
-func ptrOf[T any](v T) *T {
-	return &v
 }

@@ -124,7 +124,7 @@ func (s AdminService) GetSettings(
 		platforms = &count
 	}
 
-	return buildAdminSettings(s.Config, platforms, s.workerCoverage(logger)), nil
+	return s.buildAdminSettings(s.Config, platforms, s.workerCoverage(logger)), nil
 }
 
 func (s AdminService) GetBucketList(

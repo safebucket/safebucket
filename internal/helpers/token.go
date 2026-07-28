@@ -30,7 +30,7 @@ type tokenConfig struct {
 	sid           string
 }
 
-func boolPtr(b bool) *bool {
+func BoolPtr(b bool) *bool {
 	return &b
 }
 
@@ -251,7 +251,7 @@ func NewAccessToken(jwtSecret string, user *models.User, provider string, sid st
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      configuration.AudienceAccessToken,
 		provider:      provider,
-		mfa:           boolPtr(user.HasMFAEnabled()),
+		mfa:           BoolPtr(user.HasMFAEnabled()),
 		expiryMinutes: configuration.AccessTokenExpiry,
 		sid:           sid,
 	})
@@ -261,7 +261,7 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string, sid s
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      configuration.AudienceRefreshToken,
 		provider:      provider,
-		mfa:           boolPtr(user.HasMFAEnabled()),
+		mfa:           BoolPtr(user.HasMFAEnabled()),
 		expiryMinutes: configuration.RefreshTokenExpiry,
 		sid:           sid,
 	})
@@ -312,7 +312,7 @@ func NewRestrictedAccessToken(
 	return createToken(jwtSecret, user, tokenConfig{
 		audience:      audience,
 		provider:      string(user.ProviderType),
-		mfa:           boolPtr(mfaVerified),
+		mfa:           BoolPtr(mfaVerified),
 		expiryMinutes: configuration.MFATokenExpiry,
 		challengeID:   challengeID,
 	})
