@@ -294,6 +294,7 @@ linters:
         - "UPDATE"
         - "invited"
         - "action"
+        - "uploadId"
 
     gochecksumtype:
       # Presence of `default` case in switch statements satisfies exhaustiveness, if all members are not listed.
