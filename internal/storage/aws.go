@@ -117,10 +117,10 @@ func (a AWSStorage) PresignUpload(
 		presigned, partErr := a.presigner.PresignUploadPart(
 			ctx,
 			&s3.UploadPartInput{
-				Bucket:     aws.String(a.BucketName),
-				Key:        aws.String(objectPath),
-				UploadId:   aws.String(uploadID),
-				PartNumber: aws.Int32(int32(partNumber)),
+				Bucket:        aws.String(a.BucketName),
+				Key:           aws.String(objectPath),
+				UploadId:      aws.String(uploadID),
+				PartNumber:    aws.Int32(int32(partNumber)),
 				ContentLength: aws.Int64(partSize),
 			},
 			s3.WithPresignExpires(expires),
