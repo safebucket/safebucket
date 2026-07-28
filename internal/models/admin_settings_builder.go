@@ -1,35 +1,30 @@
-package services
+package models
 
-import (
-	"sort"
+import "sort"
 
-	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/models"
-)
-
-func (s AdminService) buildAdminSettings(
-	cfg models.Configuration,
+func NewAdminSettingsResponse(
+	cfg Configuration,
 	platforms *int,
-	coverage models.WorkerSettings,
-) models.AdminSettingsResponse {
-	return models.AdminSettingsResponse{
+	coverage WorkerSettings,
+) AdminSettingsResponse {
+	return AdminSettingsResponse{
 		Platforms:     platforms,
-		App:           s.buildAppSettings(cfg.App),
+		App:           buildAppSettings(cfg.App),
 		Workers:       coverage,
-		Database:      s.buildDatabaseSettings(cfg.Database),
-		Cache:         s.buildCacheSettings(cfg.Cache),
-		Storage:       s.buildStorageSettings(cfg.Storage),
-		Events:        s.buildEventsSettings(cfg.Events),
-		Notifier:      s.buildNotifierSettings(cfg.Notifier),
-		Activity:      s.buildActivitySettings(cfg.Activity),
-		Auth:          s.buildAuthSettings(cfg.Auth),
-		Observability: s.buildObservabilitySettings(cfg),
-		Security:      s.buildSecuritySettings(cfg.App),
+		Database:      buildDatabaseSettings(cfg.Database),
+		Cache:         buildCacheSettings(cfg.Cache),
+		Storage:       buildStorageSettings(cfg.Storage),
+		Events:        buildEventsSettings(cfg.Events),
+		Notifier:      buildNotifierSettings(cfg.Notifier),
+		Activity:      buildActivitySettings(cfg.Activity),
+		Auth:          buildAuthSettings(cfg.Auth),
+		Observability: buildObservabilitySettings(cfg),
+		Security:      buildSecuritySettings(cfg.App),
 	}
 }
 
-func (s AdminService) buildAppSettings(app models.AppConfiguration) models.AppSettings {
-	return models.AppSettings{
+func buildAppSettings(app AppConfiguration) AppSettings {
+	return AppSettings{
 		Profile:               app.Profile,
 		APIURL:                app.APIURL,
 		WebURL:                app.WebURL,
@@ -43,8 +38,8 @@ func (s AdminService) buildAppSettings(app models.AppConfiguration) models.AppSe
 	}
 }
 
-func (s AdminService) buildDatabaseSettings(db models.DatabaseConfiguration) models.DatabaseSettings {
-	settings := models.DatabaseSettings{Type: db.Type}
+func buildDatabaseSettings(db DatabaseConfiguration) DatabaseSettings {
+	settings := DatabaseSettings{Type: db.Type}
 
 	switch db.Type {
 	case "postgres":
@@ -63,8 +58,8 @@ func (s AdminService) buildDatabaseSettings(db models.DatabaseConfiguration) mod
 	return settings
 }
 
-func (s AdminService) buildCacheSettings(cache models.CacheConfiguration) models.CacheSettings {
-	settings := models.CacheSettings{Type: cache.Type}
+func buildCacheSettings(cache CacheConfiguration) CacheSettings {
+	settings := CacheSettings{Type: cache.Type}
 
 	switch cache.Type {
 	case "redis":
@@ -84,8 +79,8 @@ func (s AdminService) buildCacheSettings(cache models.CacheConfiguration) models
 	return settings
 }
 
-func (s AdminService) buildStorageSettings(storage models.StorageConfiguration) models.StorageSettings {
-	settings := models.StorageSettings{Type: storage.Type}
+func buildStorageSettings(storage StorageConfiguration) StorageSettings {
+	settings := StorageSettings{Type: storage.Type}
 
 	switch storage.Type {
 	case "minio":
@@ -108,8 +103,8 @@ func (s AdminService) buildStorageSettings(storage models.StorageConfiguration) 
 			settings.Endpoint = storage.S3.Endpoint
 			settings.ExternalEndpoint = storage.S3.ExternalEndpoint
 			settings.Region = storage.S3.Region
-			settings.ForcePathStyle = h.BoolPtr(storage.S3.ForcePathStyle)
-			settings.UseTLS = h.BoolPtr(storage.S3.UseTLS)
+			settings.ForcePathStyle = boolPtr(storage.S3.ForcePathStyle)
+			settings.UseTLS = boolPtr(storage.S3.UseTLS)
 		}
 	case "gcp":
 		if storage.CloudStorage != nil {
@@ -127,8 +122,8 @@ func (s AdminService) buildStorageSettings(storage models.StorageConfiguration) 
 	return settings
 }
 
-func (s AdminService) buildEventsSettings(events models.EventsConfiguration) models.EventsSettings {
-	settings := models.EventsSettings{Type: events.Type}
+func buildEventsSettings(events EventsConfiguration) EventsSettings {
+	settings := EventsSettings{Type: events.Type}
 
 	if len(events.Queues) > 0 {
 		queues := make([]string, 0, len(events.Queues))
@@ -155,8 +150,8 @@ func (s AdminService) buildEventsSettings(events models.EventsConfiguration) mod
 	return settings
 }
 
-func (s AdminService) buildNotifierSettings(notifier models.NotifierConfiguration) models.NotifierSettings {
-	settings := models.NotifierSettings{Type: notifier.Type}
+func buildNotifierSettings(notifier NotifierConfiguration) NotifierSettings {
+	settings := NotifierSettings{Type: notifier.Type}
 
 	switch notifier.Type {
 	case "smtp":
@@ -165,7 +160,7 @@ func (s AdminService) buildNotifierSettings(notifier models.NotifierConfiguratio
 			settings.Port = notifier.SMTP.Port
 			settings.Sender = notifier.SMTP.Sender
 			settings.TLSMode = string(notifier.SMTP.TLSMode)
-			settings.SkipVerifyTLS = h.BoolPtr(notifier.SMTP.SkipVerifyTLS)
+			settings.SkipVerifyTLS = boolPtr(notifier.SMTP.SkipVerifyTLS)
 		}
 	case "filesystem":
 		if notifier.Filesystem != nil {
@@ -176,8 +171,8 @@ func (s AdminService) buildNotifierSettings(notifier models.NotifierConfiguratio
 	return settings
 }
 
-func (s AdminService) buildActivitySettings(activity models.ActivityConfiguration) models.ActivitySettings {
-	settings := models.ActivitySettings{Type: activity.Type}
+func buildActivitySettings(activity ActivityConfiguration) ActivitySettings {
+	settings := ActivitySettings{Type: activity.Type}
 
 	switch activity.Type {
 	case "loki":
@@ -193,17 +188,17 @@ func (s AdminService) buildActivitySettings(activity models.ActivityConfiguratio
 	return settings
 }
 
-func (s AdminService) buildAuthSettings(auth models.AuthConfiguration) models.AuthSettings {
+func buildAuthSettings(auth AuthConfiguration) AuthSettings {
 	keys := make([]string, 0, len(auth.Providers))
 	for key := range auth.Providers {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
 
-	providers := make([]models.AuthProviderSettings, 0, len(keys))
+	providers := make([]AuthProviderSettings, 0, len(keys))
 	for _, key := range keys {
 		provider := auth.Providers[key]
-		settings := models.AuthProviderSettings{
+		settings := AuthProviderSettings{
 			Key:            key,
 			Name:           provider.Name,
 			Type:           string(provider.Type),
@@ -213,28 +208,28 @@ func (s AdminService) buildAuthSettings(auth models.AuthConfiguration) models.Au
 		}
 
 		switch provider.Type {
-		case models.OIDCProviderType:
+		case OIDCProviderType:
 			settings.Issuer = provider.OIDC.Issuer
-		case models.LDAPProviderType:
+		case LDAPProviderType:
 			if provider.LDAP != nil {
 				settings.URL = provider.LDAP.URL
 				settings.BaseDN = provider.LDAP.BaseDN
 				settings.UserFilter = provider.LDAP.UserFilter
-				settings.StartTLS = h.BoolPtr(provider.LDAP.StartTLS)
-				settings.TLSInsecureSkip = h.BoolPtr(provider.LDAP.TLSInsecureSkip)
+				settings.StartTLS = boolPtr(provider.LDAP.StartTLS)
+				settings.TLSInsecureSkip = boolPtr(provider.LDAP.TLSInsecureSkip)
 				settings.AttributeEmail = provider.LDAP.AttributeMap.Email
 			}
-		case models.LocalProviderType:
+		case LocalProviderType:
 		}
 
 		providers = append(providers, settings)
 	}
 
-	return models.AuthSettings{Providers: providers}
+	return AuthSettings{Providers: providers}
 }
 
-func (s AdminService) buildObservabilitySettings(cfg models.Configuration) models.ObservabilitySettings {
-	profiling := models.ProfilingSettings{
+func buildObservabilitySettings(cfg Configuration) ObservabilitySettings {
+	profiling := ProfilingSettings{
 		Enabled: cfg.Profiling.Enabled,
 		Type:    cfg.Profiling.Type,
 	}
@@ -244,7 +239,7 @@ func (s AdminService) buildObservabilitySettings(cfg models.Configuration) model
 		profiling.UploadRate = cfg.Profiling.Pyroscope.UploadRate
 	}
 
-	tracing := models.TracingSettings{
+	tracing := TracingSettings{
 		Enabled: cfg.Tracing.Enabled,
 		Type:    cfg.Tracing.Type,
 	}
@@ -254,11 +249,11 @@ func (s AdminService) buildObservabilitySettings(cfg models.Configuration) model
 		tracing.SamplingRate = cfg.Tracing.Tempo.SamplingRate
 	}
 
-	return models.ObservabilitySettings{Profiling: profiling, Tracing: tracing}
+	return ObservabilitySettings{Profiling: profiling, Tracing: tracing}
 }
 
-func (s AdminService) buildSecuritySettings(app models.AppConfiguration) models.SecuritySettings {
-	return models.SecuritySettings{
+func buildSecuritySettings(app AppConfiguration) SecuritySettings {
+	return SecuritySettings{
 		AuthenticatedRequestsPerMinute:   app.AuthenticatedRequestsPerMinute,
 		UnauthenticatedRequestsPerMinute: app.UnauthenticatedRequestsPerMinute,
 		AccessTokenExpiry:                app.AccessTokenExpiry,
@@ -268,4 +263,8 @@ func (s AdminService) buildSecuritySettings(app models.AppConfiguration) models.
 		AllowedOrigins:                   app.AllowedOrigins,
 		CookieSecureForce:                app.CookieSecureForce,
 	}
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }

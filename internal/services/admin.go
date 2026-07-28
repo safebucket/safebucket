@@ -124,7 +124,7 @@ func (s AdminService) GetSettings(
 		platforms = &count
 	}
 
-	return s.buildAdminSettings(s.Config, platforms, s.workerCoverage(logger)), nil
+	return models.NewAdminSettingsResponse(s.Config, platforms, s.workerCoverage(logger)), nil
 }
 
 func (s AdminService) GetBucketList(
@@ -181,28 +181,26 @@ func (s AdminService) workerCoverage(logger *zap.Logger) models.WorkerSettings {
 	_, bucketQueued := s.Config.Events.Queues[configuration.EventsBucketEvents]
 	confirmsUploads := configuration.RequiresUploadConfirmation(s.Config.Storage.Type, s.Config.Events.Type)
 
+	status := func(name string, applicable bool) models.CoverageStatus {
+		if !applicable {
+			return models.CoverageNotApplicable
+		}
+		covered, err := cache.IsWorkerCovered(s.Cache, name)
+		if err != nil {
+			logger.Error("Failed to check worker coverage", zap.String("worker", name), zap.Error(err))
+			return models.CoverageUnknown
+		}
+		if covered {
+			return models.CoverageCovered
+		}
+		return models.CoverageNotCovered
+	}
+
 	return models.WorkerSettings{
-		HTTPServer:       s.coverage(logger, configuration.CoverageHTTPServer, true),
-		ObjectDeletion:   s.coverage(logger, configuration.WorkerObjectDeletion, deletionQueued),
-		BucketEvents:     s.coverage(logger, configuration.WorkerBucketEvents, bucketQueued),
-		TrashCleanup:     s.coverage(logger, configuration.WorkerTrashCleanup, confirmsUploads),
-		GarbageCollector: s.coverage(logger, configuration.WorkerGarbageCollector, true),
+		HTTPServer:       status(configuration.CoverageHTTPServer, true),
+		ObjectDeletion:   status(configuration.WorkerObjectDeletion, deletionQueued),
+		BucketEvents:     status(configuration.WorkerBucketEvents, bucketQueued),
+		TrashCleanup:     status(configuration.WorkerTrashCleanup, confirmsUploads),
+		GarbageCollector: status(configuration.WorkerGarbageCollector, true),
 	}
-}
-
-func (s AdminService) coverage(logger *zap.Logger, name string, applicable bool) models.CoverageStatus {
-	if !applicable {
-		return models.CoverageNotApplicable
-	}
-
-	covered, err := cache.IsWorkerCovered(s.Cache, name)
-	if err != nil {
-		logger.Error("Failed to check worker coverage", zap.String("worker", name), zap.Error(err))
-		return models.CoverageUnknown
-	}
-	if covered {
-		return models.CoverageCovered
-	}
-
-	return models.CoverageNotCovered
 }
