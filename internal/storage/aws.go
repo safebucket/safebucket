@@ -121,6 +121,7 @@ func (a AWSStorage) PresignUpload(
 				Key:        aws.String(objectPath),
 				UploadId:   aws.String(uploadID),
 				PartNumber: aws.Int32(int32(partNumber)),
+				ContentLength: aws.Int64(partSize),
 			},
 			s3.WithPresignExpires(expires),
 		)
