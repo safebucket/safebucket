@@ -11,7 +11,7 @@ export interface StagedFile {
 }
 
 export interface IFilePartURL {
-  part_number: number;
+  id: number;
   url: string;
   size: number;
   headers?: Record<string, string>;

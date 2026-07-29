@@ -62,10 +62,10 @@ type FileUploadResponse struct {
 }
 
 type FilePartURL struct {
-	PartNumber int               `json:"part_number"`
-	URL        string            `json:"url"`
-	Size       int64             `json:"size"`
-	Headers    map[string]string `json:"headers,omitempty"`
+	ID      int               `json:"id"`
+	URL     string            `json:"url"`
+	Size    int64             `json:"size"`
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 type FileDownloadResponse struct {

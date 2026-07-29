@@ -127,7 +127,7 @@ func (a *AzureStorage) presignSinglePut(objectPath string, size int, metadata ma
 	return PresignedUpload{Response: models.FileUploadResponse{
 		Method: c.UploadMethodPut,
 		Parts: []models.FilePartURL{
-			{PartNumber: 1, URL: a.blobURL(objectPath), Size: int64(size), Headers: headers},
+			{ID: 1, URL: a.blobURL(objectPath), Size: int64(size), Headers: headers},
 		},
 	}}
 }
@@ -143,10 +143,10 @@ func (a *AzureStorage) presignMultipart(objectPath string, size int) PresignedUp
 		headers := a.signer.headersForPut(a.containerName, objectPath, query, expected, "", nil)
 
 		parts = append(parts, models.FilePartURL{
-			PartNumber: partNumber,
-			URL:        a.blobURL(objectPath) + "?" + query.Encode(),
-			Size:       expected,
-			Headers:    headers,
+			ID:      partNumber,
+			URL:     a.blobURL(objectPath) + "?" + query.Encode(),
+			Size:    expected,
+			Headers: headers,
 		})
 	}
 

@@ -90,10 +90,10 @@ func (a AWSStorage) PresignUpload(
 			Method: c.UploadMethodPut,
 			Parts: []models.FilePartURL{
 				{
-					PartNumber: 1,
-					URL:        presigned.URL,
-					Size:       int64(size),
-					Headers:    clientHeaders,
+					ID:      1,
+					URL:     presigned.URL,
+					Size:    int64(size),
+					Headers: clientHeaders,
 				},
 			},
 		}}, nil
@@ -131,7 +131,7 @@ func (a AWSStorage) PresignUpload(
 			}
 			return PresignedUpload{}, partErr
 		}
-		parts = append(parts, models.FilePartURL{PartNumber: partNumber, URL: presigned.URL, Size: expected})
+		parts = append(parts, models.FilePartURL{ID: partNumber, URL: presigned.URL, Size: expected})
 	}
 
 	return PresignedUpload{

@@ -99,7 +99,7 @@ func (g GCPStorage) PresignUpload(
 		return PresignedUpload{Response: models.FileUploadResponse{
 			Method: c.UploadMethodPut,
 			Parts: []models.FilePartURL{
-				{PartNumber: 1, URL: signedURL, Size: int64(size), Headers: headers},
+				{ID: 1, URL: signedURL, Size: int64(size), Headers: headers},
 			},
 		}}, nil
 	}
@@ -135,9 +135,9 @@ func (g GCPStorage) PresignUpload(
 			return PresignedUpload{}, partErr
 		}
 		parts = append(parts, models.FilePartURL{
-			PartNumber: partNumber,
-			URL:        signedURL,
-			Size:       expected,
+			ID:   partNumber,
+			URL:  signedURL,
+			Size: expected,
 			// GCS ignores x-goog-content-length
 			Headers: map[string]string{"x-goog-content-length-range": rangeHeader},
 		})

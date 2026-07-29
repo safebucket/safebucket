@@ -53,7 +53,7 @@ func presignS3Upload(
 		return PresignedUpload{Response: models.FileUploadResponse{
 			Method: c.UploadMethodPut,
 			Parts: []models.FilePartURL{
-				{PartNumber: 1, URL: presignedURL.String(), Size: int64(size), Headers: clientHeaders},
+				{ID: 1, URL: presignedURL.String(), Size: int64(size), Headers: clientHeaders},
 			},
 		}}, nil
 	}
@@ -88,7 +88,7 @@ func presignS3Upload(
 			}
 			return PresignedUpload{}, partErr
 		}
-		parts = append(parts, models.FilePartURL{PartNumber: partNumber, URL: presignedURL.String(), Size: expected})
+		parts = append(parts, models.FilePartURL{ID: partNumber, URL: presignedURL.String(), Size: expected})
 	}
 
 	return PresignedUpload{

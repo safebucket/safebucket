@@ -151,7 +151,7 @@ async function multipartUpload(
 ): Promise<void> {
   let offset = 0;
   const tasks = [...parts]
-    .sort((a, b) => a.part_number - b.part_number)
+    .sort((a, b) => a.id - b.id)
     .map((part) => {
       const start = offset;
       offset += part.size;
