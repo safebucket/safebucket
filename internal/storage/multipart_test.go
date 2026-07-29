@@ -18,7 +18,7 @@ func (s *stubStorage) ListObjectParts(path, uploadID string) ([]PartInfo, error)
 	return s.listObjectPartsFn(path, uploadID)
 }
 
-func (s *stubStorage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo) error {
+func (s *stubStorage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo, _ map[string]string) error {
 	if s.completeMultipartFn != nil {
 		return s.completeMultipartFn(path, uploadID, parts)
 	}
@@ -53,7 +53,7 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib+1)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib+1, nil)
 		assert.ErrorIs(t, err, ErrMultipartPartMismatch)
 	})
 
@@ -67,7 +67,7 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 64*mib)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 64*mib, nil)
 		assert.ErrorIs(t, err, ErrMultipartPartMismatch)
 	})
 
@@ -81,7 +81,7 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib+1)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib+1, nil)
 		assert.ErrorIs(t, err, ErrMultipartPartMismatch)
 	})
 
@@ -92,7 +92,7 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib, nil)
 		require.Error(t, err)
 		assert.NotErrorIs(t, err, ErrMultipartPartMismatch)
 	})
@@ -107,7 +107,7 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib, nil)
 		require.Error(t, err)
 		assert.NotErrorIs(t, err, ErrMultipartPartMismatch)
 	})
@@ -129,7 +129,7 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib+1)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib+1, nil)
 		require.NoError(t, err)
 		assert.True(t, completed)
 	})

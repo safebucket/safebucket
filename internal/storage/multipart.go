@@ -44,7 +44,12 @@ func ExpectedPartSize(size, partSize int64, partNumber, partCount int) int64 {
 	return partSize
 }
 
-func FinalizeMultipartUpload(store IStorage, objectPath, uploadID string, partSize, fileSize int64) error {
+func FinalizeMultipartUpload(
+	store IStorage,
+	objectPath, uploadID string,
+	partSize, fileSize int64,
+	metadata map[string]string,
+) error {
 	parts, err := store.ListObjectParts(objectPath, uploadID)
 	if err != nil {
 		return fmt.Errorf("list uploaded parts: %w", err)
@@ -66,7 +71,7 @@ func FinalizeMultipartUpload(store IStorage, objectPath, uploadID string, partSi
 		return ErrMultipartPartMismatch
 	}
 
-	if err = store.CompleteMultipartUpload(objectPath, uploadID, parts); err != nil {
+	if err = store.CompleteMultipartUpload(objectPath, uploadID, parts, metadata); err != nil {
 		return fmt.Errorf("complete multipart upload: %w", err)
 	}
 

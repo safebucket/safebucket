@@ -263,7 +263,9 @@ func (g GCPStorage) ListObjectParts(objectPath, uploadID string) ([]PartInfo, er
 	return parts, nil
 }
 
-func (g GCPStorage) CompleteMultipartUpload(objectPath, uploadID string, parts []PartInfo) error {
+func (g GCPStorage) CompleteMultipartUpload(
+	objectPath, uploadID string, parts []PartInfo, _ map[string]string,
+) error {
 	type completePart struct {
 		PartNumber int    `xml:"PartNumber"`
 		ETag       string `xml:"ETag"`

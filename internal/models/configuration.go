@@ -294,6 +294,7 @@ type EventsConfiguration struct {
 
 type AzureEventsConfiguration struct {
 	AccountName string `mapstructure:"account_name" validate:"required"`
+	Endpoint    string `mapstructure:"endpoint"     validate:"omitempty,http_url"`
 }
 
 type PubSubConfiguration struct {

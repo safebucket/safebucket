@@ -443,6 +443,11 @@ func (s PublicShareService) ConfirmShareUpload(
 		if isMultipart {
 			if completeErr := storage.FinalizeMultipartUpload(
 				s.Storage, objectPath, multipart.UploadID, multipart.PartSize, int64(file.Size),
+				map[string]string{
+					"bucket_id": share.BucketID.String(),
+					"file_id":   file.ID.String(),
+					"share_id":  share.ID.String(),
+				},
 			); completeErr != nil {
 				if errors.Is(completeErr, storage.ErrMultipartPartMismatch) {
 					return apierrors.New(http.StatusBadRequest, apierrors.CodeMultipartSizeMismatch)

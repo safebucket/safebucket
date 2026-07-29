@@ -92,7 +92,7 @@ func (s *GenericS3Storage) ListObjectParts(path, uploadID string) ([]PartInfo, e
 	return s3ListObjectParts(s.storage, s.BucketName, path, uploadID)
 }
 
-func (s *GenericS3Storage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo) error {
+func (s *GenericS3Storage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo, _ map[string]string) error {
 	return s3CompleteMultipartUpload(s.storage, s.BucketName, path, uploadID, parts)
 }
 

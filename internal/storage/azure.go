@@ -181,6 +181,24 @@ func azureBucketAndFileFromPath(objectPath string) (string, string) {
 	return parts[0], parts[1]
 }
 
+func azureCommitMetadata(objectPath string, metadata map[string]string) map[string]*string {
+	bucketID, fileID := azureBucketAndFileFromPath(objectPath)
+
+	values := map[string]string{"bucket_id": bucketID, "file_id": fileID}
+	for key, value := range metadata {
+		values[key] = value
+	}
+
+	result := map[string]*string{}
+	for key, value := range values {
+		if value != "" {
+			result[key] = to.Ptr(value)
+		}
+	}
+
+	return result
+}
+
 func (a *AzureStorage) SupportsMultipart() bool {
 	return true
 }
@@ -207,9 +225,9 @@ func (a *AzureStorage) ListObjectParts(objectPath, _ string) ([]PartInfo, error)
 	return parts, nil
 }
 
-func (a *AzureStorage) CompleteMultipartUpload(objectPath, _ string, parts []PartInfo) error {
-	bucketID, fileID := azureBucketAndFileFromPath(objectPath)
-
+func (a *AzureStorage) CompleteMultipartUpload(
+	objectPath, _ string, parts []PartInfo, metadata map[string]string,
+) error {
 	sorted := append([]PartInfo(nil), parts...)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].PartNumber < sorted[j].PartNumber })
 
@@ -220,18 +238,12 @@ func (a *AzureStorage) CompleteMultipartUpload(objectPath, _ string, parts []Par
 		total += part.Size
 	}
 
-	metadata := map[string]*string{}
-	if bucketID != "" {
-		metadata["bucket_id"] = &bucketID
-	}
-	if fileID != "" {
-		metadata["file_id"] = &fileID
-	}
+	commitMetadata := azureCommitMetadata(objectPath, metadata)
 
 	ctx := context.Background()
 
 	if _, commitErr := a.blockBlobClient(objectPath).CommitBlockList(
-		ctx, blockIDs, &blockblob.CommitBlockListOptions{Metadata: metadata},
+		ctx, blockIDs, &blockblob.CommitBlockListOptions{Metadata: commitMetadata},
 	); commitErr != nil {
 		return fmt.Errorf("commit block list: %w", commitErr)
 	}
@@ -416,7 +428,7 @@ func (a *AzureStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 		rules = existing.Properties.Policy.Rules
 	}
 
-	rules = upsertAzureTrashRule(rules, retentionDays)
+	rules = upsertAzureTrashRule(rules, retentionDays, a.containerName)
 
 	_, err = client.CreateOrUpdate(ctx, a.resourceGroup, a.accountName, armstorage.ManagementPolicyNameDefault,
 		armstorage.ManagementPolicy{
@@ -440,7 +452,7 @@ func (a *AzureStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
 }
 
 func upsertAzureTrashRule(
-	rules []*armstorage.ManagementPolicyRule, retentionDays int,
+	rules []*armstorage.ManagementPolicyRule, retentionDays int, containerName string,
 ) []*armstorage.ManagementPolicyRule {
 	trashRule := &armstorage.ManagementPolicyRule{
 		Enabled: to.Ptr(true),
@@ -449,7 +461,7 @@ func upsertAzureTrashRule(
 		Definition: &armstorage.ManagementPolicyDefinition{
 			Filters: &armstorage.ManagementPolicyFilter{
 				BlobTypes:   []*string{to.Ptr("blockBlob")},
-				PrefixMatch: []*string{to.Ptr(trashPrefix)},
+				PrefixMatch: []*string{to.Ptr(containerName + "/" + trashPrefix)},
 			},
 			Actions: &armstorage.ManagementPolicyAction{
 				BaseBlob: &armstorage.ManagementPolicyBaseBlob{

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/models"
@@ -180,7 +181,12 @@ func newAzureQueueClient(config *models.AzureEventsConfiguration, queueName stri
 		zap.L().Fatal("Failed to create Azure credential", zap.Error(err))
 	}
 
-	queueURL := fmt.Sprintf("https://%s.queue.core.windows.net/%s", config.AccountName, queueName)
+	endpoint := config.Endpoint
+	if endpoint == "" {
+		endpoint = fmt.Sprintf("https://%s.queue.core.windows.net", config.AccountName)
+	}
+	queueURL := strings.TrimRight(endpoint, "/") + "/" + queueName
+
 	client, err := azqueue.NewQueueClient(queueURL, cred, nil)
 	if err != nil {
 		zap.L().Fatal("Failed to create Azure queue client", zap.Error(err))

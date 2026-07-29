@@ -57,11 +57,6 @@ func (p *AzureEventParser) ParseBucketUploadEvents(msg *message.Message) []Bucke
 		return nil
 	}
 
-	if p.Storage == nil {
-		zap.L().Error("storage is not initialized for Azure event parser")
-		return nil
-	}
-
 	var uploadEvents []BucketUploadEvent
 	for _, event := range events {
 		if azureEventType(event) != azureBlobCreatedEvent {

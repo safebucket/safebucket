@@ -154,7 +154,7 @@ func (s RustFSStorage) ListObjectParts(path, uploadID string) ([]PartInfo, error
 	return s3ListObjectParts(s.storage, s.BucketName, path, uploadID)
 }
 
-func (s RustFSStorage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo) error {
+func (s RustFSStorage) CompleteMultipartUpload(path, uploadID string, parts []PartInfo, _ map[string]string) error {
 	return s3CompleteMultipartUpload(s.storage, s.BucketName, path, uploadID, parts)
 }
 

@@ -38,7 +38,7 @@ func (s *gcStubStorage) ListObjectParts(path, uploadID string) ([]storage.PartIn
 	return nil, nil
 }
 
-func (s *gcStubStorage) CompleteMultipartUpload(string, string, []storage.PartInfo) error {
+func (s *gcStubStorage) CompleteMultipartUpload(string, string, []storage.PartInfo, map[string]string) error {
 	return nil
 }
 

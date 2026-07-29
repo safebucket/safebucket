@@ -179,7 +179,9 @@ func (a AWSStorage) ListObjectParts(objectPath, uploadID string) ([]PartInfo, er
 	return parts, nil
 }
 
-func (a AWSStorage) CompleteMultipartUpload(objectPath, uploadID string, parts []PartInfo) error {
+func (a AWSStorage) CompleteMultipartUpload(
+	objectPath, uploadID string, parts []PartInfo, _ map[string]string,
+) error {
 	completeParts := make([]types.CompletedPart, len(parts))
 	for i, part := range parts {
 		partNumber := int32(part.PartNumber) //nolint:gosec // bounded by MultipartMaxParts
