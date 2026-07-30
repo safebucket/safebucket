@@ -111,9 +111,9 @@ func TestGetBucketMembers(t *testing.T) {
 			WithArgs(bucketID).
 			WillReturnRows(membershipRows)
 
-		userRows := sqlmock.NewRows([]string{"id", "email", "role", "first_name", "last_name", "hashed_password", "is_initialized", "provider_type", "provider_key", "created_at", "updated_at", "deleted_at"}).
-			AddRow(user1ID, "owner@example.com", "user", "", "", "", false, "local", "", nil, nil, nil).
-			AddRow(user2ID, "viewer@example.com", "user", "", "", "", false, "local", "", nil, nil, nil)
+		userRows := sqlmock.NewRows([]string{"id", "email", "role", "first_name", "last_name", "hashed_password", "provider_type", "provider_key", "created_at", "updated_at", "deleted_at"}).
+			AddRow(user1ID, "owner@example.com", "user", "", "", "", "local", "", nil, nil, nil).
+			AddRow(user2ID, "viewer@example.com", "user", "", "", "", "local", "", nil, nil, nil)
 
 		mock.ExpectQuery(`SELECT \* FROM "users"`).
 			WillReturnRows(userRows)

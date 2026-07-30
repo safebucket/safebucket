@@ -21,7 +21,6 @@ type User struct {
 	LastName       string         `gorm:"default:null"                                             json:"last_name"`
 	Email          string         `gorm:"not null;default:null;uniqueIndex:idx_email_provider_key" json:"email"`
 	HashedPassword string         `gorm:"default:null"                                             json:"-"`
-	IsInitialized  bool           `gorm:"not null;default:false"                                   json:"is_initialized"`
 	ProviderType   ProviderType   `gorm:"not null"                                                 json:"provider_type"`
 	ProviderKey    string         `gorm:"not null;uniqueIndex:idx_email_provider_key"              json:"provider_key"`
 	Role           Role           `gorm:"not null"                                                 json:"role"`
