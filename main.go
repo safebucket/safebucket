@@ -44,22 +44,14 @@ func main() {
 	defer app.ActivityLogger.Close()
 
 	var httpShutdown func(context.Context) error
-	var httpErr <-chan error
 	if app.Profile.HTTPServer {
-		httpShutdown, httpErr = core.StartHTTPServer(config, app.Router, webDistFS)
+		httpShutdown = core.StartHTTPServer(config, app.Router, webDistFS)
 	} else if app.Profile.Workers.AnyEnabled() {
 		zap.L().Info("Running in worker-only mode")
 	}
 
-	select {
-	case <-ctx.Done():
-		zap.L().Info("Shutdown signal received")
-	case err := <-httpErr:
-		if err != nil {
-			zap.L().Error("HTTP server failed to start, shutting down", zap.Error(err))
-		}
-		cancel()
-	}
+	<-ctx.Done()
+	zap.L().Info("Shutdown signal received")
 
 	if httpShutdown != nil {
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), httpShutdownTimeout)

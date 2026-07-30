@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -18,8 +19,11 @@ import (
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/google/uuid"
+	bolterrors "go.etcd.io/bbolt/errors"
 	"go.uber.org/zap"
 )
+
+const boltLockTimeout = 10 * time.Second
 
 type FilesystemClient struct {
 	index bleve.Index
@@ -29,11 +33,18 @@ type FilesystemClient struct {
 // If an existing index has a different schema version, it is automatically migrated.
 func NewFilesystemClient(config models.ActivityConfiguration) IActivityLogger {
 	dir := config.Filesystem.Directory
+	kvConfig := map[string]interface{}{"bolt_timeout": boltLockTimeout.String()}
 
-	index, err := bleve.Open(dir)
+	index, err := bleve.OpenUsing(dir, kvConfig)
 	if err != nil {
+		if errors.Is(err, bolterrors.ErrTimeout) {
+			zap.L().Fatal("Activity index directory is locked by another running instance",
+				zap.String("directory", dir), zap.Error(err))
+		}
 		indexMapping := buildIndexMapping()
-		index, err = bleve.New(dir, indexMapping)
+		index, err = bleve.NewUsing(
+			dir, indexMapping, bleve.Config.DefaultIndexType, bleve.Config.DefaultKVStore, kvConfig,
+		)
 		if err != nil {
 			zap.L().Fatal("Failed to create filesystem activity index", zap.Error(err))
 		}
@@ -62,7 +73,7 @@ func NewFilesystemClient(config models.ActivityConfiguration) IActivityLogger {
 		if err != nil {
 			zap.L().Fatal("Failed to migrate index", zap.Error(err))
 		}
-		index, err = bleve.Open(dir)
+		index, err = bleve.OpenUsing(dir, kvConfig)
 		if err != nil {
 			zap.L().Fatal("Failed to open migrated index", zap.Error(err))
 		}

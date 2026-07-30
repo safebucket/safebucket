@@ -467,7 +467,7 @@ func StartHTTPServer(
 	config models.Configuration,
 	router chi.Router,
 	embeddedWebFS embed.FS,
-) (func(context.Context) error, <-chan error) {
+) func(context.Context) error {
 	if config.App.StaticFiles.Enabled {
 		webFS, err := fs.Sub(embeddedWebFS, "web/dist")
 		if err != nil {
@@ -497,9 +497,7 @@ func StartHTTPServer(
 		IdleTimeout:  requestTimeout,
 	}
 
-	errCh := make(chan error, 1)
 	go func() {
-		defer close(errCh)
 		var err error
 		if config.App.TLSCertFile != "" {
 			zap.L().Info("TLS certificates provided, starting HTTPS server",
@@ -512,10 +510,9 @@ func StartHTTPServer(
 			err = server.ListenAndServe()
 		}
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			zap.L().Error("HTTP server exited", zap.Error(err))
-			errCh <- err
+			zap.L().Fatal("HTTP server exited", zap.Error(err))
 		}
 	}()
 
-	return server.Shutdown, errCh
+	return server.Shutdown
 }
