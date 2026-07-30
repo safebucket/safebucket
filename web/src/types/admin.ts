@@ -34,4 +34,3 @@ export interface IAdminBucket {
   file_count: number;
   size: number;
 }
-
