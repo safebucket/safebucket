@@ -5,12 +5,12 @@ import { CopyableValue } from "./CopyableValue";
 import { ListValue } from "./ListValue";
 import { ProviderTypeBadge } from "./ProviderTypeBadge";
 import { TextValue } from "./TextValue";
-import type { AdminAuthProviderSettings } from "@/types/admin";
+import type { IAdminAuthProviderSettings } from "@/types/app_settings";
 
 export function AuthProviderBlock({
   provider,
 }: {
-  provider: AdminAuthProviderSettings;
+  provider: IAdminAuthProviderSettings;
 }) {
   const { t } = useTranslation();
 

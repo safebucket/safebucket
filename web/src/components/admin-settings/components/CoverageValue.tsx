@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { CoverageStatus } from "@/types/admin";
+import type { CoverageStatus } from "@/types/app_settings";
 import { Badge } from "@/components/ui/badge";
 
 const variants: Record<

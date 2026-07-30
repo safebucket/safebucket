@@ -7,11 +7,11 @@ import {
 import type { IUser } from "@/components/auth-view/types/session";
 import type { ActivityMessage, IActivityPage } from "@/types/activity";
 import type {
-  AdminSettingsResponse,
   AdminStatsResponse,
   CreateUserPayload,
   IAdminBucket,
 } from "@/types/admin.ts";
+import type { IAdminSettingsResponse } from "@/types/app_settings";
 import { api } from "@/lib/api";
 import { successToast } from "@/components/ui/hooks/use-toast";
 
@@ -65,7 +65,7 @@ export const adminStatsQueryOptions = (days: number = 90) =>
 export const adminSettingsQueryOptions = () =>
   queryOptions({
     queryKey: ["admin", "settings"],
-    queryFn: () => api.get<AdminSettingsResponse>("/admin/settings"),
+    queryFn: () => api.get<IAdminSettingsResponse>("/admin/settings"),
     staleTime: 5 * 60 * 1000,
   });
 
