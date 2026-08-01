@@ -324,6 +324,8 @@
     "link_ready_description": "Anyone with this link can access the shared content.",
     "copy": "Copy link",
     "copied": "Link copied to clipboard",
+    "show_qr": "Show QR code",
+    "hide_qr": "Hide QR code",
     "done": "Done",
     "public_link_warning": "Anyone with this link will be able to access the shared content."
   },
@@ -490,7 +492,9 @@
         "title": "Bucket Information",
         "bucket_url": "Bucket URL",
         "bucket_name": "Bucket name",
-        "enter_bucket_name": "Enter bucket name"
+        "enter_bucket_name": "Enter bucket name",
+        "show_qr": "Show QR code",
+        "hide_qr": "Hide QR code"
       },
       "deletion": {
         "title": "Delete this bucket",
