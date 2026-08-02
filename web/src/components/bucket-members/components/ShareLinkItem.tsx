@@ -1,5 +1,7 @@
-import { Copy, Ellipsis, Lock, Trash2, Upload } from "lucide-react";
+import { Copy, Ellipsis, Lock, QrCode, Trash2, Upload } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { QRCode } from "react-qr-code";
 import type { FC } from "react";
 
 import type { IShare } from "@/types/share.ts";
@@ -7,11 +9,19 @@ import { useDeleteShareMutation } from "@/queries/bucket.ts";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog.tsx";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
+import { Input } from "@/components/ui/input.tsx";
 import {
   Item,
   ItemActions,
@@ -30,7 +40,10 @@ interface IShareLinkItemProps {
 
 export const ShareLinkItem: FC<IShareLinkItemProps> = ({ share, bucketId }) => {
   const { t } = useTranslation();
+  const [qrOpen, setQrOpen] = useState(false);
   const deleteShare = useDeleteShareMutation(bucketId);
+
+  const shareUrl = `${window.location.origin}/shares/${share.id}`;
 
   const viewsText = share.max_views
     ? t("bucket.settings.shares.views", {
@@ -57,9 +70,7 @@ export const ShareLinkItem: FC<IShareLinkItemProps> = ({ share, bucketId }) => {
   const createdText = new Date(share.created_at).toLocaleDateString();
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(
-      `${window.location.origin}/shares/${share.id}`,
-    );
+    navigator.clipboard.writeText(shareUrl);
     successToast(t("bucket.settings.shares.link_copied"));
   };
 
@@ -95,6 +106,10 @@ export const ShareLinkItem: FC<IShareLinkItemProps> = ({ share, bucketId }) => {
                 <Copy className="size-4" />
                 {t("bucket.settings.shares.copy_link")}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setQrOpen(true)}>
+                <QrCode className="size-4" />
+                {t("bucket.settings.shares.show_qr")}
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => deleteShare.mutate(share.id)}
                 disabled={deleteShare.isPending}
@@ -128,6 +143,38 @@ export const ShareLinkItem: FC<IShareLinkItemProps> = ({ share, bucketId }) => {
           )}
         </div>
       </ItemFooter>
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("bucket.settings.shares.qr_title")}</DialogTitle>
+            <DialogDescription>
+              {t("bucket.settings.shares.qr_description")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            <div className="mx-auto w-fit rounded-lg bg-white p-4">
+              <QRCode value={shareUrl} size={200} />
+            </div>
+            <div className="flex w-full items-center gap-2">
+              <Input
+                readOnly
+                value={shareUrl}
+                className="bg-muted flex-1 font-mono text-xs"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleCopyLink}
+                aria-label={t("bucket.settings.shares.copy_link")}
+                className="shrink-0"
+              >
+                <Copy className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Item>
   );
 };
