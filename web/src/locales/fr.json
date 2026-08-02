@@ -324,8 +324,6 @@
     "link_ready_description": "Toute personne disposant de ce lien peut accéder au contenu partagé.",
     "copy": "Copier le lien",
     "copied": "Lien copié dans le presse-papiers",
-    "show_qr": "Afficher le QR code",
-    "hide_qr": "Masquer le QR code",
     "done": "Terminer",
     "public_link_warning": "Toute personne disposant de ce lien pourra accéder au contenu partagé."
   },
