@@ -1,4 +1,5 @@
-import { Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { QRCode } from "react-qr-code";
 import type { FC } from "react";
@@ -30,10 +31,14 @@ export const QrCodeDialog: FC<IQrCodeDialogProps> = ({
   description,
 }) => {
   const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(value);
-    successToast(t("common.copied"));
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      successToast(t("common.copied"));
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   return (
@@ -55,13 +60,17 @@ export const QrCodeDialog: FC<IQrCodeDialogProps> = ({
             />
             <Button
               type="button"
-              variant="outline"
+              variant={copied ? "default" : "outline"}
               size="icon"
               onClick={handleCopy}
               aria-label={t("common.copy")}
               className="shrink-0"
             >
-              <Copy className="size-4" />
+              {copied ? (
+                <Check className="size-4" />
+              ) : (
+                <Copy className="size-4" />
+              )}
             </Button>
           </div>
         </div>
