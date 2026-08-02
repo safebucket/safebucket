@@ -1,27 +1,19 @@
 import { Copy, Ellipsis, Lock, QrCode, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { QRCode } from "react-qr-code";
 import type { FC } from "react";
 
 import type { IShare } from "@/types/share.ts";
 import { useDeleteShareMutation } from "@/queries/bucket.ts";
+import { QrCodeDialog } from "@/components/common/components/QrCodeDialog.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog.tsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
-import { Input } from "@/components/ui/input.tsx";
 import {
   Item,
   ItemActions,
@@ -143,38 +135,13 @@ export const ShareLinkItem: FC<IShareLinkItemProps> = ({ share, bucketId }) => {
           )}
         </div>
       </ItemFooter>
-      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{t("bucket.settings.shares.qr_title")}</DialogTitle>
-            <DialogDescription>
-              {t("bucket.settings.shares.qr_description")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4">
-            <div className="mx-auto w-fit rounded-lg bg-white p-4">
-              <QRCode value={shareUrl} size={200} />
-            </div>
-            <div className="flex w-full items-center gap-2">
-              <Input
-                readOnly
-                value={shareUrl}
-                className="bg-muted flex-1 font-mono text-xs"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={handleCopyLink}
-                aria-label={t("bucket.settings.shares.copy_link")}
-                className="shrink-0"
-              >
-                <Copy className="size-4" />
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <QrCodeDialog
+        open={qrOpen}
+        onOpenChange={setQrOpen}
+        value={shareUrl}
+        title={t("bucket.settings.shares.qr_title")}
+        description={t("bucket.settings.shares.qr_description")}
+      />
     </Item>
   );
 };

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { QRCode } from "react-qr-code";
 
 import { Check, Copy, Edit2, Info, QrCode, X } from "lucide-react";
 import type { FC } from "react";
@@ -8,6 +7,7 @@ import type { FC } from "react";
 import type { IBucket } from "@/types/bucket.ts";
 import { useBucketInformation } from "@/components/bucket-view/hooks/useBucketInformation";
 import { useBucketPermissions } from "@/hooks/usePermissions";
+import { QrCodeDialog } from "@/components/common/components/QrCodeDialog.tsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ interface IBucketInformationProps {
 
 export const BucketInformation: FC<IBucketInformationProps> = ({ bucket }) => {
   const { t } = useTranslation();
-  const [showQr, setShowQr] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const { isOwner } = useBucketPermissions(bucket.id);
   const {
     isEditingName,
@@ -62,21 +62,12 @@ export const BucketInformation: FC<IBucketInformationProps> = ({ bucket }) => {
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setShowQr((v) => !v)}
-              aria-label={
-                showQr
-                  ? t("bucket.settings.information.hide_qr")
-                  : t("bucket.settings.information.show_qr")
-              }
+              onClick={() => setQrOpen(true)}
+              aria-label={t("bucket.settings.information.show_qr")}
             >
               <QrCode className="h-3 w-3" />
             </Button>
           </div>
-          {showQr && (
-            <div className="w-fit rounded-lg bg-white p-4">
-              <QRCode value={bucketUrl} size={180} />
-            </div>
-          )}
         </div>
 
         <div className="space-y-2">
@@ -118,6 +109,13 @@ export const BucketInformation: FC<IBucketInformationProps> = ({ bucket }) => {
           </div>
         </div>
       </CardContent>
+      <QrCodeDialog
+        open={qrOpen}
+        onOpenChange={setQrOpen}
+        value={bucketUrl}
+        title={t("bucket.settings.information.qr_title")}
+        description={t("bucket.settings.information.qr_description")}
+      />
     </Card>
   );
 };

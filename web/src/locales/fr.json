@@ -11,7 +11,9 @@
     "error": "Erreur",
     "delete": "Supprimer",
     "upload": "Uploader",
-    "download": "Télécharger"
+    "download": "Télécharger",
+    "copy": "Copier",
+    "copied": "Copié dans le presse-papiers"
   },
   "errors": {
     "INVALID_PASSWORD": "Mot de passe invalide. Veuillez réessayer.",
@@ -497,7 +499,8 @@
         "bucket_name": "Nom du bucket",
         "enter_bucket_name": "Saisir le nom du bucket",
         "show_qr": "Afficher le QR code",
-        "hide_qr": "Masquer le QR code"
+        "qr_title": "QR code du bucket",
+        "qr_description": "Scannez pour ouvrir ce bucket."
       },
       "deletion": {
         "title": "Supprimer ce bucket",
