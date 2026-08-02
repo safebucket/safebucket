@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { QRCode } from "react-qr-code";
 
-import { Check, Copy, QrCode } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,6 @@ export const QuickShareResultStep: FC<IQuickShareResultStepProps> = ({
 }) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const [showQr, setShowQr] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedLink).then(() => {
@@ -62,22 +61,9 @@ export const QuickShareResultStep: FC<IQuickShareResultStepProps> = ({
         </Button>
       </div>
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => setShowQr((v) => !v)}
-        className="gap-2"
-      >
-        <QrCode className="h-4 w-4" />
-        {showQr ? t("quick_share.hide_qr") : t("quick_share.show_qr")}
-      </Button>
-
-      {showQr && (
-        <div className="rounded-lg bg-white p-4">
-          <QRCode value={generatedLink} size={180} />
-        </div>
-      )}
+      <div className="rounded-lg bg-white p-4">
+        <QRCode value={generatedLink} size={180} />
+      </div>
     </div>
   );
 };
