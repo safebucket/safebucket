@@ -15,7 +15,7 @@
   },
   "errors": {
     "INVALID_PASSWORD": "Das eingebene Passwort ist falsch. Bitte erneut versuchen.",
-    "INVALID_CREDENTIALS": "Ungültige E-Mail oder falsches Passwort. bitte erneut versuchen",
+    "INVALID_CREDENTIALS": "Ungültige E-Mail oder falsches Passwort. Bitte erneut versuchen",
     "WRONG_CODE": "Ungülter Verifizierungscode. Bitte erneut versuchen",
     "CHALLENGE_EXPIRED": "Dieser Verifizierungscode ist abgelaufen. Bitte den Vorgang erneut starten",
     "CHALLENGE_LOCKED": "Zu viele fehlgeschlagene Versuche. Bitte erneut versuchen.",
