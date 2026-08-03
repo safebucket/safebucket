@@ -11,7 +11,9 @@
     "error": "Fehler",
     "delete": "Löschen",
     "upload": "Hochladen",
-    "download": "Herunterladen"
+    "download": "Herunterladen",
+    "copy": "Kopieren",
+    "copied": "In die Zwischenablage kopiert"
   },
   "errors": {
     "INVALID_PASSWORD": "Das eingebene Passwort ist falsch. Bitte erneut versuchen.",
@@ -490,7 +492,10 @@
         "title": "Informationen zum Bucket",
         "bucket_url": "Bucket-Link",
         "bucket_name": "Bucket-Name",
-        "enter_bucket_name": "Bucket-Name eingeben"
+        "enter_bucket_name": "Bucket-Name eingeben",
+        "show_qr": "QR-Code anzeigen",
+        "qr_title": "Bucket QR code",
+        "qr_description": "Scannen, um diesen Bucket zu öffnen."
       },
       "deletion": {
         "title": "Diesen Bucket löschen",
@@ -529,6 +534,9 @@
         "uploads_allowed": "Uploads",
         "copy_link": "Link kopieren",
         "link_copied": "Freigabe-Link in Zwischenablage kopiert",
+        "show_qr": "QR-Code anzeigen",
+        "qr_title": "Freigabe-QR-Code",
+        "qr_description": "Scannen, um den Freigabe-Link zu öffnen.",
         "delete": "Freigabe-Link löschen",
         "deleted": "Freigabe-Link gelöscht",
         "created": "Erstellt",
