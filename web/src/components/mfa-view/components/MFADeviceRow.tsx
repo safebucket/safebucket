@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { enUS, fr } from "date-fns/locale";
 import { Smartphone, Star, Trash2 } from "lucide-react";
 
 import type { IMFADevice } from "@/components/auth-view/types/session";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { dateFnsLocale } from "@/lib/date-locale";
 
 interface MFADeviceRowProps {
   device: IMFADevice;
@@ -19,7 +19,7 @@ export function MFADeviceRow({
   onDelete,
 }: MFADeviceRowProps) {
   const { t, i18n } = useTranslation();
-  const dateLocale = i18n.language === "fr" ? fr : enUS;
+  const dateLocale = dateFnsLocale(i18n.language);
 
   return (
     <div className="flex items-center justify-between rounded-lg border p-4">

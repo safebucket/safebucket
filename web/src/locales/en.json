@@ -623,7 +623,8 @@
       "label": "Language",
       "description": "Select your preferred language",
       "english": "English",
-      "french": "French"
+      "french": "French",
+      "german": "German"
     },
     "datetime": {
       "title": "Date & time",

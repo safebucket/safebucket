@@ -33,6 +33,7 @@ export function PreferencesTab() {
   const languages = [
     { value: "en", label: t("settings.language.english") },
     { value: "fr", label: t("settings.language.french") },
+    { value: "de", label: t("settings.language.german") },
   ];
 
   const themeModes = [

@@ -614,8 +614,8 @@
     "language": {
       "label": "Sprache",
       "description": "Wählen Sie Ihre Sprache aus",
-      "english": "English",
-      "french": "French",
+      "english": "Englisch",
+      "french": "Französisch",
       "german": "Deutsch"
     },
     "datetime": {

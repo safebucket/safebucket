@@ -628,7 +628,8 @@
       "label": "Langue",
       "description": "Sélectionnez votre langue préférée",
       "english": "Anglais",
-      "french": "Français"
+      "french": "Français",
+      "german": "Allemand"
     },
     "datetime": {
       "title": "Date et heure",
