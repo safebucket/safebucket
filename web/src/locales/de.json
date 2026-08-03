@@ -494,7 +494,7 @@
         "bucket_name": "Bucket-Name",
         "enter_bucket_name": "Bucket-Name eingeben",
         "show_qr": "QR-Code anzeigen",
-        "qr_title": "Bucket QR code",
+        "qr_title": "Bucket-QR-Code",
         "qr_description": "Scannen, um diesen Bucket zu öffnen."
       },
       "deletion": {
