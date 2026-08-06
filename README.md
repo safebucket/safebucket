@@ -63,6 +63,18 @@ docker compose up -d
 > - `APP__API_URL`
 > - `APP__WEB_URL`
 
+### Hosted
+
+To run Safebucket without a machine of your own:
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/safebucket)
+
+You choose an admin email and password at deploy time. Safebucket, PostgreSQL and object
+storage come up together, secrets are generated, and the URL and origin variables above are
+set to the assigned domain, so the external-host note doesn't apply.
+
+Community-maintained template, not an official Safebucket build.
+
 ## Verify Image Signature
 
 All published container images are signed with [cosign](https://github.com/sigstore/cosign) using keyless signing via
