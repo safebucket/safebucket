@@ -1,16 +1,21 @@
 package database
 
 import (
+	"database/sql"
 	"testing"
 
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/google/uuid"
+	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
+const fileVersionsMigrationVersion int64 = 12
 
 func setupSQLiteDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -30,6 +35,20 @@ func setupSQLiteDB(t *testing.T) *gorm.DB {
 	return db
 }
 
+// migrateSQLiteUpTo stops at a chosen migration so a test can seed the schema as it stood before a
+// migration and then assert what that migration did to the existing rows.
+func migrateSQLiteUpTo(t *testing.T, db *sql.DB, version int64) {
+	t.Helper()
+
+	goose.SetLogger(zapGooseLogger{l: zap.L()})
+	require.NoError(t, goose.SetDialect("sqlite3"))
+
+	goose.SetBaseFS(sqliteMigrations)
+	defer goose.SetBaseFS(nil)
+
+	require.NoError(t, goose.UpTo(db, "migrations/"+DialectSQLite, version))
+}
+
 func TestSQLite_Migrations(t *testing.T) {
 	db := setupSQLiteDB(t)
 
@@ -37,7 +56,9 @@ func TestSQLite_Migrations(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	tables := []string{"users", "buckets", "memberships", "folders", "files", "invites", "challenges", "mfa_devices"}
+	tables := []string{
+		"users", "buckets", "memberships", "folders", "files", "file_versions", "invites", "challenges", "mfa_devices",
+	}
 	for _, table := range tables {
 		var count int
 		err = sqlDB.QueryRow("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&count)
@@ -155,4 +176,108 @@ func TestSQLite_ForeignKeyConstraints(t *testing.T) {
 	}
 	err = db.Create(&bucket).Error
 	assert.Error(t, err, "foreign key constraint should prevent creating bucket with non-existent user")
+}
+
+func TestSQLite_FileVersionsBackfill(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	defer sqlDB.Close()
+
+	_, err = sqlDB.Exec(pragmaForeignKeys)
+	require.NoError(t, err)
+
+	migrateSQLiteUpTo(t, sqlDB, fileVersionsMigrationVersion-1)
+	RegisterCallbacks(db)
+
+	user := models.User{
+		Email:        "owner@example.com",
+		ProviderType: models.LocalProviderType,
+		ProviderKey:  string(models.LocalProviderType),
+		Role:         models.RoleAdmin,
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	bucket := models.Bucket{Name: "bucket", CreatedBy: user.ID}
+	require.NoError(t, db.Create(&bucket).Error)
+
+	uploaded := models.File{
+		Name:     "uploaded.txt",
+		Status:   models.FileStatusUploaded,
+		BucketID: bucket.ID,
+		Size:     42,
+	}
+	require.NoError(t, db.Create(&uploaded).Error)
+
+	uploading := models.File{
+		Name:     "uploading.txt",
+		Status:   models.FileStatusUploading,
+		BucketID: bucket.ID,
+	}
+	require.NoError(t, db.Create(&uploading).Error)
+
+	migrateSQLiteUpTo(t, sqlDB, fileVersionsMigrationVersion)
+
+	existingFiles := []models.File{uploaded, uploading}
+
+	t.Run("backfills exactly one version per existing file", func(t *testing.T) {
+		var count int
+		require.NoError(t, sqlDB.QueryRow("SELECT count(*) FROM file_versions").Scan(&count))
+		assert.Equal(t, len(existingFiles), count)
+	})
+
+	t.Run("reuses the file id as the version id", func(t *testing.T) {
+		for _, file := range existingFiles {
+			var (
+				id            string
+				versionNumber int
+				size          int
+				status        string
+			)
+			require.NoError(t, sqlDB.QueryRow(
+				"SELECT id, version_number, size, status FROM file_versions WHERE file_id = ?", file.ID,
+			).Scan(&id, &versionNumber, &size, &status))
+
+			assert.Equal(t, file.ID.String(), id)
+			assert.Equal(t, 1, versionNumber)
+			assert.Equal(t, file.Size, size)
+			assert.Equal(t, string(file.Status), status)
+		}
+	})
+
+	t.Run("points every file at its backfilled version", func(t *testing.T) {
+		for _, file := range existingFiles {
+			var (
+				currentVersionID  string
+				lastVersionNumber int
+			)
+			require.NoError(t, sqlDB.QueryRow(
+				"SELECT current_version_id, last_version_number FROM files WHERE id = ?", file.ID,
+			).Scan(&currentVersionID, &lastVersionNumber))
+
+			assert.Equal(t, file.ID.String(), currentVersionID)
+			assert.Equal(t, 1, lastVersionNumber)
+		}
+	})
+
+	t.Run("rejects reusing a version number on the same file", func(t *testing.T) {
+		_, insertErr := sqlDB.Exec(
+			"INSERT INTO file_versions (id, file_id, version_number, size, status) VALUES (?, ?, 1, 0, 'uploaded')",
+			uuid.New(), uploaded.ID,
+		)
+		assert.Error(t, insertErr, "unique index should prevent reissuing a version number")
+	})
+
+	t.Run("cascades version rows when the file row is deleted", func(t *testing.T) {
+		_, deleteErr := sqlDB.Exec("DELETE FROM files WHERE id = ?", uploading.ID)
+		require.NoError(t, deleteErr)
+
+		var count int
+		require.NoError(t, sqlDB.QueryRow(
+			"SELECT count(*) FROM file_versions WHERE file_id = ?", uploading.ID,
+		).Scan(&count))
+		assert.Equal(t, 0, count)
+	})
 }
