@@ -1,6 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-
 CREATE TABLE api_tokens
     (
         id TEXT PRIMARY KEY,
@@ -22,12 +21,9 @@ CREATE TABLE api_tokens
 
 CREATE UNIQUE INDEX idx_api_tokens_token_hash ON api_tokens (token_hash) WHERE deleted_at IS NULL;
 CREATE INDEX idx_api_tokens_user_id ON api_tokens (user_id) WHERE deleted_at IS NULL;
-
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-
 DROP TABLE IF EXISTS api_tokens;
-
 -- +goose StatementEnd
