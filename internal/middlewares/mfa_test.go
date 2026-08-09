@@ -64,7 +64,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 
@@ -103,7 +103,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 
@@ -136,7 +136,7 @@ func TestMFAValidate_MFAEnforcement(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 
@@ -170,7 +170,7 @@ func TestMFAValidate_RestrictedTokensSkipMFAEnforcement(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/mfa/devices", nil)
 		recorder := httptest.NewRecorder()
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
@@ -238,7 +238,7 @@ func TestMFAValidate_NonLocalNoRequirement(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
 		recorder := httptest.NewRecorder()
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
@@ -272,7 +272,7 @@ func TestMFAValidate_OIDCProviderRequiresMFA(t *testing.T) {
 		}
 		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, providerKey, "")
 		require.NoError(t, err)
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
 		return req.WithContext(context.WithValue(req.Context(), models.UserClaimKey{}, claims))
@@ -355,7 +355,7 @@ func TestMFAValidate_TokenUserStateMismatch(t *testing.T) {
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 		assert.False(t, claims.MFA, "Token should have MFA=false since user had no devices at token creation")
@@ -395,7 +395,7 @@ func TestMFAValidate_TokenUserStateMismatch(t *testing.T) {
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.Equal(t, configuration.AudienceAccessToken, claims.Audience[0])
 		assert.True(t, claims.MFA, "Token should have MFA=true since user had verified device at token creation")
@@ -430,7 +430,7 @@ func TestMFAValidate_ProviderTypeMismatch(t *testing.T) {
 		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, "google", "")
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
@@ -463,7 +463,7 @@ func TestMFAValidate_CrossFlowTokenAccess(t *testing.T) {
 		token, err := generateRestrictedToken(mfaTestJWTSecret, testUser, configuration.AudienceMFAReset, false)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
@@ -580,7 +580,7 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.False(t, claims.MFA, "claims.MFA should be false for user without MFA devices")
 
@@ -613,7 +613,7 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
@@ -643,7 +643,7 @@ func TestMFAValidate_BypassPath(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token)
 		recorder := httptest.NewRecorder()
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 
 		ctx := context.WithValue(req.Context(), models.UserClaimKey{}, claims)
@@ -674,7 +674,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.False(t, claims.MFA, "Token should have MFA=false")
 
@@ -713,7 +713,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(0)
@@ -753,7 +753,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		token, err := helpers.NewAccessToken(mfaTestJWTSecret, testUser, "google", "")
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.False(t, claims.MFA)
 
@@ -795,7 +795,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.True(t, claims.MFA, "Token should have MFA=true")
 
@@ -831,7 +831,7 @@ func TestMFAValidate_EnrollmentCheck(t *testing.T) {
 		token, err := generateFullAccessToken(testUser)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(mfaTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(mfaTestJWTSecret, token)
 		require.NoError(t, err)
 		require.False(t, claims.MFA, "Token should have MFA=false")
 

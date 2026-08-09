@@ -45,4 +45,8 @@ var (
 	ShareMaxViewsReached         = defineAction("SHARE_MAX_VIEWS_REACHED")
 	ShareFileDownloaded          = defineAction("SHARE_FILE_DOWNLOADED")
 	ShareFileUploaded            = defineAction("SHARE_FILE_UPLOADED")
+	APITokenCreated              = defineAction("API_TOKEN_CREATED")
+	APITokenRevoked              = defineAction("API_TOKEN_REVOKED")
+	ServiceAccountCreated        = defineAction("SERVICE_ACCOUNT_CREATED")
+	ServiceAccountDeleted        = defineAction("SERVICE_ACCOUNT_DELETED")
 )

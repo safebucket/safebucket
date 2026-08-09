@@ -218,3 +218,39 @@ func TestCleanupStaleUploads(t *testing.T) {
 		assert.Empty(t, store.abortedUploadIDs)
 	})
 }
+
+func TestCleanupExpiredTokens(t *testing.T) {
+	db := setupGCTestDB(t)
+	bucket := gcTestBucket(t, db)
+	worker := &GarbageCollectorWorker{DB: db, Cache: cache.NewMemoryCache()}
+
+	now := time.Now()
+	mkToken := func(name string, expiresAt time.Time, revokedAt *time.Time) models.APIToken {
+		token := models.APIToken{
+			TokenHash: uuid.NewString(),
+			UserID:    bucket.CreatedBy,
+			Name:      name,
+			ExpiresAt: expiresAt,
+			RevokedAt: revokedAt,
+		}
+		require.NoError(t, db.Create(&token).Error)
+		return token
+	}
+
+	live := mkToken("live", now.Add(time.Hour), nil)
+	expired := mkToken("expired", now.Add(-time.Hour), nil)
+	revoked := mkToken("revoked", now.Add(time.Hour), &now)
+
+	count, err := worker.cleanupExpiredTokens(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, 2, count)
+
+	assertExists := func(id uuid.UUID, want int64) {
+		var c int64
+		require.NoError(t, db.Unscoped().Model(&models.APIToken{}).Where("id = ?", id).Count(&c).Error)
+		assert.Equal(t, want, c)
+	}
+	assertExists(live.ID, 1)
+	assertExists(expired.ID, 0)
+	assertExists(revoked.ID, 0)
+}

@@ -88,6 +88,11 @@ func MarkTOTPCodeUsed(c ICache, deviceID string, code string) (bool, error) {
 	return c.SetNX(key, "1", time.Duration(configuration.TOTPCodeTTL)*time.Second)
 }
 
+func ShouldUpdateTokenLastUsed(c ICache, tokenID string) (bool, error) {
+	key := fmt.Sprintf(configuration.CacheAPITokenUsedKey, tokenID)
+	return c.SetNX(key, "1", configuration.APITokenLastUsedThrottle)
+}
+
 func GetRateLimit(c ICache, userIdentifier string, requestsPerMinute int) (int, error) {
 	key := fmt.Sprintf(configuration.CacheAppRateLimitKey, userIdentifier)
 

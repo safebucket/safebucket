@@ -131,7 +131,7 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		mfaToken := cookieValue(response, "safebucket_mfa_token")
 		require.NotEmpty(t, mfaToken, "Password reset MFA verify should set the MFA cookie")
 
-		parsedClaims, err := helpers.ParseToken(jwtSecret, mfaToken, false)
+		parsedClaims, err := helpers.ParseToken(jwtSecret, mfaToken)
 		require.NoError(t, err, "Token should be parseable")
 
 		require.Equal(t, configuration.AudienceMFAReset, parsedClaims.Audience[0],

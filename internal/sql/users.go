@@ -13,6 +13,14 @@ import (
 	"gorm.io/gorm"
 )
 
+func ExcludeServiceAccounts(db *gorm.DB) *gorm.DB {
+	return db.Where("provider_type != ?", models.ServiceAccountProviderType)
+}
+
+func OnlyServiceAccounts(db *gorm.DB) *gorm.DB {
+	return db.Where("provider_type = ?", models.ServiceAccountProviderType)
+}
+
 func GetUserByID(db *gorm.DB, userID uuid.UUID) (models.User, error) {
 	var user models.User
 

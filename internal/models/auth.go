@@ -5,9 +5,10 @@ import "github.com/google/uuid"
 type ProviderType string
 
 const (
-	LocalProviderType ProviderType = "local"
-	OIDCProviderType  ProviderType = "oidc"
-	LDAPProviderType  ProviderType = "ldap"
+	LocalProviderType          ProviderType = "local"
+	OIDCProviderType           ProviderType = "oidc"
+	LDAPProviderType           ProviderType = "ldap"
+	ServiceAccountProviderType ProviderType = "service_account"
 )
 
 type AuthLoginBody struct {
