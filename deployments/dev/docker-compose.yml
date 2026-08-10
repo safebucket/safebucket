@@ -133,7 +133,7 @@ services:
   loki:
     container_name: loki
     profiles: [ loki ]
-    image: grafana/loki:3.7.4
+    image: grafana/loki:3.7.6
     command: "-config.file=/etc/loki/config.yaml"
     ports:
       - "3100:3100"
@@ -154,7 +154,7 @@ services:
   pyroscope:
     container_name: pyroscope
     profiles: [ debug ]
-    image: grafana/pyroscope:2.2.0
+    image: grafana/pyroscope:2.2.1
     command: [ "server" ]
     ports:
       - "4040:4040"
