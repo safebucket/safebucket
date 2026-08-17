@@ -99,7 +99,7 @@ services:
       - "valkey_data:/data"
 
   mailpit:
-    image: axllent/mailpit:v1.30.6
+    image: axllent/mailpit:v1.30.7
     container_name: mailpit
     restart: unless-stopped
     volumes:
@@ -133,7 +133,7 @@ services:
   loki:
     container_name: loki
     profiles: [ loki ]
-    image: grafana/loki:3.7.4
+    image: grafana/loki:3.7.6
     command: "-config.file=/etc/loki/config.yaml"
     ports:
       - "3100:3100"
@@ -154,7 +154,7 @@ services:
   pyroscope:
     container_name: pyroscope
     profiles: [ debug ]
-    image: grafana/pyroscope:2.2.0
+    image: grafana/pyroscope:2.2.1
     command: [ "server" ]
     ports:
       - "4040:4040"
@@ -169,7 +169,7 @@ services:
   tempo:
     container_name: tempo
     profiles: [ debug ]
-    image: grafana/tempo:3.0.2
+    image: grafana/tempo:3.0.3
     command: [ "-config.file=/etc/tempo/config.yaml" ]
     ports:
       - "3201:3200"
