@@ -69,6 +69,11 @@ services:
       - safebucket-external
       - safebucket-internal
     restart: on-failure:3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
     depends_on:
       bucket-init:
         condition: service_completed_successfully
@@ -100,6 +105,11 @@ services:
       - safebucket-external
       - safebucket-internal
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
     depends_on:
       - nats
 
@@ -145,6 +155,11 @@ services:
     networks:
       - safebucket-internal
     restart: "no"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
 
   database:
     container_name: database
@@ -152,6 +167,11 @@ services:
     volumes:
       - "postgresql_data:/var/lib/postgresql"
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
     shm_size: 128mb
     environment:
       POSTGRES_USER: ${DATABASE__POSTGRES__USER}
@@ -173,6 +193,11 @@ services:
     networks:
       - safebucket-internal
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
     shm_size: 128mb
     volumes:
       - "valkey_data:/data"
@@ -181,6 +206,11 @@ services:
     image: axllent/mailpit:v1.30
     container_name: mailpit
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
     volumes:
       - "mail_data:/data"
     ports:
@@ -197,6 +227,11 @@ services:
     image: nats:2.14-alpine
     container_name: nats
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
     command: [ "-c", "/etc/nats/nats.conf" ]
     ulimits:
       nofile:
@@ -212,6 +247,11 @@ services:
     container_name: loki
     image: grafana/loki:3.7.2
     command: "-config.file=/etc/loki/config.yaml"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
     volumes:
       - ./config/loki.yaml:/etc/loki/config.yaml
     depends_on:

@@ -49,6 +49,11 @@ services:
     networks:
       - safebucket
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
     depends_on:
       bucket-init:
         condition: service_completed_successfully
@@ -73,6 +78,11 @@ services:
     networks:
       - safebucket
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
 
   bucket-init:
     container_name: bucket-init
@@ -112,6 +122,11 @@ services:
       bucket:
         condition: service_healthy
     restart: "no"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "1"
 
 networks:
   safebucket:
