@@ -170,7 +170,6 @@ func (s *StaticFileService) setSecurityHeaders(w http.ResponseWriter, filePath s
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	if strings.HasSuffix(filePath, ".html") {
-
 		storage := s.storageExternalURL
 		csp := strings.Join([]string{
 			"default-src 'self'",
