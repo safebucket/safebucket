@@ -1,0 +1,122 @@
+name: Build and push Docker image (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-amd64:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-arch.yml
+    with:
+      arch: amd64
+      runner: ubuntu-latest
+      platform: linux/amd64
+      environment: manual-build
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  build-arm64:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-arch.yml
+    with:
+      arch: arm64
+      runner: ubuntu-24.04-arm
+      platform: linux/arm64
+      environment: manual-build
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  create-manifests:
+    runs-on: ubuntu-latest
+    needs: [ build-amd64, build-arm64 ]
+    environment: manual-build
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            docker.io/safebucket/safebucket
+            ghcr.io/safebucket/safebucket
+          tags: |
+            type=raw,value=${{ github.sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifests
+        env:
+          METADATA: ${{ steps.meta.outputs.json }}
+        run: |
+          set -euo pipefail
+
+          echo "Metadata: $METADATA"
+
+          dockerhub_tags=$(echo "$METADATA" | jq -r '.tags[] | select(startswith("docker.io/"))')
+          ghcr_tags=$(echo "$METADATA" | jq -r '.tags[] | select(startswith("ghcr.io/"))')
+
+          if [[ -n "$dockerhub_tags" ]]; then
+            echo "Creating Docker Hub manifest for: $dockerhub_tags"
+            tag_args=""
+            for tag in $dockerhub_tags; do
+              tag_args="$tag_args --tag $tag"
+            done
+            docker buildx imagetools create \
+              $tag_args \
+              docker.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-dockerhub }} \
+              docker.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-dockerhub }}
+          fi
+
+          if [[ -n "$ghcr_tags" ]]; then
+            echo "Creating GHCR manifest for: $ghcr_tags"
+            tag_args=""
+            for tag in $ghcr_tags; do
+              tag_args="$tag_args --tag $tag"
+            done
+            docker buildx imagetools create \
+              $tag_args \
+              ghcr.io/safebucket/safebucket@${{ needs.build-amd64.outputs.digest-github }} \
+              ghcr.io/safebucket/safebucket@${{ needs.build-arm64.outputs.digest-github }}
+          fi
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign the images
+        env:
+          METADATA: ${{ steps.meta.outputs.json }}
+        run: |
+          TAGS=$(echo "$METADATA" | jq -r '.tags[]')
+          for tag in $TAGS; do
+            DIGEST=$(docker buildx imagetools inspect "$tag" --format '{{json .Manifest}}' | jq -r '.digest')
+            REPO=$(echo "$tag" | cut -d: -f1)
+            echo "Signing $REPO@$DIGEST"
+            cosign sign --yes "$REPO@$DIGEST"
+          done

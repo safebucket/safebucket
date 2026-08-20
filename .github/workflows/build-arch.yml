@@ -15,6 +15,11 @@ on:
         description: 'Docker platform (e.g. linux/amd64)'
         required: true
         type: string
+      environment:
+        description: 'GitHub Environment to run the job in'
+        required: false
+        type: string
+        default: ''
     secrets:
       DOCKER_USERNAME:
         required: true
@@ -31,6 +36,7 @@ on:
 jobs:
   build:
     runs-on: ${{ inputs.runner }}
+    environment: ${{ inputs.environment }}
     permissions:
       contents: read
       packages: write
