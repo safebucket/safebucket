@@ -1,0 +1,85 @@
+name: Create and sign multi-arch manifests
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag to attach to the multi-arch manifests (e.g. main, v1.0.0, sha)'
+        required: true
+        type: string
+      amd64-digest-dockerhub:
+        description: 'amd64 image digest on Docker Hub'
+        required: true
+        type: string
+      amd64-digest-ghcr:
+        description: 'amd64 image digest on GitHub Container Registry'
+        required: true
+        type: string
+      arm64-digest-dockerhub:
+        description: 'arm64 image digest on Docker Hub'
+        required: true
+        type: string
+      arm64-digest-ghcr:
+        description: 'arm64 image digest on GitHub Container Registry'
+        required: true
+        type: string
+    secrets:
+      DOCKER_USERNAME:
+        required: true
+      DOCKER_PASSWORD:
+        required: true
+
+jobs:
+  create-manifests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Docker Hub manifest
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "docker.io/safebucket/safebucket:$TAG" \
+            docker.io/safebucket/safebucket@${{ inputs.amd64-digest-dockerhub }} \
+            docker.io/safebucket/safebucket@${{ inputs.arm64-digest-dockerhub }}
+
+      - name: Create GHCR manifest
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "ghcr.io/safebucket/safebucket:$TAG" \
+            ghcr.io/safebucket/safebucket@${{ inputs.amd64-digest-ghcr }} \
+            ghcr.io/safebucket/safebucket@${{ inputs.arm64-digest-ghcr }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign the images
+        run: |
+          set -euo pipefail
+          for repo in docker.io/safebucket/safebucket ghcr.io/safebucket/safebucket; do
+            digest=$(docker buildx imagetools inspect "$repo:$TAG" --format '{{json .Manifest}}' | jq -r '.digest')
+            echo "Signing $repo@$digest"
+            cosign sign --yes "$repo@$digest"
+          done
