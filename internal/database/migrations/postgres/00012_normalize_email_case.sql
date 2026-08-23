@@ -16,4 +16,16 @@ WHERE email != LOWER(email)
     HAVING COUNT(*) > 1
   );
 
+INSERT INTO memberships (id, user_id, bucket_id, "group", created_at, updated_at)
+SELECT gen_random_uuid(), u.id, i.bucket_id, i."group", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM invites i
+JOIN users u ON u.email = LOWER(i.email) AND u.deleted_at IS NULL
+ON CONFLICT DO NOTHING;
+
+DELETE FROM invites
+WHERE EXISTS (
+    SELECT 1 FROM users u
+    WHERE u.email = LOWER(invites.email) AND u.deleted_at IS NULL
+);
+
 -- +goose Down
