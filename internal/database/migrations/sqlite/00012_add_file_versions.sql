@@ -27,7 +27,7 @@ CREATE UNIQUE INDEX idx_file_versions_file_number ON file_versions (file_id, ver
 
 INSERT INTO file_versions (id, file_id, version_number, size, status, uploaded_by, created_at, updated_at)
 SELECT id, id, 1, COALESCE(size, 0),
-    CASE WHEN status = 'uploading' THEN 'uploading' ELSE 'uploaded' END,
+    status,
     NULL, created_at, created_at
 FROM files;
 
