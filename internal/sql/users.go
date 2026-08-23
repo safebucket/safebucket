@@ -60,7 +60,10 @@ func CreateUserWithInvites(
 		}
 
 		var invites []models.Invite
-		if err := tx.Preload("Bucket").Where("email = ?", models.NormalizeEmail(user.Email)).Find(&invites).Error; err != nil {
+		if err := tx.Preload("Bucket").
+			Where("email = ?", models.NormalizeEmail(user.Email)).
+			Find(&invites).
+			Error; err != nil {
 			logger.Error("Failed to fetch user invites", zap.Error(err))
 			return err
 		}
