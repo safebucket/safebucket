@@ -7,10 +7,11 @@ import {
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
+import type { IDataTableColumn } from "@/components/common/components/DataTable/DataTable";
 import type { TrashedItem } from "@/components/bucket-view/hooks/useTrashActions";
 import type { IBucket } from "@/types/bucket.ts";
+import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
-import { SortableColumnHeader } from "@/components/bucket-view/components/SortableColumnHeader";
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,12 +32,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn, formatDate, formatFileSize } from "@/lib/utils";
+import { formatDate, formatFileSize } from "@/lib/utils";
 import { FileStatus } from "@/types/file.ts";
 import { FolderStatus } from "@/types/folder.ts";
-
-type SortKey = "name" | "size" | "deleted_at";
-type SortDir = "asc" | "desc";
 
 interface ISelectedItem {
   id: string;
@@ -74,6 +72,10 @@ const buildFolderPath = (
 const itemSize = (item: TrashedItem): number =>
   item.itemType === "folder" || !("size" in item) ? 0 : item.size;
 
+const isRestoring = (item: TrashedItem): boolean =>
+  item.status === FileStatus.restoring ||
+  item.status === FolderStatus.restoring;
+
 export const TrashTab: FC<ITrashTabProps> = ({
   items,
   bucket,
@@ -82,38 +84,8 @@ export const TrashTab: FC<ITrashTabProps> = ({
 }: ITrashTabProps) => {
   const { t } = useTranslation();
   const { isContributor } = useBucketPermissions(bucket.id);
-  const [sortKey, setSortKey] = useState<SortKey>("deleted_at");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ISelectedItem | null>(null);
-
-  const sorted = useMemo(() => {
-    const factor = sortDir === "asc" ? 1 : -1;
-    return [...items].sort((a, b) => {
-      if (a.itemType === "folder" && b.itemType !== "folder") return -1;
-      if (a.itemType !== "folder" && b.itemType === "folder") return 1;
-      let cmp = 0;
-      if (sortKey === "size") {
-        cmp = itemSize(a) - itemSize(b);
-      } else if (sortKey === "deleted_at") {
-        cmp =
-          new Date(a.deleted_at ?? 0).getTime() -
-          new Date(b.deleted_at ?? 0).getTime();
-      } else {
-        cmp = a.name.localeCompare(b.name);
-      }
-      return cmp * factor;
-    });
-  }, [items, sortKey, sortDir]);
-
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
-  };
 
   const openDeleteDialog = (item: ISelectedItem) => {
     setSelectedItem(item);
@@ -132,8 +104,116 @@ export const TrashTab: FC<ITrashTabProps> = ({
     setSelectedItem(null);
   };
 
-  const cell = "px-4 py-3 align-middle";
-  const headCell = "px-4 py-2.5 text-left";
+  const columns = useMemo<Array<IDataTableColumn<TrashedItem>>>(
+    () => [
+      {
+        id: "icon",
+        header: "",
+        headerClassName: "w-12",
+        cell: (item) => (
+          <FileIconView
+            className="text-primary h-5 w-5 shrink-0"
+            isFolder={item.itemType === "folder"}
+            extension={"extension" in item ? item.extension : ""}
+          />
+        ),
+      },
+      {
+        id: "name",
+        header: t("bucket.trash_view.name"),
+        sortAccessor: (item) => item.name,
+        cell: (item) => (
+          <span className="truncate font-medium">{item.name}</span>
+        ),
+      },
+      {
+        id: "location",
+        header: t("bucket.trash_view.original_location"),
+        responsive: "lg",
+        cellClassName: "text-muted-foreground",
+        cell: (item) =>
+          item.original_path
+            ? item.original_path
+            : buildFolderPath(
+                "folder_id" in item ? item.folder_id : undefined,
+                bucket.folders,
+              ),
+      },
+      {
+        id: "size",
+        header: t("bucket.trash_view.size"),
+        sortAccessor: itemSize,
+        responsive: "md",
+        cellClassName: "text-muted-foreground",
+        cell: (item) =>
+          item.itemType === "folder" ? "-" : formatFileSize(itemSize(item)),
+      },
+      {
+        id: "deleted_at",
+        header: t("bucket.trash_view.deleted_at"),
+        sortAccessor: (item) => new Date(item.deleted_at ?? 0).getTime(),
+        responsive: "lg",
+        cellClassName: "text-muted-foreground",
+        cell: (item) => formatDate(item.deleted_at),
+      },
+      {
+        id: "status",
+        header: t("bucket.trash_view.status"),
+        responsive: "sm",
+        cell: (item) =>
+          isRestoring(item) ? (
+            <Badge className="rounded-full border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+              <LoaderCircle className="h-3 w-3 animate-spin" />
+              {t("bucket.trash_view.restoring")}
+            </Badge>
+          ) : (
+            <Badge className="rounded-full border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
+              <Trash2 className="h-3 w-3" />
+              {t("bucket.trash_view.trashed")}
+            </Badge>
+          ),
+      },
+      {
+        id: "actions",
+        header: "",
+        headerClassName: "w-13",
+        cellClassName: "text-right",
+        cell: (item) =>
+          isContributor ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <EllipsisVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => onRestore(item.id, item.name, item.itemType)}
+                >
+                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                  {t("bucket.trash_view.restore")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() =>
+                    openDeleteDialog({
+                      id: item.id,
+                      name: item.name,
+                      itemType: item.itemType,
+                    })
+                  }
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t("bucket.trash_view.delete_permanently")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null,
+      },
+    ],
+    [t, bucket.folders, isContributor, onRestore],
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -141,168 +221,15 @@ export const TrashTab: FC<ITrashTabProps> = ({
         {t("bucket.trash_view.retention_notice")}
       </div>
 
-      <div className="border-border bg-card overflow-hidden rounded-xl border">
-        <table className="w-full border-collapse text-sm">
-          <thead className="bg-muted">
-            <tr>
-              <th className={cn(headCell, "w-12")} />
-              <th className={headCell}>
-                <SortableColumnHeader
-                  label={t("bucket.trash_view.name")}
-                  active={sortKey === "name"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("name")}
-                />
-              </th>
-              <th className={cn(headCell, "hidden lg:table-cell")}>
-                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  {t("bucket.trash_view.original_location")}
-                </span>
-              </th>
-              <th className={cn(headCell, "hidden md:table-cell")}>
-                <SortableColumnHeader
-                  label={t("bucket.trash_view.size")}
-                  active={sortKey === "size"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("size")}
-                />
-              </th>
-              <th className={cn(headCell, "hidden lg:table-cell")}>
-                <SortableColumnHeader
-                  label={t("bucket.trash_view.deleted_at")}
-                  active={sortKey === "deleted_at"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("deleted_at")}
-                />
-              </th>
-              <th className={cn(headCell, "hidden sm:table-cell")}>
-                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-                  {t("bucket.trash_view.status")}
-                </span>
-              </th>
-              <th className={cn(headCell, "w-13")} />
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="text-muted-foreground h-24 text-center"
-                >
-                  {t("bucket.trash_view.empty")}
-                </td>
-              </tr>
-            ) : (
-              sorted.map((item) => {
-                const isFolder = item.itemType === "folder";
-                const path = item.original_path
-                  ? item.original_path
-                  : buildFolderPath(
-                      "folder_id" in item ? item.folder_id : undefined,
-                      bucket.folders,
-                    );
-                const restoring =
-                  item.status === FileStatus.restoring ||
-                  item.status === FolderStatus.restoring;
-                return (
-                  <tr
-                    key={item.id}
-                    className="border-border hover:bg-muted/50 border-t transition-colors"
-                  >
-                    <td className={cell}>
-                      <FileIconView
-                        className="text-primary h-5 w-5 shrink-0"
-                        isFolder={isFolder}
-                        extension={"extension" in item ? item.extension : ""}
-                      />
-                    </td>
-                    <td className={cell}>
-                      <span className="truncate font-medium">{item.name}</span>
-                    </td>
-                    <td
-                      className={cn(
-                        cell,
-                        "text-muted-foreground hidden lg:table-cell",
-                      )}
-                    >
-                      {path}
-                    </td>
-                    <td
-                      className={cn(
-                        cell,
-                        "text-muted-foreground hidden md:table-cell",
-                      )}
-                    >
-                      {isFolder ? "-" : formatFileSize(itemSize(item))}
-                    </td>
-                    <td
-                      className={cn(
-                        cell,
-                        "text-muted-foreground hidden lg:table-cell",
-                      )}
-                    >
-                      {formatDate(item.deleted_at)}
-                    </td>
-                    <td className={cn(cell, "hidden sm:table-cell")}>
-                      {restoring ? (
-                        <Badge className="rounded-full border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                          <LoaderCircle className="h-3 w-3 animate-spin" />
-                          {t("bucket.trash_view.restoring")}
-                        </Badge>
-                      ) : (
-                        <Badge className="rounded-full border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
-                          <Trash2 className="h-3 w-3" />
-                          {t("bucket.trash_view.trashed")}
-                        </Badge>
-                      )}
-                    </td>
-                    <td className={cn(cell, "text-right")}>
-                      {isContributor ? (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                            >
-                              <EllipsisVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() =>
-                                onRestore(item.id, item.name, item.itemType)
-                              }
-                            >
-                              <ArchiveRestore className="mr-2 h-4 w-4" />
-                              {t("bucket.trash_view.restore")}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() =>
-                                openDeleteDialog({
-                                  id: item.id,
-                                  name: item.name,
-                                  itemType: item.itemType,
-                                })
-                              }
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              {t("bucket.trash_view.delete_permanently")}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={items}
+        getRowId={(item) => item.id}
+        emptyMessage={t("bucket.trash_view.empty")}
+        groupOrder={(item) => (item.itemType === "folder" ? 0 : 1)}
+        defaultSortId="deleted_at"
+        defaultSortDir="desc"
+      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
