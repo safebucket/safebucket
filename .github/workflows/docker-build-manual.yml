@@ -17,6 +17,7 @@ jobs:
         run: echo "tag=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
   build-amd64:
+    needs: [ prepare ]
     permissions:
       contents: read
       packages: write
@@ -30,6 +31,7 @@ jobs:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
   build-arm64:
+    needs: [ prepare ]
     permissions:
       contents: read
       packages: write
@@ -50,7 +52,7 @@ jobs:
       id-token: write
     uses: ./.github/workflows/docker-manifests.yml
     with:
-      tag: ${{ needs.prepare.outputs.tag }}
+      tags: ${{ needs.prepare.outputs.tag }}
       amd64-digest-dockerhub: ${{ needs.build-amd64.outputs.digest-dockerhub }}
       amd64-digest-ghcr: ${{ needs.build-amd64.outputs.digest-github }}
       arm64-digest-dockerhub: ${{ needs.build-arm64.outputs.digest-dockerhub }}
