@@ -17,9 +17,17 @@ WHERE email != LOWER(email)
   );
 
 INSERT OR IGNORE INTO memberships (id, user_id, bucket_id, "group", created_at, updated_at)
-SELECT lower(hex(randomblob(16))), u.id, i.bucket_id, i."group", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT lower(hex(randomblob(16))),
+       (SELECT u.id FROM users u
+        WHERE u.email = LOWER(i.email) AND u.deleted_at IS NULL
+        ORDER BY u.created_at ASC, u.id ASC
+        LIMIT 1),
+       i.bucket_id, i."group", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM invites i
-JOIN users u ON u.email = LOWER(i.email) AND u.deleted_at IS NULL;
+WHERE EXISTS (
+    SELECT 1 FROM users u
+    WHERE u.email = LOWER(i.email) AND u.deleted_at IS NULL
+);
 
 DELETE FROM invites
 WHERE EXISTS (

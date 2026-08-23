@@ -17,9 +17,17 @@ WHERE email != LOWER(email)
   );
 
 INSERT INTO memberships (id, user_id, bucket_id, "group", created_at, updated_at)
-SELECT gen_random_uuid(), u.id, i.bucket_id, i."group", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+SELECT gen_random_uuid(),
+       (SELECT u.id FROM users u
+        WHERE u.email = LOWER(i.email) AND u.deleted_at IS NULL
+        ORDER BY u.created_at ASC, u.id ASC
+        LIMIT 1),
+       i.bucket_id, i."group", CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 FROM invites i
-JOIN users u ON u.email = LOWER(i.email) AND u.deleted_at IS NULL
+WHERE EXISTS (
+    SELECT 1 FROM users u
+    WHERE u.email = LOWER(i.email) AND u.deleted_at IS NULL
+)
 ON CONFLICT DO NOTHING;
 
 DELETE FROM invites
