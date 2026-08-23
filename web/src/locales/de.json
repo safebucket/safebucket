@@ -10,6 +10,7 @@
     "success": "Success",
     "error": "Fehler",
     "delete": "Löschen",
+    "edit": "Bearbeiten",
     "upload": "Hochladen",
     "download": "Herunterladen",
     "copy": "Kopieren",
@@ -400,6 +401,38 @@
     }
   },
   "bucket": {
+    "view": {
+      "folder": "Ordner",
+      "search_placeholder": "Dateien und Ordner suchen",
+      "tabs": {
+        "files": "Dateien",
+        "activity": "Aktivität",
+        "members": "Mitglieder",
+        "shares": "Freigabelinks"
+      },
+      "actions": {
+        "bulk_download": "Auswahl herunterladen",
+        "bulk_trash": "Auswahl in den Papierkorb"
+      },
+      "members": {
+        "member": "Mitglied",
+        "status": "Status",
+        "role_label": "Rolle",
+        "email_label": "E-Mail",
+        "you": "(Sie)",
+        "active": "Aktiv",
+        "invited": "Eingeladen",
+        "new": "Neu",
+        "remove": "Mitglied entfernen",
+        "unsaved": "Sie haben nicht gespeicherte Änderungen"
+      },
+      "shares": {
+        "name": "Name",
+        "link": "Link",
+        "views": "Aufrufe",
+        "expiry": "Ablauf"
+      }
+    },
     "new_bucket_dialog": {
       "title": "Neuer Bucket",
       "description": "Neuen Bucket zum sicheren Teilen erstellen",

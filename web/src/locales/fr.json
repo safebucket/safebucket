@@ -10,6 +10,7 @@
     "success": "Succès",
     "error": "Erreur",
     "delete": "Supprimer",
+    "edit": "Modifier",
     "upload": "Uploader",
     "download": "Télécharger",
     "copy": "Copier",
@@ -400,6 +401,38 @@
     }
   },
   "bucket": {
+    "view": {
+      "folder": "Dossier",
+      "search_placeholder": "Rechercher des fichiers et dossiers",
+      "tabs": {
+        "files": "Fichiers",
+        "activity": "Activité",
+        "members": "Membres",
+        "shares": "Liens de partage"
+      },
+      "actions": {
+        "bulk_download": "Télécharger la sélection",
+        "bulk_trash": "Mettre la sélection à la corbeille"
+      },
+      "members": {
+        "member": "Membre",
+        "status": "Statut",
+        "role_label": "Rôle",
+        "email_label": "E-mail",
+        "you": "(vous)",
+        "active": "Actif",
+        "invited": "Invité",
+        "new": "Nouveau",
+        "remove": "Retirer le membre",
+        "unsaved": "Vous avez des modifications non enregistrées"
+      },
+      "shares": {
+        "name": "Nom",
+        "link": "Lien",
+        "views": "Vues",
+        "expiry": "Expiration"
+      }
+    },
     "new_bucket_dialog": {
       "title": "Nouveau bucket",
       "description": "Créer un bucket pour partager des fichiers en toute sécurité",

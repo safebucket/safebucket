@@ -10,6 +10,7 @@
     "success": "Success",
     "error": "Error",
     "delete": "Delete",
+    "edit": "Edit",
     "upload": "Upload",
     "download": "Download",
     "copy": "Copy",
@@ -400,6 +401,38 @@
     }
   },
   "bucket": {
+    "view": {
+      "folder": "Folder",
+      "search_placeholder": "Search files and folders",
+      "tabs": {
+        "files": "Files",
+        "activity": "Activity",
+        "members": "Members",
+        "shares": "Share links"
+      },
+      "actions": {
+        "bulk_download": "Download selected",
+        "bulk_trash": "Move selected to trash"
+      },
+      "members": {
+        "member": "Member",
+        "status": "Status",
+        "role_label": "Role",
+        "email_label": "Email",
+        "you": "(you)",
+        "active": "Active",
+        "invited": "Invited",
+        "new": "New",
+        "remove": "Remove member",
+        "unsaved": "You have unsaved changes"
+      },
+      "shares": {
+        "name": "Name",
+        "link": "Link",
+        "views": "Views",
+        "expiry": "Expiry"
+      }
+    },
     "new_bucket_dialog": {
       "title": "New bucket",
       "description": "Create a bucket to share files safely",

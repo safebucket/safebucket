@@ -2,18 +2,18 @@ import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { DateRange } from "react-day-picker";
-import { ActivityView } from "@/components/activity-view/ActivityView";
+import type { FC } from "react";
 import { ActivityViewSkeleton } from "@/components/activity-view/components/ActivityViewSkeleton.tsx";
 import {
   ActivityDateRangePicker,
   dateRangeToQuery,
 } from "@/components/activity-view/components/ActivityDateRangePicker";
 import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
+import { ActivityTimeline } from "@/components/bucket-view/components/ActivityTimeline";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { bucketActivityInfiniteQueryOptions } from "@/queries/bucket.ts";
 
-export const BucketActivityView = () => {
+export const ActivityTab: FC = () => {
   const { t } = useTranslation();
   const { bucketId } = useBucketViewContext();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -33,35 +33,34 @@ export const BucketActivityView = () => {
   });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="flex justify-end">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex items-center justify-end">
         <ActivityDateRangePicker value={dateRange} onChange={setDateRange} />
       </div>
-      <Card className="mb-6 flex min-h-0 flex-1 flex-col py-2">
-        <CardContent className="min-h-0 overflow-y-auto pb-0 px-2">
-          {isLoading ? (
-            <ActivityViewSkeleton />
-          ) : (
-            <>
-              <ActivityView activity={activity} />
-              {hasNextPage && (
-                <div className="flex justify-center py-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fetchNextPage()}
-                    disabled={isFetchingNextPage}
-                  >
-                    {isFetchingNextPage
-                      ? t("activity.loading_more")
-                      : t("activity.load_more")}
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+
+      <div className="bg-card border-border min-h-0 rounded-xl border p-6">
+        {isLoading ? (
+          <ActivityViewSkeleton />
+        ) : (
+          <>
+            <ActivityTimeline activity={activity} />
+            {hasNextPage && (
+              <div className="flex justify-start pt-4 pl-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage
+                    ? t("activity.loading_more")
+                    : t("activity.load_more")}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };
