@@ -16,7 +16,8 @@ type AuthExternalLoginBody struct {
 }
 
 type AuthLoginBody struct {
-	AuthExternalLoginBody
+	Email    string `json:"email"    validate:"required,email,max=254"`
+	Password string `json:"password" validate:"required,max=72"`
 }
 
 func (b *AuthLoginBody) NormalizeEmail() { b.Email = NormalizeEmail(b.Email) }
