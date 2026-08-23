@@ -43,6 +43,14 @@ jobs:
       AMD64_DIGEST_GHCR: ${{ inputs.amd64-digest-ghcr }}
       ARM64_DIGEST_GHCR: ${{ inputs.arm64-digest-ghcr }}
     steps:
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+          if [[ -z "${TAGS//[[:space:]]/}" ]]; then
+            echo "::error::no tags supplied; refusing to publish nothing"
+            exit 1
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -63,26 +71,28 @@ jobs:
       - name: Create Docker Hub manifests
         run: |
           set -euo pipefail
+          tag_args=()
           while IFS= read -r tag; do
             [[ -z "$tag" ]] && continue
-            echo "Creating Docker Hub manifest for: $tag"
-            docker buildx imagetools create \
-              --tag "docker.io/safebucket/safebucket:$tag" \
-              "docker.io/safebucket/safebucket@$AMD64_DIGEST_DOCKERHUB" \
-              "docker.io/safebucket/safebucket@$ARM64_DIGEST_DOCKERHUB"
+            tag_args+=(--tag "docker.io/safebucket/safebucket:$tag")
           done <<< "$TAGS"
+          echo "Creating Docker Hub manifest with: ${tag_args[*]}"
+          docker buildx imagetools create "${tag_args[@]}" \
+            "docker.io/safebucket/safebucket@$AMD64_DIGEST_DOCKERHUB" \
+            "docker.io/safebucket/safebucket@$ARM64_DIGEST_DOCKERHUB"
 
       - name: Create GHCR manifests
         run: |
           set -euo pipefail
+          tag_args=()
           while IFS= read -r tag; do
             [[ -z "$tag" ]] && continue
-            echo "Creating GHCR manifest for: $tag"
-            docker buildx imagetools create \
-              --tag "ghcr.io/safebucket/safebucket:$tag" \
-              "ghcr.io/safebucket/safebucket@$AMD64_DIGEST_GHCR" \
-              "ghcr.io/safebucket/safebucket@$ARM64_DIGEST_GHCR"
+            tag_args+=(--tag "ghcr.io/safebucket/safebucket:$tag")
           done <<< "$TAGS"
+          echo "Creating GHCR manifest with: ${tag_args[*]}"
+          docker buildx imagetools create "${tag_args[@]}" \
+            "ghcr.io/safebucket/safebucket@$AMD64_DIGEST_GHCR" \
+            "ghcr.io/safebucket/safebucket@$ARM64_DIGEST_GHCR"
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
@@ -91,10 +101,20 @@ jobs:
         run: |
           set -euo pipefail
           for repo in docker.io/safebucket/safebucket ghcr.io/safebucket/safebucket; do
-            while IFS= read -r tag; do
-              [[ -z "$tag" ]] && continue
-              digest=$(docker buildx imagetools inspect "$repo:$tag" --format '{{json .Manifest}}' | jq -r '.digest')
+            raw=$(
+              while IFS= read -r tag; do
+                [[ -z "$tag" ]] && continue
+                docker buildx imagetools inspect "$repo:$tag" \
+                  --format '{{json .Manifest}}' | jq -r '.digest'
+              done <<< "$TAGS"
+            )
+            digests=$(printf '%s\n' "$raw" | sed '/^$/d' | sort -u)
+            if [[ -z "$digests" ]]; then
+              echo "::error::no digests resolved for $repo"
+              exit 1
+            fi
+            while IFS= read -r digest; do
               echo "Signing $repo@$digest"
               cosign sign --yes "$repo@$digest"
-            done <<< "$TAGS"
+            done <<< "$digests"
           done

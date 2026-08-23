@@ -101,14 +101,14 @@ jobs:
           REFS: ${{ steps.meta.outputs.tags }}
         run: |
           set -euo pipefail
-          tags=""
-          while IFS= read -r ref; do
-            [[ -z "$ref" ]] && continue
-            tags="${tags}${ref##*:}"$'\n'
-          done <<< "$REFS"
+          tags=$(printf '%s\n' "$REFS" | sed 's|.*:||' | sed '/^$/d' | sort -u)
+          if [[ -z "$tags" ]]; then
+            echo "::error::docker/metadata-action produced no tags for ${{ github.ref }}"
+            exit 1
+          fi
           {
             echo "tags<<EOF"
-            printf '%s' "$tags"
+            printf '%s\n' "$tags"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
