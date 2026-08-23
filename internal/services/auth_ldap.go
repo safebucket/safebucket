@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	ldapclient "github.com/safebucket/safebucket/internal/auth/ldap"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -19,7 +18,7 @@ func (s AuthService) LDAPLogin(
 	isSecure bool,
 	logger *zap.Logger,
 	providerKey string,
-	body models.AuthLoginBody,
+	body models.AuthExternalLoginBody,
 ) (handlers.AuthFlowResult, error) {
 	provider, ok := s.Providers[providerKey]
 	if !ok || provider.Type != models.LDAPProviderType {
@@ -36,7 +35,7 @@ func (s AuthService) LDAPLogin(
 		return handlers.AuthFlowResult{}, mapLDAPAuthError(logger, providerKey, err)
 	}
 
-	email := normalizeExternalEmail(ldapUser.Email)
+	email := models.NormalizeEmail(ldapUser.Email)
 
 	user, found, err := sql.FindUserByIdentityProvider(
 		s.DB, email, models.LDAPProviderType, providerKey, true,
@@ -77,8 +76,4 @@ func mapLDAPAuthError(logger *zap.Logger, providerKey string, err error) error {
 		zap.Error(err),
 	)
 	return apierrors.New(http.StatusServiceUnavailable, apierrors.CodeAuthProviderUnavailable)
-}
-
-func normalizeExternalEmail(email string) string {
-	return strings.ToLower(strings.TrimSpace(email))
 }

@@ -7,8 +7,18 @@ type BucketMemberBody struct {
 	Group Group  `json:"group" validate:"required,oneof=owner contributor viewer"`
 }
 
+func (b *BucketMemberBody) NormalizeEmail() {
+	b.Email = NormalizeEmail(b.Email)
+}
+
 type UpdateMembersBody struct {
 	Members []BucketMemberBody `json:"members" validate:"required,min=1,max=1000,dive"`
+}
+
+func (b *UpdateMembersBody) NormalizeEmail() {
+	for i := range b.Members {
+		b.Members[i].Email = NormalizeEmail(b.Members[i].Email)
+	}
 }
 
 type BucketMember struct {

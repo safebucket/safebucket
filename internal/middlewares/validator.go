@@ -18,6 +18,10 @@ import (
 
 type BodyKey struct{}
 
+type EmailNormalizer interface {
+	NormalizeEmail()
+}
+
 var maxUploadSize int64
 
 func InitValidator(maxSize int64) {
@@ -87,6 +91,10 @@ func Validate[T any](next http.Handler) http.Handler {
 			zap.L().Error("failed to decode body", zap.Error(err))
 			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeBadRequest})
 			return
+		}
+
+		if n, ok := any(data).(EmailNormalizer); ok {
+			n.NormalizeEmail()
 		}
 
 		validate := validator.New()

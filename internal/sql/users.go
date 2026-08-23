@@ -40,7 +40,7 @@ func FindUserByIdentityProvider(
 
 	var user models.User
 	result := tx.Where("email = ? AND provider_type = ? AND provider_key = ?",
-		email, providerType, providerKey).
+		models.NormalizeEmail(email), providerType, providerKey).
 		Find(&user)
 	if result.Error != nil {
 		return models.User{}, false, result.Error
@@ -60,7 +60,7 @@ func CreateUserWithInvites(
 		}
 
 		var invites []models.Invite
-		if err := tx.Preload("Bucket").Where("email = ?", user.Email).Find(&invites).Error; err != nil {
+		if err := tx.Preload("Bucket").Where("email = ?", models.NormalizeEmail(user.Email)).Find(&invites).Error; err != nil {
 			logger.Error("Failed to fetch user invites", zap.Error(err))
 			return err
 		}

@@ -30,6 +30,11 @@ type User struct {
 	MFADevices     []MFADevice    `gorm:"foreignKey:UserID"                                        json:"-"`
 }
 
+func (u *User) BeforeSave(_ *gorm.DB) error {
+	u.Email = NormalizeEmail(u.Email)
+	return nil
+}
+
 func (u *User) HasMFAEnabled() bool {
 	for _, d := range u.MFADevices {
 		if d.IsVerified {
@@ -80,6 +85,8 @@ type UserCreateBody struct {
 	Email     string `json:"email"      validate:"required,omitempty,email,max=254"`
 	Password  string `json:"password"   validate:"required,min=8,max=72"`
 }
+
+func (b *UserCreateBody) NormalizeEmail() { b.Email = NormalizeEmail(b.Email) }
 
 type UserUpdateBody struct {
 	FirstName   string `json:"first_name"   validate:"omitempty,max=100"`

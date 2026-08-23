@@ -3,8 +3,8 @@ package services
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
+	"github.com/safebucket/safebucket/internal/models"
 	"go.uber.org/zap"
 
 	"github.com/safebucket/safebucket/internal/cache"
@@ -16,7 +16,7 @@ func enforceEmailIssuanceLimit(logger *zap.Logger, c cache.ICache, challengeType
 	key := fmt.Sprintf(
 		configuration.CacheChallengeIssuanceEmailKey,
 		challengeType,
-		strings.ToLower(strings.TrimSpace(email)),
+		models.NormalizeEmail(email),
 	)
 
 	allowed, err := cache.RecordChallengeIssuance(c, key, maxPerEmail, configuration.SecurityChallengeIssuanceWindow)

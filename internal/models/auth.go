@@ -10,10 +10,16 @@ const (
 	LDAPProviderType  ProviderType = "ldap"
 )
 
-type AuthLoginBody struct {
+type AuthExternalLoginBody struct {
 	Email    string `json:"email"    validate:"required,email,max=254"`
 	Password string `json:"password" validate:"required,max=72"`
 }
+
+type AuthLoginBody struct {
+	AuthExternalLoginBody
+}
+
+func (b *AuthLoginBody) NormalizeEmail() { b.Email = NormalizeEmail(b.Email) }
 
 type AuthLoginResponse struct {
 	MFARequired bool       `json:"mfa_required"`
@@ -50,6 +56,8 @@ type ProviderResponse struct {
 type PasswordResetRequestBody struct {
 	Email string `json:"email" validate:"required,email,max=254"`
 }
+
+func (b *PasswordResetRequestBody) NormalizeEmail() { b.Email = NormalizeEmail(b.Email) }
 
 type PasswordResetValidateBody struct {
 	Code string `json:"code" validate:"required,len=6,alphanum"`

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Invite struct {
@@ -17,9 +18,16 @@ type Invite struct {
 	CreatedAt time.Time `                                                                         json:"created_at"`
 }
 
+func (i *Invite) BeforeSave(_ *gorm.DB) error {
+	i.Email = NormalizeEmail(i.Email)
+	return nil
+}
+
 type InviteChallengeCreateBody struct {
 	Email string `json:"email" validate:"required,email,max=254"`
 }
+
+func (b *InviteChallengeCreateBody) NormalizeEmail() { b.Email = NormalizeEmail(b.Email) }
 
 type InviteChallengeValidateBody struct {
 	Code        string `json:"code"         validate:"required,len=6,alphanum"`
