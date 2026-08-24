@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type { DateRange } from "react-day-picker";
 import type { FC } from "react";
@@ -8,14 +9,15 @@ import {
   ActivityDateRangePicker,
   dateRangeToQuery,
 } from "@/components/activity-view/components/ActivityDateRangePicker";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { ActivityTimeline } from "@/components/bucket-view/components/ActivityTimeline";
 import { Button } from "@/components/ui/button";
 import { bucketActivityInfiniteQueryOptions } from "@/queries/bucket.ts";
 
 export const ActivityTab: FC = () => {
   const { t } = useTranslation();
-  const { bucketId } = useBucketViewContext();
+  const { bucketId } = useParams({
+    from: "/_authenticated/buckets/$bucketId/activity",
+  });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const {

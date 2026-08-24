@@ -1,13 +1,14 @@
 import { useTranslation } from "react-i18next";
 
 import { Download, Eye, FolderPlus, Share2, Trash2 } from "lucide-react";
+import { useParams } from "@tanstack/react-router";
 import type { FC, ReactNode } from "react";
 
 import type { BucketItem } from "@/types/bucket.ts";
 import { FileStatus } from "@/types/file.ts";
 import { FolderStatus } from "@/types/folder.ts";
 import { isFile } from "@/components/bucket-view/helpers/utils";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
+import { useOpenBucketItem } from "@/components/bucket-view/hooks/useOpenBucketItem";
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { useFileActions } from "@/components/file-actions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
@@ -41,7 +42,10 @@ export const FileActions: FC<IFileActionsProps> = ({
   type,
 }: IFileActionsProps) => {
   const { t } = useTranslation();
-  const { bucketId, openItem } = useBucketViewContext();
+  const { bucketId } = useParams({
+    from: "/_authenticated/buckets/$bucketId/files/{-$folderId}",
+  });
+  const openItem = useOpenBucketItem();
   const { isContributor, isOwner } = useBucketPermissions(bucketId);
   const { createFolder, downloadFile, deleteFile } = useFileActions();
   const newFolderDialog = useDialog();

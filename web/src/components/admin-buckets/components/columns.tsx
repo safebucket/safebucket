@@ -13,8 +13,8 @@ export const createColumns = (t: TFunction): Array<ColumnDef<IAdminBucket>> => [
       const bucket = row.original;
       return (
         <Link
-          to="/buckets/$bucketId/{-$folderId}"
-          params={{ bucketId: bucket.id, folderId: undefined }}
+          to="/buckets/$bucketId"
+          params={{ bucketId: bucket.id }}
           className="font-medium text-primary hover:underline"
         >
           {bucket.name}

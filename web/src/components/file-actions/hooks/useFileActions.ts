@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "@tanstack/react-router";
 import type { IFileActions } from "@/components/file-actions/helpers/types";
 import {
   api_downloadFile,
   downloadFromStorage,
 } from "@/components/file-actions/helpers/api";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { successToast } from "@/components/ui/hooks/use-toast";
 import {
   createFolderMutationFn,
@@ -13,7 +13,9 @@ import {
 
 export const useFileActions = (): IFileActions => {
   const queryClient = useQueryClient();
-  const { bucketId, folderId } = useBucketViewContext();
+  const { bucketId, folderId } = useParams({
+    from: "/_authenticated/buckets/$bucketId/files/{-$folderId}",
+  });
 
   const createFolderMutation = useMutation({
     mutationFn: createFolderMutationFn,

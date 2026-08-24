@@ -8,16 +8,20 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
-import type { FileWithPath } from "@/components/upload/helpers/types";
+import type { RowSelectionState } from "@tanstack/react-table";
 import type { BucketItem, IBucket } from "@/types/bucket.ts";
 import { BucketGridView } from "@/components/bucket-view/components/BucketGridView";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { useBulkDownload } from "@/components/bucket-view/hooks/useBulkDownload";
 import { GridActionIcon } from "@/components/bucket-view/components/GridActionIcon";
 import { FilesTable } from "@/components/bucket-view/components/FilesTable";
+import { FormDialog } from "@/components/dialogs/components/FormDialog";
+import { useDialog } from "@/components/dialogs/hooks/useDialog";
+import { useFileActions } from "@/components/file-actions/hooks/useFileActions.ts";
+import { UploadDialog } from "@/components/upload/components/UploadDialog";
+import { useUploadDialog } from "@/components/upload/hooks/useUploadDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,30 +33,36 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DragDropZone } from "@/components/upload/components/DragDropZone";
 import { cn, formatFileSize } from "@/lib/utils";
 
 interface IFilesTabProps {
   bucket: IBucket;
   items: Array<BucketItem>;
-  onFilesDropped: (files: Array<FileWithPath>) => void;
-  onUpload: () => void;
-  onNewFolder: () => void;
+  folderId: string | undefined;
   isContributor: boolean;
 }
 
 export const FilesTab: FC<IFilesTabProps> = ({
   bucket,
   items,
-  onFilesDropped,
-  onUpload,
-  onNewFolder,
+  folderId,
   isContributor,
 }: IFilesTabProps) => {
   const { t } = useTranslation();
-  const { rowSelection, clearRowSelection } = useBucketViewContext();
+  const { createFolder } = useFileActions();
+  const uploadDialog = useUploadDialog({ bucketId: bucket.id, folderId });
+  const newFolderDialog = useDialog();
   const [query, setQuery] = useState("");
   const [layout, setLayout] = useState<"list" | "grid">("list");
+  const [selected, setSelected] = useState<BucketItem | null>(null);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  const clearRowSelection = () => setRowSelection({});
+
+  useEffect(() => {
+    setSelected(null);
+    setRowSelection({});
+  }, [folderId]);
 
   const {
     start,
@@ -91,12 +101,12 @@ export const FilesTab: FC<IFilesTabProps> = ({
               <GridActionIcon
                 icon={<Plus className="h-4 w-4" />}
                 label={t("bucket.header.upload_file")}
-                onClick={onUpload}
+                onClick={uploadDialog.open}
               />
               <GridActionIcon
                 icon={<FolderPlus className="h-4 w-4" />}
                 label={t("file_actions.new_folder")}
-                onClick={onNewFolder}
+                onClick={newFolderDialog.trigger}
               />
             </>
           ) : null}
@@ -152,16 +162,35 @@ export const FilesTab: FC<IFilesTabProps> = ({
       </div>
 
       {layout === "list" ? (
-        <DragDropZone bucketId={bucket.id} onFilesDropped={onFilesDropped}>
-          <FilesTable items={filtered} />
-        </DragDropZone>
+        <FilesTable
+          items={filtered}
+          selected={selected}
+          setSelected={setSelected}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
+        />
       ) : (
         <BucketGridView
           items={filtered}
-          bucketId={bucket.id}
-          onFilesDropped={onFilesDropped}
+          selected={selected}
+          setSelected={setSelected}
         />
       )}
+
+      <FormDialog
+        {...newFolderDialog.props}
+        title={t("file_actions.new_folder_dialog.title")}
+        fields={[
+          {
+            id: "name",
+            label: t("file_actions.new_folder_dialog.name_label"),
+            type: "text",
+            required: true,
+          },
+        ]}
+        onSubmit={(data) => createFolder(data.name)}
+        confirmLabel={t("file_actions.new_folder_dialog.create")}
+      />
 
       <AlertDialog
         open={blocked !== null}
@@ -190,6 +219,18 @@ export const FilesTab: FC<IFilesTabProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <UploadDialog
+        {...uploadDialog.dialogProps}
+        stagedFiles={uploadDialog.stagedFiles}
+        onAddFiles={uploadDialog.addFiles}
+        onRemoveFile={uploadDialog.removeFile}
+        expiresAt={uploadDialog.expiresAt}
+        onExpiresAtChange={uploadDialog.setExpiresAt}
+        isAdvancedOpen={uploadDialog.isAdvancedOpen}
+        onAdvancedOpenChange={uploadDialog.setIsAdvancedOpen}
+        onUpload={uploadDialog.handleUpload}
+      />
     </div>
   );
 };

@@ -33,10 +33,7 @@ export const BucketRowActions: FC<BucketRowActionsProps> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem asChild>
-            <Link
-              to="/buckets/$bucketId/{-$folderId}"
-              params={{ bucketId: bucket.id, folderId: undefined }}
-            >
+            <Link to="/buckets/$bucketId" params={{ bucketId: bucket.id }}>
               <Eye className="mr-2 h-4 w-4" />
               View
             </Link>

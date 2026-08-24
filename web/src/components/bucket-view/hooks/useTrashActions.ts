@@ -1,15 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type { IFolder } from "@/types/folder.ts";
 import type { IFile } from "@/types/file.ts";
 import { FileStatus } from "@/types/file.ts";
 import { FolderStatus } from "@/types/folder.ts";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
 import { successToast } from "@/components/ui/hooks/use-toast";
 import { api } from "@/lib/api";
 import { bucketTrashedFilesQueryOptions } from "@/queries/bucket";
 
-// Union type for trashed items (can be file or folder)
 export type TrashedItem = (IFile | IFolder) & { itemType: "file" | "folder" };
 
 export interface ITrashActions {
@@ -30,9 +29,10 @@ export interface ITrashActions {
 export const useTrashActions = (): ITrashActions => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { bucketId } = useBucketViewContext();
+  const { bucketId } = useParams({
+    from: "/_authenticated/buckets/$bucketId/trash",
+  });
 
-  // Fetch trashed items using centralized query options
   const { data, isLoading } = useQuery(
     bucketTrashedFilesQueryOptions(bucketId),
   );

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
+import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table";
 import type { IDataTableColumn } from "@/components/common/components/DataTable/DataTable";
 import type { BucketItem } from "@/types/bucket.ts";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
@@ -8,7 +9,7 @@ import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { FileStatusBadge } from "@/components/bucket-view/components/FileStatusBadge";
 import { RowActionsMenu } from "@/components/bucket-view/components/RowActionsMenu";
 import { isFolder } from "@/components/bucket-view/helpers/utils";
-import { useBucketViewContext } from "@/components/bucket-view/hooks/useBucketViewContext";
+import { useOpenBucketItem } from "@/components/bucket-view/hooks/useOpenBucketItem";
 import { formatDate, formatFileSize } from "@/lib/utils";
 import { FileStatus } from "@/types/file.ts";
 
@@ -17,14 +18,21 @@ const isSelectable = (item: BucketItem): boolean =>
 
 interface IFilesTableProps {
   items: Array<BucketItem>;
+  selected: BucketItem | null;
+  setSelected: (item: BucketItem) => void;
+  rowSelection: RowSelectionState;
+  setRowSelection: OnChangeFn<RowSelectionState>;
 }
 
 export const FilesTable: FC<IFilesTableProps> = ({
   items,
+  selected,
+  setSelected,
+  rowSelection,
+  setRowSelection,
 }: IFilesTableProps) => {
   const { t } = useTranslation();
-  const { selected, setSelected, openItem, rowSelection, setRowSelection } =
-    useBucketViewContext();
+  const openItem = useOpenBucketItem();
 
   const columns = useMemo<Array<IDataTableColumn<BucketItem>>>(
     () => [

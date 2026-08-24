@@ -14,14 +14,6 @@ export interface IBucketsData {
   setIsDialogOpen: (isOpen: boolean) => void;
 }
 
-export enum BucketViewMode {
-  List = "list",
-  Grid = "grid",
-  Activity = "activity",
-  Trash = "trash",
-  Settings = "settings",
-}
-
 export type IDownloadFileResponse = {
   url: string;
 };
