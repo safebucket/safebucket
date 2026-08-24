@@ -17,21 +17,56 @@ const (
 )
 
 type File struct {
-	ID           uuid.UUID      `gorm:"default:(-)"           json:"id"`
-	Name         string         `gorm:"not null;default:null" json:"name"`
-	Extension    string         `gorm:"default:null"          json:"extension"`
-	Status       FileStatus     `gorm:"default:null"          json:"status"`
-	BucketID     uuid.UUID      `                             json:"bucket_id"`
-	Bucket       Bucket         `                             json:"-"`
-	FolderID     *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
-	ParentFolder *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
-	Size         int            `gorm:"not null;default:0"    json:"size"`
-	DeletedBy    *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
-	ExpiresAt    *time.Time     `gorm:"default:null"          json:"expires_at"`
-	OriginalPath string         `gorm:"-"                     json:"original_path,omitempty"`
-	CreatedAt    time.Time      `                             json:"created_at"`
-	UpdatedAt    time.Time      `                             json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `                             json:"deleted_at"`
+	ID                uuid.UUID      `gorm:"default:(-)"           json:"id"`
+	Name              string         `gorm:"not null;default:null" json:"name"`
+	Extension         string         `gorm:"default:null"          json:"extension"`
+	Status            FileStatus     `gorm:"default:null"          json:"status"`
+	BucketID          uuid.UUID      `                             json:"bucket_id"`
+	Bucket            Bucket         `                             json:"-"`
+	FolderID          *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
+	ParentFolder      *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
+	Size              int            `gorm:"not null;default:0"    json:"size"`
+	CurrentVersionID  *uuid.UUID     `gorm:"default:null"          json:"current_version_id,omitempty"`
+	LastVersionNumber int            `gorm:"not null;default:0"    json:"-"`
+	DeletedBy         *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
+	ExpiresAt         *time.Time     `gorm:"default:null"          json:"expires_at"`
+	OriginalPath      string         `gorm:"-"                     json:"original_path,omitempty"`
+	CreatedAt         time.Time      `                             json:"created_at"`
+	UpdatedAt         time.Time      `                             json:"updated_at"`
+	DeletedAt         gorm.DeletedAt `                             json:"deleted_at"`
+}
+
+type FileVersion struct {
+	ID            uuid.UUID  `gorm:"default:(-)"        json:"id"`
+	FileID        uuid.UUID  `                          json:"file_id"`
+	VersionNumber int        `                          json:"version_number"`
+	Size          int        `gorm:"not null;default:0" json:"size"`
+	Status        FileStatus `gorm:"default:null"       json:"status"`
+	UploadedBy    *uuid.UUID `gorm:"default:null"       json:"uploaded_by,omitempty"`
+	CreatedAt     time.Time  `                          json:"created_at"`
+	UpdatedAt     time.Time  `                          json:"updated_at"`
+}
+
+type FileVersionResponse struct {
+	ID            uuid.UUID  `json:"id"`
+	VersionNumber int        `json:"version_number"`
+	Size          int        `json:"size"`
+	Status        FileStatus `json:"status"`
+	UploadedBy    *uuid.UUID `json:"uploaded_by,omitempty"`
+	IsCurrent     bool       `json:"is_current"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+func (v FileVersion) ToResponse(currentID *uuid.UUID) FileVersionResponse {
+	return FileVersionResponse{
+		ID:            v.ID,
+		VersionNumber: v.VersionNumber,
+		Size:          v.Size,
+		Status:        v.Status,
+		UploadedBy:    v.UploadedBy,
+		IsCurrent:     currentID != nil && *currentID == v.ID,
+		CreatedAt:     v.CreatedAt,
+	}
 }
 
 type FileActivity struct {
@@ -75,8 +110,17 @@ type FileDownloadResponse struct {
 
 type FileDownloadQuery struct {
 	Context string `json:"context" validate:"omitempty,oneof=preview download"`
+	Version string `json:"version" validate:"omitempty,uuid"`
 }
 
 type FilePatchBody struct {
 	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
+}
+
+type FileVersionRestoreBody struct {
+	VersionID uuid.UUID `json:"version_id" validate:"required"`
+}
+
+type FileVersionDeleteBody struct {
+	VersionID uuid.UUID `json:"version_id" validate:"required"`
 }

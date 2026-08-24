@@ -17,6 +17,10 @@ var (
 	FileExpired                  = defineAction("FILE_EXPIRED")
 	FileTrashed                  = defineAction("FILE_TRASHED")
 	FileRestored                 = defineAction("FILE_RESTORED")
+	FileVersionCreated           = defineAction("FILE_VERSION_CREATED")
+	FileVersionRestored          = defineAction("FILE_VERSION_RESTORED")
+	FileVersionDeleted           = defineAction("FILE_VERSION_DELETED")
+	FileExpirationUpdated        = defineAction("FILE_EXPIRATION_UPDATED")
 	FolderCreated                = defineAction("FOLDER_CREATED")
 	FolderUpdated                = defineAction("FOLDER_UPDATED")
 	FolderTrashed                = defineAction("FOLDER_TRASHED")
@@ -46,3 +50,14 @@ var (
 	ShareFileDownloaded          = defineAction("SHARE_FILE_DOWNLOADED")
 	ShareFileUploaded            = defineAction("SHARE_FILE_UPLOADED")
 )
+
+// UploadAction is gated on retention, not on the version number alone: the counter keeps climbing
+// even where only one version is ever kept, so an install with versioning off would otherwise log
+// version events for plain overwrites.
+func UploadAction(maxVersions, versionNumber int) string {
+	if maxVersions > 1 && versionNumber > 1 {
+		return FileVersionCreated
+	}
+
+	return FileUploaded
+}

@@ -152,6 +152,7 @@ func (s *LokiClient) Search(
 				"folder_id":           result.Stream["folder_id"],
 				"share_id":            result.Stream["share_id"],
 				"bucket_member_email": result.Stream["bucket_member_email"],
+				"version_number":      result.Stream["version_number"],
 				"timestamp":           log[0],
 			}
 
