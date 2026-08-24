@@ -51,10 +51,18 @@ func TestGetUserStats(t *testing.T) {
 		deletedBucket := models.Bucket{Name: "deleted-bucket", CreatedBy: user.ID}
 		require.NoError(t, db.Create(&deletedBucket).Error)
 
-		activeBucketMembership := models.Membership{UserID: user.ID, BucketID: activeBucket.ID, Group: models.GroupOwner}
+		activeBucketMembership := models.Membership{
+			UserID:   user.ID,
+			BucketID: activeBucket.ID,
+			Group:    models.GroupOwner,
+		}
 		require.NoError(t, db.Create(&activeBucketMembership).Error)
 
-		deletedBucketMembership := models.Membership{UserID: user.ID, BucketID: deletedBucket.ID, Group: models.GroupOwner}
+		deletedBucketMembership := models.Membership{
+			UserID:   user.ID,
+			BucketID: deletedBucket.ID,
+			Group:    models.GroupOwner,
+		}
 		require.NoError(t, db.Create(&deletedBucketMembership).Error)
 		require.NoError(t, db.Delete(&deletedBucket).Error)
 
