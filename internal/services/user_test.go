@@ -33,53 +33,85 @@ func setupUserServiceTestDB(t *testing.T) *gorm.DB {
 }
 
 func TestGetUserStats(t *testing.T) {
-	db := setupUserServiceTestDB(t)
-	service := UserService{DB: db}
+	t.Run("counts only files and buckets with active membership", func(t *testing.T) {
+		db := setupUserServiceTestDB(t)
+		service := UserService{DB: db}
 
-	user := models.User{
-		Email:        "stats-user@example.com",
-		ProviderType: models.LocalProviderType,
-		ProviderKey:  string(models.LocalProviderType),
-		Role:         models.RoleUser,
-	}
-	require.NoError(t, db.Create(&user).Error)
+		user := models.User{
+			Email:        "stats-user@example.com",
+			ProviderType: models.LocalProviderType,
+			ProviderKey:  string(models.LocalProviderType),
+			Role:         models.RoleUser,
+		}
+		require.NoError(t, db.Create(&user).Error)
 
-	activeBucket := models.Bucket{Name: "active-bucket", CreatedBy: user.ID}
-	require.NoError(t, db.Create(&activeBucket).Error)
+		activeBucket := models.Bucket{Name: "active-bucket", CreatedBy: user.ID}
+		require.NoError(t, db.Create(&activeBucket).Error)
 
-	deletedBucket := models.Bucket{Name: "deleted-bucket", CreatedBy: user.ID}
-	require.NoError(t, db.Create(&deletedBucket).Error)
+		deletedBucket := models.Bucket{Name: "deleted-bucket", CreatedBy: user.ID}
+		require.NoError(t, db.Create(&deletedBucket).Error)
 
-	activeBucketMembership := models.Membership{UserID: user.ID, BucketID: activeBucket.ID, Group: models.GroupOwner}
-	require.NoError(t, db.Create(&activeBucketMembership).Error)
+		activeBucketMembership := models.Membership{UserID: user.ID, BucketID: activeBucket.ID, Group: models.GroupOwner}
+		require.NoError(t, db.Create(&activeBucketMembership).Error)
 
-	deletedBucketMembership := models.Membership{UserID: user.ID, BucketID: deletedBucket.ID, Group: models.GroupOwner}
-	require.NoError(t, db.Create(&deletedBucketMembership).Error)
-	require.NoError(t, db.Delete(&deletedBucket).Error)
+		deletedBucketMembership := models.Membership{UserID: user.ID, BucketID: deletedBucket.ID, Group: models.GroupOwner}
+		require.NoError(t, db.Create(&deletedBucketMembership).Error)
+		require.NoError(t, db.Delete(&deletedBucket).Error)
 
-	for _, name := range []string{"first.txt", "second.txt"} {
-		file := models.File{Name: name, Status: models.FileStatusUploaded, BucketID: activeBucket.ID, Size: 128}
-		require.NoError(t, db.Create(&file).Error)
-	}
+		for _, name := range []string{"first.txt", "second.txt"} {
+			file := models.File{Name: name, Status: models.FileStatusUploaded, BucketID: activeBucket.ID, Size: 128}
+			require.NoError(t, db.Create(&file).Error)
+		}
 
-	fileInDeletedBucket := models.File{
-		Name:     "ghost.txt",
-		Status:   models.FileStatusUploaded,
-		BucketID: deletedBucket.ID,
-		Size:     128,
-	}
-	require.NoError(t, db.Create(&fileInDeletedBucket).Error)
+		fileInDeletedBucket := models.File{
+			Name:     "ghost.txt",
+			Status:   models.FileStatusUploaded,
+			BucketID: deletedBucket.ID,
+			Size:     128,
+		}
+		require.NoError(t, db.Create(&fileInDeletedBucket).Error)
 
-	deletedFile := models.File{
-		Name:     "third.txt",
-		Status:   models.FileStatusUploaded,
-		BucketID: activeBucket.ID,
-		Size:     128,
-	}
-	require.NoError(t, db.Create(&deletedFile).Error)
-	require.NoError(t, db.Delete(&deletedFile).Error)
+		deletedFile := models.File{
+			Name:     "third.txt",
+			Status:   models.FileStatusUploaded,
+			BucketID: activeBucket.ID,
+			Size:     128,
+		}
+		require.NoError(t, db.Create(&deletedFile).Error)
+		require.NoError(t, db.Delete(&deletedFile).Error)
 
-	response, err := service.GetUserStats(zap.NewNop(), models.UserClaims{}, []uuid.UUID{user.ID})
-	require.NoError(t, err)
-	require.Equal(t, models.UserStatsResponse{TotalFiles: 2, TotalBuckets: 1}, response)
+		response, err := service.GetUserStats(zap.NewNop(), models.UserClaims{}, []uuid.UUID{user.ID})
+		require.NoError(t, err)
+		require.Equal(t, models.UserStatsResponse{TotalFiles: 2, TotalBuckets: 1}, response)
+	})
+
+	t.Run("excludes files and buckets when membership is revoked", func(t *testing.T) {
+		db := setupUserServiceTestDB(t)
+		service := UserService{DB: db}
+
+		user := models.User{
+			Email:        "revoked-user@example.com",
+			ProviderType: models.LocalProviderType,
+			ProviderKey:  string(models.LocalProviderType),
+			Role:         models.RoleUser,
+		}
+		require.NoError(t, db.Create(&user).Error)
+
+		bucket := models.Bucket{Name: "shared-bucket", CreatedBy: user.ID}
+		require.NoError(t, db.Create(&bucket).Error)
+
+		membership := models.Membership{UserID: user.ID, BucketID: bucket.ID, Group: models.GroupOwner}
+		require.NoError(t, db.Create(&membership).Error)
+
+		for _, name := range []string{"a.txt", "b.txt"} {
+			file := models.File{Name: name, Status: models.FileStatusUploaded, BucketID: bucket.ID, Size: 128}
+			require.NoError(t, db.Create(&file).Error)
+		}
+
+		require.NoError(t, db.Delete(&membership).Error)
+
+		response, err := service.GetUserStats(zap.NewNop(), models.UserClaims{}, []uuid.UUID{user.ID})
+		require.NoError(t, err)
+		require.Equal(t, models.UserStatsResponse{TotalFiles: 0, TotalBuckets: 0}, response)
+	})
 }
