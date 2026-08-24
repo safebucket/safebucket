@@ -14,20 +14,19 @@ func VersionObjectKey(bucketID, versionID uuid.UUID) string {
 }
 
 // NextVersionNumber requires the caller to hold the file row's write lock, or to have created it in
-// the same transaction. Deriving the number from MAX(version_number) instead would reuse the number
-// of a deleted version.
+// the same transaction. The number derives from MAX(version_number), so it repeats after the last
+// version is deleted; activity timestamps disambiguate reused numbers.
 func NextVersionNumber(tx *gorm.DB, file *models.File) (int, error) {
-	next := file.LastVersionNumber + 1
-
-	if err := tx.Model(&models.File{}).
-		Where("id = ?", file.ID).
-		Update("last_version_number", next).Error; err != nil {
+	var current int
+	err := tx.Model(&models.FileVersion{}).
+		Where("file_id = ?", file.ID).
+		Select("COALESCE(MAX(version_number), 0)").
+		Scan(&current).Error
+	if err != nil {
 		return 0, err
 	}
 
-	file.LastVersionNumber = next
-
-	return next, nil
+	return current + 1, nil
 }
 
 func PendingVersion(tx *gorm.DB, fileID uuid.UUID) (models.FileVersion, error) {
