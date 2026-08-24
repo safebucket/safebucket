@@ -2,7 +2,6 @@
 -- +goose StatementBegin
 
 ALTER TABLE files ADD COLUMN current_version_id uuid;
-ALTER TABLE files ADD COLUMN last_version_number INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE file_versions
     (
@@ -36,15 +35,19 @@ SELECT id, id, 1, COALESCE(size, 0),
     NULL, created_at, created_at
 FROM files;
 
-UPDATE files SET current_version_id = id, last_version_number = 1;
+UPDATE files SET current_version_id = id;
+
+ALTER TABLE files
+    ADD CONSTRAINT fk_files_current_version_id
+        FOREIGN KEY (current_version_id) REFERENCES file_versions (id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 
+ALTER TABLE files DROP CONSTRAINT IF EXISTS fk_files_current_version_id;
 DROP TABLE IF EXISTS file_versions;
 ALTER TABLE files DROP COLUMN IF EXISTS current_version_id;
-ALTER TABLE files DROP COLUMN IF EXISTS last_version_number;
 
 -- +goose StatementEnd
