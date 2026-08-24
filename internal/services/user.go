@@ -292,12 +292,15 @@ func (s UserService) GetUserStats(
 	}
 
 	var totalBuckets int64
-	s.DB.Model(&models.Membership{}).Where("user_id = ? AND deleted_at IS NULL", userID).Count(&totalBuckets)
+	s.DB.Model(&models.Membership{}).
+		Joins("INNER JOIN buckets ON memberships.bucket_id = buckets.id").
+		Where("user_id = ? AND buckets.deleted_at IS NULL", userID).Count(&totalBuckets)
 
 	var totalFiles int64
 	s.DB.Model(&models.File{}).
 		Joins("INNER JOIN memberships ON files.bucket_id = memberships.bucket_id").
-		Where("memberships.user_id = ? AND files.deleted_at IS NULL", userID).
+		Joins("INNER JOIN buckets ON files.bucket_id = buckets.id").
+		Where("memberships.user_id = ? AND buckets.deleted_at IS NULL", userID).
 		Count(&totalFiles)
 
 	return models.UserStatsResponse{

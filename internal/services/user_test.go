@@ -50,17 +50,25 @@ func TestGetUserStats(t *testing.T) {
 	deletedBucket := models.Bucket{Name: "deleted-bucket", CreatedBy: user.ID}
 	require.NoError(t, db.Create(&deletedBucket).Error)
 
-	activeMembership := models.Membership{UserID: user.ID, BucketID: activeBucket.ID, Group: models.GroupOwner}
-	require.NoError(t, db.Create(&activeMembership).Error)
+	activeBucketMembership := models.Membership{UserID: user.ID, BucketID: activeBucket.ID, Group: models.GroupOwner}
+	require.NoError(t, db.Create(&activeBucketMembership).Error)
 
-	deletedMembership := models.Membership{UserID: user.ID, BucketID: deletedBucket.ID, Group: models.GroupOwner}
-	require.NoError(t, db.Create(&deletedMembership).Error)
-	require.NoError(t, db.Delete(&deletedMembership).Error)
+	deletedBucketMembership := models.Membership{UserID: user.ID, BucketID: deletedBucket.ID, Group: models.GroupOwner}
+	require.NoError(t, db.Create(&deletedBucketMembership).Error)
+	require.NoError(t, db.Delete(&deletedBucket).Error)
 
 	for _, name := range []string{"first.txt", "second.txt"} {
 		file := models.File{Name: name, Status: models.FileStatusUploaded, BucketID: activeBucket.ID, Size: 128}
 		require.NoError(t, db.Create(&file).Error)
 	}
+
+	fileInDeletedBucket := models.File{
+		Name:     "ghost.txt",
+		Status:   models.FileStatusUploaded,
+		BucketID: deletedBucket.ID,
+		Size:     128,
+	}
+	require.NoError(t, db.Create(&fileInDeletedBucket).Error)
 
 	deletedFile := models.File{
 		Name:     "third.txt",
