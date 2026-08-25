@@ -16,6 +16,7 @@ import { TimeDisplayProvider } from "@/components/time-display/context/TimeDispl
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 
+import "@fontsource-variable/inter";
 import "./lib/i18n";
 import "./styles.css";
 import { getCurrentSessionWithRefresh } from "@/lib/auth-service.ts";
