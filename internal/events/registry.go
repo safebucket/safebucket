@@ -21,10 +21,10 @@ var eventRegistry = map[string]reflect.Type{
 	TrashExpirationPayloadName:          reflect.TypeOf(TrashExpirationPayload{}),
 	FolderRestoreName:                   reflect.TypeOf(FolderRestore{}),
 	FolderRestorePayloadName:            reflect.TypeOf(FolderRestorePayload{}),
-	FolderTrashName:                     reflect.TypeOf(FolderTrash{}),
-	FolderTrashPayloadName:              reflect.TypeOf(FolderTrashPayload{}),
 	FolderPurgeName:                     reflect.TypeOf(FolderPurge{}),
 	FolderPurgePayloadName:              reflect.TypeOf(FolderPurgePayload{}),
+	ItemsTrashName:                      reflect.TypeOf(ItemsTrash{}),
+	ItemsTrashPayloadName:               reflect.TypeOf(ItemsTrashPayload{}),
 	FileActivityNotificationName:        reflect.TypeOf(FileActivityNotification{}),
 	FileActivityNotificationPayloadName: reflect.TypeOf(FileActivityNotificationPayload{}),
 }
