@@ -73,7 +73,10 @@ func (s BucketFolderService) CreateFolder(
 		var parentFolder models.Folder
 		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucketID).Find(&parentFolder)
 		if result.RowsAffected == 0 {
-			return models.Folder{}, apierrors.New(http.StatusNotFound, apierrors.CodeParentFolderNotFound)
+			return models.Folder{}, apierrors.New(
+				http.StatusNotFound,
+				apierrors.CodeParentFolderNotFound,
+			)
 		}
 	}
 
@@ -86,7 +89,10 @@ func (s BucketFolderService) CreateFolder(
 	}
 	result = query.Find(&existingFolder)
 	if result.RowsAffected > 0 {
-		return models.Folder{}, apierrors.New(http.StatusConflict, apierrors.CodeFolderAlreadyExists)
+		return models.Folder{}, apierrors.New(
+			http.StatusConflict,
+			apierrors.CodeFolderAlreadyExists,
+		)
 	}
 
 	folder := models.Folder{
@@ -98,7 +104,10 @@ func (s BucketFolderService) CreateFolder(
 
 	if err := s.DB.Create(&folder).Error; err != nil {
 		logger.Error("Failed to create folder", zap.Error(err))
-		return models.Folder{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
+		return models.Folder{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeCreateFailed,
+		)
 	}
 
 	action := models.Activity{
@@ -275,7 +284,7 @@ func (s BucketFolderService) TrashFolder(
 		return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
 	}
 
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"status":     models.FolderStatusDeleted,
 		"deleted_by": user.UserID,
 	}
@@ -294,8 +303,16 @@ func (s BucketFolderService) TrashFolder(
 		logger.Warn("Failed to create trash marker for folder", zap.Error(err))
 	}
 
-	event := events.NewFolderTrash(s.Publisher, folder.BucketID, folder.ID, user.UserID)
-	event.Trigger()
+	event := events.NewItemsTrash(
+		s.Publisher,
+		folder.BucketID,
+		s.childFolderIDs(folder),
+		s.childFileIDs(folder),
+		user.UserID,
+	)
+	if len(event.Payload.FolderIDs)+len(event.Payload.FileIDs) > 0 {
+		event.Trigger()
+	}
 
 	action := models.Activity{
 		Message: activity.FolderTrashed,
@@ -318,6 +335,46 @@ func (s BucketFolderService) TrashFolder(
 		zap.String("folder_id", folder.ID.String()))
 
 	return nil
+}
+
+func (s BucketFolderService) childFolderIDs(folder models.Folder) []uuid.UUID {
+	var children []models.Folder
+	if err := s.DB.Where(
+		"bucket_id = ? AND folder_id = ?",
+		folder.BucketID,
+		folder.ID,
+	).Find(&children).Error; err != nil {
+		zap.L().Error("Failed to find child folders for trash",
+			zap.Error(err),
+			zap.String("folder_id", folder.ID.String()))
+		return nil
+	}
+
+	ids := make([]uuid.UUID, 0, len(children))
+	for _, child := range children {
+		ids = append(ids, child.ID)
+	}
+	return ids
+}
+
+func (s BucketFolderService) childFileIDs(folder models.Folder) []uuid.UUID {
+	var children []models.File
+	if err := s.DB.Where(
+		"bucket_id = ? AND folder_id = ?",
+		folder.BucketID,
+		folder.ID,
+	).Find(&children).Error; err != nil {
+		zap.L().Error("Failed to find child files for trash",
+			zap.Error(err),
+			zap.String("folder_id", folder.ID.String()))
+		return nil
+	}
+
+	ids := make([]uuid.UUID, 0, len(children))
+	for _, child := range children {
+		ids = append(ids, child.ID)
+	}
+	return ids
 }
 
 func (s BucketFolderService) restoreParentFolders(
@@ -371,7 +428,12 @@ func (s BucketFolderService) RestoreFolder(
 			return apierrors.New(http.StatusGone, apierrors.CodeFolderTrashExpired)
 		}
 
-		parentFolders, err := s.restoreParentFolders(tx, logger, lockedFolder.FolderID, lockedFolder.BucketID)
+		parentFolders, err := s.restoreParentFolders(
+			tx,
+			logger,
+			lockedFolder.FolderID,
+			lockedFolder.BucketID,
+		)
 		if err != nil {
 			return err
 		}
@@ -417,7 +479,12 @@ func (s BucketFolderService) RestoreFolder(
 		logger.Warn("Failed to remove trash marker for folder", zap.Error(storageErr))
 	}
 
-	event := events.NewFolderRestore(s.Publisher, restoredFolder.BucketID, restoredFolder.ID, user.UserID)
+	event := events.NewFolderRestore(
+		s.Publisher,
+		restoredFolder.BucketID,
+		restoredFolder.ID,
+		user.UserID,
+	)
 	event.Trigger()
 
 	action := models.Activity{

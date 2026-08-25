@@ -8,6 +8,7 @@ import (
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
+	c "github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
@@ -41,6 +42,10 @@ func (s BucketFileService) Routes() chi.Router {
 	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 		With(m.Validate[models.FileUploadBody]).
 		Post("/files", handlers.CreateHandler(s.UploadFile))
+
+	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
+		With(m.Validate[models.BulkTrashBody]).
+		Post("/files/trash", handlers.BodyHandler(s.BulkTrash))
 
 	r.Route("/files/{id1}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
@@ -285,6 +290,46 @@ func (s BucketFileService) DeleteFile(
 	bucketID, fileID := ids[0], ids[1]
 
 	return s.PurgeFile(logger, user, bucketID, fileID)
+}
+
+func (s BucketFileService) BulkTrash(
+	logger *zap.Logger,
+	user models.UserClaims,
+	ids uuid.UUIDs,
+	body models.BulkTrashBody,
+) error {
+	bucketID := ids[0]
+
+	folderIDs := dedupeUUIDs(body.FolderIDs)
+	fileIDs := dedupeUUIDs(body.FileIDs)
+	total := len(folderIDs) + len(fileIDs)
+	if total == 0 || total > c.BulkActionsLimit {
+		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidValue)
+	}
+
+	event := events.NewItemsTrash(s.Publisher, bucketID, folderIDs, fileIDs, user.UserID)
+	event.Trigger()
+
+	logger.Info("Bulk trash accepted",
+		zap.String("bucket_id", bucketID.String()),
+		zap.Int("folders", len(folderIDs)),
+		zap.Int("files", len(fileIDs)),
+		zap.String("user_id", user.UserID.String()))
+
+	return nil
+}
+
+func dedupeUUIDs(ids []uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{}, len(ids))
+	deduped := make([]uuid.UUID, 0, len(ids))
+	for _, id := range ids {
+		if _, exists := seen[id]; exists {
+			continue
+		}
+		seen[id] = struct{}{}
+		deduped = append(deduped, id)
+	}
+	return deduped
 }
 
 func (s BucketFileService) DownloadFile(

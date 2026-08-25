@@ -80,3 +80,8 @@ type FileDownloadQuery struct {
 type FilePatchBody struct {
 	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
 }
+
+type BulkTrashBody struct {
+	FolderIDs []uuid.UUID `json:"folder_ids" validate:"omitempty,dive,uuid"`
+	FileIDs   []uuid.UUID `json:"file_ids"   validate:"omitempty,dive,uuid"`
+}
