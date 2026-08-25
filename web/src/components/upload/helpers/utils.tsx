@@ -16,14 +16,14 @@ export const getStatusIcon = (
 ): React.JSX.Element => {
   switch (status) {
     case "success":
-      return <CircleCheck className="h-5 w-5 text-green-500" />;
+      return <CircleCheck className="h-5 w-5 text-success" />;
     case "error":
-      return <AlertCircle className="h-5 w-5 text-red-500" />;
+      return <AlertCircle className="h-5 w-5 text-destructive" />;
     case "uploading":
       if (progress === 0) {
-        return <Clock className="h-5 w-5 text-blue-500" />;
+        return <Clock className="h-5 w-5 text-info" />;
       }
-      return <Upload className="h-5 w-5 text-blue-500" />;
+      return <Upload className="h-5 w-5 text-info" />;
     default:
       return <FileIcon className="text-muted-foreground h-5 w-5" />;
   }
@@ -52,12 +52,12 @@ export const getStatusText = (
 export const getProgressColor = (status: UploadStatus) => {
   switch (status) {
     case "success":
-      return "bg-green-500";
+      return "bg-success";
     case "error":
-      return "bg-red-500";
+      return "bg-destructive";
     case "uploading":
-      return "bg-blue-500";
+      return "bg-info";
     default:
-      return "bg-gray-500";
+      return "bg-muted-foreground";
   }
 };

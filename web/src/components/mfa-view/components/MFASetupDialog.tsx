@@ -206,8 +206,8 @@ export function MFASetupDialog({
         {step === "success" && (
           <>
             <div className="flex flex-col items-center space-y-4 py-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+                <CheckCircle className="h-8 w-8 text-success" />
               </div>
               <div className="space-y-2 text-center">
                 <h3 className="text-lg font-semibold">

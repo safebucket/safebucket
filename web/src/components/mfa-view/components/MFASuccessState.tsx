@@ -15,7 +15,7 @@ export function MFASuccessState({ title, message }: IMFASuccessStateProps) {
       <Card className="mx-auto w-full max-w-md">
         <CardContent className="pt-6">
           <div className="space-y-4 text-center">
-            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+            <CheckCircle className="mx-auto h-12 w-12 text-success" />
             <h3 className="text-lg font-semibold">
               {title || t("auth.mfa.success_title")}
             </h3>

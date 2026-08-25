@@ -102,8 +102,8 @@ export function MFASetupRequiredView({
     <div className="m-6 flex h-full items-center justify-center">
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-            <Shield className="h-6 w-6 text-blue-600" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-info/10">
+            <Shield className="h-6 w-6 text-info" />
           </div>
           <CardTitle>{t("auth.mfa.setup_required_title")}</CardTitle>
           <CardDescription>

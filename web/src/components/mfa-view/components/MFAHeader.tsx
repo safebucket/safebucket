@@ -20,7 +20,7 @@ export function MFAHeader({
     <CardHeader>
       <CardTitle className="flex items-center gap-2 text-base">
         {mfaEnabled ? (
-          <ShieldCheck className="h-4 w-4 text-green-600" />
+          <ShieldCheck className="h-4 w-4 text-success" />
         ) : (
           <Shield className="h-4 w-4" />
         )}

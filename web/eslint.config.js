@@ -22,4 +22,25 @@ export default [
       "jsx-a11y/no-autofocus": "warn",
     },
   },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/components/ui/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "Literal[value=/(^|[\\s\"'])(text|bg|border|ring|fill|stroke)-(red|green|blue|yellow|amber|emerald|orange|lime|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose|gray|slate|zinc)-[0-9]+/]",
+          message:
+            "Raw Tailwind palette colors are banned outside components/ui. Use semantic tokens instead: success, warning, info, destructive, primary, secondary, muted.",
+        },
+        {
+          selector:
+            "Literal[value=/(text|bg|border|ring)-\\[#[0-9a-fA-F]{3,8}\\]/]",
+          message:
+            "Arbitrary color values are banned outside components/ui. Add a semantic token to styles.css instead.",
+        },
+      ],
+    },
+  },
 ];

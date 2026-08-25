@@ -120,7 +120,7 @@ export const AddMembersList: FC<IAddMembersListProps> = ({
               </ItemTitle>
               <ItemDescription>{member.email}</ItemDescription>
               {member.status === "invited" && (
-                <div className="text-xs text-orange-500">
+                <div className="text-xs text-warning">
                   {t("bucket.settings.members.invited")}
                 </div>
               )}
@@ -176,7 +176,7 @@ export const AddMembersList: FC<IAddMembersListProps> = ({
                     </SelectItem>
                   ))}
                   <SelectSeparator />
-                  <SelectItem value="remove" className="text-red-600">
+                  <SelectItem value="remove" className="text-destructive">
                     Remove
                   </SelectItem>
                 </SelectContent>

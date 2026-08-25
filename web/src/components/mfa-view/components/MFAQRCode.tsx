@@ -40,7 +40,7 @@ export function MFAQRCode({ qrCodeUri, secret }: MFAQRCodeProps) {
           </code>
           <Button variant="outline" size="sm" onClick={handleCopySecret}>
             {secretCopied ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-success" />
             ) : (
               <Copy className="h-4 w-4" />
             )}

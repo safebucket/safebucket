@@ -18,8 +18,8 @@ export function MFASetupErrorState({
     <div className="m-6 flex h-full items-center justify-center">
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertCircle className="h-6 w-6 text-red-600" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+            <AlertCircle className="h-6 w-6 text-destructive" />
           </div>
           <CardTitle>{t("auth.mfa.setup_error")}</CardTitle>
         </CardHeader>

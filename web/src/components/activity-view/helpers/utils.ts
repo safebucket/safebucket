@@ -7,8 +7,8 @@ import { messageMap } from "@/components/activity-view/helpers/constants";
 const DEFAULT_ACTIVITY_MAPPING = {
   messageKey: "activity.messages.default",
   icon: AlertCircle,
-  iconColor: "text-gray-500",
-  iconBg: "bg-gray-100",
+  iconColor: "text-muted-foreground",
+  iconBg: "bg-muted",
 };
 
 export function getUserDisplayName(

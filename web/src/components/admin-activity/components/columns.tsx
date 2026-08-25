@@ -20,35 +20,31 @@ interface ResourceTypeConfig {
 const resourceTypeConfig: Record<string, ResourceTypeConfig> = {
   bucket: {
     icon: Database,
-    className: "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950",
+    className: "text-chart-2 bg-chart-2/10",
   },
   file: {
     icon: File,
-    className:
-      "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950",
+    className: "text-chart-1 bg-chart-1/10",
   },
   folder: {
     icon: Folder,
-    className:
-      "text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950",
+    className: "text-chart-3 bg-chart-3/10",
   },
   member: {
     icon: User,
-    className:
-      "text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950",
+    className: "text-chart-4 bg-chart-4/10",
   },
   user: {
     icon: User,
-    className:
-      "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-950",
+    className: "text-chart-4 bg-chart-4/10",
   },
   mfa_device: {
     icon: Smartphone,
-    className: "text-cyan-600 bg-cyan-50 dark:text-cyan-400 dark:bg-cyan-950",
+    className: "text-chart-5 bg-chart-5/10",
   },
   share: {
     icon: Link2,
-    className: "text-teal-600 bg-teal-50 dark:text-teal-400 dark:bg-teal-950",
+    className: "text-chart-2 bg-chart-2/10",
   },
 };
 

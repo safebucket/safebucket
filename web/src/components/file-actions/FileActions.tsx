@@ -104,7 +104,7 @@ export const FileActions: FC<IFileActionsProps> = ({
             <>
               <Separator />
               <MenuItem
-                className="text-orange-600"
+                className="text-warning"
                 onClick={deleteFileDialog.trigger}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
