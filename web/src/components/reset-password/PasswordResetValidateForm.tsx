@@ -48,7 +48,7 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
       <Card className="mx-auto w-full max-w-md">
         <CardContent className="pt-6">
           <div className="space-y-4 text-center">
-            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+            <CheckCircle className="mx-auto h-12 w-12 text-success" />
             <h3 className="text-lg font-semibold">
               {t("auth.password_reset.validate.success_title")}
             </h3>
@@ -65,8 +65,8 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     return (
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-100 p-3">
-            <Smartphone className="h-6 w-6 text-blue-600" />
+          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-info/10 p-3">
+            <Smartphone className="h-6 w-6 text-info" />
           </div>
           <CardTitle>{t("auth.password_reset.mfa.title")}</CardTitle>
           <CardDescription>
@@ -116,8 +116,8 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
     return (
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 p-3">
-            <Shield className="h-6 w-6 text-green-600" />
+          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-success/10 p-3">
+            <Shield className="h-6 w-6 text-success" />
           </div>
           <CardTitle>{t("auth.password_reset.password.title")}</CardTitle>
           <CardDescription>
@@ -153,12 +153,12 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
                   },
                 })}
                 className={
-                  passwordForm.errors.newPassword ? "border-red-500" : ""
+                  passwordForm.errors.newPassword ? "border-destructive" : ""
                 }
                 disabled={isLoading}
               />
               {passwordForm.errors.newPassword && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-destructive">
                   {passwordForm.errors.newPassword.message}
                 </p>
               )}
@@ -185,12 +185,14 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
                     ),
                 })}
                 className={
-                  passwordForm.errors.confirmPassword ? "border-red-500" : ""
+                  passwordForm.errors.confirmPassword
+                    ? "border-destructive"
+                    : ""
                 }
                 disabled={isLoading}
               />
               {passwordForm.errors.confirmPassword && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-destructive">
                   {passwordForm.errors.confirmPassword.message}
                 </p>
               )}
@@ -210,8 +212,8 @@ export const PasswordResetValidateForm: FC<IPasswordResetValidateFormProps> = ({
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-red-100 p-3">
-          <Shield className="h-6 w-6 text-red-600" />
+        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-destructive/10 p-3">
+          <Shield className="h-6 w-6 text-destructive" />
         </div>
         <CardTitle>{t("auth.password_reset.code.title")}</CardTitle>
         <CardDescription>

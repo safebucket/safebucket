@@ -68,8 +68,8 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
     return (
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 p-3">
-            <CheckCircle className="h-6 w-6 text-green-600" />
+          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-success/10 p-3">
+            <CheckCircle className="h-6 w-6 text-success" />
           </div>
           <CardTitle>{t("invites.smart_enrollment.success_title")}</CardTitle>
           <CardDescription>
@@ -88,8 +88,8 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-purple-100 p-3">
-          <Mail className="h-6 w-6 text-purple-600" />
+        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 p-3">
+          <Mail className="h-6 w-6 text-primary" />
         </div>
         <CardTitle>{t("invites.smart_enrollment.title")}</CardTitle>
         <CardDescription>
@@ -135,10 +135,12 @@ export const InviteFormSmartEnrollment: FC<ISmartInviteEnrollmentProps> = ({
                       message: t("invites.smart_enrollment.email_invalid"),
                     },
                   })}
-                  className={errors.email ? "border-red-500" : ""}
+                  className={errors.email ? "border-destructive" : ""}
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                  <p className="text-sm text-destructive">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 

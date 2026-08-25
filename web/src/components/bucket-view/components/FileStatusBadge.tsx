@@ -30,10 +30,7 @@ export const FileStatusBadge: FC<IFileStatusBadgeProps> = ({
     case FileStatus.uploaded:
       return (
         <Badge
-          className={cn(
-            pill,
-            "border-green-200 bg-green-100 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300",
-          )}
+          className={cn(pill, "border-success/20 bg-success/10 text-success")}
         >
           <CheckCircle className="h-3 w-3" />
           {t("bucket.list_view.uploaded")}
@@ -41,12 +38,7 @@ export const FileStatusBadge: FC<IFileStatusBadgeProps> = ({
       );
     case FileStatus.uploading:
       return (
-        <Badge
-          className={cn(
-            pill,
-            "border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300",
-          )}
-        >
+        <Badge className={cn(pill, "border-info/20 bg-info/10 text-info")}>
           <LoaderCircle className="h-3 w-3 animate-spin" />
           {t("bucket.list_view.uploading")}
         </Badge>
@@ -56,7 +48,7 @@ export const FileStatusBadge: FC<IFileStatusBadgeProps> = ({
         <Badge
           className={cn(
             pill,
-            "border-red-200 bg-red-100 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300",
+            "border-destructive/20 bg-destructive/10 text-destructive",
           )}
         >
           <LoaderCircle className="h-3 w-3 animate-spin" />
@@ -66,10 +58,7 @@ export const FileStatusBadge: FC<IFileStatusBadgeProps> = ({
     case FileStatus.deleted:
       return (
         <Badge
-          className={cn(
-            pill,
-            "border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-300",
-          )}
+          className={cn(pill, "border-warning/20 bg-warning/10 text-warning")}
         >
           <Trash2 className="h-3 w-3" />
           {t("bucket.trash_view.trashed")}

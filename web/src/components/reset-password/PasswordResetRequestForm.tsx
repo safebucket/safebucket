@@ -46,8 +46,8 @@ export const PasswordResetRequestForm: FC = () => {
     return (
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-green-100 p-3">
-            <Mail className="h-6 w-6 text-green-600" />
+          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-success/10 p-3">
+            <Mail className="h-6 w-6 text-success" />
           </div>
           <CardTitle>{t("auth.password_reset.success_title")}</CardTitle>
           <CardDescription>
@@ -73,8 +73,8 @@ export const PasswordResetRequestForm: FC = () => {
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-100 p-3">
-          <Key className="h-6 w-6 text-blue-600" />
+        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-info/10 p-3">
+          <Key className="h-6 w-6 text-info" />
         </div>
         <CardTitle>{t("auth.password_reset.title")}</CardTitle>
         <CardDescription>{t("auth.password_reset.subtitle")}</CardDescription>
@@ -96,10 +96,10 @@ export const PasswordResetRequestForm: FC = () => {
                   message: "Please enter a valid email address",
                 },
               })}
-              className={errors.email ? "border-red-500" : ""}
+              className={errors.email ? "border-destructive" : ""}
             />
             {errors.email && (
-              <p className="text-sm text-red-500">{errors.email.message}</p>
+              <p className="text-sm text-destructive">{errors.email.message}</p>
             )}
           </div>
 

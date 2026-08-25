@@ -162,12 +162,12 @@ export const TrashTab: FC<ITrashTabProps> = ({
         responsive: "sm",
         cell: (item) =>
           isRestoring(item) ? (
-            <Badge className="rounded-full border-blue-200 bg-blue-100 text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+            <Badge className="rounded-full border-info/20 bg-info/10 text-info">
               <LoaderCircle className="h-3 w-3 animate-spin" />
               {t("bucket.trash_view.restoring")}
             </Badge>
           ) : (
-            <Badge className="rounded-full border-orange-200 bg-orange-100 text-orange-800 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
+            <Badge className="rounded-full border-warning/20 bg-warning/10 text-warning">
               <Trash2 className="h-3 w-3" />
               {t("bucket.trash_view.trashed")}
             </Badge>

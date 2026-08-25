@@ -275,7 +275,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
           )}
           {step === 2 && (
             <div className="flex w-full flex-col gap-2">
-              <div className="flex items-center gap-2 rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-400">
+              <div className="flex items-center gap-2 rounded-md border border-warning/20 bg-warning/10 px-3 py-2 text-sm text-warning">
                 <TriangleAlert className="h-4 w-4 shrink-0" />
                 <span>{t("quick_share.public_link_warning")}</span>
               </div>

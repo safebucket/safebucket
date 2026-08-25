@@ -91,7 +91,7 @@ export const InviteAcceptForm: FC<IInviteAcceptFormProps> = ({
       <Card className="mx-auto w-full max-w-md">
         <CardContent className="pt-6">
           <div className="space-y-4 text-center">
-            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+            <CheckCircle className="mx-auto h-12 w-12 text-success" />
             <h3 className="text-lg font-semibold">
               {t("invites.accept.success_title")}
             </h3>
@@ -107,8 +107,8 @@ export const InviteAcceptForm: FC<IInviteAcceptFormProps> = ({
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader className="text-center">
-        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-purple-100 p-3">
-          <Shield className="h-6 w-6 text-purple-600" />
+        <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 p-3">
+          <Shield className="h-6 w-6 text-primary" />
         </div>
         <CardTitle>{t("invites.accept.title")}</CardTitle>
         <CardDescription>{t("invites.accept.subtitle")}</CardDescription>
@@ -154,10 +154,10 @@ export const InviteAcceptForm: FC<IInviteAcceptFormProps> = ({
                   message: t("invites.accept.error_new_password_min_length"),
                 },
               })}
-              className={errors.newPassword ? "border-red-500" : ""}
+              className={errors.newPassword ? "border-destructive" : ""}
             />
             {errors.newPassword && (
-              <p className="text-sm text-red-500">
+              <p className="text-sm text-destructive">
                 {errors.newPassword.message}
               </p>
             )}
@@ -177,10 +177,10 @@ export const InviteAcceptForm: FC<IInviteAcceptFormProps> = ({
                   value === newPassword ||
                   t("invites.accept.error_confirm_password_mismatch"),
               })}
-              className={errors.confirmPassword ? "border-red-500" : ""}
+              className={errors.confirmPassword ? "border-destructive" : ""}
             />
             {errors.confirmPassword && (
-              <p className="text-sm text-red-500">
+              <p className="text-sm text-destructive">
                 {errors.confirmPassword.message}
               </p>
             )}

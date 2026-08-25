@@ -97,7 +97,7 @@ export const MembersTab: FC<IMembersTabProps> = ({
                 : t("bucket.view.members.invited")}
             </Badge>
             {member.isNew ? (
-              <Badge className="rounded-full border-green-200 bg-green-100 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300">
+              <Badge className="rounded-full border-success/20 bg-success/10 text-success">
                 {t("bucket.view.members.new")}
               </Badge>
             ) : null}

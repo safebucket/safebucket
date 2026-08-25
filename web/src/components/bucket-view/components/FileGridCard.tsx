@@ -34,35 +34,35 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
     switch (status) {
       case FileStatus.uploaded:
         return (
-          <Badge className="gap-1 bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
+          <Badge className="gap-1 bg-success/10 text-success border-success/20">
             <CheckCircle className="h-3 w-3" />
             {t("bucket.grid_view.uploaded")}
           </Badge>
         );
       case FileStatus.uploading:
         return (
-          <Badge className="gap-1 bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
+          <Badge className="gap-1 bg-info/10 text-info border-info/20">
             <LoaderCircle className="h-3 w-3 animate-spin" />
             {t("bucket.grid_view.uploading")}
           </Badge>
         );
       case FileStatus.deleting:
         return (
-          <Badge className="gap-1 bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800">
+          <Badge className="gap-1 bg-destructive/10 text-destructive border-destructive/20">
             <LoaderCircle className="h-3 w-3 animate-spin" />
             {t("bucket.grid_view.deleting")}
           </Badge>
         );
       case FileStatus.deleted:
         return (
-          <Badge className="gap-1 bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800">
+          <Badge className="gap-1 bg-warning/10 text-warning border-warning/20">
             <Trash2 className="h-3 w-3" />
             {t("bucket.trash_view.trashed")}
           </Badge>
         );
       case FileStatus.restoring:
         return (
-          <Badge className="gap-1 bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
+          <Badge className="gap-1 bg-info/10 text-info border-info/20">
             <LoaderCircle className="h-3 w-3 animate-spin" />
             {t("bucket.trash_view.restoring")}
           </Badge>

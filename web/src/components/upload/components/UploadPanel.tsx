@@ -61,13 +61,13 @@ export const UploadPanel: FC = () => {
             <div className="mt-3 flex items-center justify-between">
               <div className="text-xs">
                 {completedCount > 0 && (
-                  <span className="text-green-600">
+                  <span className="text-success">
                     {completedCount} {t("upload.completed")}
                   </span>
                 )}
                 {completedCount > 0 && failedCount > 0 && " · "}
                 {failedCount > 0 && (
-                  <span className="text-red-600">
+                  <span className="text-destructive">
                     {failedCount} {t("upload.failed")}
                   </span>
                 )}
