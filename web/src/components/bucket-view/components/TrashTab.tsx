@@ -15,16 +15,7 @@ import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -231,31 +222,18 @@ export const TrashTab: FC<ITrashTabProps> = ({
         defaultSortDir="desc"
       />
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("bucket.trash_view.confirm_delete_title")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("bucket.trash_view.confirm_delete_description", {
-                fileName: selectedItem?.name,
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>
-              {t("bucket.trash_view.cancel")}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive hover:bg-destructive/90 focus:ring-destructive text-white"
-            >
-              {t("bucket.trash_view.delete_permanently")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <CustomAlertDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        destructive
+        title={t("bucket.trash_view.confirm_delete_title")}
+        description={t("bucket.trash_view.confirm_delete_description", {
+          fileName: selectedItem?.name,
+        })}
+        cancelLabel={t("bucket.trash_view.cancel")}
+        confirmLabel={t("bucket.trash_view.delete_permanently")}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };

@@ -493,6 +493,21 @@
       "partial_failure_many": "{{count}} fichiers en échec : {{files}}",
       "partial_failure_other": "{{count}} fichiers en échec : {{files}}"
     },
+    "bulk_trash": {
+      "confirm_title_one": "Mettre {{count}} élément à la corbeille ?",
+      "confirm_title_many": "Mettre {{count}} éléments à la corbeille ?",
+      "confirm_title_other": "Mettre {{count}} éléments à la corbeille ?",
+      "confirm_description": "Les éléments sélectionnés seront déplacés vers la corbeille, dossiers inclus avec tout leur contenu. Vous pourrez les restaurer depuis la corbeille.",
+      "confirm": "Mettre à la corbeille",
+      "cancel": "Annuler",
+      "success_one": "{{count}} élément déplacé vers la corbeille.",
+      "success_many": "{{count}} éléments déplacés vers la corbeille.",
+      "success_other": "{{count}} éléments déplacés vers la corbeille.",
+      "partial_failure_title": "Certains éléments n'ont pas pu être mis à la corbeille",
+      "partial_failure_one": "{{count}} élément sur {{total}} ignoré : {{names}}",
+      "partial_failure_many": "{{count}} éléments sur {{total}} ignorés : {{names}}",
+      "partial_failure_other": "{{count}} éléments sur {{total}} ignorés : {{names}}"
+    },
     "grid_view": {
       "empty_folder": "Ce dossier est vide",
       "empty_description": "Téléchargez des fichiers ou créez des dossiers pour commencer à organiser votre contenu.",

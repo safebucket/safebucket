@@ -15,6 +15,7 @@ import type { RowSelectionState } from "@tanstack/react-table";
 import type { BucketItem, IBucket } from "@/types/bucket.ts";
 import { BucketGridView } from "@/components/bucket-view/components/BucketGridView";
 import { useBulkDownload } from "@/components/bucket-view/hooks/useBulkDownload";
+import { useBulkTrash } from "@/components/bucket-view/hooks/useBulkTrash";
 import { GridActionIcon } from "@/components/bucket-view/components/GridActionIcon";
 import { FilesTable } from "@/components/bucket-view/components/FilesTable";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
@@ -22,15 +23,7 @@ import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import { useFileActions } from "@/components/file-actions/hooks/useFileActions.ts";
 import { UploadDialog } from "@/components/upload/components/UploadDialog";
 import { useUploadDialog } from "@/components/upload/hooks/useUploadDialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn, formatFileSize } from "@/lib/utils";
@@ -52,6 +45,7 @@ export const FilesTab: FC<IFilesTabProps> = ({
   const { createFolder } = useFileActions();
   const uploadDialog = useUploadDialog({ bucketId: bucket.id, folderId });
   const newFolderDialog = useDialog();
+  const bulkTrashDialog = useDialog();
   const [query, setQuery] = useState("");
   const [layout, setLayout] = useState<"list" | "grid">("list");
   const [selected, setSelected] = useState<BucketItem | null>(null);
@@ -73,6 +67,13 @@ export const FilesTab: FC<IFilesTabProps> = ({
     maxBytes,
     maxFiles,
   } = useBulkDownload({ bucket, rowSelection, clearRowSelection });
+
+  const bulkTrash = useBulkTrash({
+    bucketId: bucket.id,
+    items,
+    rowSelection,
+    clearRowSelection,
+  });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -126,7 +127,7 @@ export const FilesTab: FC<IFilesTabProps> = ({
             <GridActionIcon
               icon={<Trash2 className="h-4 w-4" />}
               label={t("bucket.view.actions.bulk_trash")}
-              onClick={clearRowSelection}
+              onClick={bulkTrashDialog.trigger}
               disabled={!hasSelection || isRunning}
               destructive
             />
@@ -192,33 +193,33 @@ export const FilesTab: FC<IFilesTabProps> = ({
         confirmLabel={t("file_actions.new_folder_dialog.create")}
       />
 
-      <AlertDialog
+      <CustomAlertDialog
         open={blocked !== null}
         onOpenChange={(isOpen) => {
           if (!isOpen) dismissBlocked();
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("bucket.bulk_download.over_limit_title")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("bucket.bulk_download.over_limit_body", {
-                count: blocked?.count ?? 0,
-                size: formatFileSize(blocked?.bytes ?? 0),
-                maxCount: maxFiles,
-                maxSize: formatFileSize(maxBytes),
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={dismissBlocked}>
-              {t("common.ok")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title={t("bucket.bulk_download.over_limit_title")}
+        description={t("bucket.bulk_download.over_limit_body", {
+          count: blocked?.count ?? 0,
+          size: formatFileSize(blocked?.bytes ?? 0),
+          maxCount: maxFiles,
+          maxSize: formatFileSize(maxBytes),
+        })}
+        confirmLabel={t("common.ok")}
+        onConfirm={dismissBlocked}
+      />
+
+      <CustomAlertDialog
+        {...bulkTrashDialog.props}
+        destructive
+        title={t("bucket.bulk_trash.confirm_title", {
+          count: bulkTrash.selectedCount,
+        })}
+        description={t("bucket.bulk_trash.confirm_description")}
+        confirmLabel={t("bucket.bulk_trash.confirm")}
+        cancelLabel={t("bucket.bulk_trash.cancel")}
+        onConfirm={bulkTrash.run}
+      />
 
       <UploadDialog
         {...uploadDialog.dialogProps}

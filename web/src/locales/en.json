@@ -488,6 +488,18 @@
       "partial_failure_one": "{{count}} file failed: {{files}}",
       "partial_failure_other": "{{count}} files failed: {{files}}"
     },
+    "bulk_trash": {
+      "confirm_title_one": "Move {{count}} item to trash?",
+      "confirm_title_other": "Move {{count}} items to trash?",
+      "confirm_description": "The selected items will be moved to trash. Folders will include all their contents. You can restore them from the trash afterwards.",
+      "confirm": "Move to Trash",
+      "cancel": "Cancel",
+      "success_one": "{{count}} item moved to trash.",
+      "success_other": "{{count}} items moved to trash.",
+      "partial_failure_title": "Some items could not be moved to trash",
+      "partial_failure_one": "{{count}} of {{total}} item skipped: {{names}}",
+      "partial_failure_other": "{{count}} of {{total}} items skipped: {{names}}"
+    },
     "grid_view": {
       "empty_folder": "This folder is empty",
       "empty_description": "Upload files or create folders to get started organizing your content.",

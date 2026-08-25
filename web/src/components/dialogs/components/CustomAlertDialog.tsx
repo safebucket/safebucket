@@ -1,5 +1,6 @@
 import type { FC } from "react";
 
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,8 +17,9 @@ interface ICustomAlertDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   title: string;
   description: string;
+  confirmLabel: string;
   cancelLabel?: string;
-  confirmLabel?: string;
+  destructive?: boolean;
   onConfirm: () => void;
 }
 
@@ -26,8 +28,9 @@ export const CustomAlertDialog: FC<ICustomAlertDialogProps> = ({
   onOpenChange,
   title,
   description,
-  cancelLabel = "Cancel",
-  confirmLabel = "Confirm",
+  confirmLabel,
+  cancelLabel,
+  destructive = false,
   onConfirm,
 }: ICustomAlertDialogProps) => {
   return (
@@ -38,8 +41,16 @@ export const CustomAlertDialog: FC<ICustomAlertDialogProps> = ({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
+          {cancelLabel ? (
+            <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
+          ) : null}
+          <AlertDialogAction
+            onClick={onConfirm}
+            className={cn(
+              destructive &&
+                "bg-destructive hover:bg-destructive/90 focus:ring-destructive text-white",
+            )}
+          >
             {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

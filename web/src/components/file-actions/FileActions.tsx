@@ -144,6 +144,7 @@ export const FileActions: FC<IFileActionsProps> = ({
             })}
             description={t("file_actions.delete_dialog.description")}
             confirmLabel={t("file_actions.delete_dialog.confirm")}
+            cancelLabel={t("common.cancel")}
             onConfirm={() => deleteFile(file.id, file.name, !isFile(file))}
           />
         </>

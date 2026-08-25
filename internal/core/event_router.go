@@ -58,7 +58,7 @@ func (er *EventRouter) getTopicKeyForEvent(eventType string) string {
 		events.FileActivityNotificationName:
 		return configuration.EventsNotifications
 	case events.BucketPurgeName,
-		events.FolderTrashName,
+		events.ItemsTrashName,
 		events.FolderPurgeName,
 		events.FolderRestoreName,
 		events.TrashExpirationName:
