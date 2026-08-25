@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import type { IFolder } from "@/types/folder.ts";
 import type { IFile } from "@/types/file.ts";
 import { FileStatus } from "@/types/file.ts";
 import { FolderStatus } from "@/types/folder.ts";
-import { successToast } from "@/lib/toast";
 import { api } from "@/lib/api";
 import { bucketTrashedFilesQueryOptions } from "@/queries/bucket";
 
@@ -74,7 +74,7 @@ export const useTrashActions = (): ITrashActions => {
         queryKey: ["buckets", bucketId, "trash"],
       });
       queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-      successToast(
+      toast.success(
         t("bucket.trash_view.restore_success", {
           fileName: variables.itemName,
         }),
@@ -101,7 +101,7 @@ export const useTrashActions = (): ITrashActions => {
       queryClient.invalidateQueries({
         queryKey: ["buckets", bucketId, "trash"],
       });
-      successToast(
+      toast.success(
         t("bucket.trash_view.purge_success", { fileName: variables.itemName }),
       );
     },

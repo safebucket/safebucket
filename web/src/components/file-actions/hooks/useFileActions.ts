@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import { toast } from "sonner";
 import type { IFileActions } from "@/components/file-actions/helpers/types";
 import {
   api_downloadFile,
   downloadFromStorage,
 } from "@/components/file-actions/helpers/api";
-import { successToast } from "@/lib/toast";
 import {
   createFolderMutationFn,
   deleteFileMutationFn,
@@ -21,7 +21,7 @@ export const useFileActions = (): IFileActions => {
     mutationFn: createFolderMutationFn,
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
-      successToast(`Folder ${variables.name} has been created.`);
+      toast.success(`Folder ${variables.name} has been created.`);
     },
   });
 
@@ -30,7 +30,7 @@ export const useFileActions = (): IFileActions => {
     onSuccess: ({ filename }) => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
       if (filename) {
-        successToast(`File "${filename}" has been moved to trash.`);
+        toast.success(`File "${filename}" has been moved to trash.`);
       }
     },
   });

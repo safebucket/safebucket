@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { IBucket } from "@/types/bucket.ts";
 import { api } from "@/lib/api.ts";
+import { errorToast } from "@/lib/toast";
 
 export interface IBucketInformationData {
   isEditingName: boolean;
@@ -57,9 +58,7 @@ export const useBucketInformation = (
 
   const handleSaveName = () => {
     if (!bucketName.trim()) {
-      toast.error(t("toast.invalid_name"), {
-        description: t("toast.bucket_name_empty"),
-      });
+      errorToast(t("toast.invalid_name"), t("toast.bucket_name_empty"));
       return;
     }
 

@@ -3,11 +3,11 @@ import { useTranslation } from "react-i18next";
 import { QRCode } from "react-qr-code";
 
 import { Check, Copy } from "lucide-react";
+import { toast } from "sonner";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { successToast } from "@/lib/toast";
 
 interface IQuickShareResultStepProps {
   generatedLink: string;
@@ -22,7 +22,7 @@ export const QuickShareResultStep: FC<IQuickShareResultStepProps> = ({
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedLink).then(() => {
       setCopied(true);
-      successToast(t("quick_share.copied"));
+      toast.success(t("quick_share.copied"));
       setTimeout(() => setCopied(false), 2000);
     });
   };

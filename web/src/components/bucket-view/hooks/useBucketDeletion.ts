@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { IBucket } from "@/types/bucket.ts";
 import { api } from "@/lib/api.ts";
+import { errorToast } from "@/lib/toast";
 
 export interface IBucketDeletionData {
   confirmationText: string;
@@ -39,11 +40,12 @@ export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
 
   const handleDeleteBucket = () => {
     if (!isConfirmationValid) {
-      toast.error(t("toast.invalid_confirmation"), {
-        description: t("toast.confirm_deletion_prompt", {
+      errorToast(
+        t("toast.invalid_confirmation"),
+        t("toast.confirm_deletion_prompt", {
           text: expectedDeleteText,
         }),
-      });
+      );
       return;
     }
 

@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type {
   ISessionListResponse,
   IUser,
 } from "@/components/auth-view/types/session";
 import { api, fetchApi } from "@/lib/api";
-import { successToast } from "@/lib/toast";
 import i18n from "@/lib/i18n";
 import { useSession } from "@/hooks/useAuth";
 
@@ -39,7 +39,7 @@ export const useUpdateUserMutation = (userId: string) => {
       api.patch(`/users/${userId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users", userId] });
-      successToast("Profile updated successfully");
+      toast.success("Profile updated successfully");
     },
   });
 };
@@ -72,7 +72,7 @@ export const useRevokeSessionMutation = (userId: string) => {
       queryClient.invalidateQueries({
         queryKey: ["users", userId, "sessions"],
       });
-      successToast(i18n.t("settings.sessions.revoked"));
+      toast.success(i18n.t("settings.sessions.revoked"));
     },
   });
 };
@@ -86,7 +86,7 @@ export const useRevokeAllSessionsMutation = (userId: string) => {
       queryClient.invalidateQueries({
         queryKey: ["users", userId, "sessions"],
       });
-      successToast(i18n.t("settings.sessions.all_revoked"));
+      toast.success(i18n.t("settings.sessions.all_revoked"));
     },
   });
 };

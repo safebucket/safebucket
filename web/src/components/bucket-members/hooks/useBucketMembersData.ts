@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 
+import { toast } from "sonner";
 import type { IBucket } from "@/types/bucket.ts";
 import { EMAIL_REGEX } from "@/types/bucket.ts";
 import { bucketMembersQueryOptions } from "@/queries/bucket";
 import { useCurrentUser } from "@/queries/user";
 import { api_updateMembers } from "@/components/bucket-members/helpers/api";
-import { errorToast, successToast } from "@/lib/toast";
+
+import { errorToast } from "@/lib/toast";
 
 export interface IMemberState {
   email: string;
@@ -65,7 +66,7 @@ export const useBucketMembersData = (bucket: IBucket) => {
 
     const existingMember = membersState.find((m) => m.email === newMemberEmail);
     if (existingMember) {
-      toast.error(t("toast.user_already_member"));
+      errorToast(t("toast.user_already_member"));
       return;
     }
 
@@ -112,7 +113,7 @@ export const useBucketMembersData = (bucket: IBucket) => {
         queryClient.invalidateQueries({
           queryKey: ["buckets", bucket.id, "members"],
         });
-        successToast(t("bucket.settings.members.updated_successfully"));
+        toast.success(t("bucket.settings.members.updated_successfully"));
       })
       .catch(errorToast)
       .finally(() => setIsSubmitting(false));

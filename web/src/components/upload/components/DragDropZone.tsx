@@ -1,13 +1,13 @@
 import { Upload } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
 import type React from "react";
 import type { DragEvent, FC } from "react";
 
 import type { FileWithPath } from "@/components/upload/helpers/types";
 import { extractFilesFromDrop } from "@/components/upload/helpers/file-processing";
 import { useBucketPermissions } from "@/hooks/usePermissions";
+import { errorToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 interface IDragDropZoneProps {
@@ -70,7 +70,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       dragCounterRef.current = 0;
 
       if (!isContributor) {
-        toast.error(t("upload.permission_denied"));
+        errorToast(t("upload.permission_denied"));
         return;
       }
 

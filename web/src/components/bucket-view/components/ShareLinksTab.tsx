@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { FC } from "react";
 import type { IDataTableColumn } from "@/components/common/components/DataTable/DataTable";
 import type { IShare } from "@/types/share.ts";
@@ -30,7 +31,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { successToast } from "@/lib/toast";
 
 interface IShareLinksTabProps {
   bucket: IBucket;
@@ -52,7 +52,7 @@ export const ShareLinksTab: FC<IShareLinksTabProps> = ({
 
   const copyLink = (share: IShare) => {
     navigator.clipboard.writeText(shareUrl(share));
-    successToast(t("bucket.settings.shares.link_copied"));
+    toast.success(t("bucket.settings.shares.link_copied"));
   };
 
   const expiryText = (share: IShare) => {

@@ -4,6 +4,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { IActivityPage } from "@/types/activity";
 import type { ActivityRange } from "@/components/activity-view/components/ActivityDateRangePicker";
 import type {
@@ -13,7 +14,6 @@ import type {
 import type { IBucket } from "@/types/bucket.ts";
 import type { IShare, IShareCreateBody } from "@/types/share.ts";
 import { api } from "@/lib/api";
-import { successToast } from "@/lib/toast";
 import i18n from "@/lib/i18n";
 
 export const bucketsQueryOptions = () =>
@@ -86,7 +86,7 @@ export const useUpdateNotificationPreferencesMutation = (bucketId: string) => {
       queryClient.invalidateQueries({
         queryKey: ["buckets", bucketId, "members"],
       });
-      successToast(i18n.t("bucket.notifications.updated"));
+      toast.success(i18n.t("bucket.notifications.updated"));
     },
   });
 };
@@ -123,7 +123,7 @@ export const useDeleteShareMutation = (bucketId: string) => {
       queryClient.invalidateQueries({
         queryKey: ["buckets", bucketId, "shares"],
       });
-      successToast(i18n.t("bucket.settings.shares.deleted"));
+      toast.success(i18n.t("bucket.settings.shares.deleted"));
     },
   });
 };

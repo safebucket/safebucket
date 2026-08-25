@@ -1,13 +1,13 @@
 import { useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type {
   IBucketsData,
   IMembers,
 } from "@/components/bucket-view/helpers/types";
 
 import type { IBucket } from "@/types/bucket.ts";
-import { successToast } from "@/lib/toast";
 import { bucketsQueryOptions } from "@/queries/bucket.ts";
 import { api } from "@/lib/api.ts";
 
@@ -39,7 +39,7 @@ export const useBucketsData = (): IBucketsData => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
       setIsDialogOpen(false);
-      successToast("The bucket has been created");
+      toast.success("The bucket has been created");
     },
   });
 

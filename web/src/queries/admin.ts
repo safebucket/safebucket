@@ -4,6 +4,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { IUser } from "@/components/auth-view/types/session";
 import type { ActivityMessage, IActivityPage } from "@/types/activity";
 import type {
@@ -13,7 +14,6 @@ import type {
 } from "@/types/admin.ts";
 import type { IAdminSettingsResponse } from "@/types/app_settings";
 import { api } from "@/lib/api";
-import { successToast } from "@/lib/toast";
 
 const ACTIVITY_PAGE_SIZE = 50;
 
@@ -39,7 +39,7 @@ export const useCreateUserMutation = () => {
     mutationFn: (data: CreateUserPayload) => api.post<IUser>("/users", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      successToast("User created successfully");
+      toast.success("User created successfully");
     },
   });
 };
@@ -51,7 +51,7 @@ export const useDeleteUserMutation = () => {
     mutationFn: (userId: string) => api.delete(`/users/${userId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      successToast("User deleted successfully");
+      toast.success("User deleted successfully");
     },
   });
 };
@@ -105,7 +105,7 @@ export const useDeleteAdminBucketMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "buckets"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
-      successToast("Bucket deleted successfully");
+      toast.success("Bucket deleted successfully");
     },
   });
 };

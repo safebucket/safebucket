@@ -2,6 +2,7 @@ import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { QRCode } from "react-qr-code";
+import { toast } from "sonner";
 import type { FC } from "react";
 
 import { Button } from "@/components/ui/button.tsx";
@@ -13,7 +14,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { successToast } from "@/lib/toast";
 
 interface IQrCodeDialogProps {
   open: boolean;
@@ -36,7 +36,7 @@ export const QrCodeDialog: FC<IQrCodeDialogProps> = ({
   const handleCopy = () => {
     navigator.clipboard.writeText(value).then(() => {
       setCopied(true);
-      successToast(t("common.copied"));
+      toast.success(t("common.copied"));
       setTimeout(() => setCopied(false), 2000);
     });
   };

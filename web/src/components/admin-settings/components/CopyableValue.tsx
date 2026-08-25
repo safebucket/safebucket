@@ -1,5 +1,6 @@
 import { Copy } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { NotSet } from "./NotSet";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,7 +8,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { successToast } from "@/lib/toast";
 
 export function CopyableValue({ value }: { value?: string | null }) {
   const { t } = useTranslation();
@@ -16,7 +16,7 @@ export function CopyableValue({ value }: { value?: string | null }) {
   }
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
-    successToast(t("admin.settings.copy.copied"));
+    toast.success(t("admin.settings.copy.copied"));
   };
   return (
     <span className="inline-flex items-center gap-1">
