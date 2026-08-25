@@ -4,7 +4,7 @@ import type {
   IUser,
 } from "@/components/auth-view/types/session";
 import { api, fetchApi } from "@/lib/api";
-import { successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/lib/toast";
 import i18n from "@/lib/i18n";
 import { useSession } from "@/hooks/useAuth";
 

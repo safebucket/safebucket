@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { IBucket } from "@/types/bucket.ts";
-import { toast } from "@/components/ui/hooks/use-toast";
 import { api } from "@/lib/api.ts";
 
 export interface IBucketInformationData {
@@ -36,9 +36,7 @@ export const useBucketInformation = (
     mutationFn: () => api.patch(`/buckets/${bucket.id}`, { name: bucketName }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
-      toast({
-        variant: "success",
-        title: t("common.success"),
+      toast.success(t("common.success"), {
         description: t("toast.bucket_name_updated"),
       });
       setIsEditingName(false);
@@ -50,9 +48,7 @@ export const useBucketInformation = (
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedField(field);
-      toast({
-        variant: "success",
-        title: t("common.success"),
+      toast.success(t("common.success"), {
         description: t("toast.copied", { field }),
       });
       setTimeout(() => setCopiedField(null), 2000);
@@ -61,9 +57,7 @@ export const useBucketInformation = (
 
   const handleSaveName = () => {
     if (!bucketName.trim()) {
-      toast({
-        variant: "destructive",
-        title: t("toast.invalid_name"),
+      toast.error(t("toast.invalid_name"), {
         description: t("toast.bucket_name_empty"),
       });
       return;

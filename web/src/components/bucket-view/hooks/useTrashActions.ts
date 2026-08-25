@@ -5,7 +5,7 @@ import type { IFolder } from "@/types/folder.ts";
 import type { IFile } from "@/types/file.ts";
 import { FileStatus } from "@/types/file.ts";
 import { FolderStatus } from "@/types/folder.ts";
-import { successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/lib/toast";
 import { api } from "@/lib/api";
 import { bucketTrashedFilesQueryOptions } from "@/queries/bucket";
 

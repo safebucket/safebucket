@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { successToast } from "@/components/ui/hooks/use-toast.ts";
+import { successToast } from "@/lib/toast";
 
 interface IQrCodeDialogProps {
   open: boolean;

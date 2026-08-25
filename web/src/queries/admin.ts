@@ -13,7 +13,7 @@ import type {
 } from "@/types/admin.ts";
 import type { IAdminSettingsResponse } from "@/types/app_settings";
 import { api } from "@/lib/api";
-import { successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/lib/toast";
 
 const ACTIVITY_PAGE_SIZE = 50;
 

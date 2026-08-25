@@ -20,7 +20,7 @@ import {
 } from "@/queries/share";
 import { configQueryOptions } from "@/queries/config";
 import { cn, formatFileSize, generateRandomString } from "@/lib/utils";
-import { errorToast } from "@/components/ui/hooks/use-toast";
+import { errorToast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";

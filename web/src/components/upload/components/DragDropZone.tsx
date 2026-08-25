@@ -1,10 +1,11 @@
 import { Upload } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import type React from "react";
 import type { DragEvent, FC } from "react";
+
 import type { FileWithPath } from "@/components/upload/helpers/types";
-import { useToast } from "@/components/ui/hooks/use-toast.ts";
 import { extractFilesFromDrop } from "@/components/upload/helpers/file-processing";
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,6 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
   onFilesDropped,
 }) => {
   const { t } = useTranslation();
-  const { toast } = useToast();
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
 
@@ -70,10 +70,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
       dragCounterRef.current = 0;
 
       if (!isContributor) {
-        toast({
-          variant: "destructive",
-          description: t("upload.permission_denied"),
-        });
+        toast.error(t("upload.permission_denied"));
         return;
       }
 
@@ -82,7 +79,7 @@ export const DragDropZone: FC<IDragDropZoneProps> = ({
         onFilesDropped(files);
       }
     },
-    [isContributor, toast, t, onFilesDropped],
+    [isContributor, t, onFilesDropped],
   );
 
   return (

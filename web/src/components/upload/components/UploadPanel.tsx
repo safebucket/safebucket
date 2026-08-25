@@ -16,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { resolveErrorMessage } from "@/components/ui/hooks/use-toast";
+import { resolveErrorMessage } from "@/lib/toast";
 import {
   getStatusIcon,
   getStatusText,

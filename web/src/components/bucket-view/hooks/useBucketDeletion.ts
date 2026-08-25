@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { IBucket } from "@/types/bucket.ts";
-import { toast } from "@/components/ui/hooks/use-toast";
 import { api } from "@/lib/api.ts";
 
 export interface IBucketDeletionData {
@@ -28,9 +28,7 @@ export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
       navigate({ to: "/" });
-      toast({
-        variant: "success",
-        title: t("common.success"),
+      toast.success(t("common.success"), {
         description: t("toast.bucket_deleted", { name: bucket.name }),
       });
     },
@@ -41,9 +39,7 @@ export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
 
   const handleDeleteBucket = () => {
     if (!isConfirmationValid) {
-      toast({
-        variant: "destructive",
-        title: t("toast.invalid_confirmation"),
+      toast.error(t("toast.invalid_confirmation"), {
         description: t("toast.confirm_deletion_prompt", {
           text: expectedDeleteText,
         }),

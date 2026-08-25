@@ -8,7 +8,7 @@ import type {
   IMFADevicesResponse,
 } from "@/components/auth-view/types/session";
 import { api, fetchApi } from "@/lib/api";
-import { successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/lib/toast";
 
 const MFA_DEVICES_KEY = ["mfa", "devices"] as const;
 

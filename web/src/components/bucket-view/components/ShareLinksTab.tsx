@@ -30,7 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/lib/toast";
 
 interface IShareLinksTabProps {
   bucket: IBucket;

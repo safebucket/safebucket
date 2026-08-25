@@ -10,7 +10,7 @@ import ReactDOM from "react-dom/client";
 
 import reportWebVitals from "./reportWebVitals.ts";
 import { routeTree } from "./routeTree.gen";
-import { errorToast } from "@/components/ui/hooks/use-toast.ts";
+import { errorToast } from "@/lib/toast";
 import { ThemeProvider } from "@/components/theme/context/ThemeProvider.tsx";
 import { TimeDisplayProvider } from "@/components/time-display/context/TimeDisplayProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";

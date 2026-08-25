@@ -13,7 +13,7 @@ import type {
 import type { IBucket } from "@/types/bucket.ts";
 import type { IShare, IShareCreateBody } from "@/types/share.ts";
 import { api } from "@/lib/api";
-import { successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/lib/toast";
 import i18n from "@/lib/i18n";
 
 export const bucketsQueryOptions = () =>

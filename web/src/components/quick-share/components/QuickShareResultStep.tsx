@@ -7,7 +7,7 @@ import type { FC } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/lib/toast";
 
 interface IQuickShareResultStepProps {
   generatedLink: string;

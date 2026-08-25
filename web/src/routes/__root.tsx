@@ -10,7 +10,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { Session } from "@/components/auth-view/types/session";
 import { AppSidebar } from "@/components/app-sidebar/AppSidebar.tsx";
 import { AppSidebarInset } from "@/components/app-sidebar/components/AppSidebarInset.tsx";
-import { Toaster } from "@/components/ui/toaster.tsx";
+import { Toaster } from "@/components/ui/sonner.tsx";
 import { UploadPanel } from "@/components/upload/components/UploadPanel";
 import { EnvironmentType } from "@/types/app.ts";
 import { useConfig } from "@/hooks/useConfig.ts";

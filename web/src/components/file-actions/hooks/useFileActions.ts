@@ -5,7 +5,7 @@ import {
   api_downloadFile,
   downloadFromStorage,
 } from "@/components/file-actions/helpers/api";
-import { successToast } from "@/components/ui/hooks/use-toast";
+import { successToast } from "@/lib/toast";
 import {
   createFolderMutationFn,
   deleteFileMutationFn,
