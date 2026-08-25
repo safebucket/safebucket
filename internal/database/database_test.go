@@ -3,13 +3,13 @@ package database
 import (
 	"testing"
 
-	"github.com/safebucket/safebucket/internal/models"
-
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+	"github.com/safebucket/safebucket/internal/models"
 )
 
 func setupSQLiteDB(t *testing.T) *gorm.DB {
@@ -37,7 +37,9 @@ func TestSQLite_Migrations(t *testing.T) {
 	require.NoError(t, err)
 	defer sqlDB.Close()
 
-	tables := []string{"users", "buckets", "memberships", "folders", "files", "invites", "challenges", "mfa_devices"}
+	tables := []string{
+		"users", "buckets", "memberships", "folders", "files", "file_versions", "invites", "challenges", "mfa_devices",
+	}
 	for _, table := range tables {
 		var count int
 		err = sqlDB.QueryRow("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", table).Scan(&count)
