@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import type { IDownloadFileResponse } from "@/components/bucket-view/helpers/types";
 import { api } from "@/lib/api";
 
-
 export const api_downloadFile = (
   bucketId: string,
   fileId: string,
