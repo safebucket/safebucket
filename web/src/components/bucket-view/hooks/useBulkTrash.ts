@@ -3,9 +3,10 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { BucketItem, IBucket } from "@/types/bucket.ts";
-import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import { errorToast } from "@/lib/toast";
 import { removeBucketItemsFromCache } from "@/queries/bucket";
 import { api } from "@/lib/api";
+import {toast} from "sonner";
 
 interface IUseBulkTrashArgs {
   bucketId: string;
@@ -55,7 +56,7 @@ export const useBulkTrash = ({
       queryClient.invalidateQueries({
         queryKey: ["buckets", bucketId, "trash"],
       });
-      successToast(t("bucket.bulk_trash.success", { count: selected.length }));
+      toast.success(t("bucket.bulk_trash.success", { count: selected.length }));
     },
     onError: (err, _selected, context) => {
       if (context?.previous) {
