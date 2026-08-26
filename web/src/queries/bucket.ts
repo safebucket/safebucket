@@ -4,8 +4,8 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import type { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { QueryClient } from "@tanstack/react-query";
 import type { IActivityPage } from "@/types/activity";
 import type { ActivityRange } from "@/components/activity-view/components/ActivityDateRangePicker";
 import type {

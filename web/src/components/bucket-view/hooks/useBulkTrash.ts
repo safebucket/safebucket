@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { BucketItem, IBucket } from "@/types/bucket.ts";
 import { errorToast } from "@/lib/toast";
 import { removeBucketItemsFromCache } from "@/queries/bucket";
 import { api } from "@/lib/api";
-import { toast } from "sonner";
 
 interface IUseBulkTrashArgs {
   bucketId: string;
