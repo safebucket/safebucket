@@ -1,9 +1,14 @@
+import { useDndContext, useDraggable, useDroppable } from "@dnd-kit/core";
 import { useTranslation } from "react-i18next";
 import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
 import type { FC } from "react";
 
 import type { BucketItem } from "@/types/bucket.ts";
 import { FileStatus } from "@/types/file.ts";
+import {
+  canDropInto,
+  resolveDragIds,
+} from "@/components/bucket-view/helpers/dnd";
 import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { cn, formatDate, formatFileSize } from "@/lib/utils";
 import { FileActions } from "@/components/file-actions/FileActions";
@@ -16,6 +21,8 @@ interface IFileGridCardProps {
   selected: BucketItem | null;
   setSelected: (item: BucketItem) => void;
   onDoubleClick: (item: BucketItem) => void;
+  enabled: boolean;
+  selectedIds: Array<string>;
 }
 
 export const FileGridCard: FC<IFileGridCardProps> = ({
@@ -23,10 +30,31 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
   selected,
   setSelected,
   onDoubleClick,
+  enabled,
+  selectedIds,
 }: IFileGridCardProps) => {
   const { t } = useTranslation();
+  const { active } = useDndContext();
+  const dragIds = active?.data.current?.dragIds as Array<string> | undefined;
   const isSelected = selected?.id === file.id;
   const itemIsFolder = isFolder(file);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDragRef,
+    isDragging,
+  } = useDraggable({
+    id: file.id,
+    data: { itemId: file.id, dragIds: resolveDragIds(selectedIds, file.id) },
+    disabled: !enabled,
+  });
+
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `drop-${file.id}`,
+    data: { dropFolderId: file.id },
+    disabled: !itemIsFolder || !canDropInto(dragIds, file.id),
+  });
 
   const renderStatusBadge = () => {
     const status = file.status;
@@ -75,10 +103,18 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
   return (
     <FileActions file={file} type="context">
       <Card
+        ref={(node) => {
+          setDragRef(node);
+          setDropRef(node);
+        }}
+        {...attributes}
+        {...listeners}
+        style={isDragging ? { opacity: 0.4 } : undefined}
         className={cn(
           "relative flex cursor-pointer flex-col gap-4 p-5 transition-all hover:shadow-md min-h-[180px]",
           isSelected &&
             "bg-primary text-primary-foreground ring-2 ring-primary",
+          isOver && "bg-primary/10 ring-primary ring-2",
         )}
         onClick={() => setSelected(file)}
         onDoubleClick={() => onDoubleClick(file)}

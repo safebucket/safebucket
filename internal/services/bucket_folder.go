@@ -39,6 +39,10 @@ func (s BucketFolderService) Routes() chi.Router {
 		With(m.Validate[models.FolderCreateBody]).
 		Post("/", handlers.CreateHandler(s.CreateFolder))
 
+	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
+		With(m.Validate[models.FolderMoveBody]).
+		Post("/move", handlers.BatchHandler(s.MoveFolders))
+
 	r.Route("/{id1}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			With(m.Validate[models.FolderUpdateBody]).
@@ -173,6 +177,55 @@ func (s BucketFolderService) RenameFolder(
 	return nil
 }
 
+func (s BucketFolderService) MoveFolders(
+	logger *zap.Logger,
+	_ models.UserClaims,
+	ids uuid.UUIDs,
+	body models.FolderMoveBody,
+) (models.MoveResponse, error) {
+	bucketID := ids[0]
+
+	return h.MoveBatch(s.DB, bucketID, body.FolderID, body.IDs,
+		func(tx *gorm.DB, targetFolderID *uuid.UUID, folderID uuid.UUID) error {
+			var folder models.Folder
+			result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("id = ? AND bucket_id = ?", folderID, bucketID).
+				First(&folder)
+			if result.Error != nil {
+				if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+					return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
+				}
+				logger.Error("Failed to fetch folder for moving", zap.Error(result.Error))
+				return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
+			}
+
+			if h.SameFolder(folder.FolderID, targetFolderID) {
+				return nil
+			}
+
+			if err := h.ValidateFolderMove(tx, bucketID, folderID, targetFolderID); err != nil {
+				return err
+			}
+
+			taken, err := h.NameTakenInFolder(tx, &models.Folder{}, bucketID, folder.Name, folder.ID, targetFolderID)
+			if err != nil {
+				logger.Error("Failed to check folder name conflict", zap.Error(err))
+				return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
+			}
+			if taken {
+				return apierrors.New(http.StatusConflict, apierrors.CodeFolderNameConflict)
+			}
+
+			if err = tx.Model(&folder).Update("folder_id", targetFolderID).Error; err != nil {
+				logger.Error("Failed to move folder", zap.Error(err))
+				return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
+			}
+
+			return nil
+		},
+	)
+}
+
 func (s BucketFolderService) UpdateFolderStatus(
 	logger *zap.Logger,
 	user models.UserClaims,
@@ -233,7 +286,42 @@ func (s BucketFolderService) DeleteFolder(
 		return err
 	}
 
-	event := events.NewFolderPurge(s.Publisher, folder.BucketID, folder.ID, user.UserID)
+	return s.PurgeFolder(logger, user, folder)
+}
+
+func (s BucketFolderService) TrashFolder(
+	logger *zap.Logger,
+	user models.UserClaims,
+	folder models.Folder,
+) error {
+	if folder.DeletedAt.Valid {
+		return apierrors.New(http.StatusConflict, apierrors.CodeFolderAlreadyTrashed)
+	}
+
+	if folder.Status == models.FolderStatusRestoring {
+		return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+	}
+
+	updates := map[string]any{
+		"status":     models.FolderStatusDeleted,
+		"deleted_by": user.UserID,
+	}
+	if err := s.DB.Model(&folder).Updates(updates).Error; err != nil {
+		logger.Error("Failed to update folder for trashing", zap.Error(err))
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
+	}
+
+	if err := s.DB.Delete(&folder).Error; err != nil {
+		logger.Error("Failed to soft delete folder", zap.Error(err))
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
+	}
+
+	objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
+	if err := s.Storage.MarkAsTrashed(objectPath, folder); err != nil {
+		logger.Warn("Failed to create trash marker for folder", zap.Error(err))
+	}
+
+	event := events.NewFolderTrash(s.Publisher, folder.BucketID, folder.ID, user.UserID)
 	event.Trigger()
 
 	action := models.Activity{

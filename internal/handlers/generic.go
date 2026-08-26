@@ -63,9 +63,11 @@ func WriteError(span trace.Span, w http.ResponseWriter, err error) {
 	h.RespondWithError(w, status, []string{code})
 }
 
-//nolint:dupl // structurally similar to GetOneWithQueryHandler but handles body decoding and write semantics.
-func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
-	name := spanName(create)
+func writeBodyHandler[In any, Out any](
+	target CreateTargetFunc[In, Out],
+	successStatus int,
+) http.HandlerFunc {
+	name := spanName(target)
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracing.StartSpan(r.Context(), name)
 		defer span.End()
@@ -85,13 +87,17 @@ func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.Handl
 			return
 		}
 
-		resp, err := create(logger, claims, ids, body)
+		resp, err := target(logger, claims, ids, body)
 		if err != nil {
 			WriteError(span, w, err)
 		} else {
-			h.RespondWithJSON(w, http.StatusCreated, resp)
+			h.RespondWithJSON(w, successStatus, resp)
 		}
 	}
+}
+
+func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
+	return writeBodyHandler(create, http.StatusCreated)
 }
 
 func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
@@ -165,7 +171,6 @@ func GetOneHandler[Out any](getOne GetOneTargetFunc[Out]) http.HandlerFunc {
 	}
 }
 
-//nolint:dupl // structurally similar to CreateHandler but handles query decoding and read semantics.
 func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, Out]) http.HandlerFunc {
 	name := spanName(getOne)
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -195,6 +200,10 @@ func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, 
 			h.RespondWithJSON(w, http.StatusOK, record)
 		}
 	}
+}
+
+func BatchHandler[In any, Out any](batch CreateTargetFunc[In, Out]) http.HandlerFunc {
+	return writeBodyHandler(batch, http.StatusOK)
 }
 
 func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {

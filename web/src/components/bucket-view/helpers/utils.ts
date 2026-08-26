@@ -26,3 +26,22 @@ export const itemsToShow = (
 
   return [...folderItems, ...fileItems];
 };
+
+export const getFolderPathTrail = (
+  folders: Array<IFolder>,
+  currentFolderId: string | undefined,
+): Array<IFolder> => {
+  if (!currentFolderId) return [];
+
+  const trail: Array<IFolder> = [];
+  let nextId: string | undefined = currentFolderId;
+
+  while (nextId) {
+    const current = folders.find((folder) => folder.id === nextId);
+    if (!current) break;
+    trail.unshift(current);
+    nextId = current.folder_id;
+  }
+
+  return trail;
+};
