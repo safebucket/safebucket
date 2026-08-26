@@ -42,6 +42,10 @@ func (s BucketFileService) Routes() chi.Router {
 		With(m.Validate[models.FileUploadBody]).
 		Post("/files", handlers.CreateHandler(s.UploadFile))
 
+	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
+		With(m.Validate[models.FileMoveBody]).
+		Post("/files/move", handlers.BatchHandler(s.MoveFiles))
+
 	r.Route("/files/{id1}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			With(m.Validate[models.FilePatchBody]).
@@ -179,6 +183,55 @@ func (s BucketFileService) PatchFile(
 	default:
 		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidStatus)
 	}
+}
+
+func (s BucketFileService) MoveFiles(
+	logger *zap.Logger,
+	_ models.UserClaims,
+	ids uuid.UUIDs,
+	body models.FileMoveBody,
+) (models.MoveResponse, error) {
+	bucketID := ids[0]
+
+	return h.MoveBatch(s.DB, bucketID, body.FolderID, body.IDs,
+		func(tx *gorm.DB, targetFolderID *uuid.UUID, fileID uuid.UUID) error {
+			var file models.File
+			result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("id = ? AND bucket_id = ?", fileID, bucketID).
+				First(&file)
+			if result.Error != nil {
+				if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+					return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
+				}
+				logger.Error("Failed to fetch file for moving", zap.Error(result.Error))
+				return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
+			}
+
+			if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
+				return apierrors.New(http.StatusForbidden, apierrors.CodeFileExpired)
+			}
+
+			if h.SameFolder(file.FolderID, targetFolderID) {
+				return nil
+			}
+
+			taken, err := h.NameTakenInFolder(tx, &models.File{}, file.BucketID, file.Name, file.ID, targetFolderID)
+			if err != nil {
+				logger.Error("Failed to check file name conflict", zap.Error(err))
+				return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
+			}
+			if taken {
+				return apierrors.New(http.StatusConflict, apierrors.CodeFileNameConflict)
+			}
+
+			if err = tx.Model(&file).Update("folder_id", targetFolderID).Error; err != nil {
+				logger.Error("Failed to move file", zap.Error(err))
+				return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
+			}
+
+			return nil
+		},
+	)
 }
 
 // HandleUploadedStatus confirms a file upload by transitioning from "uploading" to "uploaded".

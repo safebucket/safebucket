@@ -57,7 +57,8 @@
     "INVALID_EMAIL": "L'adresse e-mail est invalide.",
     "INVALID_UUID": "Un identifiant invalide a été fourni.",
     "INVALID_VALUE": "Une valeur fournie est invalide.",
-    "default": "Une erreur s'est produite. Veuillez réessayer."
+    "default": "Une erreur s'est produite. Veuillez réessayer.",
+    "INVALID_MOVE_TARGET": "Impossible de déplacer un dossier dans lui-même ou dans l'un de ses sous-dossiers."
   },
   "toast": {
     "download_started": "Téléchargement démarré pour le fichier {{filename}}",
@@ -404,6 +405,12 @@
     "view": {
       "folder": "Dossier",
       "search_placeholder": "Rechercher des fichiers et dossiers",
+      "go_back": "Retour",
+      "dragging_more_one": "{{count}} autre",
+      "dragging_more_other": "{{count}} autres",
+      "move_success_one": "1 élément déplacé.",
+      "move_success_other": "{{count}} éléments déplacés.",
+      "move_partial": "{{moved}} déplacé(s), {{failed}} n'ont pas pu être déplacé(s).",
       "tabs": {
         "files": "Fichiers",
         "activity": "Activité",

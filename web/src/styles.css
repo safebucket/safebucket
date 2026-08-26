@@ -214,3 +214,8 @@ code {
     @apply font-sans;
   }
 }
+
+.files-dragging,
+.files-dragging * {
+  cursor: grabbing !important;
+}

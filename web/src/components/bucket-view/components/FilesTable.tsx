@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table";
 import type { IDataTableColumn } from "@/components/common/components/DataTable/DataTable";
+import type { IDataTableRowProps } from "@/components/common/components/DataTable/DataTableRow";
 import type { BucketItem } from "@/types/bucket.ts";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
+import { BucketItemRow } from "@/components/bucket-view/components/BucketItemRow";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { FileStatusBadge } from "@/components/bucket-view/components/FileStatusBadge";
 import { RowActionsMenu } from "@/components/bucket-view/components/RowActionsMenu";
@@ -22,6 +24,8 @@ interface IFilesTableProps {
   setSelected: (item: BucketItem) => void;
   rowSelection: RowSelectionState;
   setRowSelection: OnChangeFn<RowSelectionState>;
+  enabled: boolean;
+  selectedIds: Array<string>;
 }
 
 export const FilesTable: FC<IFilesTableProps> = ({
@@ -30,9 +34,29 @@ export const FilesTable: FC<IFilesTableProps> = ({
   setSelected,
   rowSelection,
   setRowSelection,
+  enabled,
+  selectedIds,
 }: IFilesTableProps) => {
   const { t } = useTranslation();
   const openItem = useOpenBucketItem();
+
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
+  const getSelectedIds = useCallback(() => selectedIdsRef.current, []);
+
+  const rowComponent = useMemo(
+    () =>
+      function BucketItemRowBound(props: IDataTableRowProps<BucketItem>) {
+        return (
+          <BucketItemRow
+            {...props}
+            enabled={enabled}
+            getSelectedIds={getSelectedIds}
+          />
+        );
+      },
+    [enabled, getSelectedIds],
+  );
 
   const columns = useMemo<Array<IDataTableColumn<BucketItem>>>(
     () => [
@@ -100,6 +124,7 @@ export const FilesTable: FC<IFilesTableProps> = ({
       onRowClick={setSelected}
       onRowDoubleClick={openItem}
       isRowActive={(item) => selected?.id === item.id}
+      rowComponent={rowComponent}
     />
   );
 };
