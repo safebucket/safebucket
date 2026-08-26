@@ -52,5 +52,5 @@ type FolderUpdateBody struct {
 }
 
 type FolderPatchBody struct {
-	Status FolderStatus `json:"status" validate:"required,oneof=deleted created"`
+	Status FolderStatus `json:"status" validate:"required,oneof=created"`
 }

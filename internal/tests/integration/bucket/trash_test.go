@@ -71,10 +71,33 @@ func (f *trashFixture) patchItemStatus(t *testing.T, kind, id, status string) (i
 	return f.app.DoExpectError(t, http.MethodPatch, reqPath, f.token, body)
 }
 
+func (f *trashFixture) bulkTrash(t *testing.T, folderIDs, fileIDs []uuid.UUID) int {
+	t.Helper()
+	return f.app.DoStatus(t, http.MethodPost,
+		fmt.Sprintf("/api/v1/buckets/%s/files/trash", f.bucket.ID), f.token,
+		models.BulkTrashBody{FolderIDs: folderIDs, FileIDs: fileIDs})
+}
+
 func (f *trashFixture) mustTrash(t *testing.T, kind, id string) {
 	t.Helper()
-	status, _ := f.patchItemStatus(t, kind, id, string(models.FileStatusDeleted))
+
+	var status int
+	if kind == "folders" {
+		status = f.bulkTrash(t, []uuid.UUID{mustUUID(t, id)}, nil)
+	} else {
+		status = f.bulkTrash(t, nil, []uuid.UUID{mustUUID(t, id)})
+	}
 	require.Equal(t, http.StatusNoContent, status, "trash %s %s", kind, id)
+
+	assert.Eventually(t, func() bool {
+		trashedFiles, trashedFolders := f.listItems(t, "deleted")
+		if kind == "folders" {
+			_, ok := trashedFolders[id]
+			return ok
+		}
+		_, ok := trashedFiles[id]
+		return ok
+	}, eventuallyTimeout, eventuallyTick, "%s %s should be trashed", kind, id)
 }
 
 func (f *trashFixture) createFolderIn(
@@ -99,7 +122,7 @@ func TestTrashFileLifecycle(t *testing.T) {
 			t.Run("trash hides the file and blocks downloads", func(t *testing.T) {
 				fileID := app.UploadTestFile(t, f.token, f.bucket.ID.String(), "lifecycle.txt")
 
-				status, _ := f.patchItemStatus(t, "files", fileID, string(models.FileStatusDeleted))
+				status := f.bulkTrash(t, nil, []uuid.UUID{mustUUID(t, fileID)})
 				require.Equal(t, http.StatusNoContent, status)
 
 				assert.Eventually(t, func() bool {
@@ -118,14 +141,17 @@ func TestTrashFileLifecycle(t *testing.T) {
 				assert.Contains(t, dlCodes, apierrors.CodeFileNotFound)
 			})
 
-			t.Run("double trash reports the file as gone", func(t *testing.T) {
+			t.Run("re-trashing an already trashed file is a no-op", func(t *testing.T) {
 				fileID := app.UploadTestFile(t, f.token, f.bucket.ID.String(), "double.txt")
-				status, _ := f.patchItemStatus(t, "files", fileID, string(models.FileStatusDeleted))
+				f.mustTrash(t, "files", fileID)
+
+				status := f.bulkTrash(t, nil, []uuid.UUID{mustUUID(t, fileID)})
 				require.Equal(t, http.StatusNoContent, status)
 
-				secondStatus, codes := f.patchItemStatus(t, "files", fileID, string(models.FileStatusDeleted))
-				assert.Equal(t, http.StatusNotFound, secondStatus)
-				assert.Contains(t, codes, apierrors.CodeFileNotFound)
+				trashedFiles, _ := f.listItems(t, "deleted")
+				assert.Contains(t, trashedFiles, fileID)
+				liveFiles, _ := f.listItems(t, "uploaded")
+				assert.NotContains(t, liveFiles, fileID)
 			})
 
 			t.Run("restore brings the file back", func(t *testing.T) {
@@ -174,7 +200,7 @@ func TestFolderTrashCascade(t *testing.T) {
 			nestedFile := app.UploadFileInto(t, f.token, f.bucket.ID.String(), &child.ID, "in-child.txt")
 			looseFile := app.UploadTestFile(t, f.token, f.bucket.ID.String(), "untouched.txt")
 
-			status, _ := f.patchItemStatus(t, "folders", parent.ID.String(), string(models.FolderStatusDeleted))
+			status := f.bulkTrash(t, []uuid.UUID{parent.ID}, nil)
 			require.Equal(t, http.StatusNoContent, status)
 
 			t.Run("children trashed asynchronously", func(t *testing.T) {

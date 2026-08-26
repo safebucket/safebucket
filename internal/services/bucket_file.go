@@ -174,8 +174,6 @@ func (s BucketFileService) PatchFile(
 	}
 
 	switch body.Status {
-	case string(models.FileStatusDeleted):
-		return s.TrashFile(logger, user, file)
 	case string(models.FileStatusUploaded):
 		if file.DeletedAt.Valid {
 			return s.RestoreFile(logger, user, file)
@@ -404,79 +402,6 @@ func (s BucketFileService) DownloadFile(
 		ID:  file.ID.String(),
 		URL: url,
 	}, nil
-}
-
-func (s BucketFileService) TrashFile(
-	logger *zap.Logger,
-	user models.UserClaims,
-	file models.File,
-) error {
-	return s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND bucket_id = ?", file.ID, file.BucketID).
-			First(&file)
-
-		if result.Error != nil {
-			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
-			}
-			logger.Error("Failed to fetch file for trashing", zap.Error(result.Error))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
-		}
-
-		if file.DeletedAt.Valid {
-			return apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyTrashed)
-		}
-
-		if file.Status != models.FileStatusUploaded {
-			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidFileStatusTransition)
-		}
-
-		updates := map[string]interface{}{
-			"status":     models.FileStatusDeleted,
-			"deleted_by": user.UserID,
-		}
-		if err := tx.Model(&file).Updates(updates).Error; err != nil {
-			logger.Error("Failed to update file for trashing", zap.Error(err))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
-		}
-
-		if err := tx.Delete(&file).Error; err != nil {
-			logger.Error("Failed to soft delete file", zap.Error(err))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
-		}
-
-		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
-
-		if err := s.Storage.MarkAsTrashed(objectPath, file); err != nil {
-			logger.Error(
-				"Failed to mark file as trashed - rolling back transaction",
-				zap.Error(err),
-				zap.String("path", objectPath),
-				zap.String("file_id", file.ID.String()),
-			)
-			return err
-		}
-
-		action := models.Activity{
-			Message: activity.FileTrashed,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionErase.String(),
-				BucketID:   file.BucketID.String(),
-				FileID:     file.ID.String(),
-				ObjectType: rbac.ResourceFile.String(),
-				UserID:     user.UserID.String(),
-			}),
-		}
-
-		if err := s.ActivityLogger.Send(action); err != nil {
-			logger.Error("Failed to log trash activity", zap.Error(err))
-			return err
-		}
-
-		return nil
-	})
 }
 
 func (s BucketFileService) restoreParentFolders(
