@@ -6,7 +6,7 @@ import type { BucketItem, IBucket } from "@/types/bucket.ts";
 import { errorToast } from "@/lib/toast";
 import { removeBucketItemsFromCache } from "@/queries/bucket";
 import { api } from "@/lib/api";
-import {toast} from "sonner";
+import { toast } from "sonner";
 
 interface IUseBulkTrashArgs {
   bucketId: string;
