@@ -15,13 +15,10 @@ import (
 func setupSQLiteDB(t *testing.T) *gorm.DB {
 	t.Helper()
 
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(":memory:?_fk=on"), &gorm.Config{})
 	require.NoError(t, err)
 
 	sqlDB, err := db.DB()
-	require.NoError(t, err)
-
-	_, err = sqlDB.Exec(pragmaForeignKeys)
 	require.NoError(t, err)
 
 	RunMigrations(sqlDB, DialectSQLite)
