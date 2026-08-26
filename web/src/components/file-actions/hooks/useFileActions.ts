@@ -7,7 +7,7 @@ import {
   api_downloadFile,
   downloadFromStorage,
 } from "@/components/file-actions/helpers/api";
-import { errorToast } from "@/components/ui/hooks/use-toast";
+import { errorToast } from "@/lib/toast";
 import { removeBucketItemsFromCache } from "@/queries/bucket";
 import {
   createFolderMutationFn,
