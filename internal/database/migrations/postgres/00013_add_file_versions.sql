@@ -11,7 +11,6 @@ CREATE TABLE file_versions
         status file_status NOT NULL,
         uploaded_by uuid,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
         -- Foreign Keys
         CONSTRAINT fk_file_versions_file_id
@@ -29,10 +28,10 @@ CREATE UNIQUE INDEX idx_file_versions_file_version ON file_versions (file_id, ve
 
 ALTER TABLE files ADD COLUMN current_version_id uuid;
 
-INSERT INTO file_versions (id, file_id, version, size, status, uploaded_by, created_at, updated_at)
+INSERT INTO file_versions (id, file_id, version, size, status, uploaded_by, created_at)
 SELECT id, id, 1, size,
     status,
-    NULL, created_at, created_at
+    NULL, created_at
 FROM files;
 
 UPDATE files SET current_version_id = id;

@@ -17,21 +17,42 @@ const (
 )
 
 type File struct {
-	ID           uuid.UUID      `gorm:"default:(-)"           json:"id"`
-	Name         string         `gorm:"not null;default:null" json:"name"`
-	Extension    string         `gorm:"default:null"          json:"extension"`
-	Status       FileStatus     `gorm:"default:null"          json:"status"`
-	BucketID     uuid.UUID      `                             json:"bucket_id"`
-	Bucket       Bucket         `                             json:"-"`
-	FolderID     *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
-	ParentFolder *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
-	Size         int            `gorm:"not null;default:0"    json:"size"`
-	DeletedBy    *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
-	ExpiresAt    *time.Time     `gorm:"default:null"          json:"expires_at"`
-	OriginalPath string         `gorm:"-"                     json:"original_path,omitempty"`
-	CreatedAt    time.Time      `                             json:"created_at"`
-	UpdatedAt    time.Time      `                             json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `                             json:"deleted_at"`
+	ID               uuid.UUID      `gorm:"default:(-)"           json:"id"`
+	Name             string         `gorm:"not null;default:null" json:"name"`
+	Extension        string         `gorm:"default:null"          json:"extension"`
+	Status           FileStatus     `gorm:"default:null"          json:"status"`
+	BucketID         uuid.UUID      `                             json:"bucket_id"`
+	Bucket           Bucket         `                             json:"-"`
+	FolderID         *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
+	ParentFolder     *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
+	Size             int            `gorm:"not null;default:0"    json:"size"`
+	CurrentVersionID *uuid.UUID     `gorm:"default:null"          json:"current_version_id,omitempty"`
+	DeletedBy        *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
+	ExpiresAt        *time.Time     `gorm:"default:null"          json:"expires_at"`
+	OriginalPath     string         `gorm:"-"                     json:"original_path,omitempty"`
+	CreatedAt        time.Time      `                             json:"created_at"`
+	UpdatedAt        time.Time      `                             json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `                             json:"deleted_at"`
+}
+
+type FileVersion struct {
+	ID         uuid.UUID  `gorm:"default:(-)"        json:"id"`
+	FileID     uuid.UUID  `                          json:"file_id"`
+	Version    int        `                          json:"version"`
+	Size       int        `gorm:"not null;default:0" json:"size"`
+	Status     FileStatus `gorm:"default:null"       json:"status"`
+	UploadedBy *uuid.UUID `gorm:"default:null"       json:"uploaded_by,omitempty"`
+	CreatedAt  time.Time  `                          json:"created_at"`
+}
+
+type FileVersionResponse struct {
+	ID         uuid.UUID  `json:"id"`
+	Version    int        `json:"version"`
+	Size       int        `json:"size"`
+	Status     FileStatus `json:"status"`
+	UploadedBy *uuid.UUID `json:"uploaded_by,omitempty"`
+	IsCurrent  bool       `json:"is_current"`
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 type FileActivity struct {
@@ -79,4 +100,8 @@ type FileDownloadQuery struct {
 
 type FilePatchBody struct {
 	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
+}
+
+type FileVersionRestoreBody struct {
+	VersionID uuid.UUID `json:"version_id" validate:"required"`
 }

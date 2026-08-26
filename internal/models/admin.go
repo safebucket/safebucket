@@ -26,7 +26,15 @@ type AdminStatsResponse struct {
 	TotalFiles         int64             `json:"total_files"`
 	TotalFolders       int64             `json:"total_folders"`
 	TotalStorageBytes  int64             `json:"total_storage"`
-	SharedFilesPerHour []TimeSeriesPoint `json:"shared_files_per_hour"`
+	ActiveStorageBytes   int64             `json:"active_storage"`
+	InactiveStorageBytes int64             `json:"inactive_storage"`
+	SharedFilesPerHour   []TimeSeriesPoint `json:"shared_files_per_hour"`
+}
+
+type StorageBreakdown struct {
+	Total    int64
+	Active   int64
+	Inactive int64
 }
 
 type TimeSeriesPoint struct {
