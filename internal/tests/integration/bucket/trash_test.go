@@ -110,7 +110,7 @@ func TestTrashFileLifecycle(t *testing.T) {
 					liveFiles, _ := f.listItems(t, "uploaded")
 					_, stillLive := liveFiles[fileID]
 					return !stillLive
-				}, eventuallyTimeout, eventuallyTick, "file should move from live listing to trash")
+				}, eventuallyTimeout, eventuallyTick, "file should move from list to trash")
 
 				dlStatus, dlCodes := f.app.DoExpectError(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/buckets/%s/files/%s/url", f.bucket.ID, fileID), f.token, nil)
@@ -177,14 +177,14 @@ func TestFolderTrashCascade(t *testing.T) {
 			status, _ := f.patchItemStatus(t, "folders", parent.ID.String(), string(models.FolderStatusDeleted))
 			require.Equal(t, http.StatusNoContent, status)
 
-			t.Run("children land in trash asynchronously", func(t *testing.T) {
+			t.Run("children trashed asynchronously", func(t *testing.T) {
 				assert.Eventually(t, func() bool {
 					trashedFiles, trashedFolders := f.listItems(t, "deleted")
 					_, childTrashed := trashedFolders[child.ID.String()]
 					_, rootFileTrashed := trashedFiles[rootFile]
 					_, nestedFileTrashed := trashedFiles[nestedFile]
 					return childTrashed && rootFileTrashed && nestedFileTrashed
-				}, eventuallyTimeout, eventuallyTick, "subtree items should land in trash")
+				}, eventuallyTimeout, eventuallyTick, "subtree items should be trashed")
 			})
 
 			t.Run("items outside the subtree stay live", func(t *testing.T) {
@@ -203,7 +203,7 @@ func TestFolderTrashCascade(t *testing.T) {
 					_, rootFileBack := liveFiles[rootFile]
 					_, nestedFileBack := liveFiles[nestedFile]
 					return parentBack && childBack && rootFileBack && nestedFileBack
-				}, eventuallyTimeout, eventuallyTick, "subtree should return to the live listing")
+				}, eventuallyTimeout, eventuallyTick, "subtree should return to the list")
 			})
 		})
 	}
@@ -250,7 +250,7 @@ func TestBulkTrash(t *testing.T) {
 					return folderATrashed && folderBTrashed &&
 						fileATrashed && fileBTrashed && nestedTrashed
 				}, eventuallyTimeout, eventuallyTick,
-					"all selected items plus folder contents should land in trash")
+					"all selected items plus folder contents should be trashed")
 			})
 
 			t.Run("unknown ids are accepted and skipped silently", func(t *testing.T) {

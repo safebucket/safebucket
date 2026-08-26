@@ -73,10 +73,7 @@ func (s BucketFolderService) CreateFolder(
 		var parentFolder models.Folder
 		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucketID).Find(&parentFolder)
 		if result.RowsAffected == 0 {
-			return models.Folder{}, apierrors.New(
-				http.StatusNotFound,
-				apierrors.CodeParentFolderNotFound,
-			)
+			return models.Folder{}, apierrors.New(http.StatusNotFound, apierrors.CodeParentFolderNotFound)
 		}
 	}
 
@@ -89,10 +86,7 @@ func (s BucketFolderService) CreateFolder(
 	}
 	result = query.Find(&existingFolder)
 	if result.RowsAffected > 0 {
-		return models.Folder{}, apierrors.New(
-			http.StatusConflict,
-			apierrors.CodeFolderAlreadyExists,
-		)
+		return models.Folder{}, apierrors.New(http.StatusConflict, apierrors.CodeFolderAlreadyExists)
 	}
 
 	folder := models.Folder{
@@ -104,10 +98,7 @@ func (s BucketFolderService) CreateFolder(
 
 	if err := s.DB.Create(&folder).Error; err != nil {
 		logger.Error("Failed to create folder", zap.Error(err))
-		return models.Folder{}, apierrors.New(
-			http.StatusInternalServerError,
-			apierrors.CodeCreateFailed,
-		)
+		return models.Folder{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
 	}
 
 	action := models.Activity{
@@ -428,12 +419,7 @@ func (s BucketFolderService) RestoreFolder(
 			return apierrors.New(http.StatusGone, apierrors.CodeFolderTrashExpired)
 		}
 
-		parentFolders, err := s.restoreParentFolders(
-			tx,
-			logger,
-			lockedFolder.FolderID,
-			lockedFolder.BucketID,
-		)
+		parentFolders, err := s.restoreParentFolders(tx, logger, lockedFolder.FolderID, lockedFolder.BucketID)
 		if err != nil {
 			return err
 		}
@@ -479,12 +465,7 @@ func (s BucketFolderService) RestoreFolder(
 		logger.Warn("Failed to remove trash marker for folder", zap.Error(storageErr))
 	}
 
-	event := events.NewFolderRestore(
-		s.Publisher,
-		restoredFolder.BucketID,
-		restoredFolder.ID,
-		user.UserID,
-	)
+	event := events.NewFolderRestore(s.Publisher, restoredFolder.BucketID, restoredFolder.ID, user.UserID)
 	event.Trigger()
 
 	action := models.Activity{
