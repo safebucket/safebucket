@@ -298,8 +298,8 @@ func (s BucketFileService) BulkTrash(
 ) error {
 	bucketID := ids[0]
 
-	folderIDs := dedupeUUIDs(body.FolderIDs)
-	fileIDs := dedupeUUIDs(body.FileIDs)
+	folderIDs := h.DedupeUUIDs(body.FolderIDs)
+	fileIDs := h.DedupeUUIDs(body.FileIDs)
 	total := len(folderIDs) + len(fileIDs)
 	if total == 0 || total > c.BulkActionsLimit {
 		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidValue)
@@ -315,19 +315,6 @@ func (s BucketFileService) BulkTrash(
 		zap.String("user_id", user.UserID.String()))
 
 	return nil
-}
-
-func dedupeUUIDs(ids []uuid.UUID) []uuid.UUID {
-	seen := make(map[uuid.UUID]struct{}, len(ids))
-	deduped := make([]uuid.UUID, 0, len(ids))
-	for _, id := range ids {
-		if _, exists := seen[id]; exists {
-			continue
-		}
-		seen[id] = struct{}{}
-		deduped = append(deduped, id)
-	}
-	return deduped
 }
 
 func (s BucketFileService) DownloadFile(
