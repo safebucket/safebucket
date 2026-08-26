@@ -277,11 +277,6 @@
       "name_label": "Name",
       "create": "Erstellen"
     },
-    "delete_dialog": {
-      "title": "{{fileName}} in den Papierkorb bewegen?",
-      "description": "Diese Datei landet im Papierkorb und kann dort noch für sieben Tage wiederhergestellt werden. Danach wird sie permanent gelöscht.",
-      "confirm": "In den Papierkorb"
-    },
     "share": "Teilen"
   },
   "quick_share": {
@@ -495,10 +490,7 @@
       "confirm": "In den Papierkorb verschieben",
       "cancel": "Abbrechen",
       "success_one": "{{count}} Element in den Papierkorb verschoben.",
-      "success_other": "{{count}} Elemente in den Papierkorb verschoben.",
-      "partial_failure_title": "Einige Elemente konnten nicht in den Papierkorb verschoben werden",
-      "partial_failure_one": "{{count}} von {{total}} Element übersprungen: {{names}}",
-      "partial_failure_other": "{{count}} von {{total}} Elementen übersprungen: {{names}}"
+      "success_other": "{{count}} Elemente in den Papierkorb verschoben."
     },
     "grid_view": {
       "empty_folder": "Der Ordner ist leer",

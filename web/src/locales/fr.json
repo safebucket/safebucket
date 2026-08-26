@@ -277,11 +277,6 @@
       "name_label": "Nom",
       "create": "Créer"
     },
-    "delete_dialog": {
-      "title": "Déplacer {{fileName}} vers la corbeille ?",
-      "description": "Ce fichier sera déplacé vers la corbeille et pourra être restauré dans un délai de 7 jours. Après 7 jours, il sera définitivement supprimé.",
-      "confirm": "Déplacer vers la corbeille"
-    },
     "share": "Partager"
   },
   "quick_share": {
@@ -502,11 +497,7 @@
       "cancel": "Annuler",
       "success_one": "{{count}} élément déplacé vers la corbeille.",
       "success_many": "{{count}} éléments déplacés vers la corbeille.",
-      "success_other": "{{count}} éléments déplacés vers la corbeille.",
-      "partial_failure_title": "Certains éléments n'ont pas pu être mis à la corbeille",
-      "partial_failure_one": "{{count}} élément sur {{total}} ignoré : {{names}}",
-      "partial_failure_many": "{{count}} éléments sur {{total}} ignorés : {{names}}",
-      "partial_failure_other": "{{count}} éléments sur {{total}} ignorés : {{names}}"
+      "success_other": "{{count}} éléments déplacés vers la corbeille."
     },
     "grid_view": {
       "empty_folder": "Ce dossier est vide",
