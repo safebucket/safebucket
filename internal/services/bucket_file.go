@@ -449,7 +449,15 @@ func (s BucketFileService) ListFileVersions(
 
 	response := make([]models.FileVersionResponse, 0, len(versions))
 	for _, version := range versions {
-		response = append(response, version.ToResponse(file.CurrentVersionID))
+		response = append(response, models.FileVersionResponse{
+			ID:         version.ID,
+			Version:    version.Version,
+			Size:       version.Size,
+			Status:     version.Status,
+			UploadedBy: version.UploadedBy,
+			IsCurrent:  file.CurrentVersionID != nil && *file.CurrentVersionID == version.ID,
+			CreatedAt:  version.CreatedAt,
+		})
 	}
 
 	return response, nil
