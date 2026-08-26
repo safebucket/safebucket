@@ -16,7 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSession } from "@/hooks/useAuth";
@@ -60,20 +59,18 @@ export const NotificationPopover: FC<NotificationPopoverProps> = ({
 
   return (
     <Popover>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
-              <Button variant="secondary" size="icon">
-                <Bell className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{t("bucket.header.notifications")}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <PopoverTrigger asChild>
+            <Button variant="secondary" size="icon">
+              <Bell className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{t("bucket.header.notifications")}</p>
+        </TooltipContent>
+      </Tooltip>
       <PopoverContent align="end" className="w-74">
         <div className="space-y-4">
           <div>

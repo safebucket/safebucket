@@ -14,7 +14,7 @@ import { ShareHeader } from "@/components/share-view/components/ShareHeader.tsx"
 import { ShareContentArea } from "@/components/share-view/components/ShareContentArea.tsx";
 import { ShareUploadZone } from "@/components/share-view/components/ShareUploadZone.tsx";
 import { FilePreviewDialog } from "@/components/file-actions/components/FilePreviewDialog.tsx";
-import { useIsMobile } from "@/components/ui/hooks/use-mobile.tsx";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   shareContentQueryOptions,
   useShareDownloadMutation,

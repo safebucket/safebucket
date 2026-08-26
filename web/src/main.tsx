@@ -14,6 +14,7 @@ import { errorToast } from "@/lib/toast";
 import { ThemeProvider } from "@/components/theme/context/ThemeProvider.tsx";
 import { TimeDisplayProvider } from "@/components/time-display/context/TimeDisplayProvider.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
+import { TooltipProvider } from "@/components/ui/tooltip.tsx";
 import { UploadProvider } from "@/components/upload/context/UploadProvider.tsx";
 
 import "@fontsource-variable/inter";
@@ -83,9 +84,11 @@ async function initializeApp() {
           <ThemeProvider>
             <TimeDisplayProvider>
               <SidebarProvider>
-                <UploadProvider>
-                  <RouterProvider router={router} />
-                </UploadProvider>
+                <TooltipProvider>
+                  <UploadProvider>
+                    <RouterProvider router={router} />
+                  </UploadProvider>
+                </TooltipProvider>
               </SidebarProvider>
             </TimeDisplayProvider>
           </ThemeProvider>
