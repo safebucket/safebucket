@@ -61,9 +61,7 @@ func TestRBAC_Group(t *testing.T) {
 			}
 			createTrashedFile := func() string {
 				fileID := app.UploadTestFile(t, ownerAToken, bucketA.ID.String(), fmt.Sprintf("file_%s.txt", uuid.New()))
-				require.Equal(t, http.StatusNoContent, app.DoStatus(t, http.MethodPatch,
-					fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketA.ID, fileID), ownerAToken,
-					models.FilePatchBody{Status: string(models.FileStatusDeleted)}))
+				app.TrashFile(t, ownerAToken, bucketA.ID.String(), fileID)
 				return fileID
 			}
 			createFolder := func() string {
@@ -75,9 +73,7 @@ func TestRBAC_Group(t *testing.T) {
 			}
 			createTrashedFolder := func() string {
 				folderID := createFolder()
-				require.Equal(t, http.StatusNoContent, app.DoStatus(t, http.MethodPatch,
-					fmt.Sprintf("/api/v1/buckets/%s/folders/%s", bucketA.ID, folderID), ownerAToken,
-					models.FolderPatchBody{Status: models.FolderStatusDeleted}))
+				app.TrashFolder(t, ownerAToken, bucketA.ID.String(), folderID)
 				return folderID
 			}
 			createShare := func() string {
@@ -117,8 +113,11 @@ func TestRBAC_Group(t *testing.T) {
 				{"POST file", http.MethodPost, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files", bucketA.ID) }, func() any {
 					return models.FileUploadBody{Name: fmt.Sprintf("new_%s.txt", uuid.New()), Size: 1}
 				}, "contrib", 201},
-				{"PATCH file", http.MethodPatch, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketA.ID, createFile()) }, func() any {
-					return models.FilePatchBody{Status: string(models.FileStatusDeleted)}
+				{"PATCH file", http.MethodPatch, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketA.ID, createTrashedFile()) }, func() any {
+					return models.FilePatchBody{Status: string(models.FileStatusUploaded)}
+				}, "contrib", 204},
+				{"POST files trash", http.MethodPost, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/trash", bucketA.ID) }, func() any {
+					return models.BulkTrashBody{FileIDs: []uuid.UUID{uuid.MustParse(createFile())}}
 				}, "contrib", 204},
 				{"DELETE file", http.MethodDelete, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketA.ID, createTrashedFile()) }, func() any { return nil }, "contrib", 204},
 				{"POST folder", http.MethodPost, func() string { return fmt.Sprintf("/api/v1/buckets/%s/folders", bucketA.ID) }, func() any {
@@ -127,8 +126,8 @@ func TestRBAC_Group(t *testing.T) {
 				{"PUT folder", http.MethodPut, func() string { return fmt.Sprintf("/api/v1/buckets/%s/folders/%s", bucketA.ID, createFolder()) }, func() any {
 					return models.FolderUpdateBody{Name: fmt.Sprintf("newf2_%s", uuid.New())}
 				}, "contrib", 204},
-				{"PATCH folder", http.MethodPatch, func() string { return fmt.Sprintf("/api/v1/buckets/%s/folders/%s", bucketA.ID, createFolder()) }, func() any {
-					return models.FolderPatchBody{Status: models.FolderStatusDeleted}
+				{"PATCH folder", http.MethodPatch, func() string { return fmt.Sprintf("/api/v1/buckets/%s/folders/%s", bucketA.ID, createTrashedFolder()) }, func() any {
+					return models.FolderPatchBody{Status: models.FolderStatusCreated}
 				}, "contrib", 204},
 				{"DELETE folder", http.MethodDelete, func() string { return fmt.Sprintf("/api/v1/buckets/%s/folders/%s", bucketA.ID, createTrashedFolder()) }, func() any { return nil }, "contrib", 204},
 

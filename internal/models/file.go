@@ -78,7 +78,7 @@ type FileDownloadQuery struct {
 }
 
 type FilePatchBody struct {
-	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
+	Status string `json:"status" validate:"required,oneof=uploaded"`
 }
 
 type BulkTrashBody struct {

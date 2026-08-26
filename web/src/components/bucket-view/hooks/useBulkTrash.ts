@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { RowSelectionState } from "@tanstack/react-table";
-import type { BucketItem } from "@/types/bucket.ts";
+import type { BucketItem, IBucket } from "@/types/bucket.ts";
 import { errorToast, successToast } from "@/components/ui/hooks/use-toast";
+import { removeBucketItemsFromCache } from "@/queries/bucket";
 import { api } from "@/lib/api";
 
 interface IUseBulkTrashArgs {
@@ -23,7 +24,6 @@ export const useBulkTrash = ({
 }: IUseBulkTrashArgs) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [isRunning, setIsRunning] = useState(false);
 
   const selectedItems = useMemo(
     () => items.filter((item) => rowSelection[item.id]),
@@ -41,23 +41,35 @@ export const useBulkTrash = ({
         file_ids: fileIds,
       });
     },
-    onMutate: () => setIsRunning(true),
-    onSettled: () => setIsRunning(false),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-      successToast(
-        t("bucket.bulk_trash.success", { count: selectedItems.length }),
+    onMutate: async (selected: Array<BucketItem>) => {
+      await queryClient.cancelQueries({ queryKey: ["buckets", bucketId] });
+      const previous = removeBucketItemsFromCache(
+        queryClient,
+        bucketId,
+        new Set(selected.map((item) => item.id)),
       );
       clearRowSelection();
+      return { previous };
     },
-    onError: (err) => {
+    onSuccess: (_data, selected) => {
+      queryClient.invalidateQueries({
+        queryKey: ["buckets", bucketId, "trash"],
+      });
+      successToast(t("bucket.bulk_trash.success", { count: selected.length }));
+    },
+    onError: (err, _selected, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData<IBucket>(
+          ["buckets", bucketId],
+          context.previous,
+        );
+      }
       errorToast(err as Error);
     },
   });
 
   return {
     run: () => mutation.mutate(selectedItems),
-    isRunning,
     selectedCount: selectedItems.length,
   };
 };
