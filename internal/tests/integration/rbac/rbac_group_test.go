@@ -113,21 +113,15 @@ func TestRBAC_Group(t *testing.T) {
 				{"POST file", http.MethodPost, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files", bucketA.ID) }, func() any {
 					return models.FileUploadBody{Name: fmt.Sprintf("new_%s.txt", uuid.New()), Size: 1}
 				}, "contrib", 201},
-				{"PATCH file", http.MethodPatch, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketA.ID, createTrashedFile()) }, func() any {
-					return models.FilePatchBody{Status: string(models.FileStatusUploaded)}
-				}, "contrib", 204},
-				{"POST files trash", http.MethodPost, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/trash", bucketA.ID) }, func() any {
-					return models.BulkTrashBody{FileIDs: []uuid.UUID{uuid.MustParse(createFile())}}
-				}, "contrib", 204},
+				{"POST trash file", http.MethodPost, func() string { return fmt.Sprintf("/api/v1/buckets/%s/trash", bucketA.ID) }, func() any {
+					return models.BucketTrashBody{FileIDs: []uuid.UUID{uuid.MustParse(createFile())}}
+				}, "contrib", 202},
 				{"DELETE file", http.MethodDelete, func() string { return fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketA.ID, createTrashedFile()) }, func() any { return nil }, "contrib", 204},
 				{"POST folder", http.MethodPost, func() string { return fmt.Sprintf("/api/v1/buckets/%s/folders", bucketA.ID) }, func() any {
 					return models.FolderCreateBody{Name: fmt.Sprintf("newf_%s", uuid.New())}
 				}, "contrib", 201},
 				{"PUT folder", http.MethodPut, func() string { return fmt.Sprintf("/api/v1/buckets/%s/folders/%s", bucketA.ID, createFolder()) }, func() any {
 					return models.FolderUpdateBody{Name: fmt.Sprintf("newf2_%s", uuid.New())}
-				}, "contrib", 204},
-				{"PATCH folder", http.MethodPatch, func() string { return fmt.Sprintf("/api/v1/buckets/%s/folders/%s", bucketA.ID, createTrashedFolder()) }, func() any {
-					return models.FolderPatchBody{Status: models.FolderStatusCreated}
 				}, "contrib", 204},
 				{"DELETE folder", http.MethodDelete, func() string { return fmt.Sprintf("/api/v1/buckets/%s/folders/%s", bucketA.ID, createTrashedFolder()) }, func() any { return nil }, "contrib", 204},
 

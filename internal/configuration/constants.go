@@ -126,6 +126,7 @@ const (
 )
 
 const BulkActionsLimit = 1000
+const TrashBatchLimit = 100
 
 var ArrayConfigFields = []string{
 	"app.trusted_proxies",
