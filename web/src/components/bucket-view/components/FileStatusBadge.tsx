@@ -1,4 +1,4 @@
-import { CheckCircle, LoaderCircle, Trash2 } from "lucide-react";
+import {CircleCheck, LoaderCircle, Trash2} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { BucketItem } from "@/types/bucket.ts";
@@ -30,15 +30,23 @@ export const FileStatusBadge: FC<IFileStatusBadgeProps> = ({
     case FileStatus.uploaded:
       return (
         <Badge
-          className={cn(pill, "border-success/20 bg-success/10 text-success")}
+          className={cn(
+            pill,
+            "border-success-subtle bg-success-subtle text-success-subtle-foreground",
+          )}
         >
-          <CheckCircle className="h-3 w-3" />
+          <CircleCheck className="h-3 w-3" />
           {t("bucket.list_view.uploaded")}
         </Badge>
       );
     case FileStatus.uploading:
       return (
-        <Badge className={cn(pill, "border-info/20 bg-info/10 text-info")}>
+        <Badge
+          className={cn(
+            pill,
+            "border-info-subtle bg-info-subtle text-info-subtle-foreground",
+          )}
+        >
           <LoaderCircle className="h-3 w-3 animate-spin" />
           {t("bucket.list_view.uploading")}
         </Badge>
@@ -58,7 +66,10 @@ export const FileStatusBadge: FC<IFileStatusBadgeProps> = ({
     case FileStatus.deleted:
       return (
         <Badge
-          className={cn(pill, "border-warning/20 bg-warning/10 text-warning")}
+          className={cn(
+            pill,
+            "border-warning-subtle bg-warning-subtle text-warning-subtle-foreground",
+          )}
         >
           <Trash2 className="h-3 w-3" />
           {t("bucket.trash_view.trashed")}

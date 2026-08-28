@@ -1,5 +1,4 @@
 import {
-  ArchiveRestore,
   Clock,
   Eye,
   FileDiff,
@@ -11,6 +10,7 @@ import {
   FolderPlus,
   Link2,
   Link2Off,
+  RotateCcw,
   Share2,
   Smartphone,
   SmartphoneCharging,
@@ -22,167 +22,157 @@ import {
 } from "lucide-react";
 import type { ActivityMessage } from "@/types/activity.ts";
 
+const success = {
+  iconColor: "text-success-subtle-foreground",
+  iconBg: "bg-success-subtle",
+};
+const info = {
+  iconColor: "text-info-subtle-foreground",
+  iconBg: "bg-info-subtle",
+};
+const warning = {
+  iconColor: "text-warning-subtle-foreground",
+  iconBg: "bg-warning-subtle",
+};
+const destructive = {
+  iconColor: "text-destructive-subtle-foreground",
+  iconBg: "bg-destructive-subtle",
+};
+
 export const messageMap = {
   BUCKET_CREATED: {
     messageKey: "activity.messages.bucket_created",
     icon: Share2,
-    iconColor: "text-success",
-    iconBg: "bg-success/10",
+    ...success,
   },
   BUCKET_DELETED: {
     messageKey: "activity.messages.bucket_deleted",
     icon: Share2,
-    iconColor: "text-destructive",
-    iconBg: "bg-destructive/10",
+    ...destructive,
   },
   FILE_UPLOADED: {
     messageKey: "activity.messages.file_uploaded",
     icon: FileUp,
-    iconColor: "text-chart-1",
-    iconBg: "bg-chart-1/10",
+    ...info,
   },
   FILE_DOWNLOADED: {
     messageKey: "activity.messages.file_downloaded",
     icon: FileDown,
-    iconColor: "text-chart-1",
-    iconBg: "bg-chart-1/10",
+    ...info,
   },
   FILE_UPDATED: {
     messageKey: "activity.messages.file_updated",
     icon: FileDiff,
-    iconColor: "text-chart-1",
-    iconBg: "bg-chart-1/10",
+    ...info,
   },
   FILE_DELETED: {
     messageKey: "activity.messages.file_deleted",
     icon: FileMinus,
-    iconColor: "text-destructive",
-    iconBg: "bg-destructive/10",
+    ...destructive,
   },
   FILE_EXPIRED: {
     messageKey: "activity.messages.file_expired",
     icon: Clock,
-    iconColor: "text-warning",
-    iconBg: "bg-warning/10",
+    ...warning,
   },
   FILE_TRASHED: {
     messageKey: "activity.messages.file_trashed",
     icon: Trash2,
-    iconColor: "text-warning",
-    iconBg: "bg-warning/10",
+    ...warning,
   },
   FILE_RESTORED: {
     messageKey: "activity.messages.file_restored",
-    icon: ArchiveRestore,
-    iconColor: "text-success",
-    iconBg: "bg-success/10",
+    icon: RotateCcw,
+    ...success,
   },
   FOLDER_CREATED: {
     messageKey: "activity.messages.folder_created",
     icon: FolderPlus,
-    iconColor: "text-success",
-    iconBg: "bg-success/10",
+    ...success,
   },
   FOLDER_UPDATED: {
     messageKey: "activity.messages.folder_updated",
     icon: FolderPen,
-    iconColor: "text-chart-3",
-    iconBg: "bg-chart-3/10",
+    ...info,
   },
   FOLDER_TRASHED: {
     messageKey: "activity.messages.folder_trashed",
     icon: Trash2,
-    iconColor: "text-warning",
-    iconBg: "bg-warning/10",
+    ...warning,
   },
   FOLDER_RESTORED: {
     messageKey: "activity.messages.folder_restored",
-    icon: ArchiveRestore,
-    iconColor: "text-success",
-    iconBg: "bg-success/10",
+    icon: RotateCcw,
+    ...success,
   },
   FOLDER_DELETED: {
     messageKey: "activity.messages.folder_deleted",
     icon: FolderMinus,
-    iconColor: "text-destructive",
-    iconBg: "bg-destructive/10",
+    ...destructive,
   },
   BUCKET_MEMBER_CREATED: {
     messageKey: "activity.messages.bucket_member_created",
     icon: UserPlus,
-    iconColor: "text-chart-4",
-    iconBg: "bg-chart-4/10",
+    ...success,
   },
   BUCKET_MEMBER_UPDATED: {
     messageKey: "activity.messages.bucket_member_updated",
     icon: UserPen,
-    iconColor: "text-chart-4",
-    iconBg: "bg-chart-4/10",
+    ...info,
   },
   BUCKET_MEMBER_DELETED: {
     messageKey: "activity.messages.bucket_member_deleted",
     icon: UserMinus,
-    iconColor: "text-destructive",
-    iconBg: "bg-destructive/10",
+    ...destructive,
   },
   MFA_DEVICE_ENROLLED: {
     messageKey: "activity.messages.mfa_device_enrolled",
     icon: SmartphoneCharging,
-    iconColor: "text-chart-5",
-    iconBg: "bg-chart-5/10",
+    ...success,
   },
   MFA_DEVICE_VERIFIED: {
     messageKey: "activity.messages.mfa_device_verified",
     icon: SmartphoneNfc,
-    iconColor: "text-success",
-    iconBg: "bg-success/10",
+    ...success,
   },
   MFA_DEVICE_UPDATED: {
     messageKey: "activity.messages.mfa_device_updated",
     icon: Smartphone,
-    iconColor: "text-chart-5",
-    iconBg: "bg-chart-5/10",
+    ...info,
   },
   MFA_DEVICE_REMOVED: {
     messageKey: "activity.messages.mfa_device_removed",
     icon: Smartphone,
-    iconColor: "text-destructive",
-    iconBg: "bg-destructive/10",
+    ...destructive,
   },
   SHARE_CREATED: {
     messageKey: "activity.messages.share_created",
     icon: Link2,
-    iconColor: "text-success",
-    iconBg: "bg-success/10",
+    ...success,
   },
   SHARE_DELETED: {
     messageKey: "activity.messages.share_deleted",
     icon: Link2Off,
-    iconColor: "text-destructive",
-    iconBg: "bg-destructive/10",
+    ...destructive,
   },
   SHARE_EXPIRED: {
     messageKey: "activity.messages.share_expired",
     icon: Clock,
-    iconColor: "text-warning",
-    iconBg: "bg-warning/10",
+    ...warning,
   },
   SHARE_MAX_VIEWS_REACHED: {
     messageKey: "activity.messages.share_max_views_reached",
     icon: Eye,
-    iconColor: "text-warning",
-    iconBg: "bg-warning/10",
+    ...warning,
   },
   SHARE_FILE_DOWNLOADED: {
     messageKey: "activity.messages.share_file_downloaded",
     icon: FileDown,
-    iconColor: "text-chart-2",
-    iconBg: "bg-chart-2/10",
+    ...info,
   },
   SHARE_FILE_UPLOADED: {
     messageKey: "activity.messages.share_file_uploaded",
     icon: FileUp,
-    iconColor: "text-chart-2",
-    iconBg: "bg-chart-2/10",
+    ...info,
   },
 } satisfies Record<ActivityMessage, object>;

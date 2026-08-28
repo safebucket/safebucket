@@ -128,7 +128,6 @@ export const FilesTab: FC<IFilesTabProps> = ({
               label={t("bucket.view.actions.bulk_trash")}
               onClick={clearRowSelection}
               disabled={!hasSelection || isRunning}
-              destructive
             />
           ) : null}
 

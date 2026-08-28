@@ -34,14 +34,14 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
     switch (status) {
       case FileStatus.uploaded:
         return (
-          <Badge className="gap-1 bg-success/10 text-success border-success/20">
+          <Badge className="gap-1 border-success-subtle bg-success-subtle text-success-subtle-foreground">
             <CheckCircle className="h-3 w-3" />
             {t("bucket.grid_view.uploaded")}
           </Badge>
         );
       case FileStatus.uploading:
         return (
-          <Badge className="gap-1 bg-info/10 text-info border-info/20">
+          <Badge className="gap-1 border-info-subtle bg-info-subtle text-info-subtle-foreground">
             <LoaderCircle className="h-3 w-3 animate-spin" />
             {t("bucket.grid_view.uploading")}
           </Badge>
@@ -55,14 +55,14 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
         );
       case FileStatus.deleted:
         return (
-          <Badge className="gap-1 bg-warning/10 text-warning border-warning/20">
+          <Badge className="gap-1 border-warning-subtle bg-warning-subtle text-warning-subtle-foreground">
             <Trash2 className="h-3 w-3" />
             {t("bucket.trash_view.trashed")}
           </Badge>
         );
       case FileStatus.restoring:
         return (
-          <Badge className="gap-1 bg-info/10 text-info border-info/20">
+          <Badge className="gap-1 border-info-subtle bg-info-subtle text-info-subtle-foreground">
             <LoaderCircle className="h-3 w-3 animate-spin" />
             {t("bucket.trash_view.restoring")}
           </Badge>

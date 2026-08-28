@@ -10,6 +10,7 @@
     "success": "Success",
     "error": "Fehler",
     "delete": "Löschen",
+    "remove": "Entfernen",
     "edit": "Bearbeiten",
     "upload": "Hochladen",
     "download": "Herunterladen",
@@ -68,7 +69,7 @@
     "bucket_name_empty": "Der Bucket-Name darf nicht leer sein",
     "bucket_deleted": "Bucket {{name}} wurde gelöscht",
     "bucket_name_updated": "Bucket erfolgreich umbenannt",
-    "copied": "{{field}} wurde kopiert.",
+    "copied": "{{field}} wurde kopiert",
     "cancel": "Abbrechen"
   },
   "auth": {
@@ -424,7 +425,11 @@
         "invited": "Eingeladen",
         "new": "Neu",
         "remove": "Mitglied entfernen",
-        "unsaved": "Sie haben nicht gespeicherte Änderungen"
+        "role_updated": "Rolle aktualisiert",
+        "member_added": "Mitglied hinzugefügt",
+        "member_removed": "Mitglied entfernt",
+        "remove_confirm_title": "Mitglied entfernen?",
+        "remove_confirm_description": "{{email}} verliert den Zugriff auf diesen Bucket."
       },
       "shares": {
         "name": "Name",
@@ -548,8 +553,7 @@
         "people_with_access": "Nutzer mit Zugriff",
         "owner": "Besitzer",
         "you": "Sie",
-        "invited": "Eingeladen",
-        "updated_successfully": "Bucket-Mitglieder aktualisiert."
+        "invited": "Eingeladen"
       },
       "shares": {
         "tab_members": "Mitglieder",

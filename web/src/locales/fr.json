@@ -10,6 +10,7 @@
     "success": "Succès",
     "error": "Erreur",
     "delete": "Supprimer",
+    "remove": "Retirer",
     "edit": "Modifier",
     "upload": "Uploader",
     "download": "Télécharger",
@@ -68,7 +69,7 @@
     "bucket_name_empty": "Le nom du bucket ne peut pas être vide",
     "bucket_deleted": "Le bucket {{name}} a été supprimé",
     "bucket_name_updated": "Le nom du bucket a été mis à jour avec succès",
-    "copied": "{{field}} a été copié.",
+    "copied": "{{field}} a été copié",
     "cancel": "Annuler"
   },
   "auth": {
@@ -424,7 +425,11 @@
         "invited": "Invité",
         "new": "Nouveau",
         "remove": "Retirer le membre",
-        "unsaved": "Vous avez des modifications non enregistrées"
+        "role_updated": "Rôle mis à jour",
+        "member_added": "Membre ajouté",
+        "member_removed": "Membre retiré",
+        "remove_confirm_title": "Retirer le membre ?",
+        "remove_confirm_description": "{{email}} perdra l'accès à ce bucket."
       },
       "shares": {
         "name": "Nom",
@@ -553,8 +558,7 @@
         "people_with_access": "Personnes ayant accès",
         "owner": "Propriétaire",
         "you": "vous",
-        "invited": "Invité",
-        "updated_successfully": "Les membres du bucket ont été mis à jour avec succès"
+        "invited": "Invité"
       },
       "shares": {
         "tab_members": "Membres",

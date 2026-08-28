@@ -11,6 +11,7 @@ import { BucketMembersSkeleton } from "@/components/bucket-members/components/Bu
 import { useBucketMembersData } from "@/components/bucket-members/hooks/useBucketMembersData";
 import { AddMemberDialog } from "@/components/bucket-view/components/AddMemberDialog";
 import { GridActionIcon } from "@/components/bucket-view/components/GridActionIcon";
+import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,13 +39,13 @@ export const MembersTab: FC<IMembersTabProps> = ({
     newMemberGroup,
     setNewMemberGroup,
     currentUserEmail,
-    hasChanges,
     isSubmitting,
     addMember,
     updateMemberRole,
-    handleUpdateMembers,
+    removeMember,
   } = useBucketMembersData(bucket);
   const [addOpen, setAddOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<IMemberState | null>(null);
 
   const columns = useMemo<Array<IDataTableColumn<IMemberState>>>(
     () => [
@@ -97,7 +98,7 @@ export const MembersTab: FC<IMembersTabProps> = ({
                 : t("bucket.view.members.invited")}
             </Badge>
             {member.isNew ? (
-              <Badge className="rounded-full border-success/20 bg-success/10 text-success">
+              <Badge className="rounded-full border-success-subtle bg-success-subtle text-success-subtle-foreground">
                 {t("bucket.view.members.new")}
               </Badge>
             ) : null}
@@ -111,7 +112,7 @@ export const MembersTab: FC<IMembersTabProps> = ({
           <Select
             value={member.group}
             onValueChange={(value) => updateMemberRole(member.email, value)}
-            disabled={member.email === currentUserEmail}
+            disabled={member.email === currentUserEmail || isSubmitting}
           >
             <SelectTrigger className="w-32">
               <SelectValue />
@@ -136,16 +137,16 @@ export const MembersTab: FC<IMembersTabProps> = ({
             variant="ghost"
             size="icon"
             className="text-muted-foreground hover:text-destructive h-7 w-7"
-            disabled={member.email === currentUserEmail}
+            disabled={member.email === currentUserEmail || isSubmitting}
             aria-label={t("bucket.view.members.remove")}
-            onClick={() => updateMemberRole(member.email, "remove")}
+            onClick={() => setRemoveTarget(member)}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         ),
       },
     ],
-    [t, currentUserEmail, updateMemberRole],
+    [t, currentUserEmail, isSubmitting, updateMemberRole],
   );
 
   if (isLoading) {
@@ -168,21 +169,6 @@ export const MembersTab: FC<IMembersTabProps> = ({
         getRowId={(member) => member.email}
       />
 
-      {hasChanges ? (
-        <div className="bg-accent border-border flex items-center justify-between gap-4 rounded-lg border px-4 py-2.5">
-          <span className="text-sm font-medium">
-            {t("bucket.view.members.unsaved")}
-          </span>
-          <Button
-            size="sm"
-            onClick={handleUpdateMembers}
-            disabled={isSubmitting}
-          >
-            {t("common.save")}
-          </Button>
-        </div>
-      ) : null}
-
       <AddMemberDialog
         open={addOpen}
         onOpenChange={setAddOpen}
@@ -194,6 +180,23 @@ export const MembersTab: FC<IMembersTabProps> = ({
           newMemberEmail.trim().length > 0 && EMAIL_REGEX.test(newMemberEmail)
         }
         onAdd={addMember}
+      />
+
+      <CustomAlertDialog
+        open={removeTarget !== null}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setRemoveTarget(null);
+        }}
+        title={t("bucket.view.members.remove_confirm_title")}
+        description={t("bucket.view.members.remove_confirm_description", {
+          email: removeTarget?.email ?? "",
+        })}
+        cancelLabel={t("common.cancel")}
+        confirmLabel={t("common.remove")}
+        onConfirm={() => {
+          if (removeTarget) removeMember(removeTarget.email);
+          setRemoveTarget(null);
+        }}
       />
     </div>
   );

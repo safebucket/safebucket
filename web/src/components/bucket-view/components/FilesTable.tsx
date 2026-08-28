@@ -8,6 +8,7 @@ import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { FileStatusBadge } from "@/components/bucket-view/components/FileStatusBadge";
 import { RowActionsMenu } from "@/components/bucket-view/components/RowActionsMenu";
+import { FileActions } from "@/components/file-actions/FileActions";
 import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { useOpenBucketItem } from "@/components/bucket-view/hooks/useOpenBucketItem";
 import { formatDate, formatFileSize } from "@/lib/utils";
@@ -99,6 +100,11 @@ export const FilesTable: FC<IFilesTableProps> = ({
       }}
       onRowClick={setSelected}
       onRowDoubleClick={openItem}
+      renderRow={(item, row) => (
+        <FileActions file={item} type="context">
+          {row}
+        </FileActions>
+      )}
       isRowActive={(item) => selected?.id === item.id}
     />
   );

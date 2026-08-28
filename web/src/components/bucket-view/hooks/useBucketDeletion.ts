@@ -29,9 +29,7 @@ export const useBucketDeletion = (bucket: IBucket): IBucketDeletionData => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
       navigate({ to: "/" });
-      toast.success(t("common.success"), {
-        description: t("toast.bucket_deleted", { name: bucket.name }),
-      });
+      toast.success(t("toast.bucket_deleted", { name: bucket.name }));
     },
   });
 

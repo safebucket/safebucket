@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-
 import { toast } from "sonner";
+
 import type { IBucket } from "@/types/bucket.ts";
 import { EMAIL_REGEX } from "@/types/bucket.ts";
 import { bucketMembersQueryOptions } from "@/queries/bucket";
 import { useCurrentUser } from "@/queries/user";
-import { api_updateMembers } from "@/components/bucket-members/helpers/api";
+import { api } from "@/lib/api";
 
 import { errorToast } from "@/lib/toast";
 
@@ -33,7 +33,6 @@ export const useBucketMembersData = (bucket: IBucket) => {
   const [membersState, setMembersState] = useState<Array<IMemberState>>([]);
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberGroup, setNewMemberGroup] = useState("viewer");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentUserEmail = user?.email;
   const currentUserName = `${user?.first_name} ${user?.last_name}`;
@@ -53,13 +52,34 @@ export const useBucketMembersData = (bucket: IBucket) => {
     }
   }, [data]);
 
-  const originalMembersMap = new Map(data?.map((m) => [m.email, m.group]));
+  const updateMembersMutation = useMutation({
+    mutationFn: (variables: {
+      members: Array<{ email: string; group: string }>;
+      successMessage: string;
+    }) => api.put(`/buckets/${bucket.id}/members`, { members: variables.members }),
+    onSuccess: (_data, variables) => {
+      toast.success(variables.successMessage);
+    },
+    onError: (error) => {
+      errorToast(error);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["buckets", bucket.id, "members"],
+      });
+    },
+  });
 
-  const hasChanges =
-    membersState.some(
-      (member) =>
-        member.isNew || originalMembersMap.get(member.email) !== member.group,
-    ) || originalMembersMap.size !== membersState.length;
+  const persist = (nextMembers: Array<IMemberState>, successMessage: string) => {
+    setMembersState(nextMembers);
+    updateMembersMutation.mutate({
+      members: nextMembers.map((member) => ({
+        email: member.email,
+        group: member.group,
+      })),
+      successMessage,
+    });
+  };
 
   const addMember = () => {
     if (!newMemberEmail.trim() || !EMAIL_REGEX.test(newMemberEmail)) return;
@@ -70,15 +90,18 @@ export const useBucketMembersData = (bucket: IBucket) => {
       return;
     }
 
-    setMembersState((prev) => [
-      ...prev,
-      {
-        email: newMemberEmail.trim(),
-        group: newMemberGroup,
-        status: "invited" as const,
-        isNew: true,
-      },
-    ]);
+    persist(
+      [
+        ...membersState,
+        {
+          email: newMemberEmail.trim(),
+          group: newMemberGroup,
+          status: "invited" as const,
+          isNew: true,
+        },
+      ],
+      t("bucket.view.members.member_added"),
+    );
 
     setNewMemberEmail("");
     setNewMemberGroup("viewer");
@@ -87,36 +110,21 @@ export const useBucketMembersData = (bucket: IBucket) => {
   const updateMemberRole = (email: string, newGroup: string) => {
     if (email === currentUserEmail) return;
 
-    if (newGroup === "remove") {
-      setMembersState((prev) => prev.filter((m) => m.email !== email));
-    } else {
-      setMembersState((prev) =>
-        prev.map((m) => (m.email === email ? { ...m, group: newGroup } : m)),
-      );
-    }
+    persist(
+      membersState.map((m) =>
+        m.email === email ? { ...m, group: newGroup } : m,
+      ),
+      t("bucket.view.members.role_updated"),
+    );
   };
 
-  const handleUpdateMembers = () => {
-    if (!hasChanges) return;
+  const removeMember = (email: string) => {
+    if (email === currentUserEmail) return;
 
-    setIsSubmitting(true);
-
-    const membersList = membersState.map((member) => ({
-      email: member.email,
-      group: member.group,
-    }));
-
-    api_updateMembers(bucket.id, membersList)
-      .then(() => {
-        setNewMemberEmail("");
-        setNewMemberGroup("viewer");
-        queryClient.invalidateQueries({
-          queryKey: ["buckets", bucket.id, "members"],
-        });
-        toast.success(t("bucket.settings.members.updated_successfully"));
-      })
-      .catch(errorToast)
-      .finally(() => setIsSubmitting(false));
+    persist(
+      membersState.filter((m) => m.email !== email),
+      t("bucket.view.members.member_removed"),
+    );
   };
 
   return {
@@ -128,10 +136,9 @@ export const useBucketMembersData = (bucket: IBucket) => {
     setNewMemberGroup,
     currentUserEmail,
     currentUserName,
-    hasChanges,
-    isSubmitting,
+    isSubmitting: updateMembersMutation.isPending,
     addMember,
     updateMemberRole,
-    handleUpdateMembers,
+    removeMember,
   };
 };

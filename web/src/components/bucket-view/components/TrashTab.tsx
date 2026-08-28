@@ -1,7 +1,7 @@
 import {
-  ArchiveRestore,
   EllipsisVertical,
   LoaderCircle,
+  RotateCcw,
   Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -162,12 +162,12 @@ export const TrashTab: FC<ITrashTabProps> = ({
         responsive: "sm",
         cell: (item) =>
           isRestoring(item) ? (
-            <Badge className="rounded-full border-info/20 bg-info/10 text-info">
+            <Badge className="rounded-full border-info-subtle bg-info-subtle text-info-subtle-foreground">
               <LoaderCircle className="h-3 w-3 animate-spin" />
               {t("bucket.trash_view.restoring")}
             </Badge>
           ) : (
-            <Badge className="rounded-full border-warning/20 bg-warning/10 text-warning">
+            <Badge className="rounded-full border-warning-subtle bg-warning-subtle text-warning-subtle-foreground">
               <Trash2 className="h-3 w-3" />
               {t("bucket.trash_view.trashed")}
             </Badge>
@@ -190,7 +190,7 @@ export const TrashTab: FC<ITrashTabProps> = ({
                 <DropdownMenuItem
                   onClick={() => onRestore(item.id, item.name, item.itemType)}
                 >
-                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                  <RotateCcw className="mr-2 h-4 w-4" />
                   {t("bucket.trash_view.restore")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

@@ -37,9 +37,7 @@ export const useBucketInformation = (
     mutationFn: () => api.patch(`/buckets/${bucket.id}`, { name: bucketName }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
-      toast.success(t("common.success"), {
-        description: t("toast.bucket_name_updated"),
-      });
+      toast.success(t("toast.bucket_name_updated"));
       setIsEditingName(false);
     },
   });
@@ -49,9 +47,7 @@ export const useBucketInformation = (
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedField(field);
-      toast.success(t("common.success"), {
-        description: t("toast.copied", { field }),
-      });
+      toast.success(t("toast.copied", { field }));
       setTimeout(() => setCopiedField(null), 2000);
     });
   };

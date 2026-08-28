@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table";
@@ -36,6 +36,7 @@ interface IDataTableProps<TData> {
   selection?: IDataTableSelection<TData>;
   onRowClick?: (row: TData) => void;
   onRowDoubleClick?: (row: TData) => void;
+  renderRow?: (row: TData, rowElement: ReactNode) => ReactNode;
   isRowActive?: (row: TData) => boolean;
   isLoading?: boolean;
   skeletonRowCount?: number;
@@ -62,6 +63,7 @@ export function DataTable<TData>({
   selection,
   onRowClick,
   onRowDoubleClick,
+  renderRow,
   isRowActive,
   isLoading = false,
   skeletonRowCount = 3,
@@ -198,9 +200,8 @@ export function DataTable<TData>({
             sorted.map((row) => {
               const id = getRowId(row);
               const isSelected = Boolean(selection?.rowSelection[id]);
-              return (
+              const rowElement = (
                 <tr
-                  key={id}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   onDoubleClick={
                     onRowDoubleClick ? () => onRowDoubleClick(row) : undefined
@@ -238,6 +239,11 @@ export function DataTable<TData>({
                     </td>
                   ))}
                 </tr>
+              );
+              return (
+                <Fragment key={id}>
+                  {renderRow ? renderRow(row, rowElement) : rowElement}
+                </Fragment>
               );
             })
           )}
