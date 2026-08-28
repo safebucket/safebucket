@@ -179,7 +179,7 @@ export const TrashTab: FC<ITrashTabProps> = ({
         headerClassName: "w-13",
         cellClassName: "text-right",
         cell: (item) =>
-          isContributor ? (
+          isContributor && !isRestoring(item) ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7">
