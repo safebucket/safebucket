@@ -556,41 +556,29 @@ func (a *TestApp) BackdateFileExpiry(t *testing.T, fileID string, when time.Time
 func (a *TestApp) TrashFile(t *testing.T, token, bucketID, fileID string) {
 	t.Helper()
 	status := a.DoStatus(t, http.MethodPost,
-		fmt.Sprintf("/api/v1/buckets/%s/files/trash", bucketID), token,
-		models.BulkTrashBody{FileIDs: []uuid.UUID{uuid.MustParse(fileID)}})
-	require.Equal(t, http.StatusNoContent, status, "trash file %s", fileID)
-
+		fmt.Sprintf("/api/v1/buckets/%s/trash", bucketID), token,
+		models.BucketTrashBody{FileIDs: []uuid.UUID{uuid.MustParse(fileID)}})
+	require.Equal(t, http.StatusAccepted, status, "trash file %s", fileID)
 	require.Eventually(t, func() bool {
-		var bucket models.Bucket
-		a.Do(t, http.MethodGet,
-			fmt.Sprintf("/api/v1/buckets/%s?status=uploaded", bucketID), token, nil, &bucket)
-		for _, file := range bucket.Files {
-			if file.ID.String() == fileID {
-				return false
-			}
-		}
-		return true
-	}, 10*time.Second, 100*time.Millisecond, "file %s should be trashed", fileID)
+		var count int64
+		return a.db.Unscoped().Model(&models.File{}).
+			Where("id = ? AND status = ? AND deleted_at IS NOT NULL", fileID, models.FileStatusDeleted).
+			Count(&count).Error == nil && count == 1
+	}, 10*time.Second, 100*time.Millisecond)
 }
 
 func (a *TestApp) TrashFolder(t *testing.T, token, bucketID, folderID string) {
 	t.Helper()
 	status := a.DoStatus(t, http.MethodPost,
-		fmt.Sprintf("/api/v1/buckets/%s/files/trash", bucketID), token,
-		models.BulkTrashBody{FolderIDs: []uuid.UUID{uuid.MustParse(folderID)}})
-	require.Equal(t, http.StatusNoContent, status, "trash folder %s", folderID)
-
+		fmt.Sprintf("/api/v1/buckets/%s/trash", bucketID), token,
+		models.BucketTrashBody{FolderIDs: []uuid.UUID{uuid.MustParse(folderID)}})
+	require.Equal(t, http.StatusAccepted, status, "trash folder %s", folderID)
 	require.Eventually(t, func() bool {
-		var bucket models.Bucket
-		a.Do(t, http.MethodGet,
-			fmt.Sprintf("/api/v1/buckets/%s?status=deleted", bucketID), token, nil, &bucket)
-		for _, folder := range bucket.Folders {
-			if folder.ID.String() == folderID {
-				return true
-			}
-		}
-		return false
-	}, 10*time.Second, 100*time.Millisecond, "folder %s should be trashed", folderID)
+		var count int64
+		return a.db.Unscoped().Model(&models.Folder{}).
+			Where("id = ? AND status = ? AND deleted_at IS NOT NULL", folderID, models.FolderStatusDeleted).
+			Count(&count).Error == nil && count == 1
+	}, 10*time.Second, 100*time.Millisecond)
 }
 
 func (a *TestApp) CreateFolder(t *testing.T, token, bucketID, name string) models.Folder {

@@ -198,6 +198,10 @@ func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, 
 }
 
 func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
+	return BodyHandlerWithStatus(handler, http.StatusNoContent)
+}
+
+func BodyHandlerWithStatus[In any](handler BodyTargetFunc[In], successStatus int) http.HandlerFunc {
 	name := spanName(handler)
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracing.StartSpan(r.Context(), name)
@@ -222,7 +226,7 @@ func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {
 		if err := handler(logger, claims, ids, body); err != nil {
 			WriteError(span, w, err)
 		} else {
-			h.RespondWithJSON(w, http.StatusNoContent, nil)
+			h.RespondWithJSON(w, successStatus, nil)
 		}
 	}
 }

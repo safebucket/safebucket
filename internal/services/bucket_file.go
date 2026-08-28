@@ -8,7 +8,6 @@ import (
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
-	c "github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
@@ -43,10 +42,6 @@ func (s BucketFileService) Routes() chi.Router {
 		With(m.Validate[models.FileUploadBody]).
 		Post("/files", handlers.CreateHandler(s.UploadFile))
 
-	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
-		With(m.Validate[models.BulkTrashBody]).
-		Post("/files/trash", handlers.BodyHandler(s.BulkTrash))
-
 	r.Route("/files/{id1}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			With(m.Validate[models.FilePatchBody]).
@@ -77,7 +72,8 @@ func (s BucketFileService) UploadFile(
 
 	if body.FolderID != nil {
 		var folder models.Folder
-		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucket.ID).Find(&folder)
+		result = s.DB.Where("id = ? AND bucket_id = ? AND status = ?",
+			body.FolderID, bucket.ID, models.FolderStatusCreated).Find(&folder)
 		if result.RowsAffected == 0 {
 			return models.FileUploadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 		}
@@ -290,33 +286,6 @@ func (s BucketFileService) DeleteFile(
 	return s.PurgeFile(logger, user, bucketID, fileID)
 }
 
-func (s BucketFileService) BulkTrash(
-	logger *zap.Logger,
-	user models.UserClaims,
-	ids uuid.UUIDs,
-	body models.BulkTrashBody,
-) error {
-	bucketID := ids[0]
-
-	folderIDs := h.DedupeUUIDs(body.FolderIDs)
-	fileIDs := h.DedupeUUIDs(body.FileIDs)
-	total := len(folderIDs) + len(fileIDs)
-	if total == 0 || total > c.BulkActionsLimit {
-		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidValue)
-	}
-
-	event := events.NewItemsTrash(s.Publisher, bucketID, folderIDs, fileIDs, user.UserID)
-	event.Trigger()
-
-	logger.Info("Bulk trash accepted",
-		zap.String("bucket_id", bucketID.String()),
-		zap.Int("folders", len(folderIDs)),
-		zap.Int("files", len(fileIDs)),
-		zap.String("user_id", user.UserID.String()))
-
-	return nil
-}
-
 func (s BucketFileService) DownloadFile(
 	logger *zap.Logger,
 	user models.UserClaims,
@@ -328,6 +297,10 @@ func (s BucketFileService) DownloadFile(
 	file, err := sql.GetFileByID(s.DB, bucketID, fileID)
 	if err != nil {
 		return models.FileDownloadResponse{}, err
+	}
+
+	if file.Status != models.FileStatusUploaded {
+		return models.FileDownloadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 	}
 
 	if file.DeletedAt.Valid {

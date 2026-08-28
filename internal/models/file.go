@@ -12,6 +12,7 @@ type FileStatus string
 const (
 	FileStatusUploading FileStatus = "uploading"
 	FileStatusUploaded  FileStatus = "uploaded"
+	FileStatusDeleting  FileStatus = "deleting"
 	FileStatusDeleted   FileStatus = "deleted"
 	FileStatusRestoring FileStatus = "restoring"
 )
@@ -79,9 +80,4 @@ type FileDownloadQuery struct {
 
 type FilePatchBody struct {
 	Status string `json:"status" validate:"required,oneof=uploaded"`
-}
-
-type BulkTrashBody struct {
-	FolderIDs []uuid.UUID `json:"folder_ids" validate:"omitempty,dive,uuid"`
-	FileIDs   []uuid.UUID `json:"file_ids"   validate:"omitempty,dive,uuid"`
 }
