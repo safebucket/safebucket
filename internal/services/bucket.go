@@ -203,6 +203,9 @@ func (s BucketService) GetBucket(
 	if err != nil {
 		return bucket, err
 	}
+	bucket.Files = []models.File{}
+	bucket.Folders = []models.Folder{}
+
 	now := time.Now()
 	expirationTime := now.Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 
