@@ -44,7 +44,3 @@ type AdminBucketListItem struct {
 	FileCount   int64        `json:"file_count"`
 	Size        int64        `json:"size"`
 }
-
-type BucketQueryParams struct {
-	Status string `json:"status" validate:"omitempty,oneof=all deleted uploaded uploading"`
-}
