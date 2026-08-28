@@ -45,7 +45,7 @@ export const deleteFileMutationFn = async (params: {
 }): Promise<{ filename?: string }> => {
   const { bucketId, fileId, filename, isFolder = false } = params;
 
-  await api.post(`/buckets/${bucketId}/files/trash`, {
+  await api.post(`/buckets/${bucketId}/trash`, {
     folder_ids: isFolder ? [fileId] : [],
     file_ids: isFolder ? [] : [fileId],
   });

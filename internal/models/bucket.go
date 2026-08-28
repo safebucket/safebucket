@@ -34,6 +34,11 @@ type BucketCreateUpdateBody struct {
 	Name string `json:"name" validate:"required,max=100"`
 }
 
+type BucketTrashBody struct {
+	FolderIDs []uuid.UUID `json:"folder_ids" validate:"omitempty,max=100,dive,uuid"`
+	FileIDs   []uuid.UUID `json:"file_ids"   validate:"omitempty,max=100,dive,uuid"`
+}
+
 type AdminBucketListItem struct {
 	ID          uuid.UUID    `json:"id"`
 	Name        string       `json:"name"`

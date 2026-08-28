@@ -37,7 +37,7 @@ export const useBulkTrash = ({
       const fileIds = selected
         .filter((item) => !isFolder(item))
         .map((item) => item.id);
-      return api.post(`/buckets/${bucketId}/files/trash`, {
+      return api.post(`/buckets/${bucketId}/trash`, {
         folder_ids: folderIds,
         file_ids: fileIds,
       });

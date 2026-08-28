@@ -140,10 +140,12 @@ export const FileActions: FC<IFileActionsProps> = ({
           <CustomAlertDialog
             {...deleteFileDialog.props}
             destructive
-            title={t("bucket.bulk_trash.confirm_title", { count: 1 })}
-            description={t("bucket.bulk_trash.confirm_description")}
-            confirmLabel={t("bucket.bulk_trash.confirm")}
-            cancelLabel={t("bucket.bulk_trash.cancel")}
+            title={t("file_actions.delete_dialog.title", {
+              fileName: file.name,
+            })}
+            description={t("file_actions.delete_dialog.description")}
+            confirmLabel={t("file_actions.delete_dialog.confirm")}
+            cancelLabel={t("common.cancel")}
             onConfirm={() => deleteFile(file.id, file.name, !isFile(file))}
           />
         </>

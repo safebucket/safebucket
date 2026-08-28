@@ -277,6 +277,11 @@
       "name_label": "Name",
       "create": "Create"
     },
+    "delete_dialog": {
+      "title": "Move {{fileName}} to trash?",
+      "description": "This file will be moved to trash and can be restored within 7 days. After 7 days, it will be permanently deleted.",
+      "confirm": "Move to Trash"
+    },
     "share": "Share"
   },
   "quick_share": {

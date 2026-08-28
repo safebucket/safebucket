@@ -128,7 +128,7 @@ export const FilesTab: FC<IFilesTabProps> = ({
               icon={<Trash2 className="h-4 w-4" />}
               label={t("bucket.view.actions.bulk_trash")}
               onClick={bulkTrashDialog.trigger}
-              disabled={!hasSelection}
+              disabled={!hasSelection || isRunning}
               destructive
             />
           ) : null}

@@ -277,6 +277,11 @@
       "name_label": "Name",
       "create": "Erstellen"
     },
+    "delete_dialog": {
+      "title": "{{fileName}} in den Papierkorb bewegen?",
+      "description": "Diese Datei landet im Papierkorb und kann dort noch für sieben Tage wiederhergestellt werden. Danach wird sie permanent gelöscht.",
+      "confirm": "In den Papierkorb"
+    },
     "share": "Teilen"
   },
   "quick_share": {

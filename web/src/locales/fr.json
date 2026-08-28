@@ -277,6 +277,11 @@
       "name_label": "Nom",
       "create": "Créer"
     },
+    "delete_dialog": {
+      "title": "Déplacer {{fileName}} vers la corbeille ?",
+      "description": "Ce fichier sera déplacé vers la corbeille et pourra être restauré dans un délai de 7 jours. Après 7 jours, il sera définitivement supprimé.",
+      "confirm": "Déplacer vers la corbeille"
+    },
     "share": "Partager"
   },
   "quick_share": {

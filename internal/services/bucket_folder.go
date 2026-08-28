@@ -71,7 +71,8 @@ func (s BucketFolderService) CreateFolder(
 
 	if body.FolderID != nil {
 		var parentFolder models.Folder
-		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucketID).Find(&parentFolder)
+		result = s.DB.Where("id = ? AND bucket_id = ? AND status = ?",
+			body.FolderID, bucketID, models.FolderStatusCreated).Find(&parentFolder)
 		if result.RowsAffected == 0 {
 			return models.Folder{}, apierrors.New(http.StatusNotFound, apierrors.CodeParentFolderNotFound)
 		}
@@ -129,7 +130,8 @@ func (s BucketFolderService) RenameFolder(
 	bucketID, folderID := ids[0], ids[1]
 
 	var folder models.Folder
-	result := s.DB.Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
+	result := s.DB.Where("id = ? AND bucket_id = ? AND status = ?",
+		folderID, bucketID, models.FolderStatusCreated).First(&folder)
 	if result.RowsAffected == 0 {
 		return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 	}
