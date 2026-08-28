@@ -12,6 +12,7 @@ type FileStatus string
 const (
 	FileStatusUploading FileStatus = "uploading"
 	FileStatusUploaded  FileStatus = "uploaded"
+	FileStatusDeleting  FileStatus = "deleting"
 	FileStatusDeleted   FileStatus = "deleted"
 	FileStatusRestoring FileStatus = "restoring"
 )
@@ -78,5 +79,5 @@ type FileDownloadQuery struct {
 }
 
 type FilePatchBody struct {
-	Status string `json:"status" validate:"required,oneof=deleted uploaded"`
+	Status string `json:"status" validate:"required,oneof=uploaded"`
 }

@@ -305,7 +305,8 @@ func (s PublicShareService) UploadShareFile(
 		if body.FolderID != nil {
 			folderID = body.FolderID
 			var folder models.Folder
-			if s.DB.Where("id = ? AND bucket_id = ?", folderID, share.BucketID).
+			if s.DB.Where("id = ? AND bucket_id = ? AND status = ?",
+				folderID, share.BucketID, models.FolderStatusCreated).
 				Find(&folder).RowsAffected == 0 {
 				return models.FileUploadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 			}

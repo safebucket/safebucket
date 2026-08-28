@@ -45,15 +45,10 @@ export const deleteFileMutationFn = async (params: {
 }): Promise<{ filename?: string }> => {
   const { bucketId, fileId, filename, isFolder = false } = params;
 
-  if (isFolder) {
-    await api.patch(`/buckets/${bucketId}/folders/${fileId}`, {
-      status: "deleted",
-    });
-  } else {
-    await api.patch(`/buckets/${bucketId}/files/${fileId}`, {
-      status: "deleted",
-    });
-  }
+  await api.post(`/buckets/${bucketId}/trash`, {
+    folder_ids: isFolder ? [fileId] : [],
+    file_ids: isFolder ? [] : [fileId],
+  });
 
   return { filename };
 };

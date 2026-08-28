@@ -488,6 +488,15 @@
       "partial_failure_one": "{{count}} Datei fehlgeschlagen: {{files}}",
       "partial_failure_other": "{{count}} Dateien fehlgeschlagen: {{files}}"
     },
+    "bulk_trash": {
+      "confirm_title_one": "{{count}} Element in den Papierkorb verschieben?",
+      "confirm_title_other": "{{count}} Elemente in den Papierkorb verschieben?",
+      "confirm_description": "Die ausgewählten Elemente werden in den Papierkorb verschoben, Ordner einschließlich ihres gesamten Inhalts. Sie können sie später aus dem Papierkorb wiederherstellen.",
+      "confirm": "In den Papierkorb verschieben",
+      "cancel": "Abbrechen",
+      "success_one": "{{count}} Element in den Papierkorb verschoben.",
+      "success_other": "{{count}} Elemente in den Papierkorb verschoben."
+    },
     "grid_view": {
       "empty_folder": "Der Ordner ist leer",
       "empty_description": "Laden Sie Dateien hoch oder erstellen Sie eine Ordnerstruktur, um Ihre Daten zu organisieren.",

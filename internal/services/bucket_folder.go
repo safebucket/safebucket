@@ -71,7 +71,8 @@ func (s BucketFolderService) CreateFolder(
 
 	if body.FolderID != nil {
 		var parentFolder models.Folder
-		result = s.DB.Where("id = ? AND bucket_id = ?", body.FolderID, bucketID).Find(&parentFolder)
+		result = s.DB.Where("id = ? AND bucket_id = ? AND status = ?",
+			body.FolderID, bucketID, models.FolderStatusCreated).Find(&parentFolder)
 		if result.RowsAffected == 0 {
 			return models.Folder{}, apierrors.New(http.StatusNotFound, apierrors.CodeParentFolderNotFound)
 		}
@@ -129,7 +130,8 @@ func (s BucketFolderService) RenameFolder(
 	bucketID, folderID := ids[0], ids[1]
 
 	var folder models.Folder
-	result := s.DB.Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
+	result := s.DB.Where("id = ? AND bucket_id = ? AND status = ?",
+		folderID, bucketID, models.FolderStatusCreated).First(&folder)
 	if result.RowsAffected == 0 {
 		return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 	}
@@ -185,16 +187,11 @@ func (s BucketFolderService) UpdateFolderStatus(
 		return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 	}
 
-	switch body.Status {
-	case models.FolderStatusDeleted:
-		return s.TrashFolder(logger, user, folder)
-	case models.FolderStatusCreated:
-		return s.RestoreFolder(logger, user, folder)
-	case models.FolderStatusRestoring:
-		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidStatus)
-	default:
+	if body.Status != models.FolderStatusCreated {
 		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidStatus)
 	}
+
+	return s.RestoreFolder(logger, user, folder)
 }
 
 func (s BucketFolderService) DeleteFolder(
@@ -256,64 +253,6 @@ func (s BucketFolderService) DeleteFolder(
 	}
 
 	logger.Info("Folder purge initiated (async)",
-		zap.String("folder", folder.Name),
-		zap.String("folder_id", folder.ID.String()))
-
-	return nil
-}
-
-func (s BucketFolderService) TrashFolder(
-	logger *zap.Logger,
-	user models.UserClaims,
-	folder models.Folder,
-) error {
-	if folder.DeletedAt.Valid {
-		return apierrors.New(http.StatusConflict, apierrors.CodeFolderAlreadyTrashed)
-	}
-
-	if folder.Status == models.FolderStatusRestoring {
-		return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
-	}
-
-	updates := map[string]interface{}{
-		"status":     models.FolderStatusDeleted,
-		"deleted_by": user.UserID,
-	}
-	if err := s.DB.Model(&folder).Updates(updates).Error; err != nil {
-		logger.Error("Failed to update folder for trashing", zap.Error(err))
-		return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
-	}
-
-	if err := s.DB.Delete(&folder).Error; err != nil {
-		logger.Error("Failed to soft delete folder", zap.Error(err))
-		return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
-	}
-
-	objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
-	if err := s.Storage.MarkAsTrashed(objectPath, folder); err != nil {
-		logger.Warn("Failed to create trash marker for folder", zap.Error(err))
-	}
-
-	event := events.NewFolderTrash(s.Publisher, folder.BucketID, folder.ID, user.UserID)
-	event.Trigger()
-
-	action := models.Activity{
-		Message: activity.FolderTrashed,
-		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionErase.String(),
-			BucketID:   folder.BucketID.String(),
-			FolderID:   folder.ID.String(),
-			ObjectType: rbac.ResourceFolder.String(),
-			UserID:     user.UserID.String(),
-		}),
-	}
-
-	if err := s.ActivityLogger.Send(action); err != nil {
-		logger.Error("Failed to log trash activity", zap.Error(err))
-	}
-
-	logger.Info("Folder trash initiated (async)",
 		zap.String("folder", folder.Name),
 		zap.String("folder_id", folder.ID.String()))
 
