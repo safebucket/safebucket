@@ -41,6 +41,9 @@ func (s BucketTrashService) GetBucketTrash(
 	if err != nil {
 		return bucket, err
 	}
+	bucket.Files = []models.File{}
+	bucket.Folders = []models.Folder{}
+
 	now := time.Now()
 
 	allFolders := make([]models.Folder, 0)
