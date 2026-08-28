@@ -251,8 +251,8 @@ func (s BucketFolderService) DeleteFolder(
 		}),
 	}
 
-	if err := s.ActivityLogger.Send(action); err != nil {
-		logger.Error("Failed to log purge activity", zap.Error(err))
+	if activityErr := s.ActivityLogger.Send(action); activityErr != nil {
+		logger.Error("Failed to log purge activity", zap.Error(activityErr))
 	}
 
 	logger.Info("Folder purge initiated (async)",
