@@ -1,4 +1,4 @@
-import {CircleCheck, LoaderCircle, Trash2} from "lucide-react";
+import { CircleCheck, LoaderCircle, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { BucketItem } from "@/types/bucket.ts";

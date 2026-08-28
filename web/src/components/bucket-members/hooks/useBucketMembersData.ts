@@ -56,7 +56,8 @@ export const useBucketMembersData = (bucket: IBucket) => {
     mutationFn: (variables: {
       members: Array<{ email: string; group: string }>;
       successMessage: string;
-    }) => api.put(`/buckets/${bucket.id}/members`, { members: variables.members }),
+    }) =>
+      api.put(`/buckets/${bucket.id}/members`, { members: variables.members }),
     onSuccess: (_data, variables) => {
       toast.success(variables.successMessage);
     },
@@ -70,7 +71,10 @@ export const useBucketMembersData = (bucket: IBucket) => {
     },
   });
 
-  const persist = (nextMembers: Array<IMemberState>, successMessage: string) => {
+  const persist = (
+    nextMembers: Array<IMemberState>,
+    successMessage: string,
+  ) => {
     setMembersState(nextMembers);
     updateMembersMutation.mutate({
       members: nextMembers.map((member) => ({
