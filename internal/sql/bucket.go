@@ -3,6 +3,7 @@ package sql
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"time"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -32,8 +33,8 @@ func MarkFilesDeleting(
 	deletedBy uuid.UUID,
 	at time.Time,
 ) error {
-	folderScope := append(folderIDs, uuid.Nil)
-	fileScope := append(fileIDs, uuid.Nil)
+	folderScope := append(slices.Clone(folderIDs), uuid.Nil)
+	fileScope := append(slices.Clone(fileIDs), uuid.Nil)
 
 	return tx.Exec(`
 		WITH RECURSIVE folder_tree (id) AS (
@@ -69,7 +70,7 @@ func MarkFoldersDeleting(
 	deletedBy uuid.UUID,
 	at time.Time,
 ) error {
-	folderScope := append(folderIDs, uuid.Nil)
+	folderScope := append(slices.Clone(folderIDs), uuid.Nil)
 
 	return tx.Exec(`
 		WITH RECURSIVE folder_tree (id) AS (
