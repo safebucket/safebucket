@@ -1,13 +1,8 @@
-import { useDndContext, useDraggable, useDroppable } from "@dnd-kit/core";
 import type { FC } from "react";
 import type { IDataTableRowProps } from "@/components/common/components/DataTable/DataTableRow";
 import type { BucketItem } from "@/types/bucket.ts";
 import { DataTableRow } from "@/components/common/components/DataTable/DataTableRow";
-import {
-  canDropInto,
-  resolveDragIds,
-} from "@/components/bucket-view/helpers/dnd";
-import { isFolder } from "@/components/bucket-view/helpers/utils";
+import { useBucketItemDnd } from "@/components/bucket-view/components/FilesDndProvider/hooks/useBucketItemDnd";
 
 interface IBucketItemRowProps extends IDataTableRowProps<BucketItem> {
   enabled: boolean;
@@ -20,34 +15,17 @@ export const BucketItemRow: FC<IBucketItemRowProps> = ({
   ...props
 }) => {
   const { row } = props;
-  const { active } = useDndContext();
-  const dragIds = active?.data.current?.dragIds as Array<string> | undefined;
-  const itemIsFolder = isFolder(row);
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setDragRef,
-    isDragging,
-  } = useDraggable({
-    id: row.id,
-    data: { itemId: row.id, dragIds: resolveDragIds(getSelectedIds(), row.id) },
-    disabled: !enabled,
-  });
-
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `drop-${row.id}`,
-    data: { dropFolderId: row.id },
-    disabled: !itemIsFolder || !canDropInto(dragIds, row.id),
-  });
+  const { attributes, listeners, setNodeRef, isDragging, isOver } =
+    useBucketItemDnd({
+      item: row,
+      enabled,
+      selectedIds: getSelectedIds(),
+    });
 
   return (
     <DataTableRow
       {...props}
-      trRef={(node) => {
-        setDragRef(node);
-        setDropRef(node);
-      }}
+      trRef={setNodeRef}
       trProps={{
         ...attributes,
         ...listeners,

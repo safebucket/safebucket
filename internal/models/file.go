@@ -81,8 +81,3 @@ type FileDownloadQuery struct {
 type FilePatchBody struct {
 	Status string `json:"status" validate:"required,oneof=uploaded"`
 }
-
-type FileMoveBody struct {
-	IDs      uuid.UUIDs `json:"ids"       validate:"required,min=1,max=100"`
-	FolderID OptionalID `json:"folder_id"`
-}

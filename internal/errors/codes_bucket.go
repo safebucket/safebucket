@@ -39,4 +39,7 @@ const (
 const (
 	CodeItemAlreadyTrashed = "ITEM_ALREADY_TRASHED"
 	CodeItemNotTrashable   = "ITEM_NOT_TRASHABLE"
+	CodeItemNotFound       = "ITEM_NOT_FOUND"
+	CodeItemNotMovable     = "ITEM_NOT_MOVABLE"
+	CodeNameConflict       = "NAME_CONFLICT"
 )
