@@ -58,7 +58,10 @@
     "INVALID_UUID": "Un identifiant invalide a été fourni.",
     "INVALID_VALUE": "Une valeur fournie est invalide.",
     "default": "Une erreur s'est produite. Veuillez réessayer.",
-    "INVALID_MOVE_TARGET": "Impossible de déplacer un dossier dans lui-même ou dans l'un de ses sous-dossiers."
+    "INVALID_MOVE_TARGET": "Impossible de déplacer un dossier dans lui-même ou dans l'un de ses sous-dossiers.",
+    "ITEM_NOT_FOUND": "Un ou plusieurs éléments sélectionnés sont introuvables.",
+    "NAME_CONFLICT": "Un élément du même nom existe déjà à l'emplacement de destination.",
+    "ITEM_NOT_MOVABLE": "Cet élément ne peut pas être déplacé dans son état actuel."
   },
   "toast": {
     "download_started": "Téléchargement démarré pour le fichier {{filename}}",
@@ -410,7 +413,6 @@
       "dragging_more_other": "{{count}} autres",
       "move_success_one": "1 élément déplacé.",
       "move_success_other": "{{count}} éléments déplacés.",
-      "move_partial": "{{moved}} déplacé(s), {{failed}} n'ont pas pu être déplacé(s).",
       "tabs": {
         "files": "Fichiers",
         "activity": "Activité",

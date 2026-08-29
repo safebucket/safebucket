@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"net/http"
 	"path"
 	"time"
@@ -38,10 +37,6 @@ func (s BucketFolderService) Routes() chi.Router {
 	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 		With(m.Validate[models.FolderCreateBody]).
 		Post("/", handlers.CreateHandler(s.CreateFolder))
-
-	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
-		With(m.Validate[models.FolderMoveBody]).
-		Post("/move", handlers.BatchHandler(s.MoveFolders))
 
 	r.Route("/{id1}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
@@ -173,55 +168,6 @@ func (s BucketFolderService) RenameFolder(
 	}
 
 	return nil
-}
-
-func (s BucketFolderService) MoveFolders(
-	logger *zap.Logger,
-	_ models.UserClaims,
-	ids uuid.UUIDs,
-	body models.FolderMoveBody,
-) (models.MoveResponse, error) {
-	bucketID := ids[0]
-
-	return h.MoveBatch(s.DB, bucketID, body.FolderID, body.IDs,
-		func(tx *gorm.DB, targetFolderID *uuid.UUID, folderID uuid.UUID) error {
-			var folder models.Folder
-			result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Where("id = ? AND bucket_id = ?", folderID, bucketID).
-				First(&folder)
-			if result.Error != nil {
-				if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-					return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
-				}
-				logger.Error("Failed to fetch folder for moving", zap.Error(result.Error))
-				return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
-			}
-
-			if h.SameFolder(folder.FolderID, targetFolderID) {
-				return nil
-			}
-
-			if err := h.ValidateFolderMove(tx, bucketID, folderID, targetFolderID); err != nil {
-				return err
-			}
-
-			taken, err := h.NameTakenInFolder(tx, &models.Folder{}, bucketID, folder.Name, folder.ID, targetFolderID)
-			if err != nil {
-				logger.Error("Failed to check folder name conflict", zap.Error(err))
-				return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
-			}
-			if taken {
-				return apierrors.New(http.StatusConflict, apierrors.CodeFolderNameConflict)
-			}
-
-			if err = tx.Model(&folder).Update("folder_id", targetFolderID).Error; err != nil {
-				logger.Error("Failed to move folder", zap.Error(err))
-				return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
-			}
-
-			return nil
-		},
-	)
 }
 
 func (s BucketFolderService) UpdateFolderStatus(

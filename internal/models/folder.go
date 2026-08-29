@@ -51,11 +51,6 @@ type FolderUpdateBody struct {
 	Name string `json:"name" validate:"required,foldername,max=255"`
 }
 
-type FolderMoveBody struct {
-	IDs      uuid.UUIDs `json:"ids"       validate:"required,min=1,max=100"`
-	FolderID OptionalID `json:"folder_id"`
-}
-
 type FolderPatchBody struct {
 	Status FolderStatus `json:"status" validate:"required,oneof=deleted created"`
 }

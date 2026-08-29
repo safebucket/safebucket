@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { RowSelectionState } from "@tanstack/react-table";
@@ -39,7 +39,7 @@ export const FilesTab: FC<IFilesTabProps> = ({
   const [selected, setSelected] = useState<BucketItem | null>(null);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-  const clearRowSelection = () => setRowSelection({});
+  const clearRowSelection = useCallback(() => setRowSelection({}), []);
 
   useEffect(() => {
     setSelected(null);
@@ -78,6 +78,7 @@ export const FilesTab: FC<IFilesTabProps> = ({
       bucketId={bucket.id}
       items={items}
       selectedIds={selectedIds}
+      onMoveSuccess={clearRowSelection}
     >
       <div className="flex flex-col gap-4">
         <FolderPathBar bucket={bucket} folderId={folderId} />

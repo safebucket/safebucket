@@ -4,15 +4,12 @@ import { toast } from "sonner";
 import type { BucketItem } from "@/types/bucket.ts";
 import { isFolder } from "@/components/bucket-view/helpers/utils";
 import { api } from "@/lib/api";
-
-interface IMoveResult {
-  id: string;
-  status: string;
-  code?: string;
-}
+import { errorToast } from "@/lib/toast";
 
 interface IMoveResponse {
-  results: Array<IMoveResult>;
+  moved_files: number;
+  moved_folders: number;
+  unchanged_items: number;
 }
 
 interface IMoveVariables {
@@ -20,8 +17,9 @@ interface IMoveVariables {
   targetFolderId: string | undefined;
 }
 
-const countFailed = (response: IMoveResponse) =>
-  response.results.filter((result) => result.status !== "ok").length;
+interface IUseMoveItemsOptions {
+  onSuccess?: () => void;
+}
 
 const moveItems = async (
   bucketId: string,
@@ -30,57 +28,32 @@ const moveItems = async (
   const folders = items.filter(isFolder);
   const files = items.filter((item) => !isFolder(item));
 
-  const requests: Array<Promise<number>> = [];
+  const response = await api.post<IMoveResponse>(`/buckets/${bucketId}/move`, {
+    file_ids: files.map((file) => file.id),
+    folder_ids: folders.map((folder) => folder.id),
+    destination_folder_id: targetFolderId ?? null,
+  });
 
-  if (folders.length > 0) {
-    requests.push(
-      api
-        .post<IMoveResponse>(`/buckets/${bucketId}/folders/move`, {
-          ids: folders.map((folder) => folder.id),
-          folder_id: targetFolderId ?? null,
-        })
-        .then(countFailed),
-    );
-  }
-
-  if (files.length > 0) {
-    requests.push(
-      api
-        .post<IMoveResponse>(`/buckets/${bucketId}/files/move`, {
-          ids: files.map((file) => file.id),
-          folder_id: targetFolderId ?? null,
-        })
-        .then(countFailed),
-    );
-  }
-
-  const failures = await Promise.all(requests);
-  const failed = failures.reduce((sum, count) => sum + count, 0);
-
-  return { total: items.length, failed };
+  return {
+    count:
+      response.moved_files + response.moved_folders + response.unchanged_items,
+  };
 };
 
-export function useMoveItems(bucketId: string) {
+export function useMoveItems(
+  bucketId: string,
+  { onSuccess }: IUseMoveItemsOptions = {},
+) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  const mutation = useMutation({
+  return useMutation({
     mutationFn: (variables: IMoveVariables) => moveItems(bucketId, variables),
-    onSuccess: ({ total, failed }) => {
-      queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
-      if (failed > 0) {
-        toast.warning(
-          t("bucket.view.move_partial", { moved: total - failed, failed }),
-        );
-        return;
-      }
-      toast.success(t("bucket.view.move_success", { count: total }));
+    onSuccess: async ({ count }) => {
+      onSuccess?.();
+      await queryClient.invalidateQueries({ queryKey: ["buckets", bucketId] });
+      toast.success(t("bucket.view.move_success", { count }));
     },
-    onError: () => {
-      toast.error(t("errors.INTERNAL_SERVER_ERROR"));
-    },
+    onError: (error) => errorToast(error),
   });
-
-  return (items: Array<BucketItem>, targetFolderId: string | undefined) =>
-    mutation.mutate({ items, targetFolderId });
 }

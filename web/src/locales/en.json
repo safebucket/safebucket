@@ -58,7 +58,10 @@
     "INVALID_UUID": "An invalid identifier was provided.",
     "INVALID_VALUE": "A provided value is invalid.",
     "default": "An error occurred. Please try again.",
-    "INVALID_MOVE_TARGET": "Cannot move a folder into itself or one of its subfolders."
+    "INVALID_MOVE_TARGET": "Cannot move a folder into itself or one of its subfolders.",
+    "ITEM_NOT_FOUND": "One or more selected items could not be found.",
+    "NAME_CONFLICT": "An item with the same name already exists at the destination.",
+    "ITEM_NOT_MOVABLE": "This item cannot be moved in its current state."
   },
   "toast": {
     "download_started": "Download started for file {{filename}}",
@@ -410,7 +413,6 @@
       "dragging_more_other": "{{count}} more",
       "move_success_one": "1 item moved.",
       "move_success_other": "{{count}} items moved.",
-      "move_partial": "{{moved}} moved, {{failed}} could not be moved.",
       "tabs": {
         "files": "Files",
         "activity": "Activity",

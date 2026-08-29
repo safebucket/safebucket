@@ -3,16 +3,17 @@ package models
 import "github.com/google/uuid"
 
 const (
-	MoveStatusOK    = "ok"
-	MoveStatusError = "error"
+	MaxMoveItems = 100
 )
 
-type MoveResult struct {
-	ID     uuid.UUID `json:"id"`
-	Status string    `json:"status"`
-	Code   string    `json:"code,omitempty"`
+type MoveBody struct {
+	FileIDs             uuid.UUIDs `json:"file_ids"              validate:"unique,max=100"`
+	FolderIDs           uuid.UUIDs `json:"folder_ids"            validate:"unique,max=100"`
+	DestinationFolderID OptionalID `json:"destination_folder_id"`
 }
 
 type MoveResponse struct {
-	Results []MoveResult `json:"results"`
+	MovedFiles     int `json:"moved_files"`
+	MovedFolders   int `json:"moved_folders"`
+	UnchangedItems int `json:"unchanged_items"`
 }

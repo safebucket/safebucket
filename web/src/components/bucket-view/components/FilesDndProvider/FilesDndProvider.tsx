@@ -19,6 +19,7 @@ interface IFilesDndProviderProps {
   bucketId: string;
   items: Array<BucketItem>;
   selectedIds: Array<string>;
+  onMoveSuccess: () => void;
   children: ReactNode;
 }
 
@@ -26,10 +27,11 @@ export function FilesDndProvider({
   bucketId,
   items,
   selectedIds,
+  onMoveSuccess,
   children,
 }: IFilesDndProviderProps) {
   const [activeItems, setActiveItems] = useState<Array<BucketItem>>([]);
-  const move = useMoveItems(bucketId);
+  const moveMutation = useMoveItems(bucketId, { onSuccess: onMoveSuccess });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -41,6 +43,7 @@ export function FilesDndProvider({
   };
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (moveMutation.isPending) return;
     const source = items.find((item) => item.id === event.active.id);
     if (!source) return;
     const ids = resolveDragIds(selectedIds, source.id);
@@ -59,13 +62,13 @@ export function FilesDndProvider({
     const targetFolderId = data.dropFolderId ?? undefined;
     const movable = moving.filter((item) => item.folder_id !== targetFolderId);
     if (movable.length > 0) {
-      move(movable, targetFolderId);
+      moveMutation.mutate({ items: movable, targetFolderId });
     }
   };
 
   return (
     <DndContext
-      sensors={sensors}
+      sensors={moveMutation.isPending ? [] : sensors}
       collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
