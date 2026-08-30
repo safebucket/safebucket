@@ -18,12 +18,14 @@ type StaticFileService struct {
 	apiURL                     string
 	storageExternalURL         string
 	requiresUploadConfirmation bool
+	trashRetentionDays         int
 }
 
 type ConfigJSON struct {
 	APIURL                     string `json:"apiUrl"`
 	Environment                string `json:"environment"`
 	RequiresUploadConfirmation bool   `json:"requiresUploadConfirmation"`
+	TrashRetentionDays         int    `json:"trashRetentionDays"`
 }
 
 func NewStaticFileService(
@@ -31,6 +33,7 @@ func NewStaticFileService(
 	apiURL string,
 	storageExternalURL string,
 	requiresUploadConfirmation bool,
+	trashRetentionDays int,
 ) (*StaticFileService, error) {
 	service := &StaticFileService{
 		fsys:                       fsys,
@@ -38,6 +41,7 @@ func NewStaticFileService(
 		apiURL:                     apiURL,
 		storageExternalURL:         storageExternalURL,
 		requiresUploadConfirmation: requiresUploadConfirmation,
+		trashRetentionDays:         trashRetentionDays,
 	}
 
 	configData, err := service.buildConfigJSON()
@@ -62,6 +66,7 @@ func (s *StaticFileService) buildConfigJSON() ([]byte, error) {
 		APIURL:                     s.apiURL,
 		Environment:                "production",
 		RequiresUploadConfirmation: s.requiresUploadConfirmation,
+		TrashRetentionDays:         s.trashRetentionDays,
 	}
 
 	data, err := json.Marshal(config)

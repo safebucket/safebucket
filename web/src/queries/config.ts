@@ -6,6 +6,7 @@ export const defaultConfig: IConfig = {
   apiUrl: "http://localhost:8080",
   environment: EnvironmentType.production,
   requiresUploadConfirmation: false,
+  trashRetentionDays: 7,
 };
 
 export const configQueryOptions = () =>

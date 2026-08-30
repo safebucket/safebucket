@@ -7,4 +7,5 @@ export interface IConfig {
   apiUrl: string;
   environment: EnvironmentType;
   requiresUploadConfirmation: boolean;
+  trashRetentionDays: number;
 }
