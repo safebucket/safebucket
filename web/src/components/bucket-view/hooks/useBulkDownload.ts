@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from "react";
 
 import { format } from "date-fns";
 import i18n from "i18next";
-import JSZip from "jszip";
 
 import { toast } from "sonner";
 
@@ -10,20 +9,15 @@ import type { RowSelectionState } from "@tanstack/react-table";
 import type { IBucket } from "@/types/bucket.ts";
 import type { IFile } from "@/types/file.ts";
 import type { IFolder } from "@/types/folder.ts";
+import type { ZipDownloadEntry } from "@/lib/zip-download";
 import { api_downloadFile } from "@/components/file-actions/helpers/api";
+import { fetchDownloadBlob, zipDownload } from "@/lib/zip-download";
 import { errorToast } from "@/lib/toast";
-import { triggerBlobDownload } from "@/lib/download";
 import { FileStatus } from "@/types/file.ts";
 
 const MAX_TOTAL_BYTES = 1024 * 1024 * 1024;
 const MAX_FILE_COUNT = 100;
-const CONCURRENCY = 3;
 const PROGRESS_TOAST_ID = "bulk-download-progress";
-
-interface IBulkDownloadEntry {
-  file: IFile;
-  zipPath: string;
-}
 
 interface IBlockedInfo {
   count: number;
@@ -42,7 +36,7 @@ const isDownloadableFile = (file: IFile): boolean =>
 export const collectFilesForSelection = (
   bucket: IBucket,
   selection: RowSelectionState,
-): Array<IBulkDownloadEntry> => {
+): Array<ZipDownloadEntry> => {
   const selectedIds = Object.keys(selection).filter((id) => selection[id]);
   if (selectedIds.length === 0) {
     return [];
@@ -69,7 +63,7 @@ export const collectFilesForSelection = (
     }
   }
 
-  const entries: Array<IBulkDownloadEntry> = [];
+  const entries: Array<ZipDownloadEntry> = [];
   const seen = new Set<string>();
 
   const walkFolder = (folder: IFolder, basePath: string) => {
@@ -103,38 +97,13 @@ export const collectFilesForSelection = (
   return entries;
 };
 
-const fetchAsBlob = async (url: string): Promise<Blob> => {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-  return res.blob();
-};
-
-const runWithConcurrency = async <T>(
-  items: Array<T>,
-  limit: number,
-  worker: (item: T) => Promise<void>,
-): Promise<void> => {
-  const queue = items.slice();
-  const runners = Array.from(
-    { length: Math.min(limit, items.length) },
-    async () => {
-      while (queue.length > 0) {
-        await worker(queue.shift()!);
-      }
-    },
-  );
-  await Promise.all(runners);
-};
-
 export const useBulkDownload = ({
   bucket,
   rowSelection,
   clearRowSelection,
 }: IUseBulkDownloadArgs) => {
-  const [isRunning, setIsRunning] = useState(false);
   const [blocked, setBlocked] = useState<IBlockedInfo | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
 
   const entries = useMemo(
     () => collectFilesForSelection(bucket, rowSelection),
@@ -146,17 +115,17 @@ export const useBulkDownload = ({
     [entries],
   );
 
+  const fetchFile = useCallback(
+    async (file: IFile) => {
+      const response = await api_downloadFile(bucket.id, file.id);
+      return fetchDownloadBlob(response.url);
+    },
+    [bucket.id],
+  );
+
   const run = useCallback(async () => {
-    if (entries.length === 0) {
-      return;
-    }
-    setIsRunning(true);
-
-    const zip = new JSZip();
-    let done = 0;
-    const failures: Array<string> = [];
-
     const progressTitle = i18n.t("bucket.bulk_download.progress_title");
+    setIsRunning(true);
     toast(progressTitle, {
       id: PROGRESS_TOAST_ID,
       description: i18n.t("bucket.bulk_download.progress", {
@@ -167,44 +136,35 @@ export const useBulkDownload = ({
     });
 
     try {
-      await runWithConcurrency(entries, CONCURRENCY, async (entry) => {
-        try {
-          const res = await api_downloadFile(bucket.id, entry.file.id);
-          const blob = await fetchAsBlob(res.url);
-          zip.file(entry.zipPath, blob);
-        } catch (err) {
-          failures.push(entry.file.name);
-        } finally {
-          done += 1;
+      const date = format(new Date(), "yyyyMMdd-HHmmss");
+      const safeBucketName = bucket.name.replace(/[^a-zA-Z0-9-_]/g, "_");
+      const result = await zipDownload({
+        entries,
+        archiveName: `${safeBucketName}-${date}.zip`,
+        fetchFile,
+        onProgress: (completed, total) => {
           toast(progressTitle, {
             id: PROGRESS_TOAST_ID,
             description: i18n.t("bucket.bulk_download.progress", {
-              done,
-              total: entries.length,
+              done: completed,
+              total,
             }),
             duration: Infinity,
           });
-        }
+        },
       });
 
-      if (failures.length === entries.length) {
-        toast.dismiss(PROGRESS_TOAST_ID);
+      if (result.failures.length === result.total) {
         errorToast(new Error("bulk_download_all_failed"));
         return;
       }
 
-      const archive = await zip.generateAsync({ type: "blob" });
-      const stamp = format(new Date(), "yyyyMMdd-HHmmss");
-      const safeBucketName = bucket.name.replace(/[^a-zA-Z0-9-_]/g, "_");
-      triggerBlobDownload(archive, `${safeBucketName}-${stamp}.zip`);
-
-      toast.dismiss(PROGRESS_TOAST_ID);
-      if (failures.length > 0) {
+      if (result.failures.length > 0) {
         errorToast(
           i18n.t("bucket.bulk_download.partial_failure_title"),
           i18n.t("bucket.bulk_download.partial_failure", {
-            count: failures.length,
-            files: failures.slice(0, 5).join(", "),
+            count: result.failures.length,
+            files: result.failures.slice(0, 5).join(", "),
           }),
         );
       } else {
@@ -213,13 +173,13 @@ export const useBulkDownload = ({
         );
       }
       clearRowSelection();
-    } catch (err) {
-      toast.dismiss(PROGRESS_TOAST_ID);
-      errorToast(err as Error);
+    } catch (error) {
+      errorToast(error as Error);
     } finally {
+      toast.dismiss(PROGRESS_TOAST_ID);
       setIsRunning(false);
     }
-  }, [bucket.id, bucket.name, entries, clearRowSelection]);
+  }, [bucket.name, clearRowSelection, entries, fetchFile]);
 
   const start = useCallback(() => {
     if (entries.length === 0 || isRunning) return;

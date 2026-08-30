@@ -46,12 +46,18 @@ export interface IPublicShareResponse {
   name: string;
   type: ShareScope;
   allow_upload: boolean;
+  password_protected: boolean;
   max_upload_size: number | null;
   max_uploads: number | null;
   current_uploads: number;
   expires_at: string | null;
   max_views: number | null;
   current_views: number;
+  shared_by: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
   files: Array<IFile>;
   folders: Array<IFolder>;
 }

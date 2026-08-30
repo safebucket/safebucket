@@ -8,6 +8,14 @@ import type {
 import type { IUploadPresign } from "@/components/upload/helpers/types";
 import { shareFetch } from "@/lib/share-api";
 
+export const getShareDownloadUrl = (
+  shareId: string,
+  args: IShareDownloadArgs,
+) =>
+  shareFetch<IShareDownloadResponse>(`/${shareId}/files/${args.fileId}/url`, {
+    params: { context: args.context },
+  });
+
 export const shareContentQueryOptions = (shareId: string) =>
   queryOptions({
     queryKey: ["shares", shareId, "content"],
@@ -34,10 +42,8 @@ export const useShareAuthMutation = () =>
 
 export const useShareDownloadMutation = (shareId: string) =>
   useMutation({
-    mutationFn: ({ fileId, context }: IShareDownloadArgs) =>
-      shareFetch<IShareDownloadResponse>(`/${shareId}/files/${fileId}/url`, {
-        params: { context },
-      }),
+    mutationFn: (args: IShareDownloadArgs) =>
+      getShareDownloadUrl(shareId, args),
   });
 
 export const useShareUploadMutation = (shareId: string) =>

@@ -11,6 +11,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.share-panel-gradient {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, #efd5ff 68%, var(--background)) 0%,
+    color-mix(in srgb, #515ada 38%, var(--background)) 100%
+  );
+}
+
 code {
   font-family: var(--font-mono);
 }

@@ -1,20 +1,14 @@
-import { useTranslation } from "react-i18next";
 import { ArrowLeft, FolderOpen } from "lucide-react";
-import type { ColumnDef, VisibilityState } from "@tanstack/react-table";
+import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
 import type { BucketItem } from "@/types/bucket.ts";
 import type { IFile } from "@/types/file.ts";
-import type { ViewMode } from "@/components/share-view/components/ShareContentView.tsx";
-import { isFolder } from "@/components/bucket-view/helpers/utils.ts";
-import { ShareListView } from "@/components/share-view/components/ShareListView.tsx";
-import { ShareFileGridCard } from "@/components/share-view/components/ShareFileGridCard.tsx";
+import { ShareItemList } from "@/components/share-view/components/ShareItemList.tsx";
+import { Button } from "@/components/ui/button.tsx";
 
 interface IShareContentAreaProps {
   items: Array<BucketItem>;
-  columns: Array<ColumnDef<BucketItem>>;
-  columnVisibility: VisibilityState;
-  viewMode: ViewMode;
   folderName: string | null | undefined;
   canGoBack: boolean;
   onGoBack: () => void;
@@ -25,9 +19,6 @@ interface IShareContentAreaProps {
 
 export const ShareContentArea: FC<IShareContentAreaProps> = ({
   items,
-  columns,
-  columnVisibility,
-  viewMode,
   folderName,
   canGoBack,
   onGoBack,
@@ -40,42 +31,32 @@ export const ShareContentArea: FC<IShareContentAreaProps> = ({
   return (
     <>
       {canGoBack && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
+          className="mb-3"
           onClick={onGoBack}
-          className="mb-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="size-4" />
           {folderName ?? t("share_consumer.back")}
-        </button>
+        </Button>
       )}
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <FolderOpen className="text-muted-foreground mb-4 h-16 w-16" />
+          <FolderOpen className="text-muted-foreground mb-4 size-16" />
           <p className="text-muted-foreground text-lg">
             {t("share_consumer.empty")}
           </p>
         </div>
-      ) : viewMode === "list" ? (
-        <ShareListView
-          columns={columns}
-          data={items}
-          onRowDoubleClick={onOpenItem}
-          defaultColumnVisibility={columnVisibility}
-        />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {items.map((item) => (
-            <ShareFileGridCard
-              key={item.id}
-              file={item}
-              onDoubleClick={onOpenItem}
-              onPreview={!isFolder(item) ? () => onPreview(item) : undefined}
-              onDownload={!isFolder(item) ? () => onDownload(item) : undefined}
-            />
-          ))}
-        </div>
+        <ShareItemList
+          items={items}
+          onOpenItem={onOpenItem}
+          onPreview={onPreview}
+          onDownload={onDownload}
+        />
       )}
     </>
   );

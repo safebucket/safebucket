@@ -37,10 +37,16 @@ function RootComponent() {
   return (
     <div className="flex h-svh max-h-svh w-full overflow-hidden">
       {showSidebar && <AppSidebar />}
-      <AppSidebarInset>
-        <Outlet />
-      </AppSidebarInset>
-      <UploadPanel />
+      {isShareRoute ? (
+        <div className="min-w-0 flex-1 overflow-y-auto">
+          <Outlet />
+        </div>
+      ) : (
+        <AppSidebarInset>
+          <Outlet />
+        </AppSidebarInset>
+      )}
+      {!isShareRoute && <UploadPanel />}
       <Toaster />
 
       {config.environment == EnvironmentType.development && (

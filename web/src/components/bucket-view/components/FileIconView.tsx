@@ -27,7 +27,7 @@ export const FileIconView: FC<IFileIconViewProps> = ({
     return <FolderClosed className={className} />;
   }
 
-  switch (extension) {
+  switch (extension?.toLowerCase()) {
     case "txt":
     case "md":
     case "pdf":

@@ -115,19 +115,34 @@ func (s PublicShareService) ListShareItems(
 		return models.PublicShareResponse{}, apierrors.New(http.StatusForbidden, apierrors.CodeShareMaxViewsReached)
 	}
 
+	var sharedBy models.User
+	if err := s.DB.Unscoped().Select("first_name", "last_name", "email").Find(&sharedBy, share.CreatedBy).Error; err != nil {
+		logger.Error("Failed to load share creator", zap.Error(err))
+		return models.PublicShareResponse{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeInternalServerError,
+		)
+	}
+
 	response := models.PublicShareResponse{
-		ID:             share.ID,
-		Name:           share.Name,
-		Type:           share.Type,
-		AllowUpload:    share.AllowUpload,
-		MaxUploadSize:  share.MaxUploadSize,
-		MaxUploads:     share.MaxUploads,
-		CurrentUploads: share.CurrentUploads,
-		ExpiresAt:      share.ExpiresAt,
-		MaxViews:       share.MaxViews,
-		CurrentViews:   share.CurrentViews + 1,
-		Files:          []models.File{},
-		Folders:        []models.Folder{},
+		ID:                share.ID,
+		Name:              share.Name,
+		Type:              share.Type,
+		AllowUpload:       share.AllowUpload,
+		PasswordProtected: share.HashedPassword != "",
+		MaxUploadSize:     share.MaxUploadSize,
+		MaxUploads:        share.MaxUploads,
+		CurrentUploads:    share.CurrentUploads,
+		ExpiresAt:         share.ExpiresAt,
+		MaxViews:          share.MaxViews,
+		CurrentViews:      share.CurrentViews + 1,
+		SharedBy: models.PublicShareUser{
+			FirstName: sharedBy.FirstName,
+			LastName:  sharedBy.LastName,
+			Email:     sharedBy.Email,
+		},
+		Files:   []models.File{},
+		Folders: []models.Folder{},
 	}
 
 	now := time.Now()

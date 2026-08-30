@@ -1,131 +1,167 @@
-import { useRef } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Calendar, Eye, LayoutGrid, LayoutList, Upload } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  Copy,
+  Download,
+  Eye,
+  Loader2,
+  Lock,
+  Upload,
+} from "lucide-react";
+import { toast } from "sonner";
 import type { FC } from "react";
 
 import type { IPublicShareResponse } from "@/types/share.ts";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
-
-type ViewMode = "list" | "grid";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar.tsx";
+import { formatFileSize } from "@/lib/utils.ts";
 
 interface IShareHeaderProps {
   shareContent: IPublicShareResponse;
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
-  onUploadFiles: (files: Array<File>) => void;
+  totalSize: number;
+  isDownloadingAll: boolean;
+  onDownloadAll: () => void;
 }
 
 export const ShareHeader: FC<IShareHeaderProps> = ({
   shareContent,
-  viewMode,
-  onViewModeChange,
-  onUploadFiles,
+  totalSize,
+  isDownloadingAll,
+  onDownloadAll,
 }) => {
   const { t } = useTranslation();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [copied, setCopied] = useState(false);
 
-  const uploadsExhausted =
-    shareContent.allow_upload &&
-    shareContent.max_uploads !== null &&
-    shareContent.current_uploads >= shareContent.max_uploads;
-
-  const viewsText = shareContent.max_views
-    ? t("share_consumer.views", {
-        current: shareContent.current_views,
-        max: shareContent.max_views,
+  const sharedByName = [
+    shareContent.shared_by.first_name,
+    shareContent.shared_by.last_name,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const sharedByDisplayName = sharedByName || shareContent.shared_by.email;
+  const sharedByInitials =
+    [shareContent.shared_by.first_name, shareContent.shared_by.last_name]
+      .filter(Boolean)
+      .map((name) => name.charAt(0).toUpperCase())
+      .join("") || shareContent.shared_by.email.charAt(0).toUpperCase();
+  const expiryText = shareContent.expires_at
+    ? t("share_consumer.expires", {
+        date: new Date(shareContent.expires_at).toLocaleDateString(),
       })
-    : t("share_consumer.views_unlimited", {
-        current: shareContent.current_views,
-      });
+    : t("share_consumer.no_expiry");
 
-  const expiryText = (() => {
-    if (!shareContent.expires_at) return t("share_consumer.no_expiry");
-    const date = new Date(shareContent.expires_at);
-    return date < new Date()
-      ? t("share_consumer.expired")
-      : t("share_consumer.expires", { date: date.toLocaleDateString() });
-  })();
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    toast.success(t("common.copied"));
+    window.setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="border-b bg-background">
-      <div className="mx-auto max-w-6xl px-6 py-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h1 className="min-w-0 truncate text-xl font-bold md:text-2xl">
-              {shareContent.name}
-            </h1>
+    <aside className="share-panel-gradient flex min-w-0 flex-col items-center p-5 text-center sm:min-h-78 sm:items-start sm:p-8 sm:text-left">
+      <img
+        src="/safebucket_banner.png"
+        alt={t("share_consumer.app_logo")}
+        className="h-10 w-auto max-w-48 object-contain object-left"
+      />
 
-            <div className="flex shrink-0 items-center gap-2">
-              {shareContent.allow_upload && !uploadsExhausted && (
-                <>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files && files.length > 0) {
-                        onUploadFiles(Array.from(files));
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="md:w-auto md:px-3"
-                    onClick={() => fileInputRef.current?.click()}
-                    title={t("common.upload")}
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span className="hidden md:inline">
-                      {t("common.upload")}
-                    </span>
-                  </Button>
-                </>
-              )}
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="icon"
-                onClick={() => onViewModeChange("list")}
-                title={t("share_consumer.list_view")}
-              >
-                <LayoutList className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="icon"
-                onClick={() => onViewModeChange("grid")}
-                title={t("share_consumer.grid_view")}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-            </div>
+      <div className="mt-10 w-full space-y-6 sm:mt-auto sm:pt-16">
+        <div className="space-y-3">
+          <div className="text-secondary-foreground flex items-center justify-center gap-2 text-sm sm:justify-start">
+            <Avatar className="size-9">
+              <AvatarFallback className="bg-background text-primary">
+                {sharedByInitials || "?"}
+              </AvatarFallback>
+            </Avatar>
+            <span>
+              {t("share_consumer.shared_by", {
+                name: sharedByDisplayName || t("share_consumer.user"),
+              })}
+            </span>
           </div>
 
-          <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-            <Badge variant="outline">
-              {t(`share_consumer.type_${shareContent.type}`)}
-            </Badge>
-            <span className="flex items-center gap-1">
-              <Eye className="h-3 w-3" />
-              {viewsText}
-            </span>
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            {shareContent.name}
+          </h1>
+
+          <div className="text-secondary-foreground flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm sm:justify-start">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="size-4" />
               {expiryText}
             </span>
-            {shareContent.allow_upload && (
-              <Badge variant="secondary" className="gap-1">
-                <Upload className="h-3 w-3" />
-                {t("share_consumer.uploads_allowed")}
-              </Badge>
+            {shareContent.password_protected && (
+              <span className="flex items-center gap-1.5">
+                <Lock className="size-4" />
+                {t("share_consumer.password_protected")}
+              </span>
             )}
+            {shareContent.max_views !== null && (
+              <span className="flex items-center gap-1.5">
+                <Eye className="size-4" />
+                {t("share_consumer.views", {
+                  current: shareContent.current_views,
+                  max: shareContent.max_views,
+                })}
+              </span>
+            )}
+            {shareContent.allow_upload && (
+              <span className="flex items-center gap-1.5">
+                <Upload className="size-4" />
+                {shareContent.max_uploads !== null
+                  ? t("share_consumer.uploads", {
+                      current: shareContent.current_uploads,
+                      max: shareContent.max_uploads,
+                    })
+                  : t("share_consumer.uploads_allowed")}
+              </span>
+            )}
+            {shareContent.allow_upload &&
+              shareContent.max_upload_size !== null && (
+                <span className="flex items-center gap-1.5">
+                  <Upload className="size-4" />
+                  {t("share_consumer.upload_size_limit", {
+                    size: formatFileSize(shareContent.max_upload_size),
+                  })}
+                </span>
+              )}
           </div>
         </div>
+
+        <div className="grid gap-3">
+          <Button
+            type="button"
+            size="lg"
+            className="w-full"
+            disabled={shareContent.files.length === 0 || isDownloadingAll}
+            onClick={onDownloadAll}
+          >
+            {isDownloadingAll ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            {t("share_consumer.download_all", {
+              size: formatFileSize(totalSize),
+            })}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={handleCopy}
+          >
+            {copied ? (
+              <Check className="size-4" />
+            ) : (
+              <Copy className="size-4" />
+            )}
+            {t("share_consumer.copy_link")}
+          </Button>
+        </div>
       </div>
-    </div>
+    </aside>
   );
 };
