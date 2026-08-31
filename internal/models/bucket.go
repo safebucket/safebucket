@@ -35,14 +35,14 @@ type BucketCreateUpdateBody struct {
 }
 
 type AdminBucketListItem struct {
-	ID          uuid.UUID    `json:"id"`
-	Name        string       `json:"name"`
-	CreatedAt   time.Time    `json:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at"`
-	Creator     UserActivity `json:"creator"`
-	MemberCount int64        `json:"member_count"`
-	FileCount   int64        `json:"file_count"`
-	Size        int64        `json:"size"`
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Creator     UserInfo  `json:"creator"`
+	MemberCount int64     `json:"member_count"`
+	FileCount   int64     `json:"file_count"`
+	Size        int64     `json:"size"`
 }
 
 type BucketQueryParams struct {

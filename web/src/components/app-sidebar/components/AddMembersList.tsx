@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { bucketGroups } from "@/types/bucket.ts";
+import { getUserDisplayName } from "@/types/user.ts";
 
 interface IAddMembersListProps {
   shareWith: Array<IMembers>;
@@ -113,11 +114,7 @@ export const AddMembersList: FC<IAddMembersListProps> = ({
               </Avatar>
             </ItemMedia>
             <ItemContent>
-              <ItemTitle>
-                {member.first_name && member.last_name
-                  ? `${member.first_name} ${member.last_name}`
-                  : member.email}
-              </ItemTitle>
+              <ItemTitle>{getUserDisplayName(member, member.email)}</ItemTitle>
               <ItemDescription>{member.email}</ItemDescription>
               {member.status === "invited" && (
                 <div className="text-xs text-warning">

@@ -1,13 +1,7 @@
 import type { IBucket } from "@/types/bucket.ts";
 import type { IFile } from "@/types/file.ts";
 import type { IFolder } from "@/types/folder.ts";
-
-export interface IUser {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-}
+import type { IUserInfo } from "@/types/user.ts";
 
 export interface IMFADevice {
   id: string;
@@ -17,7 +11,7 @@ export interface IMFADevice {
 export interface IActivity {
   domain: string;
   user_id?: string;
-  user?: IUser;
+  user?: IUserInfo;
   action: string;
   object_type: string;
   bucket_id?: string;

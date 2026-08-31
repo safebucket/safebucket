@@ -6,6 +6,7 @@ import type { IDataTableColumn } from "@/components/common/components/DataTable/
 import type { IMemberState } from "@/components/bucket-members/hooks/useBucketMembersData";
 import type { IBucket } from "@/types/bucket.ts";
 import { EMAIL_REGEX, bucketGroups } from "@/types/bucket.ts";
+import { getUserDisplayName } from "@/types/user.ts";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { BucketMembersSkeleton } from "@/components/bucket-members/components/BucketMembersSkeleton";
 import { useBucketMembersData } from "@/components/bucket-members/hooks/useBucketMembersData";
@@ -54,10 +55,7 @@ export const MembersTab: FC<IMembersTabProps> = ({
         header: t("bucket.view.members.member"),
         cell: (member) => {
           const isCurrentUser = member.email === currentUserEmail;
-          const displayName =
-            member.first_name && member.last_name
-              ? `${member.first_name} ${member.last_name}`
-              : member.email;
+          const displayName = getUserDisplayName(member, member.email);
           return (
             <div className="flex items-center gap-3 overflow-hidden">
               <Avatar className="size-9 shrink-0">

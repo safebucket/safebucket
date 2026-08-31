@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import type { FC } from "react";
 
 import type { IPublicShareResponse } from "@/types/share.ts";
+import { getUserDisplayName } from "@/types/user.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar.tsx";
 import { formatFileSize } from "@/lib/utils.ts";
@@ -34,13 +35,10 @@ export const ShareHeader: FC<IShareHeaderProps> = ({
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
-  const sharedByName = [
-    shareContent.shared_by.first_name,
-    shareContent.shared_by.last_name,
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const sharedByDisplayName = sharedByName || shareContent.shared_by.email;
+  const sharedByDisplayName = getUserDisplayName(
+    shareContent.shared_by,
+    t("share_consumer.user"),
+  );
   const sharedByInitials =
     [shareContent.shared_by.first_name, shareContent.shared_by.last_name]
       .filter(Boolean)
@@ -77,7 +75,7 @@ export const ShareHeader: FC<IShareHeaderProps> = ({
             </Avatar>
             <span>
               {t("share_consumer.shared_by", {
-                name: sharedByDisplayName || t("share_consumer.user"),
+                name: sharedByDisplayName,
               })}
             </span>
           </div>

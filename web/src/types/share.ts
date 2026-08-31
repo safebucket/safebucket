@@ -1,5 +1,6 @@
 import type { IFile } from "@/types/file";
 import type { IFolder } from "@/types/folder";
+import type { IUserInfo } from "@/types/user";
 
 export type ShareScope = "files" | "folder" | "bucket";
 
@@ -53,11 +54,7 @@ export interface IPublicShareResponse {
   expires_at: string | null;
   max_views: number | null;
   current_views: number;
-  shared_by: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
+  shared_by: IUserInfo;
   files: Array<IFile>;
   folders: Array<IFolder>;
 }

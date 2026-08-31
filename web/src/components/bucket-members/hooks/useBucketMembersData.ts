@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import type { IBucket } from "@/types/bucket.ts";
 import { EMAIL_REGEX } from "@/types/bucket.ts";
+import { getUserDisplayName } from "@/types/user.ts";
 import { bucketMembersQueryOptions } from "@/queries/bucket";
 import { useCurrentUser } from "@/queries/user";
 import { api } from "@/lib/api";
@@ -35,7 +36,7 @@ export const useBucketMembersData = (bucket: IBucket) => {
   const [newMemberGroup, setNewMemberGroup] = useState("viewer");
 
   const currentUserEmail = user?.email;
-  const currentUserName = `${user?.first_name} ${user?.last_name}`;
+  const currentUserName = getUserDisplayName(user, "");
 
   useEffect(() => {
     if (data) {

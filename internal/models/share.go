@@ -61,26 +61,20 @@ type ShareFile struct {
 }
 
 type PublicShareResponse struct {
-	ID                uuid.UUID       `json:"id"`
-	Name              string          `json:"name"`
-	Type              ShareType       `json:"type"`
-	AllowUpload       bool            `json:"allow_upload"`
-	PasswordProtected bool            `json:"password_protected"`
-	MaxUploadSize     *int64          `json:"max_upload_size"`
-	MaxUploads        *int            `json:"max_uploads"`
-	CurrentUploads    int             `json:"current_uploads"`
-	ExpiresAt         *time.Time      `json:"expires_at"`
-	MaxViews          *int            `json:"max_views"`
-	CurrentViews      int             `json:"current_views"`
-	SharedBy          PublicShareUser `json:"shared_by"`
-	Files             []File          `json:"files"`
-	Folders           []Folder        `json:"folders"`
-}
-
-type PublicShareUser struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
+	ID                uuid.UUID  `json:"id"`
+	Name              string     `json:"name"`
+	Type              ShareType  `json:"type"`
+	AllowUpload       bool       `json:"allow_upload"`
+	PasswordProtected bool       `json:"password_protected"`
+	MaxUploadSize     *int64     `json:"max_upload_size"`
+	MaxUploads        *int       `json:"max_uploads"`
+	CurrentUploads    int        `json:"current_uploads"`
+	ExpiresAt         *time.Time `json:"expires_at"`
+	MaxViews          *int       `json:"max_views"`
+	CurrentViews      int        `json:"current_views"`
+	SharedBy          UserInfo   `json:"shared_by"`
+	Files             []File     `json:"files"`
+	Folders           []Folder   `json:"folders"`
 }
 
 type ShareUploadBody struct {

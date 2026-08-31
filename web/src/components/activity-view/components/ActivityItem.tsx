@@ -1,6 +1,7 @@
 import { Link2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { IActivity } from "@/types/activity.ts";
+import { getUserDisplayName } from "@/types/user.ts";
 
 import { cn } from "@/lib/utils.ts";
 import { useTimeDisplay } from "@/components/time-display/hooks/useTimeDisplay";
@@ -21,7 +22,6 @@ import {
 import {
   formatMessage,
   getActivityMapping,
-  getUserDisplayName,
   timeAgo,
 } from "@/components/activity-view/helpers/utils.ts";
 

@@ -63,15 +63,15 @@ func (u *User) GetDefaultDevice() *MFADevice {
 	return nil
 }
 
-type UserActivity struct {
+type UserInfo struct {
 	ID        uuid.UUID `json:"id"`
 	FirstName string    `json:"first_name"`
 	LastName  string    `json:"last_name"`
 	Email     string    `json:"email"`
 }
 
-func (u *User) ToActivity() UserActivity {
-	return UserActivity{
+func (u *User) ToActivity() UserInfo {
+	return UserInfo{
 		ID:        u.ID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,

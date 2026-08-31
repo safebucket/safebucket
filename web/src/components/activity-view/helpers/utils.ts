@@ -1,7 +1,8 @@
 import { AlertCircle } from "lucide-react";
 
-import type { ActivityMessage, IActivity, IUser } from "@/types/activity.ts";
 import type { IMessageMapping } from "@/components/activity-view/helpers/types.ts";
+import type { ActivityMessage, IActivity } from "@/types/activity.ts";
+import { getUserDisplayName } from "@/types/user.ts";
 import { messageMap } from "@/components/activity-view/helpers/constants";
 
 const DEFAULT_ACTIVITY_MAPPING = {
@@ -10,16 +11,6 @@ const DEFAULT_ACTIVITY_MAPPING = {
   iconColor: "text-muted-foreground",
   iconBg: "bg-muted",
 };
-
-export function getUserDisplayName(
-  user: IUser | undefined,
-  fallback: string,
-): string {
-  if (!user) return fallback;
-  if (user.first_name || user.last_name)
-    return `${user.first_name} ${user.last_name}`;
-  return user.email;
-}
 
 export function getActivityMapping(
   messageType: ActivityMessage,

@@ -2,10 +2,10 @@ import { Link2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { IActivity } from "@/types/activity.ts";
+import { getUserDisplayName } from "@/types/user.ts";
 import {
   formatMessage,
   getActivityMapping,
-  getUserDisplayName,
   timeAgo,
 } from "@/components/activity-view/helpers/utils.ts";
 import { formatAbsoluteTimestamp } from "@/components/time-display/helpers/format";

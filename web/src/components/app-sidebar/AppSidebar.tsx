@@ -12,6 +12,7 @@ import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import { useCurrentUser } from "@/queries/user";
+import { getUserDisplayName } from "@/types/user.ts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -154,7 +155,7 @@ export const AppSidebar: FC = () => {
                       shareWith={shareWith}
                       onShareWithChange={setShareWith}
                       currentUserEmail={user?.email}
-                      currentUserName={`${user?.first_name} ${user?.last_name}`}
+                      currentUserName={getUserDisplayName(user, "")}
                     />
                   </FormDialog>
                 </SidebarMenuAction>
@@ -199,7 +200,7 @@ export const AppSidebar: FC = () => {
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold">
-                      {`${user?.first_name} ${user?.last_name}`}
+                      {getUserDisplayName(user, "")}
                     </span>
                     <span className="truncate text-xs">{user?.email}</span>
                   </div>
@@ -222,7 +223,7 @@ export const AppSidebar: FC = () => {
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {`${user?.first_name} ${user?.last_name}`}
+                        {getUserDisplayName(user, "")}
                       </span>
                       <span className="truncate text-xs">{user?.email}</span>
                     </div>

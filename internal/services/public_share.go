@@ -117,7 +117,7 @@ func (s PublicShareService) ListShareItems(
 
 	var sharedBy models.User
 	if err := s.DB.Unscoped().
-		Select("first_name", "last_name", "email").
+		Select("id", "first_name", "last_name", "email").
 		Find(&sharedBy, share.CreatedBy).Error; err != nil {
 		logger.Error("Failed to load share creator", zap.Error(err))
 		return models.PublicShareResponse{}, apierrors.New(
@@ -138,7 +138,8 @@ func (s PublicShareService) ListShareItems(
 		ExpiresAt:         share.ExpiresAt,
 		MaxViews:          share.MaxViews,
 		CurrentViews:      share.CurrentViews + 1,
-		SharedBy: models.PublicShareUser{
+		SharedBy: models.UserInfo{
+			ID:        sharedBy.ID,
 			FirstName: sharedBy.FirstName,
 			LastName:  sharedBy.LastName,
 			Email:     sharedBy.Email,

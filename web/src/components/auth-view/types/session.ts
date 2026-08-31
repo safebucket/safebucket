@@ -1,3 +1,5 @@
+import type { IUserInfo } from "@/types/user";
+
 export type Session = {
   userId: string;
   email: string;
@@ -5,11 +7,7 @@ export type Session = {
   authProvider: string;
 };
 
-export interface IUser {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
+export interface IUser extends IUserInfo {
   provider_type: string;
   role: "admin" | "user" | "guest";
   mfa_enabled: boolean;
