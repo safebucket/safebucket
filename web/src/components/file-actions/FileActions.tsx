@@ -10,6 +10,7 @@ import { FolderStatus } from "@/types/folder.ts";
 import { isFile } from "@/components/bucket-view/helpers/utils";
 import { useOpenBucketItem } from "@/components/bucket-view/hooks/useOpenBucketItem";
 import { useBucketPermissions } from "@/hooks/usePermissions";
+import { useConfig } from "@/hooks/useConfig";
 import { useFileActions } from "@/components/file-actions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
@@ -42,6 +43,7 @@ export const FileActions: FC<IFileActionsProps> = ({
   type,
 }: IFileActionsProps) => {
   const { t } = useTranslation();
+  const { trashRetentionDays } = useConfig();
   const { bucketId } = useParams({
     from: "/_authenticated/buckets/$bucketId/files/{-$folderId}",
   });
@@ -142,7 +144,9 @@ export const FileActions: FC<IFileActionsProps> = ({
             title={t("file_actions.delete_dialog.title", {
               fileName: file.name,
             })}
-            description={t("file_actions.delete_dialog.description")}
+            description={t("file_actions.delete_dialog.description", {
+              retentionDays: trashRetentionDays,
+            })}
             confirmLabel={t("file_actions.delete_dialog.confirm")}
             onConfirm={() => deleteFile(file.id, file.name, !isFile(file))}
           />

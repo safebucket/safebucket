@@ -279,7 +279,7 @@
     },
     "delete_dialog": {
       "title": "{{fileName}} in den Papierkorb bewegen?",
-      "description": "Diese Datei landet im Papierkorb und kann dort noch für sieben Tage wiederhergestellt werden. Danach wird sie permanent gelöscht.",
+      "description": "Diese Datei landet im Papierkorb und kann dort noch für {{retentionDays}} Tage wiederhergestellt werden. Danach wird sie permanent gelöscht.",
       "confirm": "In den Papierkorb"
     },
     "share": "Teilen"
@@ -512,8 +512,8 @@
       "restore": "Wiederherstellen",
       "delete_permanently": "Endgültig löschen",
       "empty": "Papierkorb leeren",
-      "empty_description": "Gelöschte Dateien werden hier aufgelistet und nach sieben (7) Tagen endgültig gelöscht.",
-      "retention_notice": "Dateien im Papierkorb werden nach sieben (7) Tagen endgültig gelöscht. Sie können Sie vorher wiederherstellen.",
+      "empty_description": "Gelöschte Dateien werden hier aufgelistet und nach {{retentionDays}} Tagen endgültig gelöscht.",
+      "retention_notice": "Dateien im Papierkorb werden nach {{retentionDays}} Tagen endgültig gelöscht. Sie können Sie vorher wiederherstellen.",
       "restore_success": "Die Datei \"{{fileName}}\" wurde wiederhergestellt.",
       "purge_success": "Die Datei \"{{fileName}}\" wurde endgültig gelöscht.",
       "confirm_delete_title": "Endültig löschen",

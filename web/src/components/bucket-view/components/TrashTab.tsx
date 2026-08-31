@@ -13,6 +13,7 @@ import type { IBucket } from "@/types/bucket.ts";
 import { DataTable } from "@/components/common/components/DataTable/DataTable";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
 import { useBucketPermissions } from "@/hooks/usePermissions";
+import { useConfig } from "@/hooks/useConfig";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +84,7 @@ export const TrashTab: FC<ITrashTabProps> = ({
   onPermanentDelete,
 }: ITrashTabProps) => {
   const { t } = useTranslation();
+  const { trashRetentionDays } = useConfig();
   const { isContributor } = useBucketPermissions(bucket.id);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ISelectedItem | null>(null);
@@ -218,7 +220,9 @@ export const TrashTab: FC<ITrashTabProps> = ({
   return (
     <div className="flex flex-col gap-4">
       <div className="border-border bg-card text-muted-foreground rounded-xl border px-4 py-3 text-sm">
-        {t("bucket.trash_view.retention_notice")}
+        {t("bucket.trash_view.retention_notice", {
+          retentionDays: trashRetentionDays,
+        })}
       </div>
 
       <DataTable

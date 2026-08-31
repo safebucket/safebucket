@@ -279,7 +279,7 @@
     },
     "delete_dialog": {
       "title": "Déplacer {{fileName}} vers la corbeille ?",
-      "description": "Ce fichier sera déplacé vers la corbeille et pourra être restauré dans un délai de 7 jours. Après 7 jours, il sera définitivement supprimé.",
+      "description": "Ce fichier sera déplacé vers la corbeille et pourra être restauré dans un délai de {{retentionDays}} jours. Après {{retentionDays}} jours, il sera définitivement supprimé.",
       "confirm": "Déplacer vers la corbeille"
     },
     "share": "Partager"
@@ -517,8 +517,8 @@
       "restore": "Restaurer",
       "delete_permanently": "Supprimer définitivement",
       "empty": "La corbeille est vide",
-      "empty_description": "Les fichiers supprimés apparaîtront ici et seront automatiquement supprimés après 7 jours.",
-      "retention_notice": "Les fichiers dans la corbeille seront automatiquement supprimés après 7 jours. Vous pouvez les restaurer avant.",
+      "empty_description": "Les fichiers supprimés apparaîtront ici et seront automatiquement supprimés après {{retentionDays}} jours.",
+      "retention_notice": "Les fichiers dans la corbeille seront automatiquement supprimés après {{retentionDays}} jours. Vous pouvez les restaurer avant.",
       "restore_success": "Le fichier \"{{fileName}}\" a été restauré.",
       "purge_success": "Le fichier \"{{fileName}}\" a été définitivement supprimé.",
       "confirm_delete_title": "Supprimer définitivement le fichier",
