@@ -4,6 +4,7 @@ import { Download, LoaderCircle } from "lucide-react";
 import type { FC } from "react";
 
 import type { IFile } from "@/types/file.ts";
+import { PDFPreview } from "@/components/file-actions/components/PDFPreview";
 import { getPreviewKind } from "@/components/file-actions/helpers/preview-kind";
 import {
   Dialog,
@@ -110,7 +111,8 @@ export const FilePreviewDialog: FC<IFilePreviewDialogProps> = ({
             // eslint-disable-next-line jsx-a11y/media-has-caption
             <audio src={url} controls className="w-full max-w-md" />
           )}
-          {url && (kind === "pdf" || kind === "text") && (
+          {url && kind === "pdf" && <PDFPreview url={url} />}
+          {url && kind === "text" && (
             <iframe
               src={url}
               title={file.name}

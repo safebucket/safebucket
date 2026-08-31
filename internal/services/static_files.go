@@ -114,7 +114,7 @@ func (s *StaticFileService) isServableFile(fileName string) bool {
 	staticExtensions := []string{
 		".ico", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
 		".json", ".txt", ".xml", ".pdf",
-		".html", ".css", ".js", ".map",
+		".html", ".css", ".js", ".mjs", ".map",
 		".woff", ".woff2", ".ttf", ".eot",
 		".manifest", ".webmanifest",
 	}
