@@ -5,6 +5,7 @@ import type { FC } from "react";
 import type { BucketItem } from "@/types/bucket.ts";
 import { FileStatus } from "@/types/file.ts";
 import { isFolder } from "@/components/bucket-view/helpers/utils";
+import { useBucketItemDnd } from "@/components/bucket-view/components/FilesDndProvider/hooks/useBucketItemDnd";
 import { cn, formatDate, formatFileSize } from "@/lib/utils";
 import { FileActions } from "@/components/file-actions/FileActions";
 import { FileIconView } from "@/components/bucket-view/components/FileIconView";
@@ -16,6 +17,8 @@ interface IFileGridCardProps {
   selected: BucketItem | null;
   setSelected: (item: BucketItem) => void;
   onDoubleClick: (item: BucketItem) => void;
+  enabled: boolean;
+  selectedIds: Array<string>;
 }
 
 export const FileGridCard: FC<IFileGridCardProps> = ({
@@ -23,10 +26,19 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
   selected,
   setSelected,
   onDoubleClick,
+  enabled,
+  selectedIds,
 }: IFileGridCardProps) => {
   const { t } = useTranslation();
   const isSelected = selected?.id === file.id;
   const itemIsFolder = isFolder(file);
+
+  const { attributes, listeners, setNodeRef, isDragging, isOver } =
+    useBucketItemDnd({
+      item: file,
+      enabled,
+      selectedIds,
+    });
 
   const renderStatusBadge = () => {
     const status = file.status;
@@ -75,10 +87,15 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
   return (
     <FileActions file={file} type="context">
       <Card
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
+        style={isDragging ? { opacity: 0.4 } : undefined}
         className={cn(
           "relative flex cursor-pointer flex-col gap-4 p-5 transition-all hover:shadow-md min-h-[180px]",
           isSelected &&
             "bg-primary text-primary-foreground ring-2 ring-primary",
+          isOver && "bg-primary/10 ring-primary ring-2",
         )}
         onClick={() => setSelected(file)}
         onDoubleClick={() => onDoubleClick(file)}

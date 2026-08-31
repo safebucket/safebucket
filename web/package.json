@@ -18,6 +18,7 @@
     "fixup": "prettier --write . && eslint --fix --ext .ts,.tsx ."
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
     "@fontsource-variable/inter": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-devtools": "^0.10.12",

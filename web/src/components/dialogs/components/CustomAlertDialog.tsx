@@ -18,6 +18,7 @@ interface ICustomAlertDialogProps {
   description: string;
   cancelLabel?: string;
   confirmLabel?: string;
+  showCancel?: boolean;
   onConfirm: () => void;
 }
 
@@ -28,6 +29,7 @@ export const CustomAlertDialog: FC<ICustomAlertDialogProps> = ({
   description,
   cancelLabel = "Cancel",
   confirmLabel = "Confirm",
+  showCancel = true,
   onConfirm,
 }: ICustomAlertDialogProps) => {
   return (
@@ -38,7 +40,9 @@ export const CustomAlertDialog: FC<ICustomAlertDialogProps> = ({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
+          {showCancel ? (
+            <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
+          ) : null}
           <AlertDialogAction onClick={onConfirm}>
             {confirmLabel}
           </AlertDialogAction>

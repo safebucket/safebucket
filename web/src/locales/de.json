@@ -57,7 +57,11 @@
     "INVALID_EMAIL": "Die eingebene Mail-Adresse ist ungültig.",
     "INVALID_UUID": "Ungültige UUID.",
     "INVALID_VALUE": "Ungültiger Wert",
-    "default": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+    "default": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+    "INVALID_MOVE_TARGET": "Ein Ordner kann nicht in sich selbst oder in einen seiner Unterordner verschoben werden.",
+    "ITEM_NOT_FOUND": "Mindestens ein ausgewähltes Element wurde nicht gefunden.",
+    "NAME_CONFLICT": "Am Zielort existiert bereits ein Element mit demselben Namen.",
+    "ITEM_NOT_MOVABLE": "Dieses Element kann in seinem aktuellen Zustand nicht verschoben werden."
   },
   "toast": {
     "download_started": "Starte Download von {{filename}}",
@@ -404,6 +408,11 @@
     "view": {
       "folder": "Ordner",
       "search_placeholder": "Dateien und Ordner suchen",
+      "go_back": "Zurück",
+      "dragging_more_one": "{{count}} weiteres",
+      "dragging_more_other": "{{count}} weitere",
+      "move_success_one": "1 Element verschoben.",
+      "move_success_other": "{{count}} Elemente verschoben.",
       "tabs": {
         "files": "Dateien",
         "activity": "Aktivität",

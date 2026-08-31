@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table";
+import type { IDataTableRowProps } from "@/components/common/components/DataTable/DataTableRow";
+import {
+  DATA_TABLE_CELL_CLASS,
+  DATA_TABLE_RESPONSIVE_HIDDEN,
+  DataTableRow,
+} from "@/components/common/components/DataTable/DataTableRow";
 import { SortableColumnHeader } from "@/components/common/components/DataTable/SortableColumnHeader";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,19 +43,12 @@ interface IDataTableProps<TData> {
   onRowClick?: (row: TData) => void;
   onRowDoubleClick?: (row: TData) => void;
   isRowActive?: (row: TData) => boolean;
+  rowComponent?: ComponentType<IDataTableRowProps<TData>>;
   isLoading?: boolean;
   skeletonRowCount?: number;
 }
 
-const cell = "px-4 py-3 align-middle";
 const headCell = "px-4 py-2.5 text-left";
-
-const RESPONSIVE_HIDDEN = {
-  sm: "hidden sm:table-cell",
-  md: "hidden md:table-cell",
-  lg: "hidden lg:table-cell",
-  xl: "hidden xl:table-cell",
-} as const;
 
 export function DataTable<TData>({
   columns,
@@ -63,6 +62,7 @@ export function DataTable<TData>({
   onRowClick,
   onRowDoubleClick,
   isRowActive,
+  rowComponent = DataTableRow,
   isLoading = false,
   skeletonRowCount = 3,
 }: IDataTableProps<TData>) {
@@ -128,15 +128,6 @@ export function DataTable<TData>({
     });
   };
 
-  const toggleRow = (id: string, value: boolean) => {
-    selection?.onRowSelectionChange((prev) => {
-      const next = { ...prev };
-      if (value) next[id] = true;
-      else delete next[id];
-      return next;
-    });
-  };
-
   return (
     <div className="border-border bg-card overflow-hidden rounded-xl border">
       <table className="w-full border-collapse text-sm">
@@ -156,7 +147,8 @@ export function DataTable<TData>({
                 key={column.id}
                 className={cn(
                   headCell,
-                  column.responsive && RESPONSIVE_HIDDEN[column.responsive],
+                  column.responsive &&
+                    DATA_TABLE_RESPONSIVE_HIDDEN[column.responsive],
                   column.headerClassName,
                 )}
               >
@@ -180,7 +172,7 @@ export function DataTable<TData>({
           {isLoading ? (
             Array.from({ length: skeletonRowCount }, (_, index) => (
               <tr key={index} className="border-border border-t">
-                <td className={cell} colSpan={columnCount}>
+                <td className={DATA_TABLE_CELL_CLASS} colSpan={columnCount}>
                   <Skeleton className="h-6 w-full" />
                 </td>
               </tr>
@@ -196,48 +188,20 @@ export function DataTable<TData>({
             </tr>
           ) : (
             sorted.map((row) => {
-              const id = getRowId(row);
-              const isSelected = Boolean(selection?.rowSelection[id]);
+              const Row = rowComponent;
               return (
-                <tr
-                  key={id}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  onDoubleClick={
-                    onRowDoubleClick ? () => onRowDoubleClick(row) : undefined
-                  }
-                  className={cn(
-                    "border-border hover:bg-muted/50 border-t transition-colors",
-                    interactive && "cursor-pointer",
-                    isRowActive?.(row) && "bg-accent/60",
-                    isSelected && "bg-primary/5",
-                  )}
-                >
-                  {selection ? (
-                    <td className={cell} onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        aria-label={t("bucket.bulk_download.select_row")}
-                        checked={isSelected}
-                        disabled={!(selection.getIsSelectable?.(row) ?? true)}
-                        onCheckedChange={(value) =>
-                          toggleRow(id, value === true)
-                        }
-                      />
-                    </td>
-                  ) : null}
-                  {columns.map((column) => (
-                    <td
-                      key={column.id}
-                      className={cn(
-                        cell,
-                        column.responsive &&
-                          RESPONSIVE_HIDDEN[column.responsive],
-                        column.cellClassName,
-                      )}
-                    >
-                      {column.cell(row)}
-                    </td>
-                  ))}
-                </tr>
+                <Row
+                  key={getRowId(row)}
+                  rowId={getRowId(row)}
+                  row={row}
+                  columns={columns}
+                  selection={selection}
+                  isSelected={Boolean(selection?.rowSelection[getRowId(row)])}
+                  isActive={isRowActive?.(row) ?? false}
+                  interactive={interactive}
+                  onRowClick={onRowClick}
+                  onRowDoubleClick={onRowDoubleClick}
+                />
               );
             })
           )}

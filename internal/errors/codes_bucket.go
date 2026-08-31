@@ -34,5 +34,12 @@ const (
 	CodeFolderNameConflict       = "FOLDER_NAME_CONFLICT"
 	CodeParentFolderNameConflict = "PARENT_FOLDER_NAME_CONFLICT"
 	CodeParentFolderNotFound     = "PARENT_FOLDER_NOT_FOUND"
+	CodeInvalidMoveTarget        = "INVALID_MOVE_TARGET"
 	CodeFolderTrashExpired       = "FOLDER_TRASH_EXPIRED"
+)
+
+const (
+	CodeItemNotFound   = "ITEM_NOT_FOUND"
+	CodeItemNotMovable = "ITEM_NOT_MOVABLE"
+	CodeNameConflict   = "NAME_CONFLICT"
 )

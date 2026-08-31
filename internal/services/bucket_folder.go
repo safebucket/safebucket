@@ -225,7 +225,7 @@ func (s BucketFolderService) TrashFolder(
 		return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
 	}
 
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"status":     models.FolderStatusDeleted,
 		"deleted_by": user.UserID,
 	}
