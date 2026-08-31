@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { dateFnsLocale } from "@/lib/date-locale";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,21 +17,33 @@ import {
 interface DatepickerProps {
   value?: Date;
   onChange?: (date: Date | undefined) => void;
+  className?: string;
+  showValue?: boolean;
 }
 
-export function Datepicker({ value, onChange }: DatepickerProps) {
-  const { t } = useTranslation();
+export function Datepicker({
+  value,
+  onChange,
+  className,
+  showValue = true,
+}: DatepickerProps) {
+  const { t, i18n } = useTranslation();
+  const dateLocale = dateFnsLocale(i18n.language);
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           type="button"
           variant={"outline"}
-          className={cn("w-[280px]", !value && "text-muted-foreground")}
+          className={cn(
+            "w-[280px]",
+            !value && "text-muted-foreground",
+            className,
+          )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? (
-            format(value, "PPP")
+          {value && showValue ? (
+            format(value, "PPP", { locale: dateLocale })
           ) : (
             <span>{t("upload.dialog.pick_a_date")}</span>
           )}

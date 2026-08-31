@@ -70,22 +70,38 @@ export const UploadDropzone: FC<UploadDropzoneProps> = ({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 transition-colors",
+        "flex items-center justify-center rounded-xl border-2 border-dashed transition-colors",
         isDragOver
           ? "border-primary bg-primary/5"
           : "border-muted-foreground/25 hover:border-muted-foreground/50",
+        "min-h-54 flex-col gap-2 p-8",
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <Upload className="text-muted-foreground h-10 w-10" />
-      <p className="text-muted-foreground text-sm">
-        {t("upload.dialog.dropzone_text")}
-      </p>
-      <Button type="button" variant="default" onClick={handleBrowseClick}>
-        {t("upload.dialog.browse")}
-      </Button>
+      <div className="bg-primary/10 flex size-12 items-center justify-center rounded-full">
+        <Upload className="text-primary size-5" />
+      </div>
+      {isDragOver ? (
+        <div className="text-center">
+          <p className="text-primary text-sm font-medium">
+            {t("upload.dialog.drop_to_upload")}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-sm font-medium">
+            {t("upload.dialog.dropzone_text")}
+          </p>
+          <span className="text-muted-foreground text-xs">
+            {t("upload.dialog.or")}
+          </span>
+          <Button type="button" size="sm" onClick={handleBrowseClick}>
+            {t("upload.dialog.browse")}
+          </Button>
+        </div>
+      )}
       <input
         ref={fileInputRef}
         type="file"

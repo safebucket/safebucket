@@ -188,7 +188,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
           : undefined,
       max_upload_size:
         values.allowUploads && values.maxUploadSize
-          ? Number(values.maxUploadSize) * 1024 * 1024
+          ? Number(values.maxUploadSize) * 1000 * 1000
           : undefined,
     });
 

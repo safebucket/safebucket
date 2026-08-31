@@ -22,11 +22,12 @@ interface UploadDialogProps {
   stagedFiles: Array<StagedFile>;
   onAddFiles: (files: Array<FileWithPath>) => void;
   onRemoveFile: (id: string) => void;
-  expiresAt: Date | undefined;
-  onExpiresAtChange: (date: Date | undefined) => void;
-  isAdvancedOpen: boolean;
-  onAdvancedOpenChange: (open: boolean) => void;
   onUpload: () => void;
+  showExpiration?: boolean;
+  expiresAt?: Date | undefined;
+  onExpiresAtChange?: (date: Date | undefined) => void;
+  isExpirationEnabled?: boolean;
+  onExpirationEnabledChange?: (enabled: boolean) => void;
 }
 
 export const UploadDialog: FC<UploadDialogProps> = ({
@@ -35,32 +36,41 @@ export const UploadDialog: FC<UploadDialogProps> = ({
   stagedFiles,
   onAddFiles,
   onRemoveFile,
-  expiresAt,
-  onExpiresAtChange,
-  isAdvancedOpen,
-  onAdvancedOpenChange,
   onUpload,
+  showExpiration = true,
+  expiresAt,
+  onExpiresAtChange = () => undefined,
+  isExpirationEnabled = false,
+  onExpirationEnabledChange = () => undefined,
 }) => {
   const { t } = useTranslation();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-170">
+      <DialogContent className="gap-4 rounded-2xl p-5 sm:max-w-[36rem]">
         <DialogHeader>
           <DialogTitle>{t("upload.dialog.title")}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          <UploadDropzone onFilesSelected={onAddFiles} />
+          {stagedFiles.length === 0 && (
+            <UploadDropzone onFilesSelected={onAddFiles} />
+          )}
 
-          <UploadFileList files={stagedFiles} onRemoveFile={onRemoveFile} />
-
-          <UploadAdvancedSection
-            isOpen={isAdvancedOpen}
-            onOpenChange={onAdvancedOpenChange}
-            expiresAt={expiresAt}
-            onExpiresAtChange={onExpiresAtChange}
+          <UploadFileList
+            files={stagedFiles}
+            onRemoveFile={onRemoveFile}
+            onAddFiles={onAddFiles}
           />
+
+          {showExpiration && (
+            <UploadAdvancedSection
+              isEnabled={isExpirationEnabled}
+              onEnabledChange={onExpirationEnabledChange}
+              expiresAt={expiresAt}
+              onExpiresAtChange={onExpiresAtChange}
+            />
+          )}
         </div>
 
         <DialogFooter>

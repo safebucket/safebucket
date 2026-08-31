@@ -1,4 +1,4 @@
-import { PlusCircle } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Outlet, createFileRoute, useParams } from "@tanstack/react-router";
@@ -49,7 +49,7 @@ function BucketLayout() {
               <NotificationPopover bucketId={bucketId} />
               {isContributor ? (
                 <Button onClick={uploadDialog.open}>
-                  <PlusCircle className="h-4 w-4 md:mr-2" />
+                  <Upload className="h-4 w-4 md:mr-2" />
                   <span className="hidden md:inline">
                     {t("bucket.header.upload_file")}
                   </span>
@@ -89,8 +89,8 @@ function BucketLayout() {
         onRemoveFile={uploadDialog.removeFile}
         expiresAt={uploadDialog.expiresAt}
         onExpiresAtChange={uploadDialog.setExpiresAt}
-        isAdvancedOpen={uploadDialog.isAdvancedOpen}
-        onAdvancedOpenChange={uploadDialog.setIsAdvancedOpen}
+        isExpirationEnabled={uploadDialog.isExpirationEnabled}
+        onExpirationEnabledChange={uploadDialog.setIsExpirationEnabled}
         onUpload={uploadDialog.handleUpload}
       />
     </div>

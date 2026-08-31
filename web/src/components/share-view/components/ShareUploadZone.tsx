@@ -32,6 +32,7 @@ interface IShareUploadZoneProps {
   maxUploadSize: number | null;
   folderId?: string;
   onReady: (uploadFiles: ShareUploadHandler) => void;
+  onFilesDropped?: (files: Array<File>) => void;
   children: React.ReactNode;
 }
 
@@ -40,6 +41,7 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
   maxUploadSize,
   folderId,
   onReady,
+  onFilesDropped,
   children,
 }) => {
   const { t } = useTranslation();
@@ -211,10 +213,15 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
 
       const filesWithPaths = await extractFilesFromDrop(e.dataTransfer);
       if (filesWithPaths.length > 0) {
-        handleFiles(filesWithPaths.map((f) => f.file));
+        const files = filesWithPaths.map((fileWithPath) => fileWithPath.file);
+        if (onFilesDropped) {
+          onFilesDropped(files);
+        } else {
+          handleFiles(files);
+        }
       }
     },
-    [handleFiles],
+    [handleFiles, onFilesDropped],
   );
 
   const cancelUpload = useCallback((uploadId: string) => {

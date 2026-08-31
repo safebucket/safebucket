@@ -226,8 +226,8 @@ export const FilesTab: FC<IFilesTabProps> = ({
         onRemoveFile={uploadDialog.removeFile}
         expiresAt={uploadDialog.expiresAt}
         onExpiresAtChange={uploadDialog.setExpiresAt}
-        isAdvancedOpen={uploadDialog.isAdvancedOpen}
-        onAdvancedOpenChange={uploadDialog.setIsAdvancedOpen}
+        isExpirationEnabled={uploadDialog.isExpirationEnabled}
+        onExpirationEnabledChange={uploadDialog.setIsExpirationEnabled}
         onUpload={uploadDialog.handleUpload}
       />
     </div>

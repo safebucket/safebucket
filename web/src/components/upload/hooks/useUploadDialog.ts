@@ -27,8 +27,8 @@ export interface UseUploadDialogReturn {
   removeFile: (id: string) => void;
   expiresAt: Date | undefined;
   setExpiresAt: (date: Date | undefined) => void;
-  isAdvancedOpen: boolean;
-  setIsAdvancedOpen: (open: boolean) => void;
+  isExpirationEnabled: boolean;
+  setIsExpirationEnabled: (enabled: boolean) => void;
   handleUpload: () => Promise<void>;
 }
 
@@ -41,12 +41,12 @@ export const useUploadDialog = ({
   const [isOpen, setIsOpen] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<Array<StagedFile>>([]);
   const [expiresAt, setExpiresAt] = useState<Date | undefined>(undefined);
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isExpirationEnabled, setIsExpirationEnabled] = useState(false);
 
   const resetState = useCallback(() => {
     setStagedFiles([]);
     setExpiresAt(undefined);
-    setIsAdvancedOpen(false);
+    setIsExpirationEnabled(false);
   }, []);
 
   const open = useCallback(() => {
@@ -147,8 +147,8 @@ export const useUploadDialog = ({
     removeFile,
     expiresAt,
     setExpiresAt,
-    isAdvancedOpen,
-    setIsAdvancedOpen,
+    isExpirationEnabled,
+    setIsExpirationEnabled,
     handleUpload,
   };
 };
