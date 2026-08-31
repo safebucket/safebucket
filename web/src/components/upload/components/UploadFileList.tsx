@@ -77,7 +77,7 @@ export const UploadFileList: FC<UploadFileListProps> = ({
             <Attachment
               key={staged.id}
               size="sm"
-              className="w-full rounded-xl focus-within:ring-0"
+              className="min-h-[52px] w-full rounded-xl focus-within:ring-0"
             >
               <AttachmentMedia>
                 <FileIconView
