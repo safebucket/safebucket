@@ -50,7 +50,9 @@ export const UploadRow: FC<IUploadRowProps> = ({
         {isActive && (
           <div className="flex shrink-0 items-center gap-1">
             <span className="text-muted-foreground text-xs whitespace-nowrap">
-              {status === "queued" ? t("upload.status.waiting") : `${progress}%`}
+              {status === "queued"
+                ? t("upload.status.waiting")
+                : `${progress}%`}
             </span>
             <Button
               variant="ghost"
@@ -69,7 +71,9 @@ export const UploadRow: FC<IUploadRowProps> = ({
         <Progress
           value={status === "success" ? 100 : progress}
           className="mt-2 h-1.5"
-          indicatorClassName={status === "success" ? "bg-success" : "bg-primary"}
+          indicatorClassName={
+            status === "success" ? "bg-success" : "bg-primary"
+          }
         />
       )}
 
