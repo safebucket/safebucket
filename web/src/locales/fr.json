@@ -444,7 +444,8 @@
     "new_bucket_dialog": {
       "title": "Nouveau bucket",
       "description": "Créer un bucket pour partager des fichiers en toute sécurité",
-      "name_label": "Nom"
+      "name_label": "Nom",
+      "created": "Bucket créé"
     },
     "header": {
       "upload_file": "Uploader un fichier",
@@ -602,7 +603,10 @@
       "completed": "Terminé",
       "failed": "Échec",
       "preparing": "Préparation...",
-      "unknown": "Inconnu"
+      "unknown": "Inconnu",
+      "uploaded": "Envoyé",
+      "waiting": "En attente",
+      "cancelled": "Annulé"
     },
     "drag_drop": {
       "drop_files": "Déposez des fichiers ou dossiers à télécharger",
@@ -629,7 +633,26 @@
       "pick_a_date": "Choisir une date",
       "upload_button": "Télécharger",
       "folder_path": "dans {{path}}"
-    }
+    },
+    "uploading_files_one": "Envoi de {{count}} fichier",
+    "uploading_files_other": "Envoi de {{count}} fichiers",
+    "uploaded_summary": "{{done}} sur {{total}} envoyés",
+    "bytes_of_total": "{{uploaded}} sur {{total}}",
+    "files_could_not_upload_one": "{{count}} fichier n'a pas pu être envoyé",
+    "files_could_not_upload_other": "{{count}} fichiers n'ont pas pu être envoyés",
+    "all_uploaded": "Tous les fichiers ont été envoyés",
+    "cancel_file": "Annuler l'envoi : {{name}}",
+    "collapse": "Réduire",
+    "expand": "Développer",
+    "dismiss": "Fermer",
+    "uploaded_footer": "{{count}} envoyés",
+    "failed_footer": "{{count}} échoués",
+    "of_total_done": "sur {{total}} terminés",
+    "done": "Terminé",
+    "cancel_all": "Tout annuler",
+    "cancelled_footer": "{{count}} annulés",
+    "uploads_cancelled_one": "{{count}} envoi annulé",
+    "uploads_cancelled_other": "{{count}} envois annulés"
   },
   "settings": {
     "title": "Paramètres",

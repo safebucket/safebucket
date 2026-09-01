@@ -444,7 +444,8 @@
     "new_bucket_dialog": {
       "title": "Neuer Bucket",
       "description": "Neuen Bucket zum sicheren Teilen erstellen",
-      "name_label": "Name"
+      "name_label": "Name",
+      "created": "Bucket erstellt"
     },
     "header": {
       "upload_file": "Datei hochladen",
@@ -597,7 +598,10 @@
       "completed": "Completed",
       "failed": "Fehlgeschlagen",
       "preparing": "Bereite vor",
-      "unknown": "Unbekannt"
+      "unknown": "Unbekannt",
+      "uploaded": "Hochgeladen",
+      "waiting": "Wartet",
+      "cancelled": "Abgebrochen"
     },
     "drag_drop": {
       "drop_files": "Dateien und Ordner zum hochladen hier hinziehen",
@@ -624,7 +628,26 @@
       "pick_a_date": "Datum auswählen",
       "upload_button": "Hochladen",
       "folder_path": "in {{path}}"
-    }
+    },
+    "uploading_files_one": "{{count}} Datei wird hochgeladen",
+    "uploading_files_other": "{{count}} Dateien werden hochgeladen",
+    "uploaded_summary": "{{done}} von {{total}} hochgeladen",
+    "bytes_of_total": "{{uploaded}} von {{total}}",
+    "files_could_not_upload_one": "{{count}} Datei konnte nicht hochgeladen werden",
+    "files_could_not_upload_other": "{{count}} Dateien konnten nicht hochgeladen werden",
+    "all_uploaded": "Alle Dateien hochgeladen",
+    "cancel_file": "Hochladen abbrechen: {{name}}",
+    "collapse": "Einklappen",
+    "expand": "Ausklappen",
+    "dismiss": "Schließen",
+    "uploaded_footer": "{{count}} hochgeladen",
+    "failed_footer": "{{count}} fehlgeschlagen",
+    "of_total_done": "von {{total}} fertig",
+    "done": "Fertig",
+    "cancel_all": "Alle abbrechen",
+    "cancelled_footer": "{{count}} abgebrochen",
+    "uploads_cancelled_one": "{{count}} Upload abgebrochen",
+    "uploads_cancelled_other": "{{count}} Uploads abgebrochen"
   },
   "settings": {
     "title": "Einstellungen",

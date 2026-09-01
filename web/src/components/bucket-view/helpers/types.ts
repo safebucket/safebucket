@@ -1,17 +1,10 @@
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { IBucket } from "@/types/bucket.ts";
 
-export interface IMembers {
-  email: string;
-  group: string;
-}
-
 export interface IBucketsData {
   buckets: Array<IBucket>;
   isLoading: boolean;
   createBucketMutation: UseMutationResult<IBucket, Error, any>;
-  isDialogOpen: boolean;
-  setIsDialogOpen: (isOpen: boolean) => void;
 }
 
 export type IDownloadFileResponse = {

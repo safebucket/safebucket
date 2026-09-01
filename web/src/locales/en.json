@@ -444,7 +444,8 @@
     "new_bucket_dialog": {
       "title": "New bucket",
       "description": "Create a bucket to share files safely",
-      "name_label": "Name"
+      "name_label": "Name",
+      "created": "Bucket created"
     },
     "header": {
       "upload_file": "Upload a file",
@@ -597,7 +598,10 @@
       "completed": "Completed",
       "failed": "Failed",
       "preparing": "Preparing...",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "uploaded": "Uploaded",
+      "waiting": "Waiting",
+      "cancelled": "Cancelled"
     },
     "drag_drop": {
       "drop_files": "Drop files or folders to upload",
@@ -624,7 +628,26 @@
       "pick_a_date": "Pick a date",
       "upload_button": "Upload",
       "folder_path": "in {{path}}"
-    }
+    },
+    "uploading_files_one": "Uploading {{count}} file",
+    "uploading_files_other": "Uploading {{count}} files",
+    "uploaded_summary": "{{done}} of {{total}} uploaded",
+    "bytes_of_total": "{{uploaded}} of {{total}}",
+    "files_could_not_upload_one": "{{count}} file could not be uploaded",
+    "files_could_not_upload_other": "{{count}} files could not be uploaded",
+    "all_uploaded": "All files uploaded",
+    "cancel_file": "Cancel upload: {{name}}",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "dismiss": "Dismiss",
+    "uploaded_footer": "{{count}} uploaded",
+    "failed_footer": "{{count}} failed",
+    "of_total_done": "of {{total}} done",
+    "done": "Done",
+    "cancel_all": "Cancel all",
+    "cancelled_footer": "{{count}} cancelled",
+    "uploads_cancelled_one": "{{count}} upload cancelled",
+    "uploads_cancelled_other": "{{count}} uploads cancelled"
   },
   "settings": {
     "title": "Settings",

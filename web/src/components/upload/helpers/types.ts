@@ -39,7 +39,8 @@ export interface IUploadContext {
   hasActiveUploads: boolean;
 }
 
-export type UploadStatus = "uploading" | "success" | "error";
+export type UploadStatus =
+  "queued" | "uploading" | "success" | "error" | "cancelled";
 
 export interface IUpload {
   id: string;
@@ -47,6 +48,7 @@ export interface IUpload {
   path: string;
   progress: number;
   status: UploadStatus;
+  size?: number;
   error?: Error;
 }
 

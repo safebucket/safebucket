@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { IUpload } from "@/components/upload/helpers/types";
+import type {
+  IUpload,
+  IUploadPresign,
+} from "@/components/upload/helpers/types";
 import { generateRandomString } from "@/lib/utils";
-import {
-  api_confirmUpload,
-  api_createFile,
-} from "@/components/upload/helpers/api";
 import { api } from "@/lib/api";
 import { uploadToStorage } from "@/components/upload/helpers/upload-engine";
 import { configQueryOptions } from "@/queries/config";
@@ -22,18 +21,29 @@ interface UploadTask {
   expiresAt: string | null;
 }
 
+interface UploadRuntime {
+  controller: AbortController;
+  target?: { bucketId: string; fileId: string };
+  cleanupStarted: boolean;
+}
+
 export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const queryClient = useQueryClient();
   const [uploads, setUploads] = useState<Array<IUpload>>([]);
-  const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
-  const uploadTargetsRef = useRef<
-    Map<string, { bucketId: string; fileId: string }>
-  >(new Map());
+  const runtimesRef = useRef<Map<string, UploadRuntime>>(new Map());
   const queueRef = useRef<Array<UploadTask>>([]);
   const activeRef = useRef(0);
   const invalidateTimersRef = useRef<
     Map<string, ReturnType<typeof setTimeout>>
   >(new Map());
+
+  const cleanupUploadTarget = (runtime: UploadRuntime) => {
+    if (!runtime.target || runtime.cleanupStarted) return;
+
+    runtime.cleanupStarted = true;
+    const { bucketId, fileId } = runtime.target;
+    void api.delete(`/buckets/${bucketId}/files/${fileId}`).catch(() => {});
+  };
 
   const scheduleInvalidate = useCallback(
     (bucketId: string) => {
@@ -58,28 +68,31 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
       folderId,
       uploadId,
       expiresAt,
-    }: {
-      file: File;
-      bucketId: string;
-      folderId: string | undefined;
-      uploadId: string;
-      expiresAt: string | null;
-    }) => {
+    }: UploadTask) => {
       const abortController = new AbortController();
-      abortControllersRef.current.set(uploadId, abortController);
+      const runtime: UploadRuntime = {
+        controller: abortController,
+        cleanupStarted: false,
+      };
+      runtimesRef.current.set(uploadId, runtime);
 
       try {
-        const presignedUpload = await api_createFile(
-          file.name,
-          bucketId,
-          file.size,
-          folderId,
-          expiresAt,
+        const presignedUpload = await api.post<IUploadPresign>(
+          `/buckets/${bucketId}/files`,
+          {
+            name: file.name,
+            size: file.size,
+            folder_id: folderId,
+            expires_at: expiresAt,
+          },
         );
-        uploadTargetsRef.current.set(uploadId, {
+        runtime.target = {
           bucketId,
           fileId: presignedUpload.id,
-        });
+        };
+
+        if (abortController.signal.aborted) cleanupUploadTarget(runtime);
+        abortController.signal.throwIfAborted();
 
         await uploadToStorage(
           presignedUpload,
@@ -92,22 +105,32 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           abortController.signal,
         );
 
+        abortController.signal.throwIfAborted();
+
         const config = await queryClient.ensureQueryData(configQueryOptions());
         const isMultipart =
           presignedUpload.method === "put" && presignedUpload.parts.length > 1;
         if (isMultipart || config.requiresUploadConfirmation) {
-          await api_confirmUpload(bucketId, presignedUpload.id);
+          abortController.signal.throwIfAborted();
+          await api.patch(`/buckets/${bucketId}/files/${presignedUpload.id}`, {
+            status: "uploaded",
+          });
         }
 
-        return { uploadId, fileName: file.name, bucketId };
+        abortController.signal.throwIfAborted();
+
+        return { uploadId, bucketId };
       } finally {
-        abortControllersRef.current.delete(uploadId);
-        uploadTargetsRef.current.delete(uploadId);
+        runtimesRef.current.delete(uploadId);
       }
     },
     onSuccess: ({ uploadId, bucketId }) => {
       setUploads((prev) =>
-        prev.map((u) => (u.id === uploadId ? { ...u, status: "success" } : u)),
+        prev.map((u) =>
+          u.id === uploadId && u.status === "uploading"
+            ? { ...u, status: "success" }
+            : u,
+        ),
       );
 
       scheduleInvalidate(bucketId);
@@ -115,7 +138,9 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     onError: (error: Error, { uploadId }) => {
       setUploads((prev) =>
         prev.map((u) =>
-          u.id === uploadId ? { ...u, status: "error", error } : u,
+          u.id === uploadId && u.status === "uploading"
+            ? { ...u, status: "error", error }
+            : u,
         ),
       );
     },
@@ -128,6 +153,11 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     ) {
       const task = queueRef.current.shift()!;
       activeRef.current += 1;
+      setUploads((prev) =>
+        prev.map((u) =>
+          u.id === task.uploadId ? { ...u, status: "uploading" } : u,
+        ),
+      );
       uploadMutation
         .mutateAsync(task)
         .catch(() => {})
@@ -147,26 +177,27 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     ) => {
       files.forEach((file) => {
         const uploadId = generateRandomString(12);
-        const displayPath = file.name;
 
         setUploads((prev) => [
           ...prev,
           {
             id: uploadId,
             name: file.name,
-            path: displayPath,
+            path: file.name,
             progress: 0,
-            status: "uploading",
+            status: "queued",
+            size: file.size,
           },
         ]);
 
-        queueRef.current.push({
+        const task: UploadTask = {
           file,
           bucketId,
           folderId,
           uploadId,
           expiresAt,
-        });
+        };
+        queueRef.current.push(task);
       });
 
       pump();
@@ -177,29 +208,29 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
   const cancelUpload = useCallback((uploadId: string) => {
     queueRef.current = queueRef.current.filter((t) => t.uploadId !== uploadId);
 
-    const abortController = abortControllersRef.current.get(uploadId);
-    if (abortController) {
-      abortController.abort();
-      abortControllersRef.current.delete(uploadId);
+    const runtime = runtimesRef.current.get(uploadId);
+    if (runtime) {
+      runtime.controller.abort();
+      cleanupUploadTarget(runtime);
     }
 
-    const target = uploadTargetsRef.current.get(uploadId);
-    if (target) {
-      void api
-        .delete(`/buckets/${target.bucketId}/files/${target.fileId}`)
-        .catch(() => {});
-      uploadTargetsRef.current.delete(uploadId);
-    }
-
-    setUploads((prev) => prev.filter((u) => u.id !== uploadId));
+    setUploads((prev) =>
+      prev.map((u) =>
+        u.id === uploadId
+          ? { ...u, status: "cancelled", progress: 0, error: undefined }
+          : u,
+      ),
+    );
   }, []);
 
   const clearUploads = useCallback(() => {
-    setUploads((prev) => prev.filter((u) => u.status === "uploading"));
+    setUploads((prev) =>
+      prev.filter((u) => u.status === "uploading" || u.status === "queued"),
+    );
   }, []);
 
   const hasActiveUploads = uploads.some(
-    (upload) => upload.status === "uploading",
+    (upload) => upload.status === "uploading" || upload.status === "queued",
   );
 
   useEffect(() => {

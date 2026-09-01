@@ -1,149 +1,204 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { ChevronDown, Upload, X } from "lucide-react";
+import { Check, ChevronDown, Upload, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 
-import {
-  Attachment,
-  AttachmentAction,
-  AttachmentActions,
-  AttachmentContent,
-  AttachmentDescription,
-  AttachmentMedia,
-  AttachmentTitle,
-} from "@/components/ui/attachment";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { resolveErrorMessage } from "@/lib/toast";
-import {
-  getStatusIcon,
-  getStatusText,
-} from "@/components/upload/helpers/utils";
+import { UploadRow } from "@/components/upload/components/UploadRow";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
+import { cn, formatFileSize } from "@/lib/utils";
 
 export const UploadPanel: FC = () => {
   const { t } = useTranslation();
   const { uploads, cancelUpload, clearUploads } = useUploadContext();
   const [isExpanded, setIsExpanded] = useState(true);
+  const prevCountRef = useRef(0);
+
+  const {
+    successCount,
+    failedCount,
+    cancelledCount,
+    activeCount,
+    totalBytes,
+    bytesUploaded,
+  } = uploads.reduce(
+    (summary, upload) => {
+      const size = upload.size ?? 0;
+
+      if (upload.status === "success") {
+        summary.successCount += 1;
+        summary.totalBytes += size;
+        summary.bytesUploaded += size;
+      } else if (upload.status === "error") {
+        summary.failedCount += 1;
+      } else if (upload.status === "cancelled") {
+        summary.cancelledCount += 1;
+      } else {
+        summary.activeCount += 1;
+        summary.totalBytes += size;
+        if (upload.status === "uploading") {
+          summary.bytesUploaded += (size * upload.progress) / 100;
+        }
+      }
+
+      return summary;
+    },
+    {
+      successCount: 0,
+      failedCount: 0,
+      cancelledCount: 0,
+      activeCount: 0,
+      totalBytes: 0,
+      bytesUploaded: 0,
+    },
+  );
+  const isComplete = uploads.length > 0 && activeCount === 0;
+
+  useEffect(() => {
+    if (uploads.length > prevCountRef.current) {
+      setIsExpanded(true);
+    }
+    prevCountRef.current = uploads.length;
+  }, [uploads.length]);
 
   if (uploads.length === 0) {
     return null;
   }
 
-  const completedCount = uploads.filter((u) => u.status === "success").length;
-  const failedCount = uploads.filter((u) => u.status === "error").length;
-  const hasFinished = completedCount > 0 || failedCount > 0;
+  const cancelAll = () => {
+    uploads
+      .filter((u) => u.status === "uploading" || u.status === "queued")
+      .forEach((u) => cancelUpload(u.id));
+  };
 
   return (
-    <div className="fixed inset-x-4 bottom-8 z-50 mx-auto max-w-96 rounded-lg border bg-card text-card-foreground shadow-lg md:inset-x-auto md:right-8 md:mx-0 md:w-96 md:max-w-lg">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between px-4 py-3"
-        onClick={() => setIsExpanded((prev) => !prev)}
-      >
-        <div className="flex items-center gap-2">
-          <Upload className="h-4 w-4" />
-          <span className="text-sm font-semibold">{t("upload.uploads")}</span>
-          <Badge className="h-5 min-w-5 justify-center text-xs">
-            {uploads.length}
-          </Badge>
+    <div className="fixed inset-x-4 bottom-8 z-50 mx-auto max-w-96 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-lg md:inset-x-auto md:right-8 md:mx-0 md:w-96 md:max-w-lg">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div
+          className={cn(
+            "grid size-9 shrink-0 place-items-center rounded-lg",
+            isComplete
+              ? "bg-success-subtle text-success"
+              : "bg-primary/10 text-primary",
+          )}
+        >
+          {isComplete ? (
+            <Check className="size-5" />
+          ) : (
+            <Upload className="size-5" />
+          )}
         </div>
-        <ChevronDown
-          className={`h-4 w-4 transition-transform ${isExpanded ? "" : "rotate-180"}`}
-        />
-      </button>
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">
+            {isComplete
+              ? t("upload.uploaded_summary", {
+                  done: successCount,
+                  total: uploads.length,
+                })
+              : t("upload.uploading_files", { count: activeCount })}
+          </p>
+          <p className="text-muted-foreground truncate text-xs">
+            {isComplete
+              ? failedCount > 0
+                ? t("upload.files_could_not_upload", { count: failedCount })
+                : cancelledCount > 0
+                  ? t("upload.uploads_cancelled", { count: cancelledCount })
+                  : t("upload.all_uploaded")
+              : t("upload.bytes_of_total", {
+                  uploaded: formatFileSize(bytesUploaded),
+                  total: formatFileSize(totalBytes),
+                })}
+          </p>
+        </div>
+
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground shrink-0"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          aria-label={t(isExpanded ? "upload.collapse" : "upload.expand")}
+        >
+          <ChevronDown
+            className={cn("transition-transform", !isExpanded && "rotate-180")}
+          />
+        </Button>
+        {isComplete && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground shrink-0"
+            onClick={clearUploads}
+            aria-label={t("upload.dismiss")}
+          >
+            <X />
+          </Button>
+        )}
+      </div>
 
       {isExpanded && (
-        <div className="border-t px-4 pb-4">
-          {hasFinished && (
-            <div className="mt-3 flex items-center justify-between">
-              <div className="text-xs">
-                {completedCount > 0 && (
-                  <span className="text-success">
-                    {completedCount} {t("upload.completed")}
-                  </span>
-                )}
-                {completedCount > 0 && failedCount > 0 && " · "}
-                {failedCount > 0 && (
-                  <span className="text-destructive">
-                    {failedCount} {t("upload.failed")}
-                  </span>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground h-auto px-2 py-1 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  clearUploads();
-                }}
-              >
-                {t("upload.clear_all")}
-              </Button>
-            </div>
-          )}
-
-          <div className="mt-2 flex max-h-64 flex-col gap-2 overflow-y-auto md:max-h-96">
-            {uploads.map((upload) => {
-              const state =
-                upload.status === "success"
-                  ? "done"
-                  : upload.status === "error"
-                    ? "error"
-                    : upload.progress === 0
-                      ? "processing"
-                      : "uploading";
-
-              return (
-                <Attachment
-                  key={upload.id}
-                  size="sm"
-                  state={state}
-                  className="w-full"
-                >
-                  <AttachmentMedia>
-                    {getStatusIcon(upload.status, upload.progress)}
-                  </AttachmentMedia>
-                  <AttachmentContent>
-                    <AttachmentTitle title={upload.path}>
-                      {upload.name}
-                    </AttachmentTitle>
-                    {upload.status === "uploading" ? (
-                      <div className="mt-1 flex items-center gap-2">
-                        <Progress
-                          value={upload.progress}
-                          className="h-1.5 flex-1"
-                        />
-                        <span className="text-muted-foreground text-xs whitespace-nowrap">
-                          {getStatusText(upload.status, upload.progress, t)}
-                        </span>
-                      </div>
-                    ) : (
-                      <AttachmentDescription>
-                        {upload.status === "error" && upload.error
-                          ? resolveErrorMessage(upload.error)
-                          : getStatusText(upload.status, upload.progress, t)}
-                      </AttachmentDescription>
-                    )}
-                  </AttachmentContent>
-                  {upload.status === "uploading" && (
-                    <AttachmentActions>
-                      <AttachmentAction
-                        onClick={() => cancelUpload(upload.id)}
-                        aria-label={`Cancel upload: ${upload.name}`}
-                      >
-                        <X />
-                      </AttachmentAction>
-                    </AttachmentActions>
-                  )}
-                </Attachment>
-              );
-            })}
+        <>
+          <div className="max-h-72 divide-y overflow-y-auto border-t md:max-h-96">
+            {uploads.map((upload) => (
+              <UploadRow
+                key={upload.id}
+                upload={upload}
+                isComplete={isComplete}
+                onCancel={cancelUpload}
+              />
+            ))}
           </div>
-        </div>
+
+          <div className="bg-muted/40 flex items-center justify-between gap-2 border-t px-4 py-3">
+            {isComplete ? (
+              <>
+                <p className="text-muted-foreground text-xs">
+                  {t("upload.uploaded_footer", { count: successCount })}
+                  {failedCount > 0 && (
+                    <>
+                      {" · "}
+                      <span className="text-destructive font-medium">
+                        {t("upload.failed_footer", { count: failedCount })}
+                      </span>
+                    </>
+                  )}
+                  {cancelledCount > 0 && (
+                    <>
+                      {" · "}
+                      {t("upload.cancelled_footer", { count: cancelledCount })}
+                    </>
+                  )}
+                </p>
+                <Button
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => clearUploads()}
+                >
+                  {t("upload.done")}
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground text-xs">
+                  <span className="text-foreground font-medium">
+                    {successCount}
+                  </span>{" "}
+                  {t("upload.of_total_done", { total: uploads.length })}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={cancelAll}
+                >
+                  <X />
+                  {t("upload.cancel_all")}
+                </Button>
+              </>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

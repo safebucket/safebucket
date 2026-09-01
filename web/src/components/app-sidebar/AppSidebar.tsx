@@ -1,11 +1,9 @@
-import { useState } from "react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 
 import { useTranslation } from "react-i18next";
 import { ChevronsUpDown, FolderSync, LogOut, Plus } from "lucide-react";
 import type { FC } from "react";
 
-import type { IMembers } from "@/components/bucket-view/helpers/types";
 import { nav } from "@/components/app-sidebar/helpers/nav";
 import { useLogout } from "@/hooks/useAuth";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
@@ -37,17 +35,15 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { AddMembersCard } from "@/components/app-sidebar/components/AddMembersCard.tsx";
 
 export const AppSidebar: FC = () => {
   const location = useLocation();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const logout = useLogout();
   const { data: user } = useCurrentUser();
   const createBucketDialog = useDialog();
   const { buckets, createBucketMutation } = useBucketsData();
-
-  const [shareWith, setShareWith] = useState<Array<IMembers>>([]);
 
   return (
     <Sidebar variant="inset">
@@ -132,7 +128,6 @@ export const AppSidebar: FC = () => {
                   <FormDialog
                     {...createBucketDialog.props}
                     title={t("bucket.new_bucket_dialog.title")}
-                    maxWidth="700px"
                     description={t("bucket.new_bucket_dialog.description")}
                     fields={[
                       {
@@ -143,21 +138,20 @@ export const AppSidebar: FC = () => {
                       },
                     ]}
                     onSubmit={(data) => {
-                      createBucketMutation.mutate({
-                        name: data.name,
-                        members: shareWith,
-                      });
-                      setShareWith([]);
+                      createBucketMutation.mutate(
+                        { name: data.name },
+                        {
+                          onSuccess: (bucket) => {
+                            navigate({
+                              to: "/buckets/$bucketId",
+                              params: { bucketId: bucket.id },
+                            });
+                          },
+                        },
+                      );
                     }}
                     confirmLabel={t("common.create")}
-                  >
-                    <AddMembersCard
-                      shareWith={shareWith}
-                      onShareWithChange={setShareWith}
-                      currentUserEmail={user?.email}
-                      currentUserName={getUserDisplayName(user, "")}
-                    />
-                  </FormDialog>
+                  />
                 </SidebarMenuAction>
               )}
               <SidebarMenuSub>
