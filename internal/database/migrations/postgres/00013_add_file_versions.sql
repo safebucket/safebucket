@@ -29,7 +29,7 @@ CREATE UNIQUE INDEX idx_file_versions_file_version ON file_versions (file_id, ve
 ALTER TABLE files ADD COLUMN current_version_id uuid;
 
 INSERT INTO file_versions (id, file_id, version, size, status, uploaded_by, created_at)
-SELECT id, id, 1, size,
+SELECT id, id, 1, COALESCE(size, 0),
     status,
     NULL, created_at
 FROM files;
