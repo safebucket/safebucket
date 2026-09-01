@@ -104,6 +104,7 @@ func TestParseUUID(t *testing.T) {
 	t.Run("More UUIDs than hard limit", func(t *testing.T) {
 		expectedUUID := uuid.New()
 		expectedUUID2 := uuid.New()
+		expectedUUID3 := uuid.New()
 		extraUUID := uuid.New()
 		req := httptest.NewRequest(
 			http.MethodGet,
@@ -115,13 +116,14 @@ func TestParseUUID(t *testing.T) {
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("id0", expectedUUID.String())
 		rctx.URLParams.Add("id1", expectedUUID2.String())
-		rctx.URLParams.Add("id2", extraUUID.String())
+		rctx.URLParams.Add("id2", expectedUUID3.String())
+		rctx.URLParams.Add("id3", extraUUID.String())
 		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
 
 		uuids, ok := ParseUUIDs(recorder, req)
 
 		assert.True(t, ok)
-		assert.Equal(t, uuid.UUIDs{expectedUUID, expectedUUID2}, uuids)
+		assert.Equal(t, uuid.UUIDs{expectedUUID, expectedUUID2, expectedUUID3}, uuids)
 		assert.Equal(t, http.StatusOK, recorder.Code)
 	})
 }

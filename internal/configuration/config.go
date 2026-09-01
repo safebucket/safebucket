@@ -123,6 +123,7 @@ func loadDefaults(k *koanf.Koanf) {
 		"app.log_level":                           "info",
 		"app.port":                                8080,
 		"app.trash_retention_days":                7,
+		"app.max_file_versions":                   5,
 		"app.max_upload_size":                     int64(53687091200),
 		"app.allow_redirect_download":             true,
 		"app.request_timeout_seconds":             5,

@@ -21,12 +21,20 @@ type AdminActivityQueryParams struct {
 }
 
 type AdminStatsResponse struct {
-	TotalUsers         int64             `json:"total_users"`
-	TotalBuckets       int64             `json:"total_buckets"`
-	TotalFiles         int64             `json:"total_files"`
-	TotalFolders       int64             `json:"total_folders"`
-	TotalStorageBytes  int64             `json:"total_storage"`
-	SharedFilesPerHour []TimeSeriesPoint `json:"shared_files_per_hour"`
+	TotalUsers           int64             `json:"total_users"`
+	TotalBuckets         int64             `json:"total_buckets"`
+	TotalFiles           int64             `json:"total_files"`
+	TotalFolders         int64             `json:"total_folders"`
+	TotalStorageBytes    int64             `json:"total_storage"`
+	ActiveStorageBytes   int64             `json:"active_storage"`
+	InactiveStorageBytes int64             `json:"inactive_storage"`
+	SharedFilesPerHour   []TimeSeriesPoint `json:"shared_files_per_hour"`
+}
+
+type StorageBreakdown struct {
+	Total    int64
+	Active   int64
+	Inactive int64
 }
 
 type TimeSeriesPoint struct {
