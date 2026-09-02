@@ -64,6 +64,7 @@ type PublicShareResponse struct {
 	ID                uuid.UUID  `json:"id"`
 	Name              string     `json:"name"`
 	Type              ShareType  `json:"type"`
+	FolderID          *uuid.UUID `json:"folder_id"`
 	AllowUpload       bool       `json:"allow_upload"`
 	PasswordProtected bool       `json:"password_protected"`
 	MaxUploadSize     *int64     `json:"max_upload_size"`
