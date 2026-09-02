@@ -16,6 +16,7 @@ import (
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/alexedwards/argon2id"
@@ -119,6 +120,7 @@ func (s PublicShareService) ListShareItems(
 		ID:             share.ID,
 		Name:           share.Name,
 		Type:           share.Type,
+		FolderID:       share.FolderID,
 		AllowUpload:    share.AllowUpload,
 		MaxUploadSize:  share.MaxUploadSize,
 		MaxUploads:     share.MaxUploads,
@@ -143,19 +145,28 @@ func (s PublicShareService) ListShareItems(
 		response.Files = files
 
 	case models.ShareTypeFolder:
+		folders, err := sql.GetFolderSubtree(s.DB, share.BucketID, *share.FolderID)
+		if err != nil {
+			logger.Error("Failed to list shared folder subtree", zap.Error(err))
+			return models.PublicShareResponse{}, apierrors.New(
+				http.StatusInternalServerError,
+				apierrors.CodeInternalServerError,
+			)
+		}
+		response.Folders = folders
+
+		folderIDs := make(uuid.UUIDs, 1, len(folders)+1)
+		folderIDs[0] = *share.FolderID
+		for _, folder := range folders {
+			folderIDs = append(folderIDs, folder.ID)
+		}
+
 		var files []models.File
 		s.DB.Where(
-			"bucket_id = ? AND folder_id = ? AND status = ? AND (expires_at IS NULL OR expires_at > ?)",
-			share.BucketID, share.FolderID, models.FileStatusUploaded, now,
+			"bucket_id = ? AND folder_id IN ? AND status = ? AND (expires_at IS NULL OR expires_at > ?)",
+			share.BucketID, folderIDs, models.FileStatusUploaded, now,
 		).Find(&files)
 		response.Files = files
-
-		var folders []models.Folder
-		s.DB.Where(
-			"bucket_id = ? AND folder_id = ? AND status = ?",
-			share.BucketID, share.FolderID, models.FolderStatusCreated,
-		).Find(&folders)
-		response.Folders = folders
 
 	case models.ShareTypeBucket:
 		var files []models.File
