@@ -156,10 +156,22 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 
 			folder := app.CreateFolder(t, ownerToken, bucket.ID.String(), "primary")
 			otherFolder := app.CreateFolder(t, ownerToken, bucket.ID.String(), "secondary")
+			var nestedFolder models.Folder
+			status := app.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/folders", bucket.ID), ownerToken,
+				models.FolderCreateBody{Name: "nested", FolderID: &folder.ID}, &nestedFolder)
+			require.Equal(t, http.StatusCreated, status)
+			var deepFolder models.Folder
+			status = app.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/folders", bucket.ID), ownerToken,
+				models.FolderCreateBody{Name: "deep", FolderID: &nestedFolder.ID}, &deepFolder)
+			require.Equal(t, http.StatusCreated, status)
 
 			rootFile := app.UploadTestFile(t, ownerToken, bucket.ID.String(), "root.txt")
 
 			folderFileResp := app.UploadFileInto(t, ownerToken, bucket.ID.String(), &folder.ID, "in-primary.txt")
+			nestedFolderFileResp := app.UploadFileInto(t, ownerToken, bucket.ID.String(),
+				&nestedFolder.ID, "in-nested.txt")
+			deepFolderFileResp := app.UploadFileInto(t, ownerToken, bucket.ID.String(),
+				&deepFolder.ID, "in-deep.txt")
 			otherFolderFileResp := app.UploadFileInto(t, ownerToken, bucket.ID.String(),
 				&otherFolder.ID, "in-secondary.txt")
 
@@ -180,7 +192,7 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 				assert.Empty(t, resp.Folders)
 			})
 
-			t.Run("folder scope returns only direct children", func(t *testing.T) {
+			t.Run("folder scope returns the full subtree", func(t *testing.T) {
 				share := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
 					Name:     "folder-share",
 					Type:     models.ShareTypeFolder,
@@ -190,11 +202,20 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 				status := app.DoPublicShare(t, http.MethodGet,
 					fmt.Sprintf("/api/v1/shares/%s", share.ID), "", nil, &resp)
 				require.Equal(t, http.StatusOK, status)
+				require.NotNil(t, resp.FolderID)
+				assert.Equal(t, folder.ID, *resp.FolderID)
 
 				fileIDs := fileIDSet(resp.Files)
 				assert.Contains(t, fileIDs, folderFileResp)
+				assert.Contains(t, fileIDs, nestedFolderFileResp)
+				assert.Contains(t, fileIDs, deepFolderFileResp)
 				assert.NotContains(t, fileIDs, rootFile, "root file is not in folder scope")
 				assert.NotContains(t, fileIDs, otherFolderFileResp, "sibling folder file is out of scope")
+
+				folderIDs := folderIDSet(resp.Folders)
+				assert.Contains(t, folderIDs, nestedFolder.ID.String())
+				assert.Contains(t, folderIDs, deepFolder.ID.String())
+				assert.NotContains(t, folderIDs, otherFolder.ID.String())
 			})
 
 			t.Run("bucket scope returns everything in the bucket", func(t *testing.T) {
@@ -210,13 +231,14 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 				fileIDs := fileIDSet(resp.Files)
 				assert.Contains(t, fileIDs, rootFile)
 				assert.Contains(t, fileIDs, folderFileResp)
+				assert.Contains(t, fileIDs, nestedFolderFileResp)
+				assert.Contains(t, fileIDs, deepFolderFileResp)
 				assert.Contains(t, fileIDs, otherFolderFileResp)
 
-				folderIDs := make(map[string]struct{}, len(resp.Folders))
-				for _, f := range resp.Folders {
-					folderIDs[f.ID.String()] = struct{}{}
-				}
+				folderIDs := folderIDSet(resp.Folders)
 				assert.Contains(t, folderIDs, folder.ID.String())
+				assert.Contains(t, folderIDs, nestedFolder.ID.String())
+				assert.Contains(t, folderIDs, deepFolder.ID.String())
 				assert.Contains(t, folderIDs, otherFolder.ID.String())
 			})
 
@@ -259,6 +281,14 @@ func fileIDSet(files []models.File) map[string]struct{} {
 	out := make(map[string]struct{}, len(files))
 	for _, f := range files {
 		out[f.ID.String()] = struct{}{}
+	}
+	return out
+}
+
+func folderIDSet(folders []models.Folder) map[string]struct{} {
+	out := make(map[string]struct{}, len(folders))
+	for _, folder := range folders {
+		out[folder.ID.String()] = struct{}{}
 	}
 	return out
 }

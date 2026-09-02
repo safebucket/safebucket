@@ -45,6 +45,7 @@ export interface IPublicShareResponse {
   id: string;
   name: string;
   type: ShareScope;
+  folder_id: string | null;
   allow_upload: boolean;
   max_upload_size: number | null;
   max_uploads: number | null;

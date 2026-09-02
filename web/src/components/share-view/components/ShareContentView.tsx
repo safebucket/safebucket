@@ -40,7 +40,7 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
   });
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(
-    shareContent.type === "folder" ? shareContent.id : undefined,
+    shareContent.folder_id ?? undefined,
   );
   const [folderHistory, setFolderHistory] = useState<Array<string>>([]);
   const [previewItem, setPreviewItem] = useState<IFile | null>(null);
@@ -150,7 +150,11 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
           <ShareUploadZone
             shareId={shareId}
             maxUploadSize={content.max_upload_size}
-            folderId={content.type === "bucket" ? currentFolderId : undefined}
+            folderId={
+              content.type === "bucket"
+                ? currentFolderId
+                : (content.folder_id ?? undefined)
+            }
             onReady={(fn) => {
               uploadFilesRef.current = fn;
             }}
