@@ -8,7 +8,7 @@ import (
 )
 
 func GetFolderSubtree(db *gorm.DB, bucketID, rootID uuid.UUID) ([]models.Folder, error) {
-	var folders []models.Folder
+	folders := make([]models.Folder, 0)
 	err := db.Raw(`
 		WITH RECURSIVE folder_subtree AS (
 			SELECT *
