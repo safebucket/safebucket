@@ -218,6 +218,22 @@ func TestQuickShareScopeFiltering(t *testing.T) {
 				assert.NotContains(t, folderIDs, otherFolder.ID.String())
 			})
 
+			t.Run("folder scope returns an empty folder array", func(t *testing.T) {
+				share := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
+					Name:     "folder-share",
+					Type:     models.ShareTypeFolder,
+					FolderID: &deepFolder.ID,
+				})
+				var resp models.PublicShareResponse
+				status := app.DoPublicShare(t, http.MethodGet,
+					fmt.Sprintf("/api/v1/shares/%s", share.ID), "", nil, &resp)
+				require.Equal(t, http.StatusOK, status)
+
+				assert.NotNil(t, resp.Folders)
+				assert.Empty(t, resp.Folders)
+				assert.Contains(t, fileIDSet(resp.Files), deepFolderFileResp)
+			})
+
 			t.Run("bucket scope returns everything in the bucket", func(t *testing.T) {
 				share := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
 					Name: "bucket-share",
