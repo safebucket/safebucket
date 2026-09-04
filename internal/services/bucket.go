@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -17,6 +16,7 @@ import (
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/go-chi/chi/v5"
@@ -52,8 +52,7 @@ func (s BucketService) Routes() chi.Router {
 
 	r.Route("/{id0}", func(r chi.Router) {
 		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
-			With(m.ValidateQuery[models.BucketQueryParams]).
-			Get("/", handlers.GetOneWithQueryHandler(s.GetBucket))
+			Get("/", handlers.GetOneHandler(s.GetBucket))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupOwner, 0)).
 			With(m.Validate[models.BucketCreateUpdateBody]).
@@ -81,6 +80,10 @@ func (s BucketService) Routes() chi.Router {
 			Publisher:          s.Publisher,
 			ActivityLogger:     s.ActivityLogger,
 			TrashRetentionDays: s.TrashRetentionDays,
+		}.Routes())
+
+		r.Mount("/trash", BucketTrashService{
+			DB: s.DB,
 		}.Routes())
 
 		r.Mount("/folders", BucketFolderService{
@@ -149,32 +152,6 @@ func (s BucketService) CreateBucket(
 	return newBucket, nil
 }
 
-// buildFilePath constructs the full folder path for a file using Unscoped queries
-// to handle trashed folders. Returns path in format "/Folder1/Folder2".
-func (s BucketService) buildFilePath(folderID *uuid.UUID) string {
-	if folderID == nil {
-		return "/"
-	}
-
-	var pathSegments []string
-	currentFolderID := folderID
-
-	for i := 0; i < 100 && currentFolderID != nil; i++ {
-		var folder models.Folder
-		if err := s.DB.Unscoped().Where("id = ?", currentFolderID).First(&folder).Error; err != nil {
-			break
-		}
-		pathSegments = append([]string{folder.Name}, pathSegments...)
-		currentFolderID = folder.FolderID
-	}
-
-	if len(pathSegments) == 0 {
-		return "/"
-	}
-
-	return "/" + strings.Join(pathSegments, "/")
-}
-
 func (s BucketService) GetBucketList(
 	logger *zap.Logger,
 	user models.UserClaims,
@@ -217,110 +194,36 @@ func (s BucketService) GetBucket(
 	logger *zap.Logger,
 	_ models.UserClaims,
 	ids uuid.UUIDs,
-	queryParams models.BucketQueryParams,
 ) (models.Bucket, error) {
 	bucketID := ids[0]
-	var bucket models.Bucket
+
+	bucket, err := sql.GetBucketByID(s.DB, bucketID)
+	if err != nil {
+		return bucket, err
+	}
 	bucket.Files = []models.File{}
 	bucket.Folders = []models.Folder{}
 
-	result := s.DB.Where("id = ?", bucketID).First(&bucket)
-	if result.RowsAffected == 0 {
-		return bucket, apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
-	}
-
-	status := queryParams.Status
+	now := time.Now()
+	expirationTime := now.Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 
 	var files []models.File
+	if err = s.DB.Where(
+		"bucket_id = ? AND (expires_at IS NULL OR expires_at > ?) AND (status = ? OR (status = ? AND created_at > ?))",
+		bucketID,
+		now,
+		models.FileStatusUploaded,
+		models.FileStatusUploading,
+		expirationTime,
+	).Find(&files).Error; err != nil {
+		logger.Error("Failed to list files", zap.Error(err))
+		return bucket, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+	}
+
 	var folders []models.Folder
-
-	now := time.Now()
-
-	switch status {
-	case "deleted":
-		fileResult := s.DB.Unscoped().
-			Where(
-				"bucket_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status != ?) AND (expires_at IS NULL OR expires_at > ?)",
-				bucketID,
-				models.FileStatusRestoring,
-				now,
-			).
-			Order("deleted_at DESC").
-			Find(&files)
-
-		if fileResult.Error != nil {
-			logger.Error("Failed to list trashed files", zap.Error(fileResult.Error))
-			files = []models.File{}
-		} else {
-			for i := range files {
-				files[i].OriginalPath = s.buildFilePath(files[i].FolderID)
-			}
-		}
-
-		folderResult := s.DB.Unscoped().
-			Where(
-				"bucket_id = ? AND deleted_at IS NOT NULL AND status != ?",
-				bucketID,
-				models.FolderStatusRestoring,
-			).
-			Order("deleted_at DESC").
-			Find(&folders)
-
-		if folderResult.Error != nil {
-			logger.Error("Failed to list trashed folders", zap.Error(folderResult.Error))
-			folders = []models.Folder{}
-		} else {
-			for i := range folders {
-				folders[i].OriginalPath = s.buildFilePath(folders[i].FolderID)
-			}
-		}
-
-	case "all":
-		result = s.DB.Where("bucket_id = ? AND (expires_at IS NULL OR expires_at > ?)", bucketID, now).Find(&files)
-		if result.RowsAffected > 0 {
-			bucket.Files = files
-		}
-
-		result = s.DB.Where("bucket_id = ?", bucketID).Find(&folders)
-		if result.RowsAffected > 0 {
-			bucket.Folders = folders
-		}
-
-	case "uploading":
-		expirationTime := time.Now().Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
-		result = s.DB.Where(
-			"bucket_id = ? AND status = ? AND created_at > ?",
-			bucketID,
-			models.FileStatusUploading,
-			expirationTime,
-		).Find(&files)
-
-		if result.RowsAffected > 0 {
-			bucket.Files = files
-		}
-
-	case "uploaded":
-		fallthrough
-	default:
-		expirationTime := now.Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
-		result = s.DB.Where(
-			"bucket_id = ? AND (expires_at IS NULL OR expires_at > ?) AND (status = ? OR (status = ? AND created_at > ?))",
-			bucketID,
-			now,
-			models.FileStatusUploaded,
-			models.FileStatusUploading,
-			expirationTime,
-		).Find(&files)
-
-		if result.RowsAffected > 0 {
-			bucket.Files = files
-		}
-
-		result = s.DB.Where("bucket_id = ?", bucketID).Find(&folders)
-
-		if result.RowsAffected > 0 {
-			bucket.Folders = folders
-		}
+	if err = s.DB.Where("bucket_id = ?", bucketID).Find(&folders).Error; err != nil {
+		logger.Error("Failed to list folders", zap.Error(err))
+		return bucket, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	bucket.Files = files
@@ -455,13 +358,13 @@ func (s BucketService) GetActivity(
 
 func (s BucketService) GetBucketActivity(
 	logger *zap.Logger,
-	user models.UserClaims,
+	_ models.UserClaims,
 	ids uuid.UUIDs,
 	query models.ActivityQueryParams,
-) (models.Page[map[string]interface{}], error) {
-	bucket, err := s.GetBucket(logger, user, ids, models.BucketQueryParams{})
+) (models.Page[map[string]any], error) {
+	bucket, err := sql.GetBucketByID(s.DB, ids[0])
 	if err != nil {
-		return models.Page[map[string]interface{}]{}, err
+		return models.Page[map[string]any]{}, err
 	}
 
 	searchCriteria := map[string][]string{

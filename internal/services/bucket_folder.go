@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"net/http"
 	"path"
 	"time"
@@ -204,12 +205,61 @@ func (s BucketFolderService) DeleteFolder(
 	bucketID, folderID := ids[0], ids[1]
 
 	var folder models.Folder
-	result := s.DB.Unscoped().Where("id = ? AND bucket_id = ?", folderID, bucketID).First(&folder)
-	if result.RowsAffected == 0 {
-		return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND bucket_id = ?", folderID, bucketID).
+			First(&folder)
+		if result.Error != nil {
+			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+				return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
+			}
+			logger.Error("Failed to fetch folder for purging", zap.Error(result.Error))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
+		}
+
+		if !folder.DeletedAt.Valid {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNotInTrash)
+		}
+
+		if folder.Status == models.FolderStatusRestoring {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+		}
+
+		if folder.Status != models.FolderStatusDeleted {
+			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidStatus)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
 	}
 
-	return s.PurgeFolder(logger, user, folder)
+	event := events.NewFolderPurge(s.Publisher, folder.BucketID, folder.ID, user.UserID)
+	event.Trigger()
+
+	action := models.Activity{
+		Message: activity.FolderDeleted,
+		Object:  folder.ToActivity(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     rbac.ActionDelete.String(),
+			BucketID:   folder.BucketID.String(),
+			FolderID:   folder.ID.String(),
+			ObjectType: rbac.ResourceFolder.String(),
+			UserID:     user.UserID.String(),
+		}),
+	}
+
+	if activityErr := s.ActivityLogger.Send(action); activityErr != nil {
+		logger.Error("Failed to log purge activity", zap.Error(activityErr))
+	}
+
+	logger.Info("Folder purge initiated (async)",
+		zap.String("folder", folder.Name),
+		zap.String("folder_id", folder.ID.String()))
+
+	return nil
 }
 
 func (s BucketFolderService) TrashFolder(
@@ -389,41 +439,6 @@ func (s BucketFolderService) RestoreFolder(
 	logger.Info("Folder restore initiated (async)",
 		zap.String("folder", restoredFolder.Name),
 		zap.String("folder_id", restoredFolder.ID.String()))
-
-	return nil
-}
-
-func (s BucketFolderService) PurgeFolder(
-	logger *zap.Logger,
-	user models.UserClaims,
-	folder models.Folder,
-) error {
-	if !folder.DeletedAt.Valid {
-		return apierrors.New(http.StatusConflict, apierrors.CodeFolderNotInTrash)
-	}
-
-	event := events.NewFolderPurge(s.Publisher, folder.BucketID, folder.ID, user.UserID)
-	event.Trigger()
-
-	action := models.Activity{
-		Message: activity.FolderDeleted,
-		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionDelete.String(),
-			BucketID:   folder.BucketID.String(),
-			FolderID:   folder.ID.String(),
-			ObjectType: rbac.ResourceFolder.String(),
-			UserID:     user.UserID.String(),
-		}),
-	}
-
-	if err := s.ActivityLogger.Send(action); err != nil {
-		logger.Error("Failed to log purge activity", zap.Error(err))
-	}
-
-	logger.Info("Folder purge initiated (async)",
-		zap.String("folder", folder.Name),
-		zap.String("folder_id", folder.ID.String()))
 
 	return nil
 }
