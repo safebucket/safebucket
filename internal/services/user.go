@@ -6,6 +6,7 @@ import (
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
+	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
@@ -59,6 +60,11 @@ func (s UserService) Routes() chi.Router {
 			Cache:              s.Cache,
 			RefreshTokenExpiry: s.RefreshTokenExpiry,
 			ActivityLogger:     s.ActivityLogger,
+		}.Routes())
+
+		r.Mount("/tokens", TokenService{
+			DB:             s.DB,
+			ActivityLogger: s.ActivityLogger,
 		}.Routes())
 	})
 	return r
@@ -115,7 +121,7 @@ func (s UserService) CreateUser(
 
 func (s UserService) GetUserList(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs) []models.User {
 	var users []models.User
-	s.DB.Find(&users)
+	s.DB.Scopes(sql.ExcludeServiceAccounts).Find(&users)
 	return users
 }
 
@@ -134,10 +140,14 @@ func (s UserService) GetUser(
 
 func (s UserService) UpdateUser(
 	_ *zap.Logger,
-	_ models.UserClaims,
+	claims models.UserClaims,
 	ids uuid.UUIDs,
 	body models.UserUpdateBody,
 ) error {
+	if claims.AudienceString() == configuration.AudienceAPIToken && body.NewPassword != "" {
+		return apierrors.New(http.StatusForbidden, apierrors.CodeTokenActionDenied)
+	}
+
 	user := models.User{ID: ids[0]}
 
 	updatedUser := models.User{

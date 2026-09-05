@@ -36,6 +36,11 @@ func MFAValidate(
 				return
 			}
 
+			if claims.AudienceString() == configuration.AudienceAPIToken {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			if claims.AudienceString() != configuration.AudienceAccessToken || claims.MFA {
 				next.ServeHTTP(w, r)
 				return

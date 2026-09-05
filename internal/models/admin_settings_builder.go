@@ -219,7 +219,7 @@ func buildAuthSettings(auth AuthConfiguration) AuthSettings {
 				settings.TLSInsecureSkip = boolPtr(provider.LDAP.TLSInsecureSkip)
 				settings.AttributeEmail = provider.LDAP.AttributeMap.Email
 			}
-		case LocalProviderType:
+		case LocalProviderType, ServiceAccountProviderType:
 		}
 
 		providers = append(providers, settings)

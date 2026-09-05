@@ -30,10 +30,12 @@ func defineResource(name string) Resource {
 }
 
 var (
-	ResourceBucket    = defineResource("bucket")
-	ResourceFile      = defineResource("file")
-	ResourceFolder    = defineResource("folder")
-	ResourceUser      = defineResource("user")
-	ResourceMFADevice = defineResource("mfa_device")
-	ResourceShare     = defineResource("share")
+	ResourceBucket         = defineResource("bucket")
+	ResourceFile           = defineResource("file")
+	ResourceFolder         = defineResource("folder")
+	ResourceUser           = defineResource("user")
+	ResourceMFADevice      = defineResource("mfa_device")
+	ResourceShare          = defineResource("share")
+	ResourceAPIToken       = defineResource("api_token")
+	ResourceServiceAccount = defineResource("service_account")
 )
