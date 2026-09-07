@@ -201,13 +201,10 @@ func (s BucketService) GetBucket(
 	if err != nil {
 		return bucket, err
 	}
-	bucket.Files = []models.File{}
-	bucket.Folders = []models.Folder{}
-
 	now := time.Now()
 	expirationTime := now.Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 
-	var files []models.File
+	files := make([]models.File, 0)
 	if err = s.DB.Where(
 		"bucket_id = ? AND (expires_at IS NULL OR expires_at > ?) AND (status = ? OR (status = ? AND created_at > ?))",
 		bucketID,
@@ -220,7 +217,7 @@ func (s BucketService) GetBucket(
 		return bucket, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
-	var folders []models.Folder
+	folders := make([]models.Folder, 0)
 	if err = s.DB.Where("bucket_id = ?", bucketID).Find(&folders).Error; err != nil {
 		logger.Error("Failed to list folders", zap.Error(err))
 		return bucket, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)

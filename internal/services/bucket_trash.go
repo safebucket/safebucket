@@ -41,12 +41,9 @@ func (s BucketTrashService) GetBucketTrash(
 	if err != nil {
 		return bucket, err
 	}
-	bucket.Files = []models.File{}
-	bucket.Folders = []models.Folder{}
-
 	now := time.Now()
 
-	var allFolders []models.Folder
+	allFolders := make([]models.Folder, 0)
 	if err = s.DB.Unscoped().Where("bucket_id = ?", bucketID).Find(&allFolders).Error; err != nil {
 		logger.Error("Failed to list folders", zap.Error(err))
 		return bucket, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
@@ -62,7 +59,7 @@ func (s BucketTrashService) GetBucketTrash(
 		}
 	}
 
-	var files []models.File
+	files := make([]models.File, 0)
 	if err = s.DB.Unscoped().Where(
 		"bucket_id = ? AND deleted_at IS NOT NULL AND status IN ? AND (expires_at IS NULL OR expires_at > ?)",
 		bucketID,
