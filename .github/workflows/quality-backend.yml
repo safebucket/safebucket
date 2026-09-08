@@ -44,3 +44,8 @@ jobs:
 
       - name: Run Go unit tests
         run: go test -v ./...
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
