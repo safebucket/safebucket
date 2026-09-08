@@ -1,0 +1,219 @@
+name: safebucket-garage
+
+services:
+  garage:
+    container_name: garage
+    image: dxflrs/garage:v2.2.0
+    ports:
+      - "3900:3900"   # S3 API
+      - "3902:3902"   # Web
+      - "3903:3903"   # Admin API
+    volumes:
+      - garage_data:/data
+      - ./config/garage.toml:/etc/garage.toml
+    restart: unless-stopped
+
+  garage-init:
+    container_name: garage-init
+    image: alpine:3.21
+    environment:
+      - GARAGE_ADMIN_TOKEN=${GARAGE_ADMIN_TOKEN}
+      - GARAGE_ACCESS_KEY=${GARAGE_ACCESS_KEY}
+      - GARAGE_SECRET_KEY=${GARAGE_SECRET_KEY}
+    entrypoint: [ "/bin/sh", "-ec" ]
+    command:
+      - |
+        apk add --no-cache curl jq > /dev/null
+
+        ADMIN="http://garage:3903"
+        AUTH="Authorization: Bearer $${GARAGE_ADMIN_TOKEN}"
+
+        echo "Waiting for Garage to be ready..."
+        until curl -so /dev/null "$${ADMIN}/health" 2>/dev/null; do sleep 2; done
+        echo "Garage is ready."
+
+        echo "Getting node status..."
+        STATUS=$$(curl -sf -H "$${AUTH}" "$${ADMIN}/v2/GetClusterStatus")
+        NODE_ID=$$(echo "$${STATUS}" | jq -r '.nodes[0].id')
+        echo "Node ID: $${NODE_ID}"
+
+        echo "Assigning cluster layout..."
+        BODY=$$(jq -n --arg id "$${NODE_ID}" '{roles: [{id: $$id, zone: "dc1", capacity: 1073741824, tags: ["dev"]}]}')
+        echo "Request body: $${BODY}"
+        LAYOUT_RESP=$$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST -H "$${AUTH}" -H "Content-Type: application/json" \
+          "$${ADMIN}/v2/UpdateClusterLayout" -d "$${BODY}")
+        echo "Layout response: $${LAYOUT_RESP}"
+
+        echo "Applying layout..."
+        LAYOUT_VERSION=$$(curl -sf -H "$${AUTH}" "$${ADMIN}/v2/GetClusterStatus" | jq '.layoutVersion')
+        NEXT_VERSION=$$(( LAYOUT_VERSION + 1 ))
+        APPLY_BODY=$$(jq -n --argjson v "$${NEXT_VERSION}" '{version: $$v}')
+        curl -sf -X POST -H "$${AUTH}" -H "Content-Type: application/json" \
+          "$${ADMIN}/v2/ApplyClusterLayout" -d "$${APPLY_BODY}"
+        echo "Layout applied (version $${NEXT_VERSION})."
+
+        echo "Importing API key..."
+        KEY_BODY=$$(jq -n --arg ak "$${GARAGE_ACCESS_KEY}" --arg sk "$${GARAGE_SECRET_KEY}" \
+          '{accessKeyId: $$ak, secretAccessKey: $$sk, name: "safebucket-dev"}')
+        curl -sf -X POST -H "$${AUTH}" -H "Content-Type: application/json" \
+          "$${ADMIN}/v2/ImportKey" -d "$${KEY_BODY}"
+        echo "API key imported."
+
+        for BUCKET_NAME in safebucket loki-data loki-ruler; do
+          echo "Creating bucket: $${BUCKET_NAME}..."
+          B_BODY=$$(jq -n --arg name "$${BUCKET_NAME}" '{globalAlias: $$name}')
+          BUCKET_ID=$$(curl -sf -X POST -H "$${AUTH}" -H "Content-Type: application/json" \
+            "$${ADMIN}/v2/CreateBucket" -d "$${B_BODY}" | jq -r '.id')
+          echo "Bucket $${BUCKET_NAME} created (ID: $${BUCKET_ID})"
+
+          ALLOW_BODY=$$(jq -n --arg bid "$${BUCKET_ID}" --arg ak "$${GARAGE_ACCESS_KEY}" \
+            '{bucketId: $$bid, accessKeyId: $$ak, permissions: {read: true, write: true, owner: true}}')
+          curl -sf -X POST -H "$${AUTH}" -H "Content-Type: application/json" \
+            "$${ADMIN}/v2/AllowBucketKey" -d "$${ALLOW_BODY}"
+          echo "Access granted."
+        done
+
+        echo "Garage cluster configured successfully!"
+    depends_on:
+      - garage
+    restart: "no"
+
+  database:
+    container_name: database
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    volumes:
+      - "postgresql_data:/var/lib/postgresql"
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: [ "CMD-SHELL", "psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1' || exit 1" ]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  valkey:
+    container_name: valkey
+    image: valkey/valkey:9
+    command: [ "valkey-server", "--requirepass", "${VALKEY_PASSWORD}" ]
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    shm_size: 128mb
+    volumes:
+      - "valkey_data:/data"
+
+  mailpit:
+    image: axllent/mailpit:v1.29.0
+    container_name: mailpit
+    restart: unless-stopped
+    volumes:
+      - "mail_data:/data"
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ALLOW_INSECURE: true
+      MP_SMTP_AUTH: root:root
+
+  nats:
+    image: nats:2.12-alpine
+    container_name: nats
+    ports:
+      - "4222:4222"   # NATS protocol
+      - "1883:1883"   # MQTT protocol
+      - "8222:8222"   # HTTP monitoring
+    restart: unless-stopped
+    command: [ "-c", "/etc/nats/nats.conf" ]
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - "nats_data:/data"
+      - ./config/nats.conf:/etc/nats/nats.conf
+
+  s3manager:
+    container_name: s3manager
+    image: cloudlena/s3manager:latest
+    ports:
+      - "9001:8080"
+    environment:
+      ENDPOINT: garage:3900
+      ACCESS_KEY_ID: ${GARAGE_ACCESS_KEY}
+      SECRET_ACCESS_KEY: ${GARAGE_SECRET_KEY}
+      REGION: garage
+      USE_SSL: "false"
+      SKIP_SSL_VERIFICATION: "true"
+    depends_on:
+      garage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  loki:
+    container_name: loki
+    image: grafana/loki:3.6
+    command: "-config.file=/etc/loki/config.yaml"
+    depends_on:
+      garage-init:
+        condition: service_completed_successfully
+    ports:
+      - "3100:3100"
+      - "7946:7946"
+      - "9095:9095"
+    volumes:
+      - ./config/loki.yaml:/etc/loki/config.yaml
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    container_name: grafana
+    profiles: [ debug ]
+    image: docker.io/grafana/grafana:latest
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
+        apiVersion: 1
+        datasources:
+          - name: Loki
+            type: loki
+            access: proxy
+            url: http://loki:3100
+            jsonData:
+              httpHeaderName1: "X-Scope-OrgID"
+            secureJsonData:
+              httpHeaderValue1: "tenant1"
+        EOF
+        /run.sh
+    ports:
+      - "3200:3000"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  garage_data:
+  postgresql_data:
+  mail_data:
+  valkey_data:
+  nats_data:
