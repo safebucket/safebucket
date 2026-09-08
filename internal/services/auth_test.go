@@ -122,7 +122,7 @@ func TestLogin_UserHasMFA_ConfigMFADisabled_RequiresMFA(t *testing.T) {
 		mfaToken := cookieValue(response, "safebucket_mfa_token")
 		assert.NotEmpty(t, mfaToken, "Should set the MFA cookie")
 
-		parsedClaims, err := helpers.ParseToken(jwtSecret, "Bearer "+mfaToken, true)
+		parsedClaims, err := helpers.ParseToken(jwtSecret, mfaToken)
 		require.NoError(t, err, "Token should be parseable")
 
 		assert.Equal(t, configuration.AudienceMFALogin, parsedClaims.Audience[0],
@@ -205,7 +205,7 @@ func TestLogin_UserNoMFA_ConfigMFADisabled_NoMFARequired(t *testing.T) {
 
 		access := cookieValue(response, "safebucket_access_token")
 		assert.NotEmpty(t, access, "Should set the access cookie")
-		parsedClaims, err := helpers.ParseToken(jwtSecret, "Bearer "+access, true)
+		parsedClaims, err := helpers.ParseToken(jwtSecret, access)
 		require.NoError(t, err)
 		assert.Equal(t, configuration.AudienceAccessToken, parsedClaims.Audience[0],
 			"Should return full access token")
@@ -285,7 +285,7 @@ func TestLogin_UserNoMFA_ProviderMFAEnabled_RequiresMFA(t *testing.T) {
 
 		mfaToken := cookieValue(response, "safebucket_mfa_token")
 		assert.NotEmpty(t, mfaToken, "Should set the MFA cookie")
-		parsedClaims, err := helpers.ParseToken(jwtSecret, "Bearer "+mfaToken, true)
+		parsedClaims, err := helpers.ParseToken(jwtSecret, mfaToken)
 		require.NoError(t, err)
 		assert.Equal(t, configuration.AudienceMFALogin, parsedClaims.Audience[0],
 			"Should return restricted token for MFA setup")

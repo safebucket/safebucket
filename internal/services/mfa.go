@@ -713,6 +713,10 @@ func (s MFAService) verifyProviderPassword(logger *zap.Logger, user *models.User
 		logger.Error("verifyProviderPassword reached for OIDC user", zap.String("user_id", user.ID.String()))
 		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 
+	case models.ServiceAccountProviderType:
+		logger.Error("verifyProviderPassword reached for service account", zap.String("user_id", user.ID.String()))
+		return apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
+
 	default:
 		logger.Error("Unsupported provider type for password MFA re-auth",
 			zap.String("provider_type", string(user.ProviderType)))

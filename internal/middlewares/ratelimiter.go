@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -51,18 +52,25 @@ func RateLimit(
 			r = r.WithContext(ctx)
 
 			claims, err := helpers.GetUserClaims(r.Context())
-			if err != nil {
+
+			var identifier string
+			limit := authenticatedRequestsPerMinute
+			switch {
+			case err != nil:
 				info, ok := r.Context().Value(models.ClientInfoKey{}).(models.ClientInfo)
 				if !ok || info.IP == "" {
 					zap.L().Error("error", zap.Error(err))
 					helpers.RespondWithErrorCtx(r.Context(), w, 500, []string{apierrors.CodeInternalServerError})
 					return
 				}
-				applyRateLimit(next, w, r, cache, info.IP, unauthenticatedRequestsPerMinute)
-			} else {
-				userID := claims.UserID.String()
-				applyRateLimit(next, w, r, cache, userID, authenticatedRequestsPerMinute)
+				identifier, limit = info.IP, unauthenticatedRequestsPerMinute
+			case claims.TokenID != nil:
+				identifier = fmt.Sprintf("token:%s", claims.TokenID.String())
+			default:
+				identifier = claims.UserID.String()
 			}
+
+			applyRateLimit(next, w, r, cache, identifier, limit)
 		}
 		return http.HandlerFunc(fn)
 	}

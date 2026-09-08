@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/configuration"
@@ -119,13 +118,6 @@ func decryptAndParseJWT(jwtSecret string, tokenString string, claims jwt.Claims)
 	return err
 }
 
-func stripBearer(tokenString string) (string, error) {
-	if !strings.HasPrefix(tokenString, "Bearer ") {
-		return "", errors.New("invalid token")
-	}
-	return strings.TrimPrefix(tokenString, "Bearer "), nil
-}
-
 func newRegisteredClaims(
 	audience string,
 	expiryMinutes int,
@@ -174,16 +166,7 @@ func createToken(jwtSecret string, user *models.User, config tokenConfig) (strin
 func ParseToken(
 	jwtSecret string,
 	tokenString string,
-	requireBearer bool,
 ) (models.UserClaims, error) {
-	if requireBearer {
-		var err error
-		tokenString, err = stripBearer(tokenString)
-		if err != nil {
-			return models.UserClaims{}, err
-		}
-	}
-
 	claims := &models.UserClaims{}
 	if err := decryptAndParseJWT(jwtSecret, tokenString, claims); err != nil {
 		return models.UserClaims{}, errors.New("invalid token")
@@ -268,7 +251,7 @@ func NewRefreshToken(jwtSecret string, user *models.User, provider string, sid s
 }
 
 func ParseRefreshToken(jwtSecret string, refreshToken string) (models.UserClaims, error) {
-	claims, err := ParseToken(jwtSecret, refreshToken, false)
+	claims, err := ParseToken(jwtSecret, refreshToken)
 	if err != nil {
 		return models.UserClaims{}, errors.New("invalid refresh token")
 	}

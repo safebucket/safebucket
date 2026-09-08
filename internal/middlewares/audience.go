@@ -39,7 +39,8 @@ func AudienceValidate(next http.Handler) http.Handler {
 				return
 			}
 		} else {
-			if tokenAudience != configuration.AudienceAccessToken {
+			if tokenAudience != configuration.AudienceAccessToken &&
+				tokenAudience != configuration.AudienceAPIToken {
 				helpers.RespondWithErrorCtx(r.Context(), w, 403, []string{apierrors.CodeForbidden})
 				return
 			}

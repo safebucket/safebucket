@@ -10,6 +10,7 @@ const (
 	AudienceMFALogin     = "auth:mfa:login"
 	AudienceMFAReset     = "auth:mfa:password-reset"
 	AudienceShareAccess  = "share:access"
+	AudienceAPIToken     = "api:token"
 )
 
 // JWT Token expiry times (in minutes).
@@ -42,7 +43,10 @@ const (
 	CacheTOTPUsedKey             = "totp:used:%s:%s"
 	CacheUserSessionsKey         = "user:sessions:%s"
 	CacheMultipartStateKey       = "multipart:state:%s"
+	CacheAPITokenUsedKey         = "api:token:used:%s"
 )
+
+const APITokenLastUsedThrottle = 5 * time.Minute
 
 const (
 	WorkerObjectDeletion   = "object_deletion"

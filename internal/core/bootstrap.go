@@ -434,7 +434,7 @@ func BuildAPIRouter(
 	r.Route("/api", func(apiRouter chi.Router) {
 		apiRouter.Use(m.CSRFGuard(config.App.AllowedOrigins))
 		apiRouter.Use(m.ClientInfo(config.App.TrustedProxies))
-		apiRouter.Use(m.Authenticate(authConfig.TokenSecret, cache, configuration.RefreshTokenExpiry))
+		apiRouter.Use(m.Authenticate(authConfig.TokenSecret, db, cache, configuration.RefreshTokenExpiry))
 		apiRouter.Use(m.AudienceValidate)
 		apiRouter.Use(m.MFAValidate(db, providers))
 		apiRouter.Use(m.RateLimit(
@@ -500,6 +500,11 @@ func BuildAPIRouter(
 			Cache:          cache,
 			ActivityLogger: activityLogger,
 			Config:         config,
+		}.Routes())
+
+		apiRouter.Mount("/v1/service-accounts", services.ServiceAccountService{
+			DB:             db,
+			ActivityLogger: activityLogger,
 		}.Routes())
 
 		apiRouter.Mount("/v1/shares", services.PublicShareService{

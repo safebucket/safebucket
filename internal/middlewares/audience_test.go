@@ -61,7 +61,7 @@ func TestAudienceValidate(t *testing.T) {
 		token, err := helpers.NewAccessToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType), "")
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
@@ -87,7 +87,7 @@ func TestAudienceValidate(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/buckets", nil)
@@ -111,7 +111,7 @@ func TestAudienceValidate(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/mfa/verify", nil)
@@ -137,7 +137,7 @@ func TestAudienceValidate(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(
@@ -163,7 +163,7 @@ func TestAudienceValidate(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(
@@ -338,7 +338,7 @@ func TestAudienceValidate_RefreshToken(t *testing.T) {
 		token, err := helpers.NewRefreshToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType), "")
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, token, false)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 		assert.Equal(t, configuration.AudienceRefreshToken, claims.Audience[0])
 
@@ -361,7 +361,7 @@ func TestAudienceValidate_RefreshToken(t *testing.T) {
 		token, err := helpers.NewRefreshToken(audienceTestJWTSecret, testUser, string(models.LocalProviderType), "")
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, token, false)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/mfa/verify", nil)
@@ -402,7 +402,7 @@ func TestAudienceValidate_UUIDPatternMatching(t *testing.T) {
 				)
 				require.NoError(t, err)
 
-				claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+				claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 				require.NoError(t, err)
 
 				path := "/api/v1/auth/reset-password/" + uuidStr + "/complete"
@@ -446,7 +446,7 @@ func TestAudienceValidate_UUIDPatternMatching(t *testing.T) {
 				)
 				require.NoError(t, err)
 
-				claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+				claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 				require.NoError(t, err)
 
 				path := "/api/v1/auth/reset-password/" + tc.uuid + "/complete"
@@ -473,7 +473,7 @@ func TestAudienceValidate_UUIDPatternMatching(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		validUUID := "550e8400-e29b-41d4-a716-446655440000"
@@ -510,7 +510,7 @@ func TestAudienceValidate_URLEdgeCases(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/MFA/verify", nil)
@@ -534,7 +534,7 @@ func TestAudienceValidate_URLEdgeCases(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/mfa/verify/", nil)
@@ -558,7 +558,7 @@ func TestAudienceValidate_URLEdgeCases(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		claims, err := helpers.ParseToken(audienceTestJWTSecret, "Bearer "+token, true)
+		claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 		require.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodPost, "/api/v1//auth/mfa/verify", nil)
@@ -719,12 +719,7 @@ func TestAudienceValidate_ComprehensiveMatrix(t *testing.T) {
 			}
 			require.NoError(t, err)
 
-			requireBearer := tc.audience != configuration.AudienceRefreshToken
-			if requireBearer {
-				token = "Bearer " + token
-			}
-
-			claims, err := helpers.ParseToken(audienceTestJWTSecret, token, requireBearer)
+			claims, err := helpers.ParseToken(audienceTestJWTSecret, token)
 			require.NoError(t, err)
 
 			req := httptest.NewRequest(tc.method, tc.path, nil)

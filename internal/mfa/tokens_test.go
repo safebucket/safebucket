@@ -50,7 +50,7 @@ func TestHandleMFARequired(t *testing.T) {
 		token, err := HandleMFARequired(logger, cfg, user)
 		require.NoError(t, err)
 
-		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, "Bearer "+token, true)
+		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, token)
 		require.NoError(t, parseErr)
 		assert.Equal(t, configuration.AudienceMFALogin, claims.AudienceString())
 	})
@@ -62,7 +62,7 @@ func TestHandleMFARequired(t *testing.T) {
 		token, err := HandleMFARequired(logger, cfg, user)
 		require.NoError(t, err)
 
-		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, "Bearer "+token, true)
+		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, token)
 		require.NoError(t, parseErr)
 		assert.Equal(t, user.ID, claims.UserID)
 		assert.Equal(t, user.Email, claims.Email)
@@ -75,7 +75,7 @@ func TestHandleMFARequired(t *testing.T) {
 		token, err := HandleMFARequired(logger, cfg, user)
 		require.NoError(t, err)
 
-		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, "Bearer "+token, true)
+		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, token)
 		require.NoError(t, parseErr)
 		assert.False(t, claims.MFA)
 	})
@@ -87,7 +87,7 @@ func TestHandleMFARequired(t *testing.T) {
 		token, err := HandleMFARequired(logger, cfg, user)
 		require.NoError(t, err)
 
-		_, parseErr := helpers.ParseToken(cfg.TokenSecret, "Bearer "+token, true)
+		_, parseErr := helpers.ParseToken(cfg.TokenSecret, token)
 		require.NoError(t, parseErr)
 	})
 }
@@ -112,7 +112,7 @@ func TestGenerateTokens(t *testing.T) {
 		_, tokens, err := GenerateTokens(cfg, user)
 		require.NoError(t, err)
 
-		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, "Bearer "+tokens.AccessToken, true)
+		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, tokens.AccessToken)
 		require.NoError(t, parseErr)
 		assert.Equal(t, configuration.AudienceAccessToken, claims.AudienceString())
 	})
@@ -136,7 +136,7 @@ func TestGenerateTokens(t *testing.T) {
 		sid, tokens, err := GenerateTokens(cfg, user)
 		require.NoError(t, err)
 
-		accessClaims, err := helpers.ParseToken(cfg.TokenSecret, "Bearer "+tokens.AccessToken, true)
+		accessClaims, err := helpers.ParseToken(cfg.TokenSecret, tokens.AccessToken)
 		require.NoError(t, err)
 		assert.Equal(t, sid, accessClaims.SID)
 
@@ -152,7 +152,7 @@ func TestGenerateTokens(t *testing.T) {
 		_, tokens, err := GenerateTokens(cfg, user)
 		require.NoError(t, err)
 
-		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, "Bearer "+tokens.AccessToken, true)
+		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, tokens.AccessToken)
 		require.NoError(t, parseErr)
 		assert.Equal(t, user.ID, claims.UserID)
 		assert.Equal(t, user.Email, claims.Email)
@@ -180,7 +180,7 @@ func TestGenerateTokens(t *testing.T) {
 		_, tokens, err := GenerateTokens(cfg, user)
 		require.NoError(t, err)
 
-		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, tokens.AccessToken, false)
+		claims, parseErr := helpers.ParseToken(cfg.TokenSecret, tokens.AccessToken)
 		require.NoError(t, parseErr)
 		assert.Equal(t, "app:*", claims.Audience[0])
 	})
@@ -193,7 +193,7 @@ func TestGenerateTokens(t *testing.T) {
 		_, tokens, err := GenerateTokens(cfg, user)
 		require.NoError(t, err)
 
-		accessClaims, err := helpers.ParseToken(cfg.TokenSecret, "Bearer "+tokens.AccessToken, true)
+		accessClaims, err := helpers.ParseToken(cfg.TokenSecret, tokens.AccessToken)
 		require.NoError(t, err)
 		assert.Equal(t, "okta", accessClaims.Provider)
 

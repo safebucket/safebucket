@@ -41,7 +41,25 @@ func (w *GarbageCollectorWorker) Start(ctx context.Context) {
 		{Name: "expired_shares", Fn: w.cleanupExpiredShares},
 		{Name: "max_views_shares", Fn: w.cleanupMaxViewsShares},
 		{Name: "expired_sessions", Fn: w.cleanupExpiredSessions},
+		{Name: "expired_tokens", Fn: w.cleanupExpiredTokens},
 	})
+}
+
+func (w *GarbageCollectorWorker) cleanupExpiredTokens(_ context.Context) (int, error) {
+	result := w.DB.Unscoped().
+		Where("expires_at < ? OR revoked_at IS NOT NULL OR deleted_at IS NOT NULL", time.Now()).
+		Limit(GCBatchSize).
+		Delete(&models.APIToken{})
+
+	if result.Error != nil {
+		return 0, result.Error
+	}
+
+	if result.RowsAffected > 0 {
+		zap.L().Debug("Deleted expired or revoked api tokens", zap.Int64("count", result.RowsAffected))
+	}
+
+	return int(result.RowsAffected), nil
 }
 
 // cleanupStaleUploads deletes files stuck in "uploading" status beyond the threshold.

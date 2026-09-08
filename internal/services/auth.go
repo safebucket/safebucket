@@ -110,6 +110,10 @@ func (s AuthService) finalizeLogin(
 	providerName string,
 	providerMFARequired bool,
 ) (handlers.AuthFlowResult, error) {
+	if user.ProviderType == models.ServiceAccountProviderType {
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
+	}
+
 	verifiedDevices := user.GetVerifiedDevices()
 	hasMFA := len(verifiedDevices) > 0
 
@@ -234,7 +238,7 @@ func (s AuthService) Verify(
 	_ uuid.UUIDs,
 	body models.AuthVerifyBody,
 ) (any, error) {
-	claims, err := h.ParseToken(s.AuthConfig.TokenSecret, body.AccessToken, true)
+	claims, err := h.ParseToken(s.AuthConfig.TokenSecret, body.AccessToken)
 	if err != nil {
 		return models.UserClaims{}, apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidAccessToken)
 	}

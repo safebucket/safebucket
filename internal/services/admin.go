@@ -52,7 +52,7 @@ func (s AdminService) GetStats(
 ) (models.AdminStatsResponse, error) {
 	var response models.AdminStatsResponse
 
-	s.DB.Model(&models.User{}).Count(&response.TotalUsers)
+	s.DB.Model(&models.User{}).Scopes(sql.ExcludeServiceAccounts).Count(&response.TotalUsers)
 
 	s.DB.Model(&models.Bucket{}).Count(&response.TotalBuckets)
 
