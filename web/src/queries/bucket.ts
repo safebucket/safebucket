@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { toast } from "sonner";
+import type { QueryClient } from "@tanstack/react-query";
 import type { IActivityPage } from "@/types/activity";
 import type { ActivityRange } from "@/components/activity-view/components/ActivityDateRangePicker";
 import type {
@@ -42,6 +43,24 @@ export const bucketsActivityInfiniteQueryOptions = (
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.next_cursor ?? undefined,
   });
+
+export const removeBucketItemsFromCache = (
+  queryClient: QueryClient,
+  bucketId: string,
+  itemIds: Set<string>,
+): IBucket | undefined => {
+  const previous = queryClient.getQueryData<IBucket>(["buckets", bucketId]);
+  queryClient.setQueryData<IBucket>(["buckets", bucketId], (old) =>
+    old
+      ? {
+          ...old,
+          files: old.files.filter((file) => !itemIds.has(file.id)),
+          folders: old.folders.filter((folder) => !itemIds.has(folder.id)),
+        }
+      : old,
+  );
+  return previous;
+};
 
 export const bucketDataQueryOptions = (bucketId: string) =>
   queryOptions({

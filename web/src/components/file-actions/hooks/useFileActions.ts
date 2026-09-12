@@ -1,17 +1,22 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import type { IFileActions } from "@/components/file-actions/helpers/types";
+import type { IBucket } from "@/types/bucket.ts";
 import {
   api_downloadFile,
   downloadFromStorage,
 } from "@/components/file-actions/helpers/api";
+import { errorToast } from "@/lib/toast";
+import { removeBucketItemsFromCache } from "@/queries/bucket";
 import {
   createFolderMutationFn,
   deleteFileMutationFn,
 } from "@/components/upload/helpers/api.ts";
 
 export const useFileActions = (): IFileActions => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { bucketId, folderId } = useParams({
     from: "/_authenticated/buckets/$bucketId/files/{-$folderId}",
@@ -27,11 +32,31 @@ export const useFileActions = (): IFileActions => {
 
   const deleteFileMutation = useMutation({
     mutationFn: deleteFileMutationFn,
+    onMutate: async ({ fileId }) => {
+      await queryClient.cancelQueries({ queryKey: ["buckets", bucketId] });
+      const previous = removeBucketItemsFromCache(
+        queryClient,
+        bucketId,
+        new Set([fileId]),
+      );
+      return { previous };
+    },
     onSuccess: ({ filename }) => {
-      queryClient.invalidateQueries({ queryKey: ["buckets"] });
+      queryClient.invalidateQueries({
+        queryKey: ["buckets", bucketId, "trash"],
+      });
       if (filename) {
-        toast.success(`File "${filename}" has been moved to trash.`);
+        toast.success(t("bucket.bulk_trash.success", { count: 1 }));
       }
+    },
+    onError: (err, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData<IBucket>(
+          ["buckets", bucketId],
+          context.previous,
+        );
+      }
+      errorToast(err as Error);
     },
   });
 

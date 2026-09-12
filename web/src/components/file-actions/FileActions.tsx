@@ -141,6 +141,7 @@ export const FileActions: FC<IFileActionsProps> = ({
           />
           <CustomAlertDialog
             {...deleteFileDialog.props}
+            destructive
             title={t("file_actions.delete_dialog.title", {
               fileName: file.name,
             })}
@@ -148,6 +149,7 @@ export const FileActions: FC<IFileActionsProps> = ({
               retentionDays: trashRetentionDays,
             })}
             confirmLabel={t("file_actions.delete_dialog.confirm")}
+            cancelLabel={t("common.cancel")}
             onConfirm={() => deleteFile(file.id, file.name, !isFile(file))}
           />
         </>

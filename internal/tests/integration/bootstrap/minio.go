@@ -18,7 +18,7 @@ import (
 )
 
 // Can be override via the MINIO_IMAGE env var
-const defaultMinIOImage = "minio/minio:RELEASE.2024-01-16T16-07-38Z"
+const defaultMinIOImage = "quay.io/minio/minio:RELEASE.2024-01-16T16-07-38Z"
 
 type MinIOInstance struct {
 	Endpoint         string

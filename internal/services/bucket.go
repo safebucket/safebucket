@@ -83,7 +83,8 @@ func (s BucketService) Routes() chi.Router {
 		}.Routes())
 
 		r.Mount("/trash", BucketTrashService{
-			DB: s.DB,
+			DB:        s.DB,
+			Publisher: s.Publisher,
 		}.Routes())
 
 		r.Mount("/folders", BucketFolderService{
@@ -201,6 +202,9 @@ func (s BucketService) GetBucket(
 	if err != nil {
 		return bucket, err
 	}
+	bucket.Files = []models.File{}
+	bucket.Folders = []models.Folder{}
+
 	now := time.Now()
 	expirationTime := now.Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 
@@ -218,7 +222,8 @@ func (s BucketService) GetBucket(
 	}
 
 	folders := make([]models.Folder, 0)
-	if err = s.DB.Where("bucket_id = ?", bucketID).Find(&folders).Error; err != nil {
+	if err = s.DB.Where("bucket_id = ? AND status = ?", bucketID, models.FolderStatusCreated).
+		Find(&folders).Error; err != nil {
 		logger.Error("Failed to list folders", zap.Error(err))
 		return bucket, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
