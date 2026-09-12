@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { Calendar, Eye, EyeOff, Lock, Upload } from "lucide-react";
+import { Calendar, Eye, EyeOff, Link, Lock, Upload } from "lucide-react";
 import { useState } from "react";
 import { Controller } from "react-hook-form";
 import type { Control } from "react-hook-form";
@@ -19,18 +19,22 @@ interface IQuickShareOptionsStepProps {
   scope: ShareScope;
   control: Control<IQuickShareForm>;
   hasExpiry: boolean;
+  hasCustomID: boolean;
   limitViews: boolean;
   passwordProtected: boolean;
   allowUploads: boolean;
+  allowCustomShareLinks: boolean;
 }
 
 export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
   scope,
   control,
   hasExpiry,
+  hasCustomID,
   limitViews,
   passwordProtected,
   allowUploads,
+  allowCustomShareLinks,
 }) => {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
@@ -50,6 +54,79 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
           />
         </div>
       </div>
+
+      {allowCustomShareLinks && (
+        <>
+          <Separator />
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Link className="text-muted-foreground h-4 w-4" />
+                  <Label htmlFor="custom-path-toggle">
+                    {t("quick_share.custom_path")}
+                  </Label>
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  {t("quick_share.custom_path_description")}
+                </p>
+              </div>
+              <Controller
+                name="hasCustomID"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Switch
+                    id="custom-path-toggle"
+                    checked={value}
+                    onCheckedChange={onChange}
+                  />
+                )}
+              />
+            </div>
+            {hasCustomID && (
+              <Controller
+                name="customID"
+                control={control}
+                rules={{
+                  validate: (value, values) =>
+                    !values.hasCustomID ||
+                    value === "" ||
+                    (value.length >= 3 &&
+                      value.length <= 255 &&
+                      /^[a-zA-Z0-9_-]+$/.test(value) &&
+                      !/^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i.test(
+                        value,
+                      )),
+                }}
+                render={({ field: { onChange, value }, fieldState }) => (
+                  <div className="space-y-1">
+                    <div className="flex flex-nowrap items-center">
+                      <span className="bg-muted text-muted-foreground flex h-9 shrink-0 items-center rounded-l-3xl px-3 text-sm whitespace-nowrap">
+                        {t("quick_share.custom_path_prefix")}
+                      </span>
+                      <Input
+                        type="text"
+                        value={value}
+                        onChange={onChange}
+                        placeholder={t("quick_share.custom_path_placeholder")}
+                        aria-label={t("quick_share.custom_path")}
+                        aria-invalid={fieldState.invalid}
+                        className="min-w-0 flex-1 rounded-l-none"
+                      />
+                    </div>
+                    {fieldState.invalid && (
+                      <p className="text-destructive text-xs">
+                        {t("quick_share.custom_path_invalid")}
+                      </p>
+                    )}
+                  </div>
+                )}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       <Separator />
 

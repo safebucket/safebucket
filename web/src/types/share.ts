@@ -6,6 +6,7 @@ export type ShareScope = "files" | "folder" | "bucket";
 
 export interface IShare {
   id: string;
+  custom_id: string | null;
   name: string;
   bucket_id: string;
   folder_id: string | null;
@@ -30,6 +31,7 @@ export interface IShareFile {
 }
 
 export interface IShareCreateBody {
+  custom_id?: string;
   name: string;
   type: ShareScope;
   file_ids?: Array<string>;
@@ -44,6 +46,7 @@ export interface IShareCreateBody {
 
 export interface IPublicShareResponse {
   id: string;
+  custom_id: string | null;
   name: string;
   type: ShareScope;
   folder_id: string | null;

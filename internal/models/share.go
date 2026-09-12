@@ -17,6 +17,7 @@ const (
 
 type Share struct {
 	ID                uuid.UUID      `gorm:"default:(-)"            json:"id"`
+	CustomID          *string        `                              json:"custom_id"`
 	Name              string         `gorm:"not null"               json:"name"`
 	BucketID          uuid.UUID      `gorm:"not null"               json:"bucket_id"`
 	Bucket            Bucket         `                              json:"-"`
@@ -62,6 +63,7 @@ type ShareFile struct {
 
 type PublicShareResponse struct {
 	ID                uuid.UUID  `json:"id"`
+	CustomID          *string    `json:"custom_id"`
 	Name              string     `json:"name"`
 	Type              ShareType  `json:"type"`
 	FolderID          *uuid.UUID `json:"folder_id"`
@@ -89,6 +91,7 @@ type ShareAuthBody struct {
 }
 
 type ShareCreateBody struct {
+	CustomID      string      `json:"custom_id"       validate:"omitempty,min=3,max=255,sharecustomid"`
 	Name          string      `json:"name"            validate:"required,min=1,max=255"`
 	Type          ShareType   `json:"type"            validate:"required,oneof=files folder bucket"`
 	FolderID      *uuid.UUID  `json:"folder_id"       validate:"required_if=Type folder,omitempty,uuid"`

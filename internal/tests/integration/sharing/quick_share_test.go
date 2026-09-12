@@ -5,6 +5,7 @@ package sharing_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -307,6 +308,120 @@ func TestQuickShareListAndDelete(t *testing.T) {
 					ownerToken, nil)
 				assert.Equal(t, http.StatusNotFound, status)
 			})
+		})
+	}
+}
+
+func TestCustomShareIDs(t *testing.T) {
+	for _, scenario := range bootstrap.ActiveScenarios() {
+		t.Run(scenario, func(t *testing.T) {
+			cfg := bootstrap.WithLocalSharing(bootstrap.LoadScenario(t, scenario), true)
+			app := bootstrap.BootTestApp(t, cfg)
+
+			owner := app.CreateUser(t, "qspathowner@example.com")
+			ownerToken := app.LoginAs(t, owner.Email)
+			bucket := app.CreateBucket(t, ownerToken, "qs-path-bucket")
+
+			standard := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
+				Name: "standard-path",
+				Type: models.ShareTypeBucket,
+			})
+			assert.Nil(t, standard.CustomID)
+			another := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
+				Name: "another-standard", Type: models.ShareTypeBucket,
+			})
+			assert.Nil(t, another.CustomID)
+			for _, ordinary := range []models.Share{standard, another} {
+				var view models.PublicShareResponse
+				require.Equal(t, http.StatusOK, app.DoPublicShare(t, http.MethodGet,
+					"/api/v1/shares/"+ordinary.ID.String(), "", nil, &view))
+				assert.Equal(t, ordinary.ID, view.ID)
+			}
+			compactID := strings.ReplaceAll(standard.ID.String(), "-", "")
+			assert.Equal(t, http.StatusNotFound, app.DoPublicShare(t, http.MethodGet,
+				"/api/v1/shares/"+compactID, "", nil, nil))
+			for _, reserved := range []string{standard.ID.String(), "550e8400e29b41d4a716446655440000"} {
+				status := app.DoStatus(t, http.MethodPost,
+					fmt.Sprintf("/api/v1/buckets/%s/shares", bucket.ID), ownerToken,
+					models.ShareCreateBody{CustomID: reserved, Name: "reserved", Type: models.ShareTypeBucket})
+				assert.Equal(t, http.StatusBadRequest, status)
+			}
+
+			custom := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
+				CustomID: "Project_files-2026",
+				Name:     "custom-path",
+				Type:     models.ShareTypeBucket,
+			})
+			assert.Equal(t, "Project_files-2026", *custom.CustomID)
+
+			var publicView models.PublicShareResponse
+			status := app.DoPublicShare(t, http.MethodGet,
+				"/api/v1/shares/Project_files-2026", "", nil, &publicView)
+			require.Equal(t, http.StatusOK, status)
+			assert.Equal(t, custom.ID, publicView.ID)
+			assert.Equal(t, custom.CustomID, publicView.CustomID)
+			assert.Equal(t, http.StatusNotFound, app.DoPublicShare(t, http.MethodGet,
+				"/api/v1/shares/"+custom.ID.String(), "", nil, nil))
+
+			secret := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
+				CustomID: "secret-project", Name: "secret", Type: models.ShareTypeBucket, Password: qsSharePassword,
+			})
+			status, cookie := app.AuthenticateShare(t, *secret.CustomID, qsSharePassword)
+			require.Equal(t, http.StatusOK, status)
+			require.Equal(t, http.StatusOK, app.DoPublicShare(t, http.MethodGet,
+				"/api/v1/shares/"+*secret.CustomID, cookie, nil, nil))
+
+			status = app.DoStatus(t, http.MethodPost,
+				fmt.Sprintf("/api/v1/buckets/%s/shares", bucket.ID), ownerToken,
+				models.ShareCreateBody{CustomID: *custom.CustomID, Name: "duplicate", Type: models.ShareTypeBucket})
+			assert.Equal(t, http.StatusConflict, status)
+
+			caseVariant := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
+				CustomID: "project_files-2026",
+				Name:     "case-variant",
+				Type:     models.ShareTypeBucket,
+			})
+			assert.Equal(t, "project_files-2026", *caseVariant.CustomID)
+
+			status = app.DoStatus(t, http.MethodPost,
+				fmt.Sprintf("/api/v1/buckets/%s/shares", bucket.ID), ownerToken,
+				models.ShareCreateBody{CustomID: "invalid/path", Name: "invalid", Type: models.ShareTypeBucket})
+			assert.Equal(t, http.StatusBadRequest, status)
+
+			status = app.DoStatus(t, http.MethodDelete,
+				fmt.Sprintf("/api/v1/buckets/%s/shares/%s", bucket.ID, custom.ID), ownerToken, nil)
+			require.Equal(t, http.StatusNoContent, status)
+			reused := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
+				CustomID: *custom.CustomID,
+				Name:     "reused-path",
+				Type:     models.ShareTypeBucket,
+			})
+			assert.Equal(t, custom.CustomID, reused.CustomID)
+		})
+	}
+}
+
+func TestCustomShareIDsDisabled(t *testing.T) {
+	for _, scenario := range bootstrap.ActiveScenarios() {
+		t.Run(scenario, func(t *testing.T) {
+			cfg := bootstrap.WithLocalSharing(bootstrap.LoadScenario(t, scenario), true)
+			cfg.App.AllowCustomShareLinks = false
+			app := bootstrap.BootTestApp(t, cfg)
+
+			owner := app.CreateUser(t, "qspathdisabledowner@example.com")
+			ownerToken := app.LoginAs(t, owner.Email)
+			bucket := app.CreateBucket(t, ownerToken, "qs-disabled-path-bucket")
+
+			standard := app.CreateShare(t, ownerToken, bucket.ID.String(), models.ShareCreateBody{
+				Name: "standard-path",
+				Type: models.ShareTypeBucket,
+			})
+			assert.Nil(t, standard.CustomID)
+
+			status := app.DoStatus(t, http.MethodPost,
+				fmt.Sprintf("/api/v1/buckets/%s/shares", bucket.ID), ownerToken,
+				models.ShareCreateBody{CustomID: "custom-path", Name: "custom", Type: models.ShareTypeBucket})
+			assert.Equal(t, http.StatusForbidden, status)
 		})
 	}
 }

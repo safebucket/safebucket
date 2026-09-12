@@ -48,6 +48,7 @@ type AppConfiguration struct {
 	TLSKeyFile                       string                 `mapstructure:"tls_key_file"                        validate:"required_with=TLSCertFile"`
 	CookieSecureForce                bool                   `mapstructure:"cookie_secure_force"`
 	AllowRedirectDownload            bool                   `mapstructure:"allow_redirect_download"`
+	AllowCustomShareLinks            bool                   `mapstructure:"allow_custom_share_links"`
 	RequestTimeoutSeconds            int                    `mapstructure:"request_timeout_seconds"             validate:"gte=1,lte=120"`
 	Profiling                        ProfilingConfiguration `mapstructure:"profiling"`
 }

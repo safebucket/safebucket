@@ -17,6 +17,7 @@ import type { ShareScope } from "@/types/share.ts";
 import { FileStatus } from "@/types/file.ts";
 import { FolderStatus } from "@/types/folder.ts";
 import { isFile } from "@/components/bucket-view/helpers/utils";
+import { useConfig } from "@/hooks/useConfig";
 
 import { QuickShareOptionsStep } from "@/components/quick-share/components/QuickShareOptionsStep";
 import { QuickShareResultStep } from "@/components/quick-share/components/QuickShareResultStep";
@@ -40,6 +41,8 @@ import {
 type Step = 1 | 2 | 3;
 
 export interface IQuickShareForm {
+  hasCustomID: boolean;
+  customID: string;
   name: string;
   scope: ShareScope;
   selectedFileIds: Array<string>;
@@ -67,6 +70,8 @@ function getDefaultValues(
   initialItem?: BucketItem,
 ): IQuickShareForm {
   return {
+    hasCustomID: false,
+    customID: "",
     name: t("quick_share.default_name"),
     scope: initialItem ? (isFile(initialItem) ? "files" : "folder") : "bucket",
     selectedFileIds: initialItem && isFile(initialItem) ? [initialItem.id] : [],
@@ -91,9 +96,10 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   bucketId,
 }) => {
   const { t } = useTranslation();
+  const { allowCustomShareLinks } = useConfig();
   const { data: bucket } = useQuery(bucketDataQueryOptions(bucketId));
 
-  const { control, watch, setValue, reset, getValues } =
+  const { control, watch, setValue, reset, getValues, trigger } =
     useForm<IQuickShareForm>({
       defaultValues: getDefaultValues(t, initialItem),
     });
@@ -104,6 +110,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   const selectedFileIds = watch("selectedFileIds");
   const selectedFolderId = watch("selectedFolderId");
   const hasExpiry = watch("hasExpiry");
+  const hasCustomID = watch("hasCustomID");
   const limitViews = watch("limitViews");
   const passwordProtected = watch("passwordProtected");
   const allowUploads = watch("allowUploads");
@@ -161,9 +168,15 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   };
 
   const handleCreate = async () => {
+    if (!(await trigger())) return;
+
     const values = getValues();
 
     const share = await createShareMutation.mutateAsync({
+      custom_id:
+        allowCustomShareLinks && values.hasCustomID && values.customID
+          ? values.customID
+          : undefined,
       name: values.name,
       type: values.scope,
       file_ids: values.scope === "files" ? values.selectedFileIds : undefined,
@@ -192,7 +205,9 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
           : undefined,
     });
 
-    setGeneratedLink(`${window.location.origin}/shares/${share.id}`);
+    setGeneratedLink(
+      `${window.location.origin}/shares/${share.custom_id ?? share.id}`,
+    );
     setStep(3);
   };
 
@@ -241,9 +256,11 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
               scope={scope}
               control={control}
               hasExpiry={hasExpiry}
+              hasCustomID={hasCustomID}
               limitViews={limitViews}
               passwordProtected={passwordProtected}
               allowUploads={allowUploads}
+              allowCustomShareLinks={allowCustomShareLinks}
             />
           )}
 

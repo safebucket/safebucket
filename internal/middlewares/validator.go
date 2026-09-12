@@ -9,10 +9,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -36,6 +38,8 @@ var allowedNameChars = regexp.MustCompile(`^[\p{L}\p{M}\p{N} ._()&+#@!~=%$;{}^',
 
 var reservedNames = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)`)
 
+var allowedShareID = regexp.MustCompile(`^` + configuration.ShareIDPattern + `$`)
+
 func validateFilename(fl validator.FieldLevel) bool {
 	name := fl.Field().String()
 
@@ -56,6 +60,16 @@ func validateFutureDate(fl validator.FieldLevel) bool {
 		return false
 	}
 	return t.After(time.Now())
+}
+
+func validateShareCustomID(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	_, err := uuid.Parse(value)
+	return err != nil && validateShareID(value)
+}
+
+func validateShareID(value string) bool {
+	return allowedShareID.MatchString(value)
 }
 
 func validationErrorCode(fe validator.FieldError) string {
@@ -102,6 +116,7 @@ func Validate[T any](next http.Handler) http.Handler {
 		_ = validate.RegisterValidation("foldername", validateFilename)
 		_ = validate.RegisterValidation("maxuploadsize", validateMaxUploadSize)
 		_ = validate.RegisterValidation("futuredate", validateFutureDate)
+		_ = validate.RegisterValidation("sharecustomid", validateShareCustomID)
 
 		err = validate.Struct(data)
 		if err != nil {

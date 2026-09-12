@@ -18,8 +18,9 @@ import (
 )
 
 type BucketShareService struct {
-	DB             *gorm.DB
-	ActivityLogger activity.IActivityLogger
+	DB                    *gorm.DB
+	ActivityLogger        activity.IActivityLogger
+	AllowCustomShareLinks bool
 }
 
 func (s BucketShareService) Routes() chi.Router {
@@ -41,6 +42,22 @@ func (s BucketShareService) CreateShare(
 	body models.ShareCreateBody,
 ) (models.Share, error) {
 	bucketID := ids[0]
+	if body.CustomID != "" && !s.AllowCustomShareLinks {
+		return models.Share{}, apierrors.New(http.StatusForbidden, apierrors.CodeCustomShareLinksDisabled)
+	}
+
+	var customID *string
+	if body.CustomID != "" {
+		customID = &body.CustomID
+		result := s.DB.Where("custom_id = ?", body.CustomID).Find(&models.Share{})
+		if result.Error != nil {
+			logger.Error("Failed to check share custom ID", zap.Error(result.Error))
+			return models.Share{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+		if result.RowsAffected > 0 {
+			return models.Share{}, apierrors.New(http.StatusConflict, apierrors.CodeShareCustomIDAlreadyExists)
+		}
+	}
 
 	var bucket models.Bucket
 	if s.DB.Where("id = ?", bucketID).Find(&bucket).RowsAffected == 0 {
@@ -77,6 +94,7 @@ func (s BucketShareService) CreateShare(
 	}
 
 	share := &models.Share{
+		CustomID:       customID,
 		Name:           body.Name,
 		BucketID:       bucketID,
 		FolderID:       body.FolderID,
@@ -129,7 +147,7 @@ func (s BucketShareService) CreateShare(
 	})
 
 	if txErr != nil {
-		return models.Share{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		return models.Share{}, s.createShareError(customID)
 	}
 
 	share.PasswordProtected = hashedPassword != ""
@@ -200,4 +218,18 @@ func (s BucketShareService) DeleteShare(
 
 		return nil
 	})
+}
+
+// createShareError tells a custom ID taken between the pre-flight check and the insert apart from
+// a genuine failure, since the unique index is what ultimately rejects the race.
+func (s BucketShareService) createShareError(customID *string) error {
+	if customID != nil {
+		var count int64
+		result := s.DB.Model(&models.Share{}).Where("custom_id = ?", *customID).Count(&count)
+		if result.Error == nil && count > 0 {
+			return apierrors.New(http.StatusConflict, apierrors.CodeShareCustomIDAlreadyExists)
+		}
+	}
+
+	return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 }
