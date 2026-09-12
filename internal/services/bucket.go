@@ -222,7 +222,8 @@ func (s BucketService) GetBucket(
 	}
 
 	folders := make([]models.Folder, 0)
-	if err = s.DB.Where("bucket_id = ? AND status = ?", bucketID, models.FolderStatusCreated).Find(&folders).Error; err != nil {
+	if err = s.DB.Where("bucket_id = ? AND status = ?", bucketID, models.FolderStatusCreated).
+		Find(&folders).Error; err != nil {
 		logger.Error("Failed to list folders", zap.Error(err))
 		return bucket, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
