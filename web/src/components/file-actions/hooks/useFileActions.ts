@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import type { IFileActions } from "@/components/file-actions/helpers/types";
 import type { IBucket } from "@/types/bucket.ts";
@@ -15,6 +16,7 @@ import {
 } from "@/components/upload/helpers/api.ts";
 
 export const useFileActions = (): IFileActions => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { bucketId, folderId } = useParams({
     from: "/_authenticated/buckets/$bucketId/files/{-$folderId}",
@@ -44,7 +46,7 @@ export const useFileActions = (): IFileActions => {
         queryKey: ["buckets", bucketId, "trash"],
       });
       if (filename) {
-        toast.success(`File "${filename}" has been moved to trash.`);
+        toast.success(t("bucket.bulk_trash.success", { count: 1 }));
       }
     },
     onError: (err, _variables, context) => {

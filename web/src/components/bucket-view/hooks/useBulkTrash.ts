@@ -7,6 +7,7 @@ import type { BucketItem, IBucket } from "@/types/bucket.ts";
 import { errorToast } from "@/lib/toast";
 import { removeBucketItemsFromCache } from "@/queries/bucket";
 import { api } from "@/lib/api";
+import { isFile, isFolder } from "@/components/bucket-view/helpers/utils";
 
 interface IUseBulkTrashArgs {
   bucketId: string;
@@ -14,8 +15,6 @@ interface IUseBulkTrashArgs {
   rowSelection: RowSelectionState;
   clearRowSelection: () => void;
 }
-
-const isFolder = (item: BucketItem): boolean => !("size" in item);
 
 export const useBulkTrash = ({
   bucketId,
@@ -34,9 +33,7 @@ export const useBulkTrash = ({
   const mutation = useMutation({
     mutationFn: (selected: Array<BucketItem>) => {
       const folderIds = selected.filter(isFolder).map((item) => item.id);
-      const fileIds = selected
-        .filter((item) => !isFolder(item))
-        .map((item) => item.id);
+      const fileIds = selected.filter(isFile).map((item) => item.id);
       return api.post(`/buckets/${bucketId}/trash`, {
         folder_ids: folderIds,
         file_ids: fileIds,
