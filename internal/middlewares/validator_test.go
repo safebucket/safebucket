@@ -14,12 +14,12 @@ import (
 )
 
 type TestValidate struct {
-	Name       string `json:"name"       validate:"required"`
-	Email      string `json:"email"      validate:"required,email"`
-	Filename   string `json:"filename"   validate:"filename"`
-	Foldername string `json:"foldername" validate:"omitempty,foldername"`
-	Type       string `json:"type"       validate:"omitempty,oneof=file folder"`
-	SharePath  string `json:"share_path" validate:"omitempty,min=3,max=255,sharepath"`
+	Name          string `json:"name"       validate:"required"`
+	Email         string `json:"email"      validate:"required,email"`
+	Filename      string `json:"filename"   validate:"filename"`
+	Foldername    string `json:"foldername" validate:"omitempty,foldername"`
+	Type          string `json:"type"       validate:"omitempty,oneof=file folder"`
+	ShareCustomID string `json:"custom_id"  validate:"omitempty,min=3,max=255,sharecustomid"`
 }
 
 func mockNextHandler(w http.ResponseWriter, r *http.Request) {
@@ -176,12 +176,15 @@ func TestValidateMiddleware(t *testing.T) {
 	}
 }
 
-func TestValidateSharePath(t *testing.T) {
+func TestValidateShareCustomID(t *testing.T) {
 	testCases := []struct {
 		name           string
 		path           string
 		expectedStatus int
 	}{
+		{name: "empty", path: "", expectedStatus: http.StatusOK},
+		{name: "UUID", path: "550e8400-e29b-41d4-a716-446655440000", expectedStatus: http.StatusBadRequest},
+		{name: "compact UUID", path: "550e8400e29b41d4a716446655440000", expectedStatus: http.StatusBadRequest},
 		{name: "valid", path: "Project_files-2026", expectedStatus: http.StatusOK},
 		{name: "invalid characters", path: "project/files", expectedStatus: http.StatusBadRequest},
 		{name: "too short", path: "ab", expectedStatus: http.StatusBadRequest},
@@ -190,7 +193,7 @@ func TestValidateSharePath(t *testing.T) {
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
 			body := map[string]string{
-				"name": "John Doe", "email": "john@example.com", "filename": "file.txt", "share_path": tt.path,
+				"name": "John Doe", "email": "john@example.com", "filename": "file.txt", "custom_id": tt.path,
 			}
 			encoded, err := json.Marshal(body)
 			assert.NoError(t, err)

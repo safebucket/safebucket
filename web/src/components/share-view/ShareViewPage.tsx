@@ -43,7 +43,7 @@ export const ShareViewPage: FC<IShareConsumerPageProps> = ({ path }) => {
       await fetchShareContent();
     } catch (err) {
       const code = err instanceof Error ? err.message : "INTERNAL_SERVER_ERROR";
-      if (code === "SHARE_TOKEN_REQUIRED") {
+      if (code === "SHARE_TOKEN_REQUIRED" || code === "SHARE_TOKEN_INVALID") {
         setState({ step: "password" });
       } else {
         setError(t(`errors.${code}`));

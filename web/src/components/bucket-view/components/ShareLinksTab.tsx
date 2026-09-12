@@ -48,7 +48,7 @@ export const ShareLinksTab: FC<IShareLinksTabProps> = ({
   );
 
   const shareUrl = (share: IShare) =>
-    `${window.location.origin}/shares/${share.path}`;
+    `${window.location.origin}/shares/${share.custom_id ?? share.id}`;
 
   const copyLink = (share: IShare) => {
     navigator.clipboard.writeText(shareUrl(share));
@@ -119,7 +119,7 @@ export const ShareLinksTab: FC<IShareLinksTabProps> = ({
             onClick={() => copyLink(share)}
             className="hover:text-primary cursor-pointer font-mono text-xs"
           >
-            {share.path}
+            {share.custom_id ?? share.id}
           </button>
         ),
       },

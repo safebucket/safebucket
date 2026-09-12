@@ -19,22 +19,22 @@ interface IQuickShareOptionsStepProps {
   scope: ShareScope;
   control: Control<IQuickShareForm>;
   hasExpiry: boolean;
-  hasCustomPath: boolean;
+  hasCustomID: boolean;
   limitViews: boolean;
   passwordProtected: boolean;
   allowUploads: boolean;
-  customShareLinksEnabled: boolean;
+  allowCustomShareLinks: boolean;
 }
 
 export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
   scope,
   control,
   hasExpiry,
-  hasCustomPath,
+  hasCustomID,
   limitViews,
   passwordProtected,
   allowUploads,
-  customShareLinksEnabled,
+  allowCustomShareLinks,
 }) => {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
@@ -55,7 +55,7 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
         </div>
       </div>
 
-      {customShareLinksEnabled && (
+      {allowCustomShareLinks && (
         <>
           <Separator />
 
@@ -73,7 +73,7 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
                 </p>
               </div>
               <Controller
-                name="hasCustomPath"
+                name="hasCustomID"
                 control={control}
                 render={({ field: { onChange, value } }) => (
                   <Switch
@@ -84,17 +84,20 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
                 )}
               />
             </div>
-            {hasCustomPath && (
+            {hasCustomID && (
               <Controller
-                name="path"
+                name="customID"
                 control={control}
                 rules={{
                   validate: (value, values) =>
-                    !values.hasCustomPath ||
+                    !values.hasCustomID ||
                     value === "" ||
                     (value.length >= 3 &&
                       value.length <= 255 &&
-                      /^[a-zA-Z0-9_-]+$/.test(value)),
+                      /^[a-zA-Z0-9_-]+$/.test(value) &&
+                      !/^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i.test(
+                        value,
+                      )),
                 }}
                 render={({ field: { onChange, value }, fieldState }) => (
                   <div className="space-y-1">

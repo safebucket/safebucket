@@ -55,7 +55,7 @@ func TestMigrationsPreserveData(t *testing.T) {
 
 			var migratedShare models.Share
 			require.NoError(t, db.First(&migratedShare).Error)
-			assert.Equal(t, migratedShare.ID.String(), migratedShare.Path)
+			assert.Nil(t, migratedShare.CustomID)
 		})
 	}
 }
@@ -119,7 +119,7 @@ func seedDB(t *testing.T, db *gorm.DB) {
 		Type:      models.ShareTypeBucket,
 		CreatedBy: user.ID,
 	}
-	require.NoError(t, db.Omit("Path").Create(&share).Error)
+	require.NoError(t, db.Omit("CustomID").Create(&share).Error)
 
 	require.NoError(t, db.Create(&models.ShareFile{ShareID: share.ID, FileID: file.ID}).Error)
 }

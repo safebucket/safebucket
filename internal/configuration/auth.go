@@ -6,7 +6,7 @@ import (
 )
 
 const UUIDv4Pattern = `[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}`
-const SharePathPattern = `[a-zA-Z0-9_-]{3,255}`
+const ShareIDPattern = `[a-zA-Z0-9_-]{3,255}`
 
 var AuthExcludedExactPaths = map[string]string{
 	"/api/v1/auth/login":          http.MethodPost,
@@ -48,7 +48,7 @@ var AuthExcludedPatterns = []AuthPatternRule{
 	},
 	{
 		Pattern: regexp.MustCompile(
-			`^/api/v1/shares/` + SharePathPattern +
+			`^/api/v1/shares/` + ShareIDPattern +
 				`(/auth|/download|/files(/` + UUIDv4Pattern + `(/url|/download)?)?|/?)$`,
 		),
 		Method: "*",
