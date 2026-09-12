@@ -13,6 +13,8 @@ const (
 	CodeShareMaxUploadsReached    = "SHARE_MAX_UPLOADS_REACHED"
 	CodeShareUploadSizeExceeded   = "SHARE_UPLOAD_SIZE_EXCEEDED"
 	CodeShareNotSingleFile        = "SHARE_NOT_SINGLE_FILE"
+	CodeSharePathAlreadyExists    = "SHARE_PATH_ALREADY_EXISTS"
+	CodeCustomShareLinksDisabled  = "CUSTOM_SHARE_LINKS_DISABLED"
 	CodeRedirectDownloadDisabled  = "REDIRECT_DOWNLOAD_DISABLED"
 )
 

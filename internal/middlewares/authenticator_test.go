@@ -451,6 +451,18 @@ func TestIsAuthExcluded(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "Excluded - custom share path with GET",
+			path:     "/api/v1/shares/Project_files-2026",
+			method:   "GET",
+			expected: true,
+		},
+		{
+			name:     "Excluded - custom share path auth with POST",
+			path:     "/api/v1/shares/not-a-uuid/auth",
+			method:   "POST",
+			expected: true,
+		},
+		{
 			name:     "Excluded - /api/v1/shares/{id}/ trailing slash with GET",
 			path:     "/api/v1/shares/550e8400-e29b-41d4-a716-446655440000/",
 			method:   "GET",
@@ -534,17 +546,16 @@ func TestIsAuthExcluded_AdversarialInputs(t *testing.T) {
 		{"trailing slash on login exact path", "/api/v1/auth/login/", "POST"},
 
 		{"providers prefix over-match", "/api/v1/auth/providersEVIL", "GET"},
-		{"shares uuid suffix over-match", "/api/v1/shares/" + shareID + "extra", "GET"},
 		{"shares files suffix over-match", "/api/v1/shares/" + shareID + "/filesEVIL", "GET"},
+		{"share path too short", "/api/v1/shares/ab", "GET"},
+		{"share path contains dot", "/api/v1/shares/project.files", "GET"},
 
 		{"providers list with POST", "/api/v1/auth/providers", "POST"},
 		{"providers list with DELETE", "/api/v1/auth/providers", "DELETE"},
 		{"providers begin with POST", "/api/v1/auth/providers/google/begin", "POST"},
 
-		{"non-uuid share id", "/api/v1/shares/not-a-uuid/auth", "POST"},
 		{"non-uuid invite id", "/api/v1/invites/not-a-uuid/challenges", "POST"},
 		{"non-uuid reset-password id", "/api/v1/auth/reset-password/not-a-uuid/validate", "POST"},
-		{"uppercase uuid share id", "/api/v1/shares/550E8400-E29B-41D4-A716-446655440000", "GET"},
 
 		{"unicode lookalike slash in login", "/api/v1/auth／login", "POST"},
 	}

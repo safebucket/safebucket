@@ -19,6 +19,7 @@ type TestValidate struct {
 	Filename   string `json:"filename"   validate:"filename"`
 	Foldername string `json:"foldername" validate:"omitempty,foldername"`
 	Type       string `json:"type"       validate:"omitempty,oneof=file folder"`
+	SharePath  string `json:"share_path" validate:"omitempty,min=3,max=255,sharepath"`
 }
 
 func mockNextHandler(w http.ResponseWriter, r *http.Request) {
@@ -171,6 +172,32 @@ func TestValidateMiddleware(t *testing.T) {
 				errors := models.Error{Status: tt.expectedStatus, Error: tt.expectedErrors}
 				tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, errors)
 			}
+		})
+	}
+}
+
+func TestValidateSharePath(t *testing.T) {
+	testCases := []struct {
+		name           string
+		path           string
+		expectedStatus int
+	}{
+		{name: "valid", path: "Project_files-2026", expectedStatus: http.StatusOK},
+		{name: "invalid characters", path: "project/files", expectedStatus: http.StatusBadRequest},
+		{name: "too short", path: "ab", expectedStatus: http.StatusBadRequest},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func(t *testing.T) {
+			body := map[string]string{
+				"name": "John Doe", "email": "john@example.com", "filename": "file.txt", "share_path": tt.path,
+			}
+			encoded, err := json.Marshal(body)
+			assert.NoError(t, err)
+			recorder := httptest.NewRecorder()
+			handler := Validate[TestValidate](http.HandlerFunc(mockNextHandler))
+			handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/test", bytes.NewReader(encoded)))
+			assert.Equal(t, tt.expectedStatus, recorder.Code)
 		})
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 
+	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 )
 
@@ -18,15 +19,10 @@ type ShareKey struct{}
 func ValidateShareAccess(db *gorm.DB) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ids, ok := helpers.ParseUUIDs(w, r)
-			if !ok {
-				return
-			}
-
-			shareID := ids[0]
+			sharePath := chi.URLParam(r, "path")
 
 			var share models.Share
-			if db.Where("id = ?", shareID).Find(&share).RowsAffected == 0 {
+			if db.Where("path = ?", sharePath).Find(&share).RowsAffected == 0 {
 				helpers.RespondWithError(w, http.StatusNotFound, []string{apierrors.CodeShareNotFound})
 				return
 			}

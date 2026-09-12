@@ -18,10 +18,10 @@ type PageState =
   | { step: "content"; shareContent: IPublicShareResponse };
 
 interface IShareConsumerPageProps {
-  uuid: string;
+  path: string;
 }
 
-export const ShareViewPage: FC<IShareConsumerPageProps> = ({ uuid }) => {
+export const ShareViewPage: FC<IShareConsumerPageProps> = ({ path }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [state, setState] = useState<PageState>({ step: "idle" });
@@ -31,7 +31,7 @@ export const ShareViewPage: FC<IShareConsumerPageProps> = ({ uuid }) => {
   const authMutation = useShareAuthMutation();
 
   const fetchShareContent = async () => {
-    const data = await queryClient.fetchQuery(shareContentQueryOptions(uuid));
+    const data = await queryClient.fetchQuery(shareContentQueryOptions(path));
     setState({ step: "content", shareContent: data });
   };
 
@@ -58,7 +58,7 @@ export const ShareViewPage: FC<IShareConsumerPageProps> = ({ uuid }) => {
     setError(null);
 
     try {
-      await authMutation.mutateAsync({ shareId: uuid, password });
+      await authMutation.mutateAsync({ shareId: path, password });
       await fetchShareContent();
     } catch (err) {
       const code = err instanceof Error ? err.message : "INTERNAL_SERVER_ERROR";
@@ -93,7 +93,7 @@ export const ShareViewPage: FC<IShareConsumerPageProps> = ({ uuid }) => {
       );
     case "content":
       return (
-        <ShareContentView shareId={uuid} shareContent={state.shareContent} />
+        <ShareContentView shareId={path} shareContent={state.shareContent} />
       );
   }
 };

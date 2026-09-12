@@ -36,6 +36,8 @@ var allowedNameChars = regexp.MustCompile(`^[\p{L}\p{M}\p{N} ._()&+#@!~=%$;{}^',
 
 var reservedNames = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)`)
 
+var allowedSharePath = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
 func validateFilename(fl validator.FieldLevel) bool {
 	name := fl.Field().String()
 
@@ -56,6 +58,10 @@ func validateFutureDate(fl validator.FieldLevel) bool {
 		return false
 	}
 	return t.After(time.Now())
+}
+
+func validateSharePath(fl validator.FieldLevel) bool {
+	return allowedSharePath.MatchString(fl.Field().String())
 }
 
 func validationErrorCode(fe validator.FieldError) string {
@@ -102,6 +108,7 @@ func Validate[T any](next http.Handler) http.Handler {
 		_ = validate.RegisterValidation("foldername", validateFilename)
 		_ = validate.RegisterValidation("maxuploadsize", validateMaxUploadSize)
 		_ = validate.RegisterValidation("futuredate", validateFutureDate)
+		_ = validate.RegisterValidation("sharepath", validateSharePath)
 
 		err = validate.Struct(data)
 		if err != nil {

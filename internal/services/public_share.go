@@ -41,7 +41,7 @@ type PublicShareService struct {
 func (s PublicShareService) Routes() chi.Router {
 	r := chi.NewRouter()
 
-	r.Route("/{id0}", func(r chi.Router) {
+	r.Route("/{path}", func(r chi.Router) {
 		r.Use(m.ValidateShareAccess(s.DB))
 
 		r.With(m.Validate[models.ShareAuthBody]).
@@ -92,7 +92,7 @@ func (s PublicShareService) AuthenticateShare(
 	return handlers.AuthFlowResult{
 		Status:  http.StatusOK,
 		Body:    struct{}{},
-		Cookies: handlers.BuildShareCookie(isSecure, share.ID.String(), token),
+		Cookies: handlers.BuildShareCookie(isSecure, share.Path, token),
 	}, nil
 }
 
@@ -129,6 +129,7 @@ func (s PublicShareService) ListShareItems(
 
 	response := models.PublicShareResponse{
 		ID:                share.ID,
+		Path:              share.Path,
 		Name:              share.Name,
 		Type:              share.Type,
 		FolderID:          share.FolderID,

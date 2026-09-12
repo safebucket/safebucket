@@ -18,8 +18,9 @@ import (
 )
 
 type BucketShareService struct {
-	DB             *gorm.DB
-	ActivityLogger activity.IActivityLogger
+	DB                      *gorm.DB
+	ActivityLogger          activity.IActivityLogger
+	CustomShareLinksEnabled bool
 }
 
 func (s BucketShareService) Routes() chi.Router {
@@ -41,6 +42,24 @@ func (s BucketShareService) CreateShare(
 	body models.ShareCreateBody,
 ) (models.Share, error) {
 	bucketID := ids[0]
+	if body.Path != "" && !s.CustomShareLinksEnabled {
+		return models.Share{}, apierrors.New(http.StatusForbidden, apierrors.CodeCustomShareLinksDisabled)
+	}
+
+	shareID := uuid.New()
+	sharePath := body.Path
+	if sharePath == "" {
+		sharePath = shareID.String()
+	}
+
+	result := s.DB.Where("path = ?", sharePath).Find(&models.Share{})
+	if result.Error != nil {
+		logger.Error("Failed to check share path", zap.Error(result.Error))
+		return models.Share{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+	}
+	if result.RowsAffected > 0 {
+		return models.Share{}, apierrors.New(http.StatusConflict, apierrors.CodeSharePathAlreadyExists)
+	}
 
 	var bucket models.Bucket
 	if s.DB.Where("id = ?", bucketID).Find(&bucket).RowsAffected == 0 {
@@ -77,6 +96,8 @@ func (s BucketShareService) CreateShare(
 	}
 
 	share := &models.Share{
+		ID:             shareID,
+		Path:           sharePath,
 		Name:           body.Name,
 		BucketID:       bucketID,
 		FolderID:       body.FolderID,
@@ -129,6 +150,12 @@ func (s BucketShareService) CreateShare(
 	})
 
 	if txErr != nil {
+		var count int64
+		s.DB.Model(&models.Share{}).Where("path = ?", sharePath).Count(&count)
+		if count > 0 {
+			return models.Share{}, apierrors.New(http.StatusConflict, apierrors.CodeSharePathAlreadyExists)
+		}
+
 		return models.Share{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 

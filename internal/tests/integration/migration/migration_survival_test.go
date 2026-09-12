@@ -52,6 +52,10 @@ func TestMigrationsPreserveData(t *testing.T) {
 				require.NoError(t, db.Model(model).Count(&count).Error, "count %s", label)
 				assert.Equal(t, int64(1), count, "%s row should survive migration to version %d", label, last)
 			}
+
+			var migratedShare models.Share
+			require.NoError(t, db.First(&migratedShare).Error)
+			assert.Equal(t, migratedShare.ID.String(), migratedShare.Path)
 		})
 	}
 }
@@ -115,7 +119,7 @@ func seedDB(t *testing.T, db *gorm.DB) {
 		Type:      models.ShareTypeBucket,
 		CreatedBy: user.ID,
 	}
-	require.NoError(t, db.Create(&share).Error)
+	require.NoError(t, db.Omit("Path").Create(&share).Error)
 
 	require.NoError(t, db.Create(&models.ShareFile{ShareID: share.ID, FileID: file.ID}).Error)
 }

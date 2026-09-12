@@ -9,6 +9,7 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/tracing"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -26,13 +27,30 @@ func getShare(r *http.Request) models.Share {
 	return share
 }
 
+func parseShareUUIDs(w http.ResponseWriter, r *http.Request) (uuid.UUIDs, bool) {
+	share := getShare(r)
+	ids := uuid.UUIDs{share.ID}
+	fileIDValue := chi.URLParam(r, "id1")
+	if fileIDValue == "" {
+		return ids, true
+	}
+
+	fileID, err := uuid.Parse(fileIDValue)
+	if err != nil {
+		h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeInvalidUUID})
+		return ids, false
+	}
+
+	return append(ids, fileID), true
+}
+
 func ShareAuthHandler[In any](forceSecure bool, auth ShareAuthTargetFunc[In]) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracing.StartSpan(r.Context(), spanName(auth))
 		defer span.End()
 		r = r.WithContext(ctx)
 
-		ids, ok := h.ParseUUIDs(w, r)
+		ids, ok := parseShareUUIDs(w, r)
 		if !ok {
 			return
 		}
@@ -64,7 +82,7 @@ func ShareGetOneHandler[Out any](getOne ShareGetOneTargetFunc[Out]) http.Handler
 		defer span.End()
 		r = r.WithContext(ctx)
 
-		ids, ok := h.ParseUUIDs(w, r)
+		ids, ok := parseShareUUIDs(w, r)
 		if !ok {
 			return
 		}
@@ -86,7 +104,7 @@ func ShareDownloadRedirectHandler(getOne ShareGetOneTargetFunc[models.FileDownlo
 		defer span.End()
 		r = r.WithContext(ctx)
 
-		ids, ok := h.ParseUUIDs(w, r)
+		ids, ok := parseShareUUIDs(w, r)
 		if !ok {
 			return
 		}
@@ -109,7 +127,7 @@ func ShareGetOneWithQueryHandler[Q any, Out any](getOne ShareGetOneWithQueryTarg
 		defer span.End()
 		r = r.WithContext(ctx)
 
-		ids, ok := h.ParseUUIDs(w, r)
+		ids, ok := parseShareUUIDs(w, r)
 		if !ok {
 			return
 		}
@@ -139,7 +157,7 @@ func ShareCreateHandler[In any, Out any](create ShareCreateTargetFunc[In, Out]) 
 		defer span.End()
 		r = r.WithContext(ctx)
 
-		ids, ok := h.ParseUUIDs(w, r)
+		ids, ok := parseShareUUIDs(w, r)
 		if !ok {
 			return
 		}
@@ -169,7 +187,7 @@ func ShareActionHandler(action ShareActionTargetFunc) http.HandlerFunc {
 		defer span.End()
 		r = r.WithContext(ctx)
 
-		ids, ok := h.ParseUUIDs(w, r)
+		ids, ok := parseShareUUIDs(w, r)
 		if !ok {
 			return
 		}

@@ -26,14 +26,15 @@ import (
 )
 
 type BucketService struct {
-	DB                 *gorm.DB
-	Cache              cache.ICache
-	Storage            storage.IStorage
-	Publisher          messaging.IPublisher
-	Providers          c.Providers
-	ActivityLogger     activity.IActivityLogger
-	WebURL             string
-	TrashRetentionDays int
+	DB                      *gorm.DB
+	Cache                   cache.ICache
+	Storage                 storage.IStorage
+	Publisher               messaging.IPublisher
+	Providers               c.Providers
+	ActivityLogger          activity.IActivityLogger
+	WebURL                  string
+	TrashRetentionDays      int
+	CustomShareLinksEnabled bool
 }
 
 func (s BucketService) Routes() chi.Router {
@@ -92,8 +93,9 @@ func (s BucketService) Routes() chi.Router {
 		}.Routes())
 
 		r.Mount("/shares", BucketShareService{
-			DB:             s.DB,
-			ActivityLogger: s.ActivityLogger,
+			DB:                      s.DB,
+			ActivityLogger:          s.ActivityLogger,
+			CustomShareLinksEnabled: s.CustomShareLinksEnabled,
 		}.Routes())
 	})
 
