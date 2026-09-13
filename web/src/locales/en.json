@@ -46,7 +46,7 @@
     "SHARE_FILE_NOT_IN_SHARE": "This file is not part of the share.",
     "SHARE_NOT_SINGLE_FILE": "This share does not contain exactly one file.",
     "SHARE_CUSTOM_ID_ALREADY_EXISTS": "This share path is already in use.",
-    "CUSTOM_SHARE_LINKS_DISABLED": "Custom share paths are disabled.",
+    "CUSTOM_SHARE_IDS_DISABLED": "Custom share paths are disabled.",
     "REDIRECT_DOWNLOAD_DISABLED": "Redirect download is not enabled on this server.",
     "FILE_ALREADY_EXISTS": "A file with this name already exists.",
     "MAX_UPLOADS_REACHED": "This share link has reached its maximum number of uploads.",

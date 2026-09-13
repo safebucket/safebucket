@@ -405,7 +405,7 @@ func TestCustomShareIDsDisabled(t *testing.T) {
 	for _, scenario := range bootstrap.ActiveScenarios() {
 		t.Run(scenario, func(t *testing.T) {
 			cfg := bootstrap.WithLocalSharing(bootstrap.LoadScenario(t, scenario), true)
-			cfg.App.AllowCustomShareLinks = false
+			cfg.App.AllowCustomShareIDs = false
 			app := bootstrap.BootTestApp(t, cfg)
 
 			owner := app.CreateUser(t, "qspathdisabledowner@example.com")
@@ -418,10 +418,11 @@ func TestCustomShareIDsDisabled(t *testing.T) {
 			})
 			assert.Nil(t, standard.CustomID)
 
-			status := app.DoStatus(t, http.MethodPost,
+			status, codes := app.DoExpectError(t, http.MethodPost,
 				fmt.Sprintf("/api/v1/buckets/%s/shares", bucket.ID), ownerToken,
 				models.ShareCreateBody{CustomID: "custom-path", Name: "custom", Type: models.ShareTypeBucket})
 			assert.Equal(t, http.StatusForbidden, status)
+			assert.Equal(t, []string{"CUSTOM_SHARE_IDS_DISABLED"}, codes)
 		})
 	}
 }

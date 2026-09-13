@@ -23,7 +23,7 @@ interface IQuickShareOptionsStepProps {
   limitViews: boolean;
   passwordProtected: boolean;
   allowUploads: boolean;
-  allowCustomShareLinks: boolean;
+  allowCustomShareIDs: boolean;
 }
 
 export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
@@ -34,7 +34,7 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
   limitViews,
   passwordProtected,
   allowUploads,
-  allowCustomShareLinks,
+  allowCustomShareIDs,
 }) => {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
@@ -55,7 +55,7 @@ export const QuickShareOptionsStep: FC<IQuickShareOptionsStepProps> = ({
         </div>
       </div>
 
-      {allowCustomShareLinks && (
+      {allowCustomShareIDs && (
         <>
           <Separator />
 

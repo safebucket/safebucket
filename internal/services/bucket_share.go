@@ -18,9 +18,9 @@ import (
 )
 
 type BucketShareService struct {
-	DB                    *gorm.DB
-	ActivityLogger        activity.IActivityLogger
-	AllowCustomShareLinks bool
+	DB                  *gorm.DB
+	ActivityLogger      activity.IActivityLogger
+	AllowCustomShareIDs bool
 }
 
 func (s BucketShareService) Routes() chi.Router {
@@ -42,8 +42,8 @@ func (s BucketShareService) CreateShare(
 	body models.ShareCreateBody,
 ) (models.Share, error) {
 	bucketID := ids[0]
-	if body.CustomID != "" && !s.AllowCustomShareLinks {
-		return models.Share{}, apierrors.New(http.StatusForbidden, apierrors.CodeCustomShareLinksDisabled)
+	if body.CustomID != "" && !s.AllowCustomShareIDs {
+		return models.Share{}, apierrors.New(http.StatusForbidden, apierrors.CodeCustomShareIDsDisabled)
 	}
 
 	var customID *string
@@ -146,13 +146,20 @@ func (s BucketShareService) CreateShare(
 		return nil
 	})
 
-	if txErr != nil {
-		return models.Share{}, s.createShareError(customID)
+	if txErr == nil {
+		share.PasswordProtected = hashedPassword != ""
+		return *share, nil
 	}
 
-	share.PasswordProtected = hashedPassword != ""
+	if customID != nil {
+		var count int64
+		result := s.DB.Model(&models.Share{}).Where("custom_id = ?", *customID).Count(&count)
+		if result.Error == nil && count > 0 {
+			return models.Share{}, apierrors.New(http.StatusConflict, apierrors.CodeShareCustomIDAlreadyExists)
+		}
+	}
 
-	return *share, nil
+	return models.Share{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 }
 
 func (s BucketShareService) ListShares(
@@ -218,18 +225,4 @@ func (s BucketShareService) DeleteShare(
 
 		return nil
 	})
-}
-
-// createShareError tells a custom ID taken between the pre-flight check and the insert apart from
-// a genuine failure, since the unique index is what ultimately rejects the race.
-func (s BucketShareService) createShareError(customID *string) error {
-	if customID != nil {
-		var count int64
-		result := s.DB.Model(&models.Share{}).Where("custom_id = ?", *customID).Count(&count)
-		if result.Error == nil && count > 0 {
-			return apierrors.New(http.StatusConflict, apierrors.CodeShareCustomIDAlreadyExists)
-		}
-	}
-
-	return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 }

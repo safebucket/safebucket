@@ -466,15 +466,15 @@ func BuildAPIRouter(
 		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
-			DB:                    db,
-			Cache:                 cache,
-			Storage:               store,
-			Publisher:             publisher,
-			ActivityLogger:        activityLogger,
-			Providers:             providers,
-			WebURL:                config.App.WebURL,
-			TrashRetentionDays:    config.App.TrashRetentionDays,
-			AllowCustomShareLinks: config.App.AllowCustomShareLinks,
+			DB:                  db,
+			Cache:               cache,
+			Storage:             store,
+			Publisher:           publisher,
+			ActivityLogger:      activityLogger,
+			Providers:           providers,
+			WebURL:              config.App.WebURL,
+			TrashRetentionDays:  config.App.TrashRetentionDays,
+			AllowCustomShareIDs: config.App.AllowCustomShareIDs,
 		}.Routes())
 
 		apiRouter.Mount("/v1/auth", services.AuthService{
@@ -534,7 +534,7 @@ func StartHTTPServer(
 			config.Storage.GetExternalURL(),
 			configuration.RequiresUploadConfirmation(config.Storage.Type, config.Events.Type),
 			config.App.TrashRetentionDays,
-			config.App.AllowCustomShareLinks,
+			config.App.AllowCustomShareIDs,
 		)
 		if err != nil {
 			zap.L().Fatal("failed to initialize static file service", zap.Error(err))

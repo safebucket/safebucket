@@ -46,7 +46,7 @@
     "SHARE_FILE_NOT_IN_SHARE": "Die Datei befindet sich nicht in diesem Share",
     "SHARE_NOT_SINGLE_FILE": "Dieser Share enthält keine Dateien",
     "SHARE_CUSTOM_ID_ALREADY_EXISTS": "Dieser Freigabepfad wird bereits verwendet.",
-    "CUSTOM_SHARE_LINKS_DISABLED": "Benutzerdefinierte Freigabepfade sind deaktiviert.",
+    "CUSTOM_SHARE_IDS_DISABLED": "Benutzerdefinierte Freigabepfade sind deaktiviert.",
     "REDIRECT_DOWNLOAD_DISABLED": "Die Weiterleitung auf diesem Server ist deaktiviert.",
     "FILE_ALREADY_EXISTS": "Eine Datei mit diesem Namen existiert bereits.",
     "MAX_UPLOADS_REACHED": "Mit diesem Freigabe-Link können keine weiteren Dateien hochgeladen werden",

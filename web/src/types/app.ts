@@ -8,5 +8,5 @@ export interface IConfig {
   environment: EnvironmentType;
   requiresUploadConfirmation: boolean;
   trashRetentionDays: number;
-  allowCustomShareLinks: boolean;
+  allowCustomShareIDs: boolean;
 }

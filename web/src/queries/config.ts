@@ -7,7 +7,7 @@ export const defaultConfig: IConfig = {
   environment: EnvironmentType.production,
   requiresUploadConfirmation: false,
   trashRetentionDays: 7,
-  allowCustomShareLinks: true,
+  allowCustomShareIDs: true,
 };
 
 export const configQueryOptions = () =>

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/safebucket/safebucket/internal/models"
@@ -172,6 +173,33 @@ func TestValidateMiddleware(t *testing.T) {
 				errors := models.Error{Status: tt.expectedStatus, Error: tt.expectedErrors}
 				tests.AssertJSONResponse(t, recorder, http.StatusBadRequest, errors)
 			}
+		})
+	}
+}
+
+func TestValidateShareID(t *testing.T) {
+	testCases := []struct {
+		name    string
+		shareID string
+		valid   bool
+	}{
+		{name: "minimum length", shareID: "a_-", valid: true},
+		{name: "maximum length", shareID: strings.Repeat("a", 255), valid: true},
+		{name: "mixed case", shareID: "Project_files-2026", valid: true},
+		{name: "canonical UUID", shareID: "550e8400-e29b-41d4-a716-446655440000", valid: true},
+		{name: "compact UUID", shareID: "550e8400e29b41d4a716446655440000", valid: true},
+		{name: "empty", shareID: ""},
+		{name: "too short", shareID: "ab"},
+		{name: "too long", shareID: strings.Repeat("a", 256)},
+		{name: "slash", shareID: "project/files"},
+		{name: "space", shareID: "project files"},
+		{name: "unicode", shareID: "projet-été"},
+		{name: "newline", shareID: "project\n"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.valid, validateShareID(tc.shareID))
 		})
 	}
 }

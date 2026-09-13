@@ -96,7 +96,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
   bucketId,
 }) => {
   const { t } = useTranslation();
-  const { allowCustomShareLinks } = useConfig();
+  const { allowCustomShareIDs } = useConfig();
   const { data: bucket } = useQuery(bucketDataQueryOptions(bucketId));
 
   const { control, watch, setValue, reset, getValues, trigger } =
@@ -174,7 +174,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
 
     const share = await createShareMutation.mutateAsync({
       custom_id:
-        allowCustomShareLinks && values.hasCustomID && values.customID
+        allowCustomShareIDs && values.hasCustomID && values.customID
           ? values.customID
           : undefined,
       name: values.name,
@@ -260,7 +260,7 @@ export const QuickShareDialog: FC<IQuickShareDialogProps> = ({
               limitViews={limitViews}
               passwordProtected={passwordProtected}
               allowUploads={allowUploads}
-              allowCustomShareLinks={allowCustomShareLinks}
+              allowCustomShareIDs={allowCustomShareIDs}
             />
           )}
 

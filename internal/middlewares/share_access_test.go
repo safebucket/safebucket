@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -17,37 +16,20 @@ import (
 )
 
 func TestValidateShareAccessInvalidID(t *testing.T) {
-	testCases := []struct {
-		name    string
-		shareID string
-	}{
-		{name: "empty", shareID: ""},
-		{name: "too short", shareID: "ab"},
-		{name: "too long", shareID: strings.Repeat("a", 256)},
-		{name: "slash", shareID: "project/files"},
-		{name: "space", shareID: "project files"},
-		{name: "unicode", shareID: "projet-été"},
-		{name: "newline", shareID: "project\n"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/api/v1/shares/test", nil)
-			routeContext := chi.NewRouteContext()
-			routeContext.URLParams.Add("shareId", tc.shareID)
-			req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, routeContext))
-			recorder := httptest.NewRecorder()
-			handler := ValidateShareAccess(nil)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
-				t.Fatal("invalid share ID reached the next handler")
-			}))
-			handler.ServeHTTP(recorder, req)
-			assert.Equal(t, http.StatusBadRequest, recorder.Code)
-			assert.Contains(t, recorder.Body.String(), apierrors.CodeInvalidValue)
-		})
-	}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/shares/test", nil)
+	routeContext := chi.NewRouteContext()
+	routeContext.URLParams.Add("shareId", "project/files")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, routeContext))
+	recorder := httptest.NewRecorder()
+	handler := ValidateShareAccess(nil)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Fatal("invalid share ID reached the next handler")
+	}))
+	handler.ServeHTTP(recorder, req)
+	assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), apierrors.CodeInvalidValue)
 }
 
-func TestValidateShareAccessValidID(t *testing.T) {
+func TestValidateShareAccessLookup(t *testing.T) {
 	const (
 		customIDQuery = `WHERE custom_id = \$1`
 		shareIDQuery  = `custom_id IS NULL`
@@ -59,12 +41,7 @@ func TestValidateShareAccessValidID(t *testing.T) {
 		expectedSQL  string
 		expectedRows bool
 	}{
-		{name: "minimum length", shareID: "a_-", expectedSQL: customIDQuery, expectedRows: true},
-		{
-			name: "maximum length", shareID: strings.Repeat("a", 255),
-			expectedSQL: customIDQuery, expectedRows: true,
-		},
-		{name: "mixed case", shareID: "Project_files-2026", expectedSQL: customIDQuery, expectedRows: true},
+		{name: "custom ID", shareID: "Project_files-2026", expectedSQL: customIDQuery, expectedRows: true},
 		{name: "canonical UUID", shareID: uuid.NewString(), expectedSQL: shareIDQuery, expectedRows: true},
 		{
 			name: "compact UUID", shareID: "550e8400e29b41d4a716446655440000",
