@@ -21,7 +21,7 @@ import (
 )
 
 type (
-	CreateTargetFunc[In any, Out any]         func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
+	BodyResponseTargetFunc[In any, Out any]   func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) (Out, error)
 	ListTargetFunc[Out any]                   func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
 	ListWithQueryTargetFunc[Q any, Out any]   func(*zap.Logger, models.UserClaims, uuid.UUIDs, Q) []Out
 	GetOneTargetFunc[Out any]                 func(*zap.Logger, models.UserClaims, uuid.UUIDs) (Out, error)
@@ -63,8 +63,8 @@ func WriteError(span trace.Span, w http.ResponseWriter, err error) {
 	h.RespondWithError(w, status, []string{code})
 }
 
-func writeBodyHandler[In any, Out any](
-	target CreateTargetFunc[In, Out],
+func BodyResponseHandler[In any, Out any](
+	target BodyResponseTargetFunc[In, Out],
 	successStatus int,
 ) http.HandlerFunc {
 	name := spanName(target)
@@ -96,8 +96,8 @@ func writeBodyHandler[In any, Out any](
 	}
 }
 
-func CreateHandler[In any, Out any](create CreateTargetFunc[In, Out]) http.HandlerFunc {
-	return writeBodyHandler(create, http.StatusCreated)
+func CreateHandler[In any, Out any](create BodyResponseTargetFunc[In, Out]) http.HandlerFunc {
+	return BodyResponseHandler(create, http.StatusCreated)
 }
 
 func GetListHandler[Out any](getList ListTargetFunc[Out]) http.HandlerFunc {
@@ -200,10 +200,6 @@ func GetOneWithQueryHandler[Q any, Out any](getOne GetOneWithQueryTargetFunc[Q, 
 			h.RespondWithJSON(w, http.StatusOK, record)
 		}
 	}
-}
-
-func BatchHandler[In any, Out any](batch CreateTargetFunc[In, Out]) http.HandlerFunc {
-	return writeBodyHandler(batch, http.StatusOK)
 }
 
 func BodyHandler[In any](handler BodyTargetFunc[In]) http.HandlerFunc {

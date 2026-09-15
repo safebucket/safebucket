@@ -6,6 +6,7 @@ import type { BucketItem, IBucket } from "@/types/bucket.ts";
 import { BucketGridView } from "@/components/bucket-view/components/BucketGridView";
 import { FolderPathBar } from "@/components/bucket-view/components/FolderPathBar";
 import { useBulkDownload } from "@/components/bucket-view/hooks/useBulkDownload";
+import { useBulkTrash } from "@/components/bucket-view/hooks/useBulkTrash";
 import { FilesTable } from "@/components/bucket-view/components/FilesTable";
 import { FilesDndProvider } from "@/components/bucket-view/components/FilesDndProvider/FilesDndProvider";
 import { FilesToolbar } from "@/components/bucket-view/components/FilesTab/components/FilesToolbar";
@@ -34,6 +35,7 @@ export const FilesTab: FC<IFilesTabProps> = ({
   const { createFolder } = useFileActions();
   const uploadDialog = useUploadDialog({ bucketId: bucket.id, folderId });
   const newFolderDialog = useDialog();
+  const bulkTrashDialog = useDialog();
   const [query, setQuery] = useState("");
   const [layout, setLayout] = useState<"list" | "grid">("list");
   const [selected, setSelected] = useState<BucketItem | null>(null);
@@ -55,6 +57,13 @@ export const FilesTab: FC<IFilesTabProps> = ({
     maxBytes,
     maxFiles,
   } = useBulkDownload({ bucket, rowSelection, clearRowSelection });
+
+  const bulkTrash = useBulkTrash({
+    bucketId: bucket.id,
+    items,
+    rowSelection,
+    clearRowSelection,
+  });
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -95,7 +104,7 @@ export const FilesTab: FC<IFilesTabProps> = ({
           onUpload={uploadDialog.open}
           onNewFolder={newFolderDialog.trigger}
           onBulkDownload={start}
-          onBulkTrash={clearRowSelection}
+          onBulkTrash={bulkTrashDialog.trigger}
         />
 
         {layout === "list" ? (
@@ -148,6 +157,18 @@ export const FilesTab: FC<IFilesTabProps> = ({
           confirmLabel={t("common.ok")}
           showCancel={false}
           onConfirm={dismissBlocked}
+        />
+
+        <CustomAlertDialog
+          {...bulkTrashDialog.props}
+          destructive
+          title={t("bucket.bulk_trash.confirm_title", {
+            count: bulkTrash.selectedCount,
+          })}
+          description={t("bucket.bulk_trash.confirm_description")}
+          confirmLabel={t("bucket.bulk_trash.confirm")}
+          cancelLabel={t("bucket.bulk_trash.cancel")}
+          onConfirm={bulkTrash.run}
         />
 
         <UploadDialog

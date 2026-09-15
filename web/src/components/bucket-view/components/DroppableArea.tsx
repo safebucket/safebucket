@@ -1,6 +1,6 @@
 import { useDndContext, useDroppable } from "@dnd-kit/core";
 import type { ReactNode } from "react";
-import { canDropInto } from "@/components/bucket-view/helpers/dnd";
+import { canDropInto } from "@/components/bucket-view/helpers/utils";
 import { cn } from "@/lib/utils";
 
 interface IDroppableAreaProps {

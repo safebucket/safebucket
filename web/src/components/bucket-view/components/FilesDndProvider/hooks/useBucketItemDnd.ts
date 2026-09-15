@@ -3,8 +3,8 @@ import type { BucketItem } from "@/types/bucket.ts";
 import {
   canDropInto,
   resolveDragIds,
-} from "@/components/bucket-view/helpers/dnd";
-import { isFolder } from "@/components/bucket-view/helpers/utils";
+  isFolder,
+} from "@/components/bucket-view/helpers/utils";
 
 interface IUseBucketItemDndOptions {
   item: BucketItem;

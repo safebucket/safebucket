@@ -26,7 +26,7 @@ func (s BucketMoveService) Routes() chi.Router {
 
 	r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 		With(m.Validate[models.MoveBody]).
-		Post("/", handlers.BatchHandler(s.MoveItems))
+		Post("/", handlers.BodyResponseHandler(s.MoveItems, http.StatusOK))
 
 	return r
 }

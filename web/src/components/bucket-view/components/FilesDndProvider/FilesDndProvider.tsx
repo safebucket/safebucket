@@ -10,8 +10,10 @@ import {
 import type { ReactNode } from "react";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import type { BucketItem } from "@/types/bucket.ts";
-import { resolveDragIds } from "@/components/bucket-view/helpers/dnd";
-import { cursorToTopLeft } from "@/components/bucket-view/helpers/cursorToTopLeft";
+import {
+  cursorToTopLeft,
+  resolveDragIds,
+} from "@/components/bucket-view/helpers/utils";
 import { useMoveItems } from "@/components/bucket-view/components/FilesDndProvider/hooks/useMoveItems";
 import { DragPreview } from "@/components/bucket-view/components/FilesDndProvider/components/DragPreview";
 
