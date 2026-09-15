@@ -74,10 +74,10 @@ func (e *ItemsTrash) callback(params *EventParams) error {
 		if err := e.lockDeletingItems(tx, &files, &folders); err != nil {
 			return err
 		}
-		if err := e.addTrashMarker(params, files, folders); err != nil {
+		if err := e.deleteItems(tx, files, folders); err != nil {
 			return err
 		}
-		return e.deleteItems(tx, files, folders)
+		return e.addTrashMarker(params, files, folders)
 	})
 	if err != nil {
 		return err
