@@ -39,21 +39,16 @@ export const FolderPathBar: FC<IFolderPathBarProps> = ({
 
   return (
     <div className="flex items-center gap-1">
-      <DroppableArea
-        folderId={parentFolder?.id}
-        disabled={folderId === undefined}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        aria-label={t("bucket.view.go_back")}
+        disabled={!folderId}
+        onClick={() => navigateTo(parentFolder?.id)}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          aria-label={t("bucket.view.go_back")}
-          disabled={!folderId}
-          onClick={() => navigateTo(parentFolder?.id)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-      </DroppableArea>
+        <ArrowLeft className="h-4 w-4" />
+      </Button>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem
