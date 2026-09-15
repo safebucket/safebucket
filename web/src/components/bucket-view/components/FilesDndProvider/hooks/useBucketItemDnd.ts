@@ -2,8 +2,8 @@ import { useDndContext, useDraggable, useDroppable } from "@dnd-kit/core";
 import type { BucketItem } from "@/types/bucket.ts";
 import {
   canDropInto,
-  resolveDragIds,
   isFolder,
+  resolveDragIds,
 } from "@/components/bucket-view/helpers/utils";
 
 interface IUseBucketItemDndOptions {
