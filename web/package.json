@@ -41,7 +41,7 @@
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.87.0",
     "react-i18next": "^17.0.13",
-    "react-pdf": "^10.5.0",
+    "react-pdf": "^11.0.0",
     "react-qr-code": "^2.2.0",
     "recharts": "^3.10.1",
     "sonner": "^2.0.8",
