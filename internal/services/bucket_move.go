@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	c "github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
@@ -39,6 +40,10 @@ func (s BucketMoveService) MoveItems(
 ) (models.MoveResponse, error) {
 	if !body.DestinationFolderID.Set {
 		return models.MoveResponse{}, apierrors.New(http.StatusBadRequest, apierrors.CodeFieldRequired)
+	}
+	if len(body.FolderIDs)+len(body.FileIDs) == 0 ||
+		len(body.FolderIDs)+len(body.FileIDs) > c.TrashBatchLimit {
+		return models.MoveResponse{}, apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidValue)
 	}
 
 	response := models.MoveResponse{}

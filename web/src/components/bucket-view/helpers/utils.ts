@@ -35,9 +35,11 @@ export const getFolderPathTrail = (
   if (!currentFolderId) return [];
 
   const trail: Array<IFolder> = [];
+  const visited = new Set<string>();
   let nextId: string | undefined = currentFolderId;
 
-  while (nextId) {
+  while (nextId && !visited.has(nextId)) {
+    visited.add(nextId);
     const current = folders.find((folder) => folder.id === nextId);
     if (!current) break;
     trail.unshift(current);
