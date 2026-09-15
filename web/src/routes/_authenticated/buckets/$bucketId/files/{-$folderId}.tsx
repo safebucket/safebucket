@@ -3,7 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { FilePreviewMount } from "@/components/bucket-view/components/FilePreviewMount.tsx";
-import { FilesTab } from "@/components/bucket-view/components/FilesTab";
+import { FilesTab } from "@/components/bucket-view/components/FilesTab/FilesTab";
 import { itemsToShow } from "@/components/bucket-view/helpers/utils";
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { bucketDataQueryOptions } from "@/queries/bucket.ts";

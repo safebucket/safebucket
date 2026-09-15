@@ -9,12 +9,16 @@ interface IBucketGridViewProps {
   items: Array<BucketItem>;
   selected: BucketItem | null;
   setSelected: (item: BucketItem) => void;
+  enabled: boolean;
+  selectedIds: Array<string>;
 }
 
 export const BucketGridView: FC<IBucketGridViewProps> = ({
   items,
   selected,
   setSelected,
+  enabled,
+  selectedIds,
 }: IBucketGridViewProps) => {
   const { t } = useTranslation();
   const openItem = useOpenBucketItem();
@@ -45,6 +49,8 @@ export const BucketGridView: FC<IBucketGridViewProps> = ({
           selected={selected}
           setSelected={setSelected}
           onDoubleClick={openItem}
+          enabled={enabled}
+          selectedIds={selectedIds}
         />
       ))}
     </div>
