@@ -41,6 +41,7 @@ updates:
       semver-patch-days: 2
       include: ["*"]
     ignore:
+      - dependency-name: "pdfjs-dist"
       - dependency-name: "react"
         update-types: [ "version-update:semver-major" ]
       - dependency-name: "react-dom"
