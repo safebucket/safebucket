@@ -1,11 +1,37 @@
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "@tanstack/react-router";
+import {
+  columnVisibilityFeature,
+  createPaginatedRowModel,
+  createSortedRowModel,
+  rowPaginationFeature,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_text,
+  tableFeatures,
+} from "@tanstack/react-table";
 import type { TFunction } from "i18next";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { IAdminBucket } from "@/types/admin.ts";
 import { formatFileSize } from "@/lib/utils";
 
-export const createColumns = (t: TFunction): Array<ColumnDef<IAdminBucket>> => [
+export const features = tableFeatures({
+  columnVisibilityFeature,
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: {
+    alphanumeric: sortFn_alphanumeric,
+    text: sortFn_text,
+  },
+  rowPaginationFeature,
+  paginatedRowModel: createPaginatedRowModel(),
+});
+
+export type AdminTableFeatures = typeof features;
+
+export const createColumns = (
+  t: TFunction,
+): Array<ColumnDef<AdminTableFeatures, IAdminBucket>> => [
   {
     accessorKey: "name",
     header: t("admin.buckets.columns.name"),

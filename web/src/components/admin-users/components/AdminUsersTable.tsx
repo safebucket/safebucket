@@ -1,15 +1,10 @@
 import { useState } from "react";
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { flexRender, useTable } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 import { UserRowActions } from "./UserRowActions";
+import { features } from "./columns";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import type { AdminTableFeatures } from "./columns";
 import type { IUser } from "@/components/auth-view/types/session";
 import {
   Table,
@@ -21,7 +16,7 @@ import {
 } from "@/components/ui/table";
 
 interface AdminUsersTableProps {
-  columns: Array<ColumnDef<IUser>>;
+  columns: Array<ColumnDef<AdminTableFeatures, IUser>>;
   data: Array<IUser>;
   onDeleteUser: (user: IUser) => void;
   currentUserId: string;
@@ -36,15 +31,12 @@ export function AdminUsersTable({
   const { t } = useTranslation();
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const table = useReactTable({
+  const table = useTable({
     data,
     columns,
+    features,
     state: { sorting },
     onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   return (

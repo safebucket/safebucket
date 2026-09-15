@@ -1,5 +1,13 @@
 import { Database, File, Folder, Link2, Smartphone, User } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import {
+  columnVisibilityFeature,
+  createSortedRowModel,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_text,
+  tableFeatures,
+} from "@tanstack/react-table";
 import { formatAction } from "../helpers/format";
 import { TimestampCell } from "./TimestampCell";
 import type { TFunction } from "i18next";
@@ -95,7 +103,21 @@ const getResourceLink = (activity: IActivity): string | null => {
   return null;
 };
 
-export const createColumns = (t: TFunction): Array<ColumnDef<IActivity>> => [
+export const features = tableFeatures({
+  columnVisibilityFeature,
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: {
+    alphanumeric: sortFn_alphanumeric,
+    text: sortFn_text,
+  },
+});
+
+export type ActivityTableFeatures = typeof features;
+
+export const createColumns = (
+  t: TFunction,
+): Array<ColumnDef<ActivityTableFeatures, IActivity>> => [
   {
     accessorKey: "timestamp",
     header: t("admin.activity.columns.timestamp"),

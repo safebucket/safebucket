@@ -1,15 +1,10 @@
 import { useState } from "react";
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { flexRender, useTable } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
 import { BucketRowActions } from "./BucketRowActions";
+import { features } from "./columns";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import type { AdminTableFeatures } from "./columns";
 import type { IAdminBucket } from "@/types/admin.ts";
 import {
   Table,
@@ -21,7 +16,7 @@ import {
 } from "@/components/ui/table";
 
 interface AdminBucketsTableProps {
-  columns: Array<ColumnDef<IAdminBucket>>;
+  columns: Array<ColumnDef<AdminTableFeatures, IAdminBucket>>;
   data: Array<IAdminBucket>;
   onDeleteBucket: (bucket: IAdminBucket) => void;
 }
@@ -34,15 +29,12 @@ export function AdminBucketsTable({
   const { t } = useTranslation();
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const table = useReactTable({
+  const table = useTable({
     data,
     columns,
+    features,
     state: { sorting },
     onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   return (

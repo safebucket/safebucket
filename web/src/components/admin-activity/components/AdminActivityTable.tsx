@@ -1,13 +1,9 @@
 import { useState } from "react";
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { flexRender, useTable } from "@tanstack/react-table";
 import { useTranslation } from "react-i18next";
+import { features } from "./columns";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import type { ActivityTableFeatures } from "./columns";
 import type { IActivity } from "@/types/activity";
 import {
   Table,
@@ -19,7 +15,7 @@ import {
 } from "@/components/ui/table";
 
 interface AdminActivityTableProps {
-  columns: Array<ColumnDef<IActivity>>;
+  columns: Array<ColumnDef<ActivityTableFeatures, IActivity>>;
   data: Array<IActivity>;
 }
 
@@ -27,14 +23,12 @@ export function AdminActivityTable({ columns, data }: AdminActivityTableProps) {
   const { t } = useTranslation();
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  const table = useReactTable({
+  const table = useTable({
     data,
     columns,
+    features,
     state: { sorting },
     onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   return (
