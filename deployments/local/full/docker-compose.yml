@@ -203,7 +203,7 @@ services:
       - "valkey_data:/data"
 
   mailpit:
-    image: axllent/mailpit:v1.30
+    image: axllent/mailpit:v1.31
     container_name: mailpit
     restart: unless-stopped
     logging:
@@ -245,7 +245,7 @@ services:
 
   loki:
     container_name: loki
-    image: grafana/loki:3.7.6
+    image: grafana/loki:3.7.7
     command: "-config.file=/etc/loki/config.yaml"
     logging:
       driver: "json-file"
