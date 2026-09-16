@@ -144,6 +144,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	challengeID := ids[0]
 
 	var challenge models.Challenge
+	var validationErr *apierrors.APIError
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
@@ -161,8 +162,11 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 		}
 
 		if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
-			tx.Delete(&challenge)
-			return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidRequest)
+			if deleteErr := tx.Delete(&challenge).Error; deleteErr != nil {
+				return deleteErr
+			}
+			validationErr = apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidRequest)
+			return nil
 		}
 
 		match, err := argon2id.ComparePasswordAndHash(
@@ -177,22 +181,30 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 					zap.String("challenge_id", challenge.ID.String()),
 					zap.String("user_id", challenge.UserID.String()),
 					zap.Int("attempts_left", challenge.AttemptsLeft))
-				tx.Delete(&challenge)
+				if deleteErr := tx.Delete(&challenge).Error; deleteErr != nil {
+					logger.Error("Failed to delete locked password reset challenge", zap.Error(deleteErr))
+					return deleteErr
+				}
 
-				return apierrors.New(http.StatusForbidden, apierrors.CodeChallengeLocked)
+				validationErr = apierrors.New(http.StatusForbidden, apierrors.CodeChallengeLocked)
+				return nil
 			}
 
 			if updateErr := tx.Save(&challenge).Error; updateErr != nil {
 				logger.Error("Failed to update attempts counter", zap.Error(updateErr))
 				return updateErr
 			}
-			return apierrors.New(http.StatusUnauthorized, apierrors.CodeWrongCode)
+			validationErr = apierrors.New(http.StatusUnauthorized, apierrors.CodeWrongCode)
+			return nil
 		}
 
 		return nil
 	})
 	if err != nil {
 		return handlers.AuthFlowResult{}, err
+	}
+	if validationErr != nil {
+		return handlers.AuthFlowResult{}, validationErr
 	}
 
 	user := challenge.User
