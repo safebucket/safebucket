@@ -96,6 +96,8 @@ func (s BucketService) Routes() chi.Router {
 			TrashRetentionDays: s.TrashRetentionDays,
 		}.Routes())
 
+		r.Mount("/move", BucketMoveService{DB: s.DB}.Routes())
+
 		r.Mount("/shares", BucketShareService{
 			DB:                  s.DB,
 			ActivityLogger:      s.ActivityLogger,

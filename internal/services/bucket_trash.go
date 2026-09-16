@@ -50,7 +50,7 @@ func (s BucketTrashService) BulkTrash(
 	body.FileIDs = h.DedupeUUIDs(body.FileIDs)
 
 	if len(body.FolderIDs)+len(body.FileIDs) == 0 ||
-		len(body.FolderIDs)+len(body.FileIDs) > c.TrashBatchLimit {
+		len(body.FolderIDs)+len(body.FileIDs) > c.BatchLimit {
 		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidValue)
 	}
 

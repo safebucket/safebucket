@@ -86,7 +86,7 @@ func (e *ItemsTrash) callback(params *EventParams) error {
 	e.logActivities(params, files, folders)
 
 	processed := len(files) + len(folders)
-	if processed == c.TrashBatchLimit {
+	if processed == c.BatchLimit {
 		next := NewItemsTrash(params.Publisher, e.Payload.BucketID, e.Payload.UserID)
 		if err = next.publish(); err != nil {
 			return err
@@ -109,12 +109,12 @@ func (e *ItemsTrash) lockDeletingItems(tx *gorm.DB, files *[]models.File, folder
 	query := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
 		Where("bucket_id = ? AND status = ? AND deleted_by = ?",
 			e.Payload.BucketID, models.FileStatusDeleting, e.Payload.UserID).
-		Limit(c.TrashBatchLimit)
+		Limit(c.BatchLimit)
 	if err := query.Find(files).Error; err != nil {
 		return err
 	}
 
-	remainingSlots := c.TrashBatchLimit - len(*files)
+	remainingSlots := c.BatchLimit - len(*files)
 	if remainingSlots <= 0 {
 		return nil
 	}
