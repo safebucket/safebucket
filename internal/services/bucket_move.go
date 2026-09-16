@@ -42,7 +42,7 @@ func (s BucketMoveService) MoveItems(
 		return models.MoveResponse{}, apierrors.New(http.StatusBadRequest, apierrors.CodeFieldRequired)
 	}
 	if len(body.FolderIDs)+len(body.FileIDs) == 0 ||
-		len(body.FolderIDs)+len(body.FileIDs) > c.TrashBatchLimit {
+		len(body.FolderIDs)+len(body.FileIDs) > c.BatchLimit {
 		return models.MoveResponse{}, apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidValue)
 	}
 
@@ -73,7 +73,8 @@ func (s BucketMoveService) MoveItems(
 
 		invalidTarget, err := sql.IsInvalidMoveTarget(tx, bucketID, targetID, folderPlan.IDs)
 		if err != nil {
-			return internalServerError(logger, "Failed to validate move destination", err)
+			logger.Error("Failed to validate move destination", zap.Error(err))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 		if invalidTarget {
 			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidMoveTarget)
@@ -81,7 +82,8 @@ func (s BucketMoveService) MoveItems(
 
 		hasFileConflict, err := sql.HasSameFileNamesAtTarget(tx, bucketID, targetID, filePlan.Names)
 		if err != nil {
-			return internalServerError(logger, "Failed to check file move conflicts", err)
+			logger.Error("Failed to check file move conflicts", zap.Error(err))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 		if hasFileConflict {
 			return apierrors.New(http.StatusConflict, apierrors.CodeNameConflict)
@@ -89,7 +91,8 @@ func (s BucketMoveService) MoveItems(
 
 		hasFolderConflict, err := sql.HasSameFolderNamesAtTarget(tx, bucketID, targetID, folderPlan.Names)
 		if err != nil {
-			return internalServerError(logger, "Failed to check folder move conflicts", err)
+			logger.Error("Failed to check folder move conflicts", zap.Error(err))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 		if hasFolderConflict {
 			return apierrors.New(http.StatusConflict, apierrors.CodeNameConflict)
@@ -97,11 +100,13 @@ func (s BucketMoveService) MoveItems(
 
 		movedFiles, err := sql.MoveFiles(tx, bucketID, filePlan.IDs, targetID)
 		if err != nil {
-			return internalServerError(logger, "Failed to move files", err)
+			logger.Error("Failed to move files", zap.Error(err))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 		movedFolders, err := sql.MoveFolders(tx, bucketID, folderPlan.IDs, targetID)
 		if err != nil {
-			return internalServerError(logger, "Failed to move folders", err)
+			logger.Error("Failed to move folders", zap.Error(err))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
 		response = models.MoveResponse{
@@ -127,7 +132,8 @@ func lockItemsForMove(
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil, apierrors.New(http.StatusNotFound, apierrors.CodeItemNotFound)
 		}
-		return nil, nil, internalServerError(logger, "Failed to lock bucket for moving", err)
+		logger.Error("Failed to lock bucket for moving", zap.Error(err))
+		return nil, nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
 	target, err := sql.LockMoveTarget(tx, bucketID, body.DestinationFolderID.ID)
@@ -135,7 +141,8 @@ func lockItemsForMove(
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil, apierrors.New(http.StatusNotFound, apierrors.CodeItemNotFound)
 		}
-		return nil, nil, internalServerError(logger, "Failed to lock move destination", err)
+		logger.Error("Failed to lock move destination", zap.Error(err))
+		return nil, nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 	if target != nil && target.Status != models.FolderStatusCreated {
 		return nil, nil, apierrors.New(http.StatusConflict, apierrors.CodeItemNotMovable)
@@ -143,7 +150,8 @@ func lockItemsForMove(
 
 	files, err := sql.LockFilesForMove(tx, bucketID, body.FileIDs)
 	if err != nil {
-		return nil, nil, internalServerError(logger, "Failed to lock files for moving", err)
+		logger.Error("Failed to lock files for moving", zap.Error(err))
+		return nil, nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 	if len(files) != len(body.FileIDs) {
 		return nil, nil, apierrors.New(http.StatusNotFound, apierrors.CodeItemNotFound)
@@ -151,7 +159,8 @@ func lockItemsForMove(
 
 	folders, err := sql.LockFoldersForMove(tx, bucketID, body.FolderIDs)
 	if err != nil {
-		return nil, nil, internalServerError(logger, "Failed to lock folders for moving", err)
+		logger.Error("Failed to lock folders for moving", zap.Error(err))
+		return nil, nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 	if len(folders) != len(body.FolderIDs) {
 		return nil, nil, apierrors.New(http.StatusNotFound, apierrors.CodeItemNotFound)
@@ -178,11 +187,6 @@ func validateMove(files []models.File, folders []models.Folder) error {
 	}
 
 	return nil
-}
-
-func internalServerError(logger *zap.Logger, message string, err error) error {
-	logger.Error(message, zap.Error(err))
-	return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 }
 
 func sameFolder(left, right *uuid.UUID) bool {

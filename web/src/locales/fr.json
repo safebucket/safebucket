@@ -63,7 +63,7 @@
     "default": "Une erreur s'est produite. Veuillez réessayer.",
     "INVALID_MOVE_TARGET": "Impossible de déplacer un dossier dans lui-même ou dans l'un de ses sous-dossiers.",
     "ITEM_NOT_FOUND": "Un ou plusieurs éléments sélectionnés sont introuvables.",
-    "NAME_CONFLICT": "Un élément du même nom existe déjà à l'emplacement de destination.",
+    "NAME_CONFLICT": "Un élément portant le même nom existe déjà dans le dossier de destination.",
     "ITEM_NOT_MOVABLE": "Cet élément ne peut pas être déplacé dans son état actuel."
   },
   "toast": {
