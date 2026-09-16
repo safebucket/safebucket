@@ -272,7 +272,7 @@ func TestValidatePasswordReset_ExpiredChallenge(t *testing.T) {
 	mock.ExpectExec(`DELETE FROM "challenges"`).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	mock.ExpectRollback()
+	mock.ExpectCommit()
 
 	_, err = svc.ValidatePasswordReset(false,
 		zap.NewNop(),
