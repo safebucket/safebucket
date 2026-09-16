@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -47,15 +48,11 @@ func (s InviteService) Routes() chi.Router {
 
 		r.Route("/challenges/{id1}", func(r chi.Router) {
 			r.With(m.Validate[models.InviteChallengeValidateBody]).
-				Post("/validate", s.validateInviteChallengeHandler())
+				Post("/validate", handlers.AuthFlowHandler(s.AuthConfig.CookieSecureForce, s.ValidateInviteChallenge))
 		})
 	})
 
 	return r
-}
-
-func (s InviteService) validateInviteChallengeHandler() http.HandlerFunc {
-	return handlers.AuthFlowHandler(s.AuthConfig.CookieSecureForce, s.ValidateInviteChallenge)
 }
 
 func (s InviteService) handleInviteChallengeFailedAttempt(
@@ -71,7 +68,10 @@ func (s InviteService) handleInviteChallengeFailedAttempt(
 			zap.String("challenge_id", challenge.ID.String()),
 			zap.String("invite_id", challenge.InviteID.String()),
 			zap.Int("attempts_left", challenge.AttemptsLeft))
-		tx.Delete(challenge)
+		if deleteErr := tx.Delete(challenge).Error; deleteErr != nil {
+			logger.Error("Failed to delete locked invite challenge", zap.Error(deleteErr))
+			return deleteErr
+		}
 
 		action := models.Activity{
 			Message: activity.InviteChallengeLocked,
@@ -337,6 +337,7 @@ func (s InviteService) ValidateInviteChallenge(
 
 	var challenge models.Challenge
 	var invite *models.Invite
+	var validationErr *apierrors.APIError
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
@@ -356,8 +357,11 @@ func (s InviteService) ValidateInviteChallenge(
 		invite = challenge.Invite
 
 		if challenge.ExpiresAt != nil && time.Now().After(*challenge.ExpiresAt) {
-			tx.Delete(&challenge)
-			return apierrors.New(http.StatusGone, apierrors.CodeChallengeExpired)
+			if deleteErr := tx.Delete(&challenge).Error; deleteErr != nil {
+				return deleteErr
+			}
+			validationErr = apierrors.New(http.StatusGone, apierrors.CodeChallengeExpired)
+			return nil
 		}
 
 		if !h.IsDomainAllowed(
@@ -373,7 +377,13 @@ func (s InviteService) ValidateInviteChallenge(
 			challenge.HashedSecret,
 		)
 		if err != nil || !match {
-			return s.handleInviteChallengeFailedAttempt(logger, tx, &challenge, inviteID)
+			attemptErr := s.handleInviteChallengeFailedAttempt(logger, tx, &challenge, inviteID)
+			var responseErr *apierrors.APIError
+			if errors.As(attemptErr, &responseErr) {
+				validationErr = responseErr
+				return nil
+			}
+			return attemptErr
 		}
 
 		return nil
@@ -381,6 +391,9 @@ func (s InviteService) ValidateInviteChallenge(
 
 	if err != nil {
 		return handlers.AuthFlowResult{}, err
+	}
+	if validationErr != nil {
+		return handlers.AuthFlowResult{}, validationErr
 	}
 
 	return s.createUserFromInvite(isSecure, logger, invite, &challenge, body.NewPassword, inviteID)
