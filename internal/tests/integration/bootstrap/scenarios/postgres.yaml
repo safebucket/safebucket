@@ -16,6 +16,7 @@ app:
   trusted_proxies: ["127.0.0.1/32"]
   web_url: http://web.test
   trash_retention_days: 7
+  max_file_versions: 10
   max_upload_size: 33554432
   authenticated_requests_per_minute: 10000
   unauthenticated_requests_per_minute: 10000
