@@ -33,6 +33,7 @@ func buildAppSettings(app AppConfiguration) AppSettings {
 		StaticFilesEnabled:    app.StaticFiles.Enabled,
 		MaxUploadSize:         app.MaxUploadSize,
 		TrashRetentionDays:    app.TrashRetentionDays,
+		MaxFileVersions:       app.MaxFileVersions,
 		AllowRedirectDownload: app.AllowRedirectDownload,
 		TLSEnabled:            app.TLSCertFile != "" && app.TLSKeyFile != "",
 	}

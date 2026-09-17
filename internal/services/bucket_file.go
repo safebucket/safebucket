@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -48,11 +49,25 @@ func (s BucketFileService) Routes() chi.Router {
 			Patch("/", handlers.BodyHandler(s.PatchFile))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
+			With(m.Validate[models.FileVersionRestoreBody]).
+			Put("/", handlers.BodyHandler(s.RestoreFileVersion))
+
+		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			Delete("/", handlers.DeleteHandler(s.DeleteFile))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
 			With(m.ValidateQuery[models.FileDownloadQuery]).
 			Get("/url", handlers.GetOneWithQueryHandler(s.DownloadFile))
+
+		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
+			Get("/versions", handlers.GetOneHandler(s.ListFileVersions))
+
+		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
+			With(m.ValidateQuery[models.FileDownloadQuery]).
+			Get("/versions/{id2}/url", handlers.GetOneWithQueryHandler(s.DownloadFileVersion))
+
+		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
+			Delete("/versions/{id2}", handlers.DeleteHandler(s.DeleteFileVersion))
 	})
 
 	return r
@@ -292,99 +307,206 @@ func (s BucketFileService) DownloadFile(
 	ids uuid.UUIDs,
 	query models.FileDownloadQuery,
 ) (models.FileDownloadResponse, error) {
-	bucketID, fileID := ids[0], ids[1]
-
-	file, err := sql.GetFileByID(s.DB, bucketID, fileID)
+	file, err := s.getDownloadableFile(ids[0], ids[1])
 	if err != nil {
 		return models.FileDownloadResponse{}, err
 	}
 
-	if file.Status != models.FileStatusUploaded {
-		return models.FileDownloadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
+	versionID := file.ID
+	if file.CurrentVersionID != nil {
+		versionID = *file.CurrentVersionID
 	}
 
-	if file.DeletedAt.Valid {
+	return s.downloadVersion(logger, user, file, versionID, 0, query.Context)
+}
+
+func (s BucketFileService) DownloadFileVersion(
+	logger *zap.Logger,
+	user models.UserClaims,
+	ids uuid.UUIDs,
+	query models.FileDownloadQuery,
+) (models.FileDownloadResponse, error) {
+	file, err := s.getDownloadableFile(ids[0], ids[1])
+	if err != nil {
+		return models.FileDownloadResponse{}, err
+	}
+
+	version, err := sql.GetFileVersionByID(s.DB, file.ID, ids[2])
+	if err != nil {
+		return models.FileDownloadResponse{}, err
+	}
+	if version.Status != models.FileStatusUploaded {
 		return models.FileDownloadResponse{}, apierrors.New(
-			http.StatusForbidden,
-			apierrors.CodeCannotDownloadTrashed,
+			http.StatusNotFound,
+			apierrors.CodeFileVersionNotFound,
 		)
 	}
 
-	if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
-		return models.FileDownloadResponse{}, apierrors.New(
-			http.StatusForbidden,
-			apierrors.CodeFileExpired,
-		)
+	return s.downloadVersion(logger, user, file, version.ID, version.Version, query.Context)
+}
+
+func (s BucketFileService) ListFileVersions(
+	logger *zap.Logger,
+	_ models.UserClaims,
+	ids uuid.UUIDs,
+) ([]models.FileVersionResponse, error) {
+	file, err := sql.GetFileByID(s.DB, ids[0], ids[1])
+	if err != nil {
+		return nil, err
 	}
 
-	objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
-
-	var inlineContentType string
-	if query.Context == "preview" {
-		inlineContentType = h.PreviewMimeFromExtension(file.Extension)
+	var versions []models.FileVersion
+	if listErr := s.DB.Where("file_id = ? AND status = ?", file.ID, models.FileStatusUploaded).
+		Order("version DESC").
+		Find(&versions).Error; listErr != nil {
+		logger.Error("Failed to list file versions", zap.Error(listErr))
+		return nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
-	url, err := s.Storage.PresignedGetObject(objectPath, storage.GetObjectOptions{
-		InlineContentType: inlineContentType,
-		DownloadFilename:  file.Name,
+	response := make([]models.FileVersionResponse, 0, len(versions))
+	for _, version := range versions {
+		response = append(response, models.FileVersionResponse{
+			ID:         version.ID,
+			Version:    version.Version,
+			Size:       version.Size,
+			Status:     version.Status,
+			UploadedBy: version.UploadedBy,
+			IsCurrent:  file.CurrentVersionID != nil && *file.CurrentVersionID == version.ID,
+			CreatedAt:  version.CreatedAt,
+		})
+	}
+
+	return response, nil
+}
+
+func (s BucketFileService) RestoreFileVersion(
+	logger *zap.Logger,
+	user models.UserClaims,
+	ids uuid.UUIDs,
+	body models.FileVersionRestoreBody,
+) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		var file models.File
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND bucket_id = ?", ids[1], ids[0]).
+			First(&file).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
+			}
+			logger.Error("Failed to fetch file for version restore", zap.Error(err))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+
+		if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
+			return apierrors.New(http.StatusForbidden, apierrors.CodeFileExpired)
+		}
+
+		version, err := sql.GetFileVersionByID(tx, file.ID, body.VersionID)
+		if err != nil {
+			return err
+		}
+		if version.Status != models.FileStatusUploaded {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFileVersionNotRestorable)
+		}
+
+		if updateErr := tx.Model(&models.File{}).
+			Where("id = ?", file.ID).
+			Updates(map[string]interface{}{
+				"current_version_id": version.ID,
+				"size":               version.Size,
+			}).Error; updateErr != nil {
+			logger.Error("Failed to repoint file to restored version", zap.Error(updateErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+
+		if logErr := s.ActivityLogger.Send(models.Activity{
+			Message: activity.FileVersionRestored,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionRestore.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     user.UserID.String(),
+				Version:    strconv.Itoa(version.Version),
+			}),
+		}); logErr != nil {
+			logger.Error("Failed to log version restore activity", zap.Error(logErr))
+			return logErr
+		}
+
+		return nil
+	})
+}
+
+func (s BucketFileService) DeleteFileVersion(
+	logger *zap.Logger,
+	user models.UserClaims,
+	ids uuid.UUIDs,
+) error {
+	var objectKey string
+
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		var file models.File
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ? AND bucket_id = ?", ids[1], ids[0]).
+			First(&file).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
+			}
+			logger.Error("Failed to fetch file for version deletion", zap.Error(err))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+
+		version, err := sql.GetFileVersionByID(tx, file.ID, ids[2])
+		if err != nil {
+			return err
+		}
+		if version.Status != models.FileStatusUploaded {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFileVersionNotDeletable)
+		}
+		if file.CurrentVersionID != nil && *file.CurrentVersionID == version.ID {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFileVersionIsCurrent)
+		}
+
+		objectKey = sql.VersionObjectKey(file.BucketID, version.ID)
+
+		if delErr := tx.Delete(&version).Error; delErr != nil {
+			logger.Error("Failed to delete file version", zap.Error(delErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+
+		if logErr := s.ActivityLogger.Send(models.Activity{
+			Message: activity.FileVersionDeleted,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     user.UserID.String(),
+				Version:    strconv.Itoa(version.Version),
+			}),
+		}); logErr != nil {
+			logger.Error("Failed to log version deletion activity", zap.Error(logErr))
+			return logErr
+		}
+
+		return nil
 	})
 	if err != nil {
-		logger.Error("Generate presigned URL failed", zap.Error(err))
-		return models.FileDownloadResponse{}, err
+		return err
 	}
 
-	action := models.Activity{
-		Message: activity.FileDownloaded,
-		Object:  file.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionDownload.String(),
-			BucketID:   bucketID.String(),
-			FileID:     fileID.String(),
-			ObjectType: rbac.ResourceFile.String(),
-			UserID:     user.UserID.String(),
-		}),
-	}
-	err = s.ActivityLogger.Send(action)
-	if err != nil {
-		return models.FileDownloadResponse{}, err
-	}
-
-	var bucket models.Bucket
-	if dbErr := s.DB.Where("id = ?", bucketID).First(&bucket).Error; dbErr == nil {
-		evt := events.NewFileActivityNotification(
-			s.Publisher, events.FileActivityDownload, events.FileActivitySourceUser,
-			bucketID, bucket.Name, file.Name, user.UserID, user.Email,
+	if rmErr := s.Storage.RemoveObject(objectKey); rmErr != nil {
+		logger.Error(
+			"Failed to remove deleted version object - orphaned bytes",
+			zap.Error(rmErr),
+			zap.String("path", objectKey),
 		)
-		evt.Trigger()
 	}
 
-	return models.FileDownloadResponse{
-		ID:  file.ID.String(),
-		URL: url,
-	}, nil
-}
-
-func (s BucketFileService) restoreParentFolders(
-	tx *gorm.DB,
-	logger *zap.Logger,
-	folderID *uuid.UUID,
-	bucketID uuid.UUID,
-) ([]models.Folder, error) {
-	return h.RestoreParentFolders(tx, logger, folderID, bucketID)
-}
-
-// unmarkRestoredFolders removes trash markers for restored folders.
-// This must be called AFTER the transaction commits to avoid race conditions.
-func (s BucketFileService) unmarkRestoredFolders(logger *zap.Logger, folders []models.Folder) {
-	for _, folder := range folders {
-		objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
-		if err := s.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
-			logger.Warn("Failed to unmark parent folder as trashed",
-				zap.Error(err),
-				zap.String("folder_id", folder.ID.String()))
-			// Continue - folders exist only in DB
-		}
-	}
+	return nil
 }
 
 // RestoreFile recovers a file from trash with atomic status transition.
@@ -559,4 +681,114 @@ func (s BucketFileService) PurgeFile(
 
 		return nil
 	})
+}
+
+func (s BucketFileService) getDownloadableFile(bucketID, fileID uuid.UUID) (models.File, error) {
+	file, err := sql.GetFileByID(s.DB, bucketID, fileID)
+	if err != nil {
+		return models.File{}, err
+	}
+
+	if file.Status != models.FileStatusUploaded {
+		return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
+	}
+
+	if file.DeletedAt.Valid {
+		return models.File{}, apierrors.New(
+			http.StatusForbidden,
+			apierrors.CodeCannotDownloadTrashed,
+		)
+	}
+
+	if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
+		return models.File{}, apierrors.New(
+			http.StatusForbidden,
+			apierrors.CodeFileExpired,
+		)
+	}
+
+	return file, nil
+}
+
+func (s BucketFileService) downloadVersion(
+	logger *zap.Logger,
+	user models.UserClaims,
+	file models.File,
+	versionID uuid.UUID,
+	versionNumber int,
+	context string,
+) (models.FileDownloadResponse, error) {
+	objectPath := sql.VersionObjectKey(file.BucketID, versionID)
+
+	var inlineContentType string
+	if context == "preview" {
+		inlineContentType = h.PreviewMimeFromExtension(file.Extension)
+	}
+
+	url, err := s.Storage.PresignedGetObject(objectPath, storage.GetObjectOptions{
+		InlineContentType: inlineContentType,
+		DownloadFilename:  file.Name,
+	})
+	if err != nil {
+		logger.Error("Generate presigned URL failed", zap.Error(err))
+		return models.FileDownloadResponse{}, err
+	}
+
+	fields := models.ActivityFields{
+		Action:     rbac.ActionDownload.String(),
+		BucketID:   file.BucketID.String(),
+		FileID:     file.ID.String(),
+		ObjectType: rbac.ResourceFile.String(),
+		UserID:     user.UserID.String(),
+	}
+	if versionNumber > 0 {
+		fields.Version = strconv.Itoa(versionNumber)
+	}
+
+	action := models.Activity{
+		Message: activity.FileDownloaded,
+		Object:  file.ToActivity(),
+		Filter:  activity.NewLogFilter(fields),
+	}
+	err = s.ActivityLogger.Send(action)
+	if err != nil {
+		return models.FileDownloadResponse{}, err
+	}
+
+	var bucket models.Bucket
+	if dbErr := s.DB.Where("id = ?", file.BucketID).First(&bucket).Error; dbErr == nil {
+		evt := events.NewFileActivityNotification(
+			s.Publisher, events.FileActivityDownload, events.FileActivitySourceUser,
+			file.BucketID, bucket.Name, file.Name, user.UserID, user.Email,
+		)
+		evt.Trigger()
+	}
+
+	return models.FileDownloadResponse{
+		ID:  file.ID.String(),
+		URL: url,
+	}, nil
+}
+
+func (s BucketFileService) restoreParentFolders(
+	tx *gorm.DB,
+	logger *zap.Logger,
+	folderID *uuid.UUID,
+	bucketID uuid.UUID,
+) ([]models.Folder, error) {
+	return h.RestoreParentFolders(tx, logger, folderID, bucketID)
+}
+
+// unmarkRestoredFolders removes trash markers for restored folders.
+// This must be called AFTER the transaction commits to avoid race conditions.
+func (s BucketFileService) unmarkRestoredFolders(logger *zap.Logger, folders []models.Folder) {
+	for _, folder := range folders {
+		objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
+		if err := s.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
+			logger.Warn("Failed to unmark parent folder as trashed",
+				zap.Error(err),
+				zap.String("folder_id", folder.ID.String()))
+			// Continue - folders exist only in DB
+		}
+	}
 }
