@@ -11,7 +11,7 @@ RUN npm install && npm run build
 # Backend
 FROM golang:1.26-bookworm AS backend-builder
 
-ARG UPX_VERSION=5.1.1
+ARG UPX_VERSION=5.2.0
 ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates tzdata curl xz-utils && rm -rf /var/lib/apt/lists/*
 RUN curl -L -o upx.tar.xz https://github.com/upx/upx/releases/download/v${UPX_VERSION}/upx-${UPX_VERSION}-${TARGETARCH}_linux.tar.xz && \
