@@ -10,7 +10,6 @@ CREATE TABLE file_versions
         status TEXT NOT NULL,
         uploaded_by TEXT,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT fk_file_versions_file_id
             FOREIGN KEY (file_id) REFERENCES files (id) ON UPDATE CASCADE ON DELETE CASCADE,
         CONSTRAINT fk_file_versions_uploaded_by
@@ -25,10 +24,10 @@ CREATE UNIQUE INDEX idx_file_versions_file_version ON file_versions (file_id, ve
 ALTER TABLE files ADD COLUMN current_version_id TEXT
     REFERENCES file_versions (id) ON UPDATE CASCADE ON DELETE SET NULL;
 
-INSERT INTO file_versions (id, file_id, version, size, status, uploaded_by, created_at, updated_at)
+INSERT INTO file_versions (id, file_id, version, size, status, uploaded_by, created_at)
 SELECT id, id, 1, size,
     status,
-    NULL, created_at, created_at
+    NULL, created_at
 FROM files;
 
 UPDATE files SET current_version_id = id;
