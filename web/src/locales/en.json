@@ -888,6 +888,7 @@
         "last_name": "Last Name",
         "role": "Role",
         "provider": "Provider",
+        "mfa": "MFA",
         "created": "Created",
         "actions": "Actions"
       },
@@ -903,6 +904,10 @@
         "title": "Delete User",
         "description": "Are you sure you want to delete {{email}}? This action cannot be undone.",
         "confirm": "Delete"
+      },
+      "mfa": {
+        "enabled": "MFA enabled",
+        "not_enabled": "MFA not set up"
       }
     },
     "buckets": {

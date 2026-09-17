@@ -895,6 +895,7 @@
         "last_name": "Nom",
         "role": "Rôle",
         "provider": "Fournisseur",
+        "mfa": "2FA",
         "created": "Créé",
         "actions": "Actions"
       },
@@ -910,6 +911,10 @@
         "title": "Supprimer l'utilisateur",
         "description": "Êtes-vous sûr de vouloir supprimer {{email}} ? Cette action est irréversible.",
         "confirm": "Supprimer"
+      },
+      "mfa": {
+        "enabled": "2FA activée",
+        "not_enabled": "2FA non configurée"
       }
     },
     "buckets": {
