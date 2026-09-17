@@ -59,6 +59,7 @@ export const useVerifyMFADeviceMutation = () => {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       toast.success("MFA device verified successfully");
     },
   });
@@ -84,6 +85,7 @@ export const useRemoveMFADeviceMutation = () => {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: MFA_DEVICES_KEY });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       toast.success("MFA device removed");
     },
   });

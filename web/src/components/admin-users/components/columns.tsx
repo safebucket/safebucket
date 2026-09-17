@@ -9,9 +9,10 @@ import {
   sortFn_text,
   tableFeatures,
 } from "@tanstack/react-table";
+import { Shield, ShieldCheck } from "lucide-react";
 import type { TFunction } from "i18next";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { IUser } from "@/components/auth-view/types/session";
+import type { IAdminUser } from "@/components/auth-view/types/session";
 import { Badge } from "@/components/ui/badge";
 
 export const features = tableFeatures({
@@ -30,7 +31,7 @@ export type AdminTableFeatures = typeof features;
 
 export const createColumns = (
   t: TFunction,
-): Array<ColumnDef<AdminTableFeatures, IUser>> => [
+): Array<ColumnDef<AdminTableFeatures, IAdminUser>> => [
   {
     accessorKey: "email",
     header: t("admin.users.columns.email"),
@@ -61,6 +62,26 @@ export const createColumns = (
     cell: ({ row }) => {
       const provider: string = row.getValue("provider_type");
       return provider.charAt(0).toUpperCase() + provider.slice(1);
+    },
+  },
+  {
+    accessorKey: "mfa_enabled",
+    header: t("admin.users.columns.mfa"),
+    cell: ({ row }) => {
+      const enabled: boolean = row.getValue("mfa_enabled");
+      const label = enabled
+        ? t("admin.users.mfa.enabled")
+        : t("admin.users.mfa.not_enabled");
+      return (
+        <span title={label}>
+          {enabled ? (
+            <ShieldCheck className="h-4 w-4 text-success" />
+          ) : (
+            <Shield className="h-4 w-4 text-muted-foreground" />
+          )}
+          <span className="sr-only">{label}</span>
+        </span>
+      );
     },
   },
   {
