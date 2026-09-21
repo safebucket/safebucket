@@ -30,7 +30,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version: 1.26
+          go-version: 1.27
           cache: true
 
       - name: Create web dist placeholder
@@ -39,6 +39,7 @@ jobs:
       - name: Run Go linter
         uses: golangci/golangci-lint-action@v9.3.0
         with:
+          version: v2.13
           args: --timeout=5m
           working-directory: ${{ github.workspace }}
 
