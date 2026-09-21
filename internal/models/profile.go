@@ -15,6 +15,8 @@ type Profile struct {
 }
 
 type WorkerConfig struct {
+	ActivityOutbox   WorkerMode
+	QueueOutbox      WorkerMode
 	ObjectDeletion   WorkerMode
 	BucketEvents     WorkerMode
 	TrashCleanup     WorkerMode
@@ -22,7 +24,9 @@ type WorkerConfig struct {
 }
 
 func (w WorkerConfig) AnyEnabled() bool {
-	return w.ObjectDeletion != WorkerModeDisabled ||
+	return w.ActivityOutbox != WorkerModeDisabled ||
+		w.QueueOutbox != WorkerModeDisabled ||
+		w.ObjectDeletion != WorkerModeDisabled ||
 		w.BucketEvents != WorkerModeDisabled ||
 		w.TrashCleanup != WorkerModeDisabled ||
 		w.GarbageCollector != WorkerModeDisabled

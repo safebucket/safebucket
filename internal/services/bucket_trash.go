@@ -10,9 +10,9 @@ import (
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/go-chi/chi/v5"
@@ -22,8 +22,7 @@ import (
 )
 
 type BucketTrashService struct {
-	DB        *gorm.DB
-	Publisher messaging.IPublisher
+	DB *gorm.DB
 }
 
 func (s BucketTrashService) Routes() chi.Router {
@@ -54,7 +53,7 @@ func (s BucketTrashService) BulkTrash(
 		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidValue)
 	}
 
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
 		if txErr := s.validateTrashItems(tx, bucketID, body); txErr != nil {
 			return txErr
 		}
@@ -71,22 +70,11 @@ func (s BucketTrashService) BulkTrash(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
-		return nil
+		return outbox.EnqueueEvent(tx, events.ItemsTrashName, events.ItemsTrashPayload{
+			BucketID: bucketID,
+			UserID:   user.UserID,
+		})
 	})
-	if err != nil {
-		return err
-	}
-
-	event := events.NewItemsTrash(s.Publisher, bucketID, user.UserID)
-	event.Trigger()
-
-	logger.Info("Bulk trash accepted",
-		zap.String("bucket_id", bucketID.String()),
-		zap.Int("folders", len(body.FolderIDs)),
-		zap.Int("files", len(body.FileIDs)),
-		zap.String("user_id", user.UserID.String()))
-
-	return nil
 }
 
 func (s BucketTrashService) validateTrashItems(

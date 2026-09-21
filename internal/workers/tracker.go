@@ -51,13 +51,16 @@ func StartPeriodicWorker(ctx context.Context, workerName string, interval time.D
 
 func runWorkerCycle(ctx context.Context, workerName string, tasks []WorkerTask) {
 	startTime := time.Now()
-	zap.L().Info("Starting worker cycle", zap.String("worker", workerName))
-
 	counts := executeTasks(ctx, tasks)
 
 	fields := []zap.Field{zap.String("worker", workerName)}
+	processed := 0
 	for i, task := range tasks {
 		fields = append(fields, zap.Int(task.Name, counts[i]))
+		processed += counts[i]
+	}
+	if processed == 0 {
+		return
 	}
 	fields = append(fields, zap.Duration("duration", time.Since(startTime)))
 
