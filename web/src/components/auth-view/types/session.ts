@@ -10,10 +10,12 @@ export type Session = {
 export interface IUser extends IUserInfo {
   provider_type: string;
   role: "admin" | "user" | "guest";
-  mfa_enabled: boolean;
-  mfa_enabled_at?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface IAdminUser extends IUser {
+  mfa_enabled: boolean;
 }
 
 export interface ILoginForm {

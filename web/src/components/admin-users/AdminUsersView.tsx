@@ -6,7 +6,7 @@ import { createColumns } from "./components/columns";
 import { AdminUsersTable } from "./components/AdminUsersTable";
 import type { FC } from "react";
 import type { FieldValues } from "react-hook-form";
-import type { IUser } from "@/components/auth-view/types/session";
+import type { IAdminUser } from "@/components/auth-view/types/session";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
@@ -46,7 +46,7 @@ export const AdminUsersView: FC = () => {
     });
   };
 
-  const handleDeleteClick = (user: IUser) => {
+  const handleDeleteClick = (user: IAdminUser) => {
     setUserToDelete(user);
     deleteUserDialog.trigger();
   };
