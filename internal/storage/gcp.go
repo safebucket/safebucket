@@ -68,10 +68,11 @@ func (g GCPStorage) PresignUpload(
 
 	headers := map[string]string{}
 	for header, value := range map[string]string{
-		"x-goog-meta-bucket-id": metadata["bucket_id"],
-		"x-goog-meta-file-id":   metadata["file_id"],
-		"x-goog-meta-user-id":   metadata["user_id"],
-		"x-goog-meta-share-id":  metadata["share_id"],
+		"x-goog-meta-bucket-id":  metadata["bucket_id"],
+		"x-goog-meta-file-id":    metadata["file_id"],
+		"x-goog-meta-version-id": metadata["version_id"],
+		"x-goog-meta-user-id":    metadata["user_id"],
+		"x-goog-meta-share-id":   metadata["share_id"],
 	} {
 		if value != "" {
 			headers[header] = value
@@ -366,7 +367,11 @@ func (g GCPStorage) StatObject(path string) (map[string]string, error) {
 }
 
 func (g GCPStorage) RemoveObject(path string) error {
-	return g.storage.Bucket(g.BucketName).Object(path).Delete(context.Background())
+	err := g.storage.Bucket(g.BucketName).Object(path).Delete(context.Background())
+	if errors.Is(err, gcs.ErrObjectNotExist) {
+		return nil
+	}
+	return err
 }
 
 func (g GCPStorage) RemoveObjects(paths []string) error {
@@ -464,7 +469,7 @@ func (g GCPStorage) MarkAsTrashed(objectPath string, object interface{}) error {
 	markerPath := g.getTrashMarkerPath(objectPath, object)
 
 	if _, ok := object.(models.File); ok {
-		obj := g.storage.Bucket(g.BucketName).Object(objectPath)
+		obj := g.storage.Bucket(g.BucketName).Object(fileContentPath(objectPath, object))
 		if _, err := obj.Attrs(ctx); err != nil {
 			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
 		}

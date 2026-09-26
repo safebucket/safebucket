@@ -49,7 +49,7 @@ var AuthExcludedPatterns = []AuthPatternRule{
 	{
 		Pattern: regexp.MustCompile(
 			`^/api/v1/shares/` + ShareIDPattern +
-				`(/auth|/download|/files(/` + UUIDv4Pattern + `(/url|/download)?)?|/?)$`,
+				`(/auth|/download|/files(/` + UUIDv4Pattern + `(/url|/download|/versions/` + UUIDv4Pattern + `)?)?|/?)$`,
 		),
 		Method: "*",
 	},

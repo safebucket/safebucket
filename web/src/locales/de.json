@@ -48,7 +48,7 @@
     "SHARE_CUSTOM_ID_ALREADY_EXISTS": "Dieser Freigabepfad wird bereits verwendet.",
     "CUSTOM_SHARE_IDS_DISABLED": "Benutzerdefinierte Freigabepfade sind deaktiviert.",
     "REDIRECT_DOWNLOAD_DISABLED": "Die Weiterleitung auf diesem Server ist deaktiviert.",
-    "FILE_ALREADY_EXISTS": "Eine Datei mit diesem Namen existiert bereits.",
+    "FILE_UPLOAD_IN_PROGRESS": "Für diese Datei läuft bereits ein Upload.",
     "MAX_UPLOADS_REACHED": "Mit diesem Freigabe-Link können keine weiteren Dateien hochgeladen werden",
     "ACTIVITY_RANGE_TOO_LARGE": "Die längste Zeitspanne beträgt 90 Tage",
     "FIELD_REQUIRED": "Ein benötigtes Feld wurde nicht ausgefüllt.",
@@ -64,7 +64,11 @@
     "INVALID_MOVE_TARGET": "Ein Ordner kann nicht in sich selbst oder in einen seiner Unterordner verschoben werden.",
     "ITEM_NOT_FOUND": "Mindestens ein ausgewähltes Element wurde nicht gefunden.",
     "NAME_CONFLICT": "Am Zielort existiert bereits ein Element mit demselben Namen.",
-    "ITEM_NOT_MOVABLE": "Dieses Element kann in seinem aktuellen Zustand nicht verschoben werden."
+    "ITEM_NOT_MOVABLE": "Dieses Element kann in seinem aktuellen Zustand nicht verschoben werden.",
+    "FILE_VERSION_NOT_FOUND": "Diese Version existiert nicht mehr. Aktualisieren Sie den Versionsverlauf.",
+    "FILE_VERSION_IS_CURRENT": "Die aktuelle Version kann nicht gelöscht werden.",
+    "FILE_VERSION_NOT_RESTORABLE": "Diese Version kann nicht wiederhergestellt werden. Aktualisieren Sie den Versionsverlauf.",
+    "FILE_VERSION_NOT_DELETABLE": "Diese Version kann nicht gelöscht werden. Aktualisieren Sie den Versionsverlauf."
   },
   "toast": {
     "download_started": "Starte Download von {{filename}}",
@@ -395,7 +399,11 @@
       "share_deleted": "Freigabe-Link '%%SHARE_NAME%%' für den Bucket '%%BUCKET_NAME%%' gelöscht.",
       "share_expired": "Freigabe-Link '%%SHARE_NAME%%' für den Bucket '%%BUCKET_NAME%%' abgelaufen.",
       "share_max_views_reached": "Der Freigabe-Link '%%SHARE_NAME%%' für den Bucket '%%BUCKET_NAME%%' hat die maximale Anzahl an Öffnungen erreicht.",
-      "default": "Der Nutzer %%USERNAME%% hat änderungen an dem Bucket '%%BUCKET_NAME%%' vorgenommen."
+      "default": "Der Nutzer %%USERNAME%% hat änderungen an dem Bucket '%%BUCKET_NAME%%' vorgenommen.",
+      "file_version_created": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' hochgeladen.",
+      "file_version_restored": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' wiederhergestellt.",
+      "file_version_deleted": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' aus Bucket '%%BUCKET_NAME%%' endgültig gelöscht.",
+      "file_version_downloaded": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' aus Bucket '%%BUCKET_NAME%%' heruntergeladen."
     },
     "time": {
       "second": "Sekunde",
@@ -1084,5 +1092,20 @@
         "observability": "Überwachung"
       }
     }
+  },
+  "file_versions": {
+    "title": "Versionsverlauf",
+    "version": "Version {{number}}",
+    "current": "Aktuell",
+    "refresh": "Aktualisieren",
+    "retry": "Erneut versuchen",
+    "empty": "Noch keine gespeicherten Versionen.",
+    "restore": "Wiederherstellen",
+    "restore_title": "Version {{number}} wiederherstellen?",
+    "restore_description": "Diese Version als aktuellen Inhalt von {{filename}} verwenden. Andere gespeicherte Versionen bleiben verfügbar.",
+    "delete_title": "Version {{number}} löschen?",
+    "delete_description": "Diese Version von {{filename}} endgültig löschen. Dies kann nicht rückgängig gemacht werden.",
+    "restored": "Version wiederhergestellt.",
+    "deleted": "Version gelöscht."
   }
 }

@@ -41,7 +41,16 @@ func parseShareUUIDs(w http.ResponseWriter, r *http.Request) (uuid.UUIDs, bool) 
 		return ids, false
 	}
 
-	return append(ids, fileID), true
+	ids = append(ids, fileID)
+	if value := chi.URLParam(r, "id2"); value != "" {
+		versionID, parseErr := uuid.Parse(value)
+		if parseErr != nil {
+			h.RespondWithError(w, http.StatusBadRequest, []string{apierrors.CodeInvalidUUID})
+			return ids, false
+		}
+		ids = append(ids, versionID)
+	}
+	return ids, true
 }
 
 func ShareAuthHandler[In any](forceSecure bool, auth ShareAuthTargetFunc[In]) http.HandlerFunc {
