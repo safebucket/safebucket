@@ -20,11 +20,17 @@ export interface IFilePartURL {
 export type IUploadPresign =
   | {
       id: string;
+      version_id: string;
       method: "post";
       url: string;
       body: Array<Record<string, string>>;
     }
-  | { id: string; method: "put"; parts: Array<IFilePartURL> };
+  | {
+      id: string;
+      version_id: string;
+      method: "put";
+      parts: Array<IFilePartURL>;
+    };
 
 export interface IUploadContext {
   uploads: Array<IUpload>;

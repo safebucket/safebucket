@@ -110,22 +110,12 @@ func (e *BucketPurge) deleteRootFiles(params *EventParams) bool {
 	)
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		var storagePaths []string
+		if err := params.Versions.RemoveFileObjects(tx, files...); err != nil {
+			return err
+		}
 		var fileIDs []uuid.UUID
 		for _, file := range files {
 			fileIDs = append(fileIDs, file.ID)
-			filePath := path.Join("buckets", e.Payload.BucketID.String(), file.ID.String())
-			storagePaths = append(storagePaths, filePath)
-		}
-
-		if len(storagePaths) > 0 {
-			if err := params.Storage.RemoveObjects(storagePaths); err != nil {
-				zap.L().Warn("Failed to delete files from storage", zap.Error(err))
-			} else {
-				zap.L().Info("Successfully deleted files from storage",
-					zap.Int("count", len(storagePaths)),
-				)
-			}
 		}
 
 		if err := tx.Unscoped().Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {

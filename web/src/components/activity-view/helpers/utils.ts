@@ -1,7 +1,8 @@
 import { AlertCircle } from "lucide-react";
 
 import type { IMessageMapping } from "@/components/activity-view/helpers/types.ts";
-import type { ActivityMessage, IActivity } from "@/types/activity.ts";
+import type { IActivity } from "@/types/activity.ts";
+import { ActivityMessage } from "@/types/activity.ts";
 import { getUserDisplayName } from "@/types/user.ts";
 import { messageMap } from "@/components/activity-view/helpers/constants";
 
@@ -25,13 +26,18 @@ export const formatMessage = (
 ): string => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const mapping = messageMap[log.message] || DEFAULT_ACTIVITY_MAPPING;
-  return t(mapping.messageKey)
+  const messageKey =
+    log.message === ActivityMessage.FILE_DOWNLOADED && log.version
+      ? "activity.messages.file_version_downloaded"
+      : mapping.messageKey;
+  return t(messageKey)
     .replace(
       "%%USERNAME%%",
       getUserDisplayName(log.user, t("activity.share_link")),
     )
     .replace("%%BUCKET_NAME%%", log.bucket?.name || "")
     .replace("%%FILE_NAME%%", log.file?.name || "")
+    .replace("%%VERSION%%", log.version || "")
     .replace("%%FOLDER_NAME%%", log.folder?.name || "")
     .replace("%%BUCKET_MEMBER_EMAIL%%", log.bucket_member_email || "")
     .replace("%%SHARE_NAME%%", log.share?.name || "");

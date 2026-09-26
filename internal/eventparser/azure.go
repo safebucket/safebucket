@@ -90,10 +90,11 @@ func (p *AzureEventParser) ParseBucketUploadEvents(msg *message.Message) []Bucke
 		}
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
-			BucketID: bucketID,
-			FileID:   fileID,
-			UserID:   userID,
-			ShareID:  shareID,
+			VersionID: metadata["version_id"],
+			BucketID:  bucketID,
+			FileID:    fileID,
+			UserID:    userID,
+			ShareID:   shareID,
 		})
 	}
 

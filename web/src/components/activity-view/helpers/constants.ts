@@ -55,6 +55,21 @@ export const messageMap = {
     icon: FileUp,
     ...info,
   },
+  FILE_VERSION_CREATED: {
+    messageKey: "activity.messages.file_version_created",
+    icon: FileUp,
+    ...info,
+  },
+  FILE_VERSION_RESTORED: {
+    messageKey: "activity.messages.file_version_restored",
+    icon: RotateCcw,
+    ...success,
+  },
+  FILE_VERSION_DELETED: {
+    messageKey: "activity.messages.file_version_deleted",
+    icon: FileMinus,
+    ...destructive,
+  },
   FILE_DOWNLOADED: {
     messageKey: "activity.messages.file_downloaded",
     icon: FileDown,

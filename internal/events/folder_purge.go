@@ -129,19 +129,12 @@ func (e *FolderPurge) callback(params *EventParams) error {
 				zap.String("folder", folder.Name),
 				zap.Int("child_count", len(childFiles)))
 
-			var storagePaths []string
-			var fileIDs []uuid.UUID
-			for _, child := range childFiles {
-				fileIDs = append(fileIDs, child.ID)
-
-				childPath := path.Join("buckets", e.Payload.BucketID.String(), child.ID.String())
-				storagePaths = append(storagePaths, childPath)
+			if err := params.Versions.RemoveFileObjects(tx, childFiles...); err != nil {
+				return err
 			}
-
-			if len(storagePaths) > 0 {
-				if err := params.Storage.RemoveObjects(storagePaths); err != nil {
-					zap.L().Warn("Failed to delete some files from storage", zap.Error(err))
-				}
+			var fileIDs []uuid.UUID
+			for _, file := range childFiles {
+				fileIDs = append(fileIDs, file.ID)
 			}
 
 			if err := tx.Unscoped().Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {

@@ -1,10 +1,11 @@
 package eventparser
 
 type BucketUploadEvent struct {
-	BucketID string `json:"bucket_id"`
-	FileID   string `json:"file_id"`
-	UserID   string `json:"user_id"`
-	ShareID  string `json:"share_id"`
+	VersionID string `json:"version_id"`
+	BucketID  string `json:"bucket_id"`
+	FileID    string `json:"file_id"`
+	UserID    string `json:"user_id"`
+	ShareID   string `json:"share_id"`
 }
 
 type BucketDeletionEvent struct {

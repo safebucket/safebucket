@@ -39,18 +39,18 @@ func getJSON[T any](c ICache, key string) (T, bool, error) {
 	return value, true, nil
 }
 
-func SetMultipartState(c ICache, fileID string, state MultipartState) error {
-	key := fmt.Sprintf(configuration.CacheMultipartStateKey, fileID)
+func SetMultipartState(c ICache, versionID string, state MultipartState) error {
+	key := fmt.Sprintf(configuration.CacheMultipartStateKey, versionID)
 	return setJSON(c, key, state, configuration.CacheMultipartStateExpiry)
 }
 
-func GetMultipartState(c ICache, fileID string) (MultipartState, bool, error) {
-	key := fmt.Sprintf(configuration.CacheMultipartStateKey, fileID)
+func GetMultipartState(c ICache, versionID string) (MultipartState, bool, error) {
+	key := fmt.Sprintf(configuration.CacheMultipartStateKey, versionID)
 	return getJSON[MultipartState](c, key)
 }
 
-func DeleteMultipartState(c ICache, fileID string) error {
-	return c.Del(fmt.Sprintf(configuration.CacheMultipartStateKey, fileID))
+func DeleteMultipartState(c ICache, versionID string) error {
+	return c.Del(fmt.Sprintf(configuration.CacheMultipartStateKey, versionID))
 }
 
 func GetMFAAttempts(c ICache, userID string) (int, error) {

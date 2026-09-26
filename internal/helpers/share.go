@@ -18,8 +18,7 @@ func GetShareFile(db *gorm.DB, share models.Share, fileID uuid.UUID) (models.Fil
 	query := db.
 		Where("files.id = ?", fileID).
 		Where("files.bucket_id = ?", share.BucketID).
-		Where("files.status = ?", models.FileStatusUploaded).
-		Where("files.expires_at IS NULL OR files.expires_at > ?", now)
+		Where("files.status = ?", models.FileStatusUploaded)
 
 	switch share.Type {
 	case models.ShareTypeFiles:
@@ -30,7 +29,11 @@ func GetShareFile(db *gorm.DB, share models.Share, fileID uuid.UUID) (models.Fil
 		return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 	}
 
-	if err := query.First(&file).Error; err != nil {
+	result := query.Find(&file)
+	if result.Error != nil {
+		return models.File{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+	}
+	if result.RowsAffected == 0 || (file.ExpiresAt != nil && !file.ExpiresAt.After(now)) {
 		return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 	}
 

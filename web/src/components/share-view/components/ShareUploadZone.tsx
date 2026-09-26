@@ -19,6 +19,7 @@ import {
   useShareUploadMutation,
 } from "@/queries/share";
 import { configQueryOptions } from "@/queries/config";
+import { shareFetch } from "@/lib/share-api";
 import { cn, formatFileSize, generateRandomString } from "@/lib/utils";
 import { errorToast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
@@ -83,12 +84,15 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
         },
       ]);
 
+      let target: { fileId: string; versionId: string } | undefined;
       try {
         const presigned = await uploadMutation.mutateAsync({
           name: file.name,
           size: file.size,
           folder_id: folderId,
         });
+        target = { fileId: presigned.id, versionId: presigned.version_id };
+        abortController.signal.throwIfAborted();
 
         await uploadToStorage(
           presigned,
@@ -101,12 +105,15 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
           abortController.signal,
         );
 
+        abortController.signal.throwIfAborted();
         const config = await queryClient.ensureQueryData(configQueryOptions());
         const isMultipart =
           presigned.method === "put" && presigned.parts.length > 1;
         if (isMultipart || config.requiresUploadConfirmation) {
-          await confirmMutation.mutateAsync(presigned.id);
+          abortController.signal.throwIfAborted();
+          await confirmMutation.mutateAsync(target);
         }
+        abortController.signal.throwIfAborted();
 
         setUploads((prev) =>
           prev.map((u) =>
@@ -126,7 +133,7 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
               ...old,
               current_uploads: old.current_uploads + 1,
               files: [
-                ...old.files,
+                ...old.files.filter((existing) => existing.id !== presigned.id),
                 {
                   id: presigned.id,
                   name: file.name,
@@ -134,23 +141,37 @@ export const ShareUploadZone: FC<IShareUploadZoneProps> = ({
                   extension,
                   folder_id: folderId,
                   status: FileStatus.uploaded,
-                  created_at: new Date().toISOString(),
+                  created_at:
+                    old.files.find((existing) => existing.id === presigned.id)
+                      ?.created_at ?? new Date().toISOString(),
                   deleted_at: null,
-                  expires_at: null,
+                  expires_at:
+                    old.files.find((existing) => existing.id === presigned.id)
+                      ?.expires_at ?? null,
                 },
               ],
             };
           },
         );
       } catch (err) {
+        if (abortController.signal.aborted && target) {
+          void shareFetch(
+            `/${shareId}/files/${target.fileId}/versions/${target.versionId}`,
+            { method: "DELETE" },
+          ).catch(() => {});
+        }
         setUploads((prev) =>
           prev.map((u) =>
             u.id === uploadId
-              ? { ...u, status: "error", error: err as Error }
+              ? {
+                  ...u,
+                  status: "error",
+                  error: err as Error,
+                }
               : u,
           ),
         );
-        if (err instanceof Error && err.message !== "Upload cancelled") {
+        if (err instanceof Error && !abortController.signal.aborted) {
           errorToast(err);
         }
       } finally {
