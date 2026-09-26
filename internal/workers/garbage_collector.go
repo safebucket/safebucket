@@ -3,13 +3,13 @@ package workers
 import (
 	"context"
 	"fmt"
-	"path"
 	"strconv"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/storage"
@@ -24,10 +24,17 @@ const (
 	GCBatchSize            = 100
 )
 
+type bucketVersion struct {
+	models.FileVersion
+
+	BucketID uuid.UUID
+}
+
 type GarbageCollectorWorker struct {
 	DB                 *gorm.DB
 	Storage            storage.IStorage
 	Cache              cache.ICache
+	Versions           fileversions.Manager
 	ActivityLogger     activity.IActivityLogger
 	RunInterval        time.Duration
 	RefreshTokenExpiry int
@@ -36,6 +43,7 @@ type GarbageCollectorWorker struct {
 func (w *GarbageCollectorWorker) Start(ctx context.Context) {
 	StartPeriodicWorker(ctx, "garbage_collector", w.RunInterval, []WorkerTask{
 		{Name: "stale_uploads", Fn: w.cleanupStaleUploads},
+		{Name: "deleted_versions", Fn: w.cleanupDeletedVersions},
 		{Name: "expired_challenges", Fn: w.cleanupExpiredChallenges},
 		{Name: "expired_files", Fn: w.cleanupExpiredFiles},
 		{Name: "expired_shares", Fn: w.cleanupExpiredShares},
@@ -44,80 +52,58 @@ func (w *GarbageCollectorWorker) Start(ctx context.Context) {
 	})
 }
 
-// cleanupStaleUploads deletes files stuck in "uploading" status beyond the threshold.
 func (w *GarbageCollectorWorker) cleanupStaleUploads(_ context.Context) (int, error) {
 	threshold := time.Now().Add(-GCStaleUploadThreshold)
-
-	var staleFiles []models.File
-	if err := w.DB.Unscoped().
-		Where("status = ? AND created_at < ?", models.FileStatusUploading, threshold).
-		Limit(GCBatchSize).
-		Find(&staleFiles).Error; err != nil {
+	versions, err := w.findVersions(
+		"file_versions.status = ? AND file_versions.created_at < ?",
+		models.FileStatusUploading, threshold,
+	)
+	if err != nil {
 		return 0, err
 	}
-
-	if len(staleFiles) == 0 {
-		return 0, nil
-	}
-
-	var toDelete []uuid.UUID
-	for _, file := range staleFiles {
-		multipart, isMultipart, cacheErr := cache.GetMultipartState(w.Cache, file.ID.String())
-		if cacheErr != nil {
-			zap.L().Warn("Failed to read multipart state for stale upload, skipping this cycle",
-				zap.String("file_id", file.ID.String()), zap.Error(cacheErr))
+	count := 0
+	for _, version := range versions {
+		expired, expireErr := w.Versions.ExpirePending(version.BucketID, version.FileVersion, threshold)
+		if expireErr != nil {
+			zap.L().Warn("Failed to expire stale version, will retry", zap.Error(expireErr))
 			continue
 		}
-
-		if isMultipart && w.Storage.SupportsMultipart() {
-			objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
-
-			parts, err := w.Storage.ListObjectParts(objectPath, multipart.UploadID)
-			if err != nil {
-				zap.L().Warn("Failed to list parts for stale multipart upload, skipping this cycle",
-					zap.String("file_id", file.ID.String()), zap.Error(err))
-				continue
-			}
-			if hasRecentPart(parts, threshold) {
-				continue
-			}
-
-			if abortErr := w.Storage.AbortMultipartUpload(objectPath, multipart.UploadID); abortErr != nil {
-				zap.L().Warn("Failed to abort stale multipart upload",
-					zap.String("file_id", file.ID.String()), zap.Error(abortErr))
-			}
-			if delErr := cache.DeleteMultipartState(w.Cache, file.ID.String()); delErr != nil {
-				zap.L().Warn("Failed to delete multipart state from cache",
-					zap.String("file_id", file.ID.String()), zap.Error(delErr))
-			}
+		if expired {
+			count++
 		}
-
-		toDelete = append(toDelete, file.ID)
 	}
-
-	if len(toDelete) == 0 {
-		return 0, nil
-	}
-
-	result := w.DB.Unscoped().Delete(&models.File{}, toDelete)
-	if result.Error != nil {
-		return 0, result.Error
-	}
-
-	if result.RowsAffected > 0 {
-		zap.L().Debug("Deleted stale uploading files", zap.Int64("count", result.RowsAffected))
-	}
-
-	return int(result.RowsAffected), nil
+	return count, nil
 }
 
-func hasRecentPart(parts []storage.PartInfo, threshold time.Time) bool {
-	for _, part := range parts {
-		if part.LastModified.After(threshold) {
-			return true
-		}
+func (w *GarbageCollectorWorker) cleanupDeletedVersions(_ context.Context) (int, error) {
+	versions, err := w.findVersions(
+		"file_versions.status = ? AND (file_versions.cleanup_after IS NULL OR file_versions.cleanup_after <= ?)",
+		models.FileStatusDeleting, time.Now(),
+	)
+	if err != nil {
+		return 0, err
 	}
-	return false
+	count := 0
+	for _, version := range versions {
+		if cleanupErr := w.Versions.Cleanup(version.BucketID, version.FileID, version.ID); cleanupErr != nil {
+			zap.L().Warn("Failed to remove version object, will retry", zap.Error(cleanupErr))
+			continue
+		}
+		count++
+	}
+	return count, nil
+}
+
+func (w *GarbageCollectorWorker) findVersions(query string, args ...any) ([]bucketVersion, error) {
+	var versions []bucketVersion
+	err := w.DB.Model(&models.FileVersion{}).
+		Select("file_versions.*, files.bucket_id").
+		Joins("JOIN files ON files.id = file_versions.file_id").
+		Where(query, args...).
+		Order("file_versions.created_at ASC").
+		Limit(GCBatchSize).
+		Find(&versions).Error
+	return versions, err
 }
 
 // cleanupExpiredChallenges hard-deletes challenges that have expired.
@@ -155,20 +141,17 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 		return 0, nil
 	}
 
-	storagePaths := make([]string, len(files))
-	fileIDs := make([]uuid.UUID, len(files))
-	for i, file := range files {
-		storagePaths[i] = path.Join("buckets", file.BucketID.String(), file.ID.String())
-		fileIDs[i] = file.ID
-	}
-
-	if err := w.Storage.RemoveObjects(storagePaths); err != nil {
-		return 0, fmt.Errorf("failed to remove objects from storage: %w", err)
+	fileIDs := make([]uuid.UUID, 0, len(files))
+	for _, file := range files {
+		fileIDs = append(fileIDs, file.ID)
 	}
 
 	var rowsAffected int64
 
 	err := w.DB.Transaction(func(tx *gorm.DB) error {
+		if err := w.Versions.RemoveFileObjects(tx, files...); err != nil {
+			return err
+		}
 		result := tx.Unscoped().Delete(&models.File{}, fileIDs)
 		if result.Error != nil {
 			return result.Error

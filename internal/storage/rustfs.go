@@ -289,7 +289,12 @@ func (s RustFSStorage) MarkAsTrashed(objectPath string, object interface{}) erro
 	markerPath := s.getTrashMarkerPath(objectPath, object)
 
 	if _, ok := object.(models.File); ok {
-		_, err := s.storage.StatObject(ctx, s.BucketName, objectPath, minio.StatObjectOptions{})
+		_, err := s.storage.StatObject(
+			ctx,
+			s.BucketName,
+			fileContentPath(objectPath, object),
+			minio.StatObjectOptions{},
+		)
 		if err != nil {
 			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
 		}

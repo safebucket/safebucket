@@ -22,10 +22,11 @@ func presignS3Upload(
 ) (PresignedUpload, error) {
 	ctx := context.Background()
 	userMetadata := map[string]string{
-		"Bucket-Id": metadata["bucket_id"],
-		"File-Id":   metadata["file_id"],
-		"User-Id":   metadata["user_id"],
-		"Share-Id":  metadata["share_id"],
+		"Bucket-Id":  metadata["bucket_id"],
+		"File-Id":    metadata["file_id"],
+		"Version-Id": metadata["version_id"],
+		"User-Id":    metadata["user_id"],
+		"Share-Id":   metadata["share_id"],
 	}
 
 	if int64(size) <= c.MultipartPartSize {

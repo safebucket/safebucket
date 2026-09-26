@@ -48,7 +48,7 @@
     "SHARE_CUSTOM_ID_ALREADY_EXISTS": "Ce chemin de partage est déjà utilisé.",
     "CUSTOM_SHARE_IDS_DISABLED": "Les chemins de partage personnalisés sont désactivés.",
     "REDIRECT_DOWNLOAD_DISABLED": "Le téléchargement par redirection n'est pas activé sur ce serveur.",
-    "FILE_ALREADY_EXISTS": "Un fichier avec ce nom existe déjà.",
+    "FILE_UPLOAD_IN_PROGRESS": "Un téléversement de ce fichier est déjà en cours.",
     "MAX_UPLOADS_REACHED": "Ce lien de partage a atteint son nombre maximum d'envois.",
     "ACTIVITY_RANGE_TOO_LARGE": "La période sélectionnée ne peut pas dépasser 90 jours.",
     "FIELD_REQUIRED": "Un champ obligatoire est manquant.",
@@ -64,7 +64,11 @@
     "INVALID_MOVE_TARGET": "Impossible de déplacer un dossier dans lui-même ou dans l'un de ses sous-dossiers.",
     "ITEM_NOT_FOUND": "Un ou plusieurs éléments sélectionnés sont introuvables.",
     "NAME_CONFLICT": "Un élément portant le même nom existe déjà dans le dossier de destination.",
-    "ITEM_NOT_MOVABLE": "Cet élément ne peut pas être déplacé dans son état actuel."
+    "ITEM_NOT_MOVABLE": "Cet élément ne peut pas être déplacé dans son état actuel.",
+    "FILE_VERSION_NOT_FOUND": "Cette version n’existe plus. Actualisez l’historique des versions.",
+    "FILE_VERSION_IS_CURRENT": "La version actuelle ne peut pas être supprimée.",
+    "FILE_VERSION_NOT_RESTORABLE": "Cette version ne peut pas être restaurée. Actualisez l’historique des versions.",
+    "FILE_VERSION_NOT_DELETABLE": "Cette version ne peut pas être supprimée. Actualisez l’historique des versions."
   },
   "toast": {
     "download_started": "Téléchargement démarré pour le fichier {{filename}}",
@@ -395,7 +399,11 @@
       "share_deleted": "A supprimé le lien de partage '%%SHARE_NAME%%' sur le bucket '%%BUCKET_NAME%%'.",
       "share_expired": "Le lien de partage '%%SHARE_NAME%%' a expiré sur le bucket '%%BUCKET_NAME%%'.",
       "share_max_views_reached": "Le lien de partage '%%SHARE_NAME%%' a atteint le nombre maximum de vues sur le bucket '%%BUCKET_NAME%%'.",
-      "default": "%%USERNAME%% a effectué une action sur le bucket '%%BUCKET_NAME%%'."
+      "default": "%%USERNAME%% a effectué une action sur le bucket '%%BUCKET_NAME%%'.",
+      "file_version_created": "A importé la version %%VERSION%% du fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "file_version_restored": "A restauré la version %%VERSION%% du fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "file_version_deleted": "A supprimé définitivement la version %%VERSION%% du fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
+      "file_version_downloaded": "A téléchargé la version %%VERSION%% du fichier '%%FILE_NAME%%' depuis le bucket '%%BUCKET_NAME%%'."
     },
     "time": {
       "second": "seconde",
@@ -1091,5 +1099,20 @@
         "observability": "Observabilité"
       }
     }
+  },
+  "file_versions": {
+    "title": "Historique des versions",
+    "version": "Version {{number}}",
+    "current": "Actuelle",
+    "refresh": "Actualiser",
+    "retry": "Réessayer",
+    "empty": "Aucune version enregistrée pour le moment.",
+    "restore": "Restaurer",
+    "restore_title": "Restaurer la version {{number}} ?",
+    "restore_description": "Utiliser cette version comme contenu actuel de {{filename}}. Les autres versions enregistrées resteront disponibles.",
+    "delete_title": "Supprimer la version {{number}} ?",
+    "delete_description": "Supprimer définitivement cette version de {{filename}}. Cette action est irréversible.",
+    "restored": "Version restaurée.",
+    "deleted": "Version supprimée."
   }
 }

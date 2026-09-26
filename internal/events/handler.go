@@ -3,17 +3,17 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/eventparser"
+	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/messaging"
-	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/notifier"
-	"github.com/safebucket/safebucket/internal/rbac"
-	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -31,6 +31,7 @@ type EventParams struct {
 	ActivityLogger     activity.IActivityLogger
 	TrashRetentionDays int
 	Cache              cache.ICache
+	Versions           fileversions.Manager
 }
 
 type Event interface {
@@ -106,133 +107,46 @@ func HandleEvents(ctx context.Context, workerName string, params *EventParams, m
 	}
 }
 
-func handleUploadEvents(
-	parser eventparser.IBucketEventParser,
-	msg *message.Message,
-	db *gorm.DB,
-	activityLogger activity.IActivityLogger,
-	publisher messaging.IPublisher,
-) {
-	uploadEvents := parser.ParseBucketUploadEvents(msg)
-
-	for _, event := range uploadEvents {
-		bucketUUID, err := uuid.Parse(event.BucketID)
+func handleUploadEvents(parser eventparser.IBucketEventParser, msg *message.Message,
+	manager fileversions.Manager, activityLogger activity.IActivityLogger, publisher messaging.IPublisher,
+) error {
+	for _, event := range parser.ParseBucketUploadEvents(msg) {
+		bucketID, err := uuid.Parse(event.BucketID)
 		if err != nil {
-			zap.L().
-				Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketID))
+			zap.L().Warn("Invalid upload notification identifier", zap.String("field", "BucketID"), zap.Error(err))
 			continue
 		}
-
-		fileUUID, err := uuid.Parse(event.FileID)
+		fileID, err := uuid.Parse(event.FileID)
 		if err != nil {
-			zap.L().Error("file id should be a valid UUID", zap.String("fileID", event.FileID))
+			zap.L().Warn("Invalid upload notification identifier", zap.String("field", "FileID"), zap.Error(err))
 			continue
 		}
-
-		file, err := sql.GetFileByID(db, bucketUUID, fileUUID)
+		versionID := fileID
+		if event.VersionID != "" {
+			versionID, err = uuid.Parse(event.VersionID)
+			if err != nil {
+				zap.L().Warn("Invalid upload notification version", zap.Error(err))
+				continue
+			}
+		}
+		completed, err := manager.Complete(zap.L(), bucketID, fileID, versionID, nil, true)
 		if err != nil {
-			zap.L().Error("event is misconfigured", zap.Error(err))
-			continue
-		}
-
-		if file.Status != models.FileStatusUploading {
-			zap.L().Warn("file is already uploaded",
-				zap.String("file_id", event.FileID), zap.String("bucket_id", event.BucketID))
-			continue
-		}
-
-		db.Model(&file).Update("status", models.FileStatusUploaded)
-
-		action := models.Activity{
-			Message: activity.FileUploaded,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionCreate.String(),
-				ObjectType: rbac.ResourceFile.String(),
-				FileID:     event.FileID,
-				BucketID:   event.BucketID,
-				UserID:     event.UserID,
-			}),
-		}
-
-		err = activityLogger.Send(action)
-		if err != nil {
-			zap.L().Error("failed to send activity", zap.Error(err))
-		}
-
-		var bucket models.Bucket
-		if err = db.Where("id = ?", bucketUUID).First(&bucket).Error; err != nil {
-			continue
-		}
-
-		if event.ShareID != "" {
-			shareUUID, parseErr := uuid.Parse(event.ShareID)
-			if parseErr != nil {
-				zap.L().Error("share id should be a valid UUID", zap.String("shareID", event.ShareID))
+			var apiErr *apierrors.APIError
+			if errors.As(err, &apiErr) && apiErr.Status < 500 {
+				zap.L().
+					Warn("Upload notification rejected", zap.Error(err), zap.String("version_id", versionID.String()))
 				continue
 			}
-			if err = activityLogger.Send(models.Activity{
-				Message: activity.ShareFileUploaded,
-				Object:  file.ToActivity(),
-				Filter: activity.NewLogFilter(models.ActivityFields{
-					Action:     rbac.ActionCreate.String(),
-					ObjectType: rbac.ResourceFile.String(),
-					FileID:     event.FileID,
-					BucketID:   event.BucketID,
-					ShareID:    shareUUID.String(),
-				}),
-			}); err != nil {
-				zap.L().Error("failed to send activity", zap.Error(err))
-			}
-
-			var share models.Share
-			if err = db.Where("id = ?", shareUUID).First(&share).Error; err != nil {
-				continue
-			}
-
-			var user models.User
-			if err = db.Where("id = ?", share.CreatedBy).First(&user).Error; err != nil {
-				continue
-			}
-
-			evt := NewFileActivityNotification(
-				publisher, FileActivityUpload, FileActivitySourceShare,
-				bucketUUID, bucket.Name, file.Name, share.CreatedBy, user.Email,
-			)
-			evt.Trigger()
-		} else {
-			userUUID, parseErr := uuid.Parse(event.UserID)
-			if parseErr != nil {
-				zap.L().Error("user id should be a valid UUID", zap.String("userID", event.UserID))
-				continue
-			}
-
-			if err = activityLogger.Send(models.Activity{
-				Message: activity.FileUploaded,
-				Object:  file.ToActivity(),
-				Filter: activity.NewLogFilter(models.ActivityFields{
-					Action:     rbac.ActionCreate.String(),
-					ObjectType: rbac.ResourceFile.String(),
-					FileID:     event.FileID,
-					BucketID:   event.BucketID,
-					UserID:     event.UserID,
-				}),
-			}); err != nil {
-				zap.L().Error("failed to send activity", zap.Error(err))
-			}
-
-			var user models.User
-			if err = db.Where("id = ?", userUUID).First(&user).Error; err != nil {
-				continue
-			}
-
-			evt := NewFileActivityNotification(
-				publisher, FileActivityUpload, FileActivitySourceUser,
-				bucketUUID, bucket.Name, file.Name, userUUID, user.Email,
-			)
-			evt.Trigger()
+			return err
+		}
+		if completed.Changed {
+			NotifyFileVersionUploaded(zap.L(), manager.DB, activityLogger, publisher, completed)
+		} else if event.VersionID == "" {
+			zap.L().Warn("Upload notification without version metadata made no change",
+				zap.String("file_id", fileID.String()), zap.String("bucket_id", bucketID.String()))
 		}
 	}
+	return nil
 }
 
 func handleDeletionEvents(
@@ -242,6 +156,7 @@ func handleDeletionEvents(
 	storage storage.IStorage,
 	activityLogger activity.IActivityLogger,
 	trashRetentionDays int,
+	versions fileversions.Manager,
 ) {
 	deletionEvents := parser.ParseBucketDeletionEvents(msg, storage.GetBucketName())
 
@@ -259,6 +174,7 @@ func handleDeletionEvents(
 			Storage:            storage,
 			ActivityLogger:     activityLogger,
 			TrashRetentionDays: trashRetentionDays,
+			Versions:           versions,
 		}
 
 		if err = trashEvent.callback(params); err != nil {
@@ -275,6 +191,7 @@ func HandleBucketEvents(
 	storage storage.IStorage,
 	publisher messaging.IPublisher,
 	trashRetentionDays int,
+	versions fileversions.Manager,
 	messages <-chan *message.Message,
 ) {
 	for {
@@ -292,10 +209,14 @@ func HandleBucketEvents(
 
 			switch eventType {
 			case eventparser.BucketEventTypeUpload:
-				handleUploadEvents(parser, msg, db, activityLogger, publisher)
+				if err := handleUploadEvents(parser, msg, versions, activityLogger, publisher); err != nil {
+					zap.L().Error("Failed to confirm version from storage event", zap.Error(err))
+					msg.Nack()
+					continue
+				}
 
 			case eventparser.BucketEventTypeDeletion:
-				handleDeletionEvents(parser, msg, db, storage, activityLogger, trashRetentionDays)
+				handleDeletionEvents(parser, msg, db, storage, activityLogger, trashRetentionDays, versions)
 
 			case eventparser.BucketEventTypeIgnore:
 				zap.L().Debug("ignoring event", zap.String("raw_payload", string(msg.Payload)))

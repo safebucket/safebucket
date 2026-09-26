@@ -1,7 +1,8 @@
 package apierrors
 
 const (
-	CodeBucketNotFound = "BUCKET_NOT_FOUND"
+	CodeFileUploadInProgress = "FILE_UPLOAD_IN_PROGRESS"
+	CodeBucketNotFound       = "BUCKET_NOT_FOUND"
 )
 
 const (
@@ -10,7 +11,6 @@ const (
 
 const (
 	CodeFileNotFound                = "FILE_NOT_FOUND"
-	CodeFileAlreadyExists           = "FILE_ALREADY_EXISTS"
 	CodeFileNotInTrash              = "FILE_NOT_IN_TRASH"
 	CodeFileNotInStorage            = "FILE_NOT_IN_STORAGE"
 	CodeFileNameConflict            = "FILE_NAME_CONFLICT"

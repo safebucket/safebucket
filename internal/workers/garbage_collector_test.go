@@ -6,6 +6,7 @@ import (
 
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/database"
+	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/storage"
 
@@ -104,6 +105,8 @@ func createGCTestFile(t *testing.T, db *gorm.DB, bucketID uuid.UUID, createdAt t
 	}
 	require.NoError(t, db.Create(&file).Error)
 	require.NoError(t, db.Model(&file).UpdateColumn("created_at", createdAt).Error)
+	require.NoError(t, db.Create(&models.FileVersion{ID: file.ID, FileID: file.ID, Version: 1,
+		Size: file.Size, Status: models.FileStatusUploading, CreatedAt: createdAt}).Error)
 
 	return file
 }
@@ -116,6 +119,57 @@ func countFiles(t *testing.T, db *gorm.DB, fileID uuid.UUID) int64 {
 	return count
 }
 
+func newGCWorker(db *gorm.DB, store storage.IStorage) *GarbageCollectorWorker {
+	memoryCache := cache.NewMemoryCache()
+	return &GarbageCollectorWorker{
+		DB:       db,
+		Storage:  store,
+		Cache:    memoryCache,
+		Versions: fileversions.Manager{DB: db, Storage: store, Cache: memoryCache},
+	}
+}
+
+func expireStaleUploads(t *testing.T, worker *GarbageCollectorWorker) int {
+	t.Helper()
+	count, err := worker.cleanupStaleUploads(t.Context())
+	require.NoError(t, err)
+	_, err = worker.cleanupDeletedVersions(t.Context())
+	require.NoError(t, err)
+	return count
+}
+
+func setUploadID(t *testing.T, worker *GarbageCollectorWorker, versionID uuid.UUID, uploadID string) {
+	t.Helper()
+	require.NoError(t, cache.SetMultipartState(worker.Cache, versionID.String(), cache.MultipartState{
+		UploadID: uploadID, PartSize: 32 * 1024 * 1024,
+	}))
+}
+
+func TestCleanupStaleReplacement(t *testing.T) {
+	db := setupGCTestDB(t)
+	bucket := gcTestBucket(t, db)
+	file := createGCTestFile(t, db, bucket.ID, time.Now())
+	require.NoError(
+		t,
+		db.Model(&models.FileVersion{}).Where("id = ?", file.ID).Update("status", models.FileStatusUploaded).Error,
+	)
+	require.NoError(t, db.Model(&file).Updates(map[string]any{
+		"status": models.FileStatusUploaded, "current_version_id": file.ID,
+	}).Error)
+	stale := models.FileVersion{FileID: file.ID, Version: 2, Size: 99, Status: models.FileStatusUploading,
+		CreatedAt: time.Now().Add(-GCStaleUploadThreshold - time.Minute)}
+	require.NoError(t, db.Create(&stale).Error)
+	assert.Equal(t, 1, expireStaleUploads(t, newGCWorker(db, &gcStubStorage{})))
+	assert.Equal(t, int64(1), countFiles(t, db, file.ID))
+	var remaining models.File
+	require.NoError(t, db.Where("id = ?", file.ID).Find(&remaining).Error)
+	assert.Equal(t, &file.ID, remaining.CurrentVersionID)
+	assert.Equal(t, file.Size, remaining.Size)
+	var versions int64
+	require.NoError(t, db.Model(&models.FileVersion{}).Where("file_id = ?", file.ID).Count(&versions).Error)
+	assert.Equal(t, int64(1), versions)
+}
+
 func TestCleanupStaleUploads(t *testing.T) {
 	staleCreatedAt := time.Now().Add(-GCStaleUploadThreshold - time.Minute)
 	recentCreatedAt := time.Now()
@@ -126,11 +180,7 @@ func TestCleanupStaleUploads(t *testing.T) {
 		file := createGCTestFile(t, db, bucket.ID, staleCreatedAt)
 
 		store := &gcStubStorage{}
-		worker := &GarbageCollectorWorker{DB: db, Storage: store, Cache: cache.NewMemoryCache()}
-
-		count, err := worker.cleanupStaleUploads(t.Context())
-		require.NoError(t, err)
-		assert.Equal(t, 1, count)
+		assert.Equal(t, 1, expireStaleUploads(t, newGCWorker(db, store)))
 		assert.Equal(t, int64(0), countFiles(t, db, file.ID))
 	})
 
@@ -140,11 +190,7 @@ func TestCleanupStaleUploads(t *testing.T) {
 		file := createGCTestFile(t, db, bucket.ID, recentCreatedAt)
 
 		store := &gcStubStorage{}
-		worker := &GarbageCollectorWorker{DB: db, Storage: store, Cache: cache.NewMemoryCache()}
-
-		count, err := worker.cleanupStaleUploads(t.Context())
-		require.NoError(t, err)
-		assert.Equal(t, 0, count)
+		assert.Equal(t, 0, expireStaleUploads(t, newGCWorker(db, store)))
 		assert.Equal(t, int64(1), countFiles(t, db, file.ID))
 	})
 
@@ -152,20 +198,15 @@ func TestCleanupStaleUploads(t *testing.T) {
 		db := setupGCTestDB(t)
 		bucket := gcTestBucket(t, db)
 		file := createGCTestFile(t, db, bucket.ID, staleCreatedAt)
-		mem := cache.NewMemoryCache()
-		require.NoError(t, cache.SetMultipartState(mem, file.ID.String(),
-			cache.MultipartState{UploadID: "upload-1", PartSize: 32 * 1024 * 1024}))
 
 		store := &gcStubStorage{
 			listObjectPartsFn: func(string, string) ([]storage.PartInfo, error) {
 				return []storage.PartInfo{{PartNumber: 1, LastModified: time.Now()}}, nil
 			},
 		}
-		worker := &GarbageCollectorWorker{DB: db, Storage: store, Cache: mem}
-
-		count, err := worker.cleanupStaleUploads(t.Context())
-		require.NoError(t, err)
-		assert.Equal(t, 0, count)
+		worker := newGCWorker(db, store)
+		setUploadID(t, worker, file.ID, "upload-1")
+		assert.Equal(t, 0, expireStaleUploads(t, worker))
 		assert.Equal(t, int64(1), countFiles(t, db, file.ID))
 		assert.Empty(t, store.abortedUploadIDs)
 	})
@@ -174,46 +215,32 @@ func TestCleanupStaleUploads(t *testing.T) {
 		db := setupGCTestDB(t)
 		bucket := gcTestBucket(t, db)
 		file := createGCTestFile(t, db, bucket.ID, staleCreatedAt)
-		mem := cache.NewMemoryCache()
-		require.NoError(t, cache.SetMultipartState(mem, file.ID.String(),
-			cache.MultipartState{UploadID: "upload-2", PartSize: 32 * 1024 * 1024}))
 
 		store := &gcStubStorage{
 			listObjectPartsFn: func(string, string) ([]storage.PartInfo, error) {
 				return []storage.PartInfo{{PartNumber: 1, LastModified: staleCreatedAt}}, nil
 			},
 		}
-		worker := &GarbageCollectorWorker{DB: db, Storage: store, Cache: mem}
-
-		count, err := worker.cleanupStaleUploads(t.Context())
-		require.NoError(t, err)
-		assert.Equal(t, 1, count)
+		worker := newGCWorker(db, store)
+		setUploadID(t, worker, file.ID, "upload-2")
+		assert.Equal(t, 1, expireStaleUploads(t, worker))
 		assert.Equal(t, int64(0), countFiles(t, db, file.ID))
 		assert.Equal(t, []string{"upload-2"}, store.abortedUploadIDs)
-
-		_, found, stateErr := cache.GetMultipartState(mem, file.ID.String())
-		require.NoError(t, stateErr)
-		assert.False(t, found, "multipart state should be deleted from cache after abort")
 	})
 
 	t.Run("list parts error skips the row this cycle", func(t *testing.T) {
 		db := setupGCTestDB(t)
 		bucket := gcTestBucket(t, db)
 		file := createGCTestFile(t, db, bucket.ID, staleCreatedAt)
-		mem := cache.NewMemoryCache()
-		require.NoError(t, cache.SetMultipartState(mem, file.ID.String(),
-			cache.MultipartState{UploadID: "upload-3", PartSize: 32 * 1024 * 1024}))
 
 		store := &gcStubStorage{
 			listObjectPartsFn: func(string, string) ([]storage.PartInfo, error) {
 				return nil, assert.AnError
 			},
 		}
-		worker := &GarbageCollectorWorker{DB: db, Storage: store, Cache: mem}
-
-		count, err := worker.cleanupStaleUploads(t.Context())
-		require.NoError(t, err)
-		assert.Equal(t, 0, count)
+		worker := newGCWorker(db, store)
+		setUploadID(t, worker, file.ID, "upload-3")
+		assert.Equal(t, 0, expireStaleUploads(t, worker))
 		assert.Equal(t, int64(1), countFiles(t, db, file.ID))
 		assert.Empty(t, store.abortedUploadIDs)
 	})

@@ -79,10 +79,11 @@ func (p *AWSEventParser) ParseBucketUploadEvents(msg *message.Message) []BucketU
 		}
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
-			BucketID: bucketID,
-			FileID:   fileID,
-			UserID:   userID,
-			ShareID:  shareID,
+			VersionID: metadata["version_id"],
+			BucketID:  bucketID,
+			FileID:    fileID,
+			UserID:    userID,
+			ShareID:   shareID,
 		})
 	}
 
