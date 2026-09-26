@@ -48,7 +48,7 @@
     "SHARE_CUSTOM_ID_ALREADY_EXISTS": "This share path is already in use.",
     "CUSTOM_SHARE_IDS_DISABLED": "Custom share paths are disabled.",
     "REDIRECT_DOWNLOAD_DISABLED": "Redirect download is not enabled on this server.",
-    "FILE_ALREADY_EXISTS": "A file with this name already exists.",
+    "FILE_UPLOAD_IN_PROGRESS": "An upload for this file is already in progress.",
     "MAX_UPLOADS_REACHED": "This share link has reached its maximum number of uploads.",
     "ACTIVITY_RANGE_TOO_LARGE": "The selected date range cannot exceed 90 days.",
     "FIELD_REQUIRED": "A required field is missing.",
@@ -64,7 +64,11 @@
     "INVALID_MOVE_TARGET": "Cannot move a folder into itself or one of its subfolders.",
     "ITEM_NOT_FOUND": "One or more selected items could not be found.",
     "NAME_CONFLICT": "An item with the same name already exists at the destination.",
-    "ITEM_NOT_MOVABLE": "This item cannot be moved in its current state."
+    "ITEM_NOT_MOVABLE": "This item cannot be moved in its current state.",
+    "FILE_VERSION_NOT_FOUND": "This version no longer exists. Refresh the version history.",
+    "FILE_VERSION_IS_CURRENT": "The current version cannot be deleted.",
+    "FILE_VERSION_NOT_RESTORABLE": "This version cannot be restored. Refresh the version history.",
+    "FILE_VERSION_NOT_DELETABLE": "This version cannot be deleted. Refresh the version history."
   },
   "toast": {
     "download_started": "Download started for file {{filename}}",
@@ -395,7 +399,11 @@
       "share_deleted": "Deleted share link '%%SHARE_NAME%%' on bucket '%%BUCKET_NAME%%'.",
       "share_expired": "Share link '%%SHARE_NAME%%' expired on bucket '%%BUCKET_NAME%%'.",
       "share_max_views_reached": "Share link '%%SHARE_NAME%%' reached max views on bucket '%%BUCKET_NAME%%'.",
-      "default": "%%USERNAME%% performed an action on bucket '%%BUCKET_NAME%%'."
+      "default": "%%USERNAME%% performed an action on bucket '%%BUCKET_NAME%%'.",
+      "file_version_created": "Uploaded version %%VERSION%% of file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
+      "file_version_restored": "Restored version %%VERSION%% of file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
+      "file_version_deleted": "Permanently deleted version %%VERSION%% of file '%%FILE_NAME%%' from bucket '%%BUCKET_NAME%%'.",
+      "file_version_downloaded": "Downloaded version %%VERSION%% of file '%%FILE_NAME%%' from bucket '%%BUCKET_NAME%%'."
     },
     "time": {
       "second": "second",
@@ -1084,5 +1092,20 @@
         "observability": "Observability"
       }
     }
+  },
+  "file_versions": {
+    "title": "Version history",
+    "version": "Version {{number}}",
+    "current": "Current",
+    "refresh": "Refresh",
+    "retry": "Try again",
+    "empty": "No saved versions yet.",
+    "restore": "Restore",
+    "restore_title": "Restore version {{number}}?",
+    "restore_description": "Make this version the current content of {{filename}}. Other saved versions will remain available.",
+    "delete_title": "Delete version {{number}}?",
+    "delete_description": "Permanently delete this version of {{filename}}. This cannot be undone.",
+    "restored": "Version restored.",
+    "deleted": "Version deleted."
   }
 }

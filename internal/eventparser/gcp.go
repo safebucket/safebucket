@@ -47,10 +47,11 @@ func (p *GCPEventParser) ParseBucketUploadEvents(msg *message.Message) []BucketU
 		}
 
 		uploadEvents = append(uploadEvents, BucketUploadEvent{
-			BucketID: bucketID,
-			FileID:   fileID,
-			UserID:   userID,
-			ShareID:  shareID,
+			VersionID: event.Metadata["version-id"],
+			BucketID:  bucketID,
+			FileID:    fileID,
+			UserID:    userID,
+			ShareID:   shareID,
 		})
 	} else {
 		zap.L().Warn("event is not supported", zap.Any("event_type", msg.Metadata["eventType"]))

@@ -16,6 +16,7 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/database"
 	"github.com/safebucket/safebucket/internal/events"
+	"github.com/safebucket/safebucket/internal/fileversions"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
@@ -128,6 +129,7 @@ func StartWorkers(
 	cache c.ICache,
 	appIdentity string,
 ) {
+	versions := fileversions.Manager{DB: db, Storage: store, Cache: cache, MaxVersions: config.App.MaxFileVersions}
 	eventParams := &events.EventParams{
 		WebURL:             config.App.WebURL,
 		Notifier:           notify,
@@ -137,6 +139,7 @@ func StartWorkers(
 		ActivityLogger:     activityLogger,
 		TrashRetentionDays: config.App.TrashRetentionDays,
 		Cache:              cache,
+		Versions:           versions,
 	}
 
 	events.StartFileNotificationBuffer(ctx, handle.wg, cache, notify)
@@ -175,6 +178,7 @@ func StartWorkers(
 				DB:                 db,
 				Storage:            store,
 				Cache:              cache,
+				Versions:           versions,
 				ActivityLogger:     activityLogger,
 				RunInterval:        15 * time.Minute,
 				RefreshTokenExpiry: config.App.RefreshTokenExpiry,
@@ -210,6 +214,7 @@ func StartWorkers(
 					store,
 					eventRouter,
 					config.App.TrashRetentionDays,
+					versions,
 					bucketMessages,
 				)
 			})
@@ -430,6 +435,7 @@ func BuildAPIRouter(
 	}))
 
 	authConfig := config.App.GetAuthConfig()
+	versions := fileversions.Manager{DB: db, Storage: store, Cache: cache, MaxVersions: config.App.MaxFileVersions}
 
 	r.Route("/api", func(apiRouter chi.Router) {
 		apiRouter.Use(m.CSRFGuard(config.App.AllowedOrigins))
@@ -467,12 +473,12 @@ func BuildAPIRouter(
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
 			DB:                  db,
-			Cache:               cache,
 			Storage:             store,
 			Publisher:           publisher,
 			ActivityLogger:      activityLogger,
 			Providers:           providers,
 			WebURL:              config.App.WebURL,
+			Versions:            versions,
 			TrashRetentionDays:  config.App.TrashRetentionDays,
 			AllowCustomShareIDs: config.App.AllowCustomShareIDs,
 		}.Routes())
@@ -505,13 +511,13 @@ func BuildAPIRouter(
 
 		apiRouter.Mount("/v1/shares", services.PublicShareService{
 			DB:                    db,
-			Cache:                 cache,
 			Storage:               store,
 			ActivityLogger:        activityLogger,
 			Publisher:             publisher,
 			TokenSecret:           authConfig.TokenSecret,
 			CookieSecureForce:     authConfig.CookieSecureForce,
 			AllowRedirectDownload: config.App.AllowRedirectDownload,
+			Versions:              versions,
 		}.Routes())
 	})
 

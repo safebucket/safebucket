@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
-	"github.com/safebucket/safebucket/internal/cache"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
+	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/messaging"
@@ -29,10 +29,10 @@ import (
 
 type BucketFileService struct {
 	DB                 *gorm.DB
-	Cache              cache.ICache
 	Storage            storage.IStorage
 	Publisher          messaging.IPublisher
 	ActivityLogger     activity.IActivityLogger
+	Versions           fileversions.Manager
 	TrashRetentionDays int
 }
 
@@ -67,6 +67,9 @@ func (s BucketFileService) Routes() chi.Router {
 			Get("/versions/{id2}/url", handlers.GetOneWithQueryHandler(s.DownloadFileVersion))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
+			Patch("/versions/{id2}", handlers.DeleteHandler(s.ConfirmFileVersion))
+
+		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			Delete("/versions/{id2}", handlers.DeleteHandler(s.DeleteFileVersion))
 	})
 
@@ -79,86 +82,15 @@ func (s BucketFileService) UploadFile(
 	ids uuid.UUIDs,
 	body models.FileUploadBody,
 ) (models.FileUploadResponse, error) {
-	var bucket models.Bucket
-	result := s.DB.Where("id = ?", ids[0]).Find(&bucket)
-	if result.RowsAffected == 0 {
-		return models.FileUploadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
+	return s.Versions.Start(logger, ids[0], body, &user.UserID, nil)
+}
+
+func (s BucketFileService) ConfirmFileVersion(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) error {
+	completed, err := s.Versions.Complete(logger, ids[0], ids[1], ids[2], nil, false)
+	if err == nil && completed.Changed {
+		events.NotifyFileVersionUploaded(logger, s.DB, s.ActivityLogger, s.Publisher, completed)
 	}
-
-	if body.FolderID != nil {
-		var folder models.Folder
-		result = s.DB.Where("id = ? AND bucket_id = ? AND status = ?",
-			body.FolderID, bucket.ID, models.FolderStatusCreated).Find(&folder)
-		if result.RowsAffected == 0 {
-			return models.FileUploadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
-		}
-	}
-
-	var existingFile models.File
-	query := s.DB.Where("bucket_id = ? AND name = ?", bucket.ID, body.Name)
-	if body.FolderID != nil {
-		query = query.Where("folder_id = ?", body.FolderID)
-	} else {
-		query = query.Where("folder_id IS NULL")
-	}
-	result = query.Find(&existingFile)
-	if result.RowsAffected > 0 {
-		return models.FileUploadResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyExists)
-	}
-
-	file := &models.File{
-		Status:    models.FileStatusUploading,
-		Name:      body.Name,
-		Extension: h.ExtensionFromName(body.Name),
-		BucketID:  bucket.ID,
-		FolderID:  body.FolderID,
-		Size:      body.Size,
-		ExpiresAt: body.ExpiresAt,
-	}
-
-	var response models.FileUploadResponse
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		res := tx.Create(file)
-		if res.Error != nil {
-			return res.Error
-		}
-
-		objectPath := path.Join("buckets", bucket.ID.String(), file.ID.String())
-
-		presigned, presignErr := s.Storage.PresignUpload(
-			objectPath,
-			body.Size,
-			map[string]string{
-				"bucket_id": bucket.ID.String(),
-				"file_id":   file.ID.String(),
-				"user_id":   user.UserID.String(),
-			},
-		)
-		if presignErr != nil {
-			logger.Error("Presign upload failed", zap.Error(presignErr))
-			return presignErr
-		}
-		response = presigned.Response
-
-		if presigned.UploadID != "" {
-			state := cache.MultipartState{UploadID: presigned.UploadID, PartSize: presigned.PartSize}
-			if cacheErr := cache.SetMultipartState(s.Cache, file.ID.String(), state); cacheErr != nil {
-				if abortErr := s.Storage.AbortMultipartUpload(objectPath, presigned.UploadID); abortErr != nil {
-					logger.Warn("Failed to abort orphaned multipart upload", zap.Error(abortErr))
-				}
-				return cacheErr
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return models.FileUploadResponse{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
-	}
-
-	response.ID = file.ID.String()
-
-	return response, nil
+	return err
 }
 
 func (s BucketFileService) PatchFile(
@@ -203,92 +135,7 @@ func (s BucketFileService) HandleUploadedStatus(
 	user models.UserClaims,
 	file models.File,
 ) error {
-	return s.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND bucket_id = ?", file.ID, file.BucketID).
-			First(&file)
-
-		if result.Error != nil {
-			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
-			}
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-
-		if file.Status != models.FileStatusUploading {
-			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidFileStatusTransition)
-		}
-
-		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
-
-		multipart, isMultipart, cacheErr := cache.GetMultipartState(s.Cache, file.ID.String())
-		if cacheErr != nil {
-			logger.Error("Failed to read multipart state", zap.Error(cacheErr))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-
-		if isMultipart {
-			if completeErr := storage.FinalizeMultipartUpload(
-				s.Storage, objectPath, multipart.UploadID, multipart.PartSize, int64(file.Size),
-				map[string]string{
-					"bucket_id": file.BucketID.String(),
-					"file_id":   file.ID.String(),
-					"user_id":   user.UserID.String(),
-				},
-			); completeErr != nil {
-				if errors.Is(completeErr, storage.ErrMultipartPartMismatch) {
-					return apierrors.New(http.StatusBadRequest, apierrors.CodeMultipartSizeMismatch)
-				}
-				logger.Error("Failed to complete multipart upload",
-					zap.Error(completeErr), zap.String("path", objectPath))
-				return apierrors.New(http.StatusInternalServerError, apierrors.CodeMultipartCompleteFailed)
-			}
-		}
-
-		if _, err := s.Storage.StatObject(objectPath); err != nil {
-			logger.Error("File not found in storage",
-				zap.Error(err),
-				zap.String("path", objectPath),
-				zap.String("file_id", file.ID.String()))
-			return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotInStorage)
-		}
-
-		if err := tx.Model(&file).Update("status", models.FileStatusUploaded).Error; err != nil {
-			logger.Error("Failed to update file status", zap.Error(err))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-
-		if isMultipart {
-			if delErr := cache.DeleteMultipartState(s.Cache, file.ID.String()); delErr != nil {
-				logger.Warn("Failed to delete multipart state from cache", zap.Error(delErr))
-			}
-		}
-
-		if err := s.ActivityLogger.Send(models.Activity{
-			Message: activity.FileUploaded,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionCreate.String(),
-				BucketID:   file.BucketID.String(),
-				FileID:     file.ID.String(),
-				ObjectType: rbac.ResourceFile.String(),
-				UserID:     user.UserID.String(),
-			}),
-		}); err != nil {
-			logger.Warn("Failed to log upload activity", zap.Error(err))
-		}
-
-		var bucket models.Bucket
-		if dbErr := s.DB.Where("id = ?", file.BucketID).First(&bucket).Error; dbErr == nil {
-			evt := events.NewFileActivityNotification(
-				s.Publisher, events.FileActivityUpload, events.FileActivitySourceUser,
-				file.BucketID, bucket.Name, file.Name, user.UserID, user.Email,
-			)
-			evt.Trigger()
-		}
-
-		return nil
-	})
+	return s.ConfirmFileVersion(logger, user, uuid.UUIDs{file.BucketID, file.ID, uuid.Nil})
 }
 
 func (s BucketFileService) DeleteFile(
@@ -312,12 +159,7 @@ func (s BucketFileService) DownloadFile(
 		return models.FileDownloadResponse{}, err
 	}
 
-	versionID := file.ID
-	if file.CurrentVersionID != nil {
-		versionID = *file.CurrentVersionID
-	}
-
-	return s.downloadVersion(logger, user, file, versionID, 0, query.Context)
+	return s.downloadVersion(logger, user, file, file.ContentVersionID(), 0, query.Context)
 }
 
 func (s BucketFileService) DownloadFileVersion(
@@ -386,19 +228,12 @@ func (s BucketFileService) RestoreFileVersion(
 	body models.FileVersionRestoreBody,
 ) error {
 	return s.DB.Transaction(func(tx *gorm.DB) error {
-		var file models.File
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND bucket_id = ?", ids[1], ids[0]).
-			First(&file).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
-			}
-			logger.Error("Failed to fetch file for version restore", zap.Error(err))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		file, err := sql.LockFile(tx, ids[0], ids[1])
+		if err != nil {
+			return err
 		}
-
-		if file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now()) {
-			return apierrors.New(http.StatusForbidden, apierrors.CodeFileExpired)
+		if err = sql.CheckFileUploadable(file); err != nil {
+			return err
 		}
 
 		version, err := sql.GetFileVersionByID(tx, file.ID, body.VersionID)
@@ -444,68 +279,21 @@ func (s BucketFileService) DeleteFileVersion(
 	user models.UserClaims,
 	ids uuid.UUIDs,
 ) error {
-	var objectKey string
-
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		var file models.File
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND bucket_id = ?", ids[1], ids[0]).
-			First(&file).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
-			}
-			logger.Error("Failed to fetch file for version deletion", zap.Error(err))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-
-		version, err := sql.GetFileVersionByID(tx, file.ID, ids[2])
-		if err != nil {
-			return err
-		}
-		if version.Status != models.FileStatusUploaded {
-			return apierrors.New(http.StatusConflict, apierrors.CodeFileVersionNotDeletable)
-		}
-		if file.CurrentVersionID != nil && *file.CurrentVersionID == version.ID {
-			return apierrors.New(http.StatusConflict, apierrors.CodeFileVersionIsCurrent)
-		}
-
-		objectKey = sql.VersionObjectKey(file.BucketID, version.ID)
-
-		if delErr := tx.Delete(&version).Error; delErr != nil {
-			logger.Error("Failed to delete file version", zap.Error(delErr))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-
-		if logErr := s.ActivityLogger.Send(models.Activity{
-			Message: activity.FileVersionDeleted,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionDelete.String(),
-				BucketID:   file.BucketID.String(),
-				FileID:     file.ID.String(),
-				ObjectType: rbac.ResourceFile.String(),
-				UserID:     user.UserID.String(),
-				Version:    strconv.Itoa(version.Version),
-			}),
-		}); logErr != nil {
-			logger.Error("Failed to log version deletion activity", zap.Error(logErr))
-			return logErr
-		}
-
-		return nil
-	})
-	if err != nil {
+	file, version, err := s.Versions.Delete(logger, ids[0], ids[1], ids[2], nil)
+	if err != nil || version.Status != models.FileStatusUploaded {
 		return err
 	}
-
-	if rmErr := s.Storage.RemoveObject(objectKey); rmErr != nil {
-		logger.Error(
-			"Failed to remove deleted version object - orphaned bytes",
-			zap.Error(rmErr),
-			zap.String("path", objectKey),
-		)
+	if logErr := s.ActivityLogger.Send(models.Activity{
+		Message: activity.FileVersionDeleted,
+		Object:  file.ToActivity(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action: rbac.ActionDelete.String(), BucketID: file.BucketID.String(),
+			FileID: file.ID.String(), ObjectType: rbac.ResourceFile.String(),
+			UserID: user.UserID.String(), Version: strconv.Itoa(version.Version),
+		}),
+	}); logErr != nil {
+		logger.Warn("Failed to log version deletion", zap.Error(logErr))
 	}
-
 	return nil
 }
 
@@ -519,6 +307,9 @@ func (s BucketFileService) RestoreFile(
 	var restoredFile models.File
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := sql.LockBucketFileNames(tx, file.BucketID); err != nil {
+			return err
+		}
 		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ? AND deleted_at IS NOT NULL", file.ID, file.BucketID).
 			First(&file)
@@ -552,6 +343,9 @@ func (s BucketFileService) RestoreFile(
 			query = query.Where("folder_id IS NULL")
 		}
 		conflictResult := query.Find(&existingFile)
+		if conflictResult.Error != nil {
+			return conflictResult.Error
+		}
 
 		if conflictResult.RowsAffected > 0 {
 			return apierrors.New(http.StatusConflict, apierrors.CodeFileNameConflict)
@@ -634,27 +428,11 @@ func (s BucketFileService) PurgeFile(
 
 		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
 
-		if multipart, isMultipart, _ := cache.GetMultipartState(s.Cache, file.ID.String()); isMultipart {
-			if err := s.Storage.AbortMultipartUpload(objectPath, multipart.UploadID); err != nil {
-				logger.Warn("Failed to abort multipart upload",
-					zap.Error(err),
-					zap.String("path", objectPath))
-			}
-			if delErr := cache.DeleteMultipartState(s.Cache, file.ID.String()); delErr != nil {
-				logger.Warn("Failed to delete multipart state from cache", zap.Error(delErr))
-			}
+		if err := s.Versions.RemoveFileObjects(tx, file); err != nil {
+			return err
 		}
-
 		if err := s.Storage.UnmarkAsTrashed(objectPath, file); err != nil {
-			logger.Warn("Failed to delete trash marker",
-				zap.Error(err),
-				zap.String("path", objectPath))
-		}
-
-		if err := s.Storage.RemoveObject(objectPath); err != nil {
-			logger.Warn("Failed to delete file from storage",
-				zap.Error(err),
-				zap.String("path", objectPath))
+			logger.Warn("Failed to remove trash marker", zap.Error(err))
 		}
 
 		if err := tx.Unscoped().Delete(&file).Error; err != nil {
@@ -718,7 +496,7 @@ func (s BucketFileService) downloadVersion(
 	versionNumber int,
 	context string,
 ) (models.FileDownloadResponse, error) {
-	objectPath := sql.VersionObjectKey(file.BucketID, versionID)
+	objectPath := storage.VersionObjectKey(file.BucketID, versionID)
 
 	var inlineContentType string
 	if context == "preview" {

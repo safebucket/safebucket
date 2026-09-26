@@ -1,15 +1,13 @@
 package services
 
 import (
-	"errors"
 	"net/http"
-	"path"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
-	"github.com/safebucket/safebucket/internal/cache"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
+	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/messaging"
@@ -24,18 +22,17 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type PublicShareService struct {
 	DB                    *gorm.DB
-	Cache                 cache.ICache
 	Storage               storage.IStorage
 	ActivityLogger        activity.IActivityLogger
 	Publisher             messaging.IPublisher
 	TokenSecret           string
 	CookieSecureForce     bool
 	AllowRedirectDownload bool
+	Versions              fileversions.Manager
 }
 
 func (s PublicShareService) Routes() chi.Router {
@@ -58,6 +55,8 @@ func (s PublicShareService) Routes() chi.Router {
 			r.With(m.Validate[models.ShareUploadBody]).
 				Post("/files", handlers.ShareCreateHandler(s.UploadShareFile))
 			r.Patch("/files/{id1}", handlers.ShareActionHandler(s.ConfirmShareUpload))
+			r.Patch("/files/{id1}/versions/{id2}", handlers.ShareActionHandler(s.ConfirmShareVersion))
+			r.Delete("/files/{id1}/versions/{id2}", handlers.ShareActionHandler(s.CancelShareVersion))
 		})
 	})
 
@@ -227,7 +226,7 @@ func (s PublicShareService) DownloadShareFile(
 	}
 
 	url, err := s.Storage.PresignedGetObject(
-		path.Join("buckets", share.BucketID.String(), file.ID.String()),
+		storage.VersionObjectKey(share.BucketID, file.ContentVersionID()),
 		storage.GetObjectOptions{
 			InlineContentType: inlineContentType,
 			DownloadFilename:  file.Name,
@@ -336,209 +335,37 @@ func (s PublicShareService) UploadShareFile(
 		folderID = nil
 	case models.ShareTypeFolder:
 		folderID = share.FolderID
-	case models.ShareTypeBucket:
 		if body.FolderID != nil {
+			if share.FolderID == nil || !h.IsFolderDescendant(s.DB, body.FolderID, *share.FolderID) {
+				return models.FileUploadResponse{}, apierrors.New(
+					http.StatusForbidden,
+					apierrors.CodeShareFileNotInShare,
+				)
+			}
 			folderID = body.FolderID
-			var folder models.Folder
-			if s.DB.Where("id = ? AND bucket_id = ? AND status = ?",
-				folderID, share.BucketID, models.FolderStatusCreated).
-				Find(&folder).RowsAffected == 0 {
-				return models.FileUploadResponse{}, apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
-			}
 		}
+	case models.ShareTypeBucket:
+		folderID = body.FolderID
 	}
 
-	var existingFile models.File
-	query := s.DB.Where("bucket_id = ? AND name = ?", share.BucketID, body.Name)
-	if folderID != nil {
-		query = query.Where("folder_id = ?", folderID)
-	} else {
-		query = query.Where("folder_id IS NULL")
-	}
-
-	if query.Find(&existingFile).RowsAffected > 0 {
-		return models.FileUploadResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileAlreadyExists)
-	}
-
-	file := &models.File{
-		Status:    models.FileStatusUploading,
-		Name:      body.Name,
-		Extension: h.ExtensionFromName(body.Name),
-		BucketID:  share.BucketID,
-		FolderID:  folderID,
-		Size:      int(body.Size),
-	}
-
-	var response models.FileUploadResponse
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		if txErr := tx.Create(file).Error; txErr != nil {
-			return txErr
-		}
-
-		objectPath := path.Join("buckets", share.BucketID.String(), file.ID.String())
-
-		presigned, presignErr := s.Storage.PresignUpload(
-			objectPath,
-			int(body.Size),
-			map[string]string{
-				"bucket_id": share.BucketID.String(),
-				"file_id":   file.ID.String(),
-				"share_id":  share.ID.String(),
-			},
-		)
-		if presignErr != nil {
-			logger.Error("Presign upload failed", zap.Error(presignErr))
-			return presignErr
-		}
-		response = presigned.Response
-
-		uploadResult := tx.Model(&models.Share{}).
-			Where("id = ? AND (max_uploads IS NULL OR current_uploads < max_uploads)", share.ID).
-			UpdateColumn("current_uploads", gorm.Expr("current_uploads + 1"))
-		if uploadResult.Error != nil {
-			return uploadResult.Error
-		}
-		if uploadResult.RowsAffected == 0 {
-			return apierrors.New(http.StatusForbidden, apierrors.CodeShareMaxUploadsReached)
-		}
-
-		if activityErr := s.ActivityLogger.Send(models.Activity{
-			Message: activity.ShareFileUploaded,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionCreate.String(),
-				ObjectType: rbac.ResourceFile.String(),
-				BucketID:   share.BucketID.String(),
-				FileID:     file.ID.String(),
-				ShareID:    share.ID.String(),
-			}),
-		}); activityErr != nil {
-			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))
-		}
-
-		if presigned.UploadID != "" {
-			state := cache.MultipartState{UploadID: presigned.UploadID, PartSize: presigned.PartSize}
-			if cacheErr := cache.SetMultipartState(s.Cache, file.ID.String(), state); cacheErr != nil {
-				if abortErr := s.Storage.AbortMultipartUpload(objectPath, presigned.UploadID); abortErr != nil {
-					logger.Warn("Failed to abort orphaned multipart upload", zap.Error(abortErr))
-				}
-				return cacheErr
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return models.FileUploadResponse{}, err
-	}
-
-	response.ID = file.ID.String()
-
-	return response, nil
+	return s.Versions.Start(logger, share.BucketID, models.FileUploadBody{
+		Name: body.Name, Size: int(body.Size), FolderID: folderID,
+	}, nil, &share)
 }
 
-func (s PublicShareService) ConfirmShareUpload(
-	logger *zap.Logger,
-	share models.Share,
-	ids uuid.UUIDs,
-) error {
-	fileID := ids[1]
+func (s PublicShareService) ConfirmShareUpload(logger *zap.Logger, share models.Share, ids uuid.UUIDs) error {
+	return s.ConfirmShareVersion(logger, share, uuid.UUIDs{ids[0], ids[1], uuid.Nil})
+}
 
-	return s.DB.Transaction(func(tx *gorm.DB) error {
-		var file models.File
-		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND bucket_id = ?", fileID, share.BucketID).
-			Find(&file)
+func (s PublicShareService) ConfirmShareVersion(logger *zap.Logger, share models.Share, ids uuid.UUIDs) error {
+	completed, err := s.Versions.Complete(logger, share.BucketID, ids[1], ids[2], &share, false)
+	if err == nil && completed.Changed {
+		events.NotifyFileVersionUploaded(logger, s.DB, s.ActivityLogger, s.Publisher, completed)
+	}
+	return err
+}
 
-		if result.Error != nil {
-			logger.Error("Find file failed", zap.Error(result.Error))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-
-		if result.RowsAffected == 0 {
-			return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
-		}
-
-		if file.Status != models.FileStatusUploading {
-			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidFileStatusTransition)
-		}
-
-		if !h.IsFileInShare(tx, share, fileID, file) {
-			return apierrors.New(http.StatusForbidden, apierrors.CodeShareFileNotInShare)
-		}
-
-		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
-
-		multipart, isMultipart, cacheErr := cache.GetMultipartState(s.Cache, file.ID.String())
-		if cacheErr != nil {
-			logger.Error("Failed to read multipart state", zap.Error(cacheErr))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-
-		if isMultipart {
-			if completeErr := storage.FinalizeMultipartUpload(
-				s.Storage, objectPath, multipart.UploadID, multipart.PartSize, int64(file.Size),
-				map[string]string{
-					"bucket_id": share.BucketID.String(),
-					"file_id":   file.ID.String(),
-					"share_id":  share.ID.String(),
-				},
-			); completeErr != nil {
-				if errors.Is(completeErr, storage.ErrMultipartPartMismatch) {
-					return apierrors.New(http.StatusBadRequest, apierrors.CodeMultipartSizeMismatch)
-				}
-				logger.Error("Failed to complete multipart upload",
-					zap.Error(completeErr), zap.String("path", objectPath))
-				return apierrors.New(http.StatusInternalServerError, apierrors.CodeMultipartCompleteFailed)
-			}
-		}
-
-		if _, statErr := s.Storage.StatObject(objectPath); statErr != nil {
-			logger.Error("File not found in storage",
-				zap.Error(statErr),
-				zap.String("path", objectPath),
-				zap.String("file_id", file.ID.String()))
-			return apierrors.New(http.StatusNotFound, apierrors.CodeFileNotInStorage)
-		}
-
-		if txErr := tx.Model(&file).Update("status", models.FileStatusUploaded).Error; txErr != nil {
-			logger.Error("Failed to update file status", zap.Error(txErr))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-
-		if isMultipart {
-			if delErr := cache.DeleteMultipartState(s.Cache, file.ID.String()); delErr != nil {
-				logger.Warn("Failed to delete multipart state from cache", zap.Error(delErr))
-			}
-		}
-
-		if activityErr := s.ActivityLogger.Send(models.Activity{
-			Message: activity.ShareFileUploaded,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionCreate.String(),
-				ObjectType: rbac.ResourceFile.String(),
-				BucketID:   share.BucketID.String(),
-				FileID:     file.ID.String(),
-				ShareID:    share.ID.String(),
-			}),
-		}); activityErr != nil {
-			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))
-		}
-
-		var bucket models.Bucket
-		if dbErr := tx.Where("id = ?", share.BucketID).First(&bucket).Error; dbErr == nil {
-			var user models.User
-			if dbErr = tx.Where("id = ?", share.CreatedBy).First(&user).Error; dbErr == nil {
-				evt := events.NewFileActivityNotification(
-					s.Publisher, events.FileActivityUpload, events.FileActivitySourceShare,
-					share.BucketID, bucket.Name, file.Name, share.CreatedBy, user.Email,
-				)
-				evt.Trigger()
-			}
-		}
-
-		return nil
-	})
+func (s PublicShareService) CancelShareVersion(logger *zap.Logger, share models.Share, ids uuid.UUIDs) error {
+	_, _, err := s.Versions.Delete(logger, share.BucketID, ids[1], ids[2], &share)
+	return err
 }

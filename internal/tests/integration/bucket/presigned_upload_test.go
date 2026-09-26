@@ -121,7 +121,7 @@ func TestPresignedUpload(t *testing.T) {
 				assert.Contains(t, errs, apierrors.CodeMultipartSizeMismatch)
 			})
 
-			t.Run("double confirm returns conflict", func(t *testing.T) {
+			t.Run("double confirm is idempotent", func(t *testing.T) {
 				var transfer models.FileUploadResponse
 				status := app.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/files", bucketID), token,
 					models.FileUploadBody{Name: "double.bin", Size: multipartSize}, &transfer)
@@ -134,7 +134,7 @@ func TestPresignedUpload(t *testing.T) {
 				require.Equal(t, http.StatusNoContent,
 					app.DoStatus(t, http.MethodPatch, patchPath, token,
 						models.FilePatchBody{Status: string(models.FileStatusUploaded)}))
-				require.Equal(t, http.StatusConflict,
+				require.Equal(t, http.StatusNoContent,
 					app.DoStatus(t, http.MethodPatch, patchPath, token,
 						models.FilePatchBody{Status: string(models.FileStatusUploaded)}))
 			})

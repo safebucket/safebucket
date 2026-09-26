@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
-	"github.com/safebucket/safebucket/internal/cache"
 	c "github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
+	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/messaging"
@@ -27,12 +27,12 @@ import (
 
 type BucketService struct {
 	DB                  *gorm.DB
-	Cache               cache.ICache
 	Storage             storage.IStorage
 	Publisher           messaging.IPublisher
 	Providers           c.Providers
 	ActivityLogger      activity.IActivityLogger
 	WebURL              string
+	Versions            fileversions.Manager
 	TrashRetentionDays  int
 	AllowCustomShareIDs bool
 }
@@ -76,10 +76,10 @@ func (s BucketService) Routes() chi.Router {
 
 		r.Mount("/", BucketFileService{
 			DB:                 s.DB,
-			Cache:              s.Cache,
 			Storage:            s.Storage,
 			Publisher:          s.Publisher,
 			ActivityLogger:     s.ActivityLogger,
+			Versions:           s.Versions,
 			TrashRetentionDays: s.TrashRetentionDays,
 		}.Routes())
 
@@ -214,10 +214,13 @@ func (s BucketService) GetBucket(
 
 	files := make([]models.File, 0)
 	if err = s.DB.Where(
-		"bucket_id = ? AND (expires_at IS NULL OR expires_at > ?) AND (status = ? OR (status = ? AND created_at > ?))",
+		"bucket_id = ? AND (expires_at IS NULL OR expires_at > ?) AND (status = ? OR (status = ? AND EXISTS ("+
+			"SELECT 1 FROM file_versions WHERE file_versions.file_id = files.id "+
+			"AND file_versions.status = ? AND file_versions.created_at > ?)))",
 		bucketID,
 		now,
 		models.FileStatusUploaded,
+		models.FileStatusUploading,
 		models.FileStatusUploading,
 		expirationTime,
 	).Find(&files).Error; err != nil {

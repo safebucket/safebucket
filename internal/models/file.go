@@ -37,13 +37,15 @@ type File struct {
 }
 
 type FileVersion struct {
-	ID         uuid.UUID  `gorm:"default:(-)"        json:"id"`
-	FileID     uuid.UUID  `                          json:"file_id"`
-	Version    int        `                          json:"version"`
-	Size       int        `gorm:"not null;default:0" json:"size"`
-	Status     FileStatus `gorm:"default:null"       json:"status"`
-	UploadedBy *uuid.UUID `gorm:"default:null"       json:"uploaded_by,omitempty"`
-	CreatedAt  time.Time  `                          json:"created_at"`
+	ID           uuid.UUID  `gorm:"default:(-)"        json:"id"`
+	FileID       uuid.UUID  `                          json:"file_id"`
+	Version      int        `                          json:"version"`
+	Size         int        `gorm:"not null;default:0" json:"size"`
+	Status       FileStatus `gorm:"default:null"       json:"status"`
+	UploadedBy   *uuid.UUID `gorm:"default:null"       json:"uploaded_by,omitempty"`
+	ShareID      *uuid.UUID `gorm:"default:null"       json:"-"`
+	CleanupAfter *time.Time `gorm:"default:null"       json:"-"`
+	CreatedAt    time.Time  `                          json:"created_at"`
 }
 
 type FileVersionResponse struct {
@@ -68,6 +70,13 @@ func (f *File) ToActivity() FileActivity {
 	}
 }
 
+func (f *File) ContentVersionID() uuid.UUID {
+	if f.CurrentVersionID != nil {
+		return *f.CurrentVersionID
+	}
+	return f.ID
+}
+
 type FileUploadBody struct {
 	Name      string     `json:"name"                 validate:"required,filename,max=255"`
 	FolderID  *uuid.UUID `json:"folder_id"            validate:"omitempty,uuid"`
@@ -76,11 +85,12 @@ type FileUploadBody struct {
 }
 
 type FileUploadResponse struct {
-	ID     string              `json:"id"`
-	Method string              `json:"method"`
-	URL    string              `json:"url,omitempty"`
-	Body   []map[string]string `json:"body,omitempty"`
-	Parts  []FilePartURL       `json:"parts,omitempty"`
+	VersionID string              `json:"version_id"`
+	ID        string              `json:"id"`
+	Method    string              `json:"method"`
+	URL       string              `json:"url,omitempty"`
+	Body      []map[string]string `json:"body,omitempty"`
+	Parts     []FilePartURL       `json:"parts,omitempty"`
 }
 
 type FilePartURL struct {

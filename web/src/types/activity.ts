@@ -17,6 +17,7 @@ export interface IActivity {
   bucket_id?: string;
   bucket?: IBucket;
   file_id?: string;
+  version?: string;
   file?: IFile;
   folder_id?: string;
   folder?: IFolder;
@@ -38,6 +39,9 @@ export enum ActivityMessage {
   FILE_EXPIRED = "FILE_EXPIRED",
   FILE_TRASHED = "FILE_TRASHED",
   FILE_RESTORED = "FILE_RESTORED",
+  FILE_VERSION_CREATED = "FILE_VERSION_CREATED",
+  FILE_VERSION_RESTORED = "FILE_VERSION_RESTORED",
+  FILE_VERSION_DELETED = "FILE_VERSION_DELETED",
   FOLDER_CREATED = "FOLDER_CREATED",
   FOLDER_UPDATED = "FOLDER_UPDATED",
   FOLDER_TRASHED = "FOLDER_TRASHED",

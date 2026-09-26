@@ -23,7 +23,7 @@ interface UploadTask {
 
 interface UploadRuntime {
   controller: AbortController;
-  target?: { bucketId: string; fileId: string };
+  target?: { bucketId: string; fileId: string; versionId: string };
   cleanupStarted: boolean;
 }
 
@@ -41,8 +41,10 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
     if (!runtime.target || runtime.cleanupStarted) return;
 
     runtime.cleanupStarted = true;
-    const { bucketId, fileId } = runtime.target;
-    void api.delete(`/buckets/${bucketId}/files/${fileId}`).catch(() => {});
+    const { bucketId, fileId, versionId } = runtime.target;
+    void api
+      .delete(`/buckets/${bucketId}/files/${fileId}/versions/${versionId}`)
+      .catch(() => {});
   };
 
   const scheduleInvalidate = useCallback(
@@ -89,6 +91,7 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
         runtime.target = {
           bucketId,
           fileId: presignedUpload.id,
+          versionId: presignedUpload.version_id,
         };
 
         if (abortController.signal.aborted) cleanupUploadTarget(runtime);
@@ -112,9 +115,10 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           presignedUpload.method === "put" && presignedUpload.parts.length > 1;
         if (isMultipart || config.requiresUploadConfirmation) {
           abortController.signal.throwIfAborted();
-          await api.patch(`/buckets/${bucketId}/files/${presignedUpload.id}`, {
-            status: "uploaded",
-          });
+          await api.patch(
+            `/buckets/${bucketId}/files/${presignedUpload.id}/versions/${presignedUpload.version_id}`,
+            {},
+          );
         }
 
         abortController.signal.throwIfAborted();

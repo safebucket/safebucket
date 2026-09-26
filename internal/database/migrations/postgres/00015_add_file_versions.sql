@@ -10,6 +10,8 @@ CREATE TABLE file_versions
         size BIGINT NOT NULL DEFAULT 0,
         status file_status NOT NULL,
         uploaded_by uuid,
+        share_id uuid REFERENCES shares (id) ON DELETE SET NULL,
+        cleanup_after TIMESTAMP,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
         -- Foreign Keys
@@ -25,16 +27,18 @@ CREATE TABLE file_versions
 
 CREATE INDEX idx_file_versions_file_id ON file_versions (file_id);
 CREATE UNIQUE INDEX idx_file_versions_file_version ON file_versions (file_id, version);
+CREATE UNIQUE INDEX idx_file_versions_pending ON file_versions (file_id) WHERE status = 'uploading';
 
 ALTER TABLE files ADD COLUMN current_version_id uuid;
 
 INSERT INTO file_versions (id, file_id, version, size, status, uploaded_by, created_at)
 SELECT id, id, 1, COALESCE(size, 0),
-    status,
+    CASE WHEN status IN ('deleted', 'deleting', 'restoring') THEN 'uploaded' ELSE status END,
     NULL, created_at
 FROM files;
 
-UPDATE files SET current_version_id = id;
+UPDATE files SET
+    current_version_id = CASE WHEN status = 'uploading' THEN NULL ELSE id END;
 
 ALTER TABLE files
     ADD CONSTRAINT fk_files_current_version_id
