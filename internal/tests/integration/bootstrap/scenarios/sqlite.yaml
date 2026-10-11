@@ -29,7 +29,7 @@ cache:
   type: memory
 
 storage:
-  type: minio
+  type: rustfs
 
 events:
   type: memory

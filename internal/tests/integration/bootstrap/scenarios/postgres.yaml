@@ -28,8 +28,8 @@ cache:
   type: memory
 
 storage:
-  type: minio
-  # bucket_name, endpoint, external_endpoint, client_id, client_secret are
+  type: rustfs
+  # bucket_name, endpoint, external_endpoint, access_key, secret_key are
   # injected at runtime from the container
 
 events:
