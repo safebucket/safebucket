@@ -135,15 +135,15 @@ func bootTestApp(t *testing.T, cfg models.Configuration, oidc *OIDCSetup, ldap *
 	db := provider.Setup(t)
 	injectDatabaseConfig(t, &cfg, provider, db)
 
-	minioInstance := StartMinIO(t)
+	rustfsInstance := StartRustFS(t)
 	cfg.Storage = models.StorageConfiguration{
-		Type: configuration.ProviderMinio,
-		Minio: &models.MinioStorageConfiguration{
-			BucketName:       minioInstance.Bucket,
-			Endpoint:         minioInstance.Endpoint,
-			ExternalEndpoint: minioInstance.ExternalEndpoint,
-			ClientID:         minioInstance.AccessKey,
-			ClientSecret:     minioInstance.SecretKey,
+		Type: configuration.ProviderRustFS,
+		RustFS: &models.RustFSStorageConfiguration{
+			BucketName:       rustfsInstance.Bucket,
+			Endpoint:         rustfsInstance.Endpoint,
+			ExternalEndpoint: rustfsInstance.ExternalEndpoint,
+			AccessKey:        rustfsInstance.AccessKey,
+			SecretKey:        rustfsInstance.SecretKey,
 			Region:           "us-east-1",
 		},
 	}

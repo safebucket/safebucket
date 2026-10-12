@@ -43,7 +43,6 @@ require (
 	github.com/redis/rueidis v1.0.78
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
-	github.com/testcontainers/testcontainers-go/modules/minio v0.44.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0
 	github.com/wneessen/go-mail v0.8.1
 	go.etcd.io/bbolt v1.5.0
