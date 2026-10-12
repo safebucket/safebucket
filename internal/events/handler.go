@@ -135,29 +135,17 @@ func handleUploadEvents(
 			continue
 		}
 
-		if file.Status != models.FileStatusUploading {
+		result := db.Model(&file).
+			Where("status = ?", models.FileStatusUploading).
+			Update("status", models.FileStatusUploaded)
+		if result.Error != nil {
+			zap.L().Error("failed to update file status", zap.Error(result.Error))
+			continue
+		}
+		if result.RowsAffected == 0 {
 			zap.L().Warn("file is already uploaded",
 				zap.String("file_id", event.FileID), zap.String("bucket_id", event.BucketID))
 			continue
-		}
-
-		db.Model(&file).Update("status", models.FileStatusUploaded)
-
-		action := models.Activity{
-			Message: activity.FileUploaded,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionCreate.String(),
-				ObjectType: rbac.ResourceFile.String(),
-				FileID:     event.FileID,
-				BucketID:   event.BucketID,
-				UserID:     event.UserID,
-			}),
-		}
-
-		err = activityLogger.Send(action)
-		if err != nil {
-			zap.L().Error("failed to send activity", zap.Error(err))
 		}
 
 		var bucket models.Bucket
