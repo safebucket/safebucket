@@ -3,15 +3,15 @@ name: safebucket
 services:
   bucket:
     container_name: bucket
-    image: rustfs/rustfs:1.0.0-alpha.84
+    image: rustfs/rustfs:1.0.1
     environment:
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
-      - RUSTFS_NOTIFY_MQTT_ENABLE_PRIMARY=${RUSTFS_NOTIFY_MQTT_ENABLE_PRIMARY}
-      - RUSTFS_NOTIFY_MQTT_BROKER_PRIMARY=${RUSTFS_NOTIFY_MQTT_BROKER_PRIMARY}
-      - RUSTFS_NOTIFY_MQTT_TOPIC_PRIMARY=${RUSTFS_NOTIFY_MQTT_TOPIC_PRIMARY}
-      - RUSTFS_NOTIFY_MQTT_QOS_PRIMARY=${RUSTFS_NOTIFY_MQTT_QOS_PRIMARY}
-      - RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY=${RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY}
+      - RUSTFS_NOTIFY_ENABLE=true
+      - RUSTFS_NOTIFY_NATS_ENABLE_PRIMARY=${RUSTFS_NOTIFY_NATS_ENABLE_PRIMARY}
+      - RUSTFS_NOTIFY_NATS_ADDRESS_PRIMARY=${RUSTFS_NOTIFY_NATS_ADDRESS_PRIMARY}
+      - RUSTFS_NOTIFY_NATS_SUBJECT_PRIMARY=${RUSTFS_NOTIFY_NATS_SUBJECT_PRIMARY}
+      - RUSTFS_NOTIFY_NATS_QUEUE_DIR_PRIMARY=${RUSTFS_NOTIFY_NATS_QUEUE_DIR_PRIMARY}
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -56,8 +56,8 @@ services:
         echo "Applying CORS policy..."
         aws s3api put-bucket-cors --bucket safebucket --endpoint-url $${ENDPOINT_URL} --cors-configuration '{"CORSRules":[{"AllowedHeaders":["*"],"AllowedMethods":["GET","PUT","POST","DELETE","HEAD"],"AllowedOrigins":["*"],"ExposeHeaders":["ETag"]}]}'
 
-        echo "Adding bucket notification events for MQTT target..."
-        aws s3api put-bucket-notification-configuration --bucket safebucket --endpoint-url $${ENDPOINT_URL} --notification-configuration '{"QueueConfigurations":[{"QueueArn":"arn:rustfs:sqs:us-east-1:primary:mqtt","Events":["s3:ObjectCreated:*","s3:ObjectRemoved:*","s3:ObjectAccessed:*"]}]}'
+        echo "Adding bucket notification events for NATS target..."
+        aws s3api put-bucket-notification-configuration --bucket safebucket --endpoint-url $${ENDPOINT_URL} --notification-configuration '{"QueueConfigurations":[{"QueueArn":"arn:rustfs:sqs:us-east-1:primary:nats","Events":["s3:ObjectCreated:*","s3:ObjectRemoved:*","s3:ObjectAccessed:*","s3:LifecycleExpiration:*"]}]}'
 
         echo "Buckets configured successfully."
     depends_on:
@@ -118,7 +118,6 @@ services:
     container_name: nats
     ports:
       - "4222:4222"   # NATS protocol
-      - "1883:1883"   # MQTT protocol
       - "8222:8222"   # HTTP monitoring
     restart: unless-stopped
     command: [ "-c", "/etc/nats/nats.conf" ]

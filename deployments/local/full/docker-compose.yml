@@ -82,15 +82,15 @@ services:
 
   bucket:
     container_name: bucket
-    image: rustfs/rustfs:1.0.0-alpha.84
+    image: rustfs/rustfs:1.0.1
     environment:
       - RUSTFS_ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
-      - RUSTFS_NOTIFY_MQTT_ENABLE_PRIMARY=true
-      - RUSTFS_NOTIFY_MQTT_BROKER_PRIMARY=mqtt://nats:1883
-      - RUSTFS_NOTIFY_MQTT_TOPIC_PRIMARY=${EVENTS__QUEUES__BUCKET_EVENTS__NAME}
-      - RUSTFS_NOTIFY_MQTT_QOS_PRIMARY=2
-      - RUSTFS_NOTIFY_MQTT_QUEUE_DIR_PRIMARY=/data/.rustfs/events
+      - RUSTFS_NOTIFY_ENABLE=true
+      - RUSTFS_NOTIFY_NATS_ENABLE_PRIMARY=true
+      - RUSTFS_NOTIFY_NATS_ADDRESS_PRIMARY=nats:4222
+      - RUSTFS_NOTIFY_NATS_SUBJECT_PRIMARY=${EVENTS__QUEUES__BUCKET_EVENTS__NAME}
+      - RUSTFS_NOTIFY_NATS_QUEUE_DIR_PRIMARY=/data/.rustfs/events
     ports:
       - "9000:9000"
     volumes:
@@ -143,8 +143,8 @@ services:
         echo "Applying CORS policy..."
         aws s3api put-bucket-cors --bucket $${BUCKET_NAME} --endpoint-url $${ENDPOINT_URL} --cors-configuration '{"CORSRules":[{"AllowedHeaders":["*"],"AllowedMethods":["GET","PUT","POST","DELETE","HEAD"],"AllowedOrigins":["*"],"ExposeHeaders":["ETag"]}]}'
 
-        echo "Adding bucket notification events for MQTT target..."
-        aws s3api put-bucket-notification-configuration --bucket $${BUCKET_NAME} --endpoint-url $${ENDPOINT_URL} --notification-configuration '{"QueueConfigurations":[{"QueueArn":"arn:rustfs:sqs:us-east-1:primary:mqtt","Events":["s3:ObjectCreated:*","s3:ObjectRemoved:*","s3:ObjectAccessed:*"]}]}'
+        echo "Adding bucket notification events for NATS target..."
+        aws s3api put-bucket-notification-configuration --bucket $${BUCKET_NAME} --endpoint-url $${ENDPOINT_URL} --notification-configuration '{"QueueConfigurations":[{"QueueArn":"arn:rustfs:sqs:us-east-1:primary:nats","Events":["s3:ObjectCreated:*","s3:ObjectRemoved:*","s3:ObjectAccessed:*","s3:LifecycleExpiration:*"]}]}'
 
         echo "Buckets configured successfully."
     depends_on:
