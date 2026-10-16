@@ -12,11 +12,23 @@ export interface IBucketInformationData {
   setIsEditingName: (editing: boolean) => void;
   bucketName: string;
   setBucketName: (name: string) => void;
+  isEditingDescription: boolean;
+  setIsEditingDescription: (editing: boolean) => void;
+  bucketDescription: string;
+  setBucketDescription: (description: string) => void;
   copiedField: string | null;
   bucketUrl: string;
   handleCopy: (text: string, field: string) => void;
   handleSaveName: () => void;
   handleCancelName: () => void;
+  handleSaveDescription: () => void;
+  handleCancelDescription: () => void;
+  isUpdating: boolean;
+}
+
+interface IUpdateBucketPayload {
+  name: string;
+  description?: string;
 }
 
 export const useBucketInformation = (
@@ -25,6 +37,10 @@ export const useBucketInformation = (
   const { t } = useTranslation();
   const [isEditingName, setIsEditingName] = useState(false);
   const [bucketName, setBucketName] = useState(bucket.name);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [bucketDescription, setBucketDescription] = useState(
+    bucket.description,
+  );
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
@@ -33,13 +49,14 @@ export const useBucketInformation = (
     setBucketName(bucket.name);
   }, [bucket.name]);
 
-  const updateNameMutation = useMutation({
-    mutationFn: () => api.patch(`/buckets/${bucket.id}`, { name: bucketName }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["buckets"] });
-      toast.success(t("toast.bucket_name_updated"));
-      setIsEditingName(false);
-    },
+  useEffect(() => {
+    setBucketDescription(bucket.description);
+  }, [bucket.description]);
+
+  const updateBucketMutation = useMutation({
+    mutationFn: ({ name, description }: IUpdateBucketPayload) =>
+      api.patch(`/buckets/${bucket.id}`, { name, description }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["buckets"] }),
   });
 
   const bucketUrl = `${window.location.origin}/buckets/${bucket.id}`;
@@ -63,7 +80,15 @@ export const useBucketInformation = (
       return;
     }
 
-    updateNameMutation.mutate();
+    updateBucketMutation.mutate(
+      { name: bucketName },
+      {
+        onSuccess: () => {
+          toast.success(t("toast.bucket_name_updated"));
+          setIsEditingName(false);
+        },
+      },
+    );
   };
 
   const handleCancelName = () => {
@@ -71,15 +96,47 @@ export const useBucketInformation = (
     setIsEditingName(false);
   };
 
+  const handleSaveDescription = () => {
+    const trimmedDescription = bucketDescription.trim();
+
+    if (trimmedDescription === bucket.description) {
+      setBucketDescription(bucket.description);
+      setIsEditingDescription(false);
+      return;
+    }
+
+    updateBucketMutation.mutate(
+      { name: bucket.name, description: trimmedDescription },
+      {
+        onSuccess: () => {
+          toast.success(t("toast.bucket_description_updated"));
+          setIsEditingDescription(false);
+        },
+      },
+    );
+  };
+
+  const handleCancelDescription = () => {
+    setBucketDescription(bucket.description);
+    setIsEditingDescription(false);
+  };
+
   return {
     isEditingName,
     setIsEditingName,
     bucketName,
     setBucketName,
+    isEditingDescription,
+    setIsEditingDescription,
+    bucketDescription,
+    setBucketDescription,
     copiedField,
     bucketUrl,
     handleCopy,
     handleSaveName,
     handleCancelName,
+    handleSaveDescription,
+    handleCancelDescription,
+    isUpdating: updateBucketMutation.isPending,
   };
 };

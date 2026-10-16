@@ -7,6 +7,7 @@ import type { FC } from "react";
 import { nav } from "@/components/app-sidebar/helpers/nav";
 import { useLogout } from "@/hooks/useAuth";
 import { useBucketsData } from "@/components/bucket-view/hooks/useBucketsData";
+import { BUCKET_DESCRIPTION_MAX_LENGTH } from "@/components/bucket-view/helpers/constants";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import { useCurrentUser } from "@/queries/user";
@@ -136,10 +137,22 @@ export const AppSidebar: FC = () => {
                         type: "text",
                         required: true,
                       },
+                      {
+                        id: "description",
+                        label: t("bucket.new_bucket_dialog.description_label"),
+                        type: "textarea",
+                        placeholder: t(
+                          "bucket.new_bucket_dialog.description_placeholder",
+                        ),
+                        maxLength: BUCKET_DESCRIPTION_MAX_LENGTH,
+                      },
                     ]}
                     onSubmit={(data) => {
                       createBucketMutation.mutate(
-                        { name: data.name },
+                        {
+                          name: data.name,
+                          description: data.description?.trim(),
+                        },
                         {
                           onSuccess: (bucket) => {
                             navigate({

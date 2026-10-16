@@ -75,6 +75,7 @@
     "bucket_name_empty": "Le nom du bucket ne peut pas être vide",
     "bucket_deleted": "Le bucket {{name}} a été supprimé",
     "bucket_name_updated": "Le nom du bucket a été mis à jour avec succès",
+    "bucket_description_updated": "La description du bucket a été mise à jour avec succès",
     "copied": "{{field}} a été copié",
     "cancel": "Annuler"
   },
@@ -373,6 +374,7 @@
     },
     "messages": {
       "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
+      "bucket_description_updated": "A mis à jour la description du bucket '%%BUCKET_NAME%%'.",
       "bucket_deleted": "A définitivement supprimé un bucket '%%BUCKET_NAME%%'.",
       "file_uploaded": "A partagé un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_downloaded": "A téléchargé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
@@ -461,6 +463,8 @@
       "title": "Nouveau bucket",
       "description": "Créer un bucket pour partager des fichiers en toute sécurité",
       "name_label": "Nom",
+      "description_label": "Description",
+      "description_placeholder": "Description facultative",
       "created": "Bucket créé"
     },
     "header": {
@@ -567,6 +571,11 @@
         "bucket_url": "URL du bucket",
         "bucket_name": "Nom du bucket",
         "enter_bucket_name": "Saisir le nom du bucket",
+        "description_label": "Description",
+        "enter_description": "Saisir la description du bucket",
+        "no_description": "Aucune description",
+        "edit_name": "Modifier le nom du bucket",
+        "edit_description": "Modifier la description",
         "show_qr": "Afficher le QR code",
         "qr_title": "QR code du bucket",
         "qr_description": "Scannez pour ouvrir ce bucket."

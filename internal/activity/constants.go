@@ -10,6 +10,7 @@ func defineAction(name string) string {
 var (
 	BucketCreated                = defineAction("BUCKET_CREATED")
 	BucketUpdated                = defineAction("BUCKET_UPDATED")
+	BucketDescriptionUpdated     = defineAction("BUCKET_DESCRIPTION_UPDATED")
 	BucketDeleted                = defineAction("BUCKET_DELETED")
 	FileUploaded                 = defineAction("FILE_UPLOADED")
 	FileDownloaded               = defineAction("FILE_DOWNLOADED")

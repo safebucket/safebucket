@@ -1,0 +1,1 @@
+export const BUCKET_DESCRIPTION_MAX_LENGTH = 1000;

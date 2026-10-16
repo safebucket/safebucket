@@ -118,6 +118,9 @@ func (s BucketService) CreateBucket(
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		newBucket = models.Bucket{Name: body.Name, CreatedBy: user.UserID}
+		if body.Description != nil {
+			newBucket.Description = *body.Description
+		}
 		res := tx.Create(&newBucket)
 
 		if res.Error != nil {
@@ -251,13 +254,27 @@ func (s BucketService) UpdateBucket(
 			return apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 		}
 
+		nameChanged := body.Name != bucket.Name
+		descriptionChanged := body.Description != nil && *body.Description != bucket.Description
+
 		bucket.Name = body.Name
-		if err := tx.Model(&bucket).Update("name", body.Name).Error; err != nil {
+		updates := map[string]any{"name": body.Name}
+		if body.Description != nil {
+			bucket.Description = *body.Description
+			updates["description"] = bucket.Description
+		}
+
+		if err := tx.Model(&bucket).Updates(updates).Error; err != nil {
 			return err
 		}
 
+		message := activity.BucketUpdated
+		if descriptionChanged && !nameChanged {
+			message = activity.BucketDescriptionUpdated
+		}
+
 		action := models.Activity{
-			Message: activity.BucketUpdated,
+			Message: message,
 			Object:  bucket.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
 				Action:     rbac.ActionUpdate.String(),
