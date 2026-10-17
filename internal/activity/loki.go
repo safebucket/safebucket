@@ -3,6 +3,7 @@ package activity
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
 	"slices"
 	"strconv"
@@ -66,10 +67,18 @@ func (s *LokiClient) Close() error {
 	return nil
 }
 
-func (s *LokiClient) Send(activity models.Activity) error {
-	lokiBody, err := createLokiBody(activity)
-	if err != nil {
-		return err
+func (s *LokiClient) Send(activities ...models.Activity) error {
+	if len(activities) == 0 {
+		return nil
+	}
+
+	lokiBody := LokiBody{Streams: make([]StreamEntry, 0, len(activities))}
+	for _, activity := range activities {
+		stream, err := createLokiStream(activity)
+		if err != nil {
+			return err
+		}
+		lokiBody.Streams = append(lokiBody.Streams, stream)
 	}
 
 	resp, err := s.Client.R().
@@ -85,6 +94,12 @@ func (s *LokiClient) Send(activity models.Activity) error {
 		zap.L().Error("Failed to send data to loki ",
 			zap.Int("status_code", resp.StatusCode()),
 			zap.String("response_body", string(resp.Body())))
+
+		if resp.StatusCode() >= http.StatusBadRequest && resp.StatusCode() < http.StatusInternalServerError &&
+			resp.StatusCode() != http.StatusTooManyRequests && resp.StatusCode() != http.StatusRequestTimeout {
+			return fmt.Errorf("%w: loki returned status %d: %s", ErrRejected, resp.StatusCode(), string(resp.Body()))
+		}
+
 		return fmt.Errorf("loki returned status %d: %s", resp.StatusCode(), string(resp.Body()))
 	}
 
@@ -323,7 +338,7 @@ func generateORCriteria(criteria map[string][]string) []string {
 	return formattedCriteria
 }
 
-func createLokiBody(activity models.Activity) (LokiBody, error) {
+func createLokiStream(activity models.Activity) (StreamEntry, error) {
 	labels, metadata := lokiLabels(activity.Filter.Fields.ToMap())
 	labels["service_name"] = configuration.AppName
 
@@ -338,17 +353,14 @@ func createLokiBody(activity models.Activity) (LokiBody, error) {
 	logLineJSON, err := json.Marshal(logLine)
 	if err != nil {
 		zap.L().Error("Failed to marshal log line", zap.Error(err))
-		return LokiBody{}, err
+		return StreamEntry{}, err
 	}
 
 	entry := RawLogValue{activity.Filter.Timestamp, string(logLineJSON), metadata}
-	stream := StreamEntry{
+
+	return StreamEntry{
 		Stream: labels,
 		Values: []RawLogValue{entry},
-	}
-
-	return LokiBody{
-		Streams: []StreamEntry{stream},
 	}, nil
 }
 

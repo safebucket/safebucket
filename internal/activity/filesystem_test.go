@@ -9,6 +9,7 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/blevesearch/bleve/v2"
+	"github.com/google/uuid"
 )
 
 func newTestFilesystemClient(t *testing.T) *FilesystemClient {
@@ -99,6 +100,83 @@ func TestFilesystemSendAndSearch(t *testing.T) {
 	}
 	if obj["name"] != "test-object" {
 		t.Errorf("expected object.name=test-object, got %v", obj["name"])
+	}
+}
+
+func TestFilesystemSendBatchIndexesAllActivities(t *testing.T) {
+	client := newTestFilesystemClient(t)
+
+	now := time.Now()
+	err := client.Send(
+		models.Activity{
+			Message: "Created bucket",
+			Filter: models.LogFilter{
+				Fields:    models.ActivityFields{Action: "create", ObjectType: "bucket", BucketID: "bucket-1"},
+				Timestamp: strconv.FormatInt(now.UnixNano(), 10),
+			},
+		},
+		models.Activity{
+			Message: "Deleted bucket",
+			Filter: models.LogFilter{
+				Fields:    models.ActivityFields{Action: "delete", ObjectType: "bucket", BucketID: "bucket-2"},
+				Timestamp: strconv.FormatInt(now.Add(-time.Second).UnixNano(), 10),
+			},
+		},
+	)
+	if err != nil {
+		t.Fatalf("Send failed: %v", err)
+	}
+
+	results, err := client.Search(map[string][]string{}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+}
+
+func TestFilesystemSendIsIdempotentForSameActivityID(t *testing.T) {
+	client := newTestFilesystemClient(t)
+
+	loggedActivity := models.Activity{
+		ID:      uuid.New(),
+		Message: "Created bucket",
+		Filter: models.LogFilter{
+			Fields:    models.ActivityFields{Action: "create", ObjectType: "bucket", BucketID: "bucket-1"},
+			Timestamp: strconv.FormatInt(time.Now().UnixNano(), 10),
+		},
+	}
+
+	if err := client.Send(loggedActivity); err != nil {
+		t.Fatalf("first Send failed: %v", err)
+	}
+	if err := client.Send(loggedActivity); err != nil {
+		t.Fatalf("second Send failed: %v", err)
+	}
+
+	results, err := client.Search(map[string][]string{}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result after duplicate send, got %d", len(results))
+	}
+}
+
+func TestFilesystemSendEmptyIsNoOp(t *testing.T) {
+	client := newTestFilesystemClient(t)
+
+	if err := client.Send(); err != nil {
+		t.Fatalf("Send failed: %v", err)
+	}
+
+	results, err := client.Search(map[string][]string{}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("expected 0 results, got %d", len(results))
 	}
 }
 

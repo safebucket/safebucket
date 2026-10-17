@@ -1,12 +1,17 @@
 package models
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/google/uuid"
+)
 
 type IActivityLoggable interface {
 	ToActivity() interface{}
 }
 
 type Activity struct {
+	ID      uuid.UUID `json:"-"`
 	Message string
 	Filter  LogFilter
 	Object  interface{}
