@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 
 interface IFormFieldProps {
   field: IFormField;
@@ -150,6 +151,26 @@ export const FormField: FC<IFormFieldProps> = ({
               <Datepicker value={value} onChange={onChange} />
             )}
           />
+        </div>
+      );
+    case "textarea":
+      return (
+        <div key={field.id} className="grid gap-2">
+          <Label htmlFor={field.id}>{field.label}</Label>
+          <Textarea
+            id={field.id}
+            placeholder={field.placeholder}
+            maxLength={field.maxLength}
+            defaultValue={field.defaultValue as string}
+            className="max-h-48"
+            {...register(field.id, { required: field.required })}
+          />
+          {errors[field.id] && (
+            <div className="text-destructive text-xs">
+              {errors[field.id]?.message?.toString() ||
+                `${field.label} is required`}
+            </div>
+          )}
         </div>
       );
     default:

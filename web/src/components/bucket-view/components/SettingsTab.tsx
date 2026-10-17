@@ -7,9 +7,12 @@ import { useBucketDeletion } from "@/components/bucket-view/hooks/useBucketDelet
 import { useBucketInformation } from "@/components/bucket-view/hooks/useBucketInformation";
 import { QrCodeDialog } from "@/components/common/components/QrCodeDialog.tsx";
 import { useBucketPermissions } from "@/hooks/usePermissions";
+import { BUCKET_DESCRIPTION_MAX_LENGTH } from "@/components/bucket-view/helpers/constants";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ISettingsTabProps {
   bucket: IBucket;
@@ -26,11 +29,18 @@ export const SettingsTab: FC<ISettingsTabProps> = ({
     setIsEditingName,
     bucketName,
     setBucketName,
+    isEditingDescription,
+    setIsEditingDescription,
+    bucketDescription,
+    setBucketDescription,
     copiedField,
     bucketUrl,
     handleCopy,
     handleSaveName,
     handleCancelName,
+    handleSaveDescription,
+    handleCancelDescription,
+    isUpdating,
   } = useBucketInformation(bucket);
   const {
     confirmationText,
@@ -120,7 +130,7 @@ export const SettingsTab: FC<ISettingsTabProps> = ({
                       size="icon"
                       variant="outline"
                       onClick={() => setIsEditingName(true)}
-                      aria-label={t("common.edit")}
+                      aria-label={t("bucket.settings.information.edit_name")}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -128,6 +138,80 @@ export const SettingsTab: FC<ISettingsTabProps> = ({
                 </>
               )}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label
+              htmlFor="bucket-description"
+              className="text-muted-foreground text-xs"
+            >
+              {t("bucket.settings.information.description_label")}
+            </Label>
+            {isEditingDescription ? (
+              <div className="flex items-start gap-2">
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <Textarea
+                    id="bucket-description"
+                    value={bucketDescription}
+                    onChange={(e) => setBucketDescription(e.target.value)}
+                    placeholder={t(
+                      "bucket.settings.information.enter_description",
+                    )}
+                    maxLength={BUCKET_DESCRIPTION_MAX_LENGTH}
+                    aria-describedby="bucket-description-count"
+                    autoFocus
+                    disabled={isUpdating}
+                  />
+                  <span
+                    id="bucket-description-count"
+                    className="text-muted-foreground self-end text-xs tabular-nums"
+                  >
+                    {bucketDescription.length}/{BUCKET_DESCRIPTION_MAX_LENGTH}
+                  </span>
+                </div>
+                <Button
+                  size="icon"
+                  onClick={handleSaveDescription}
+                  disabled={isUpdating}
+                  aria-label={t("common.save")}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={handleCancelDescription}
+                  disabled={isUpdating}
+                  aria-label={t("common.cancel")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2">
+                <p
+                  className={cn(
+                    "min-h-16 min-w-0 flex-1 rounded-2xl border border-transparent bg-input/50 px-3 py-3 text-base whitespace-pre-wrap wrap-break-word md:text-sm",
+                    !bucket.description && "text-muted-foreground",
+                  )}
+                >
+                  {bucket.description ||
+                    t("bucket.settings.information.no_description")}
+                </p>
+                {isOwner ? (
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => setIsEditingDescription(true)}
+                    aria-label={t(
+                      "bucket.settings.information.edit_description",
+                    )}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       </div>

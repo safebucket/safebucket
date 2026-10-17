@@ -72,7 +72,7 @@ func seedDB(t *testing.T, db *gorm.DB) {
 	require.NoError(t, db.Create(&user).Error)
 
 	bucket := models.Bucket{Name: "bucket", CreatedBy: user.ID}
-	require.NoError(t, db.Create(&bucket).Error)
+	require.NoError(t, db.Omit("Description").Create(&bucket).Error)
 
 	require.NoError(t, db.Create(&models.Membership{
 		UserID:   user.ID,

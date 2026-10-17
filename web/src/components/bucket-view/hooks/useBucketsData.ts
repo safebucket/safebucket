@@ -13,8 +13,13 @@ export const useBucketsData = (): IBucketsData => {
   const queryClient = useQueryClient();
 
   const createBucketMutation = useMutation({
-    mutationFn: ({ name }: { name: string }) =>
-      api.post<IBucket>("/buckets", { name }),
+    mutationFn: ({
+      name,
+      description,
+    }: {
+      name: string;
+      description?: string;
+    }) => api.post<IBucket>("/buckets", { name, description }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["buckets"] });
       toast.success(i18n.t("bucket.new_bucket_dialog.created"));
