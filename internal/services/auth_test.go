@@ -39,7 +39,7 @@ func loginResponseBody(t *testing.T, result handlers.AuthFlowResult) models.Auth
 
 type MockActivityLogger struct{}
 
-func (m *MockActivityLogger) Send(_ models.Activity) error { return nil }
+func (m *MockActivityLogger) Send(_ ...models.Activity) error { return nil }
 func (m *MockActivityLogger) Search(
 	_ map[string][]string, _, _ time.Time, _ int,
 ) ([]map[string]any, error) {

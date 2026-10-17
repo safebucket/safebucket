@@ -199,10 +199,33 @@ func (c *FilesystemClient) Close() error {
 	return c.index.Close()
 }
 
-func (c *FilesystemClient) Send(activity models.Activity) error {
+func (c *FilesystemClient) Send(activities ...models.Activity) error {
+	if len(activities) == 0 {
+		return nil
+	}
+
+	batch := c.index.NewBatch()
+	for _, activity := range activities {
+		docID, doc, err := buildActivityDocument(activity)
+		if err != nil {
+			return err
+		}
+		if err = batch.Index(docID, doc); err != nil {
+			return fmt.Errorf("failed to index activity: %w", err)
+		}
+	}
+
+	if err := c.index.Batch(batch); err != nil {
+		return fmt.Errorf("failed to index activity: %w", err)
+	}
+
+	return nil
+}
+
+func buildActivityDocument(activity models.Activity) (string, map[string]any, error) {
 	timestamp, err := strconv.ParseInt(activity.Filter.Timestamp, 10, 64)
 	if err != nil {
-		return fmt.Errorf("failed to parse timestamp: %w", err)
+		return "", nil, fmt.Errorf("failed to parse timestamp: %w", err)
 	}
 
 	fieldsMap := activity.Filter.Fields.ToMap()
@@ -216,17 +239,17 @@ func (c *FilesystemClient) Send(activity models.Activity) error {
 	if activity.Object != nil && isAuthorizedObject(activity.Filter.Fields.ObjectType) {
 		b, marshalErr := json.Marshal(activity.Object)
 		if marshalErr != nil {
-			return fmt.Errorf("failed to marshal object: %w", marshalErr)
+			return "", nil, fmt.Errorf("failed to marshal object: %w", marshalErr)
 		}
 		doc["object"] = string(b)
 	}
 
-	docID := uuid.New().String()
-	if err = c.index.Index(docID, doc); err != nil {
-		return fmt.Errorf("failed to index activity: %w", err)
+	docID := activity.ID.String()
+	if activity.ID == uuid.Nil {
+		docID = uuid.New().String()
 	}
 
-	return nil
+	return docID, doc, nil
 }
 
 func (c *FilesystemClient) Search(
