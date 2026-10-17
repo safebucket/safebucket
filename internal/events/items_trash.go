@@ -1,17 +1,14 @@
 package events
 
 import (
-	"encoding/json"
 	"path"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	c "github.com/safebucket/safebucket/internal/configuration"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -24,74 +21,50 @@ const (
 )
 
 type ItemsTrashPayload struct {
-	Type     string
 	BucketID uuid.UUID
 	UserID   uuid.UUID
 }
 
 type ItemsTrash struct {
-	Publisher messaging.IPublisher
-	Payload   ItemsTrashPayload
-}
-
-func NewItemsTrash(
-	publisher messaging.IPublisher,
-	bucketID uuid.UUID,
-	userID uuid.UUID,
-) ItemsTrash {
-	return ItemsTrash{
-		Publisher: publisher,
-		Payload: ItemsTrashPayload{
-			Type:     ItemsTrashName,
-			BucketID: bucketID,
-			UserID:   userID,
-		},
-	}
-}
-
-func (e *ItemsTrash) Trigger() {
-	if err := e.publish(); err != nil {
-		zap.L().Error("Failed to trigger items trash event", zap.Error(err))
-	}
-}
-
-func (e *ItemsTrash) publish() error {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		return err
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	return e.Publisher.Publish(msg)
+	Payload ItemsTrashPayload
 }
 
 func (e *ItemsTrash) callback(params *EventParams) error {
 	var files []models.File
 	var folders []models.Folder
 
+	if err := e.selectDeletingItems(params.DB, &files, &folders); err != nil {
+		return err
+	}
+
+	if err := e.addTrashMarker(params, files, folders); err != nil {
+		return err
+	}
+
+	var finalizedFiles []models.File
+	var finalizedFolders []models.Folder
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		if err := e.lockDeletingItems(tx, &files, &folders); err != nil {
-			return err
+		if txErr := e.lockSelectedDeletingItems(tx, files, folders, &finalizedFiles, &finalizedFolders); txErr != nil {
+			return txErr
 		}
-		if err := e.deleteItems(tx, files, folders); err != nil {
-			return err
+		if txErr := e.deleteItems(tx, finalizedFiles, finalizedFolders); txErr != nil {
+			return txErr
 		}
-		return e.addTrashMarker(params, files, folders)
+		if txErr := e.enqueueActivities(tx, finalizedFiles, finalizedFolders); txErr != nil {
+			return txErr
+		}
+
+		if len(finalizedFiles)+len(finalizedFolders) == c.BatchLimit {
+			return outbox.EnqueueEvent(tx, ItemsTrashName, e.Payload)
+		}
+		return nil
 	})
 	if err != nil {
 		return err
 	}
 
-	e.logActivities(params, files, folders)
-
-	processed := len(files) + len(folders)
+	processed := len(finalizedFiles) + len(finalizedFolders)
 	if processed == c.BatchLimit {
-		next := NewItemsTrash(params.Publisher, e.Payload.BucketID, e.Payload.UserID)
-		if err = next.publish(); err != nil {
-			return err
-		}
-
 		zap.L().Info("Queued next trash batch",
 			zap.String("bucket_id", e.Payload.BucketID.String()),
 			zap.Int("processed", processed))
@@ -105,10 +78,33 @@ func (e *ItemsTrash) callback(params *EventParams) error {
 	return nil
 }
 
-func (e *ItemsTrash) lockDeletingItems(tx *gorm.DB, files *[]models.File, folders *[]models.Folder) error {
-	query := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
-		Where("bucket_id = ? AND status = ? AND deleted_by = ?",
-			e.Payload.BucketID, models.FileStatusDeleting, e.Payload.UserID).
+func (e *ItemsTrash) lockSelectedDeletingItems(
+	tx *gorm.DB,
+	files []models.File,
+	folders []models.Folder,
+	lockedFiles *[]models.File,
+	lockedFolders *[]models.Folder,
+) error {
+	if len(files) > 0 {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id IN ? AND status = ? AND deleted_by = ?", fileIDs(files), models.FileStatusDeleting, e.Payload.UserID).
+			Find(lockedFiles).Error; err != nil {
+			return err
+		}
+	}
+
+	if len(folders) > 0 {
+		return tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id IN ? AND status = ? AND deleted_by = ?", folderIDs(folders), models.FolderStatusDeleting, e.Payload.UserID).
+			Find(lockedFolders).Error
+	}
+
+	return nil
+}
+
+func (e *ItemsTrash) selectDeletingItems(db *gorm.DB, files *[]models.File, folders *[]models.Folder) error {
+	query := db.Where("bucket_id = ? AND status = ? AND deleted_by = ?",
+		e.Payload.BucketID, models.FileStatusDeleting, e.Payload.UserID).
 		Limit(c.BatchLimit)
 	if err := query.Find(files).Error; err != nil {
 		return err
@@ -119,9 +115,8 @@ func (e *ItemsTrash) lockDeletingItems(tx *gorm.DB, files *[]models.File, folder
 		return nil
 	}
 
-	query = tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
-		Where("bucket_id = ? AND status = ? AND deleted_by = ?",
-			e.Payload.BucketID, models.FolderStatusDeleting, e.Payload.UserID).
+	query = db.Where("bucket_id = ? AND status = ? AND deleted_by = ?",
+		e.Payload.BucketID, models.FolderStatusDeleting, e.Payload.UserID).
 		Limit(remainingSlots)
 	return query.Find(folders).Error
 }
@@ -170,23 +165,20 @@ func (e *ItemsTrash) deleteItems(tx *gorm.DB, files []models.File, folders []mod
 	return nil
 }
 
-// TODO(YLB): Future improvement possible here, send multiple activity at once.
-func (e *ItemsTrash) logActivities(params *EventParams, files []models.File, folders []models.Folder) {
+func (e *ItemsTrash) enqueueActivities(tx *gorm.DB, files []models.File, folders []models.Folder) error {
 	for _, file := range files {
-		if err := params.ActivityLogger.Send(fileTrashedActivity(file, e.Payload.UserID)); err != nil {
-			zap.L().Error("Failed to log file trash activity",
-				zap.String("file_id", file.ID.String()),
-				zap.Error(err))
+		if err := outbox.EnqueueActivity(tx, fileTrashedActivity(file, e.Payload.UserID)); err != nil {
+			return err
 		}
 	}
 
 	for _, folder := range folders {
-		if err := params.ActivityLogger.Send(folderTrashedActivity(folder, e.Payload.UserID)); err != nil {
-			zap.L().Error("Failed to log folder trash activity",
-				zap.String("folder_id", folder.ID.String()),
-				zap.Error(err))
+		if err := outbox.EnqueueActivity(tx, folderTrashedActivity(folder, e.Payload.UserID)); err != nil {
+			return err
 		}
 	}
+
+	return nil
 }
 
 func fileTrashedActivity(file models.File, userID uuid.UUID) models.Activity {

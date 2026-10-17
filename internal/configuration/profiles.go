@@ -17,6 +17,8 @@ var Profiles = map[string]models.Profile{
 		Name:       ProfileDefault,
 		HTTPServer: true,
 		Workers: models.WorkerConfig{
+			ActivityOutbox:   models.WorkerModeAll,
+			QueueOutbox:      models.WorkerModeAll,
 			ObjectDeletion:   models.WorkerModeAll,
 			BucketEvents:     models.WorkerModeAll,
 			TrashCleanup:     models.WorkerModeSingleton,
@@ -27,6 +29,8 @@ var Profiles = map[string]models.Profile{
 		Name:       ProfileAPI,
 		HTTPServer: true,
 		Workers: models.WorkerConfig{
+			ActivityOutbox:   models.WorkerModeDisabled,
+			QueueOutbox:      models.WorkerModeDisabled,
 			ObjectDeletion:   models.WorkerModeDisabled,
 			BucketEvents:     models.WorkerModeDisabled,
 			TrashCleanup:     models.WorkerModeDisabled,
@@ -37,6 +41,8 @@ var Profiles = map[string]models.Profile{
 		Name:       ProfileWorker,
 		HTTPServer: false,
 		Workers: models.WorkerConfig{
+			ActivityOutbox:   models.WorkerModeAll,
+			QueueOutbox:      models.WorkerModeAll,
 			ObjectDeletion:   models.WorkerModeSingleton,
 			BucketEvents:     models.WorkerModeSingleton,
 			TrashCleanup:     models.WorkerModeSingleton,

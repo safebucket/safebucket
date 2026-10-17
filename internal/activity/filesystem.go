@@ -221,7 +221,10 @@ func (c *FilesystemClient) Send(activity models.Activity) error {
 		doc["object"] = string(b)
 	}
 
-	docID := uuid.New().String()
+	docID := activity.ID
+	if docID == "" {
+		docID = uuid.NewString()
+	}
 	if err = c.index.Index(docID, doc); err != nil {
 		return fmt.Errorf("failed to index activity: %w", err)
 	}

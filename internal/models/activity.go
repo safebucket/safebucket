@@ -7,6 +7,7 @@ type IActivityLoggable interface {
 }
 
 type Activity struct {
+	ID      string `json:"id,omitempty"`
 	Message string
 	Filter  LogFilter
 	Object  interface{}

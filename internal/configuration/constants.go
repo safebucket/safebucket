@@ -45,6 +45,8 @@ const (
 )
 
 const (
+	WorkerActivityOutbox   = "activity_outbox"
+	WorkerQueueOutbox      = "queue_outbox"
 	WorkerObjectDeletion   = "object_deletion"
 	WorkerBucketEvents     = "bucket_events"
 	WorkerTrashCleanup     = "trash_cleanup"

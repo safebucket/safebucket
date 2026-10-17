@@ -326,6 +326,9 @@ func generateORCriteria(criteria map[string][]string) []string {
 func createLokiBody(activity models.Activity) (LokiBody, error) {
 	labels, metadata := lokiLabels(activity.Filter.Fields.ToMap())
 	labels["service_name"] = configuration.AppName
+	if activity.ID != "" {
+		metadata["activity_id"] = activity.ID
+	}
 
 	logLine := map[string]interface{}{
 		"message": activity.Message,

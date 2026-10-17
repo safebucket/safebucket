@@ -214,6 +214,24 @@ func StartWorkers(
 				)
 			})
 	}
+
+	startWorker(ctx, handle.wg, profile.Workers.QueueOutbox, configuration.WorkerQueueOutbox, cache, appIdentity,
+		func(workerCtx context.Context) {
+			worker := &workers.QueueOutboxWorker{
+				DB:        db,
+				Publisher: eventRouter,
+			}
+			worker.Start(workerCtx)
+		})
+
+	startWorker(ctx, handle.wg, profile.Workers.ActivityOutbox, configuration.WorkerActivityOutbox, cache, appIdentity,
+		func(workerCtx context.Context) {
+			worker := &workers.ActivityOutboxWorker{
+				DB:             db,
+				ActivityLogger: activityLogger,
+			}
+			worker.Start(workerCtx)
+		})
 }
 
 func startWorker(
