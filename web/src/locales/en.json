@@ -374,7 +374,7 @@
     },
     "messages": {
       "bucket_created": "Created a bucket '%%BUCKET_NAME%%' and shared it with you.",
-      "bucket_description_updated": "Updated the description of the bucket '%%BUCKET_NAME%%'.",
+      "bucket_updated": "Updated the bucket '%%BUCKET_NAME%%'.",
       "bucket_deleted": "Permanently deleted a bucket '%%BUCKET_NAME%%'.",
       "file_uploaded": "Uploaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",
       "file_downloaded": "Downloaded a file '%%FILE_NAME%%' on the bucket '%%BUCKET_NAME%%'.",

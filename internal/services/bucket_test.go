@@ -142,10 +142,10 @@ func TestUpdateBucketClearsDescription(t *testing.T) {
 	assert.Empty(t, persisted.Description)
 
 	mock := service.ActivityLogger.(*MockActivityLogger)
-	assert.Equal(t, activity.BucketDescriptionUpdated, mock.Sent[len(mock.Sent)-1].Message)
+	assert.Equal(t, activity.BucketUpdated, mock.Sent[len(mock.Sent)-1].Message)
 }
 
-func TestUpdateBucketDescriptionOnlyLogsDescriptionUpdatedActivity(t *testing.T) {
+func TestUpdateBucketDescriptionOnlyLogsBucketUpdatedActivity(t *testing.T) {
 	service, user := newBucketServiceTestFixture(t)
 	description := "Old description"
 	bucket := createTestBucket(t, service, user, models.BucketCreateUpdateBody{
@@ -166,7 +166,7 @@ func TestUpdateBucketDescriptionOnlyLogsDescriptionUpdatedActivity(t *testing.T)
 	require.NoError(t, err)
 
 	require.Len(t, mock.Sent, 1)
-	assert.Equal(t, activity.BucketDescriptionUpdated, mock.Sent[0].Message)
+	assert.Equal(t, activity.BucketUpdated, mock.Sent[0].Message)
 	assert.Equal(t, bucket.ID.String(), mock.Sent[0].Filter.Fields.BucketID)
 
 	object, ok := mock.Sent[0].Object.(models.BucketActivity)

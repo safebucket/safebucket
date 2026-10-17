@@ -46,8 +46,8 @@ export const messageMap = {
     icon: Share2,
     ...success,
   },
-  BUCKET_DESCRIPTION_UPDATED: {
-    messageKey: "activity.messages.bucket_description_updated",
+  BUCKET_UPDATED: {
+    messageKey: "activity.messages.bucket_updated",
     icon: FilePen,
     ...info,
   },

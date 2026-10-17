@@ -374,7 +374,7 @@
     },
     "messages": {
       "bucket_created": "Bucket '%%BUCKET_NAME%%' erstellt und mit Ihnen geteilt.",
-      "bucket_description_updated": "Beschreibung des Buckets '%%BUCKET_NAME%%' aktualisiert.",
+      "bucket_updated": "Bucket '%%BUCKET_NAME%%' aktualisiert.",
       "bucket_deleted": "'%%BUCKET_NAME%%' wurde endgültig gelöscht.",
       "file_uploaded": "Datei '%%FILE_NAME%%' im Bucket '%%BUCKET_NAME%%' erstellt.",
       "file_downloaded": "Datei '%%FILE_NAME%%' im Bucket '%%BUCKET_NAME%%' heruntergeladen.",

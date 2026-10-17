@@ -374,7 +374,7 @@
     },
     "messages": {
       "bucket_created": "A créé un bucket '%%BUCKET_NAME%%' et l'a partagé avec vous.",
-      "bucket_description_updated": "A mis à jour la description du bucket '%%BUCKET_NAME%%'.",
+      "bucket_updated": "A mis à jour le bucket '%%BUCKET_NAME%%'.",
       "bucket_deleted": "A définitivement supprimé un bucket '%%BUCKET_NAME%%'.",
       "file_uploaded": "A partagé un fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_downloaded": "A téléchargé un fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",

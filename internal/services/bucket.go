@@ -254,9 +254,6 @@ func (s BucketService) UpdateBucket(
 			return apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
 		}
 
-		nameChanged := body.Name != bucket.Name
-		descriptionChanged := body.Description != nil && *body.Description != bucket.Description
-
 		bucket.Name = body.Name
 		updates := map[string]any{"name": body.Name}
 		if body.Description != nil {
@@ -268,13 +265,8 @@ func (s BucketService) UpdateBucket(
 			return err
 		}
 
-		message := activity.BucketUpdated
-		if descriptionChanged && !nameChanged {
-			message = activity.BucketDescriptionUpdated
-		}
-
 		action := models.Activity{
-			Message: message,
+			Message: activity.BucketUpdated,
 			Object:  bucket.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
 				Action:     rbac.ActionUpdate.String(),
