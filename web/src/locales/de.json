@@ -897,6 +897,7 @@
         "last_name": "Nachname",
         "role": "Rolle",
         "provider": "Provider",
+        "mfa": "2FA",
         "created": "Erstellt am",
         "actions": "Aktionen"
       },
@@ -912,6 +913,10 @@
         "title": "Benutzer löschen",
         "description": "Sicher, dasd Sie den Benutzer {{email}}? Das kann nicht rückgängig gemacht werden",
         "confirm": "Löschen"
+      },
+      "mfa": {
+        "enabled": "2FA aktiviert",
+        "not_enabled": "2FA nicht eingerichtet"
       }
     },
     "buckets": {

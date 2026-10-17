@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { IUser } from "@/components/auth-view/types/session";
+import type { IAdminUser } from "@/components/auth-view/types/session";
 import {
   useCreateUserMutation,
   useDeleteUserMutation,
@@ -8,7 +8,7 @@ import {
 } from "@/queries/admin";
 
 export const useAdminUsersData = () => {
-  const [userToDelete, setUserToDelete] = useState<IUser | null>(null);
+  const [userToDelete, setUserToDelete] = useState<IAdminUser | null>(null);
 
   const { data: users, isLoading } = useQuery(usersQueryOptions());
   const createUserMutation = useCreateUserMutation();

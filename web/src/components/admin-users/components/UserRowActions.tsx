@@ -1,6 +1,6 @@
 import { Ellipsis, Trash2 } from "lucide-react";
 import type { FC } from "react";
-import type { IUser } from "@/components/auth-view/types/session";
+import type { IAdminUser } from "@/components/auth-view/types/session";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface UserRowActionsProps {
-  user: IUser;
-  onDelete: (user: IUser) => void;
+  user: IAdminUser;
+  onDelete: (user: IAdminUser) => void;
   isCurrentUser: boolean;
 }
 

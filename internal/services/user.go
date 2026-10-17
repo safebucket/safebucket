@@ -113,10 +113,31 @@ func (s UserService) CreateUser(
 	return models.User{}, apierrors.New(http.StatusConflict, apierrors.CodeUserAlreadyExists)
 }
 
-func (s UserService) GetUserList(_ *zap.Logger, _ models.UserClaims, _ uuid.UUIDs) []models.User {
+func (s UserService) GetUserList(logger *zap.Logger, _ models.UserClaims, _ uuid.UUIDs) []models.UserListItem {
 	var users []models.User
 	s.DB.Find(&users)
-	return users
+
+	enabled, err := sql.VerifiedMFAUserIDs(s.DB)
+	if err != nil {
+		logger.Error("Failed to fetch user MFA status", zap.Error(err))
+	}
+
+	result := make([]models.UserListItem, 0, len(users))
+	for _, user := range users {
+		result = append(result, models.UserListItem{
+			ID:           user.ID,
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        user.Email,
+			ProviderType: user.ProviderType,
+			ProviderKey:  user.ProviderKey,
+			Role:         user.Role,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    user.UpdatedAt,
+			MFAEnabled:   enabled[user.ID],
+		})
+	}
+	return result
 }
 
 func (s UserService) GetUser(
