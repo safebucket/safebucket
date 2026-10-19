@@ -4,6 +4,7 @@ import {
   FileDiff,
   FileDown,
   FileMinus,
+  FilePen,
   FileUp,
   FolderMinus,
   FolderPen,
@@ -44,6 +45,11 @@ export const messageMap = {
     messageKey: "activity.messages.bucket_created",
     icon: Share2,
     ...success,
+  },
+  BUCKET_UPDATED: {
+    messageKey: "activity.messages.bucket_updated",
+    icon: FilePen,
+    ...info,
   },
   BUCKET_DELETED: {
     messageKey: "activity.messages.bucket_deleted",

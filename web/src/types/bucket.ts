@@ -4,6 +4,7 @@ import type { IFolder } from "@/types/folder.ts";
 export interface IBucket {
   id: string;
   name: string;
+  description: string;
   files: Array<IFile>;
   folders: Array<IFolder>;
   created_by: string;

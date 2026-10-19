@@ -4,7 +4,14 @@ export interface IFormField {
   id: string;
   label: string;
   type:
-    "text" | "password" | "file" | "select" | "switch" | "datepicker" | "otp";
+    | "text"
+    | "password"
+    | "file"
+    | "select"
+    | "switch"
+    | "datepicker"
+    | "otp"
+    | "textarea";
   placeholder?: string;
   required?: boolean;
   options?: Array<{ value: string; label: string }>;

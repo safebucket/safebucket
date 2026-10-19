@@ -75,6 +75,7 @@
     "bucket_name_empty": "Der Bucket-Name darf nicht leer sein",
     "bucket_deleted": "Bucket {{name}} wurde gelöscht",
     "bucket_name_updated": "Bucket erfolgreich umbenannt",
+    "bucket_description_updated": "Bucket-Beschreibung erfolgreich aktualisiert",
     "copied": "{{field}} wurde kopiert",
     "cancel": "Abbrechen"
   },
@@ -373,6 +374,7 @@
     },
     "messages": {
       "bucket_created": "Bucket '%%BUCKET_NAME%%' erstellt und mit Ihnen geteilt.",
+      "bucket_updated": "Bucket '%%BUCKET_NAME%%' aktualisiert.",
       "bucket_deleted": "'%%BUCKET_NAME%%' wurde endgültig gelöscht.",
       "file_uploaded": "Datei '%%FILE_NAME%%' im Bucket '%%BUCKET_NAME%%' erstellt.",
       "file_downloaded": "Datei '%%FILE_NAME%%' im Bucket '%%BUCKET_NAME%%' heruntergeladen.",
@@ -461,6 +463,8 @@
       "title": "Neuer Bucket",
       "description": "Neuen Bucket zum sicheren Teilen erstellen",
       "name_label": "Name",
+      "description_label": "Beschreibung",
+      "description_placeholder": "Optionale Beschreibung",
       "created": "Bucket erstellt"
     },
     "header": {
@@ -560,6 +564,11 @@
         "bucket_url": "Bucket-Link",
         "bucket_name": "Bucket-Name",
         "enter_bucket_name": "Bucket-Name eingeben",
+        "description_label": "Beschreibung",
+        "enter_description": "Bucket-Beschreibung eingeben",
+        "no_description": "Keine Beschreibung",
+        "edit_name": "Bucket-Namen bearbeiten",
+        "edit_description": "Beschreibung bearbeiten",
         "show_qr": "QR-Code anzeigen",
         "qr_title": "Bucket-QR-Code",
         "qr_description": "Scannen, um diesen Bucket zu öffnen."

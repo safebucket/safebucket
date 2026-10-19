@@ -118,6 +118,9 @@ func (s BucketService) CreateBucket(
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		newBucket = models.Bucket{Name: body.Name, CreatedBy: user.UserID}
+		if body.Description != nil {
+			newBucket.Description = *body.Description
+		}
 		res := tx.Create(&newBucket)
 
 		if res.Error != nil {
@@ -252,7 +255,13 @@ func (s BucketService) UpdateBucket(
 		}
 
 		bucket.Name = body.Name
-		if err := tx.Model(&bucket).Update("name", body.Name).Error; err != nil {
+		updates := map[string]any{"name": body.Name}
+		if body.Description != nil {
+			bucket.Description = *body.Description
+			updates["description"] = bucket.Description
+		}
+
+		if err := tx.Model(&bucket).Updates(updates).Error; err != nil {
 			return err
 		}
 

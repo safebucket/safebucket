@@ -8,14 +8,15 @@ import (
 )
 
 type Bucket struct {
-	ID        uuid.UUID      `gorm:"default:(-)"           json:"id"`
-	Name      string         `gorm:"not null;default:null" json:"name"       validate:"required"`
-	Files     []File         `                             json:"files"`
-	Folders   []Folder       `                             json:"folders"`
-	CreatedAt time.Time      `                             json:"created_at"`
-	CreatedBy uuid.UUID      `gorm:"not null"              json:"-"`
-	UpdatedAt time.Time      `                             json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index"                 json:"deleted_at"`
+	ID          uuid.UUID      `gorm:"default:(-)"           json:"id"`
+	Name        string         `gorm:"not null;default:null" json:"name"        validate:"required"`
+	Description string         `gorm:"not null;default:''"   json:"description"`
+	Files       []File         `                             json:"files"`
+	Folders     []Folder       `                             json:"folders"`
+	CreatedAt   time.Time      `                             json:"created_at"`
+	CreatedBy   uuid.UUID      `gorm:"not null"              json:"-"`
+	UpdatedAt   time.Time      `                             json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index"                 json:"deleted_at"`
 }
 
 type BucketActivity struct {
@@ -31,7 +32,8 @@ func (b *Bucket) ToActivity() BucketActivity {
 }
 
 type BucketCreateUpdateBody struct {
-	Name string `json:"name" validate:"required,max=100"`
+	Name        string  `json:"name"        validate:"required,max=100"`
+	Description *string `json:"description" validate:"omitempty,max=1000"`
 }
 
 type BucketTrashBody struct {
