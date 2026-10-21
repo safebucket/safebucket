@@ -24,7 +24,7 @@ func AddEvents(tx *gorm.DB, events ...Event) error {
 	}
 
 	now := time.Now().UTC()
-	rows := make([]models.OutboxMessage, 0, len(events))
+	rows := make([]models.Outbox, 0, len(events))
 
 	for _, event := range events {
 		eventType := event.EventType()
@@ -37,8 +37,8 @@ func AddEvents(tx *gorm.DB, events ...Event) error {
 			return fmt.Errorf("failed to marshal %s payload: %w", eventType, err)
 		}
 
-		rows = append(rows, models.OutboxMessage{
-			Type:          models.OutboxMessageTypeEvent,
+		rows = append(rows, models.Outbox{
+			Type:          models.OutboxTypeEvent,
 			EventType:     &eventType,
 			Payload:       string(payload),
 			NextAttemptAt: now,
@@ -55,7 +55,7 @@ func AddActivities(tx *gorm.DB, activities ...models.Activity) error {
 	}
 
 	now := time.Now().UTC()
-	rows := make([]models.OutboxMessage, 0, len(activities))
+	rows := make([]models.Outbox, 0, len(activities))
 
 	for _, item := range activities {
 		payload, err := json.Marshal(item)
@@ -63,8 +63,8 @@ func AddActivities(tx *gorm.DB, activities ...models.Activity) error {
 			return fmt.Errorf("failed to marshal activity: %w", err)
 		}
 
-		rows = append(rows, models.OutboxMessage{
-			Type:          models.OutboxMessageTypeActivity,
+		rows = append(rows, models.Outbox{
+			Type:          models.OutboxTypeActivity,
 			Payload:       string(payload),
 			NextAttemptAt: now,
 			CreatedAt:     now,

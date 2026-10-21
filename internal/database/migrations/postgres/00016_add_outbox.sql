@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE TABLE outbox_messages
+CREATE TABLE outbox
     (
         id UUID PRIMARY KEY,
         type TEXT NOT NULL CHECK(type IN ('event', 'activity')),
@@ -14,8 +14,8 @@ CREATE TABLE outbox_messages
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
-CREATE INDEX idx_outbox_messages_pending
-    ON outbox_messages (type, next_attempt_at, created_at)
+CREATE INDEX idx_outbox_pending
+    ON outbox (type, next_attempt_at, created_at)
     WHERE failed_at IS NULL;
 
 -- +goose StatementEnd
@@ -23,7 +23,7 @@ CREATE INDEX idx_outbox_messages_pending
 -- +goose Down
 -- +goose StatementBegin
 
-DROP INDEX IF EXISTS idx_outbox_messages_pending;
-DROP TABLE IF EXISTS outbox_messages;
+DROP INDEX IF EXISTS idx_outbox_pending;
+DROP TABLE IF EXISTS outbox;
 
 -- +goose StatementEnd
