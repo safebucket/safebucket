@@ -38,7 +38,7 @@ func AddEvents(tx *gorm.DB, events ...Event) error {
 		}
 
 		rows = append(rows, models.OutboxMessage{
-			Kind:          models.OutboxMessageKindEvent,
+			Type:          models.OutboxMessageTypeEvent,
 			EventType:     &eventType,
 			Payload:       string(payload),
 			NextAttemptAt: now,
@@ -64,7 +64,7 @@ func AddActivities(tx *gorm.DB, activities ...models.Activity) error {
 		}
 
 		rows = append(rows, models.OutboxMessage{
-			Kind:          models.OutboxMessageKindActivity,
+			Type:          models.OutboxMessageTypeActivity,
 			Payload:       string(payload),
 			NextAttemptAt: now,
 			CreatedAt:     now,

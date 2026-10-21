@@ -6,16 +6,16 @@ import (
 	"github.com/google/uuid"
 )
 
-type OutboxMessageKind string
+type OutboxMessageType string
 
 const (
-	OutboxMessageKindEvent    OutboxMessageKind = "event"
-	OutboxMessageKindActivity OutboxMessageKind = "activity"
+	OutboxMessageTypeEvent    OutboxMessageType = "event"
+	OutboxMessageTypeActivity OutboxMessageType = "activity"
 )
 
 type OutboxMessage struct {
 	ID            uuid.UUID         `gorm:"default:(-)"        json:"id"`
-	Kind          OutboxMessageKind `gorm:"not null"           json:"kind"`
+	Type          OutboxMessageType `gorm:"not null"           json:"type"`
 	EventType     *string           `gorm:"default:null"       json:"event_type,omitempty"`
 	Payload       string            `gorm:"not null"           json:"payload"`
 	Attempts      int               `gorm:"not null;default:0" json:"attempts"`
