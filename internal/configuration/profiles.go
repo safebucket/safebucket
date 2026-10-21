@@ -21,6 +21,7 @@ var Profiles = map[string]models.Profile{
 			BucketEvents:     models.WorkerModeAll,
 			TrashCleanup:     models.WorkerModeSingleton,
 			GarbageCollector: models.WorkerModeSingleton,
+			Outbox:           models.WorkerModeSingleton,
 		},
 	},
 	ProfileAPI: {
@@ -31,6 +32,7 @@ var Profiles = map[string]models.Profile{
 			BucketEvents:     models.WorkerModeDisabled,
 			TrashCleanup:     models.WorkerModeDisabled,
 			GarbageCollector: models.WorkerModeDisabled,
+			Outbox:           models.WorkerModeDisabled,
 		},
 	},
 	ProfileWorker: {
@@ -41,6 +43,7 @@ var Profiles = map[string]models.Profile{
 			BucketEvents:     models.WorkerModeSingleton,
 			TrashCleanup:     models.WorkerModeSingleton,
 			GarbageCollector: models.WorkerModeSingleton,
+			Outbox:           models.WorkerModeSingleton,
 		},
 	},
 }

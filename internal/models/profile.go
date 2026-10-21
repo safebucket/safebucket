@@ -19,13 +19,15 @@ type WorkerConfig struct {
 	BucketEvents     WorkerMode
 	TrashCleanup     WorkerMode
 	GarbageCollector WorkerMode
+	Outbox           WorkerMode
 }
 
 func (w WorkerConfig) AnyEnabled() bool {
 	return w.ObjectDeletion != WorkerModeDisabled ||
 		w.BucketEvents != WorkerModeDisabled ||
 		w.TrashCleanup != WorkerModeDisabled ||
-		w.GarbageCollector != WorkerModeDisabled
+		w.GarbageCollector != WorkerModeDisabled ||
+		w.Outbox != WorkerModeDisabled
 }
 
 func (p Profile) NeedsEvents() bool {
