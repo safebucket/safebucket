@@ -5,7 +5,7 @@ CREATE TABLE outbox
     (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
-        event_type TEXT,
+        name TEXT,
         payload TEXT NOT NULL,
         attempts INTEGER NOT NULL DEFAULT 0,
         last_error TEXT,

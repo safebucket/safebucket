@@ -4,8 +4,8 @@
 CREATE TABLE outbox
     (
         id UUID PRIMARY KEY,
-        type TEXT NOT NULL CHECK(type IN ('event', 'activity')),
-        event_type TEXT,
+        type TEXT NOT NULL,
+        name TEXT,
         payload TEXT NOT NULL,
         attempts INTEGER NOT NULL DEFAULT 0,
         last_error TEXT,

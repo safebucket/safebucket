@@ -39,7 +39,7 @@ func AddEvents(tx *gorm.DB, events ...Event) error {
 
 		rows = append(rows, models.Outbox{
 			Type:          models.OutboxTypeEvent,
-			EventType:     &eventType,
+			Name:          &eventType,
 			Payload:       string(payload),
 			NextAttemptAt: now,
 			CreatedAt:     now,

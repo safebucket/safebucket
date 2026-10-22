@@ -16,7 +16,7 @@ const (
 type Outbox struct {
 	ID            uuid.UUID  `gorm:"default:(-)"        json:"id"`
 	Type          OutboxType `gorm:"not null"           json:"type"`
-	EventType     *string    `gorm:"default:null"       json:"event_type,omitempty"`
+	Name          *string    `gorm:"default:null"       json:"name,omitempty"`
 	Payload       string     `gorm:"not null"           json:"payload"`
 	Attempts      int        `gorm:"not null;default:0" json:"attempts"`
 	LastError     *string    `gorm:"default:null"       json:"last_error,omitempty"`
