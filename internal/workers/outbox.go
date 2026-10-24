@@ -156,7 +156,7 @@ func (w *OutboxWorker) deliverActivities(rows []models.Outbox) error {
 	for _, row := range rows {
 		var entry models.Activity
 		if err := json.Unmarshal([]byte(row.Payload), &entry); err != nil {
-			w.markMessagesFailed([]uuid.UUID{row.ID}, fmt.Errorf("%w: %v", errInvalidOutboxPayload, err))
+			w.markMessagesFailed([]uuid.UUID{row.ID}, fmt.Errorf("%w: %w", errInvalidOutboxPayload, err))
 			continue
 		}
 
