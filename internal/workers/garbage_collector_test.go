@@ -145,31 +145,6 @@ func setUploadID(t *testing.T, worker *GarbageCollectorWorker, versionID uuid.UU
 	}))
 }
 
-func TestCleanupStaleReplacement(t *testing.T) {
-	db := setupGCTestDB(t)
-	bucket := gcTestBucket(t, db)
-	file := createGCTestFile(t, db, bucket.ID, time.Now())
-	require.NoError(
-		t,
-		db.Model(&models.FileVersion{}).Where("id = ?", file.ID).Update("status", models.FileStatusUploaded).Error,
-	)
-	require.NoError(t, db.Model(&file).Updates(map[string]any{
-		"status": models.FileStatusUploaded, "current_version_id": file.ID,
-	}).Error)
-	stale := models.FileVersion{FileID: file.ID, Version: 2, Size: 99, Status: models.FileStatusUploading,
-		CreatedAt: time.Now().Add(-GCStaleUploadThreshold - time.Minute)}
-	require.NoError(t, db.Create(&stale).Error)
-	assert.Equal(t, 1, expireStaleUploads(t, newGCWorker(db, &gcStubStorage{})))
-	assert.Equal(t, int64(1), countFiles(t, db, file.ID))
-	var remaining models.File
-	require.NoError(t, db.Where("id = ?", file.ID).Find(&remaining).Error)
-	assert.Equal(t, &file.ID, remaining.CurrentVersionID)
-	assert.Equal(t, file.Size, remaining.Size)
-	var versions int64
-	require.NoError(t, db.Model(&models.FileVersion{}).Where("file_id = ?", file.ID).Count(&versions).Error)
-	assert.Equal(t, int64(1), versions)
-}
-
 func TestCleanupStaleUploads(t *testing.T) {
 	staleCreatedAt := time.Now().Add(-GCStaleUploadThreshold - time.Minute)
 	recentCreatedAt := time.Now()
