@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -21,6 +22,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
+
+var ErrUnknownEventType = errors.New("event type has no topic")
 
 type EventParams struct {
 	WebURL             string

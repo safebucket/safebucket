@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
-	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
 
@@ -29,7 +30,6 @@ const (
 var (
 	errMissingOutboxEventType = errors.New("outbox event row has no event type")
 	errInvalidOutboxPayload   = errors.New("outbox row payload is invalid")
-	errUnknownOutboxType      = errors.New("outbox row has unknown type")
 )
 
 type OutboxWorker struct {
@@ -38,10 +38,13 @@ type OutboxWorker struct {
 	ActivityLogger activity.IActivityLogger
 	PollInterval   time.Duration
 	BatchSize      int
+	Type           models.OutboxType
 }
 
 func (w *OutboxWorker) Start(ctx context.Context) {
-	zap.L().Info("Starting worker", zap.String("worker", configuration.WorkerOutbox))
+	zap.L().Info("Starting worker",
+		zap.String("worker", "outbox"),
+		zap.String("type", string(w.Type)))
 	for {
 		if ctx.Err() != nil {
 			return
@@ -74,21 +77,11 @@ func (w *OutboxWorker) deliverBatch() (int, error) {
 		return 0, nil
 	}
 
-	events := make([]models.Outbox, 0, len(rows))
-	activities := make([]models.Outbox, 0, len(rows))
-
-	for _, row := range rows {
-		switch row.Type {
-		case models.OutboxTypeEvent:
-			events = append(events, row)
-		case models.OutboxTypeActivity:
-			activities = append(activities, row)
-		default:
-			w.markMessagesFailed([]uuid.UUID{row.ID}, fmt.Errorf("%w: %q", errUnknownOutboxType, row.Type))
-		}
+	if w.Type == models.OutboxTypeEvent {
+		return len(rows), w.deliverEvents(rows)
 	}
 
-	return len(rows), errors.Join(w.deliverEvents(events), w.deliverActivities(activities))
+	return len(rows), w.deliverActivities(rows)
 }
 
 func (w *OutboxWorker) claimBatch() ([]models.Outbox, error) {
@@ -97,7 +90,7 @@ func (w *OutboxWorker) claimBatch() ([]models.Outbox, error) {
 	err := w.DB.Transaction(func(tx *gorm.DB) error {
 		err := tx.
 			Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
-			Where("failed_at IS NULL AND next_attempt_at <= ?", time.Now().UTC()).
+			Where("type = ? AND failed_at IS NULL AND next_attempt_at <= ?", w.Type, time.Now().UTC()).
 			Order("created_at").
 			Limit(w.BatchSize).
 			Find(&rows).Error
@@ -138,15 +131,29 @@ func (w *OutboxWorker) deliverEvents(rows []models.Outbox) error {
 		return nil
 	}
 
-	if err := w.Publisher.Publish(messages...); err != nil {
-		w.recordFailures(deliveredRows, err)
+	return w.publishEach(messages, deliveredRows)
+}
 
-		return err
+func (w *OutboxWorker) publishEach(messages []*message.Message, rows []models.Outbox) error {
+	var errs []error
+
+	for i, msg := range messages {
+		err := w.Publisher.Publish(msg)
+		if err == nil {
+			w.deleteMessages(rows[i])
+			continue
+		}
+
+		if errors.Is(err, events.ErrUnknownEventType) {
+			w.markMessagesFailed([]uuid.UUID{rows[i].ID}, err)
+			continue
+		}
+
+		w.recordFailures(rows[i:i+1], err)
+		errs = append(errs, err)
 	}
 
-	w.deleteMessages(deliveredRows...)
-
-	return nil
+	return errors.Join(errs...)
 }
 
 func (w *OutboxWorker) deliverActivities(rows []models.Outbox) error {
@@ -282,5 +289,5 @@ func truncateOutboxError(message string) string {
 		return message
 	}
 
-	return message[:outboxLastErrorMaxLength]
+	return strings.ToValidUTF8(message[:outboxLastErrorMaxLength], "")
 }

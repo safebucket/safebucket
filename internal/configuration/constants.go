@@ -49,7 +49,8 @@ const (
 	WorkerBucketEvents     = "bucket_events"
 	WorkerTrashCleanup     = "trash_cleanup"
 	WorkerGarbageCollector = "garbage_collector"
-	WorkerOutbox           = "outbox"
+	WorkerOutboxEvents     = "outbox_events"
+	WorkerOutboxActivities = "outbox_activities"
 	CoverageHTTPServer     = "http_server"
 )
 
