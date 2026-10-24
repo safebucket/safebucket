@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 func newBucketServiceTestFixture(t *testing.T) (BucketService, models.User) {
@@ -47,6 +49,30 @@ func createTestBucket(
 	return bucket
 }
 
+func clearOutbox(t *testing.T, db *gorm.DB) {
+	t.Helper()
+
+	require.NoError(t, db.Where("1 = 1").Delete(&models.Outbox{}).Error)
+}
+
+func loadQueuedActivities(t *testing.T, db *gorm.DB) []models.Activity {
+	t.Helper()
+
+	var rows []models.Outbox
+	require.NoError(t, db.Find(&rows).Error)
+
+	activities := make([]models.Activity, 0, len(rows))
+	for _, row := range rows {
+		require.Equal(t, models.OutboxTypeActivity, row.Type)
+
+		var entry models.Activity
+		require.NoError(t, json.Unmarshal([]byte(row.Payload), &entry))
+		activities = append(activities, entry)
+	}
+
+	return activities
+}
+
 func TestCreateBucketWithDescription(t *testing.T) {
 	service, user := newBucketServiceTestFixture(t)
 	description := "Team documentation"
@@ -76,6 +102,7 @@ func TestCreateBucketWithoutDescriptionDefaultsToEmpty(t *testing.T) {
 func TestUpdateBucketUpdatesNameAndDescription(t *testing.T) {
 	service, user := newBucketServiceTestFixture(t)
 	bucket := createTestBucket(t, service, user, models.BucketCreateUpdateBody{Name: "docs"})
+	clearOutbox(t, service.DB)
 
 	description := "Updated description"
 	err := service.UpdateBucket(
@@ -91,8 +118,9 @@ func TestUpdateBucketUpdatesNameAndDescription(t *testing.T) {
 	assert.Equal(t, "docs-renamed", persisted.Name)
 	assert.Equal(t, "Updated description", persisted.Description)
 
-	mock := service.ActivityLogger.(*MockActivityLogger)
-	assert.Equal(t, activity.BucketUpdated, mock.Sent[len(mock.Sent)-1].Message)
+	queued := loadQueuedActivities(t, service.DB)
+	require.Len(t, queued, 1)
+	assert.Equal(t, activity.BucketUpdated, queued[0].Message)
 }
 
 func TestUpdateBucketKeepsDescriptionWhenOmitted(t *testing.T) {
@@ -102,6 +130,7 @@ func TestUpdateBucketKeepsDescriptionWhenOmitted(t *testing.T) {
 		Name:        "docs",
 		Description: &description,
 	})
+	clearOutbox(t, service.DB)
 
 	err := service.UpdateBucket(
 		zap.NewNop(),
@@ -116,8 +145,9 @@ func TestUpdateBucketKeepsDescriptionWhenOmitted(t *testing.T) {
 	assert.Equal(t, "docs-renamed", persisted.Name)
 	assert.Equal(t, "Keep me", persisted.Description)
 
-	mock := service.ActivityLogger.(*MockActivityLogger)
-	assert.Equal(t, activity.BucketUpdated, mock.Sent[len(mock.Sent)-1].Message)
+	queued := loadQueuedActivities(t, service.DB)
+	require.Len(t, queued, 1)
+	assert.Equal(t, activity.BucketUpdated, queued[0].Message)
 }
 
 func TestUpdateBucketClearsDescription(t *testing.T) {
@@ -127,6 +157,7 @@ func TestUpdateBucketClearsDescription(t *testing.T) {
 		Name:        "docs",
 		Description: &description,
 	})
+	clearOutbox(t, service.DB)
 
 	empty := ""
 	err := service.UpdateBucket(
@@ -141,8 +172,9 @@ func TestUpdateBucketClearsDescription(t *testing.T) {
 	require.NoError(t, service.DB.First(&persisted, "id = ?", bucket.ID).Error)
 	assert.Empty(t, persisted.Description)
 
-	mock := service.ActivityLogger.(*MockActivityLogger)
-	assert.Equal(t, activity.BucketUpdated, mock.Sent[len(mock.Sent)-1].Message)
+	queued := loadQueuedActivities(t, service.DB)
+	require.Len(t, queued, 1)
+	assert.Equal(t, activity.BucketUpdated, queued[0].Message)
 }
 
 func TestUpdateBucketDescriptionOnlyLogsBucketUpdatedActivity(t *testing.T) {
@@ -152,9 +184,7 @@ func TestUpdateBucketDescriptionOnlyLogsBucketUpdatedActivity(t *testing.T) {
 		Name:        "docs",
 		Description: &description,
 	})
-
-	mock := service.ActivityLogger.(*MockActivityLogger)
-	mock.Sent = nil
+	clearOutbox(t, service.DB)
 
 	updated := "New description"
 	err := service.UpdateBucket(
@@ -165,12 +195,13 @@ func TestUpdateBucketDescriptionOnlyLogsBucketUpdatedActivity(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.Len(t, mock.Sent, 1)
-	assert.Equal(t, activity.BucketUpdated, mock.Sent[0].Message)
-	assert.Equal(t, bucket.ID.String(), mock.Sent[0].Filter.Fields.BucketID)
+	queued := loadQueuedActivities(t, service.DB)
+	require.Len(t, queued, 1)
+	assert.Equal(t, activity.BucketUpdated, queued[0].Message)
+	assert.Equal(t, bucket.ID.String(), queued[0].Filter.Fields.BucketID)
 
-	object, ok := mock.Sent[0].Object.(models.BucketActivity)
+	object, ok := queued[0].Object.(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, bucket.ID, object.ID)
-	assert.Equal(t, "docs", object.Name)
+	assert.Equal(t, bucket.ID.String(), object["id"])
+	assert.Equal(t, "docs", object["name"])
 }

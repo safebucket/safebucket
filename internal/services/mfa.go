@@ -18,6 +18,7 @@ import (
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/notifier"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
@@ -164,14 +165,6 @@ func (s MFAService) AddDevice(
 		IsVerified:      false,
 	}
 
-	if err = s.DB.Create(&device).Error; err != nil {
-		logger.Error("Failed to create MFA device", zap.Error(err))
-		return models.MFADeviceSetupResponse{}, apierrors.New(
-			http.StatusInternalServerError,
-			apierrors.CodeMFASetupFailed,
-		)
-	}
-
 	action := models.Activity{
 		Message: activity.MFADeviceEnrolled,
 		Object:  device.ToActivity(),
@@ -182,8 +175,25 @@ func (s MFAService) AddDevice(
 			DeviceID:   device.ID.String(),
 		}),
 	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log MFA device enrollment activity", zap.Error(logErr))
+
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if createErr := tx.Create(&device).Error; createErr != nil {
+			logger.Error("Failed to create MFA device", zap.Error(createErr))
+			return createErr
+		}
+
+		if logErr := outbox.AddActivities(tx, action); logErr != nil {
+			logger.Error("Failed to log MFA device enrollment activity", zap.Error(logErr))
+			return logErr
+		}
+
+		return nil
+	})
+	if err != nil {
+		return models.MFADeviceSetupResponse{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeMFASetupFailed,
+		)
 	}
 
 	logger.Info("MFA device setup initiated",
@@ -310,28 +320,29 @@ func (s MFAService) VerifyDevice(
 			return err
 		}
 
+		action := models.Activity{
+			Message: activity.MFADeviceVerified,
+			Object: models.MFADeviceActivity{
+				ID:   deviceID,
+				Name: deviceName,
+			},
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     activity.MFADeviceVerified,
+				UserID:     userID.String(),
+				ObjectType: rbac.ResourceMFADevice.String(),
+				DeviceID:   deviceID.String(),
+			}),
+		}
+		if logErr := outbox.AddActivities(tx, action); logErr != nil {
+			logger.Error("Failed to log MFA device verification activity", zap.Error(logErr))
+			return logErr
+		}
+
 		return nil
 	})
 
 	if err != nil {
 		return handlers.AuthFlowResult{}, err
-	}
-
-	action := models.Activity{
-		Message: activity.MFADeviceVerified,
-		Object: models.MFADeviceActivity{
-			ID:   deviceID,
-			Name: deviceName,
-		},
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     activity.MFADeviceVerified,
-			UserID:     userID.String(),
-			ObjectType: rbac.ResourceMFADevice.String(),
-			DeviceID:   deviceID.String(),
-		}),
-	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log MFA device verification activity", zap.Error(logErr))
 	}
 
 	s.DB.Preload("MFADevices", "is_verified = ?", true).First(&user, userID)
@@ -474,8 +485,9 @@ func (s MFAService) UpdateDevice(
 				DeviceID:   deviceID.String(),
 			}),
 		}
-		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		if logErr := outbox.AddActivities(tx, action); logErr != nil {
 			logger.Error("Failed to log MFA device update activity", zap.Error(logErr))
+			return logErr
 		}
 
 		logger.Info("MFA device updated",
@@ -556,8 +568,9 @@ func (s MFAService) RemoveDevice(
 				DeviceID:   deviceID.String(),
 			}),
 		}
-		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		if logErr := outbox.AddActivities(tx, action); logErr != nil {
 			logger.Error("Failed to log MFA device removal activity", zap.Error(logErr))
+			return logErr
 		}
 
 		logger.Info("MFA device removed",
