@@ -15,6 +15,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
@@ -67,11 +68,10 @@ func (s BucketService) Routes() chi.Router {
 			Get("/activity", handlers.GetOneWithQueryHandler(s.GetBucketActivity))
 
 		r.Mount("/members", BucketMemberService{
-			DB:             s.DB,
-			Providers:      s.Providers,
-			Publisher:      s.Publisher,
-			ActivityLogger: s.ActivityLogger,
-			WebURL:         s.WebURL,
+			DB:        s.DB,
+			Providers: s.Providers,
+			Publisher: s.Publisher,
+			WebURL:    s.WebURL,
 		}.Routes())
 
 		r.Mount("/", BucketFileService{
@@ -79,7 +79,6 @@ func (s BucketService) Routes() chi.Router {
 			Cache:              s.Cache,
 			Storage:            s.Storage,
 			Publisher:          s.Publisher,
-			ActivityLogger:     s.ActivityLogger,
 			TrashRetentionDays: s.TrashRetentionDays,
 		}.Routes())
 
@@ -100,7 +99,6 @@ func (s BucketService) Routes() chi.Router {
 
 		r.Mount("/shares", BucketShareService{
 			DB:                  s.DB,
-			ActivityLogger:      s.ActivityLogger,
 			AllowCustomShareIDs: s.AllowCustomShareIDs,
 		}.Routes())
 	})
@@ -145,7 +143,7 @@ func (s BucketService) CreateBucket(
 			}),
 		}
 
-		err = s.ActivityLogger.Send(action)
+		err = outbox.AddActivities(tx, action)
 		if err != nil {
 			logger.Error("Failed to register activity", zap.Error(err))
 			return err
@@ -276,7 +274,7 @@ func (s BucketService) UpdateBucket(
 			}),
 		}
 
-		return s.ActivityLogger.Send(action)
+		return outbox.AddActivities(tx, action)
 	})
 	if err != nil {
 		logger.Error("Failed to update bucket", zap.Error(err))
@@ -321,7 +319,7 @@ func (s BucketService) DeleteBucket(
 			}),
 		}
 
-		if err := s.ActivityLogger.Send(action); err != nil {
+		if err := outbox.AddActivities(tx, action); err != nil {
 			return err
 		}
 

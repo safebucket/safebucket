@@ -15,6 +15,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
@@ -31,7 +32,6 @@ type BucketFileService struct {
 	Cache              cache.ICache
 	Storage            storage.IStorage
 	Publisher          messaging.IPublisher
-	ActivityLogger     activity.IActivityLogger
 	TrashRetentionDays int
 }
 
@@ -249,7 +249,7 @@ func (s BucketFileService) HandleUploadedStatus(
 			}
 		}
 
-		if err := s.ActivityLogger.Send(models.Activity{
+		if err := outbox.AddActivities(tx, models.Activity{
 			Message: activity.FileUploaded,
 			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
@@ -260,7 +260,8 @@ func (s BucketFileService) HandleUploadedStatus(
 				UserID:     user.UserID.String(),
 			}),
 		}); err != nil {
-			logger.Warn("Failed to log upload activity", zap.Error(err))
+			logger.Error("Failed to log upload activity", zap.Error(err))
+			return err
 		}
 
 		var bucket models.Bucket
@@ -344,7 +345,7 @@ func (s BucketFileService) DownloadFile(
 			UserID:     user.UserID.String(),
 		}),
 	}
-	err = s.ActivityLogger.Send(action)
+	err = outbox.AddActivities(s.DB, action)
 	if err != nil {
 		return models.FileDownloadResponse{}, err
 	}
@@ -459,7 +460,7 @@ func (s BucketFileService) RestoreFile(
 				UserID:     user.UserID.String(),
 			}),
 		}
-		if activityErr := s.ActivityLogger.Send(action); activityErr != nil {
+		if activityErr := outbox.AddActivities(tx, action); activityErr != nil {
 			logger.Error("Failed to log restore activity", zap.Error(activityErr))
 			return activityErr
 		}
@@ -552,7 +553,7 @@ func (s BucketFileService) PurgeFile(
 			}),
 		}
 
-		if err := s.ActivityLogger.Send(action); err != nil {
+		if err := outbox.AddActivities(tx, action); err != nil {
 			logger.Error("Failed to log purge activity", zap.Error(err))
 			return err
 		}

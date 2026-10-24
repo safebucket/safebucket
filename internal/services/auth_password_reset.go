@@ -16,6 +16,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/alexedwards/argon2id"
@@ -144,6 +145,7 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	challengeID := ids[0]
 
 	var challenge models.Challenge
+	var userWithMFA models.User
 	var validationErr *apierrors.APIError
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
@@ -198,6 +200,29 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 			return nil
 		}
 
+		user := challenge.User
+		if loadErr := tx.Preload("MFADevices", "is_verified = ?", true).
+			Where("id = ?", user.ID).First(&userWithMFA).Error; loadErr != nil {
+			logger.Error("Failed to load user with MFA devices", zap.Error(loadErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+
+		action := models.Activity{
+			Message: activity.PasswordResetCodeVerified,
+			Object:  user.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:      activity.PasswordResetCodeVerified,
+				UserID:      user.ID.String(),
+				ChallengeID: challengeID.String(),
+				ObjectType:  rbac.ResourceUser.String(),
+				MFARequired: strconv.FormatBool(userWithMFA.HasMFAEnabled()),
+			}),
+		}
+		if logErr := outbox.AddActivities(tx, action); logErr != nil {
+			logger.Error("Failed to log password reset code verification", zap.Error(logErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -208,16 +233,6 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	}
 
 	user := challenge.User
-
-	var userWithMFA models.User
-	if err = s.DB.Preload("MFADevices", "is_verified = ?", true).
-		Where("id = ?", user.ID).First(&userWithMFA).Error; err != nil {
-		logger.Error("Failed to load user with MFA devices", zap.Error(err))
-		return handlers.AuthFlowResult{}, apierrors.New(
-			http.StatusInternalServerError,
-			apierrors.CodeInternalServerError,
-		)
-	}
 
 	restrictedToken, tokenErr := h.NewRestrictedAccessToken(
 		s.AuthConfig.TokenSecret,
@@ -235,21 +250,6 @@ func (s AuthPasswordResetService) ValidatePasswordReset(
 	}
 
 	hasMFA := userWithMFA.HasMFAEnabled()
-
-	action := models.Activity{
-		Message: activity.PasswordResetCodeVerified,
-		Object:  user.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:      activity.PasswordResetCodeVerified,
-			UserID:      user.ID.String(),
-			ChallengeID: challengeID.String(),
-			ObjectType:  rbac.ResourceUser.String(),
-			MFARequired: strconv.FormatBool(hasMFA),
-		}),
-	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log password reset code verification", zap.Error(logErr))
-	}
 
 	logger.Info("Password reset code verified",
 		zap.String("user_id", user.ID.String()),

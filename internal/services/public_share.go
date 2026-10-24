@@ -15,6 +15,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
@@ -31,7 +32,6 @@ type PublicShareService struct {
 	DB                    *gorm.DB
 	Cache                 cache.ICache
 	Storage               storage.IStorage
-	ActivityLogger        activity.IActivityLogger
 	Publisher             messaging.IPublisher
 	TokenSecret           string
 	CookieSecureForce     bool
@@ -241,7 +241,7 @@ func (s PublicShareService) DownloadShareFile(
 		)
 	}
 
-	if activityErr := s.ActivityLogger.Send(models.Activity{
+	if activityErr := outbox.AddActivities(s.DB, models.Activity{
 		Message: activity.ShareFileDownloaded,
 		Object:  file.ToActivity(),
 		Filter: activity.NewLogFilter(models.ActivityFields{
@@ -402,7 +402,7 @@ func (s PublicShareService) UploadShareFile(
 			return apierrors.New(http.StatusForbidden, apierrors.CodeShareMaxUploadsReached)
 		}
 
-		if activityErr := s.ActivityLogger.Send(models.Activity{
+		if activityErr := outbox.AddActivities(tx, models.Activity{
 			Message: activity.ShareFileUploaded,
 			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
@@ -413,7 +413,8 @@ func (s PublicShareService) UploadShareFile(
 				ShareID:    share.ID.String(),
 			}),
 		}); activityErr != nil {
-			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))
+			logger.Error("Failed to log share upload activity", zap.Error(activityErr))
+			return activityErr
 		}
 
 		if presigned.UploadID != "" {
@@ -513,7 +514,7 @@ func (s PublicShareService) ConfirmShareUpload(
 			}
 		}
 
-		if activityErr := s.ActivityLogger.Send(models.Activity{
+		if activityErr := outbox.AddActivities(tx, models.Activity{
 			Message: activity.ShareFileUploaded,
 			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
@@ -524,7 +525,8 @@ func (s PublicShareService) ConfirmShareUpload(
 				ShareID:    share.ID.String(),
 			}),
 		}); activityErr != nil {
-			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))
+			logger.Error("Failed to log share upload activity", zap.Error(activityErr))
+			return activityErr
 		}
 
 		var bucket models.Bucket

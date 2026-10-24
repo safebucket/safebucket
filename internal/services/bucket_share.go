@@ -9,6 +9,7 @@ import (
 	h "github.com/safebucket/safebucket/internal/helpers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/go-chi/chi/v5"
@@ -19,7 +20,6 @@ import (
 
 type BucketShareService struct {
 	DB                  *gorm.DB
-	ActivityLogger      activity.IActivityLogger
 	AllowCustomShareIDs bool
 }
 
@@ -129,7 +129,7 @@ func (s BucketShareService) CreateShare(
 			share.Files = shareFiles
 		}
 
-		if err := s.ActivityLogger.Send(models.Activity{
+		if err := outbox.AddActivities(tx, models.Activity{
 			Message: activity.ShareCreated,
 			Object:  share.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
@@ -141,6 +141,7 @@ func (s BucketShareService) CreateShare(
 			}),
 		}); err != nil {
 			logger.Error("Failed to log share create activity", zap.Error(err))
+			return err
 		}
 
 		return nil
@@ -206,7 +207,7 @@ func (s BucketShareService) DeleteShare(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
-		err := s.ActivityLogger.Send(models.Activity{
+		err := outbox.AddActivities(tx, models.Activity{
 			Message: activity.ShareDeleted,
 			Object:  share.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
