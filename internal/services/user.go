@@ -13,6 +13,7 @@ import (
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/notifier"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
@@ -102,7 +103,7 @@ func (s UserService) CreateUser(
 				}),
 			}
 
-			return s.ActivityLogger.Send(action)
+			return outbox.AddActivities(tx, action)
 		})
 		if err != nil {
 			return models.User{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
@@ -258,7 +259,7 @@ func (s UserService) DeleteUser(logger *zap.Logger, user models.UserClaims, ids 
 				UserID:     user.UserID.String(),
 			}),
 		}
-		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		if logErr := outbox.AddActivities(tx, action); logErr != nil {
 			logger.Error("Failed to log user deletion activity", zap.Error(logErr))
 			return logErr
 		}

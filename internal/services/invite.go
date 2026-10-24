@@ -17,6 +17,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
@@ -83,8 +84,9 @@ func (s InviteService) handleInviteChallengeFailedAttempt(
 				ObjectType:  "challenge",
 			}),
 		}
-		if logErr := s.ActivityLogger.Send(action); logErr != nil {
+		if logErr := outbox.AddActivities(tx, action); logErr != nil {
 			logger.Error("Failed to log invite challenge lockout", zap.Error(logErr))
+			return logErr
 		}
 
 		return apierrors.New(http.StatusForbidden, apierrors.CodeChallengeLocked)
@@ -106,8 +108,9 @@ func (s InviteService) handleInviteChallengeFailedAttempt(
 			ObjectType:   "challenge",
 		}),
 	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+	if logErr := outbox.AddActivities(tx, action); logErr != nil {
 		logger.Error("Failed to log failed invite attempt", zap.Error(logErr))
+		return logErr
 	}
 
 	return apierrors.New(http.StatusUnauthorized, apierrors.CodeWrongCode)
@@ -155,6 +158,21 @@ func (s InviteService) createUserFromInvite(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
+		action := models.Activity{
+			Message: activity.InviteAccepted,
+			Object:  newUser.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     activity.InviteAccepted,
+				UserID:     newUser.ID.String(),
+				InviteID:   inviteID.String(),
+				ObjectType: rbac.ResourceUser.String(),
+			}),
+		}
+		if logErr := outbox.AddActivities(tx, action); logErr != nil {
+			logger.Error("Failed to log invite acceptance", zap.Error(logErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -171,20 +189,6 @@ func (s InviteService) createUserFromInvite(
 		s.AuthConfig.WebURL,
 	)
 	welcomeEvent.Trigger()
-
-	action := models.Activity{
-		Message: activity.InviteAccepted,
-		Object:  newUser.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     activity.InviteAccepted,
-			UserID:     newUser.ID.String(),
-			InviteID:   inviteID.String(),
-			ObjectType: rbac.ResourceUser.String(),
-		}),
-	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log invite acceptance", zap.Error(logErr))
-	}
 
 	sid := uuid.New().String()
 	if sessionErr := cache.CreateSession(s.Cache, newUser.ID.String(), sid); sessionErr != nil {

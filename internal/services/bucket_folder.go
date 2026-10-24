@@ -14,6 +14,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/storage"
 
@@ -97,25 +98,33 @@ func (s BucketFolderService) CreateFolder(
 		FolderID: body.FolderID,
 	}
 
-	if err := s.DB.Create(&folder).Error; err != nil {
-		logger.Error("Failed to create folder", zap.Error(err))
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if createErr := tx.Create(&folder).Error; createErr != nil {
+			logger.Error("Failed to create folder", zap.Error(createErr))
+			return createErr
+		}
+
+		action := models.Activity{
+			Message: activity.FolderCreated,
+			Object:  folder.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionCreate.String(),
+				BucketID:   bucketID.String(),
+				FolderID:   folder.ID.String(),
+				ObjectType: rbac.ResourceFolder.String(),
+				UserID:     user.UserID.String(),
+			}),
+		}
+
+		if activityErr := outbox.AddActivities(tx, action); activityErr != nil {
+			logger.Error("Failed to log folder creation activity", zap.Error(activityErr))
+			return activityErr
+		}
+
+		return nil
+	})
+	if err != nil {
 		return models.Folder{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
-	}
-
-	action := models.Activity{
-		Message: activity.FolderCreated,
-		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionCreate.String(),
-			BucketID:   bucketID.String(),
-			FolderID:   folder.ID.String(),
-			ObjectType: rbac.ResourceFolder.String(),
-			UserID:     user.UserID.String(),
-		}),
-	}
-
-	if err := s.ActivityLogger.Send(action); err != nil {
-		logger.Error("Failed to log folder creation activity", zap.Error(err))
 	}
 
 	return folder, nil
@@ -149,25 +158,34 @@ func (s BucketFolderService) RenameFolder(
 	}
 
 	folder.Name = body.Name
-	if err := s.DB.Model(&folder).Update("name", body.Name).Error; err != nil {
-		logger.Error("Failed to update folder", zap.Error(err))
+
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if updateErr := tx.Model(&folder).Update("name", body.Name).Error; updateErr != nil {
+			logger.Error("Failed to update folder", zap.Error(updateErr))
+			return updateErr
+		}
+
+		action := models.Activity{
+			Message: activity.FolderUpdated,
+			Object:  folder.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionUpdate.String(),
+				BucketID:   bucketID.String(),
+				FolderID:   folderID.String(),
+				ObjectType: rbac.ResourceFolder.String(),
+				UserID:     user.UserID.String(),
+			}),
+		}
+
+		if activityErr := outbox.AddActivities(tx, action); activityErr != nil {
+			logger.Error("Failed to log folder update activity", zap.Error(activityErr))
+			return activityErr
+		}
+
+		return nil
+	})
+	if err != nil {
 		return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
-	}
-
-	action := models.Activity{
-		Message: activity.FolderUpdated,
-		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionUpdate.String(),
-			BucketID:   bucketID.String(),
-			FolderID:   folderID.String(),
-			ObjectType: rbac.ResourceFolder.String(),
-			UserID:     user.UserID.String(),
-		}),
-	}
-
-	if err := s.ActivityLogger.Send(action); err != nil {
-		logger.Error("Failed to log folder update activity", zap.Error(err))
 	}
 
 	return nil
