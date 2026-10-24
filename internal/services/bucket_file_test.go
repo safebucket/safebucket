@@ -116,7 +116,7 @@ type fileDownloadActivityLogger struct {
 	activity.IActivityLogger
 }
 
-func (fileDownloadActivityLogger) Send(models.Activity) error { return nil }
+func (fileDownloadActivityLogger) Send(...models.Activity) error { return nil }
 
 type fileDownloadPublisher struct {
 	messaging.IPublisher
