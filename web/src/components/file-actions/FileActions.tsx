@@ -1,6 +1,13 @@
 import { useTranslation } from "react-i18next";
 
-import { Download, Eye, FolderPlus, Share2, Trash2 } from "lucide-react";
+import {
+  Download,
+  Eye,
+  FolderPlus,
+  History,
+  Share2,
+  Trash2,
+} from "lucide-react";
 import { useParams } from "@tanstack/react-router";
 import type { FC, ReactNode } from "react";
 
@@ -11,6 +18,7 @@ import { isFile } from "@/components/bucket-view/helpers/utils";
 import { useOpenBucketItem } from "@/components/bucket-view/hooks/useOpenBucketItem";
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { useConfig } from "@/hooks/useConfig";
+import { FileVersionsDialog } from "@/components/file-actions/components/FileVersionsDialog";
 import { useFileActions } from "@/components/file-actions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
@@ -53,6 +61,7 @@ export const FileActions: FC<IFileActionsProps> = ({
   const newFolderDialog = useDialog();
   const deleteFileDialog = useDialog();
   const shareDialog = useDialog();
+  const versionsDialog = useDialog();
 
   const Menu = type === "context" ? ContextMenu : DropdownMenu;
   const MenuTrigger =
@@ -90,6 +99,12 @@ export const FileActions: FC<IFileActionsProps> = ({
               {t("file_actions.download")}
             </MenuItem>
           )}
+          {isFile(file) && file.status === FileStatus.uploaded && (
+            <MenuItem onClick={versionsDialog.trigger}>
+              <History className="mr-2 h-4 w-4" />
+              {t("file_versions.title")}
+            </MenuItem>
+          )}
           {isContributor && (
             <MenuItem onClick={newFolderDialog.trigger}>
               <FolderPlus className="mr-2 h-4 w-4" />
@@ -116,6 +131,14 @@ export const FileActions: FC<IFileActionsProps> = ({
           )}
         </MenuContent>
       </Menu>
+      {isFile(file) && versionsDialog.props.open && (
+        <FileVersionsDialog
+          {...versionsDialog.props}
+          bucketId={bucketId}
+          file={file}
+          canManage={isContributor}
+        />
+      )}
       {isOwner && (
         <QuickShareDialog
           {...shareDialog.props}

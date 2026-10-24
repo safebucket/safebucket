@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const maxUuids = 2
+const maxUuids = 3
 
 func ParseUUIDs(w http.ResponseWriter, r *http.Request) (uuid.UUIDs, bool) {
 	// Hard limit for maximum UUIDs in the URL to avoid unexpected behaviours

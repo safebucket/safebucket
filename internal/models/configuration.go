@@ -41,6 +41,7 @@ type AppConfiguration struct {
 	TrustedProxies                   []string               `mapstructure:"trusted_proxies"                     validate:"omitempty,dive,cidr"`
 	WebURL                           string                 `mapstructure:"web_url"                             validate:"required"`
 	TrashRetentionDays               int                    `mapstructure:"trash_retention_days"                validate:"gte=1,lte=365"`
+	MaxFileVersions                  int                    `mapstructure:"max_file_versions"                   validate:"gte=1,lte=100"`
 	MaxUploadSize                    int64                  `mapstructure:"max_upload_size"                     validate:"gte=1"`
 	AuthenticatedRequestsPerMinute   int                    `mapstructure:"authenticated_requests_per_minute"   validate:"gte=1"`
 	UnauthenticatedRequestsPerMinute int                    `mapstructure:"unauthenticated_requests_per_minute" validate:"gte=1"`

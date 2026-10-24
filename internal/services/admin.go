@@ -62,14 +62,13 @@ func (s AdminService) GetStats(
 
 	s.DB.Model(&models.Folder{}).Count(&response.TotalFolders)
 
-	var totalStorage *int64
-	s.DB.Model(&models.File{}).
-		Where("status = ?", models.FileStatusUploaded).
-		Select("COALESCE(SUM(size), 0)").
-		Scan(&totalStorage)
-	if totalStorage != nil {
-		response.TotalStorageBytes = *totalStorage
+	breakdown, err := sql.SumStorageBytes(s.DB)
+	if err != nil {
+		zap.L().Error("Failed to sum storage across versions", zap.Error(err))
 	}
+	response.TotalStorageBytes = breakdown.Total
+	response.ActiveStorageBytes = breakdown.Active
+	response.InactiveStorageBytes = breakdown.Inactive
 
 	searchCriteria := map[string][]string{
 		"action":      {rbac.ActionCreate.String()},
@@ -177,11 +176,13 @@ func (s AdminService) GetBucketList(
 			Where("bucket_id = ? AND status = ?", bucket.ID, models.FileStatusUploaded).
 			Count(&fileCount)
 
-		var size *int64
-		s.DB.Model(&models.File{}).
-			Where("bucket_id = ? AND status = ?", bucket.ID, models.FileStatusUploaded).
-			Select("COALESCE(SUM(size), 0)").
-			Scan(&size)
+		var size int64
+		breakdown, err := sql.SumBucketStorageBytes(s.DB, bucket.ID)
+		if err != nil {
+			zap.L().Error("Failed to sum bucket storage across versions",
+				zap.Error(err), zap.String("bucket_id", bucket.ID.String()))
+		}
+		size = breakdown.Total
 
 		item := models.AdminBucketListItem{
 			ID:          bucket.ID,
@@ -191,10 +192,7 @@ func (s AdminService) GetBucketList(
 			Creator:     creator.ToActivity(),
 			MemberCount: memberCount,
 			FileCount:   fileCount,
-		}
-
-		if size != nil {
-			item.Size = *size
+			Size:        size,
 		}
 
 		result = append(result, item)

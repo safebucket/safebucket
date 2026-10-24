@@ -19,3 +19,13 @@ export interface IFile {
   original_path?: string;
   expires_at: string | null;
 }
+
+export interface IFileVersion {
+  id: string;
+  version: number;
+  size: number;
+  status: FileStatus;
+  uploaded_by?: string;
+  is_current: boolean;
+  created_at: string;
+}
