@@ -19,6 +19,8 @@ func NewEventRouter(eventsManager *EventsManager) *EventRouter {
 }
 
 func (er *EventRouter) Publish(messages ...*message.Message) error {
+	grouped := make(map[string][]*message.Message, len(messages))
+
 	for _, msg := range messages {
 		eventType := msg.Metadata.Get("type")
 		topicKey := er.getTopicKeyForEvent(eventType)
@@ -28,12 +30,16 @@ func (er *EventRouter) Publish(messages ...*message.Message) error {
 				Fatal("Assign a topic to this event in getTopicKeyForEvent", zap.String("eventType", eventType))
 		}
 
+		grouped[topicKey] = append(grouped[topicKey], msg)
+	}
+
+	for topicKey, topicMessages := range grouped {
 		publisher := er.eventsManager.GetPublisher(topicKey)
 		if publisher == nil {
 			continue
 		}
 
-		if err := publisher.Publish(msg); err != nil {
+		if err := publisher.Publish(topicMessages...); err != nil {
 			return err
 		}
 	}
