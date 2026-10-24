@@ -10,6 +10,8 @@ import (
 	"github.com/safebucket/safebucket/internal/handlers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
+	"gorm.io/gorm"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -17,9 +19,9 @@ import (
 )
 
 type SessionService struct {
+	DB                 *gorm.DB
 	Cache              cache.ICache
 	RefreshTokenExpiry int
-	ActivityLogger     activity.IActivityLogger
 }
 
 func (s SessionService) Routes() chi.Router {
@@ -98,7 +100,7 @@ func (s SessionService) RevokeOtherSessions(
 			ObjectType: "session",
 		}),
 	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+	if logErr := outbox.AddActivities(s.DB, action); logErr != nil {
 		logger.Error("Failed to log other sessions revocation", zap.Error(logErr))
 	}
 
@@ -137,7 +139,7 @@ func (s SessionService) RevokeSession(
 			ObjectType: "session",
 		}),
 	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+	if logErr := outbox.AddActivities(s.DB, action); logErr != nil {
 		logger.Error("Failed to log session revocation", zap.Error(logErr))
 	}
 

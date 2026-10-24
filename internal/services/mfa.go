@@ -31,13 +31,12 @@ import (
 )
 
 type MFAService struct {
-	DB             *gorm.DB
-	Cache          cache.ICache
-	AuthConfig     models.AuthConfig
-	Providers      configuration.Providers
-	Publisher      messaging.IPublisher
-	Notifier       notifier.INotifier
-	ActivityLogger activity.IActivityLogger
+	DB         *gorm.DB
+	Cache      cache.ICache
+	AuthConfig models.AuthConfig
+	Providers  configuration.Providers
+	Publisher  messaging.IPublisher
+	Notifier   notifier.INotifier
 }
 
 func (s MFAService) Routes() chi.Router {

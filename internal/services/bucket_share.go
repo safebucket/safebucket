@@ -21,7 +21,6 @@ import (
 
 type BucketShareService struct {
 	DB                  *gorm.DB
-	ActivityLogger      activity.IActivityLogger
 	AllowCustomShareIDs bool
 }
 

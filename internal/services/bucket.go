@@ -68,11 +68,10 @@ func (s BucketService) Routes() chi.Router {
 			Get("/activity", handlers.GetOneWithQueryHandler(s.GetBucketActivity))
 
 		r.Mount("/members", BucketMemberService{
-			DB:             s.DB,
-			Providers:      s.Providers,
-			Publisher:      s.Publisher,
-			ActivityLogger: s.ActivityLogger,
-			WebURL:         s.WebURL,
+			DB:        s.DB,
+			Providers: s.Providers,
+			Publisher: s.Publisher,
+			WebURL:    s.WebURL,
 		}.Routes())
 
 		r.Mount("/", BucketFileService{
@@ -101,7 +100,6 @@ func (s BucketService) Routes() chi.Router {
 
 		r.Mount("/shares", BucketShareService{
 			DB:                  s.DB,
-			ActivityLogger:      s.ActivityLogger,
 			AllowCustomShareIDs: s.AllowCustomShareIDs,
 		}.Routes())
 	})
