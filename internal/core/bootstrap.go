@@ -139,6 +139,32 @@ func StartWorkers(
 		Cache:              cache,
 	}
 
+	startWorker(ctx, handle.wg, profile.Workers.Outbox, configuration.WorkerOutboxEvents, cache, appIdentity,
+		func(workerCtx context.Context) {
+			worker := &workers.OutboxWorker{
+				DB:             db,
+				Publisher:      eventRouter,
+				ActivityLogger: activityLogger,
+				PollInterval:   configuration.OutboxPollInterval,
+				BatchSize:      configuration.OutboxBatchSize,
+				Type:           models.OutboxTypeEvent,
+			}
+			worker.Start(workerCtx)
+		})
+
+	startWorker(ctx, handle.wg, profile.Workers.Outbox, configuration.WorkerOutboxActivities, cache, appIdentity,
+		func(workerCtx context.Context) {
+			worker := &workers.OutboxWorker{
+				DB:             db,
+				Publisher:      eventRouter,
+				ActivityLogger: activityLogger,
+				PollInterval:   configuration.OutboxPollInterval,
+				BatchSize:      configuration.OutboxBatchSize,
+				Type:           models.OutboxTypeActivity,
+			}
+			worker.Start(workerCtx)
+		})
+
 	events.StartFileNotificationBuffer(ctx, handle.wg, cache, notify)
 	zap.L().Info("Started file notification buffer")
 
