@@ -41,8 +41,8 @@ type MockActivityLogger struct {
 	Sent []models.Activity
 }
 
-func (m *MockActivityLogger) Send(action models.Activity) error {
-	m.Sent = append(m.Sent, action)
+func (m *MockActivityLogger) Send(activities ...models.Activity) error {
+	m.Sent = append(m.Sent, activities...)
 	return nil
 }
 func (m *MockActivityLogger) Search(
