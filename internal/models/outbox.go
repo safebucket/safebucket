@@ -24,3 +24,7 @@ type Outbox struct {
 	FailedAt      *time.Time `gorm:"default:null"       json:"failed_at,omitempty"`
 	CreatedAt     time.Time  `                          json:"created_at"`
 }
+
+func (Outbox) TableName() string {
+	return "outbox"
+}
