@@ -5,7 +5,7 @@ import { UserRowActions } from "./UserRowActions";
 import { features } from "./columns";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import type { AdminTableFeatures } from "./columns";
-import type { IUser } from "@/components/auth-view/types/session";
+import type { IAdminUser } from "@/components/auth-view/types/session";
 import {
   Table,
   TableBody,
@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/table";
 
 interface AdminUsersTableProps {
-  columns: Array<ColumnDef<AdminTableFeatures, IUser>>;
-  data: Array<IUser>;
-  onDeleteUser: (user: IUser) => void;
+  columns: Array<ColumnDef<AdminTableFeatures, IAdminUser>>;
+  data: Array<IAdminUser>;
+  onDeleteUser: (user: IAdminUser) => void;
   currentUserId: string;
 }
 

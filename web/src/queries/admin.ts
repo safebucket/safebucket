@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { IUser } from "@/components/auth-view/types/session";
+import type { IAdminUser, IUser } from "@/components/auth-view/types/session";
 import type { ActivityMessage, IActivityPage } from "@/types/activity";
 import type {
   AdminStatsResponse,
@@ -27,7 +27,7 @@ export interface AdminActivityFilters {
 export const usersQueryOptions = () =>
   queryOptions({
     queryKey: ["admin", "users"],
-    queryFn: () => api.get<{ data: Array<IUser> }>("/users"),
+    queryFn: () => api.get<{ data: Array<IAdminUser> }>("/users"),
     select: (data) => data.data,
     staleTime: 5 * 60 * 1000,
   });
