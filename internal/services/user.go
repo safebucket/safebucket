@@ -30,7 +30,6 @@ type UserService struct {
 	AuthConfig         models.AuthConfig
 	Publisher          messaging.IPublisher
 	Notifier           notifier.INotifier
-	ActivityLogger     activity.IActivityLogger
 	RefreshTokenExpiry int
 }
 
@@ -57,9 +56,9 @@ func (s UserService) Routes() chi.Router {
 			Get("/stats", handlers.GetOneHandler(s.GetUserStats))
 
 		r.Mount("/sessions", SessionService{
+			DB:                 s.DB,
 			Cache:              s.Cache,
 			RefreshTokenExpiry: s.RefreshTokenExpiry,
-			ActivityLogger:     s.ActivityLogger,
 		}.Routes())
 	})
 	return r

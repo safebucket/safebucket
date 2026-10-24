@@ -31,13 +31,12 @@ import (
 )
 
 type InviteService struct {
-	DB             *gorm.DB
-	Cache          cache.ICache
-	Storage        storage.IStorage
-	AuthConfig     models.AuthConfig
-	Publisher      messaging.IPublisher
-	Providers      configuration.Providers
-	ActivityLogger activity.IActivityLogger
+	DB         *gorm.DB
+	Cache      cache.ICache
+	Storage    storage.IStorage
+	AuthConfig models.AuthConfig
+	Publisher  messaging.IPublisher
+	Providers  configuration.Providers
 }
 
 func (s InviteService) Routes() chi.Router {

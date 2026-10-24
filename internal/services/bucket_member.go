@@ -23,11 +23,10 @@ import (
 )
 
 type BucketMemberService struct {
-	DB             *gorm.DB
-	Providers      configuration.Providers
-	Publisher      messaging.IPublisher
-	ActivityLogger activity.IActivityLogger
-	WebURL         string
+	DB        *gorm.DB
+	Providers configuration.Providers
+	Publisher messaging.IPublisher
+	WebURL    string
 }
 
 func (s BucketMemberService) Routes() chi.Router {

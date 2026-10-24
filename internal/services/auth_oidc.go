@@ -10,6 +10,7 @@ import (
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/mfa"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
@@ -156,7 +157,7 @@ func (s AuthService) issueOIDCSession(
 			ProviderName: s.Providers[providerKey].Name,
 		}),
 	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+	if logErr := outbox.AddActivities(s.DB, action); logErr != nil {
 		logger.Error("Failed to log login activity", zap.Error(logErr))
 	}
 

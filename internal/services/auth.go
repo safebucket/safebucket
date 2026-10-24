@@ -15,6 +15,7 @@ import (
 	"github.com/safebucket/safebucket/internal/mfa"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/tracing"
@@ -149,7 +150,7 @@ func (s AuthService) finalizeLogin(
 			ProviderName: providerName,
 		}),
 	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+	if logErr := outbox.AddActivities(s.DB, action); logErr != nil {
 		logger.Error("Failed to log login activity", zap.Error(logErr))
 	}
 
@@ -502,7 +503,7 @@ func (s AuthService) VerifyMFALogin(
 			ProviderName: s.Providers[user.ProviderKey].Name,
 		}),
 	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
+	if logErr := outbox.AddActivities(s.DB, action); logErr != nil {
 		logger.Error("Failed to log login activity", zap.Error(logErr))
 	}
 

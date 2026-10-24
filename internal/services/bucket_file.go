@@ -32,7 +32,6 @@ type BucketFileService struct {
 	Cache              cache.ICache
 	Storage            storage.IStorage
 	Publisher          messaging.IPublisher
-	ActivityLogger     activity.IActivityLogger
 	TrashRetentionDays int
 }
 

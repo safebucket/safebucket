@@ -32,7 +32,6 @@ type PublicShareService struct {
 	DB                    *gorm.DB
 	Cache                 cache.ICache
 	Storage               storage.IStorage
-	ActivityLogger        activity.IActivityLogger
 	Publisher             messaging.IPublisher
 	TokenSecret           string
 	CookieSecureForce     bool
@@ -414,7 +413,7 @@ func (s PublicShareService) UploadShareFile(
 				ShareID:    share.ID.String(),
 			}),
 		}); activityErr != nil {
-			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))
+			logger.Error("Failed to log share upload activity", zap.Error(activityErr))
 			return activityErr
 		}
 
@@ -526,7 +525,7 @@ func (s PublicShareService) ConfirmShareUpload(
 				ShareID:    share.ID.String(),
 			}),
 		}); activityErr != nil {
-			logger.Warn("Failed to log share upload activity", zap.Error(activityErr))
+			logger.Error("Failed to log share upload activity", zap.Error(activityErr))
 			return activityErr
 		}
 
