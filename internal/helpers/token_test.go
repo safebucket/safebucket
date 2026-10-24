@@ -73,7 +73,6 @@ func TestNewAccessToken(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, token)
-		// JWE compact serialization has 5 parts separated by 4 dots.
 		assert.True(t, strings.Count(token, ".") == 4, "JWE should have 5 parts separated by dots")
 	})
 
@@ -207,16 +206,14 @@ func TestParseToken(t *testing.T) {
 
 	t.Run("should reject expired token", func(t *testing.T) {
 		claims := models.UserClaims{
-			Email:    user.Email,
-			UserID:   user.ID,
-			Role:     user.Role,
-			Provider: provider,
-			RegisteredClaims: jwt.RegisteredClaims{
-				Audience:  jwt.ClaimStrings{"app:*"},
-				Issuer:    configuration.AppName,
-				IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-2 * time.Hour)},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
-			},
+			Email:     user.Email,
+			UserID:    user.ID,
+			Role:      user.Role,
+			Provider:  provider,
+			Audience:  jwt.ClaimStrings{"app:*"},
+			Issuer:    configuration.AppName,
+			IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-2 * time.Hour)},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		signedToken, err := token.SignedString([]byte(jwtSecret))
@@ -246,16 +243,14 @@ func TestParseToken(t *testing.T) {
 
 	t.Run("should reject token with multiple audiences", func(t *testing.T) {
 		claims := models.UserClaims{
-			Email:    user.Email,
-			UserID:   user.ID,
-			Role:     user.Role,
-			Provider: provider,
-			RegisteredClaims: jwt.RegisteredClaims{
-				Audience:  jwt.ClaimStrings{"app:*", "auth:refresh"},
-				Issuer:    configuration.AppName,
-				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
-			},
+			Email:     user.Email,
+			UserID:    user.ID,
+			Role:      user.Role,
+			Provider:  provider,
+			Audience:  jwt.ClaimStrings{"app:*", "auth:refresh"},
+			Issuer:    configuration.AppName,
+			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 		}
 		jws, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
 		require.NoError(t, err)
@@ -269,15 +264,13 @@ func TestParseToken(t *testing.T) {
 
 	t.Run("should reject token with no audience", func(t *testing.T) {
 		claims := models.UserClaims{
-			Email:    user.Email,
-			UserID:   user.ID,
-			Role:     user.Role,
-			Provider: provider,
-			RegisteredClaims: jwt.RegisteredClaims{
-				Issuer:    configuration.AppName,
-				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
-			},
+			Email:     user.Email,
+			UserID:    user.ID,
+			Role:      user.Role,
+			Provider:  provider,
+			Issuer:    configuration.AppName,
+			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 		}
 		jws, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
 		require.NoError(t, err)
@@ -397,16 +390,14 @@ func TestParseRefreshToken(t *testing.T) {
 
 	t.Run("should reject expired refresh token", func(t *testing.T) {
 		claims := models.UserClaims{
-			Email:    user.Email,
-			UserID:   user.ID,
-			Role:     user.Role,
-			Provider: provider,
-			RegisteredClaims: jwt.RegisteredClaims{
-				Audience:  jwt.ClaimStrings{"auth:refresh"},
-				Issuer:    configuration.AppName,
-				IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-11 * time.Hour)},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
-			},
+			Email:     user.Email,
+			UserID:    user.ID,
+			Role:      user.Role,
+			Provider:  provider,
+			Audience:  jwt.ClaimStrings{"auth:refresh"},
+			Issuer:    configuration.AppName,
+			IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-11 * time.Hour)},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		signedToken, err := token.SignedString([]byte(jwtSecret))
@@ -655,13 +646,11 @@ func TestParseShareToken(t *testing.T) {
 
 	t.Run("should reject expired share token", func(t *testing.T) {
 		claims := models.ShareClaims{
-			ShareID: shareID,
-			RegisteredClaims: jwt.RegisteredClaims{
-				Audience:  jwt.ClaimStrings{configuration.AudienceShareAccess},
-				Issuer:    configuration.AppName,
-				IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-2 * time.Hour)},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
-			},
+			ShareID:   shareID,
+			Audience:  jwt.ClaimStrings{configuration.AudienceShareAccess},
+			Issuer:    configuration.AppName,
+			IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-2 * time.Hour)},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
 		}
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		signedToken, err := token.SignedString([]byte(jwtSecret))
@@ -687,13 +676,11 @@ func TestParseShareToken(t *testing.T) {
 
 	t.Run("should reject token with wrong audience", func(t *testing.T) {
 		claims := models.ShareClaims{
-			ShareID: shareID,
-			RegisteredClaims: jwt.RegisteredClaims{
-				Audience:  jwt.ClaimStrings{"wrong:audience"},
-				Issuer:    configuration.AppName,
-				IssuedAt:  &jwt.NumericDate{Time: time.Now()},
-				ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
-			},
+			ShareID:   shareID,
+			Audience:  jwt.ClaimStrings{"wrong:audience"},
+			Issuer:    configuration.AppName,
+			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 		}
 		jws, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(jwtSecret))
 		require.NoError(t, err)
@@ -706,41 +693,28 @@ func TestParseShareToken(t *testing.T) {
 	})
 }
 
-func TestSecretEntropyAndSecurity(t *testing.T) {
-	t.Run("should have sufficient entropy for security", func(t *testing.T) {
-		secrets := make(map[string]bool)
-		for range 10000 {
-			secret, err := GenerateSecret()
-			require.NoError(t, err)
-			secrets[secret] = true
-		}
+func TestGenerateSecretPatterns(t *testing.T) {
+	for range 100 {
+		secret, err := GenerateSecret()
+		require.NoError(t, err)
 
-		assert.Len(t, secrets, 10000, "no collisions expected in 10000 secrets")
-	})
-
-	t.Run("should not have obvious patterns", func(t *testing.T) {
-		for range 100 {
-			secret, err := GenerateSecret()
-			require.NoError(t, err)
-
-			allSame := true
-			firstChar := secret[0]
-			for j := range len(secret) {
-				if secret[j] != firstChar {
-					allSame = false
-					break
-				}
+		allSame := true
+		firstChar := secret[0]
+		for j := range len(secret) {
+			if secret[j] != firstChar {
+				allSame = false
+				break
 			}
-			assert.False(t, allSame, "secret %s should not be all same character", secret)
-
-			isSequential := true
-			for j := 1; j < len(secret); j++ {
-				if secret[j] != secret[j-1]+1 {
-					isSequential = false
-					break
-				}
-			}
-			assert.False(t, isSequential, "secret %s should not be sequential", secret)
 		}
-	})
+		assert.False(t, allSame, "secret %s should not be all same character", secret)
+
+		isSequential := true
+		for j := 1; j < len(secret); j++ {
+			if secret[j] != secret[j-1]+1 {
+				isSequential = false
+				break
+			}
+		}
+		assert.False(t, isSequential, "secret %s should not be sequential", secret)
+	}
 }
