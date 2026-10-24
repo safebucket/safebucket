@@ -164,21 +164,21 @@ func (s MFAService) AddDevice(
 		IsVerified:      false,
 	}
 
-	action := models.Activity{
-		Message: activity.MFADeviceEnrolled,
-		Object:  device.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     activity.MFADeviceEnrolled,
-			UserID:     userID.String(),
-			ObjectType: rbac.ResourceMFADevice.String(),
-			DeviceID:   device.ID.String(),
-		}),
-	}
-
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if createErr := tx.Create(&device).Error; createErr != nil {
 			logger.Error("Failed to create MFA device", zap.Error(createErr))
 			return createErr
+		}
+
+		action := models.Activity{
+			Message: activity.MFADeviceEnrolled,
+			Object:  device.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     activity.MFADeviceEnrolled,
+				UserID:     userID.String(),
+				ObjectType: rbac.ResourceMFADevice.String(),
+				DeviceID:   device.ID.String(),
+			}),
 		}
 
 		if logErr := outbox.AddActivities(tx, action); logErr != nil {
