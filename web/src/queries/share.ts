@@ -59,8 +59,14 @@ export const useShareUploadMutation = (shareId: string) =>
 export const useShareConfirmUploadMutation = (shareId: string) =>
   useMutation({
     meta: { skipGlobalErrorToast: true },
-    mutationFn: (fileId: string) =>
-      shareFetch<null>(`/${shareId}/files/${fileId}`, {
+    mutationFn: ({
+      fileId,
+      versionId,
+    }: {
+      fileId: string;
+      versionId: string;
+    }) =>
+      shareFetch<null>(`/${shareId}/files/${fileId}/versions/${versionId}`, {
         method: "PATCH",
       }),
   });

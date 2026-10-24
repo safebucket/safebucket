@@ -8,11 +8,13 @@ import (
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 const (
@@ -152,23 +154,6 @@ func (e *TrashExpiration) findTrashedFile(params *EventParams, pathInfo parsedPa
 	return file, nil
 }
 
-// handleFileDeletion processes deletion of a single file.
-func (e *TrashExpiration) handleFileDeletion(params *EventParams, file *models.File, originalPath string) error {
-	if err := params.Storage.RemoveObject(originalPath); err != nil {
-		zap.L().Error("Failed to delete file from storage",
-			zap.String("file_path", originalPath),
-			zap.String("file_id", file.ID.String()),
-			zap.Error(err),
-		)
-		return err
-	}
-	zap.L().Info("Deleted file from storage",
-		zap.String("file_path", originalPath),
-		zap.String("file_id", file.ID.String()))
-
-	return nil
-}
-
 func (e *TrashExpiration) callback(params *EventParams) error {
 	zap.L().Debug("Processing trash expiration event",
 		zap.String("bucket_id", e.Payload.BucketID.String()),
@@ -176,6 +161,10 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 	)
 
 	pathInfo := e.parseObjectPath(params)
+	// Removing a version object must not expire its parent file.
+	if !pathInfo.isMarker {
+		return nil
+	}
 
 	file, err := e.findTrashedFile(params, pathInfo)
 	if err != nil {
@@ -213,14 +202,21 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		zap.Bool("is_marker_deletion", pathInfo.isMarker),
 	)
 
-	if pathInfo.isMarker && params.Storage != nil {
-		err = e.handleFileDeletion(params, file, pathInfo.originalPath)
-		if err != nil {
-			return err
+	err = params.DB.Transaction(func(tx *gorm.DB) error {
+		locked, lockErr := sql.LockFile(tx, file.BucketID, file.ID)
+		if lockErr != nil {
+			return lockErr
 		}
-	}
-
-	err = params.DB.Unscoped().Delete(file).Error
+		if !locked.DeletedAt.Valid {
+			return nil
+		}
+		if params.Storage != nil {
+			if removeErr := params.Versions.RemoveFileObjects(tx, locked); removeErr != nil {
+				return removeErr
+			}
+		}
+		return tx.Unscoped().Delete(&locked).Error
+	})
 	if err != nil {
 		zap.L().Error("Failed to hard delete file from database",
 			zap.String("file_id", file.ID.String()),
