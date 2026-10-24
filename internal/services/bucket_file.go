@@ -260,7 +260,7 @@ func (s BucketFileService) HandleUploadedStatus(
 				UserID:     user.UserID.String(),
 			}),
 		}); err != nil {
-			logger.Warn("Failed to log upload activity", zap.Error(err))
+			logger.Error("Failed to log upload activity", zap.Error(err))
 			return err
 		}
 
