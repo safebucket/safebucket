@@ -67,25 +67,33 @@ func TestGetUserStats(t *testing.T) {
 		require.NoError(t, db.Delete(&deletedBucket).Error)
 
 		for _, name := range []string{"first.txt", "second.txt"} {
-			file := models.File{Name: name, Status: models.FileStatusUploaded, BucketID: activeBucket.ID, Size: 128}
+			file := models.File{Name: name, Status: models.FileStatusUploaded, BucketID: activeBucket.ID}
 			require.NoError(t, db.Create(&file).Error)
+			require.NoError(t, db.Create(&models.FileVersion{
+				ID: file.ID, FileID: file.ID, Version: 1, Size: 128, Status: models.FileStatusUploaded,
+			}).Error)
 		}
 
 		fileInDeletedBucket := models.File{
 			Name:     "ghost.txt",
 			Status:   models.FileStatusUploaded,
 			BucketID: deletedBucket.ID,
-			Size:     128,
 		}
 		require.NoError(t, db.Create(&fileInDeletedBucket).Error)
+		require.NoError(t, db.Create(&models.FileVersion{
+			ID: fileInDeletedBucket.ID, FileID: fileInDeletedBucket.ID, Version: 1, Size: 128,
+			Status: models.FileStatusUploaded,
+		}).Error)
 
 		deletedFile := models.File{
 			Name:     "third.txt",
 			Status:   models.FileStatusUploaded,
 			BucketID: activeBucket.ID,
-			Size:     128,
 		}
 		require.NoError(t, db.Create(&deletedFile).Error)
+		require.NoError(t, db.Create(&models.FileVersion{
+			ID: deletedFile.ID, FileID: deletedFile.ID, Version: 1, Size: 128, Status: models.FileStatusUploaded,
+		}).Error)
 		require.NoError(t, db.Delete(&deletedFile).Error)
 
 		response, err := service.GetUserStats(zap.NewNop(), models.UserClaims{}, []uuid.UUID{user.ID})
@@ -112,8 +120,11 @@ func TestGetUserStats(t *testing.T) {
 		require.NoError(t, db.Create(&membership).Error)
 
 		for _, name := range []string{"a.txt", "b.txt"} {
-			file := models.File{Name: name, Status: models.FileStatusUploaded, BucketID: bucket.ID, Size: 128}
+			file := models.File{Name: name, Status: models.FileStatusUploaded, BucketID: bucket.ID}
 			require.NoError(t, db.Create(&file).Error)
+			require.NoError(t, db.Create(&models.FileVersion{
+				ID: file.ID, FileID: file.ID, Version: 1, Size: 128, Status: models.FileStatusUploaded,
+			}).Error)
 		}
 
 		require.NoError(t, db.Delete(&membership).Error)

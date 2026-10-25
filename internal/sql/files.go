@@ -14,6 +14,12 @@ import (
 	"gorm.io/gorm"
 )
 
+func WithCurrentVersionSize(db *gorm.DB) *gorm.DB {
+	return db.Select("files.*, COALESCE(current_file_version.size, 0) AS size").
+		Joins("LEFT JOIN file_versions AS current_file_version " +
+			"ON current_file_version.id = COALESCE(files.current_version_id, files.id)")
+}
+
 func GetFileByID(db *gorm.DB, bucketID uuid.UUID, fileID uuid.UUID) (models.File, error) {
 	var file models.File
 

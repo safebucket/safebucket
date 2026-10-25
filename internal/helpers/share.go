@@ -16,6 +16,7 @@ func GetShareFile(db *gorm.DB, share models.Share, fileID uuid.UUID) (models.Fil
 	now := time.Now()
 
 	query := db.
+		Select("files.*").
 		Where("files.id = ?", fileID).
 		Where("files.bucket_id = ?", share.BucketID).
 		Where("files.status = ?", models.FileStatusUploaded)

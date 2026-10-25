@@ -199,6 +199,7 @@ func (s BucketFileService) ListFileVersions(
 
 	var versions []models.FileVersion
 	if listErr := s.DB.Where("file_id = ? AND status = ?", file.ID, models.FileStatusUploaded).
+		Preload("Uploader").
 		Order("version DESC").
 		Find(&versions).Error; listErr != nil {
 		logger.Error("Failed to list file versions", zap.Error(listErr))
@@ -207,12 +208,17 @@ func (s BucketFileService) ListFileVersions(
 
 	response := make([]models.FileVersionResponse, 0, len(versions))
 	for _, version := range versions {
+		var uploader *models.UserInfo
+		if version.Uploader != nil {
+			info := version.Uploader.ToActivity()
+			uploader = &info
+		}
 		response = append(response, models.FileVersionResponse{
 			ID:         version.ID,
 			Version:    version.Version,
 			Size:       version.Size,
 			Status:     version.Status,
-			UploadedBy: version.UploadedBy,
+			UploadedBy: uploader,
 			IsCurrent:  file.CurrentVersionID != nil && *file.CurrentVersionID == version.ID,
 			CreatedAt:  version.CreatedAt,
 		})
@@ -246,10 +252,7 @@ func (s BucketFileService) RestoreFileVersion(
 
 		if updateErr := tx.Model(&models.File{}).
 			Where("id = ?", file.ID).
-			Updates(map[string]interface{}{
-				"current_version_id": version.ID,
-				"size":               version.Size,
-			}).Error; updateErr != nil {
+			Update("current_version_id", version.ID).Error; updateErr != nil {
 			logger.Error("Failed to repoint file to restored version", zap.Error(updateErr))
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}

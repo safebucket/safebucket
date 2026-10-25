@@ -1106,7 +1106,7 @@
     "title": "Versionsverlauf",
     "version": "Version {{number}}",
     "current": "Aktuell",
-    "refresh": "Aktualisieren",
+    "uploaded_by": "Hochgeladen von {{name}}",
     "retry": "Erneut versuchen",
     "empty": "Noch keine gespeicherten Versionen.",
     "restore": "Wiederherstellen",

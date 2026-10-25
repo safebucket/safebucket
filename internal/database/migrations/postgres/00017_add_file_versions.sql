@@ -43,15 +43,22 @@ ALTER TABLE files
     ADD CONSTRAINT fk_files_current_version_id
         FOREIGN KEY (current_version_id) REFERENCES file_versions (id) ON UPDATE CASCADE ON DELETE SET NULL;
 
+ALTER TABLE files DROP COLUMN size;
+
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
 
 ALTER TABLE files DROP CONSTRAINT IF EXISTS fk_files_current_version_id;
+
+ALTER TABLE files ADD COLUMN size BIGINT;
+UPDATE files SET size = fv.size
+FROM file_versions fv
+WHERE fv.id = COALESCE(files.current_version_id, files.id);
+ALTER TABLE files ADD CONSTRAINT chk_files_size_positive CHECK (size IS NULL OR size >= 0);
+
 DROP TABLE IF EXISTS file_versions;
 ALTER TABLE files DROP COLUMN IF EXISTS current_version_id;
 
 -- +goose StatementEnd
-
--- TODO(RBE): drop duplicated columns from files (size) once versioning replaces their usage.

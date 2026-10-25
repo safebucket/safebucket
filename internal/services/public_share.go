@@ -160,7 +160,7 @@ func (s PublicShareService) ListShareItems(
 	switch share.Type {
 	case models.ShareTypeFiles:
 		var files []models.File
-		s.DB.Joins("JOIN share_files ON share_files.file_id = files.id").
+		sql.WithCurrentVersionSize(s.DB.Joins("JOIN share_files ON share_files.file_id = files.id")).
 			Where("share_files.share_id = ?", share.ID).
 			Where("files.status = ?", models.FileStatusUploaded).
 			Where("files.expires_at IS NULL OR files.expires_at > ?", now).
@@ -185,16 +185,17 @@ func (s PublicShareService) ListShareItems(
 		}
 
 		var files []models.File
-		s.DB.Where(
-			"bucket_id = ? AND folder_id IN ? AND status = ? AND (expires_at IS NULL OR expires_at > ?)",
+		sql.WithCurrentVersionSize(s.DB).Where(
+			"files.bucket_id = ? AND files.folder_id IN ? AND files.status = ? "+
+				"AND (files.expires_at IS NULL OR files.expires_at > ?)",
 			share.BucketID, folderIDs, models.FileStatusUploaded, now,
 		).Find(&files)
 		response.Files = files
 
 	case models.ShareTypeBucket:
 		var files []models.File
-		s.DB.Where(
-			"bucket_id = ? AND status = ? AND (expires_at IS NULL OR expires_at > ?)",
+		sql.WithCurrentVersionSize(s.DB).Where(
+			"files.bucket_id = ? AND files.status = ? AND (files.expires_at IS NULL OR files.expires_at > ?)",
 			share.BucketID, models.FileStatusUploaded, now,
 		).Find(&files)
 		response.Files = files
@@ -279,7 +280,8 @@ func (s PublicShareService) DownloadSingleShareFile(
 	now := time.Now()
 
 	var files []models.File
-	s.DB.Joins("JOIN share_files ON share_files.file_id = files.id").
+	s.DB.Select("files.*").
+		Joins("JOIN share_files ON share_files.file_id = files.id").
 		Where("share_files.share_id = ?", share.ID).
 		Where("files.status = ?", models.FileStatusUploaded).
 		Where("files.expires_at IS NULL OR files.expires_at > ?", now).

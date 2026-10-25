@@ -1106,7 +1106,7 @@
     "title": "Version history",
     "version": "Version {{number}}",
     "current": "Current",
-    "refresh": "Refresh",
+    "uploaded_by": "Uploaded by {{name}}",
     "retry": "Try again",
     "empty": "No saved versions yet.",
     "restore": "Restore",

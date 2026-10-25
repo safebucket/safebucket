@@ -174,8 +174,9 @@ func (s BucketTrashService) GetBucketTrash(
 	}
 
 	files := make([]models.File, 0)
-	if err = s.DB.Unscoped().Where(
-		"bucket_id = ? AND deleted_at IS NOT NULL AND status IN ? AND (expires_at IS NULL OR expires_at > ?)",
+	if err = sql.WithCurrentVersionSize(s.DB.Unscoped()).Where(
+		"files.bucket_id = ? AND files.deleted_at IS NOT NULL AND files.status IN ? "+
+			"AND (files.expires_at IS NULL OR files.expires_at > ?)",
 		bucketID,
 		[]models.FileStatus{models.FileStatusDeleted, models.FileStatusRestoring},
 		now,

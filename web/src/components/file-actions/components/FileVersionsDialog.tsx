@@ -1,25 +1,18 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import {
-  Download,
-  LoaderCircle,
-  RefreshCw,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
+import { Download, LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
 import type { IFile, IFileVersion } from "@/types/file";
 import type { FileVersionAction } from "@/queries/file-versions";
+import { getUserDisplayName } from "@/types/user";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { downloadFromStorage } from "@/components/file-actions/helpers/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -74,19 +67,6 @@ export function FileVersionsDialog({
               {file.name}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={versions.isFetching || busy}
-              onClick={() => void versions.refetch()}
-            >
-              <RefreshCw
-                className={versions.isFetching ? "animate-spin" : undefined}
-              />
-              {t("file_versions.refresh")}
-            </Button>
-          </div>
           {versions.isPending && (
             <div
               role="status"
@@ -143,6 +123,16 @@ export function FileVersionsDialog({
                           {formatDate(version.created_at)}
                         </time>
                         <span>{formatFileSize(version.size)}</span>
+                        {version.uploaded_by && (
+                          <span>
+                            {t("file_versions.uploaded_by", {
+                              name: getUserDisplayName(
+                                version.uploaded_by,
+                                version.uploaded_by.email,
+                              ),
+                            })}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -187,11 +177,6 @@ export function FileVersionsDialog({
               ))}
             </ul>
           )}
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">{t("common.close")}</Button>
-            </DialogClose>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
       {confirmation && (

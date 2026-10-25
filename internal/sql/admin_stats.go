@@ -20,8 +20,8 @@ func storageBreakdownScope(db *gorm.DB) *gorm.DB {
 
 func scanStorageBreakdown(query *gorm.DB) (models.StorageBreakdown, error) {
 	var breakdown models.StorageBreakdown
-	if err := query.Select(`COALESCE(SUM(COALESCE(file_versions.size, files.size)), 0) AS total,
-COALESCE(SUM(CASE WHEN file_versions.id = files.current_version_id THEN file_versions.size WHEN file_versions.id IS NULL THEN files.size ELSE 0 END), 0) AS active`).
+	if err := query.Select(`COALESCE(SUM(file_versions.size), 0) AS total,
+COALESCE(SUM(CASE WHEN file_versions.id = files.current_version_id THEN file_versions.size ELSE 0 END), 0) AS active`).
 		Scan(&breakdown).Error; err != nil {
 		return models.StorageBreakdown{}, apierrors.New(
 			http.StatusInternalServerError,

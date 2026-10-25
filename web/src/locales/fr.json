@@ -1113,7 +1113,7 @@
     "title": "Historique des versions",
     "version": "Version {{number}}",
     "current": "Actuelle",
-    "refresh": "Actualiser",
+    "uploaded_by": "Téléversé par {{name}}",
     "retry": "Réessayer",
     "empty": "Aucune version enregistrée pour le moment.",
     "restore": "Restaurer",

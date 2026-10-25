@@ -8,6 +8,7 @@ import (
 
 	"github.com/safebucket/safebucket/internal/database"
 	"github.com/safebucket/safebucket/internal/models"
+	filesql "github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/tests/integration/bootstrap"
 
 	"github.com/google/uuid"
@@ -65,11 +66,15 @@ func TestMigrationsPreserveData(t *testing.T) {
 			}
 
 			var migratedFile models.File
-			require.NoError(t, db.First(&migratedFile, "id = ?", originalFile.ID).Error)
+			require.NoError(
+				t,
+				filesql.WithCurrentVersionSize(db).First(&migratedFile, "files.id = ?", originalFile.ID).Error,
+			)
 			require.NotNil(t, migratedFile.CurrentVersionID)
 			assert.Equal(t, originalFile.ID, *migratedFile.CurrentVersionID)
 			assert.Equal(t, originalFile.Size, migratedFile.Size)
 			assert.Equal(t, originalFile.Status, migratedFile.Status)
+			assert.False(t, db.Migrator().HasColumn(&models.File{}, "size"))
 
 			var version models.FileVersion
 			require.NoError(t, db.First(&version, "id = ?", *migratedFile.CurrentVersionID).Error)

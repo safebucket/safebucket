@@ -216,8 +216,9 @@ func (s BucketService) GetBucket(
 	expirationTime := now.Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 
 	files := make([]models.File, 0)
-	if err = s.DB.Where(
-		"bucket_id = ? AND (expires_at IS NULL OR expires_at > ?) AND (status = ? OR (status = ? AND EXISTS ("+
+	if err = sql.WithCurrentVersionSize(s.DB).Where(
+		"files.bucket_id = ? AND (files.expires_at IS NULL OR files.expires_at > ?) AND "+
+			"(files.status = ? OR (files.status = ? AND EXISTS ("+
 			"SELECT 1 FROM file_versions WHERE file_versions.file_id = files.id "+
 			"AND file_versions.status = ? AND file_versions.created_at > ?)))",
 		bucketID,

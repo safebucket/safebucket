@@ -26,7 +26,7 @@ type File struct {
 	Bucket           Bucket         `                             json:"-"`
 	FolderID         *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
 	ParentFolder     *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
-	Size             int            `gorm:"not null;default:0"    json:"size"`
+	Size             int            `gorm:"->"                    json:"size"`
 	CurrentVersionID *uuid.UUID     `gorm:"default:null"          json:"current_version_id,omitempty"`
 	DeletedBy        *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
 	ExpiresAt        *time.Time     `gorm:"default:null"          json:"expires_at"`
@@ -37,14 +37,15 @@ type File struct {
 }
 
 type FileVersion struct {
-	ID           uuid.UUID  `gorm:"default:(-)"        json:"id"`
-	FileID       uuid.UUID  `                          json:"file_id"`
-	Version      int        `                          json:"version"`
-	Size         int        `gorm:"not null;default:0" json:"size"`
-	Status       FileStatus `gorm:"default:null"       json:"status"`
-	UploadedBy   *uuid.UUID `gorm:"default:null"       json:"uploaded_by,omitempty"`
-	CleanupAfter *time.Time `gorm:"default:null"       json:"-"`
-	CreatedAt    time.Time  `                          json:"created_at"`
+	ID           uuid.UUID  `gorm:"default:(-)"           json:"id"`
+	FileID       uuid.UUID  `                             json:"file_id"`
+	Version      int        `                             json:"version"`
+	Size         int        `gorm:"not null;default:0"    json:"size"`
+	Status       FileStatus `gorm:"default:null"          json:"status"`
+	UploadedBy   *uuid.UUID `gorm:"default:null"          json:"uploaded_by,omitempty"`
+	Uploader     *User      `gorm:"foreignKey:UploadedBy" json:"-"`
+	CleanupAfter *time.Time `gorm:"default:null"          json:"-"`
+	CreatedAt    time.Time  `                             json:"created_at"`
 }
 
 type FileVersionResponse struct {
@@ -52,7 +53,7 @@ type FileVersionResponse struct {
 	Version    int        `json:"version"`
 	Size       int        `json:"size"`
 	Status     FileStatus `json:"status"`
-	UploadedBy *uuid.UUID `json:"uploaded_by,omitempty"`
+	UploadedBy *UserInfo  `json:"uploaded_by,omitempty"`
 	IsCurrent  bool       `json:"is_current"`
 	CreatedAt  time.Time  `json:"created_at"`
 }

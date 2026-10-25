@@ -98,7 +98,7 @@ func ReserveFileVersion(tx *gorm.DB, bucketID uuid.UUID, body models.FileUploadB
 	newFile := result.RowsAffected == 0
 	if newFile {
 		file = models.File{ID: uuid.New(), BucketID: bucketID, FolderID: body.FolderID, Name: body.Name,
-			Extension: helpers.ExtensionFromName(body.Name), Size: body.Size, Status: models.FileStatusUploading,
+			Extension: helpers.ExtensionFromName(body.Name), Status: models.FileStatusUploading,
 			ExpiresAt: body.ExpiresAt}
 		if err := tx.Create(&file).Error; err != nil {
 			return file, models.FileVersion{}, err
@@ -159,7 +159,7 @@ func PromoteFileVersion(tx *gorm.DB, file models.File, version models.FileVersio
 		return err
 	}
 	if err := tx.Model(&file).Updates(map[string]interface{}{
-		"status": models.FileStatusUploaded, "size": version.Size, "current_version_id": version.ID,
+		"status": models.FileStatusUploaded, "current_version_id": version.ID,
 	}).Error; err != nil {
 		return err
 	}

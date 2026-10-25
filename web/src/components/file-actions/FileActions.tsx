@@ -1,13 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import {
-  Download,
-  Eye,
-  FolderPlus,
-  History,
-  Share2,
-  Trash2,
-} from "lucide-react";
+import { Download, Eye, History, Share2, Trash2 } from "lucide-react";
 import { useParams } from "@tanstack/react-router";
 import type { FC, ReactNode } from "react";
 
@@ -21,7 +14,6 @@ import { useConfig } from "@/hooks/useConfig";
 import { FileVersionsDialog } from "@/components/file-actions/components/FileVersionsDialog";
 import { useFileActions } from "@/components/file-actions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
-import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import { QuickShareDialog } from "@/components/quick-share/QuickShareDialog";
 import {
@@ -57,8 +49,7 @@ export const FileActions: FC<IFileActionsProps> = ({
   });
   const openItem = useOpenBucketItem();
   const { isContributor, isOwner } = useBucketPermissions(bucketId);
-  const { createFolder, downloadFile, deleteFile } = useFileActions();
-  const newFolderDialog = useDialog();
+  const { downloadFile, deleteFile } = useFileActions();
   const deleteFileDialog = useDialog();
   const shareDialog = useDialog();
   const versionsDialog = useDialog();
@@ -105,12 +96,6 @@ export const FileActions: FC<IFileActionsProps> = ({
               {t("file_versions.title")}
             </MenuItem>
           )}
-          {isContributor && (
-            <MenuItem onClick={newFolderDialog.trigger}>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              {t("file_actions.new_folder")}
-            </MenuItem>
-          )}
           {isOwner && canShare && (
             <MenuItem onClick={shareDialog.trigger}>
               <Share2 className="mr-2 h-4 w-4" />
@@ -147,35 +132,19 @@ export const FileActions: FC<IFileActionsProps> = ({
         />
       )}
       {isContributor && (
-        <>
-          <FormDialog
-            {...newFolderDialog.props}
-            title={t("file_actions.new_folder_dialog.title")}
-            fields={[
-              {
-                id: "name",
-                label: t("file_actions.new_folder_dialog.name_label"),
-                type: "text",
-                required: true,
-              },
-            ]}
-            onSubmit={(data) => createFolder(data.name)}
-            confirmLabel={t("file_actions.new_folder_dialog.create")}
-          />
-          <CustomAlertDialog
-            {...deleteFileDialog.props}
-            destructive
-            title={t("file_actions.delete_dialog.title", {
-              fileName: file.name,
-            })}
-            description={t("file_actions.delete_dialog.description", {
-              retentionDays: trashRetentionDays,
-            })}
-            confirmLabel={t("file_actions.delete_dialog.confirm")}
-            cancelLabel={t("common.cancel")}
-            onConfirm={() => deleteFile(file.id, file.name, !isFile(file))}
-          />
-        </>
+        <CustomAlertDialog
+          {...deleteFileDialog.props}
+          destructive
+          title={t("file_actions.delete_dialog.title", {
+            fileName: file.name,
+          })}
+          description={t("file_actions.delete_dialog.description", {
+            retentionDays: trashRetentionDays,
+          })}
+          confirmLabel={t("file_actions.delete_dialog.confirm")}
+          cancelLabel={t("common.cancel")}
+          onConfirm={() => deleteFile(file.id, file.name, !isFile(file))}
+        />
       )}
     </>
   );

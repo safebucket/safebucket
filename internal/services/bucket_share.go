@@ -10,6 +10,7 @@ import (
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -171,7 +172,7 @@ func (s BucketShareService) ListShares(
 
 	var shares []models.Share
 	err := s.DB.Where("bucket_id = ?", bucketID).
-		Preload("Files.File").
+		Preload("Files.File", sql.WithCurrentVersionSize).
 		Order("created_at DESC").
 		Find(&shares).Error
 

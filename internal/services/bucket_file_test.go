@@ -142,10 +142,9 @@ func setupFileDownloadTest(t *testing.T) (BucketFileService, models.File, models
 		Extension: "pdf",
 		BucketID:  bucket.ID,
 		Status:    models.FileStatusUploaded,
-		Size:      5,
 	}
 	require.NoError(t, db.Create(&file).Error)
-	version := models.FileVersion{FileID: file.ID, Version: 2, Size: file.Size, Status: models.FileStatusUploaded}
+	version := models.FileVersion{FileID: file.ID, Version: 2, Size: 5, Status: models.FileStatusUploaded}
 	require.NoError(t, db.Create(&version).Error)
 
 	service := BucketFileService{
