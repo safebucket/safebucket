@@ -82,7 +82,7 @@ services:
 
   bucket:
     container_name: bucket
-    image: rustfs/rustfs:1.0.1
+    image: rustfs/rustfs:1.0.3
     environment:
       - RUSTFS_ACCESS_KEY=${STORAGE__RUSTFS__ACCESS_KEY}
       - RUSTFS_SECRET_KEY=${STORAGE__RUSTFS__SECRET_KEY}
@@ -203,7 +203,7 @@ services:
       - "valkey_data:/data"
 
   mailpit:
-    image: axllent/mailpit:v1.30
+    image: axllent/mailpit:v1.32
     container_name: mailpit
     restart: unless-stopped
     logging:
@@ -224,7 +224,7 @@ services:
       - safebucket-internal
 
   nats:
-    image: nats:2.14-alpine
+    image: nats:2.15-alpine
     container_name: nats
     restart: unless-stopped
     logging:
@@ -245,7 +245,7 @@ services:
 
   loki:
     container_name: loki
-    image: grafana/loki:3.7.6
+    image: grafana/loki:3.7.9
     command: "-config.file=/etc/loki/config.yaml"
     logging:
       driver: "json-file"
