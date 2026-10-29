@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
-	"github.com/safebucket/safebucket/internal/cache"
 	c "github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/events"
+	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/messaging"
@@ -27,12 +27,12 @@ import (
 
 type BucketService struct {
 	DB                  *gorm.DB
-	Cache               cache.ICache
 	Storage             storage.IStorage
 	Publisher           messaging.IPublisher
 	Providers           c.Providers
 	ActivityLogger      activity.IActivityLogger
 	WebURL              string
+	Versions            fileversions.Manager
 	TrashRetentionDays  int
 	AllowCustomShareIDs bool
 }
@@ -76,10 +76,10 @@ func (s BucketService) Routes() chi.Router {
 
 		r.Mount("/", BucketFileService{
 			DB:                 s.DB,
-			Cache:              s.Cache,
 			Storage:            s.Storage,
 			Publisher:          s.Publisher,
 			ActivityLogger:     s.ActivityLogger,
+			Versions:           s.Versions,
 			TrashRetentionDays: s.TrashRetentionDays,
 		}.Routes())
 
@@ -216,14 +216,16 @@ func (s BucketService) GetBucket(
 	expirationTime := now.Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 
 	files := make([]models.File, 0)
-	if err = s.DB.Where(
-		"bucket_id = ? AND (expires_at IS NULL OR expires_at > ?) AND (status = ? OR (status = ? AND created_at > ?))",
-		bucketID,
-		now,
-		models.FileStatusUploaded,
-		models.FileStatusUploading,
-		expirationTime,
-	).Find(&files).Error; err != nil {
+	pendingUpload := s.DB.Model(&models.FileVersion{}).Select("1").
+		Where("file_versions.file_id = files.id AND file_versions.status = ? AND file_versions.created_at > ?",
+			models.FileStatusUploading, expirationTime)
+	visible := s.DB.Where("files.status = ?", models.FileStatusUploaded).
+		Or("files.status = ? AND EXISTS (?)", models.FileStatusUploading, pendingUpload)
+	if err = sql.WithCurrentVersionSize(s.DB).
+		Where("files.bucket_id = ?", bucketID).
+		Where("files.expires_at IS NULL OR files.expires_at > ?", now).
+		Where(visible).
+		Find(&files).Error; err != nil {
 		logger.Error("Failed to list files", zap.Error(err))
 		return bucket, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}

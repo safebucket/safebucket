@@ -69,9 +69,9 @@ func TestPresignedUpload(t *testing.T) {
 				app.PutPresigned(t, transfer, []byte("test!"))
 
 				require.Equal(t, http.StatusNoContent,
-					app.DoStatus(t, http.MethodPatch,
-						fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketID, transfer.ID), token,
-						models.FilePatchBody{Status: string(models.FileStatusUploaded)}))
+					app.DoStatus(t, http.MethodPost,
+						fmt.Sprintf("/api/v1/buckets/%s/files/%s/versions/%s/confirm",
+							bucketID, transfer.ID, transfer.VersionID), token, nil))
 
 				var dl models.FileDownloadResponse
 				require.Equal(t, http.StatusOK,
@@ -94,9 +94,9 @@ func TestPresignedUpload(t *testing.T) {
 				require.Less(t, putPart(t, transfer.Parts[1].URL, part2), 300)
 
 				require.Equal(t, http.StatusNoContent,
-					app.DoStatus(t, http.MethodPatch,
-						fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketID, transfer.ID), token,
-						models.FilePatchBody{Status: string(models.FileStatusUploaded)}))
+					app.DoStatus(t, http.MethodPost,
+						fmt.Sprintf("/api/v1/buckets/%s/files/%s/versions/%s/confirm",
+							bucketID, transfer.ID, transfer.VersionID), token, nil))
 
 				var dl models.FileDownloadResponse
 				require.Equal(t, http.StatusOK,
@@ -114,14 +114,14 @@ func TestPresignedUpload(t *testing.T) {
 
 				require.Less(t, putPart(t, transfer.Parts[0].URL, part1), 300)
 
-				code, errs := app.DoExpectError(t, http.MethodPatch,
-					fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketID, transfer.ID), token,
-					models.FilePatchBody{Status: string(models.FileStatusUploaded)})
+				code, errs := app.DoExpectError(t, http.MethodPost,
+					fmt.Sprintf("/api/v1/buckets/%s/files/%s/versions/%s/confirm",
+						bucketID, transfer.ID, transfer.VersionID), token, nil)
 				assert.Equal(t, http.StatusBadRequest, code)
 				assert.Contains(t, errs, apierrors.CodeMultipartSizeMismatch)
 			})
 
-			t.Run("double confirm returns conflict", func(t *testing.T) {
+			t.Run("double confirm is idempotent", func(t *testing.T) {
 				var transfer models.FileUploadResponse
 				status := app.Do(t, http.MethodPost, fmt.Sprintf("/api/v1/buckets/%s/files", bucketID), token,
 					models.FileUploadBody{Name: "double.bin", Size: multipartSize}, &transfer)
@@ -130,13 +130,12 @@ func TestPresignedUpload(t *testing.T) {
 				require.Less(t, putPart(t, transfer.Parts[0].URL, part1), 300)
 				require.Less(t, putPart(t, transfer.Parts[1].URL, part2), 300)
 
-				patchPath := fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketID, transfer.ID)
+				confirmPath := fmt.Sprintf("/api/v1/buckets/%s/files/%s/versions/%s/confirm",
+					bucketID, transfer.ID, transfer.VersionID)
 				require.Equal(t, http.StatusNoContent,
-					app.DoStatus(t, http.MethodPatch, patchPath, token,
-						models.FilePatchBody{Status: string(models.FileStatusUploaded)}))
-				require.Equal(t, http.StatusConflict,
-					app.DoStatus(t, http.MethodPatch, patchPath, token,
-						models.FilePatchBody{Status: string(models.FileStatusUploaded)}))
+					app.DoStatus(t, http.MethodPost, confirmPath, token, nil))
+				require.Equal(t, http.StatusNoContent,
+					app.DoStatus(t, http.MethodPost, confirmPath, token, nil))
 			})
 
 			t.Run("cancel an in-flight multipart upload", func(t *testing.T) {
@@ -197,8 +196,9 @@ func TestPresignedShareUpload(t *testing.T) {
 				require.Less(t, putPart(t, transfer.Parts[1].URL, part2), 300)
 
 				require.Equal(t, http.StatusNoContent,
-					app.DoPublicShare(t, http.MethodPatch,
-						fmt.Sprintf("/api/v1/shares/%s/files/%s", share.ID, transfer.ID), cookie, nil, nil))
+					app.DoPublicShare(t, http.MethodPost,
+						fmt.Sprintf("/api/v1/shares/%s/files/%s/versions/%s/confirm",
+							share.ID, transfer.ID, transfer.VersionID), cookie, nil, nil))
 			})
 
 			t.Run("upload is rejected when the share disallows it", func(t *testing.T) {

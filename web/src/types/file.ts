@@ -1,3 +1,5 @@
+import type { IUserInfo } from "@/types/user";
+
 export enum FileStatus {
   uploading = "uploading",
   uploaded = "uploaded",
@@ -18,4 +20,14 @@ export interface IFile {
   deleted_by?: string;
   original_path?: string;
   expires_at: string | null;
+}
+
+export interface IFileVersion {
+  id: string;
+  version: number;
+  size: number;
+  status: FileStatus;
+  uploaded_by?: IUserInfo;
+  is_current: boolean;
+  created_at: string;
 }

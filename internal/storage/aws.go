@@ -301,7 +301,7 @@ func (a AWSStorage) RemoveObjects(paths []string) error {
 			}
 		}
 
-		_, err := a.storage.DeleteObjects(context.Background(), &s3.DeleteObjectsInput{
+		output, err := a.storage.DeleteObjects(context.Background(), &s3.DeleteObjectsInput{
 			Bucket: aws.String(a.BucketName),
 			Delete: &types.Delete{
 				Objects: objects,
@@ -312,6 +312,11 @@ func (a AWSStorage) RemoveObjects(paths []string) error {
 			zap.L().
 				Error("Failed to delete objects batch", zap.Int("batch_start", i), zap.Error(err))
 			return err
+		}
+		if len(output.Errors) > 0 {
+			failure := output.Errors[0]
+			return fmt.Errorf("delete object %s: %s: %s",
+				aws.ToString(failure.Key), aws.ToString(failure.Code), aws.ToString(failure.Message))
 		}
 	}
 
@@ -379,7 +384,7 @@ func (a AWSStorage) MarkAsTrashed(objectPath string, object interface{}) error {
 	if _, ok := object.(models.File); ok {
 		_, err := a.storage.HeadObject(ctx, &s3.HeadObjectInput{
 			Bucket: aws.String(a.BucketName),
-			Key:    aws.String(objectPath),
+			Key:    aws.String(fileContentPath(objectPath, object)),
 		})
 		if err != nil {
 			return fmt.Errorf("object does not exist and can't be trashed: %w", err)

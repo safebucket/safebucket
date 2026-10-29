@@ -13,6 +13,7 @@ import type {
   FileWithPath,
   StagedFile,
 } from "@/components/upload/helpers/types.ts";
+import { FileStatus } from "@/types/file.ts";
 import { UploadDialog } from "@/components/upload/components/UploadDialog.tsx";
 import { toStagedFiles } from "@/components/upload/helpers/file-processing.ts";
 import { isFile, isFolder } from "@/components/bucket-view/helpers/utils.ts";
@@ -61,6 +62,28 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
   );
 
   const downloadMutation = useShareDownloadMutation(shareId);
+
+  const uploadFolderId = useMemo(
+    () =>
+      content.type === "bucket"
+        ? currentFolderId
+        : (content.folder_id ?? undefined),
+    [content.type, content.folder_id, currentFolderId],
+  );
+
+  const existingFileNames = useMemo(
+    () =>
+      new Set(
+        content.files
+          .filter(
+            (file) =>
+              file.status === FileStatus.uploaded &&
+              (file.folder_id ?? undefined) === uploadFolderId,
+          )
+          .map((file) => file.name),
+      ),
+    [content.files, uploadFolderId],
+  );
 
   const handleDownload = (file: IFile) => {
     downloadMutation.mutate(
@@ -148,7 +171,12 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
   };
 
   const handleAddUploadFiles = useCallback((files: Array<FileWithPath>) => {
-    setStagedUploadFiles((current) => [...current, ...toStagedFiles(files)]);
+    setStagedUploadFiles((current) => [
+      ...current,
+      ...toStagedFiles(
+        files.map((entry) => ({ file: entry.file, relativePath: "" })),
+      ),
+    ]);
   }, []);
 
   const handleRemoveUploadFile = useCallback((id: string) => {
@@ -225,11 +253,7 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
               <ShareUploadZone
                 shareId={shareId}
                 maxUploadSize={content.max_upload_size}
-                folderId={
-                  content.type === "bucket"
-                    ? currentFolderId
-                    : (content.folder_id ?? undefined)
-                }
+                folderId={uploadFolderId}
                 onReady={(fn) => {
                   uploadFilesRef.current = fn;
                 }}
@@ -280,6 +304,7 @@ export const ShareContentView: FC<IShareContentViewProps> = ({
         onRemoveFile={handleRemoveUploadFile}
         onUpload={handleUpload}
         showExpiration={false}
+        existingFileNames={existingFileNames}
       />
     </main>
   );

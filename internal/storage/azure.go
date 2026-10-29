@@ -330,6 +330,10 @@ func (a *AzureStorage) ListObjects(prefix string, maxKeys int32) ([]string, erro
 
 func (a *AzureStorage) RemoveObject(objectPath string) error {
 	_, err := a.blobClient(objectPath).Delete(context.Background(), nil)
+	var responseErr *azcore.ResponseError
+	if errors.As(err, &responseErr) && responseErr.ErrorCode == "BlobNotFound" {
+		return nil
+	}
 	return err
 }
 
@@ -388,7 +392,7 @@ func (a *AzureStorage) MarkAsTrashed(objectPath string, object interface{}) erro
 	ctx := context.Background()
 
 	if _, ok := object.(models.File); ok {
-		if _, err := a.blobClient(objectPath).GetProperties(ctx, nil); err != nil {
+		if _, err := a.blobClient(fileContentPath(objectPath, object)).GetProperties(ctx, nil); err != nil {
 			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
 		}
 	}

@@ -682,8 +682,9 @@ func (a *TestApp) UploadFileInto(
 	a.PutPresigned(t, transfer, []byte("test!"))
 
 	require.Equal(t, http.StatusNoContent,
-		a.DoStatus(t, http.MethodPatch, fmt.Sprintf("/api/v1/buckets/%s/files/%s", bucketID, transfer.ID), token,
-			models.FilePatchBody{Status: string(models.FileStatusUploaded)}),
+		a.DoStatus(t, http.MethodPost,
+			fmt.Sprintf("/api/v1/buckets/%s/files/%s/versions/%s/confirm", bucketID, transfer.ID, transfer.VersionID),
+			token, nil),
 		"confirm upload for %s", name)
 
 	return transfer.ID

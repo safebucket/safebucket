@@ -4,11 +4,14 @@ package migration_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/safebucket/safebucket/internal/database"
 	"github.com/safebucket/safebucket/internal/models"
+	filesql "github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/tests/integration/bootstrap"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -34,24 +37,53 @@ func TestMigrationsPreserveData(t *testing.T) {
 
 			seedDB(t, db)
 
+			var originalFile struct {
+				ID        uuid.UUID
+				Size      int
+				Status    models.FileStatus
+				CreatedAt time.Time
+			}
+			require.NoError(t, db.Table("files").First(&originalFile).Error)
+
 			require.NoError(t, bootstrap.MigrateUpTo(sqlDB, dialect, last), "migrate to latest version %d", last)
 
 			for label, model := range map[string]any{
-				"users":       &models.User{},
-				"buckets":     &models.Bucket{},
-				"memberships": &models.Membership{},
-				"folders":     &models.Folder{},
-				"files":       &models.File{},
-				"invites":     &models.Invite{},
-				"challenges":  &models.Challenge{},
-				"mfa_devices": &models.MFADevice{},
-				"shares":      &models.Share{},
-				"share_files": &models.ShareFile{},
+				"users":         &models.User{},
+				"buckets":       &models.Bucket{},
+				"memberships":   &models.Membership{},
+				"folders":       &models.Folder{},
+				"files":         &models.File{},
+				"file_versions": &models.FileVersion{},
+				"invites":       &models.Invite{},
+				"challenges":    &models.Challenge{},
+				"mfa_devices":   &models.MFADevice{},
+				"shares":        &models.Share{},
+				"share_files":   &models.ShareFile{},
 			} {
 				var count int64
 				require.NoError(t, db.Model(model).Count(&count).Error, "count %s", label)
 				assert.Equal(t, int64(1), count, "%s row should survive migration to version %d", label, last)
 			}
+
+			var migratedFile models.File
+			require.NoError(
+				t,
+				filesql.WithCurrentVersionSize(db).First(&migratedFile, "files.id = ?", originalFile.ID).Error,
+			)
+			require.NotNil(t, migratedFile.CurrentVersionID)
+			assert.Equal(t, originalFile.ID, *migratedFile.CurrentVersionID)
+			assert.Equal(t, originalFile.Size, migratedFile.Size)
+			assert.Equal(t, originalFile.Status, migratedFile.Status)
+			assert.False(t, db.Migrator().HasColumn(&models.File{}, "size"))
+
+			var version models.FileVersion
+			require.NoError(t, db.First(&version, "id = ?", *migratedFile.CurrentVersionID).Error)
+			assert.Equal(t, originalFile.ID, version.FileID)
+			assert.Equal(t, 1, version.Version)
+			assert.Equal(t, originalFile.Size, version.Size)
+			assert.Equal(t, originalFile.Status, version.Status)
+			assert.True(t, originalFile.CreatedAt.Equal(version.CreatedAt))
+			assert.Nil(t, version.UploadedBy)
 
 			var migratedShare models.Share
 			require.NoError(t, db.First(&migratedShare).Error)
@@ -83,14 +115,17 @@ func seedDB(t *testing.T, db *gorm.DB) {
 	folder := models.Folder{Name: "folder", Status: models.FolderStatusCreated, BucketID: bucket.ID}
 	require.NoError(t, db.Create(&folder).Error)
 
-	file := models.File{
-		Name:     "file.txt",
-		Status:   models.FileStatusUploaded,
-		BucketID: bucket.ID,
-		FolderID: &folder.ID,
-		Size:     10,
-	}
-	require.NoError(t, db.Create(&file).Error)
+	fileID := uuid.New()
+	require.NoError(t, db.Table("files").Create(map[string]any{
+		"id":         fileID,
+		"name":       "file.txt",
+		"status":     models.FileStatusUploaded,
+		"bucket_id":  bucket.ID,
+		"folder_id":  folder.ID,
+		"size":       10,
+		"created_at": time.Now(),
+		"updated_at": time.Now(),
+	}).Error)
 
 	invite := models.Invite{
 		Email:     "invitee@example.com",
@@ -121,5 +156,5 @@ func seedDB(t *testing.T, db *gorm.DB) {
 	}
 	require.NoError(t, db.Omit("CustomID").Create(&share).Error)
 
-	require.NoError(t, db.Create(&models.ShareFile{ShareID: share.ID, FileID: file.ID}).Error)
+	require.NoError(t, db.Create(&models.ShareFile{ShareID: share.ID, FileID: fileID}).Error)
 }

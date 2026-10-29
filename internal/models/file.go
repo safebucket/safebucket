@@ -18,21 +18,44 @@ const (
 )
 
 type File struct {
-	ID           uuid.UUID      `gorm:"default:(-)"           json:"id"`
-	Name         string         `gorm:"not null;default:null" json:"name"`
-	Extension    string         `gorm:"default:null"          json:"extension"`
-	Status       FileStatus     `gorm:"default:null"          json:"status"`
-	BucketID     uuid.UUID      `                             json:"bucket_id"`
-	Bucket       Bucket         `                             json:"-"`
-	FolderID     *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
-	ParentFolder *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
-	Size         int            `gorm:"not null;default:0"    json:"size"`
-	DeletedBy    *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
-	ExpiresAt    *time.Time     `gorm:"default:null"          json:"expires_at"`
-	OriginalPath string         `gorm:"-"                     json:"original_path,omitempty"`
-	CreatedAt    time.Time      `                             json:"created_at"`
-	UpdatedAt    time.Time      `                             json:"updated_at"`
-	DeletedAt    gorm.DeletedAt `                             json:"deleted_at"`
+	ID               uuid.UUID      `gorm:"default:(-)"           json:"id"`
+	Name             string         `gorm:"not null;default:null" json:"name"`
+	Extension        string         `gorm:"default:null"          json:"extension"`
+	Status           FileStatus     `gorm:"default:null"          json:"status"`
+	BucketID         uuid.UUID      `                             json:"bucket_id"`
+	Bucket           Bucket         `                             json:"-"`
+	FolderID         *uuid.UUID     `gorm:"default:null"          json:"folder_id,omitempty"`
+	ParentFolder     *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
+	Size             int            `gorm:"->"                    json:"size"`
+	CurrentVersionID *uuid.UUID     `gorm:"default:null"          json:"current_version_id,omitempty"`
+	DeletedBy        *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
+	ExpiresAt        *time.Time     `gorm:"default:null"          json:"expires_at"`
+	OriginalPath     string         `gorm:"-"                     json:"original_path,omitempty"`
+	CreatedAt        time.Time      `                             json:"created_at"`
+	UpdatedAt        time.Time      `                             json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `                             json:"deleted_at"`
+}
+
+type FileVersion struct {
+	ID           uuid.UUID  `gorm:"default:(-)"           json:"id"`
+	FileID       uuid.UUID  `                             json:"file_id"`
+	Version      int        `                             json:"version"`
+	Size         int        `gorm:"not null;default:0"    json:"size"`
+	Status       FileStatus `gorm:"default:null"          json:"status"`
+	UploadedBy   *uuid.UUID `gorm:"default:null"          json:"uploaded_by,omitempty"`
+	Uploader     *User      `gorm:"foreignKey:UploadedBy" json:"-"`
+	CleanupAfter *time.Time `gorm:"default:null"          json:"-"`
+	CreatedAt    time.Time  `                             json:"created_at"`
+}
+
+type FileVersionResponse struct {
+	ID         uuid.UUID  `json:"id"`
+	Version    int        `json:"version"`
+	Size       int        `json:"size"`
+	Status     FileStatus `json:"status"`
+	UploadedBy *UserInfo  `json:"uploaded_by,omitempty"`
+	IsCurrent  bool       `json:"is_current"`
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 type FileActivity struct {
@@ -47,6 +70,13 @@ func (f *File) ToActivity() FileActivity {
 	}
 }
 
+func (f *File) ContentVersionID() uuid.UUID {
+	if f.CurrentVersionID != nil {
+		return *f.CurrentVersionID
+	}
+	return f.ID
+}
+
 type FileUploadBody struct {
 	Name      string     `json:"name"                 validate:"required,filename,max=255"`
 	FolderID  *uuid.UUID `json:"folder_id"            validate:"omitempty,uuid"`
@@ -55,11 +85,12 @@ type FileUploadBody struct {
 }
 
 type FileUploadResponse struct {
-	ID     string              `json:"id"`
-	Method string              `json:"method"`
-	URL    string              `json:"url,omitempty"`
-	Body   []map[string]string `json:"body,omitempty"`
-	Parts  []FilePartURL       `json:"parts,omitempty"`
+	VersionID string              `json:"version_id"`
+	ID        string              `json:"id"`
+	Method    string              `json:"method"`
+	URL       string              `json:"url,omitempty"`
+	Body      []map[string]string `json:"body,omitempty"`
+	Parts     []FilePartURL       `json:"parts,omitempty"`
 }
 
 type FilePartURL struct {

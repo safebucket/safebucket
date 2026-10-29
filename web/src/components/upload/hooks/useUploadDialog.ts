@@ -1,16 +1,18 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
 import type {
   FileWithPath,
   StagedFile,
 } from "@/components/upload/helpers/types";
 import type { IFolder } from "@/types/folder";
+import { FileStatus } from "@/types/file";
 import { createFolderMutationFn } from "@/components/upload/helpers/api";
 import {
   extractFolderPaths,
   toStagedFiles,
 } from "@/components/upload/helpers/file-processing";
 import { useUploadContext } from "@/components/upload/hooks/useUploadContext";
+import { bucketDataQueryOptions } from "@/queries/bucket";
 
 interface UseUploadDialogParams {
   bucketId: string;
@@ -30,6 +32,7 @@ export interface UseUploadDialogReturn {
   isExpirationEnabled: boolean;
   setIsExpirationEnabled: (enabled: boolean) => void;
   handleUpload: () => Promise<void>;
+  existingFileNames: Set<string>;
 }
 
 export const useUploadDialog = ({
@@ -42,6 +45,25 @@ export const useUploadDialog = ({
   const [stagedFiles, setStagedFiles] = useState<Array<StagedFile>>([]);
   const [expiresAt, setExpiresAt] = useState<Date | undefined>(undefined);
   const [isExpirationEnabled, setIsExpirationEnabled] = useState(false);
+
+  const bucketData = useQuery({
+    ...bucketDataQueryOptions(bucketId),
+    enabled: false,
+  });
+
+  const existingFileNames = useMemo(
+    () =>
+      new Set(
+        (bucketData.data?.files ?? [])
+          .filter(
+            (file) =>
+              file.status === FileStatus.uploaded &&
+              (file.folder_id ?? undefined) === folderId,
+          )
+          .map((file) => file.name),
+      ),
+    [bucketData.data, folderId],
+  );
 
   const resetState = useCallback(() => {
     setStagedFiles([]);
@@ -150,5 +172,6 @@ export const useUploadDialog = ({
     isExpirationEnabled,
     setIsExpirationEnabled,
     handleUpload,
+    existingFileNames,
   };
 };

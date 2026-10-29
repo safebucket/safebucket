@@ -24,6 +24,7 @@ type AppSettings struct {
 	StaticFilesEnabled    bool   `json:"static_files_enabled"`
 	MaxUploadSize         int64  `json:"max_upload_size"`
 	TrashRetentionDays    int    `json:"trash_retention_days"`
+	MaxFileVersions       int    `json:"max_file_versions"`
 	AllowRedirectDownload bool   `json:"allow_redirect_download"`
 	TLSEnabled            bool   `json:"tls_enabled"`
 }

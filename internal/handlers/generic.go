@@ -28,7 +28,8 @@ type (
 	GetOneWithQueryTargetFunc[Q any, Out any] func(*zap.Logger, models.UserClaims, uuid.UUIDs, Q) (Out, error)
 	GetOneListTargetFunc[Out any]             func(*zap.Logger, models.UserClaims, uuid.UUIDs) []Out
 	BodyTargetFunc[In any]                    func(*zap.Logger, models.UserClaims, uuid.UUIDs, In) error
-	DeleteTargetFunc                          func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
+	ActionTargetFunc                          func(*zap.Logger, models.UserClaims, uuid.UUIDs) error
+	DeleteTargetFunc                          = ActionTargetFunc
 )
 
 func spanName(fn any) string {
@@ -236,8 +237,8 @@ func BodyHandlerWithStatus[In any](handler BodyTargetFunc[In], successStatus int
 	}
 }
 
-func DeleteHandler(del DeleteTargetFunc) http.HandlerFunc {
-	name := spanName(del)
+func ActionHandler(action ActionTargetFunc) http.HandlerFunc {
+	name := spanName(action)
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, span := tracing.StartSpan(r.Context(), name)
 		defer span.End()
@@ -250,10 +251,14 @@ func DeleteHandler(del DeleteTargetFunc) http.HandlerFunc {
 
 		claims, _ := h.GetUserClaims(r.Context())
 		logger := m.GetLogger(r)
-		if err := del(logger, claims, ids); err != nil {
+		if err := action(logger, claims, ids); err != nil {
 			WriteError(span, w, err)
 		} else {
 			h.RespondWithJSON(w, http.StatusNoContent, nil)
 		}
 	}
+}
+
+func DeleteHandler(del DeleteTargetFunc) http.HandlerFunc {
+	return ActionHandler(del)
 }
