@@ -54,8 +54,7 @@ func (s PublicShareService) Routes() chi.Router {
 			r.Get("/files/{id1}/download", handlers.ShareDownloadRedirectHandler(s.DownloadShareFileRedirect))
 			r.With(m.Validate[models.ShareUploadBody]).
 				Post("/files", handlers.ShareCreateHandler(s.UploadShareFile))
-			r.Patch("/files/{id1}", handlers.ShareActionHandler(s.ConfirmShareUpload))
-			r.Patch("/files/{id1}/versions/{id2}", handlers.ShareActionHandler(s.ConfirmShareVersion))
+			r.Post("/files/{id1}/versions/{id2}/confirm", handlers.ShareActionHandler(s.ConfirmShareVersion))
 			r.Delete("/files/{id1}/versions/{id2}", handlers.ShareActionHandler(s.CancelShareVersion))
 		})
 	})
@@ -353,10 +352,6 @@ func (s PublicShareService) UploadShareFile(
 	return s.Versions.Start(logger, share.BucketID, models.FileUploadBody{
 		Name: body.Name, Size: int(body.Size), FolderID: folderID,
 	}, nil, &share)
-}
-
-func (s PublicShareService) ConfirmShareUpload(logger *zap.Logger, share models.Share, ids uuid.UUIDs) error {
-	return s.ConfirmShareVersion(logger, share, uuid.UUIDs{ids[0], ids[1], uuid.Nil})
 }
 
 func (s PublicShareService) ConfirmShareVersion(logger *zap.Logger, share models.Share, ids uuid.UUIDs) error {

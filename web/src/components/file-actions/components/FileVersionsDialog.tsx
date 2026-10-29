@@ -7,6 +7,7 @@ import type { FileVersionAction } from "@/queries/file-versions";
 import { getUserDisplayName } from "@/types/user";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { downloadFromStorage } from "@/components/file-actions/helpers/api";
+import { GridActionIcon } from "@/components/bucket-view/components/GridActionIcon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,14 @@ import {
 } from "@/components/ui/dialog";
 import { errorToast, resolveErrorMessage } from "@/lib/toast";
 import { formatDate, formatFileSize } from "@/lib/utils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   fileVersionsQueryOptions,
   getFileVersionDownload,
@@ -60,7 +69,7 @@ export function FileVersionsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-2xl">
+        <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-4xl">
           <DialogHeader className="pr-8">
             <DialogTitle>{t("file_versions.title")}</DialogTitle>
             <DialogDescription className="break-all">
@@ -97,85 +106,111 @@ export function FileVersionsDialog({
             </p>
           )}
           {versions.isSuccess && versions.data.length > 0 && (
-            <ul className="min-h-0 divide-y overflow-y-auto">
-              {versions.data.map((version) => (
-                <li key={version.id} className="py-4 first:pt-0 last:pb-0">
-                  <div
-                    role="group"
-                    aria-label={t("file_versions.version", {
-                      number: version.version,
-                    })}
-                    className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 font-medium">
-                        {t("file_versions.version", {
+            <div className="min-h-0 overflow-y-auto">
+              <Table className="min-w-3xl table-fixed">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-48">
+                      {t("file_versions.columns.version")}
+                    </TableHead>
+                    <TableHead className="w-52">
+                      {t("file_versions.columns.date")}
+                    </TableHead>
+                    <TableHead className="w-24">
+                      {t("file_versions.columns.size")}
+                    </TableHead>
+                    <TableHead>
+                      {t("file_versions.columns.uploaded_by")}
+                    </TableHead>
+                    <TableHead className="w-32 text-right">
+                      {t("file_versions.columns.actions")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {versions.data.map((version) => {
+                    const uploader = version.uploaded_by
+                      ? getUserDisplayName(
+                          version.uploaded_by,
+                          version.uploaded_by.email,
+                        )
+                      : t("file_versions.unknown_uploader");
+
+                    return (
+                      <TableRow
+                        key={version.id}
+                        role="group"
+                        aria-label={t("file_versions.version", {
                           number: version.version,
                         })}
-                        {version.is_current && (
-                          <Badge variant="secondary">
-                            {t("file_versions.current")}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
-                        <time dateTime={version.created_at}>
-                          {formatDate(version.created_at)}
-                        </time>
-                        <span>{formatFileSize(version.size)}</span>
-                        {version.uploaded_by && (
-                          <span>
-                            {t("file_versions.uploaded_by", {
-                              name: getUserDisplayName(
-                                version.uploaded_by,
-                                version.uploaded_by.email,
-                              ),
-                            })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={busy}
-                        onClick={() => download.mutate(version.id)}
                       >
-                        <Download />
-                        {t("common.download")}
-                      </Button>
-                      {canManage && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={busy || version.is_current}
-                            onClick={() =>
-                              setConfirmation({ action: "restore", version })
-                            }
-                          >
-                            <RotateCcw />
-                            {t("file_versions.restore")}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            disabled={busy || version.is_current}
-                            onClick={() =>
-                              setConfirmation({ action: "delete", version })
-                            }
-                          >
-                            <Trash2 />
-                            {t("common.delete")}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                        <TableCell className="font-medium">
+                          {t("file_versions.version", {
+                            number: version.version,
+                          })}
+                          {version.is_current && (
+                            <Badge variant="secondary" className="ml-2">
+                              {t("file_versions.current")}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          <time dateTime={version.created_at}>
+                            {formatDate(version.created_at)}
+                          </time>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatFileSize(version.size)}
+                        </TableCell>
+                        <TableCell
+                          className="truncate text-muted-foreground"
+                          title={uploader}
+                        >
+                          {uploader}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <GridActionIcon
+                              icon={<Download className="h-4 w-4" />}
+                              label={t("common.download")}
+                              disabled={busy}
+                              onClick={() => download.mutate(version.id)}
+                            />
+                            {canManage && (
+                              <>
+                                <GridActionIcon
+                                  icon={<RotateCcw className="h-4 w-4" />}
+                                  label={t("file_versions.restore")}
+                                  disabled={busy || version.is_current}
+                                  onClick={() =>
+                                    setConfirmation({
+                                      action: "restore",
+                                      version,
+                                    })
+                                  }
+                                />
+                                <GridActionIcon
+                                  icon={<Trash2 className="h-4 w-4" />}
+                                  label={t("common.delete")}
+                                  destructive
+                                  disabled={busy || version.is_current}
+                                  onClick={() =>
+                                    setConfirmation({
+                                      action: "delete",
+                                      version,
+                                    })
+                                  }
+                                />
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </DialogContent>
       </Dialog>

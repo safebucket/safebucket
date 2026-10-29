@@ -669,7 +669,8 @@
       "expires": "Läuft ab",
       "pick_a_date": "Datum auswählen",
       "upload_button": "Hochladen",
-      "folder_path": "in {{path}}"
+      "folder_path": "in {{path}}",
+      "new_version_notice": "Eine Datei mit diesem Namen existiert bereits. Das Hochladen erstellt eine neue Version."
     },
     "uploading_files_one": "{{count}} Datei wird hochgeladen",
     "uploading_files_other": "{{count}} Dateien werden hochgeladen",
@@ -1106,7 +1107,14 @@
     "title": "Versionsverlauf",
     "version": "Version {{number}}",
     "current": "Aktuell",
-    "uploaded_by": "Hochgeladen von {{name}}",
+    "columns": {
+      "version": "Version",
+      "date": "Datum",
+      "size": "Größe",
+      "uploaded_by": "Hochgeladen von",
+      "actions": "Aktionen"
+    },
+    "unknown_uploader": "Unbekannt",
     "retry": "Erneut versuchen",
     "empty": "Noch keine gespeicherten Versionen.",
     "restore": "Wiederherstellen",

@@ -15,9 +15,10 @@ export const fileVersionsQueryOptions = (bucketId: string, fileId: string) =>
   queryOptions({
     queryKey: ["buckets", bucketId, "files", fileId, "versions"],
     queryFn: () =>
-      api.get<Array<IFileVersion>>(
+      api.get<{ data: Array<IFileVersion> }>(
         `/buckets/${bucketId}/files/${fileId}/versions`,
       ),
+    select: (response) => response.data,
   });
 
 export const getFileVersionDownload = (
@@ -41,9 +42,9 @@ export const useFileVersionMutation = (bucketId: string, fileId: string) => {
       versionId: string;
     }) =>
       action === "restore"
-        ? api.put(`/buckets/${bucketId}/files/${fileId}`, {
-            version_id: versionId,
-          })
+        ? api.post(
+            `/buckets/${bucketId}/files/${fileId}/versions/${versionId}/restore`,
+          )
         : api.delete(
             `/buckets/${bucketId}/files/${fileId}/versions/${versionId}`,
           ),

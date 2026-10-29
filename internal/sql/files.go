@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -23,11 +22,12 @@ func WithCurrentVersionSize(db *gorm.DB) *gorm.DB {
 func GetFileByID(db *gorm.DB, bucketID uuid.UUID, fileID uuid.UUID) (models.File, error) {
 	var file models.File
 
-	if err := db.Where("id = ? AND bucket_id = ?", fileID, bucketID).First(&file).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
-		}
-		return models.File{}, err
+	result := db.Where("id = ? AND bucket_id = ?", fileID, bucketID).Find(&file)
+	if result.Error != nil {
+		return models.File{}, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 	}
 
 	return file, nil

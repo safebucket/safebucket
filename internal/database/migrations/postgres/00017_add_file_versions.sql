@@ -13,13 +13,11 @@ CREATE TABLE file_versions
         cleanup_after TIMESTAMP,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-        -- Foreign Keys
         CONSTRAINT fk_file_versions_file_id
             FOREIGN KEY (file_id) REFERENCES files (id) ON UPDATE CASCADE ON DELETE CASCADE,
         CONSTRAINT fk_file_versions_uploaded_by
             FOREIGN KEY (uploaded_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL,
 
-        -- Constraints
         CONSTRAINT chk_file_versions_size_positive
             CHECK (size >= 0)
     );

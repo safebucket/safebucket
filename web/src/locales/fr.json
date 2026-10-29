@@ -676,7 +676,8 @@
       "expires": "Expire",
       "pick_a_date": "Choisir une date",
       "upload_button": "Télécharger",
-      "folder_path": "dans {{path}}"
+      "folder_path": "dans {{path}}",
+      "new_version_notice": "Un fichier portant ce nom existe déjà. Le téléchargement créera une nouvelle version."
     },
     "uploading_files_one": "Envoi de {{count}} fichier",
     "uploading_files_other": "Envoi de {{count}} fichiers",
@@ -1113,7 +1114,14 @@
     "title": "Historique des versions",
     "version": "Version {{number}}",
     "current": "Actuelle",
-    "uploaded_by": "Téléversé par {{name}}",
+    "columns": {
+      "version": "Version",
+      "date": "Date",
+      "size": "Taille",
+      "uploaded_by": "Téléversé par",
+      "actions": "Actions"
+    },
+    "unknown_uploader": "Inconnu",
     "retry": "Réessayer",
     "empty": "Aucune version enregistrée pour le moment.",
     "restore": "Restaurer",

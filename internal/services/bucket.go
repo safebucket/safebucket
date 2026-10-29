@@ -216,18 +216,16 @@ func (s BucketService) GetBucket(
 	expirationTime := now.Add(-c.UploadPolicyExpirationInMinutes * time.Minute)
 
 	files := make([]models.File, 0)
-	if err = sql.WithCurrentVersionSize(s.DB).Where(
-		"files.bucket_id = ? AND (files.expires_at IS NULL OR files.expires_at > ?) AND "+
-			"(files.status = ? OR (files.status = ? AND EXISTS ("+
-			"SELECT 1 FROM file_versions WHERE file_versions.file_id = files.id "+
-			"AND file_versions.status = ? AND file_versions.created_at > ?)))",
-		bucketID,
-		now,
-		models.FileStatusUploaded,
-		models.FileStatusUploading,
-		models.FileStatusUploading,
-		expirationTime,
-	).Find(&files).Error; err != nil {
+	pendingUpload := s.DB.Model(&models.FileVersion{}).Select("1").
+		Where("file_versions.file_id = files.id AND file_versions.status = ? AND file_versions.created_at > ?",
+			models.FileStatusUploading, expirationTime)
+	visible := s.DB.Where("files.status = ?", models.FileStatusUploaded).
+		Or("files.status = ? AND EXISTS (?)", models.FileStatusUploading, pendingUpload)
+	if err = sql.WithCurrentVersionSize(s.DB).
+		Where("files.bucket_id = ?", bucketID).
+		Where("files.expires_at IS NULL OR files.expires_at > ?", now).
+		Where(visible).
+		Find(&files).Error; err != nil {
 		logger.Error("Failed to list files", zap.Error(err))
 		return bucket, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}

@@ -181,6 +181,7 @@ export const FilesTab: FC<IFilesTabProps> = ({
           isExpirationEnabled={uploadDialog.isExpirationEnabled}
           onExpirationEnabledChange={uploadDialog.setIsExpirationEnabled}
           onUpload={uploadDialog.handleUpload}
+          existingFileNames={uploadDialog.existingFileNames}
         />
       </div>
     </FilesDndProvider>

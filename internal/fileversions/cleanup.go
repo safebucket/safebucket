@@ -55,7 +55,6 @@ func (m Manager) Cleanup(bucketID, fileID, versionID uuid.UUID) error {
 	})
 }
 
-// ExpirePending marks a stale upload for deletion; the deleted versions cleanup removes it.
 func (m Manager) ExpirePending(bucketID uuid.UUID, version models.FileVersion, threshold time.Time) (bool, error) {
 	expired := false
 	err := m.DB.Transaction(func(tx *gorm.DB) error {

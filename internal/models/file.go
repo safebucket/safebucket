@@ -112,7 +112,3 @@ type FileDownloadQuery struct {
 type FilePatchBody struct {
 	Status string `json:"status" validate:"required,oneof=uploaded"`
 }
-
-type FileVersionRestoreBody struct {
-	VersionID uuid.UUID `json:"version_id" validate:"required"`
-}

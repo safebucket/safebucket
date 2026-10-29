@@ -1,4 +1,4 @@
-import { Plus, X } from "lucide-react";
+import { Plus, TriangleAlert, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { DragEvent, FC } from "react";
@@ -24,12 +24,14 @@ interface UploadFileListProps {
   files: Array<StagedFile>;
   onRemoveFile: (id: string) => void;
   onAddFiles: (files: Array<FileWithPath>) => void;
+  existingFileNames?: Set<string>;
 }
 
 export const UploadFileList: FC<UploadFileListProps> = ({
   files,
   onRemoveFile,
   onAddFiles,
+  existingFileNames,
 }) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,6 +74,9 @@ export const UploadFileList: FC<UploadFileListProps> = ({
           const description = staged.relativePath
             ? `${t("upload.dialog.folder_path", { path: staged.relativePath })} · ${size}`
             : size;
+          const isNewVersion =
+            staged.relativePath === "" &&
+            existingFileNames?.has(staged.file.name) === true;
 
           return (
             <Attachment
@@ -89,6 +94,12 @@ export const UploadFileList: FC<UploadFileListProps> = ({
               <AttachmentContent>
                 <AttachmentTitle>{staged.file.name}</AttachmentTitle>
                 <AttachmentDescription>{description}</AttachmentDescription>
+                {isNewVersion && (
+                  <p className="mt-0.5 flex items-start gap-1 text-xs font-medium text-warning">
+                    <TriangleAlert className="mt-px size-3.5 shrink-0" />
+                    {t("upload.dialog.new_version_notice")}
+                  </p>
+                )}
               </AttachmentContent>
               <AttachmentActions>
                 <AttachmentAction

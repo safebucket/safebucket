@@ -49,28 +49,13 @@ func (s BucketFileService) Routes() chi.Router {
 			Patch("/", handlers.BodyHandler(s.PatchFile))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
-			With(m.Validate[models.FileVersionRestoreBody]).
-			Put("/", handlers.BodyHandler(s.RestoreFileVersion))
-
-		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
 			Delete("/", handlers.DeleteHandler(s.DeleteFile))
 
 		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
 			With(m.ValidateQuery[models.FileDownloadQuery]).
 			Get("/url", handlers.GetOneWithQueryHandler(s.DownloadFile))
 
-		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
-			Get("/versions", handlers.GetOneHandler(s.ListFileVersions))
-
-		r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
-			With(m.ValidateQuery[models.FileDownloadQuery]).
-			Get("/versions/{id2}/url", handlers.GetOneWithQueryHandler(s.DownloadFileVersion))
-
-		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
-			Patch("/versions/{id2}", handlers.DeleteHandler(s.ConfirmFileVersion))
-
-		r.With(m.AuthorizeGroup(s.DB, models.GroupContributor, 0)).
-			Delete("/versions/{id2}", handlers.DeleteHandler(s.DeleteFileVersion))
+		r.Mount("/versions", BucketFileVersionService{s}.Routes())
 	})
 
 	return r
@@ -83,14 +68,6 @@ func (s BucketFileService) UploadFile(
 	body models.FileUploadBody,
 ) (models.FileUploadResponse, error) {
 	return s.Versions.Start(logger, ids[0], body, &user.UserID, nil)
-}
-
-func (s BucketFileService) ConfirmFileVersion(logger *zap.Logger, _ models.UserClaims, ids uuid.UUIDs) error {
-	completed, err := s.Versions.Complete(logger, ids[0], ids[1], ids[2], nil, false)
-	if err == nil && completed.Changed {
-		events.NotifyFileVersionUploaded(logger, s.DB, s.ActivityLogger, s.Publisher, completed, nil)
-	}
-	return err
 }
 
 func (s BucketFileService) PatchFile(
@@ -121,21 +98,10 @@ func (s BucketFileService) PatchFile(
 		if file.DeletedAt.Valid {
 			return s.RestoreFile(logger, user, file)
 		}
-		return s.HandleUploadedStatus(logger, user, file)
+		return apierrors.New(http.StatusConflict, apierrors.CodeFileNotInTrash)
 	default:
 		return apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidStatus)
 	}
-}
-
-// HandleUploadedStatus confirms a file upload by transitioning from "uploading" to "uploaded".
-// This is required for S3 providers that don't support bucket notifications.
-// The client must call this after completing the upload via the presigned URL.
-func (s BucketFileService) HandleUploadedStatus(
-	logger *zap.Logger,
-	user models.UserClaims,
-	file models.File,
-) error {
-	return s.ConfirmFileVersion(logger, user, uuid.UUIDs{file.BucketID, file.ID, uuid.Nil})
 }
 
 func (s BucketFileService) DeleteFile(
@@ -160,144 +126,6 @@ func (s BucketFileService) DownloadFile(
 	}
 
 	return s.downloadVersion(logger, user, file, file.ContentVersionID(), 0, query.Context)
-}
-
-func (s BucketFileService) DownloadFileVersion(
-	logger *zap.Logger,
-	user models.UserClaims,
-	ids uuid.UUIDs,
-	query models.FileDownloadQuery,
-) (models.FileDownloadResponse, error) {
-	file, err := s.getDownloadableFile(ids[0], ids[1])
-	if err != nil {
-		return models.FileDownloadResponse{}, err
-	}
-
-	version, err := sql.GetFileVersionByID(s.DB, file.ID, ids[2])
-	if err != nil {
-		return models.FileDownloadResponse{}, err
-	}
-	if version.Status != models.FileStatusUploaded {
-		return models.FileDownloadResponse{}, apierrors.New(
-			http.StatusNotFound,
-			apierrors.CodeFileVersionNotFound,
-		)
-	}
-
-	return s.downloadVersion(logger, user, file, version.ID, version.Version, query.Context)
-}
-
-func (s BucketFileService) ListFileVersions(
-	logger *zap.Logger,
-	_ models.UserClaims,
-	ids uuid.UUIDs,
-) ([]models.FileVersionResponse, error) {
-	file, err := sql.GetFileByID(s.DB, ids[0], ids[1])
-	if err != nil {
-		return nil, err
-	}
-
-	var versions []models.FileVersion
-	if listErr := s.DB.Where("file_id = ? AND status = ?", file.ID, models.FileStatusUploaded).
-		Preload("Uploader").
-		Order("version DESC").
-		Find(&versions).Error; listErr != nil {
-		logger.Error("Failed to list file versions", zap.Error(listErr))
-		return nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-	}
-
-	response := make([]models.FileVersionResponse, 0, len(versions))
-	for _, version := range versions {
-		var uploader *models.UserInfo
-		if version.Uploader != nil {
-			info := version.Uploader.ToActivity()
-			uploader = &info
-		}
-		response = append(response, models.FileVersionResponse{
-			ID:         version.ID,
-			Version:    version.Version,
-			Size:       version.Size,
-			Status:     version.Status,
-			UploadedBy: uploader,
-			IsCurrent:  file.CurrentVersionID != nil && *file.CurrentVersionID == version.ID,
-			CreatedAt:  version.CreatedAt,
-		})
-	}
-
-	return response, nil
-}
-
-func (s BucketFileService) RestoreFileVersion(
-	logger *zap.Logger,
-	user models.UserClaims,
-	ids uuid.UUIDs,
-	body models.FileVersionRestoreBody,
-) error {
-	return s.DB.Transaction(func(tx *gorm.DB) error {
-		file, err := sql.LockFile(tx, ids[0], ids[1])
-		if err != nil {
-			return err
-		}
-		if err = sql.CheckFileUploadable(file); err != nil {
-			return err
-		}
-
-		version, err := sql.GetFileVersionByID(tx, file.ID, body.VersionID)
-		if err != nil {
-			return err
-		}
-		if version.Status != models.FileStatusUploaded {
-			return apierrors.New(http.StatusConflict, apierrors.CodeFileVersionNotRestorable)
-		}
-
-		if updateErr := tx.Model(&models.File{}).
-			Where("id = ?", file.ID).
-			Update("current_version_id", version.ID).Error; updateErr != nil {
-			logger.Error("Failed to repoint file to restored version", zap.Error(updateErr))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
-		}
-
-		if logErr := s.ActivityLogger.Send(models.Activity{
-			Message: activity.FileVersionRestored,
-			Object:  file.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionRestore.String(),
-				BucketID:   file.BucketID.String(),
-				FileID:     file.ID.String(),
-				ObjectType: rbac.ResourceFile.String(),
-				UserID:     user.UserID.String(),
-				Version:    strconv.Itoa(version.Version),
-			}),
-		}); logErr != nil {
-			logger.Error("Failed to log version restore activity", zap.Error(logErr))
-			return logErr
-		}
-
-		return nil
-	})
-}
-
-func (s BucketFileService) DeleteFileVersion(
-	logger *zap.Logger,
-	user models.UserClaims,
-	ids uuid.UUIDs,
-) error {
-	file, version, err := s.Versions.Delete(logger, ids[0], ids[1], ids[2], nil)
-	if err != nil || version.Status != models.FileStatusUploaded {
-		return err
-	}
-	if logErr := s.ActivityLogger.Send(models.Activity{
-		Message: activity.FileVersionDeleted,
-		Object:  file.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action: rbac.ActionDelete.String(), BucketID: file.BucketID.String(),
-			FileID: file.ID.String(), ObjectType: rbac.ResourceFile.String(),
-			UserID: user.UserID.String(), Version: strconv.Itoa(version.Version),
-		}),
-	}); logErr != nil {
-		logger.Warn("Failed to log version deletion", zap.Error(logErr))
-	}
-	return nil
 }
 
 // RestoreFile recovers a file from trash with atomic status transition.

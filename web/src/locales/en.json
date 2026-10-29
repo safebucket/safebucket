@@ -669,7 +669,8 @@
       "expires": "Expires",
       "pick_a_date": "Pick a date",
       "upload_button": "Upload",
-      "folder_path": "in {{path}}"
+      "folder_path": "in {{path}}",
+      "new_version_notice": "A file with this name already exists. Uploading will create a new version."
     },
     "uploading_files_one": "Uploading {{count}} file",
     "uploading_files_other": "Uploading {{count}} files",
@@ -1106,7 +1107,14 @@
     "title": "Version history",
     "version": "Version {{number}}",
     "current": "Current",
-    "uploaded_by": "Uploaded by {{name}}",
+    "columns": {
+      "version": "Version",
+      "date": "Date",
+      "size": "Size",
+      "uploaded_by": "Uploaded by",
+      "actions": "Actions"
+    },
+    "unknown_uploader": "Unknown",
     "retry": "Try again",
     "empty": "No saved versions yet.",
     "restore": "Restore",

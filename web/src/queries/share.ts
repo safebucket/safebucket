@@ -66,7 +66,8 @@ export const useShareConfirmUploadMutation = (shareId: string) =>
       fileId: string;
       versionId: string;
     }) =>
-      shareFetch<null>(`/${shareId}/files/${fileId}/versions/${versionId}`, {
-        method: "PATCH",
-      }),
+      shareFetch<null>(
+        `/${shareId}/files/${fileId}/versions/${versionId}/confirm`,
+        { method: "POST" },
+      ),
   });

@@ -3,6 +3,7 @@ package fileversions
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/cache"
@@ -85,11 +86,7 @@ func (m Manager) Complete(logger *zap.Logger, bucketID, fileID, versionID uuid.U
 			return err
 		}
 		var version models.FileVersion
-		if versionID == uuid.Nil {
-			version, err = sql.GetUploadVersion(tx, file)
-		} else {
-			version, err = sql.GetFileVersionByID(tx, fileID, versionID)
-		}
+		version, err = sql.GetFileVersionByID(tx, fileID, versionID)
 		if err != nil {
 			return err
 		}
@@ -127,7 +124,6 @@ func (m Manager) Complete(logger *zap.Logger, bucketID, fileID, versionID uuid.U
 	return completed, err
 }
 
-// Delete returns the file and version as they were before the deletion.
 func (m Manager) Delete(
 	logger *zap.Logger,
 	bucketID, fileID, versionID uuid.UUID,
@@ -148,7 +144,11 @@ func (m Manager) Delete(
 		if err = authorizeShare(tx, share, file); err != nil {
 			return err
 		}
-		if share != nil && version.Status != models.FileStatusUploading && version.Status != models.FileStatusDeleting {
+		allowed := []models.FileStatus{models.FileStatusUploading, models.FileStatusDeleting}
+		if share == nil {
+			allowed = append(allowed, models.FileStatusUploaded)
+		}
+		if !slices.Contains(allowed, version.Status) {
 			return apierrors.New(http.StatusConflict, apierrors.CodeFileVersionNotDeletable)
 		}
 		if file.CurrentVersionID != nil && *file.CurrentVersionID == versionID {
@@ -156,9 +156,6 @@ func (m Manager) Delete(
 		}
 		if version.Status == models.FileStatusDeleting {
 			return nil
-		}
-		if version.Status != models.FileStatusUploading && version.Status != models.FileStatusUploaded {
-			return apierrors.New(http.StatusConflict, apierrors.CodeFileVersionNotDeletable)
 		}
 		updates := map[string]interface{}{"status": models.FileStatusDeleting}
 		if version.Status == models.FileStatusUploading {

@@ -115,9 +115,8 @@ export const UploadProvider = ({ children }: { children: React.ReactNode }) => {
           presignedUpload.method === "put" && presignedUpload.parts.length > 1;
         if (isMultipart || config.requiresUploadConfirmation) {
           abortController.signal.throwIfAborted();
-          await api.patch(
-            `/buckets/${bucketId}/files/${presignedUpload.id}/versions/${presignedUpload.version_id}`,
-            {},
+          await api.post(
+            `/buckets/${bucketId}/files/${presignedUpload.id}/versions/${presignedUpload.version_id}/confirm`,
           );
         }
 

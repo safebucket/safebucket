@@ -25,21 +25,6 @@ func GetFileVersionByID(db *gorm.DB, fileID, versionID uuid.UUID) (models.FileVe
 	return version, nil
 }
 
-func GetUploadVersion(tx *gorm.DB, file models.File) (models.FileVersion, error) {
-	var version models.FileVersion
-	result := tx.Where("file_id = ? AND status = ?", file.ID, models.FileStatusUploading).Find(&version)
-	if result.Error != nil {
-		return version, result.Error
-	}
-	if result.RowsAffected != 0 {
-		return version, nil
-	}
-	if file.CurrentVersionID != nil {
-		return GetFileVersionByID(tx, file.ID, *file.CurrentVersionID)
-	}
-	return version, apierrors.New(http.StatusConflict, apierrors.CodeInvalidFileStatusTransition)
-}
-
 func LockBucketFileNames(tx *gorm.DB, bucketID uuid.UUID) error {
 	result := tx.Model(&models.Bucket{}).Where("id = ?", bucketID).UpdateColumn("name", gorm.Expr("name"))
 	if result.Error != nil {

@@ -28,6 +28,7 @@ interface UploadDialogProps {
   onExpiresAtChange?: (date: Date | undefined) => void;
   isExpirationEnabled?: boolean;
   onExpirationEnabledChange?: (enabled: boolean) => void;
+  existingFileNames?: Set<string>;
 }
 
 export const UploadDialog: FC<UploadDialogProps> = ({
@@ -42,6 +43,7 @@ export const UploadDialog: FC<UploadDialogProps> = ({
   onExpiresAtChange = () => undefined,
   isExpirationEnabled = false,
   onExpirationEnabledChange = () => undefined,
+  existingFileNames,
 }) => {
   const { t } = useTranslation();
 
@@ -61,6 +63,7 @@ export const UploadDialog: FC<UploadDialogProps> = ({
             files={stagedFiles}
             onRemoveFile={onRemoveFile}
             onAddFiles={onAddFiles}
+            existingFileNames={existingFileNames}
           />
 
           {showExpiration && (
