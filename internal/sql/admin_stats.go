@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func storageBreakdownScope(db *gorm.DB) *gorm.DB {
+func storageScope(db *gorm.DB) *gorm.DB {
 	return db.Model(&models.File{}).
 		Joins("LEFT JOIN file_versions ON file_versions.file_id = files.id AND file_versions.status = ?",
 			models.FileStatusUploaded).
@@ -18,28 +18,19 @@ func storageBreakdownScope(db *gorm.DB) *gorm.DB {
 		Where("files.status = ?", models.FileStatusUploaded)
 }
 
-func scanStorageBreakdown(query *gorm.DB) (models.StorageBreakdown, error) {
-	var breakdown models.StorageBreakdown
-	if err := query.Select(`COALESCE(SUM(file_versions.size), 0) AS total,
-COALESCE(SUM(CASE WHEN file_versions.id = files.current_version_id THEN file_versions.size ELSE 0 END), 0) AS active`).
-		Scan(&breakdown).Error; err != nil {
-		return models.StorageBreakdown{}, apierrors.New(
-			http.StatusInternalServerError,
-			apierrors.CodeInternalServerError,
-		)
+func scanStorage(query *gorm.DB) (int64, error) {
+	var total int64
+	if err := query.Select("COALESCE(SUM(file_versions.size), 0)").Scan(&total).Error; err != nil {
+		return 0, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
-	breakdown.Inactive = breakdown.Total - breakdown.Active
-
-	return breakdown, nil
+	return total, nil
 }
 
-func SumStorageBytes(db *gorm.DB) (models.StorageBreakdown, error) {
-	return scanStorageBreakdown(storageBreakdownScope(db))
+func SumStorageBytes(db *gorm.DB) (int64, error) {
+	return scanStorage(storageScope(db))
 }
 
-func SumBucketStorageBytes(db *gorm.DB, bucketID uuid.UUID) (models.StorageBreakdown, error) {
-	return scanStorageBreakdown(
-		storageBreakdownScope(db).Where("files.bucket_id = ?", bucketID),
-	)
+func SumBucketStorageBytes(db *gorm.DB, bucketID uuid.UUID) (int64, error) {
+	return scanStorage(storageScope(db).Where("files.bucket_id = ?", bucketID))
 }

@@ -24,6 +24,7 @@ app:
   admin_email: admin@safebucket.io
   admin_password: ChangeMePlease
   trash_retention_days: 7
+  max_file_versions: 5
   mfa_encryption_key: "ChangeMe32CharacterKeyForAES256!"
   max_upload_size: 53687091200 # 50 Gb
   allow_redirect_download: true

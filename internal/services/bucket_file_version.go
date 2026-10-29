@@ -27,7 +27,7 @@ func (s BucketFileVersionService) Routes() chi.Router {
 	r := chi.NewRouter()
 
 	r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
-		Get("/", handlers.GetOneHandler(s.ListFileVersions))
+		Get("/", handlers.GetListHandler(s.ListFileVersions))
 
 	r.With(m.AuthorizeGroup(s.DB, models.GroupViewer, 0)).
 		With(m.ValidateQuery[models.FileDownloadQuery]).
@@ -61,10 +61,11 @@ func (s BucketFileVersionService) ListFileVersions(
 	logger *zap.Logger,
 	_ models.UserClaims,
 	ids uuid.UUIDs,
-) (models.Page[models.FileVersionResponse], error) {
+) []models.FileVersionResponse {
 	file, err := sql.GetFileByID(s.DB, ids[0], ids[1])
 	if err != nil {
-		return models.Page[models.FileVersionResponse]{}, err
+		logger.Warn("Failed to load file for version listing", zap.Error(err))
+		return []models.FileVersionResponse{}
 	}
 
 	var versions []models.FileVersion
@@ -73,8 +74,7 @@ func (s BucketFileVersionService) ListFileVersions(
 		Order("version DESC").
 		Find(&versions).Error; listErr != nil {
 		logger.Error("Failed to list file versions", zap.Error(listErr))
-		return models.Page[models.FileVersionResponse]{},
-			apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		return []models.FileVersionResponse{}
 	}
 
 	response := make([]models.FileVersionResponse, 0, len(versions))
@@ -95,7 +95,7 @@ func (s BucketFileVersionService) ListFileVersions(
 		})
 	}
 
-	return models.Page[models.FileVersionResponse]{Data: response}, nil
+	return response
 }
 
 func (s BucketFileVersionService) RestoreFileVersion(

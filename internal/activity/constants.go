@@ -20,7 +20,6 @@ var (
 	FileVersionCreated           = defineAction("FILE_VERSION_CREATED")
 	FileVersionRestored          = defineAction("FILE_VERSION_RESTORED")
 	FileVersionDeleted           = defineAction("FILE_VERSION_DELETED")
-	FileExpirationUpdated        = defineAction("FILE_EXPIRATION_UPDATED")
 	FolderCreated                = defineAction("FOLDER_CREATED")
 	FolderUpdated                = defineAction("FOLDER_UPDATED")
 	FolderTrashed                = defineAction("FOLDER_TRASHED")
