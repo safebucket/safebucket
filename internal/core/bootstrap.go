@@ -481,20 +481,18 @@ func BuildAPIRouter(
 			AuthConfig:         authConfig,
 			Publisher:          publisher,
 			Notifier:           notify,
-			ActivityLogger:     activityLogger,
 			RefreshTokenExpiry: configuration.RefreshTokenExpiry,
 		}
 
 		apiRouter.Mount("/v1/users", userService.Routes())
 
 		apiRouter.Mount("/v1/mfa", services.MFAService{
-			DB:             db,
-			Cache:          cache,
-			AuthConfig:     authConfig,
-			Providers:      providers,
-			Publisher:      publisher,
-			Notifier:       notify,
-			ActivityLogger: activityLogger,
+			DB:         db,
+			Cache:      cache,
+			AuthConfig: authConfig,
+			Providers:  providers,
+			Publisher:  publisher,
+			Notifier:   notify,
 		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
@@ -519,13 +517,12 @@ func BuildAPIRouter(
 		}.Routes())
 
 		apiRouter.Mount("/v1/invites", services.InviteService{
-			DB:             db,
-			Cache:          cache,
-			Storage:        store,
-			AuthConfig:     authConfig,
-			Publisher:      publisher,
-			ActivityLogger: activityLogger,
-			Providers:      providers,
+			DB:         db,
+			Cache:      cache,
+			Storage:    store,
+			AuthConfig: authConfig,
+			Publisher:  publisher,
+			Providers:  providers,
 		}.Routes())
 
 		apiRouter.Mount("/v1/admin", services.AdminService{

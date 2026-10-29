@@ -13,6 +13,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
@@ -240,7 +241,7 @@ func (s PublicShareService) DownloadShareFile(
 		)
 	}
 
-	if activityErr := s.ActivityLogger.Send(models.Activity{
+	if activityErr := outbox.AddActivities(s.DB, models.Activity{
 		Message: activity.ShareFileDownloaded,
 		Object:  file.ToActivity(),
 		Filter: activity.NewLogFilter(models.ActivityFields{

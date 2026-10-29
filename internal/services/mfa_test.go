@@ -46,6 +46,11 @@ func (m *MockNotifier) NotifyFromTemplate(_ string, _ string, _ string, _ any) e
 	return nil
 }
 
+func expectOutboxInsert(mock sqlmock.Sqlmock) {
+	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "outbox"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
+}
+
 func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 	jwtSecret := "test-secret"
 	config := models.AuthConfig{
@@ -64,11 +69,10 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 
 		mockCache := &MockCache{}
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          mockCache,
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      mockCache,
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -102,6 +106,7 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 
 		mock.ExpectExec(regexp.QuoteMeta(`UPDATE "mfa_devices" SET`)).
 			WillReturnResult(sqlmock.NewResult(1, 1))
+		expectOutboxInsert(mock)
 
 		mock.ExpectCommit()
 
@@ -175,11 +180,10 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 			require.NoError(t, err)
 
 			service := MFAService{
-				DB:             gormDB,
-				Cache:          &MockCache{},
-				AuthConfig:     config,
-				Notifier:       &MockNotifier{},
-				ActivityLogger: &MockActivityLogger{},
+				DB:         gormDB,
+				Cache:      &MockCache{},
+				AuthConfig: config,
+				Notifier:   &MockNotifier{},
 			}
 
 			userID := uuid.New()
@@ -213,6 +217,7 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 			mock.ExpectBegin()
 			mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
 				WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
+			expectOutboxInsert(mock)
 			mock.ExpectCommit()
 
 			logger := zap.NewNop()
@@ -252,11 +257,10 @@ func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -314,11 +318,10 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -349,6 +352,7 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
+		expectOutboxInsert(mock)
 		mock.ExpectCommit()
 
 		logger := zap.NewNop()
@@ -385,11 +389,10 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -434,11 +437,10 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -485,11 +487,10 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -518,6 +519,7 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
+		expectOutboxInsert(mock)
 		mock.ExpectCommit()
 
 		logger := zap.NewNop()
@@ -555,11 +557,10 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -598,11 +599,10 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -647,11 +647,10 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -706,11 +705,10 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -741,6 +739,7 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		mock.ExpectBegin()
 		mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "mfa_devices"`)).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
+		expectOutboxInsert(mock)
 		mock.ExpectCommit()
 
 		logger := zap.NewNop()
@@ -769,11 +768,10 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -827,11 +825,10 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 		return service, mock, uuid.New()
 	}
@@ -911,6 +908,7 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "mfa_devices"`)).
 			WithArgs(deviceID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		expectOutboxInsert(mock)
 		mock.ExpectCommit()
 
 		err := service.RemoveDevice(zap.NewNop(), claimsFor(userID), uuid.UUIDs{deviceID},
@@ -932,6 +930,7 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "mfa_devices"`)).
 			WithArgs(deviceID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		expectOutboxInsert(mock)
 		mock.ExpectCommit()
 
 		err := service.RemoveDevice(zap.NewNop(), claimsFor(userID), uuid.UUIDs{deviceID},
@@ -978,11 +977,10 @@ func TestAddDevice_OIDCStepUp(t *testing.T) {
 		require.NoError(t, err)
 
 		service := MFAService{
-			DB:             gormDB,
-			Cache:          &MockCache{},
-			AuthConfig:     config,
-			Notifier:       &MockNotifier{},
-			ActivityLogger: &MockActivityLogger{},
+			DB:         gormDB,
+			Cache:      &MockCache{},
+			AuthConfig: config,
+			Notifier:   &MockNotifier{},
 		}
 		return service, mock, uuid.New()
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/go-chi/chi/v5"
@@ -22,11 +23,10 @@ import (
 )
 
 type BucketMemberService struct {
-	DB             *gorm.DB
-	Providers      configuration.Providers
-	Publisher      messaging.IPublisher
-	ActivityLogger activity.IActivityLogger
-	WebURL         string
+	DB        *gorm.DB
+	Providers configuration.Providers
+	Publisher messaging.IPublisher
+	WebURL    string
 }
 
 func (s BucketMemberService) Routes() chi.Router {
@@ -294,7 +294,7 @@ func (s BucketMemberService) addMember(
 			}),
 		}
 
-		if err := s.ActivityLogger.Send(action); err != nil {
+		if err := outbox.AddActivities(tx, action); err != nil {
 			logger.Error("Failed to log user invitation activity", zap.Error(err))
 			return err
 		}
@@ -346,7 +346,7 @@ func (s BucketMemberService) updateMember(
 			}),
 		}
 
-		if err := s.ActivityLogger.Send(action); err != nil {
+		if err := outbox.AddActivities(tx, action); err != nil {
 			logger.Error("Failed to log user role update activity", zap.Error(err))
 			return err
 		}
@@ -398,7 +398,7 @@ func (s BucketMemberService) deleteMember(
 			}),
 		}
 
-		if err := s.ActivityLogger.Send(action); err != nil {
+		if err := outbox.AddActivities(tx, action); err != nil {
 			logger.Error("Failed to log user removal activity", zap.Error(err))
 			return err
 		}

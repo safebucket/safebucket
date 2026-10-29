@@ -96,11 +96,14 @@ func TestQuickShareDownload(t *testing.T) {
 					"", nil, &transfer)
 				require.Equal(t, http.StatusOK, status)
 
-				results, err := app.Activity.Search(map[string][]string{
-					"share_id": {activityShare.ID.String()},
-				}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
-				require.NoError(t, err)
-				require.NotEmpty(t, results, "share download must produce an activity entry")
+				var results []map[string]any
+				require.Eventually(t, func() bool {
+					var err error
+					results, err = app.Activity.Search(map[string][]string{
+						"share_id": {activityShare.ID.String()},
+					}, time.Now().AddDate(0, 0, -30), time.Now(), 100)
+					return err == nil && len(results) > 0
+				}, 10*time.Second, 200*time.Millisecond, "share download must produce an activity entry")
 
 				var matched bool
 				for _, r := range results {

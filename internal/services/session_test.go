@@ -22,9 +22,9 @@ func newSessionService(t *testing.T) (SessionService, *cache.MemoryCache) {
 	mc := cache.NewMemoryCache()
 	t.Cleanup(func() { mc.Close() })
 	return SessionService{
+		DB:                 setupUserServiceTestDB(t),
 		Cache:              mc,
 		RefreshTokenExpiry: testRefreshTokenExpiry,
-		ActivityLogger:     &MockActivityLogger{},
 	}, mc
 }
 

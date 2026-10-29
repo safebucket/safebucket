@@ -3,7 +3,7 @@
 
 CREATE TABLE outbox
     (
-        id UUID PRIMARY KEY,
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         type TEXT NOT NULL,
         name TEXT,
         payload TEXT NOT NULL,
