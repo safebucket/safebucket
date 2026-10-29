@@ -22,6 +22,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrUnknownEventType = errors.New("event type has no topic")
+
 type EventParams struct {
 	WebURL             string
 	Notifier           notifier.INotifier
