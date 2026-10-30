@@ -1,17 +1,13 @@
 package events
 
 import (
-	"encoding/json"
 	"errors"
 	"path"
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -29,37 +25,19 @@ type BucketPurgePayload struct {
 }
 
 type BucketPurge struct {
-	Publisher messaging.IPublisher
-	Payload   BucketPurgePayload
+	Payload BucketPurgePayload
 }
 
 func NewBucketPurge(
-	publisher messaging.IPublisher,
 	bucketID uuid.UUID,
 	userID uuid.UUID,
 ) BucketPurge {
 	return BucketPurge{
-		Publisher: publisher,
 		Payload: BucketPurgePayload{
 			Type:     BucketPurgeName,
 			BucketID: bucketID,
 			UserID:   userID,
 		},
-	}
-}
-
-func (e *BucketPurge) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling bucket purge event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger bucket purge event", zap.Error(err))
 	}
 }
 

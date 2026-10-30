@@ -10,7 +10,6 @@ import (
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
 	"github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
@@ -25,7 +24,6 @@ import (
 type BucketMemberService struct {
 	DB        *gorm.DB
 	Providers configuration.Providers
-	Publisher messaging.IPublisher
 	WebURL    string
 }
 
@@ -257,7 +255,6 @@ func (s BucketMemberService) addMember(
 			}
 
 			invitationEvent := events.NewUserInvitation(
-				s.Publisher,
 				inviteRecord.Email,
 				user.Email,
 				bucket,
@@ -265,19 +262,22 @@ func (s BucketMemberService) addMember(
 				inviteRecord.ID.String(),
 				s.WebURL,
 			)
-			invitationEvent.Trigger()
+			if err := outbox.AddEvent(tx, events.UserInvitationName, invitationEvent.Payload); err != nil {
+				return err
+			}
 		} else {
+			err := rbac.CreateMembership(tx, invitee.ID, bucket.ID, invite.Group)
+			if err != nil {
+				logger.Error("Failed to create membership", zap.Error(err))
+				return err
+			}
+
 			bucketSharedEvent := events.NewBucketSharedWith(
-				s.Publisher,
 				bucket,
 				user.Email,
 				invite.Email,
 			)
-			bucketSharedEvent.Trigger()
-
-			err := rbac.CreateMembership(tx, invitee.ID, bucket.ID, invite.Group)
-			if err != nil {
-				logger.Error("Failed to create membership", zap.Error(err))
+			if err := outbox.AddEvent(tx, events.BucketSharedWithName, bucketSharedEvent.Payload); err != nil {
 				return err
 			}
 		}

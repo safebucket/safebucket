@@ -70,15 +70,12 @@ func (s BucketService) Routes() chi.Router {
 		r.Mount("/members", BucketMemberService{
 			DB:        s.DB,
 			Providers: s.Providers,
-			Publisher: s.Publisher,
 			WebURL:    s.WebURL,
 		}.Routes())
 
 		r.Mount("/", BucketFileService{
 			DB:                 s.DB,
 			Storage:            s.Storage,
-			Publisher:          s.Publisher,
-			ActivityLogger:     s.ActivityLogger,
 			Versions:           s.Versions,
 			TrashRetentionDays: s.TrashRetentionDays,
 		}.Routes())
@@ -92,7 +89,6 @@ func (s BucketService) Routes() chi.Router {
 			DB:                 s.DB,
 			Storage:            s.Storage,
 			Publisher:          s.Publisher,
-			ActivityLogger:     s.ActivityLogger,
 			TrashRetentionDays: s.TrashRetentionDays,
 		}.Routes())
 
@@ -326,9 +322,8 @@ func (s BucketService) DeleteBucket(
 			return err
 		}
 
-		event := events.NewBucketPurge(s.Publisher, bucket.ID, user.UserID)
-		event.Trigger()
-		return nil
+		event := events.NewBucketPurge(bucket.ID, user.UserID)
+		return outbox.AddEvent(tx, events.BucketPurgeName, event.Payload)
 	})
 	if err != nil {
 		logger.Error("Failed to delete bucket", zap.Error(err))

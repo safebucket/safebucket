@@ -10,7 +10,6 @@ import (
 	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
@@ -28,8 +27,6 @@ import (
 type PublicShareService struct {
 	DB                    *gorm.DB
 	Storage               storage.IStorage
-	ActivityLogger        activity.IActivityLogger
-	Publisher             messaging.IPublisher
 	TokenSecret           string
 	CookieSecureForce     bool
 	AllowRedirectDownload bool
@@ -358,12 +355,12 @@ func (s PublicShareService) UploadShareFile(
 func (s PublicShareService) ConfirmShareVersion(logger *zap.Logger, share models.Share, ids uuid.UUIDs) error {
 	completed, err := s.Versions.Complete(logger, share.BucketID, ids[1], ids[2], &share, false)
 	if err == nil && completed.Changed {
-		events.NotifyFileVersionUploaded(logger, s.DB, s.ActivityLogger, s.Publisher, completed, &share.ID)
+		events.NotifyFileVersionUploaded(logger, s.DB, completed, &share.ID)
 	}
 	return err
 }
 
 func (s PublicShareService) CancelShareVersion(logger *zap.Logger, share models.Share, ids uuid.UUIDs) error {
-	_, _, err := s.Versions.Delete(logger, share.BucketID, ids[1], ids[2], &share)
+	_, _, err := s.Versions.Delete(logger, share.BucketID, ids[1], ids[2], &share, nil)
 	return err
 }

@@ -1,14 +1,10 @@
 package events
 
 import (
-	"encoding/json"
 	"fmt"
 
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/rbac"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -44,12 +40,10 @@ type FileActivityNotificationPayload struct {
 }
 
 type FileActivityNotification struct {
-	Publisher messaging.IPublisher
-	Payload   FileActivityNotificationPayload
+	Payload FileActivityNotificationPayload
 }
 
 func NewFileActivityNotification(
-	publisher messaging.IPublisher,
 	notificationType FileActivityType,
 	source FileActivitySource,
 	bucketID uuid.UUID,
@@ -59,7 +53,6 @@ func NewFileActivityNotification(
 	actorEmail string,
 ) FileActivityNotification {
 	return FileActivityNotification{
-		Publisher: publisher,
 		Payload: FileActivityNotificationPayload{
 			Type:             FileActivityNotificationName,
 			NotificationType: notificationType,
@@ -70,21 +63,6 @@ func NewFileActivityNotification(
 			ActorID:          actorID,
 			ActorEmail:       actorEmail,
 		},
-	}
-}
-
-func (e *FileActivityNotification) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 

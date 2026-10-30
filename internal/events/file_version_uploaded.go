@@ -5,8 +5,8 @@ import (
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/fileversions"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/google/uuid"
@@ -14,8 +14,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func NotifyFileVersionUploaded(logger *zap.Logger, db *gorm.DB, activityLogger activity.IActivityLogger,
-	publisher messaging.IPublisher, completed fileversions.Completion, shareID *uuid.UUID,
+func NotifyFileVersionUploaded(
+	logger *zap.Logger, db *gorm.DB, completed fileversions.Completion, shareID *uuid.UUID,
 ) {
 	file, version := completed.File, completed.Version
 	fields := models.ActivityFields{Action: rbac.ActionCreate.String(), ObjectType: rbac.ResourceFile.String(),
@@ -41,11 +41,6 @@ func NotifyFileVersionUploaded(logger *zap.Logger, db *gorm.DB, activityLogger a
 			userID = share.CreatedBy
 		}
 	}
-	if err := activityLogger.Send(
-		models.Activity{Message: action, Object: file.ToActivity(), Filter: activity.NewLogFilter(fields)},
-	); err != nil {
-		logger.Warn("Failed to log version upload", zap.Error(err))
-	}
 	if userID == uuid.Nil {
 		return
 	}
@@ -57,8 +52,10 @@ func NotifyFileVersionUploaded(logger *zap.Logger, db *gorm.DB, activityLogger a
 	if result := db.Where("id = ?", file.BucketID).Find(&bucket); result.Error != nil || result.RowsAffected == 0 {
 		return
 	}
-	event := NewFileActivityNotification(
-		publisher,
+
+	uploaded := models.Activity{Message: action, Object: file.ToActivity(), Filter: activity.NewLogFilter(fields)}
+
+	notification := NewFileActivityNotification(
 		FileActivityUpload,
 		source,
 		file.BucketID,
@@ -67,5 +64,13 @@ func NotifyFileVersionUploaded(logger *zap.Logger, db *gorm.DB, activityLogger a
 		userID,
 		user.Email,
 	)
-	event.Trigger()
+
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := outbox.AddActivities(tx, uploaded); err != nil {
+			return err
+		}
+		return outbox.AddEvent(tx, FileActivityNotificationName, notification.Payload)
+	}); err != nil {
+		logger.Error("Failed to record version upload", zap.Error(err))
+	}
 }

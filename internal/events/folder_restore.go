@@ -9,6 +9,7 @@ import (
 	c "github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -379,6 +380,22 @@ func (e *FolderRestore) finalizeFolderRestore(params *EventParams) error {
 			return err
 		}
 
+		restore := models.Activity{
+			Message: activity.FolderRestored,
+			Object:  folder.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionRestore.String(),
+				BucketID:   e.Payload.BucketID.String(),
+				FolderID:   e.Payload.FolderID.String(),
+				ObjectType: rbac.ResourceFolder.String(),
+				UserID:     e.Payload.UserID.String(),
+			}),
+		}
+
+		if err := outbox.AddActivities(tx, restore); err != nil {
+			return err
+		}
+
 		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.ID.String())
 		if err := params.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
 			zap.L().Warn("Failed to unmark folder as trashed",
@@ -393,30 +410,10 @@ func (e *FolderRestore) finalizeFolderRestore(params *EventParams) error {
 		return err
 	}
 
-	e.logRestoreActivity(params, &folder)
-
 	zap.L().Debug("Folder restore complete",
 		zap.String("bucket_id", e.Payload.BucketID.String()),
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
 
 	return nil
-}
-
-func (e *FolderRestore) logRestoreActivity(params *EventParams, folder *models.Folder) {
-	action := models.Activity{
-		Message: activity.FolderRestored,
-		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionRestore.String(),
-			BucketID:   e.Payload.BucketID.String(),
-			FolderID:   e.Payload.FolderID.String(),
-			ObjectType: rbac.ResourceFolder.String(),
-			UserID:     e.Payload.UserID.String(),
-		}),
-	}
-
-	if err := params.ActivityLogger.Send(action); err != nil {
-		zap.L().Error("Failed to log restore activity", zap.Error(err))
-	}
 }

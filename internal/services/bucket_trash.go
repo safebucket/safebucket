@@ -13,6 +13,7 @@ import (
 	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/go-chi/chi/v5"
@@ -71,14 +72,12 @@ func (s BucketTrashService) BulkTrash(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
-		return nil
+		event := events.NewItemsTrash(s.Publisher, bucketID, user.UserID)
+		return outbox.AddEvent(tx, events.ItemsTrashName, event.Payload)
 	})
 	if err != nil {
 		return err
 	}
-
-	event := events.NewItemsTrash(s.Publisher, bucketID, user.UserID)
-	event.Trigger()
 
 	logger.Info("Bulk trash accepted",
 		zap.String("bucket_id", bucketID.String()),

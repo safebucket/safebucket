@@ -136,7 +136,6 @@ func StartWorkers(
 		Publisher:          eventRouter,
 		DB:                 db,
 		Storage:            store,
-		ActivityLogger:     activityLogger,
 		TrashRetentionDays: config.App.TrashRetentionDays,
 		Cache:              cache,
 		Versions:           versions,
@@ -205,7 +204,6 @@ func StartWorkers(
 				Storage:            store,
 				Cache:              cache,
 				Versions:           versions,
-				ActivityLogger:     activityLogger,
 				RunInterval:        15 * time.Minute,
 				RefreshTokenExpiry: config.App.RefreshTokenExpiry,
 			}
@@ -236,9 +234,7 @@ func StartWorkers(
 					workerCtx,
 					eventsManager.parser,
 					db,
-					activityLogger,
 					store,
-					eventRouter,
 					config.App.TrashRetentionDays,
 					versions,
 					bucketMessages,
@@ -508,12 +504,10 @@ func BuildAPIRouter(
 		}.Routes())
 
 		apiRouter.Mount("/v1/auth", services.AuthService{
-			DB:             db,
-			Cache:          cache,
-			AuthConfig:     authConfig,
-			Providers:      providers,
-			Publisher:      publisher,
-			ActivityLogger: activityLogger,
+			DB:         db,
+			Cache:      cache,
+			AuthConfig: authConfig,
+			Providers:  providers,
 		}.Routes())
 
 		apiRouter.Mount("/v1/invites", services.InviteService{
@@ -521,7 +515,6 @@ func BuildAPIRouter(
 			Cache:      cache,
 			Storage:    store,
 			AuthConfig: authConfig,
-			Publisher:  publisher,
 			Providers:  providers,
 		}.Routes())
 
@@ -535,8 +528,6 @@ func BuildAPIRouter(
 		apiRouter.Mount("/v1/shares", services.PublicShareService{
 			DB:                    db,
 			Storage:               store,
-			ActivityLogger:        activityLogger,
-			Publisher:             publisher,
 			TokenSecret:           authConfig.TokenSecret,
 			CookieSecureForce:     authConfig.CookieSecureForce,
 			AllowRedirectDownload: config.App.AllowRedirectDownload,

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/eventparser"
@@ -30,7 +29,6 @@ type EventParams struct {
 	Publisher          messaging.IPublisher
 	DB                 *gorm.DB
 	Storage            storage.IStorage
-	ActivityLogger     activity.IActivityLogger
 	TrashRetentionDays int
 	Cache              cache.ICache
 	Versions           fileversions.Manager
@@ -110,7 +108,7 @@ func HandleEvents(ctx context.Context, workerName string, params *EventParams, m
 }
 
 func handleUploadEvents(parser eventparser.IBucketEventParser, msg *message.Message,
-	manager fileversions.Manager, activityLogger activity.IActivityLogger, publisher messaging.IPublisher,
+	manager fileversions.Manager,
 ) error {
 	for _, event := range parser.ParseBucketUploadEvents(msg) {
 		bucketID, err := uuid.Parse(event.BucketID)
@@ -155,7 +153,7 @@ func handleUploadEvents(parser eventparser.IBucketEventParser, msg *message.Mess
 			return err
 		}
 		if completed.Changed {
-			NotifyFileVersionUploaded(zap.L(), manager.DB, activityLogger, publisher, completed, shareID)
+			NotifyFileVersionUploaded(zap.L(), manager.DB, completed, shareID)
 		} else if event.VersionID == "" {
 			zap.L().Warn("Upload notification without version metadata made no change",
 				zap.String("file_id", fileID.String()), zap.String("bucket_id", bucketID.String()))
@@ -169,7 +167,6 @@ func handleDeletionEvents(
 	msg *message.Message,
 	db *gorm.DB,
 	storage storage.IStorage,
-	activityLogger activity.IActivityLogger,
 	trashRetentionDays int,
 	versions fileversions.Manager,
 ) {
@@ -187,7 +184,6 @@ func handleDeletionEvents(
 		params := &EventParams{
 			DB:                 db,
 			Storage:            storage,
-			ActivityLogger:     activityLogger,
 			TrashRetentionDays: trashRetentionDays,
 			Versions:           versions,
 		}
@@ -202,9 +198,7 @@ func HandleBucketEvents(
 	ctx context.Context,
 	parser eventparser.IBucketEventParser,
 	db *gorm.DB,
-	activityLogger activity.IActivityLogger,
 	storage storage.IStorage,
-	publisher messaging.IPublisher,
 	trashRetentionDays int,
 	versions fileversions.Manager,
 	messages <-chan *message.Message,
@@ -224,14 +218,14 @@ func HandleBucketEvents(
 
 			switch eventType {
 			case eventparser.BucketEventTypeUpload:
-				if err := handleUploadEvents(parser, msg, versions, activityLogger, publisher); err != nil {
+				if err := handleUploadEvents(parser, msg, versions); err != nil {
 					zap.L().Error("Failed to confirm version from storage event", zap.Error(err))
 					msg.Nack()
 					continue
 				}
 
 			case eventparser.BucketEventTypeDeletion:
-				handleDeletionEvents(parser, msg, db, storage, activityLogger, trashRetentionDays, versions)
+				handleDeletionEvents(parser, msg, db, storage, trashRetentionDays, versions)
 
 			case eventparser.BucketEventTypeIgnore:
 				zap.L().Debug("ignoring event", zap.String("raw_payload", string(msg.Payload)))

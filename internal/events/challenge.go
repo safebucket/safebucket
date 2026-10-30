@@ -1,13 +1,8 @@
 package events
 
 import (
-	"encoding/json"
 	"fmt"
 
-	"github.com/safebucket/safebucket/internal/messaging"
-
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"
 )
 
@@ -26,12 +21,10 @@ type ChallengeUserInvitePayload struct {
 }
 
 type ChallengeUserInvite struct {
-	Publisher messaging.IPublisher
-	Payload   ChallengeUserInvitePayload
+	Payload ChallengeUserInvitePayload
 }
 
 func NewChallengeUserInvite(
-	publisher messaging.IPublisher,
 	secret string,
 	to string,
 	from string,
@@ -41,7 +34,6 @@ func NewChallengeUserInvite(
 ) ChallengeUserInvite {
 	challengeURL := fmt.Sprintf("%s/invites/%s/challenges/%s", webURL, inviteID, challengeID)
 	return ChallengeUserInvite{
-		Publisher: publisher,
 		Payload: ChallengeUserInvitePayload{
 			Type:         ChallengeUserInviteName,
 			Secret:       secret,
@@ -50,21 +42,6 @@ func NewChallengeUserInvite(
 			WebURL:       webURL,
 			ChallengeURL: challengeURL,
 		},
-	}
-}
-
-func (e *ChallengeUserInvite) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 
@@ -93,12 +70,10 @@ type PasswordResetChallengePayload struct {
 }
 
 type PasswordResetChallengeEvent struct {
-	Publisher messaging.IPublisher
-	Payload   PasswordResetChallengePayload
+	Payload PasswordResetChallengePayload
 }
 
 func NewPasswordResetChallenge(
-	publisher messaging.IPublisher,
 	secret string,
 	to string,
 	challengeID string,
@@ -106,7 +81,6 @@ func NewPasswordResetChallenge(
 ) PasswordResetChallengeEvent {
 	challengeURL := fmt.Sprintf("%s/auth/reset-password/%s", webURL, challengeID)
 	return PasswordResetChallengeEvent{
-		Publisher: publisher,
 		Payload: PasswordResetChallengePayload{
 			Type:         PasswordResetChallengeName,
 			Secret:       secret,
@@ -114,21 +88,6 @@ func NewPasswordResetChallenge(
 			WebURL:       webURL,
 			ChallengeURL: challengeURL,
 		},
-	}
-}
-
-func (e *PasswordResetChallengeEvent) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 
@@ -156,39 +115,21 @@ type PasswordResetSuccessPayload struct {
 }
 
 type PasswordResetSuccessEvent struct {
-	Publisher messaging.IPublisher
-	Payload   PasswordResetSuccessPayload
+	Payload PasswordResetSuccessPayload
 }
 
 func NewPasswordResetSuccess(
-	publisher messaging.IPublisher,
 	email string,
 	webURL string,
 	resetDate string,
 ) PasswordResetSuccessEvent {
 	return PasswordResetSuccessEvent{
-		Publisher: publisher,
 		Payload: PasswordResetSuccessPayload{
 			Type:      PasswordResetSuccessName,
 			Email:     email,
 			WebURL:    webURL,
 			ResetDate: resetDate,
 		},
-	}
-}
-
-func (e *PasswordResetSuccessEvent) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 
@@ -233,37 +174,19 @@ type UserWelcomePayload struct {
 }
 
 type UserWelcomeEvent struct {
-	Publisher messaging.IPublisher
-	Payload   UserWelcomePayload
+	Payload UserWelcomePayload
 }
 
 func NewUserWelcome(
-	publisher messaging.IPublisher,
 	email string,
 	webURL string,
 ) UserWelcomeEvent {
 	return UserWelcomeEvent{
-		Publisher: publisher,
 		Payload: UserWelcomePayload{
 			Type:   UserWelcomeName,
 			Email:  email,
 			WebURL: webURL,
 		},
-	}
-}
-
-func (e *UserWelcomeEvent) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 

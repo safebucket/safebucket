@@ -11,6 +11,7 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/storage"
 
@@ -35,7 +36,6 @@ type GarbageCollectorWorker struct {
 	Storage            storage.IStorage
 	Cache              cache.ICache
 	Versions           fileversions.Manager
-	ActivityLogger     activity.IActivityLogger
 	RunInterval        time.Duration
 	RefreshTokenExpiry int
 }
@@ -158,8 +158,9 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 		}
 		rowsAffected = result.RowsAffected
 
+		activities := make([]models.Activity, 0, len(files))
 		for _, file := range files {
-			action := models.Activity{
+			activities = append(activities, models.Activity{
 				Message: activity.FileExpired,
 				Object:  file.ToActivity(),
 				Filter: activity.NewLogFilter(models.ActivityFields{
@@ -168,13 +169,10 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 					FileID:     file.ID.String(),
 					ObjectType: rbac.ResourceFile.String(),
 				}),
-			}
-			if err := w.ActivityLogger.Send(action); err != nil {
-				zap.L().Error("Failed to log file expiration activity", zap.Error(err))
-			}
+			})
 		}
 
-		return nil
+		return outbox.AddActivities(tx, activities...)
 	})
 	if err != nil {
 		return 0, err
@@ -231,8 +229,9 @@ func (w *GarbageCollectorWorker) cleanupShares(whereClause string, args []any, a
 		}
 		rowsAffected = result.RowsAffected
 
+		activities := make([]models.Activity, 0, len(shares))
 		for _, share := range shares {
-			action := models.Activity{
+			activities = append(activities, models.Activity{
 				Message: activityMsg,
 				Object:  share.ToActivity(),
 				Filter: activity.NewLogFilter(models.ActivityFields{
@@ -241,13 +240,10 @@ func (w *GarbageCollectorWorker) cleanupShares(whereClause string, args []any, a
 					ShareID:    share.ID.String(),
 					ObjectType: rbac.ResourceShare.String(),
 				}),
-			}
-			if err := w.ActivityLogger.Send(action); err != nil {
-				zap.L().Error("Failed to log share cleanup activity", zap.Error(err))
-			}
+			})
 		}
 
-		return nil
+		return outbox.AddActivities(tx, activities...)
 	})
 
 	if err != nil {

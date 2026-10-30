@@ -8,6 +8,7 @@ import (
 	c "github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -77,13 +78,14 @@ func (e *ItemsTrash) callback(params *EventParams) error {
 		if err := e.deleteItems(tx, files, folders); err != nil {
 			return err
 		}
+		if err := e.logActivities(tx, files, folders); err != nil {
+			return err
+		}
 		return e.addTrashMarker(params, files, folders)
 	})
 	if err != nil {
 		return err
 	}
-
-	e.logActivities(params, files, folders)
 
 	processed := len(files) + len(folders)
 	if processed == c.BatchLimit {
@@ -170,23 +172,15 @@ func (e *ItemsTrash) deleteItems(tx *gorm.DB, files []models.File, folders []mod
 	return nil
 }
 
-// TODO(YLB): Future improvement possible here, send multiple activity at once.
-func (e *ItemsTrash) logActivities(params *EventParams, files []models.File, folders []models.Folder) {
+func (e *ItemsTrash) logActivities(tx *gorm.DB, files []models.File, folders []models.Folder) error {
+	activities := make([]models.Activity, 0, len(files)+len(folders))
 	for _, file := range files {
-		if err := params.ActivityLogger.Send(fileTrashedActivity(file, e.Payload.UserID)); err != nil {
-			zap.L().Error("Failed to log file trash activity",
-				zap.String("file_id", file.ID.String()),
-				zap.Error(err))
-		}
+		activities = append(activities, fileTrashedActivity(file, e.Payload.UserID))
 	}
-
 	for _, folder := range folders {
-		if err := params.ActivityLogger.Send(folderTrashedActivity(folder, e.Payload.UserID)); err != nil {
-			zap.L().Error("Failed to log folder trash activity",
-				zap.String("folder_id", folder.ID.String()),
-				zap.Error(err))
-		}
+		activities = append(activities, folderTrashedActivity(folder, e.Payload.UserID))
 	}
+	return outbox.AddActivities(tx, activities...)
 }
 
 func fileTrashedActivity(file models.File, userID uuid.UUID) models.Activity {

@@ -9,6 +9,7 @@ import (
 	c "github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -178,11 +179,6 @@ func (e *FolderPurge) callback(params *EventParams) error {
 			zap.String("folder_id", e.Payload.FolderID.String()))
 	}
 
-	if err = params.DB.Unscoped().Delete(&folder).Error; err != nil {
-		zap.L().Error("Failed to hard delete folder from database", zap.Error(err))
-		return err
-	}
-
 	action := models.Activity{
 		Message: activity.FolderDeleted,
 		Object:  folder.ToActivity(),
@@ -195,8 +191,15 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		}),
 	}
 
-	if err = params.ActivityLogger.Send(action); err != nil {
-		zap.L().Error("Failed to log purge activity", zap.Error(err))
+	err = params.DB.Transaction(func(tx *gorm.DB) error {
+		if deleteErr := tx.Unscoped().Delete(&folder).Error; deleteErr != nil {
+			return deleteErr
+		}
+		return outbox.AddActivities(tx, action)
+	})
+	if err != nil {
+		zap.L().Error("Failed to hard delete folder from database", zap.Error(err))
+		return err
 	}
 
 	zap.L().Info("Folder purge complete",

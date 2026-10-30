@@ -7,6 +7,7 @@ import (
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
@@ -215,7 +216,19 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 				return removeErr
 			}
 		}
-		return tx.Unscoped().Delete(&locked).Error
+		if deleteErr := tx.Unscoped().Delete(&locked).Error; deleteErr != nil {
+			return deleteErr
+		}
+		return outbox.AddActivities(tx, models.Activity{
+			Message: activity.FileDeleted,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				BucketID:   e.Payload.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+			}),
+		})
 	})
 	if err != nil {
 		zap.L().Error("Failed to hard delete file from database",
@@ -223,21 +236,6 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 			zap.Error(err),
 		)
 		return err
-	}
-
-	action := models.Activity{
-		Message: activity.FileDeleted,
-		Object:  file.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionDelete.String(),
-			BucketID:   e.Payload.BucketID.String(),
-			FileID:     file.ID.String(),
-			ObjectType: rbac.ResourceFile.String(),
-		}),
-	}
-
-	if sendErr := params.ActivityLogger.Send(action); sendErr != nil {
-		zap.L().Error("Failed to log trash expiration activity", zap.Error(sendErr))
 	}
 
 	zap.L().Info("Successfully processed trash expiration",

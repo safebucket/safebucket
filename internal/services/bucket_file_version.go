@@ -10,6 +10,7 @@ import (
 	"github.com/safebucket/safebucket/internal/handlers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
@@ -52,7 +53,7 @@ func (s BucketFileVersionService) ConfirmFileVersion(
 ) error {
 	completed, err := s.Versions.Complete(logger, ids[0], ids[1], ids[2], nil, false)
 	if err == nil && completed.Changed {
-		events.NotifyFileVersionUploaded(logger, s.DB, s.ActivityLogger, s.Publisher, completed, nil)
+		events.NotifyFileVersionUploaded(logger, s.DB, completed, nil)
 	}
 	return err
 }
@@ -128,7 +129,7 @@ func (s BucketFileVersionService) RestoreFileVersion(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
-		if logErr := s.ActivityLogger.Send(models.Activity{
+		if logErr := outbox.AddActivities(tx, models.Activity{
 			Message: activity.FileVersionRestored,
 			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
@@ -153,22 +154,22 @@ func (s BucketFileVersionService) DeleteFileVersion(
 	user models.UserClaims,
 	ids uuid.UUIDs,
 ) error {
-	file, version, err := s.Versions.Delete(logger, ids[0], ids[1], ids[2], nil)
-	if err != nil || version.Status != models.FileStatusUploaded {
-		return err
-	}
-	if logErr := s.ActivityLogger.Send(models.Activity{
-		Message: activity.FileVersionDeleted,
-		Object:  file.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action: rbac.ActionDelete.String(), BucketID: file.BucketID.String(),
-			FileID: file.ID.String(), ObjectType: rbac.ResourceFile.String(),
-			UserID: user.UserID.String(), Version: strconv.Itoa(version.Version),
-		}),
-	}); logErr != nil {
-		logger.Warn("Failed to log version deletion", zap.Error(logErr))
-	}
-	return nil
+	_, _, err := s.Versions.Delete(logger, ids[0], ids[1], ids[2], nil,
+		func(tx *gorm.DB, file models.File, version models.FileVersion) error {
+			if version.Status != models.FileStatusUploaded {
+				return nil
+			}
+			return outbox.AddActivities(tx, models.Activity{
+				Message: activity.FileVersionDeleted,
+				Object:  file.ToActivity(),
+				Filter: activity.NewLogFilter(models.ActivityFields{
+					Action: rbac.ActionDelete.String(), BucketID: file.BucketID.String(),
+					FileID: file.ID.String(), ObjectType: rbac.ResourceFile.String(),
+					UserID: user.UserID.String(), Version: strconv.Itoa(version.Version),
+				}),
+			})
+		})
+	return err
 }
 
 func (s BucketFileVersionService) DownloadFileVersion(
