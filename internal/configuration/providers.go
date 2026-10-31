@@ -3,14 +3,18 @@ package configuration
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	ldapclient "github.com/safebucket/safebucket/internal/auth/ldap"
+	"github.com/safebucket/safebucket/internal/auth/rolemapping"
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
+
+const DefaultOIDCGroupsClaim = "groups"
 
 type Provider struct {
 	Name           string
@@ -23,6 +27,8 @@ type Provider struct {
 	Order          int
 	MFARequired    bool
 	SharingOptions models.SharingConfiguration
+	RoleMapping    *rolemapping.Mapping
+	GroupsClaim    string
 }
 
 type Providers map[string]Provider
@@ -72,7 +78,12 @@ func LoadProviders(
 				ClientSecret: providerCfg.OIDC.ClientSecret,
 				Endpoint:     provider.Endpoint(),
 				RedirectURL:  fmt.Sprintf("%s/api/v1/auth/providers/%s/callback", apiURL, name),
-				Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+				Scopes:       dedupeScopes(providerCfg.OIDC.ExtraScopes),
+			}
+
+			groupsClaim := providerCfg.OIDC.GroupsClaim
+			if groupsClaim == "" {
+				groupsClaim = DefaultOIDCGroupsClaim
 			}
 
 			providers[name] = Provider{
@@ -85,6 +96,8 @@ func LoadProviders(
 				Order:          idx,
 				MFARequired:    providerCfg.MFARequired,
 				SharingOptions: providerCfg.SharingConfiguration,
+				RoleMapping:    rolemapping.New(providerCfg.OIDC.AdminGroups),
+				GroupsClaim:    groupsClaim,
 			}
 			idx++
 
@@ -141,4 +154,14 @@ func LoadProviders(
 		}
 	}
 	return providers
+}
+
+func dedupeScopes(extraScopes []string) []string {
+	scopes := []string{oidc.ScopeOpenID, "profile", "email"}
+	for _, extra := range extraScopes {
+		if !slices.Contains(scopes, extra) {
+			scopes = append(scopes, extra)
+		}
+	}
+	return scopes
 }
