@@ -1,14 +1,10 @@
 package events
 
 import (
-	"encoding/json"
 	"fmt"
 
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"
 )
 
@@ -28,13 +24,13 @@ type UserInvitationPayload struct {
 	InviteURL        string
 }
 
+func (p UserInvitationPayload) EventName() string { return p.Type }
+
 type UserInvitation struct {
-	Publisher messaging.IPublisher
-	Payload   UserInvitationPayload
+	Payload UserInvitationPayload
 }
 
 func NewUserInvitation(
-	publisher messaging.IPublisher,
 	to string,
 	from string,
 	bucket models.Bucket,
@@ -47,7 +43,6 @@ func NewUserInvitation(
 	inviteURL := fmt.Sprintf("%s/invites/%s", webURL, inviteID)
 
 	return UserInvitation{
-		Publisher: publisher,
 		Payload: UserInvitationPayload{
 			Type:             UserInvitationName,
 			To:               to,
@@ -71,21 +66,6 @@ func getGroupDescription(group models.Group) string {
 		return "view and download files from this bucket"
 	default:
 		return "collaborate on this bucket"
-	}
-}
-
-func (e *UserInvitation) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 

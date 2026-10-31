@@ -84,7 +84,6 @@ func TestLogin_UserHasMFA_ConfigMFADisabled_RequiresMFA(t *testing.T) {
 					Domains: []string{}, // Allow all domains
 				},
 			},
-			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -171,7 +170,6 @@ func TestLogin_UserNoMFA_ConfigMFADisabled_NoMFARequired(t *testing.T) {
 					Domains: []string{},
 				},
 			},
-			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()
@@ -251,7 +249,6 @@ func TestLogin_UserNoMFA_ProviderMFAEnabled_RequiresMFA(t *testing.T) {
 					MFARequired: true,
 				},
 			},
-			ActivityLogger: &MockActivityLogger{},
 		}
 
 		userID := uuid.New()

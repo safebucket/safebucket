@@ -1,17 +1,14 @@
 package events
 
 import (
-	"encoding/json"
 	"errors"
 	"path"
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -28,38 +25,22 @@ type BucketPurgePayload struct {
 	UserID   uuid.UUID
 }
 
+func (p BucketPurgePayload) EventName() string { return p.Type }
+
 type BucketPurge struct {
-	Publisher messaging.IPublisher
-	Payload   BucketPurgePayload
+	Payload BucketPurgePayload
 }
 
 func NewBucketPurge(
-	publisher messaging.IPublisher,
 	bucketID uuid.UUID,
 	userID uuid.UUID,
 ) BucketPurge {
 	return BucketPurge{
-		Publisher: publisher,
 		Payload: BucketPurgePayload{
 			Type:     BucketPurgeName,
 			BucketID: bucketID,
 			UserID:   userID,
 		},
-	}
-}
-
-func (e *BucketPurge) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling bucket purge event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger bucket purge event", zap.Error(err))
 	}
 }
 
@@ -172,24 +153,25 @@ func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
 		zap.Int("count", len(folders)),
 	)
 
+	payloads := make([]FolderPurgePayload, 0, len(folders))
 	for _, folder := range folders {
-		params.DB.Unscoped().Model(&folder).Updates(map[string]interface{}{
-			"deleted_at": time.Now(),
-			"deleted_by": e.Payload.UserID,
-		})
+		payloads = append(payloads, NewFolderPurge(folder.BucketID, folder.ID, e.Payload.UserID).Payload)
+	}
 
-		purgeEvent := NewFolderPurge(
-			params.Publisher,
-			folder.BucketID,
-			folder.ID,
-			e.Payload.UserID,
-		)
-		purgeEvent.Trigger()
-
-		zap.L().Debug("Triggered FolderPurge event",
-			zap.String("folder_id", folder.ID.String()),
-			zap.String("folder_name", folder.Name),
-		)
+	err := params.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Model(&models.Folder{}).
+			Where("id IN ?", folderIDs(folders)).
+			Updates(map[string]interface{}{
+				"deleted_at": time.Now(),
+				"deleted_by": e.Payload.UserID,
+			}).Error; err != nil {
+			return err
+		}
+		return outbox.AddEvents(tx, payloads...)
+	})
+	if err != nil {
+		zap.L().Error("Failed to queue FolderPurge for root folders", zap.Error(err))
+		return false
 	}
 
 	var remainingCount int64

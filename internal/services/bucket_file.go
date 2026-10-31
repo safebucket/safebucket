@@ -13,7 +13,6 @@ import (
 	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
@@ -31,8 +30,6 @@ import (
 type BucketFileService struct {
 	DB                 *gorm.DB
 	Storage            storage.IStorage
-	Publisher          messaging.IPublisher
-	ActivityLogger     activity.IActivityLogger
 	Versions           fileversions.Manager
 	TrashRetentionDays int
 }
@@ -360,18 +357,24 @@ func (s BucketFileService) downloadVersion(
 		Object:  file.ToActivity(),
 		Filter:  activity.NewLogFilter(fields),
 	}
-	err = outbox.AddActivities(s.DB, action)
-	if err != nil {
-		return models.FileDownloadResponse{}, err
-	}
 
-	var bucket models.Bucket
-	if dbErr := s.DB.Where("id = ?", file.BucketID).First(&bucket).Error; dbErr == nil {
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if activityErr := outbox.AddActivities(tx, action); activityErr != nil {
+			return activityErr
+		}
+		var bucket models.Bucket
+		result := tx.Where("id = ?", file.BucketID).Find(&bucket)
+		if result.Error != nil || result.RowsAffected == 0 {
+			return result.Error
+		}
 		evt := events.NewFileActivityNotification(
-			s.Publisher, events.FileActivityDownload, events.FileActivitySourceUser,
+			events.FileActivityDownload, events.FileActivitySourceUser,
 			file.BucketID, bucket.Name, file.Name, user.UserID, user.Email,
 		)
-		evt.Trigger()
+		return outbox.AddEvents(tx, evt.Payload)
+	})
+	if err != nil {
+		return models.FileDownloadResponse{}, err
 	}
 
 	return models.FileDownloadResponse{

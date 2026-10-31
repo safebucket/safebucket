@@ -10,9 +10,9 @@ import (
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/go-chi/chi/v5"
@@ -22,8 +22,7 @@ import (
 )
 
 type BucketTrashService struct {
-	DB        *gorm.DB
-	Publisher messaging.IPublisher
+	DB *gorm.DB
 }
 
 func (s BucketTrashService) Routes() chi.Router {
@@ -71,14 +70,12 @@ func (s BucketTrashService) BulkTrash(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
-		return nil
+		event := events.NewItemsTrash(bucketID, user.UserID)
+		return outbox.AddEvents(tx, event.Payload)
 	})
 	if err != nil {
 		return err
 	}
-
-	event := events.NewItemsTrash(s.Publisher, bucketID, user.UserID)
-	event.Trigger()
 
 	logger.Info("Bulk trash accepted",
 		zap.String("bucket_id", bucketID.String()),

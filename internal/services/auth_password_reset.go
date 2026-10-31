@@ -13,7 +13,6 @@ import (
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
@@ -28,20 +27,16 @@ import (
 )
 
 type AuthPasswordResetService struct {
-	DB             *gorm.DB
-	Cache          cache.ICache
-	AuthConfig     models.AuthConfig
-	Publisher      messaging.IPublisher
-	ActivityLogger activity.IActivityLogger
+	DB         *gorm.DB
+	Cache      cache.ICache
+	AuthConfig models.AuthConfig
 }
 
 func NewAuthPasswordResetService(s AuthService) AuthPasswordResetService {
 	return AuthPasswordResetService{
-		DB:             s.DB,
-		Cache:          s.Cache,
-		AuthConfig:     s.AuthConfig,
-		Publisher:      s.Publisher,
-		ActivityLogger: s.ActivityLogger,
+		DB:         s.DB,
+		Cache:      s.Cache,
+		AuthConfig: s.AuthConfig,
 	}
 }
 
@@ -117,20 +112,22 @@ func (s AuthPasswordResetService) RequestPasswordReset(
 		AttemptsLeft: configuration.SecurityChallengeMaxFailedAttempts,
 	}
 
-	result = s.DB.Create(&challenge)
-	if result.Error != nil {
-		logger.Error("Failed to create challenge", zap.Error(result.Error))
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if createErr := tx.Create(&challenge).Error; createErr != nil {
+			return createErr
+		}
+		event := events.NewPasswordResetChallenge(
+			secret,
+			user.Email,
+			challenge.ID.String(),
+			s.AuthConfig.WebURL,
+		)
+		return outbox.AddEvents(tx, event.Payload)
+	})
+	if err != nil {
+		logger.Error("Failed to create challenge", zap.Error(err))
 		return nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
-
-	event := events.NewPasswordResetChallenge(
-		s.Publisher,
-		secret,
-		user.Email,
-		challenge.ID.String(),
-		s.AuthConfig.WebURL,
-	)
-	event.Trigger()
 
 	return nil, nil
 }
@@ -322,33 +319,37 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 			logger.Error("Failed to delete challenge", zap.Error(deleteErr))
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
+
+		resetDate := time.Now().Format("January 2, 2006 at 3:04 PM MST")
+		successEvent := events.NewPasswordResetSuccess(
+			user.Email,
+			s.AuthConfig.WebURL,
+			resetDate,
+		)
+		if eventErr := outbox.AddEvents(tx, successEvent.Payload); eventErr != nil {
+			logger.Error("Failed to queue password reset notification", zap.Error(eventErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+
+		action := models.Activity{
+			Message: activity.PasswordResetCompleted,
+			Object:  user.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:      activity.PasswordResetCompleted,
+				UserID:      user.ID.String(),
+				ChallengeID: challengeID.String(),
+				ObjectType:  rbac.ResourceUser.String(),
+			}),
+		}
+		if logErr := outbox.AddActivities(tx, action); logErr != nil {
+			logger.Error("Failed to log password reset completion", zap.Error(logErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+
 		return nil
 	})
 	if err != nil {
 		return handlers.AuthFlowResult{}, err
-	}
-
-	resetDate := time.Now().Format("January 2, 2006 at 3:04 PM MST")
-	successEvent := events.NewPasswordResetSuccess(
-		s.Publisher,
-		user.Email,
-		s.AuthConfig.WebURL,
-		resetDate,
-	)
-	successEvent.Trigger()
-
-	action := models.Activity{
-		Message: activity.PasswordResetCompleted,
-		Object:  user.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:      activity.PasswordResetCompleted,
-			UserID:      user.ID.String(),
-			ChallengeID: challengeID.String(),
-			ObjectType:  rbac.ResourceUser.String(),
-		}),
-	}
-	if logErr := s.ActivityLogger.Send(action); logErr != nil {
-		logger.Error("Failed to log password reset completion", zap.Error(logErr))
 	}
 
 	if revokeErr := cache.RevokeAllSessions(s.Cache, user.ID.String()); revokeErr != nil {

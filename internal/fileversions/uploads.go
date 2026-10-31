@@ -75,6 +75,7 @@ func (m Manager) Start(logger *zap.Logger, bucketID uuid.UUID, body models.FileU
 
 func (m Manager) Complete(logger *zap.Logger, bucketID, fileID, versionID uuid.UUID,
 	share *models.Share, notification bool,
+	onComplete func(tx *gorm.DB, completed Completion) error,
 ) (Completion, error) {
 	var completed Completion
 	err := m.DB.Transaction(func(tx *gorm.DB) error {
@@ -114,7 +115,10 @@ func (m Manager) Complete(logger *zap.Logger, bucketID, fileID, versionID uuid.U
 			return err
 		}
 		completed = Completion{File: file, Version: version, Changed: true}
-		return nil
+		if onComplete == nil {
+			return nil
+		}
+		return onComplete(tx, completed)
 	})
 	if err == nil && completed.Changed {
 		if cacheErr := cache.DeleteMultipartState(m.Cache, completed.Version.ID.String()); cacheErr != nil {
@@ -128,6 +132,7 @@ func (m Manager) Delete(
 	logger *zap.Logger,
 	bucketID, fileID, versionID uuid.UUID,
 	share *models.Share,
+	onDelete func(tx *gorm.DB, file models.File, version models.FileVersion) error,
 ) (models.File, models.FileVersion, error) {
 	var file models.File
 	var version models.FileVersion
@@ -162,7 +167,13 @@ func (m Manager) Delete(
 			// Keep a tombstone while an already issued upload URL can still be used.
 			updates["cleanup_after"] = time.Now().Add(configuration.UploadPolicyExpirationInMinutes * time.Minute)
 		}
-		return tx.Model(&models.FileVersion{ID: version.ID}).Updates(updates).Error
+		if err = tx.Model(&models.FileVersion{ID: version.ID}).Updates(updates).Error; err != nil {
+			return err
+		}
+		if onDelete == nil {
+			return nil
+		}
+		return onDelete(tx, file, version)
 	})
 	if err != nil {
 		return models.File{}, models.FileVersion{}, err
