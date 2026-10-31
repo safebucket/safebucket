@@ -277,8 +277,8 @@ func (s BucketMemberService) addMember(
 				user.Email,
 				invite.Email,
 			)
-			if err := outbox.AddEvents(tx, events.BucketSharedWithName, bucketSharedEvent.Payload); err != nil {
-				return err
+			if outboxErr := outbox.AddEvents(tx, events.BucketSharedWithName, bucketSharedEvent.Payload); err != nil {
+				return outboxErr
 			}
 		}
 
@@ -295,7 +295,6 @@ func (s BucketMemberService) addMember(
 		}
 
 		if err := outbox.AddActivities(tx, action); err != nil {
-			logger.Error("Failed to log user invitation activity", zap.Error(err))
 			return err
 		}
 
