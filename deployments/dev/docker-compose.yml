@@ -187,7 +187,7 @@ services:
   ldap:
     container_name: ldap
     profiles: [ ldap ]
-    image: osixia/openldap:2.6.10-alpha
+    image: osixia/openldap:2.6.15-rc
     ports:
       - "389:3890"
       - "636:6360"

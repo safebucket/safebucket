@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	defaultLDAPImage = "osixia/openldap:2.6.10-alpha"
+	defaultLDAPImage = "osixia/openldap:2.6.15-rc"
 	ldapInternalPort = "3890/tcp"
 	ldapBaseSuffix   = "dc=example,dc=org"
 	ldapBindDN       = "cn=admin," + ldapBaseSuffix
@@ -106,9 +106,8 @@ func StartLDAP(t *testing.T, users []LDAPUser) LDAPInstance {
 		ContainerRequest: req,
 		Started:          true,
 	})
-	require.NoError(t, err, "start ldap container")
 	t.Cleanup(func() {
-		if t.Failed() {
+		if t.Failed() && ldapC != nil {
 			if logs, lerr := ldapC.Logs(ctx); lerr == nil {
 				if data, rerr := io.ReadAll(logs); rerr == nil {
 					t.Logf("ldap container logs:\n%s", string(data))
@@ -118,6 +117,7 @@ func StartLDAP(t *testing.T, users []LDAPUser) LDAPInstance {
 		}
 		_ = testcontainers.TerminateContainer(ldapC)
 	})
+	require.NoError(t, err, "start ldap container")
 
 	instance := LDAPInstance{
 		URL:          fmt.Sprintf("ldap://127.0.0.1:%d", hostPort),
