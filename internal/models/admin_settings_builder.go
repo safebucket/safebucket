@@ -211,6 +211,9 @@ func buildAuthSettings(auth AuthConfiguration) AuthSettings {
 		switch provider.Type {
 		case OIDCProviderType:
 			settings.Issuer = provider.OIDC.Issuer
+			settings.AdminGroups = provider.OIDC.AdminGroups
+			settings.GroupsClaim = provider.OIDC.GroupsClaim
+			settings.ExtraScopes = provider.OIDC.ExtraScopes
 		case LDAPProviderType:
 			if provider.LDAP != nil {
 				settings.URL = provider.LDAP.URL

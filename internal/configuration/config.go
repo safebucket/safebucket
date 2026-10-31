@@ -3,6 +3,7 @@ package configuration
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/safebucket/safebucket/internal/models"
@@ -73,11 +74,14 @@ func parseAuthProviders(k *koanf.Koanf) {
 }
 
 func readEnvVars(k *koanf.Koanf) {
-	err := k.Load(env.Provider("", ".", func(s string) string {
-		s = strings.ToLower(s)
-		segments := strings.Split(s, "__")
-		result := strings.Join(segments, ".")
-		return result
+	err := k.Load(env.ProviderWithValue("", ".", func(key, value string) (string, interface{}) {
+		name := strings.ToLower(key)
+		segments := strings.Split(name, "__")
+		name = strings.Join(segments, ".")
+		if isEnvListProviderField(name) {
+			return name, splitEnvList(value)
+		}
+		return name, value
 	}), nil)
 	if err != nil {
 		zap.L().Warn("Error loading environment variables", zap.Error(err))
@@ -85,6 +89,38 @@ func readEnvVars(k *koanf.Koanf) {
 
 	parseArrayFields(k)
 	parseAuthProviders(k)
+}
+
+func isEnvListProviderField(name string) bool {
+	segments := strings.Split(name, ".")
+	if len(segments) != 5 || segments[0] != "auth" || segments[1] != "providers" {
+		return false
+	}
+	return slices.Contains(EnvListProviderFields, segments[3]+"."+segments[4])
+}
+
+func validateProviderListFields(k *koanf.Koanf) error {
+	for _, provider := range k.MapKeys("auth.providers") {
+		for _, field := range EnvListProviderFields {
+			path := "auth.providers." + provider + "." + field
+			if !k.Exists(path) {
+				continue
+			}
+			switch k.Get(path).(type) {
+			case nil, string:
+				return fmt.Errorf("%s must be a list", path)
+			}
+		}
+	}
+	return nil
+}
+
+func splitEnvList(value string) []string {
+	entries := strings.Split(value, ",")
+	for i, entry := range entries {
+		entries[i] = strings.TrimSpace(entry)
+	}
+	return entries
 }
 
 func discoverConfigFile() string {
@@ -214,6 +250,10 @@ func Load(opts LoadOptions) (models.Configuration, error) {
 	migrateDeprecatedKeys(k)
 	migrateGlobalMFARequired(k)
 	loadConditionalDefaults(k)
+
+	if err := validateProviderListFields(k); err != nil {
+		return models.Configuration{}, fmt.Errorf("decode config: %w", err)
+	}
 
 	var cfg models.Configuration
 	if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "mapstructure"}); err != nil {

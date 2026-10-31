@@ -142,6 +142,11 @@ var ArrayConfigFields = []string{
 	"cache.valkey.hosts",
 }
 
+var EnvListProviderFields = []string{
+	"oidc.admin_groups",
+	"oidc.extra_scopes",
+}
+
 var ConfigFileSearchPaths = []string{
 	"./config.yaml",
 	"templates/config.yaml",

@@ -38,6 +38,8 @@ type OIDCSetup struct {
 	ProviderKey string
 	Users       []DexUser
 	MFARequired bool
+	AdminGroups []string
+	ExtraScopes []string
 }
 
 type LDAPSetup struct {
@@ -176,6 +178,8 @@ func bootTestApp(t *testing.T, cfg models.Configuration, oidc *OIDCSetup, ldap *
 				ClientID:     dex.ClientID,
 				ClientSecret: dex.ClientSecret,
 				Issuer:       dex.Issuer,
+				ExtraScopes:  oidc.ExtraScopes,
+				AdminGroups:  oidc.AdminGroups,
 			},
 		}
 	}
@@ -242,6 +246,10 @@ func bootTestApp(t *testing.T, cfg models.Configuration, oidc *OIDCSetup, ldap *
 
 func (a *TestApp) DB() *gorm.DB {
 	return a.db
+}
+
+func (a *TestApp) HTTPClient() *http.Client {
+	return a.client
 }
 
 func (a *TestApp) URL(path string) string {
@@ -513,6 +521,15 @@ func (a *TestApp) CreateUser(t *testing.T, email string) models.User {
 func (a *TestApp) SetUserRole(t *testing.T, email string, role models.Role) {
 	t.Helper()
 	require.NoError(t, a.db.Model(&models.User{}).Where("email = ?", email).Update("role", role).Error)
+}
+
+func (a *TestApp) SetUserRoleForProvider(
+	t *testing.T, email, providerKey string, role models.Role,
+) {
+	t.Helper()
+	require.NoError(t, a.db.Model(&models.User{}).
+		Where("email = ? AND provider_key = ?", email, providerKey).
+		Update("role", role).Error)
 }
 
 func (a *TestApp) CreateBucket(t *testing.T, token, name string) models.Bucket {

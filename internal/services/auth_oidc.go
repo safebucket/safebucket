@@ -2,10 +2,14 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/auth/rolemapping"
 	"github.com/safebucket/safebucket/internal/cache"
+	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/mfa"
@@ -66,7 +70,13 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	if !h.IsDomainAllowed(userInfo.Email, provider.Domains) {
-		logger.Debug("Domain not allowed")
+		if strings.TrimSpace(userInfo.Email) == "" {
+			logger.Warn("OIDC user has no email, login rejected",
+				zap.String("provider", providerKey),
+				zap.String("subject", userInfo.Subject))
+		} else {
+			logger.Debug("Domain not allowed")
+		}
 		return models.OIDCCallbackResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
@@ -94,6 +104,10 @@ func (s AuthService) OpenIDCallback(
 				apierrors.CodeInternalServerError,
 			)
 		}
+	}
+
+	if syncErr := s.applyIDPRoleMapping(logger, provider, idToken, userInfo, &searchUser); syncErr != nil {
+		return models.OIDCCallbackResult{}, syncErr
 	}
 
 	verifiedCount, countErr := sql.CountVerifiedMFADevices(s.DB, searchUser.ID)
@@ -162,4 +176,50 @@ func (s AuthService) issueOIDCSession(
 	}
 
 	return models.OIDCCallbackResult{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+}
+
+func (s AuthService) applyIDPRoleMapping(
+	logger *zap.Logger,
+	provider configuration.Provider,
+	idToken *oidc.IDToken,
+	userInfo *oidc.UserInfo,
+	user *models.User,
+) error {
+	if provider.RoleMapping == nil {
+		return nil
+	}
+
+	idTokenClaims := map[string]json.RawMessage{}
+	if claimsErr := idToken.Claims(&idTokenClaims); claimsErr != nil {
+		logger.Error("Failed to decode ID token claims",
+			zap.String("provider", user.ProviderKey),
+			zap.String("user_id", user.ID.String()),
+			zap.Error(claimsErr))
+		idTokenClaims = nil
+	}
+
+	userInfoClaims := map[string]json.RawMessage{}
+	if claimsErr := userInfo.Claims(&userInfoClaims); claimsErr != nil {
+		logger.Error("Failed to decode UserInfo claims",
+			zap.String("provider", user.ProviderKey),
+			zap.String("user_id", user.ID.String()),
+			zap.Error(claimsErr))
+		userInfoClaims = nil
+	}
+
+	groups, found, err := rolemapping.OIDCGroups(idTokenClaims, userInfoClaims, provider.GroupsClaim)
+	if err != nil {
+		logger.Error("Failed to decode groups claim",
+			zap.String("provider", user.ProviderKey),
+			zap.String("user_id", user.ID.String()),
+			zap.String("claim", provider.GroupsClaim),
+			zap.Error(err))
+	} else if !found {
+		logger.Warn("Groups claim missing from IdP response",
+			zap.String("provider", user.ProviderKey),
+			zap.String("user_id", user.ID.String()),
+			zap.String("claim", provider.GroupsClaim))
+	}
+
+	return s.syncIDPRole(logger, user, provider, groups)
 }

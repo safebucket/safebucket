@@ -106,6 +106,18 @@ auth:
       sharing:
         allowed: true
         domains: [ ]
+#    entra:
+#      type: oidc
+#      name: Entra ID
+#      domains: []
+#      oidc:
+#        client_id: <application-id>
+#        client_secret: <client-secret>
+#        issuer: https://login.microsoftonline.com/<tenant-id>/v2.0
+#        admin_groups: [<group-object-id>]  # Entra sends group object IDs, not names
+#      sharing:
+#        allowed: true
+#        domains: []
 #    okta:
 #      type: oidc
 #      name: Okta
@@ -114,6 +126,9 @@ auth:
 #        client_id:
 #        client_secret:
 #        issuer:
+#        extra_scopes: [groups]     # Additional OAuth2 scopes (e.g. groups)
+#        groups_claim: groups       # Claim to read groups from (default: groups)
+#        admin_groups: [safebucket-admins]  # Groups granting the admin role, synced at each login
 #      sharing:
 #        allowed: true
 #        domains: []
@@ -126,7 +141,7 @@ auth:
 #        client_secret:
 #        issuer:
 #      sharing:
-#        enabled: true
+#        allowed: true
 #        domains: []
 #    myldap:
 #      type: ldap

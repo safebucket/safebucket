@@ -110,6 +110,9 @@ type AuthProviderSettings struct {
 	MFARequired     bool     `json:"mfa_required"`
 	SharingAllowed  bool     `json:"sharing_allowed"`
 	Issuer          string   `json:"issuer,omitempty"`
+	AdminGroups     []string `json:"admin_groups,omitempty"`
+	GroupsClaim     string   `json:"groups_claim,omitempty"`
+	ExtraScopes     []string `json:"extra_scopes,omitempty"`
 	URL             string   `json:"url,omitempty"`
 	BaseDN          string   `json:"base_dn,omitempty"`
 	UserFilter      string   `json:"user_filter,omitempty"`

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/auth/rolemapping"
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -178,6 +179,60 @@ func (s AuthService) resolveAuthProvider(
 		}
 	}
 	return configuration.Provider{}, false
+}
+
+func (s AuthService) syncIDPRole(
+	logger *zap.Logger,
+	user *models.User,
+	provider configuration.Provider,
+	groups []string,
+) error {
+	newRole := rolemapping.Resolve(user.Role, provider.RoleMapping.IsAdmin(groups))
+	if newRole == user.Role {
+		return nil
+	}
+
+	previousRole := user.Role
+	action := models.Activity{
+		Message: activity.UserRoleUpdated,
+		Object:  user.ToActivity(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:       activity.UserRoleUpdated,
+			UserID:       user.ID.String(),
+			ObjectType:   rbac.ResourceUser.String(),
+			ProviderType: string(provider.Type),
+			ProviderName: provider.Name,
+			PreviousRole: string(previousRole),
+			Role:         string(newRole),
+		}),
+	}
+
+	target := models.User{ID: user.ID}
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if updateErr := tx.Model(&target).Update("role", newRole).Error; updateErr != nil {
+			return updateErr
+		}
+		if outboxErr := outbox.AddActivities(tx, action); outboxErr != nil {
+			return outboxErr
+		}
+		if previousRole == models.RoleAdmin {
+			return cache.RevokeAllSessions(s.Cache, user.ID.String())
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Error("Failed to apply IdP mapped role", zap.Error(err))
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+	}
+	user.Role = newRole
+
+	logger.Info("Role changed from IdP group mapping",
+		zap.String("user_id", user.ID.String()),
+		zap.String("provider", user.ProviderKey),
+		zap.String("previous_role", string(previousRole)),
+		zap.String("role", string(newRole)))
+
+	return nil
 }
 
 func (s AuthService) getMFASecretAndDevice(

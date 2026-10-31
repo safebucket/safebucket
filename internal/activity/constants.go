@@ -30,6 +30,7 @@ var (
 	BucketMemberDeleted          = defineAction("BUCKET_MEMBER_DELETED")
 	UserCreated                  = defineAction("USER_CREATED")
 	UserLoggedIn                 = defineAction("USER_LOGGED_IN")
+	UserRoleUpdated              = defineAction("USER_ROLE_UPDATED")
 	UserDeleted                  = defineAction("USER_DELETED")
 	PasswordResetCodeVerified    = defineAction("PASSWORD_RESET_CODE_VERIFIED")
 	PasswordResetCompleted       = defineAction("PASSWORD_RESET_COMPLETED")
