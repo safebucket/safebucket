@@ -129,6 +129,8 @@ type LDAPAttributeMap struct {
 	Email string `mapstructure:"email"`
 }
 
+const DefaultOIDCGroupsClaim = "groups"
+
 type OIDCConfiguration struct {
 	ClientID     string   `mapstructure:"client_id"     validate:"required_if=Type oidc"`
 	ClientSecret string   `mapstructure:"client_secret" validate:"required_if=Type oidc"`

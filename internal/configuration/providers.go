@@ -14,8 +14,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const DefaultOIDCGroupsClaim = "groups"
-
 type Provider struct {
 	Name           string
 	Type           models.ProviderType
@@ -83,7 +81,7 @@ func LoadProviders(
 
 			groupsClaim := providerCfg.OIDC.GroupsClaim
 			if groupsClaim == "" {
-				groupsClaim = DefaultOIDCGroupsClaim
+				groupsClaim = models.DefaultOIDCGroupsClaim
 			}
 
 			providers[name] = Provider{
