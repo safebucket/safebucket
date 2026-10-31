@@ -242,7 +242,7 @@ func (s BucketFolderService) DeleteFolder(
 		}
 
 		event := events.NewFolderPurge(folder.BucketID, folder.ID, user.UserID)
-		if eventErr := outbox.AddEvents(tx, events.FolderPurgeName, event.Payload); eventErr != nil {
+		if eventErr := outbox.AddEvents(tx, event.Payload); eventErr != nil {
 			logger.Error("Failed to queue folder purge", zap.Error(eventErr))
 			return eventErr
 		}
@@ -345,7 +345,7 @@ func (s BucketFolderService) RestoreFolder(
 		restoredFolder = lockedFolder
 
 		event := events.NewFolderRestore(restoredFolder.BucketID, restoredFolder.ID, user.UserID)
-		if eventErr := outbox.AddEvents(tx, events.FolderRestoreName, event.Payload); eventErr != nil {
+		if eventErr := outbox.AddEvents(tx, event.Payload); eventErr != nil {
 			logger.Error("Failed to queue folder restore", zap.Error(eventErr))
 			return eventErr
 		}

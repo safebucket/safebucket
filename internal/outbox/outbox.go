@@ -13,10 +13,11 @@ import (
 
 var ErrEmptyEventType = errors.New("outbox event type is empty")
 
-func AddEvents[T any](tx *gorm.DB, name string, payloads ...T) error {
-	if name == "" {
-		return ErrEmptyEventType
-	}
+type Event interface {
+	EventName() string
+}
+
+func AddEvents[T Event](tx *gorm.DB, payloads ...T) error {
 	if len(payloads) == 0 {
 		return nil
 	}
@@ -25,6 +26,10 @@ func AddEvents[T any](tx *gorm.DB, name string, payloads ...T) error {
 	rows := make([]models.Outbox, 0, len(payloads))
 
 	for _, payload := range payloads {
+		name := payload.EventName()
+		if name == "" {
+			return ErrEmptyEventType
+		}
 		body, err := json.Marshal(payload)
 		if err != nil {
 			return fmt.Errorf("failed to marshal %s payload: %w", name, err)

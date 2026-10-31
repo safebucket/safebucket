@@ -39,6 +39,8 @@ type FileActivityNotificationPayload struct {
 	ActorEmail       string             `json:"actor_email"`
 }
 
+func (p FileActivityNotificationPayload) EventName() string { return p.Type }
+
 type FileActivityNotification struct {
 	Payload FileActivityNotificationPayload
 }

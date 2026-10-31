@@ -26,6 +26,8 @@ type ItemsTrashPayload struct {
 	UserID   uuid.UUID
 }
 
+func (p ItemsTrashPayload) EventName() string { return p.Type }
+
 type ItemsTrash struct {
 	Payload ItemsTrashPayload
 }
@@ -64,7 +66,7 @@ func (e *ItemsTrash) callback(params *EventParams) error {
 			return nil
 		}
 		next := NewItemsTrash(e.Payload.BucketID, e.Payload.UserID)
-		return outbox.AddEvents(tx, ItemsTrashName, next.Payload)
+		return outbox.AddEvents(tx, next.Payload)
 	})
 	if err != nil {
 		return err

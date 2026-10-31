@@ -25,6 +25,8 @@ type BucketPurgePayload struct {
 	UserID   uuid.UUID
 }
 
+func (p BucketPurgePayload) EventName() string { return p.Type }
+
 type BucketPurge struct {
 	Payload BucketPurgePayload
 }
@@ -165,7 +167,7 @@ func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
 			}).Error; err != nil {
 			return err
 		}
-		return outbox.AddEvents(tx, FolderPurgeName, payloads...)
+		return outbox.AddEvents(tx, payloads...)
 	})
 	if err != nil {
 		zap.L().Error("Failed to queue FolderPurge for root folders", zap.Error(err))

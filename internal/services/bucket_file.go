@@ -371,7 +371,7 @@ func (s BucketFileService) downloadVersion(
 			events.FileActivityDownload, events.FileActivitySourceUser,
 			file.BucketID, bucket.Name, file.Name, user.UserID, user.Email,
 		)
-		return outbox.AddEvents(tx, events.FileActivityNotificationName, evt.Payload)
+		return outbox.AddEvents(tx, evt.Payload)
 	})
 	if err != nil {
 		return models.FileDownloadResponse{}, err

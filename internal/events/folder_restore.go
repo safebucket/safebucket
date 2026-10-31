@@ -27,6 +27,8 @@ type FolderRestorePayload struct {
 	UserID   uuid.UUID
 }
 
+func (p FolderRestorePayload) EventName() string { return p.Type }
+
 type FolderRestore struct {
 	Payload FolderRestorePayload
 }
@@ -251,7 +253,7 @@ func (e *FolderRestore) queueChildFolderRestores(tx *gorm.DB, childFolderIDs []u
 	for _, childID := range childFolderIDs {
 		payloads = append(payloads, NewFolderRestore(e.Payload.BucketID, childID, e.Payload.UserID).Payload)
 	}
-	return outbox.AddEvents(tx, FolderRestoreName, payloads...)
+	return outbox.AddEvents(tx, payloads...)
 }
 
 func (e *FolderRestore) unmarkChildFilesFromStorage(params *EventParams, childFiles []models.File) {

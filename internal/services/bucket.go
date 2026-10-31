@@ -317,7 +317,7 @@ func (s BucketService) DeleteBucket(
 		}
 
 		event := events.NewBucketPurge(bucket.ID, user.UserID)
-		return outbox.AddEvents(tx, events.BucketPurgeName, event.Payload)
+		return outbox.AddEvents(tx, event.Payload)
 	})
 	if err != nil {
 		logger.Error("Failed to delete bucket", zap.Error(err))

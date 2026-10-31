@@ -18,7 +18,6 @@ import (
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/fileversions"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/notifier"
@@ -424,7 +423,6 @@ func BuildAPIRouter(
 	store storage.IStorage,
 	activityLogger activity.IActivityLogger,
 	notify notifier.INotifier,
-	publisher messaging.IPublisher,
 	providers configuration.Providers,
 ) chi.Router {
 	r := chi.NewRouter()
@@ -473,7 +471,6 @@ func BuildAPIRouter(
 			DB:                 db,
 			Cache:              cache,
 			AuthConfig:         authConfig,
-			Publisher:          publisher,
 			Notifier:           notify,
 			RefreshTokenExpiry: configuration.RefreshTokenExpiry,
 		}
@@ -485,7 +482,6 @@ func BuildAPIRouter(
 			Cache:      cache,
 			AuthConfig: authConfig,
 			Providers:  providers,
-			Publisher:  publisher,
 			Notifier:   notify,
 		}.Routes())
 

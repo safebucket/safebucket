@@ -63,7 +63,7 @@ func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) (int, erro
 		payloads = append(payloads, events.NewTrashExpirationFromBucketEvent(file.BucketID, markerPath).Payload)
 	}
 
-	if err := outbox.AddEvents(w.DB, events.TrashExpirationName, payloads...); err != nil {
+	if err := outbox.AddEvents(w.DB, payloads...); err != nil {
 		return 0, err
 	}
 
@@ -119,5 +119,5 @@ func (w *TrashCleanupWorker) queueFolderPurges(folders []models.Folder) error {
 	for _, folder := range folders {
 		payloads = append(payloads, events.NewFolderPurge(folder.BucketID, folder.ID, uuid.Nil).Payload)
 	}
-	return outbox.AddEvents(w.DB, events.FolderPurgeName, payloads...)
+	return outbox.AddEvents(w.DB, payloads...)
 }

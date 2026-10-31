@@ -70,6 +70,6 @@ func RecordFileVersionUploaded(shareID *uuid.UUID) func(tx *gorm.DB, completed f
 			userID,
 			user.Email,
 		)
-		return outbox.AddEvents(tx, FileActivityNotificationName, notification.Payload)
+		return outbox.AddEvents(tx, notification.Payload)
 	}
 }

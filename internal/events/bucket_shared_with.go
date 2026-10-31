@@ -21,6 +21,8 @@ type BucketSharedWithPayload struct {
 	WebURL string
 }
 
+func (p BucketSharedWithPayload) EventName() string { return p.Type }
+
 type BucketSharedWith struct {
 	Payload BucketSharedWithPayload
 }

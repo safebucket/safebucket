@@ -24,6 +24,8 @@ type UserInvitationPayload struct {
 	InviteURL        string
 }
 
+func (p UserInvitationPayload) EventName() string { return p.Type }
+
 type UserInvitation struct {
 	Payload UserInvitationPayload
 }

@@ -122,7 +122,7 @@ func (s AuthPasswordResetService) RequestPasswordReset(
 			challenge.ID.String(),
 			s.AuthConfig.WebURL,
 		)
-		return outbox.AddEvents(tx, events.PasswordResetChallengeName, event.Payload)
+		return outbox.AddEvents(tx, event.Payload)
 	})
 	if err != nil {
 		logger.Error("Failed to create challenge", zap.Error(err))
@@ -326,7 +326,7 @@ func (s AuthPasswordResetService) CompletePasswordReset(
 			s.AuthConfig.WebURL,
 			resetDate,
 		)
-		if eventErr := outbox.AddEvents(tx, events.PasswordResetSuccessName, successEvent.Payload); eventErr != nil {
+		if eventErr := outbox.AddEvents(tx, successEvent.Payload); eventErr != nil {
 			logger.Error("Failed to queue password reset notification", zap.Error(eventErr))
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}

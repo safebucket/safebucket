@@ -9,7 +9,6 @@ import (
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/notifier"
@@ -28,7 +27,6 @@ type UserService struct {
 	DB                 *gorm.DB
 	Cache              cache.ICache
 	AuthConfig         models.AuthConfig
-	Publisher          messaging.IPublisher
 	Notifier           notifier.INotifier
 	RefreshTokenExpiry int
 }

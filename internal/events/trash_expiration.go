@@ -26,6 +26,8 @@ type TrashExpirationPayload struct {
 	ObjectKey string    `json:"object_key"`
 }
 
+func (p TrashExpirationPayload) EventName() string { return p.Type }
+
 type TrashExpiration struct {
 	Payload TrashExpirationPayload
 }

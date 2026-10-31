@@ -27,6 +27,8 @@ type FolderPurgePayload struct {
 	UserID   uuid.UUID
 }
 
+func (p FolderPurgePayload) EventName() string { return p.Type }
+
 type FolderPurge struct {
 	Payload FolderPurgePayload
 }

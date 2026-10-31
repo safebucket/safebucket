@@ -71,7 +71,7 @@ func (s BucketTrashService) BulkTrash(
 		}
 
 		event := events.NewItemsTrash(bucketID, user.UserID)
-		return outbox.AddEvents(tx, events.ItemsTrashName, event.Payload)
+		return outbox.AddEvents(tx, event.Payload)
 	})
 	if err != nil {
 		return err

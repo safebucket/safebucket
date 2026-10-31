@@ -20,6 +20,8 @@ type ChallengeUserInvitePayload struct {
 	ChallengeURL string
 }
 
+func (p ChallengeUserInvitePayload) EventName() string { return p.Type }
+
 type ChallengeUserInvite struct {
 	Payload ChallengeUserInvitePayload
 }
@@ -69,6 +71,8 @@ type PasswordResetChallengePayload struct {
 	ChallengeURL string
 }
 
+func (p PasswordResetChallengePayload) EventName() string { return p.Type }
+
 type PasswordResetChallengeEvent struct {
 	Payload PasswordResetChallengePayload
 }
@@ -113,6 +117,8 @@ type PasswordResetSuccessPayload struct {
 	WebURL    string
 	ResetDate string
 }
+
+func (p PasswordResetSuccessPayload) EventName() string { return p.Type }
 
 type PasswordResetSuccessEvent struct {
 	Payload PasswordResetSuccessPayload
@@ -172,6 +178,8 @@ type UserWelcomePayload struct {
 	Email  string
 	WebURL string
 }
+
+func (p UserWelcomePayload) EventName() string { return p.Type }
 
 type UserWelcomeEvent struct {
 	Payload UserWelcomePayload
