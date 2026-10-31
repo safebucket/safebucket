@@ -277,8 +277,8 @@ func (s BucketMemberService) addMember(
 				user.Email,
 				invite.Email,
 			)
-			if outboxErr := outbox.AddEvents(tx, events.BucketSharedWithName, bucketSharedEvent.Payload); outboxErr != nil {
-				return outboxErr
+			if err = outbox.AddEvents(tx, events.BucketSharedWithName, bucketSharedEvent.Payload); err != nil {
+				return err
 			}
 		}
 
