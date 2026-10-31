@@ -358,22 +358,23 @@ func (s BucketFileService) downloadVersion(
 		Filter:  activity.NewLogFilter(fields),
 	}
 
-	var bucket models.Bucket
-	if dbErr := s.DB.Where("id = ?", file.BucketID).First(&bucket).Error; dbErr == nil {
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if activityErr := outbox.AddActivities(tx, action); activityErr != nil {
+			return activityErr
+		}
+		var bucket models.Bucket
+		result := tx.Where("id = ?", file.BucketID).Find(&bucket)
+		if result.Error != nil || result.RowsAffected == 0 {
+			return result.Error
+		}
 		evt := events.NewFileActivityNotification(
 			events.FileActivityDownload, events.FileActivitySourceUser,
 			file.BucketID, bucket.Name, file.Name, user.UserID, user.Email,
 		)
-
-		err = s.DB.Transaction(func(tx *gorm.DB) error {
-			if activityErr := outbox.AddActivities(tx, action); activityErr != nil {
-				return activityErr
-			}
-			return outbox.AddEvent(tx, events.FileActivityNotificationName, evt.Payload)
-		})
-		if err != nil {
-			return models.FileDownloadResponse{}, err
-		}
+		return outbox.AddEvents(tx, events.FileActivityNotificationName, evt.Payload)
+	})
+	if err != nil {
+		return models.FileDownloadResponse{}, err
 	}
 
 	return models.FileDownloadResponse{

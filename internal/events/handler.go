@@ -11,7 +11,6 @@ import (
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/eventparser"
 	"github.com/safebucket/safebucket/internal/fileversions"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/notifier"
 	"github.com/safebucket/safebucket/internal/storage"
 
@@ -26,7 +25,6 @@ var ErrUnknownEventType = errors.New("event type has no topic")
 type EventParams struct {
 	WebURL             string
 	Notifier           notifier.INotifier
-	Publisher          messaging.IPublisher
 	DB                 *gorm.DB
 	Storage            storage.IStorage
 	TrashRetentionDays int
@@ -142,7 +140,9 @@ func handleUploadEvents(parser eventparser.IBucketEventParser, msg *message.Mess
 			}
 			shareID = &parsed
 		}
-		completed, err := manager.Complete(zap.L(), bucketID, fileID, versionID, nil, true)
+		completed, err := manager.Complete(
+			zap.L(), bucketID, fileID, versionID, nil, true, RecordFileVersionUploaded(shareID),
+		)
 		if err != nil {
 			var apiErr *apierrors.APIError
 			if errors.As(err, &apiErr) && apiErr.Status < 500 {
@@ -152,9 +152,7 @@ func handleUploadEvents(parser eventparser.IBucketEventParser, msg *message.Mess
 			}
 			return err
 		}
-		if completed.Changed {
-			NotifyFileVersionUploaded(zap.L(), manager.DB, completed, shareID)
-		} else if event.VersionID == "" {
+		if !completed.Changed && event.VersionID == "" {
 			zap.L().Warn("Upload notification without version metadata made no change",
 				zap.String("file_id", fileID.String()), zap.String("bucket_id", bucketID.String()))
 		}

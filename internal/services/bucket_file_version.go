@@ -51,10 +51,8 @@ func (s BucketFileVersionService) ConfirmFileVersion(
 	_ models.UserClaims,
 	ids uuid.UUIDs,
 ) error {
-	completed, err := s.Versions.Complete(logger, ids[0], ids[1], ids[2], nil, false)
-	if err == nil && completed.Changed {
-		events.NotifyFileVersionUploaded(logger, s.DB, completed, nil)
-	}
+	_, err := s.Versions.Complete(logger, ids[0], ids[1], ids[2], nil, false,
+		events.RecordFileVersionUploaded(nil))
 	return err
 }
 

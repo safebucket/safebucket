@@ -1,7 +1,6 @@
 package events
 
 import (
-	"encoding/json"
 	"path"
 	"strings"
 
@@ -11,8 +10,6 @@ import (
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -40,21 +37,6 @@ func NewTrashExpirationFromBucketEvent(bucketID uuid.UUID, objectKey string) *Tr
 			BucketID:  bucketID,
 			ObjectKey: objectKey,
 		},
-	}
-}
-
-func (e *TrashExpiration) Trigger(publisher message.Publisher) {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling trash expiration event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = publisher.Publish("events", msg)
-	if err != nil {
-		zap.L().Error("failed to trigger trash expiration event", zap.Error(err))
 	}
 }
 

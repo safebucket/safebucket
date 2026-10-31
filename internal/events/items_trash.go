@@ -1,18 +1,14 @@
 package events
 
 import (
-	"encoding/json"
 	"path"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	c "github.com/safebucket/safebucket/internal/configuration"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -31,40 +27,20 @@ type ItemsTrashPayload struct {
 }
 
 type ItemsTrash struct {
-	Publisher messaging.IPublisher
-	Payload   ItemsTrashPayload
+	Payload ItemsTrashPayload
 }
 
 func NewItemsTrash(
-	publisher messaging.IPublisher,
 	bucketID uuid.UUID,
 	userID uuid.UUID,
 ) ItemsTrash {
 	return ItemsTrash{
-		Publisher: publisher,
 		Payload: ItemsTrashPayload{
 			Type:     ItemsTrashName,
 			BucketID: bucketID,
 			UserID:   userID,
 		},
 	}
-}
-
-func (e *ItemsTrash) Trigger() {
-	if err := e.publish(); err != nil {
-		zap.L().Error("Failed to trigger items trash event", zap.Error(err))
-	}
-}
-
-func (e *ItemsTrash) publish() error {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		return err
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	return e.Publisher.Publish(msg)
 }
 
 func (e *ItemsTrash) callback(params *EventParams) error {
@@ -81,7 +57,14 @@ func (e *ItemsTrash) callback(params *EventParams) error {
 		if err := e.logActivities(tx, files, folders); err != nil {
 			return err
 		}
-		return e.addTrashMarker(params, files, folders)
+		if err := e.addTrashMarker(params, files, folders); err != nil {
+			return err
+		}
+		if len(files)+len(folders) < c.BatchLimit {
+			return nil
+		}
+		next := NewItemsTrash(e.Payload.BucketID, e.Payload.UserID)
+		return outbox.AddEvents(tx, ItemsTrashName, next.Payload)
 	})
 	if err != nil {
 		return err
@@ -89,11 +72,6 @@ func (e *ItemsTrash) callback(params *EventParams) error {
 
 	processed := len(files) + len(folders)
 	if processed == c.BatchLimit {
-		next := NewItemsTrash(params.Publisher, e.Payload.BucketID, e.Payload.UserID)
-		if err = next.publish(); err != nil {
-			return err
-		}
-
 		zap.L().Info("Queued next trash batch",
 			zap.String("bucket_id", e.Payload.BucketID.String()),
 			zap.Int("processed", processed))

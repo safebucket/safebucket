@@ -133,7 +133,6 @@ func StartWorkers(
 	eventParams := &events.EventParams{
 		WebURL:             config.App.WebURL,
 		Notifier:           notify,
-		Publisher:          eventRouter,
 		DB:                 db,
 		Storage:            store,
 		TrashRetentionDays: config.App.TrashRetentionDays,
@@ -183,7 +182,6 @@ func StartWorkers(
 			func(workerCtx context.Context) {
 				worker := &workers.TrashCleanupWorker{
 					DB:                 db,
-					Publisher:          eventRouter,
 					TrashRetentionDays: config.App.TrashRetentionDays,
 					RunInterval:        time.Duration(config.App.TrashRetentionDays) * 24 * time.Hour / 7,
 				}
@@ -494,7 +492,6 @@ func BuildAPIRouter(
 		apiRouter.Mount("/v1/buckets", services.BucketService{
 			DB:                  db,
 			Storage:             store,
-			Publisher:           publisher,
 			ActivityLogger:      activityLogger,
 			Providers:           providers,
 			WebURL:              config.App.WebURL,

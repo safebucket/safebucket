@@ -1,19 +1,15 @@
 package events
 
 import (
-	"encoding/json"
 	"errors"
 	"path"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	c "github.com/safebucket/safebucket/internal/configuration"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -32,18 +28,15 @@ type FolderRestorePayload struct {
 }
 
 type FolderRestore struct {
-	Publisher messaging.IPublisher
-	Payload   FolderRestorePayload
+	Payload FolderRestorePayload
 }
 
 func NewFolderRestore(
-	publisher messaging.IPublisher,
 	bucketID uuid.UUID,
 	folderID uuid.UUID,
 	userID uuid.UUID,
 ) FolderRestore {
 	return FolderRestore{
-		Publisher: publisher,
 		Payload: FolderRestorePayload{
 			Type:     FolderRestoreName,
 			BucketID: bucketID,
@@ -53,25 +46,9 @@ func NewFolderRestore(
 	}
 }
 
-func (e *FolderRestore) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling folder restore event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger folder restore event", zap.Error(err))
-	}
-}
-
 type restoreState struct {
-	folderName     string
-	childFolderIDs []uuid.UUID
-	childFiles     []models.File
+	folderName string
+	childFiles []models.File
 }
 
 func (e *FolderRestore) callback(params *EventParams) error {
@@ -85,7 +62,6 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		return err
 	}
 
-	e.triggerChildFolderRestoreEvents(params, state)
 	e.unmarkChildFilesFromStorage(params, state.childFiles)
 
 	if err = e.checkRemainingItemsToRestore(params); err != nil {
@@ -120,7 +96,9 @@ func (e *FolderRestore) processChildrenInTransaction(params *EventParams) (*rest
 		if txErr != nil {
 			return txErr
 		}
-		state.childFolderIDs = childFolderIDs
+		if txErr = e.queueChildFolderRestores(tx, childFolderIDs); txErr != nil {
+			return txErr
+		}
 
 		childFiles, txErr := e.processChildFiles(tx, folder.Name)
 		if txErr != nil {
@@ -268,32 +246,12 @@ func (e *FolderRestore) processChildFiles(tx *gorm.DB, parentName string) ([]mod
 	return childFiles, nil
 }
 
-func (e *FolderRestore) triggerChildFolderRestoreEvents(params *EventParams, state *restoreState) {
-	if len(state.childFolderIDs) == 0 {
-		zap.L().Info("No child folders to trigger events for",
-			zap.String("folder", state.folderName),
-			zap.String("folder_id", e.Payload.FolderID.String()))
-		return
+func (e *FolderRestore) queueChildFolderRestores(tx *gorm.DB, childFolderIDs []uuid.UUID) error {
+	payloads := make([]FolderRestorePayload, 0, len(childFolderIDs))
+	for _, childID := range childFolderIDs {
+		payloads = append(payloads, NewFolderRestore(e.Payload.BucketID, childID, e.Payload.UserID).Payload)
 	}
-
-	zap.L().Info("Triggering restore events for child folders (after transaction commit)",
-		zap.String("folder", state.folderName),
-		zap.String("folder_id", e.Payload.FolderID.String()),
-		zap.Int("child_count", len(state.childFolderIDs)))
-
-	for _, childID := range state.childFolderIDs {
-		zap.L().Info("Triggering child folder restore event",
-			zap.String("parent_id", e.Payload.FolderID.String()),
-			zap.String("child_id", childID.String()))
-
-		childRestoreEvent := NewFolderRestore(
-			params.Publisher,
-			e.Payload.BucketID,
-			childID,
-			e.Payload.UserID,
-		)
-		childRestoreEvent.Trigger()
-	}
+	return outbox.AddEvents(tx, FolderRestoreName, payloads...)
 }
 
 func (e *FolderRestore) unmarkChildFilesFromStorage(params *EventParams, childFiles []models.File) {

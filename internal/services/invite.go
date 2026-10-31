@@ -171,7 +171,7 @@ func (s InviteService) createUserFromInvite(
 		}
 
 		welcomeEvent := events.NewUserWelcome(newUser.Email, s.AuthConfig.WebURL)
-		return outbox.AddEvent(tx, events.UserWelcomeName, welcomeEvent.Payload)
+		return outbox.AddEvents(tx, events.UserWelcomeName, welcomeEvent.Payload)
 	})
 	if err != nil {
 		logger.Error("Failed to commit transaction", zap.Error(err))
@@ -307,7 +307,7 @@ func (s InviteService) CreateInviteChallenge(
 			challenge.ID.String(),
 			s.AuthConfig.WebURL,
 		)
-		return outbox.AddEvent(tx, events.ChallengeUserInviteName, event.Payload)
+		return outbox.AddEvents(tx, events.ChallengeUserInviteName, event.Payload)
 	})
 	if err != nil {
 		logger.Error("Failed to create challenge", zap.Error(err))

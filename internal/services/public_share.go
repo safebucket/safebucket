@@ -353,10 +353,8 @@ func (s PublicShareService) UploadShareFile(
 }
 
 func (s PublicShareService) ConfirmShareVersion(logger *zap.Logger, share models.Share, ids uuid.UUIDs) error {
-	completed, err := s.Versions.Complete(logger, share.BucketID, ids[1], ids[2], &share, false)
-	if err == nil && completed.Changed {
-		events.NotifyFileVersionUploaded(logger, s.DB, completed, &share.ID)
-	}
+	_, err := s.Versions.Complete(logger, share.BucketID, ids[1], ids[2], &share, false,
+		events.RecordFileVersionUploaded(&share.ID))
 	return err
 }
 

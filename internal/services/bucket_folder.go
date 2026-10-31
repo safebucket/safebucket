@@ -11,7 +11,6 @@ import (
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
@@ -28,7 +27,6 @@ import (
 type BucketFolderService struct {
 	DB                 *gorm.DB
 	Storage            storage.IStorage
-	Publisher          messaging.IPublisher
 	TrashRetentionDays int
 }
 
@@ -243,27 +241,10 @@ func (s BucketFolderService) DeleteFolder(
 			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidStatus)
 		}
 
-		event := events.NewFolderPurge(s.Publisher, folder.BucketID, folder.ID, user.UserID)
-		if eventErr := outbox.AddEvent(tx, events.FolderPurgeName, event.Payload); eventErr != nil {
+		event := events.NewFolderPurge(folder.BucketID, folder.ID, user.UserID)
+		if eventErr := outbox.AddEvents(tx, events.FolderPurgeName, event.Payload); eventErr != nil {
 			logger.Error("Failed to queue folder purge", zap.Error(eventErr))
 			return eventErr
-		}
-
-		action := models.Activity{
-			Message: activity.FolderDeleted,
-			Object:  folder.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionDelete.String(),
-				BucketID:   folder.BucketID.String(),
-				FolderID:   folder.ID.String(),
-				ObjectType: rbac.ResourceFolder.String(),
-				UserID:     user.UserID.String(),
-			}),
-		}
-
-		if activityErr := outbox.AddActivities(tx, action); activityErr != nil {
-			logger.Error("Failed to log purge activity", zap.Error(activityErr))
-			return activityErr
 		}
 
 		return nil
@@ -363,27 +344,10 @@ func (s BucketFolderService) RestoreFolder(
 
 		restoredFolder = lockedFolder
 
-		event := events.NewFolderRestore(s.Publisher, restoredFolder.BucketID, restoredFolder.ID, user.UserID)
-		if eventErr := outbox.AddEvent(tx, events.FolderRestoreName, event.Payload); eventErr != nil {
+		event := events.NewFolderRestore(restoredFolder.BucketID, restoredFolder.ID, user.UserID)
+		if eventErr := outbox.AddEvents(tx, events.FolderRestoreName, event.Payload); eventErr != nil {
 			logger.Error("Failed to queue folder restore", zap.Error(eventErr))
 			return eventErr
-		}
-
-		action := models.Activity{
-			Message: activity.FolderRestored,
-			Object:  restoredFolder.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionRestore.String(),
-				BucketID:   restoredFolder.BucketID.String(),
-				FolderID:   restoredFolder.ID.String(),
-				ObjectType: rbac.ResourceFolder.String(),
-				UserID:     user.UserID.String(),
-			}),
-		}
-
-		if activityErr := outbox.AddActivities(tx, action); activityErr != nil {
-			logger.Error("Failed to log restore activity", zap.Error(activityErr))
-			return activityErr
 		}
 
 		return nil

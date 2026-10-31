@@ -7,6 +7,7 @@ import (
 
 	c "github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -150,24 +151,25 @@ func (e *BucketPurge) deleteRootFolders(params *EventParams) bool {
 		zap.Int("count", len(folders)),
 	)
 
+	payloads := make([]FolderPurgePayload, 0, len(folders))
 	for _, folder := range folders {
-		params.DB.Unscoped().Model(&folder).Updates(map[string]interface{}{
-			"deleted_at": time.Now(),
-			"deleted_by": e.Payload.UserID,
-		})
+		payloads = append(payloads, NewFolderPurge(folder.BucketID, folder.ID, e.Payload.UserID).Payload)
+	}
 
-		purgeEvent := NewFolderPurge(
-			params.Publisher,
-			folder.BucketID,
-			folder.ID,
-			e.Payload.UserID,
-		)
-		purgeEvent.Trigger()
-
-		zap.L().Debug("Triggered FolderPurge event",
-			zap.String("folder_id", folder.ID.String()),
-			zap.String("folder_name", folder.Name),
-		)
+	err := params.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Model(&models.Folder{}).
+			Where("id IN ?", folderIDs(folders)).
+			Updates(map[string]interface{}{
+				"deleted_at": time.Now(),
+				"deleted_by": e.Payload.UserID,
+			}).Error; err != nil {
+			return err
+		}
+		return outbox.AddEvents(tx, FolderPurgeName, payloads...)
+	})
+	if err != nil {
+		zap.L().Error("Failed to queue FolderPurge for root folders", zap.Error(err))
+		return false
 	}
 
 	var remainingCount int64

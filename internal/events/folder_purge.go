@@ -1,19 +1,15 @@
 package events
 
 import (
-	"encoding/json"
 	"errors"
 	"path"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	c "github.com/safebucket/safebucket/internal/configuration"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -32,39 +28,21 @@ type FolderPurgePayload struct {
 }
 
 type FolderPurge struct {
-	Publisher messaging.IPublisher
-	Payload   FolderPurgePayload
+	Payload FolderPurgePayload
 }
 
 func NewFolderPurge(
-	publisher messaging.IPublisher,
 	bucketID uuid.UUID,
 	folderID uuid.UUID,
 	userID uuid.UUID,
 ) FolderPurge {
 	return FolderPurge{
-		Publisher: publisher,
 		Payload: FolderPurgePayload{
 			Type:     FolderPurgeName,
 			BucketID: bucketID,
 			FolderID: folderID,
 			UserID:   userID,
 		},
-	}
-}
-
-func (e *FolderPurge) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling folder purge event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger folder purge event", zap.Error(err))
 	}
 }
 

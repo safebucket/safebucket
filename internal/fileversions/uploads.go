@@ -75,6 +75,7 @@ func (m Manager) Start(logger *zap.Logger, bucketID uuid.UUID, body models.FileU
 
 func (m Manager) Complete(logger *zap.Logger, bucketID, fileID, versionID uuid.UUID,
 	share *models.Share, notification bool,
+	onComplete func(tx *gorm.DB, completed Completion) error,
 ) (Completion, error) {
 	var completed Completion
 	err := m.DB.Transaction(func(tx *gorm.DB) error {
@@ -114,7 +115,10 @@ func (m Manager) Complete(logger *zap.Logger, bucketID, fileID, versionID uuid.U
 			return err
 		}
 		completed = Completion{File: file, Version: version, Changed: true}
-		return nil
+		if onComplete == nil {
+			return nil
+		}
+		return onComplete(tx, completed)
 	})
 	if err == nil && completed.Changed {
 		if cacheErr := cache.DeleteMultipartState(m.Cache, completed.Version.ID.String()); cacheErr != nil {

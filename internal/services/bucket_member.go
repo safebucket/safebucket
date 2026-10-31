@@ -262,7 +262,7 @@ func (s BucketMemberService) addMember(
 				inviteRecord.ID.String(),
 				s.WebURL,
 			)
-			if err := outbox.AddEvent(tx, events.UserInvitationName, invitationEvent.Payload); err != nil {
+			if err := outbox.AddEvents(tx, events.UserInvitationName, invitationEvent.Payload); err != nil {
 				return err
 			}
 		} else {
@@ -277,7 +277,7 @@ func (s BucketMemberService) addMember(
 				user.Email,
 				invite.Email,
 			)
-			if err := outbox.AddEvent(tx, events.BucketSharedWithName, bucketSharedEvent.Payload); err != nil {
+			if err := outbox.AddEvents(tx, events.BucketSharedWithName, bucketSharedEvent.Payload); err != nil {
 				return err
 			}
 		}

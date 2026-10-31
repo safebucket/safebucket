@@ -6,10 +6,9 @@ import (
 	"time"
 
 	"github.com/safebucket/safebucket/internal/events"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -20,23 +19,8 @@ const (
 	FolderBatchSize = 50
 )
 
-// watermillPublisherAdapter adapts messaging.IPublisher to message.Publisher interface.
-// This allows TrashExpiration.Trigger() to work with our EventRouter.
-type watermillPublisherAdapter struct {
-	publisher messaging.IPublisher
-}
-
-func (a *watermillPublisherAdapter) Publish(_ string, msgs ...*message.Message) error {
-	return a.publisher.Publish(msgs...)
-}
-
-func (a *watermillPublisherAdapter) Close() error {
-	return a.publisher.Close()
-}
-
 type TrashCleanupWorker struct {
 	DB                 *gorm.DB
-	Publisher          messaging.IPublisher
 	TrashRetentionDays int
 	RunInterval        time.Duration
 }
@@ -50,11 +34,10 @@ func (w *TrashCleanupWorker) Start(ctx context.Context) {
 
 func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) (int, error) {
 	expirationTime := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
-	totalQueued := 0
 
 	select {
 	case <-ctx.Done():
-		return totalQueued, nil
+		return 0, nil
 	default:
 	}
 
@@ -74,26 +57,21 @@ func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) (int, erro
 
 	zap.L().Debug("Processing expired files batch", zap.Int("count", len(files)))
 
-	adapter := &watermillPublisherAdapter{publisher: w.Publisher}
-
+	payloads := make([]events.TrashExpirationPayload, 0, len(files))
 	for _, file := range files {
 		markerPath := path.Join("trash", file.BucketID.String(), "files", file.ID.String())
-		event := events.NewTrashExpirationFromBucketEvent(file.BucketID, markerPath)
-		event.Trigger(adapter)
-
-		zap.L().Debug("Triggered expiration for file",
-			zap.String("file_id", file.ID.String()),
-			zap.String("file_name", file.Name))
-
-		totalQueued++
+		payloads = append(payloads, events.NewTrashExpirationFromBucketEvent(file.BucketID, markerPath).Payload)
 	}
 
-	return totalQueued, nil
+	if err := outbox.AddEvents(w.DB, events.TrashExpirationName, payloads...); err != nil {
+		return 0, err
+	}
+
+	return len(payloads), nil
 }
 
-func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) (int, error) {
+func (w *TrashCleanupWorker) cleanupExpiredFolders(_ context.Context) (int, error) {
 	expirationTime := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
-	totalQueued := 0
 
 	// Query root-level trashed folders (no parent)
 	// FolderPurge events will handle children recursively
@@ -113,31 +91,14 @@ func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) (int, er
 
 	zap.L().Debug("Processing expired folders", zap.Int("count", len(folders)))
 
-	for _, folder := range folders {
-		select {
-		case <-ctx.Done():
-			return totalQueued, nil
-		default:
-		}
-
-		event := events.NewFolderPurge(w.Publisher, folder.BucketID, folder.ID, uuid.Nil)
-		event.Trigger()
-
-		zap.L().Debug("Triggered purge for expired folder",
-			zap.String("folder_id", folder.ID.String()),
-			zap.String("folder_name", folder.Name))
-
-		totalQueued++
+	if err := w.queueFolderPurges(folders); err != nil {
+		return 0, err
 	}
 
-	if err := w.cleanupOrphanedFolders(ctx, expirationTime); err != nil {
-		return totalQueued, err
-	}
-
-	return totalQueued, nil
+	return len(folders), w.cleanupOrphanedFolders(expirationTime)
 }
 
-func (w *TrashCleanupWorker) cleanupOrphanedFolders(ctx context.Context, expirationTime time.Time) error {
+func (w *TrashCleanupWorker) cleanupOrphanedFolders(expirationTime time.Time) error {
 	var folders []models.Folder
 	// Find trashed folders with a folder_id that no longer exists
 	result := w.DB.Unscoped().
@@ -150,20 +111,13 @@ func (w *TrashCleanupWorker) cleanupOrphanedFolders(ctx context.Context, expirat
 		return result.Error
 	}
 
+	return w.queueFolderPurges(folders)
+}
+
+func (w *TrashCleanupWorker) queueFolderPurges(folders []models.Folder) error {
+	payloads := make([]events.FolderPurgePayload, 0, len(folders))
 	for _, folder := range folders {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		event := events.NewFolderPurge(w.Publisher, folder.BucketID, folder.ID, uuid.Nil)
-		event.Trigger()
-
-		zap.L().Debug("Triggered purge for orphaned folder",
-			zap.String("folder_id", folder.ID.String()),
-			zap.String("folder_name", folder.Name))
+		payloads = append(payloads, events.NewFolderPurge(folder.BucketID, folder.ID, uuid.Nil).Payload)
 	}
-
-	return nil
+	return outbox.AddEvents(w.DB, events.FolderPurgeName, payloads...)
 }

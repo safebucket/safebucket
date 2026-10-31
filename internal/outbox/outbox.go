@@ -13,25 +13,33 @@ import (
 
 var ErrEmptyEventType = errors.New("outbox event type is empty")
 
-func AddEvent(tx *gorm.DB, name string, payload any) error {
+func AddEvents[T any](tx *gorm.DB, name string, payloads ...T) error {
 	if name == "" {
 		return ErrEmptyEventType
 	}
-
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal %s payload: %w", name, err)
+	if len(payloads) == 0 {
+		return nil
 	}
 
 	now := time.Now().UTC()
+	rows := make([]models.Outbox, 0, len(payloads))
 
-	return tx.Create(&models.Outbox{
-		Type:          models.OutboxTypeEvent,
-		Name:          &name,
-		Payload:       string(body),
-		NextAttemptAt: now,
-		CreatedAt:     now,
-	}).Error
+	for _, payload := range payloads {
+		body, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal %s payload: %w", name, err)
+		}
+
+		rows = append(rows, models.Outbox{
+			Type:          models.OutboxTypeEvent,
+			Name:          &name,
+			Payload:       string(body),
+			NextAttemptAt: now,
+			CreatedAt:     now,
+		})
+	}
+
+	return tx.Create(&rows).Error
 }
 
 func AddActivities(tx *gorm.DB, activities ...models.Activity) error {
