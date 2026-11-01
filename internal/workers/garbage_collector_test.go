@@ -49,13 +49,16 @@ func (s *gcStubStorage) AbortMultipartUpload(_, uploadID string) error {
 
 func (s *gcStubStorage) StatObject(string) (map[string]string, error) { return nil, nil }
 func (s *gcStubStorage) ListObjects(string, int32) ([]string, error)  { return nil, nil }
-func (s *gcStubStorage) RemoveObject(string) error                    { return nil }
-func (s *gcStubStorage) RemoveObjects([]string) error                 { return nil }
-func (s *gcStubStorage) EnsureTrashLifecyclePolicy(int) error         { return nil }
-func (s *gcStubStorage) MarkAsTrashed(string, any) error              { return nil }
-func (s *gcStubStorage) UnmarkAsTrashed(string, any) error            { return nil }
-func (s *gcStubStorage) IsTrashMarkerPath(string) (bool, string)      { return false, "" }
-func (s *gcStubStorage) GetBucketName() string                        { return "" }
+func (s *gcStubStorage) IterateObjects(string, func(storage.ObjectInfo) error) error {
+	return nil
+}
+func (s *gcStubStorage) RemoveObject(string) error               { return nil }
+func (s *gcStubStorage) RemoveObjects([]string) error            { return nil }
+func (s *gcStubStorage) EnsureTrashLifecyclePolicy(int) error    { return nil }
+func (s *gcStubStorage) MarkAsTrashed(string, any) error         { return nil }
+func (s *gcStubStorage) UnmarkAsTrashed(string, any) error       { return nil }
+func (s *gcStubStorage) IsTrashMarkerPath(string) (bool, string) { return false, "" }
+func (s *gcStubStorage) GetBucketName() string                   { return "" }
 
 func setupGCTestDB(t *testing.T) *gorm.DB {
 	t.Helper()

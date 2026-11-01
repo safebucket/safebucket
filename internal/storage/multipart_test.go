@@ -33,13 +33,16 @@ func (s *stubStorage) SupportsMultipart() bool                      { return tru
 func (s *stubStorage) AbortMultipartUpload(string, string) error    { return nil }
 func (s *stubStorage) StatObject(string) (map[string]string, error) { return nil, nil }
 func (s *stubStorage) ListObjects(string, int32) ([]string, error)  { return nil, nil }
-func (s *stubStorage) RemoveObject(string) error                    { return nil }
-func (s *stubStorage) RemoveObjects([]string) error                 { return nil }
-func (s *stubStorage) EnsureTrashLifecyclePolicy(int) error         { return nil }
-func (s *stubStorage) MarkAsTrashed(string, interface{}) error      { return nil }
-func (s *stubStorage) UnmarkAsTrashed(string, interface{}) error    { return nil }
-func (s *stubStorage) IsTrashMarkerPath(string) (bool, string)      { return false, "" }
-func (s *stubStorage) GetBucketName() string                        { return "" }
+func (s *stubStorage) IterateObjects(string, func(ObjectInfo) error) error {
+	return nil
+}
+func (s *stubStorage) RemoveObject(string) error                 { return nil }
+func (s *stubStorage) RemoveObjects([]string) error              { return nil }
+func (s *stubStorage) EnsureTrashLifecyclePolicy(int) error      { return nil }
+func (s *stubStorage) MarkAsTrashed(string, interface{}) error   { return nil }
+func (s *stubStorage) UnmarkAsTrashed(string, interface{}) error { return nil }
+func (s *stubStorage) IsTrashMarkerPath(string) (bool, string)   { return false, "" }
+func (s *stubStorage) GetBucketName() string                     { return "" }
 
 func TestFinalizeMultipartUpload(t *testing.T) {
 	const mib = int64(1 << 20)

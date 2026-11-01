@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
+	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,6 +14,7 @@ import (
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/core"
 	"github.com/safebucket/safebucket/internal/middlewares"
+	"github.com/safebucket/safebucket/internal/reconcile"
 
 	"go.uber.org/zap"
 )
@@ -22,6 +26,14 @@ const httpShutdownTimeout = 10 * time.Second
 
 func main() {
 	zap.ReplaceGlobals(zap.Must(zap.NewProduction()))
+
+	if len(os.Args) > 1 && os.Args[1] == "reconcile" {
+		if err := runReconcile(os.Args[2:]); err != nil {
+			zap.L().Error("Reconcile failed", zap.Error(err))
+			os.Exit(1)
+		}
+		return
+	}
 
 	config := configuration.Read()
 	core.NewLogger(config.App.LogLevel)
@@ -66,4 +78,21 @@ func main() {
 		zap.L().Error("App shutdown error", zap.Error(err))
 	}
 	shutdownCancel()
+}
+
+func runReconcile(args []string) error {
+	opts, err := reconcile.ParseOptions(args)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			fmt.Fprint(os.Stdout, reconcile.Usage())
+			return nil
+		}
+		fmt.Fprint(os.Stderr, reconcile.Usage())
+		return err
+	}
+
+	config := configuration.Read()
+	core.NewLogger(config.App.LogLevel)
+
+	return reconcile.Run(context.Background(), config, opts)
 }
