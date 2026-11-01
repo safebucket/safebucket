@@ -108,10 +108,29 @@ func (e *FolderRestore) processChildrenInTransaction(params *EventParams) (*rest
 		}
 		state.childFiles = childFiles
 
-		return nil
+		return e.logFileRestoredActivities(tx, childFiles)
 	})
 
 	return state, err
+}
+
+func (e *FolderRestore) logFileRestoredActivities(tx *gorm.DB, files []models.File) error {
+	activities := make([]models.Activity, 0, len(files))
+	for _, file := range files {
+		restore := models.Activity{
+			Message: activity.FileRestored,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionRestore.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     e.Payload.UserID.String(),
+			}),
+		}
+		activities = append(activities, restore)
+	}
+	return outbox.AddActivities(tx, activities...)
 }
 
 func (e *FolderRestore) fetchAndValidateFolder(tx *gorm.DB) (*models.Folder, error) {
