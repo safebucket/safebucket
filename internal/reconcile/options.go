@@ -31,7 +31,7 @@ func newFlagSet(opts *Options) *flag.FlagSet {
 	fs.SetOutput(io.Discard)
 
 	fs.BoolVar(&opts.Apply, "apply", false, "delete orphaned objects")
-	fs.BoolVar(&opts.Force, "force", false, "allow --apply when the orphan ratio safety check trips")
+	fs.BoolVar(&opts.Force, "force", false, "allow --apply when the orphan count is high")
 	fs.DurationVar(&opts.Grace, "grace", defaultGrace, "skip objects modified more recently than this")
 	fs.StringVar(&opts.Bucket, "bucket", "", "limit the scan to one bucket ID")
 	fs.StringVar(&opts.Report, "report", "", "JSON report path")
