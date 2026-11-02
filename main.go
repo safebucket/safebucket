@@ -94,5 +94,5 @@ func runReconcile(args []string) error {
 	config := configuration.Read()
 	core.NewLogger(config.App.LogLevel)
 
-	return reconcile.Run(context.Background(), config, opts)
+	return reconcile.Run(config, opts)
 }

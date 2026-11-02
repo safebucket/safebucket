@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -33,40 +32,31 @@ type deleteFailure struct {
 	Error string `json:"error"`
 }
 
-type skippedObject struct {
-	Key    string `json:"key"`
-	Reason string `json:"reason"`
-}
-
 type report struct {
-	GeneratedAt      time.Time       `json:"generated_at"`
-	Prefix           string          `json:"prefix"`
-	GracePeriod      string          `json:"grace_period"`
-	Applied          bool            `json:"applied"`
-	Total            groupStats      `json:"total"`
-	Referenced       groupStats      `json:"referenced"`
-	Orphaned         groupStats      `json:"orphaned"`
-	TooRecent        groupStats      `json:"too_recent"`
-	Unknown          groupStats      `json:"unknown"`
-	OrphanedObjects  []objectRecord  `json:"orphaned_objects"`
-	UnknownKeys      []string        `json:"unknown_keys"`
-	MissingBucketIDs []string        `json:"missing_bucket_ids"`
-	DeletedCount     int64           `json:"deleted_count"`
-	DeletedSize      int64           `json:"deleted_size"`
-	Failed           []deleteFailure `json:"failed"`
-	Skipped          []skippedObject `json:"skipped"`
+	GeneratedAt     time.Time       `json:"generated_at"`
+	Prefix          string          `json:"prefix"`
+	GracePeriod     string          `json:"grace_period"`
+	Applied         bool            `json:"applied"`
+	Total           groupStats      `json:"total"`
+	Referenced      groupStats      `json:"referenced"`
+	Orphaned        groupStats      `json:"orphaned"`
+	TooRecent       groupStats      `json:"too_recent"`
+	Unknown         groupStats      `json:"unknown"`
+	OrphanedObjects []objectRecord  `json:"orphaned_objects"`
+	UnknownKeys     []string        `json:"unknown_keys"`
+	DeletedCount    int64           `json:"deleted_count"`
+	DeletedSize     int64           `json:"deleted_size"`
+	Failed          []deleteFailure `json:"failed"`
 }
 
 func newReport(prefix string, opts Options) *report {
 	return &report{
-		GeneratedAt:      time.Now().UTC(),
-		Prefix:           prefix,
-		GracePeriod:      opts.Grace.String(),
-		OrphanedObjects:  make([]objectRecord, 0),
-		UnknownKeys:      make([]string, 0),
-		MissingBucketIDs: make([]string, 0),
-		Failed:           make([]deleteFailure, 0),
-		Skipped:          make([]skippedObject, 0),
+		GeneratedAt:     time.Now().UTC(),
+		Prefix:          prefix,
+		GracePeriod:     opts.Grace.String(),
+		OrphanedObjects: make([]objectRecord, 0),
+		UnknownKeys:     make([]string, 0),
+		Failed:          make([]deleteFailure, 0),
 	}
 }
 
@@ -102,11 +92,6 @@ func printSummary(result *report, opts Options) {
 	fmt.Fprintf(os.Stdout, "  %-12s %8d  skipped (< %s old)\n", "too recent", result.TooRecent.Count, opts.Grace)
 	fmt.Fprintf(os.Stdout, "  %-12s %8d  skipped\n", "unknown", result.Unknown.Count)
 	fmt.Fprintln(os.Stdout)
-
-	if len(result.MissingBucketIDs) > 0 {
-		fmt.Fprintf(os.Stdout, "%d bucket(s) no longer exist in the database: %s\n\n",
-			len(result.MissingBucketIDs), strings.Join(result.MissingBucketIDs, ", "))
-	}
 }
 
 func printResult(result *report, opts Options) {
@@ -116,12 +101,8 @@ func printResult(result *report, opts Options) {
 		return
 	}
 
-	fmt.Fprintf(os.Stdout, "Deleted %d orphaned objects (%s), %d failed",
+	fmt.Fprintf(os.Stdout, "Deleted %d orphaned objects (%s), %d failed.\n",
 		result.DeletedCount, formatSize(result.DeletedSize), len(result.Failed))
-	if len(result.Skipped) > 0 {
-		fmt.Fprintf(os.Stdout, ", %d skipped", len(result.Skipped))
-	}
-	fmt.Fprintln(os.Stdout, ".")
 }
 
 func formatSize(size int64) string {
