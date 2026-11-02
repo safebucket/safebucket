@@ -27,9 +27,6 @@ func Run(cfg models.Configuration, opts Options) error {
 	}()
 
 	store := core.NewStorage(cfg.Storage, 0)
-	if store == nil {
-		return fmt.Errorf("unsupported storage type %q", cfg.Storage.Type)
-	}
 
 	result := newReport(opts.prefix(), opts)
 

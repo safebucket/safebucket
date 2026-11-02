@@ -3,9 +3,6 @@ package main
 import (
 	"context"
 	"embed"
-	"errors"
-	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -83,11 +80,6 @@ func main() {
 func runReconcile(args []string) error {
 	opts, err := reconcile.ParseOptions(args)
 	if err != nil {
-		if errors.Is(err, flag.ErrHelp) {
-			fmt.Fprint(os.Stdout, reconcile.Usage())
-			return nil
-		}
-		fmt.Fprint(os.Stderr, reconcile.Usage())
 		return err
 	}
 

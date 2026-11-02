@@ -4,9 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,9 +24,13 @@ type Options struct {
 	Report string
 }
 
-func newFlagSet(opts *Options) *flag.FlagSet {
-	fs := flag.NewFlagSet("reconcile", flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
+func ParseOptions(args []string) (Options, error) {
+	opts := Options{}
+	fs := flag.NewFlagSet("reconcile", flag.ExitOnError)
+	fs.Usage = func() {
+		fmt.Fprint(fs.Output(), "Usage: safebucket reconcile [flags]\n\nFlags:\n")
+		fs.PrintDefaults()
+	}
 
 	fs.BoolVar(&opts.Apply, "apply", false, "delete orphaned objects")
 	fs.BoolVar(&opts.Force, "force", false, "allow --apply when the orphan count is high")
@@ -36,19 +38,8 @@ func newFlagSet(opts *Options) *flag.FlagSet {
 	fs.StringVar(&opts.Bucket, "bucket", "", "limit the scan to one bucket ID")
 	fs.StringVar(&opts.Report, "report", "", "JSON report path")
 
-	return fs
-}
+	_ = fs.Parse(args)
 
-func ParseOptions(args []string) (Options, error) {
-	opts := Options{}
-	fs := newFlagSet(&opts)
-
-	if err := fs.Parse(args); err != nil {
-		return Options{}, err
-	}
-	if fs.NArg() > 0 {
-		return Options{}, fmt.Errorf("unexpected arguments: %s", strings.Join(fs.Args(), " "))
-	}
 	if opts.Grace < 0 {
 		return Options{}, errors.New("--grace cannot be negative")
 	}
@@ -67,18 +58,6 @@ func ParseOptions(args []string) (Options, error) {
 	}
 
 	return opts, nil
-}
-
-func Usage() string {
-	opts := Options{}
-	fs := newFlagSet(&opts)
-
-	var builder strings.Builder
-	builder.WriteString("Usage: safebucket reconcile [flags]\n\nFlags:\n")
-	fs.SetOutput(&builder)
-	fs.PrintDefaults()
-
-	return builder.String()
 }
 
 func (o Options) prefix() string {
