@@ -188,8 +188,7 @@ func (s *GenericS3Storage) RemoveObjects(paths []string) error {
 		}
 		close(objectsCh)
 
-		opts := minio.RemoveObjectsOptions{GovernanceBypass: true}
-		errorCh := s.storage.RemoveObjects(context.Background(), s.BucketName, objectsCh, opts)
+		errorCh := s.storage.RemoveObjects(context.Background(), s.BucketName, objectsCh, minio.RemoveObjectsOptions{})
 
 		for err := range errorCh {
 			if err.Err != nil {
