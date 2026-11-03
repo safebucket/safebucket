@@ -1,0 +1,212 @@
+name: safebucket
+
+services:
+  bucket:
+    container_name: bucket
+    image: minio/minio:RELEASE.2024-11-07T00-52-20Z
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - "minio_data:/data"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+    depends_on:
+      - nats
+
+  minio-events-config:
+    container_name: minio-events-config
+    image: minio/mc:latest
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - |
+        echo "Configuring MinIO bucket events for NATS JetStream..."
+
+        # Wait for MinIO to be ready using mc ping
+        echo "Waiting for MinIO to be ready..."
+        while ! mc alias set local http://bucket:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} 2>/dev/null; do
+          echo "MinIO not ready yet, waiting..."
+          sleep 2
+        done
+
+        echo "MinIO is ready. Creating required buckets..."
+        mc mb local/safebucket --ignore-existing
+        mc mb local/loki-data --ignore-existing
+        mc mb local/loki-ruler --ignore-existing
+        echo "Buckets created successfully."
+
+        echo "Configuring NATS notification target..."
+
+        mc admin config set local notify_nats:safebucket \
+          address="nats:4222" \
+          subject="safebucket-bucket-events" \
+          jetstream="off" \
+          tls="off" \
+          tls_skip_verify="off"
+
+        # Restart MinIO to apply config
+        echo "Restarting MinIO to apply configuration..."
+        mc admin service restart local --json
+
+        echo "Waiting for MinIO to restart..."
+        sleep 15
+
+        # Wait for MinIO to be ready again using mc ping
+        while ! mc admin info local 2>/dev/null; do
+          echo "Waiting for MinIO to be ready after restart..."
+          sleep 3
+        done
+
+        echo "MinIO is ready after restart. Verifying NATS target configuration..."
+
+        # List notification targets to verify the NATS target was created
+        echo "Available notification targets:"
+        mc admin config get local notify_nats
+
+        echo "Removing any existing bucket notification events..."
+        mc event remove local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get 2>/dev/null || true
+
+        echo "Adding bucket notification events..."
+        mc event add local/safebucket arn:minio:sqs::safebucket:nats --event put,delete,get
+
+        echo "Verifying bucket notification configuration:"
+        mc event list local/safebucket
+
+        echo "MinIO bucket events configured successfully!"
+        echo "Events will be published to NATS subject: safebucket.bucket-events"
+    depends_on:
+      bucket:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    restart: "no"
+
+  database:
+    container_name: database
+    image: postgres:18
+    ports:
+      - "5432:5432"
+    volumes:
+      - "postgresql_data:/var/lib/postgresql"
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: [ "CMD-SHELL", "psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1' || exit 1" ]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  valkey:
+    container_name: valkey
+    image: valkey/valkey:9
+    command: [ "valkey-server", "--requirepass", "${VALKEY_PASSWORD}" ]
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    shm_size: 128mb
+    volumes:
+      - "valkey_data:/data"
+
+  mailpit:
+    image: axllent/mailpit:v1.27.10
+    container_name: mailpit
+    restart: unless-stopped
+    volumes:
+      - "mail_data:/data"
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ALLOW_INSECURE: true
+      MP_SMTP_AUTH: root:root
+
+  nats:
+    image: nats:2.12-alpine
+    container_name: nats
+    ports:
+      - "4222:4222"
+    restart: unless-stopped
+    command: [ "-js", "-sd", "/data" ]
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - "nats_data:/data"
+
+  loki:
+    container_name: loki
+    image: grafana/loki:3.5
+    command: "-config.file=/etc/loki/config.yaml"
+    ports:
+      - "3100:3100"
+      - "7946:7946"
+      - "9095:9095"
+    volumes:
+      - ./config/loki.yaml:/etc/loki/config.yaml
+    depends_on:
+      - bucket
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    container_name: grafana
+    profiles: [ debug ]
+    image: docker.io/grafana/grafana:latest
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    entrypoint:
+      - sh
+      - -euc
+      - |
+        mkdir -p /etc/grafana/provisioning/datasources
+        cat <<EOF > /etc/grafana/provisioning/datasources/ds.yaml
+        apiVersion: 1
+        datasources:
+          - name: Loki
+            type: loki
+            access: proxy
+            url: http://loki:3100
+            jsonData:
+              httpHeaderName1: "X-Scope-OrgID"
+            secureJsonData:
+              httpHeaderValue1: "tenant1"
+        EOF
+        /run.sh
+    ports:
+      - "3200:3000"
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  minio_data:
+  postgresql_data:
+  mail_data:
+  valkey_data:
+  nats_data:
