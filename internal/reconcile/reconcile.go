@@ -57,12 +57,12 @@ func scanObjects(
 	result *report,
 	opts Options,
 ) error {
+	cutoff := time.Now().Add(-opts.Grace)
+
 	resources, err := loadResourceIDs(db)
 	if err != nil {
 		return err
 	}
-
-	cutoff := time.Now().Add(-opts.Grace)
 
 	err = store.IterateObjects(result.Prefix, func(object storage.ObjectInfo) error {
 		result.Total.Count++

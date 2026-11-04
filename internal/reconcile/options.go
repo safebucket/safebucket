@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultGrace          = 24 * time.Hour
+	defaultGrace          = 30 * time.Minute
 	defaultReportDir      = "data"
 	reportTimestampLayout = "20060102-150405"
 )
