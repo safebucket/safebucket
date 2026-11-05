@@ -18,7 +18,6 @@ const (
 
 type Options struct {
 	Apply  bool
-	Force  bool
 	Grace  time.Duration
 	Bucket string
 	Report string
@@ -33,7 +32,6 @@ func ParseOptions(args []string) (Options, error) {
 	}
 
 	fs.BoolVar(&opts.Apply, "apply", false, "delete orphaned objects")
-	fs.BoolVar(&opts.Force, "force", false, "allow --apply when the orphan count is high")
 	fs.DurationVar(&opts.Grace, "grace", defaultGrace, "skip objects modified more recently than this")
 	fs.StringVar(&opts.Bucket, "bucket", "", "limit the scan to one bucket ID")
 	fs.StringVar(&opts.Report, "report", "", "JSON report path")

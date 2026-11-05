@@ -36,9 +36,6 @@ func Run(cfg models.Configuration, opts Options) error {
 	printSummary(result, opts)
 
 	if opts.Apply {
-		if err = checkSafety(result, opts); err != nil {
-			return err
-		}
 		deleteOrphans(store, result)
 	}
 
@@ -99,18 +96,6 @@ func scanObjects(
 	})
 	if err != nil {
 		return fmt.Errorf("list storage objects: %w", err)
-	}
-
-	return nil
-}
-
-func checkSafety(result *report, opts Options) error {
-	if !opts.Force && result.Orphaned.Count*2 >= result.Total.Count {
-		return fmt.Errorf(
-			"%d of %d scanned objects are orphaned. Re-run with --force to delete them",
-			result.Orphaned.Count,
-			result.Total.Count,
-		)
 	}
 
 	return nil
