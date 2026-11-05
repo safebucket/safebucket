@@ -406,6 +406,25 @@ func (g GCPStorage) ListObjects(prefix string, _ int32) ([]string, error) {
 	return objects, nil
 }
 
+func (g GCPStorage) IterateObjects(prefix string, fn func(ObjectInfo) error) error {
+	it := g.storage.Bucket(g.BucketName).Objects(context.Background(), &gcs.Query{Prefix: prefix})
+
+	for {
+		attrs, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		info := ObjectInfo{Key: attrs.Name, Size: attrs.Size, LastModified: attrs.Updated}
+		if fnErr := fn(info); fnErr != nil {
+			return fnErr
+		}
+	}
+}
+
 // IsTrashMarkerPath checks if a deletion event is for a trash marker.
 // Patterns:
 //   - trash/{bucket-id}/files/{file-id} -> buckets/{bucket-id}/{file-id}

@@ -195,6 +195,10 @@ func (s RustFSStorage) ListObjects(prefix string, maxKeys int32) ([]string, erro
 	return objects, nil
 }
 
+func (s RustFSStorage) IterateObjects(prefix string, fn func(ObjectInfo) error) error {
+	return s3IterateObjects(s.storage, s.BucketName, prefix, fn)
+}
+
 func (s RustFSStorage) RemoveObject(path string) error {
 	return s.storage.RemoveObject(
 		context.Background(),

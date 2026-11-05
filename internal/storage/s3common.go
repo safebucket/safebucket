@@ -98,6 +98,29 @@ func presignS3Upload(
 	}, nil
 }
 
+func s3IterateObjects(
+	storage *minio.Client,
+	bucketName, prefix string,
+	fn func(ObjectInfo) error,
+) error {
+	opts := minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	}
+
+	for object := range storage.ListObjects(context.Background(), bucketName, opts) {
+		if object.Err != nil {
+			return object.Err
+		}
+		info := ObjectInfo{Key: object.Key, Size: object.Size, LastModified: object.LastModified}
+		if err := fn(info); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func s3ListObjectParts(storage *minio.Client, bucketName, path, uploadID string) ([]PartInfo, error) {
 	core := minio.Core{Client: storage}
 

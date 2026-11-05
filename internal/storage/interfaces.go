@@ -29,6 +29,12 @@ type PartInfo struct {
 	LastModified time.Time
 }
 
+type ObjectInfo struct {
+	Key          string
+	Size         int64
+	LastModified time.Time
+}
+
 type PresignedUpload struct {
 	Response models.FileUploadResponse
 	UploadID string
@@ -54,6 +60,7 @@ type IStorage interface {
 	AbortMultipartUpload(path, uploadID string) error
 	StatObject(path string) (map[string]string, error)
 	ListObjects(prefix string, maxKeys int32) ([]string, error)
+	IterateObjects(prefix string, fn func(ObjectInfo) error) error
 	RemoveObject(path string) error
 	RemoveObjects(paths []string) error
 	EnsureTrashLifecyclePolicy(retentionDays int) error

@@ -328,6 +328,41 @@ func (a *AzureStorage) ListObjects(prefix string, maxKeys int32) ([]string, erro
 	return objects, nil
 }
 
+func (a *AzureStorage) IterateObjects(prefix string, fn func(ObjectInfo) error) error {
+	pager := a.container.NewListBlobsFlatPager(&container.ListBlobsFlatOptions{Prefix: &prefix})
+	for pager.More() {
+		page, err := pager.NextPage(context.Background())
+		if err != nil {
+			return err
+		}
+		if page.Segment == nil {
+			continue
+		}
+
+		for _, item := range page.Segment.BlobItems {
+			if item.Name == nil {
+				continue
+			}
+
+			info := ObjectInfo{Key: *item.Name}
+			if item.Properties != nil {
+				if item.Properties.ContentLength != nil {
+					info.Size = *item.Properties.ContentLength
+				}
+				if item.Properties.LastModified != nil {
+					info.LastModified = *item.Properties.LastModified
+				}
+			}
+
+			if fnErr := fn(info); fnErr != nil {
+				return fnErr
+			}
+		}
+	}
+
+	return nil
+}
+
 func (a *AzureStorage) RemoveObject(objectPath string) error {
 	_, err := a.blobClient(objectPath).Delete(context.Background(), nil)
 	return err

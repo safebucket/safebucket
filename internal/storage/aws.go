@@ -270,6 +270,33 @@ func (a AWSStorage) ListObjects(prefix string, maxKeys int32) ([]string, error) 
 	return objects, nil
 }
 
+func (a AWSStorage) IterateObjects(prefix string, fn func(ObjectInfo) error) error {
+	paginator := s3.NewListObjectsV2Paginator(a.storage, &s3.ListObjectsV2Input{
+		Bucket: aws.String(a.BucketName),
+		Prefix: aws.String(prefix),
+	})
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.Background())
+		if err != nil {
+			return err
+		}
+
+		for _, object := range page.Contents {
+			info := ObjectInfo{
+				Key:          aws.ToString(object.Key),
+				Size:         aws.ToInt64(object.Size),
+				LastModified: aws.ToTime(object.LastModified),
+			}
+			if fnErr := fn(info); fnErr != nil {
+				return fnErr
+			}
+		}
+	}
+
+	return nil
+}
+
 func (a AWSStorage) RemoveObject(path string) error {
 	_, err := a.storage.DeleteObject(context.Background(), &s3.DeleteObjectInput{
 		Bucket: aws.String(a.BucketName),
