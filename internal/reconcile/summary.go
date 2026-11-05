@@ -34,7 +34,7 @@ type scanResult struct {
 
 func printSummary(result *scanResult, opts Options) {
 	fmt.Fprintf(os.Stdout, "Scanned %d objects under %s (%s)\n\n",
-		result.Total.Count, opts.prefix(), formatSize(result.Total.Size))
+		result.Total.Count, objectPrefix, formatSize(result.Total.Size))
 	fmt.Fprintf(
 		os.Stdout,
 		"  %-12s %8d  %s\n",

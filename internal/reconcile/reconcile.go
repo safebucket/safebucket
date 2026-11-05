@@ -53,7 +53,7 @@ func scanObjects(db *gorm.DB, store storage.IStorage, opts Options) (*scanResult
 	}
 
 	result := &scanResult{}
-	err = store.IterateObjects(opts.prefix(), func(object storage.ObjectInfo) error {
+	err = store.IterateObjects(objectPrefix, func(object storage.ObjectInfo) error {
 		result.Total.add(object.Size)
 
 		resourceID, ok := parseResourceID(object.Key)
