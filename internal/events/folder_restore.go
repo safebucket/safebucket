@@ -48,6 +48,8 @@ func NewFolderRestore(
 	}
 }
 
+var errFolderNameConflict = errors.New("folder name conflict")
+
 type restoreState struct {
 	folderName string
 	childFiles []models.File
@@ -60,6 +62,11 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	)
 
 	state, err := e.processChildrenInTransaction(params)
+	if errors.Is(err, errFolderNameConflict) {
+		return params.DB.Unscoped().Model(&models.Folder{}).
+			Where("id = ?", e.Payload.FolderID).
+			Update("status", models.FolderStatusDeleted).Error
+	}
 	if err != nil {
 		return err
 	}
@@ -168,10 +175,7 @@ func (e *FolderRestore) checkFolderNameConflict(tx *gorm.DB, folder *models.Fold
 
 	if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
 		zap.L().Error("Folder name conflict detected", zap.String("folder_name", folder.Name))
-		if err := tx.Unscoped().Model(folder).Update("status", models.FolderStatusDeleted).Error; err != nil {
-			zap.L().Error("Failed to revert folder status", zap.Error(err))
-		}
-		return errors.New("folder name conflict")
+		return errFolderNameConflict
 	}
 
 	return nil

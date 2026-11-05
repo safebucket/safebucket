@@ -271,9 +271,6 @@ func (s InviteService) CreateInviteChallenge(
 		return nil, apierrors.New(http.StatusNotFound, apierrors.CodeInviteNotFound)
 	}
 
-	s.DB.Where("invite_id = ? AND type = ?", invite.ID, models.ChallengeTypeInvite).
-		Delete(&models.Challenge{})
-
 	secret, err := h.GenerateSecret()
 	if err != nil {
 		logger.Error("Failed to generate secret", zap.Error(err))
@@ -296,6 +293,10 @@ func (s InviteService) CreateInviteChallenge(
 	}
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if delErr := tx.Where("invite_id = ? AND type = ?", invite.ID, models.ChallengeTypeInvite).
+			Delete(&models.Challenge{}).Error; delErr != nil {
+			return delErr
+		}
 		if createErr := tx.Create(&challenge).Error; createErr != nil {
 			return createErr
 		}

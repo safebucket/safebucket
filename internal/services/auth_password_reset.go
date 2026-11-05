@@ -100,9 +100,6 @@ func (s AuthPasswordResetService) RequestPasswordReset(
 		return nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
 
-	s.DB.Where("user_id = ? AND type = ?", user.ID, models.ChallengeTypePasswordReset).
-		Delete(&models.Challenge{})
-
 	expiresAt := time.Now().Add(configuration.SecurityChallengeExpirationMinutes * time.Minute)
 	challenge := models.Challenge{
 		Type:         models.ChallengeTypePasswordReset,
@@ -113,6 +110,10 @@ func (s AuthPasswordResetService) RequestPasswordReset(
 	}
 
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if delErr := tx.Where("user_id = ? AND type = ?", user.ID, models.ChallengeTypePasswordReset).
+			Delete(&models.Challenge{}).Error; delErr != nil {
+			return delErr
+		}
 		if createErr := tx.Create(&challenge).Error; createErr != nil {
 			return createErr
 		}
