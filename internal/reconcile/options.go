@@ -4,23 +4,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"path/filepath"
 	"time"
-
-	"github.com/google/uuid"
 )
 
-const (
-	defaultGrace          = 30 * time.Minute
-	defaultReportDir      = "data"
-	reportTimestampLayout = "20060102-150405"
-)
+const defaultGrace = 30 * time.Minute
 
 type Options struct {
-	Apply  bool
-	Grace  time.Duration
-	Bucket string
-	Report string
+	Apply bool
+	Grace time.Duration
 }
 
 func ParseOptions(args []string) (Options, error) {
@@ -33,34 +24,12 @@ func ParseOptions(args []string) (Options, error) {
 
 	fs.BoolVar(&opts.Apply, "apply", false, "delete orphaned objects")
 	fs.DurationVar(&opts.Grace, "grace", defaultGrace, "skip objects modified more recently than this")
-	fs.StringVar(&opts.Bucket, "bucket", "", "limit the scan to one bucket ID")
-	fs.StringVar(&opts.Report, "report", "", "JSON report path")
 
 	_ = fs.Parse(args)
 
 	if opts.Grace < 0 {
 		return Options{}, errors.New("--grace cannot be negative")
 	}
-	if opts.Bucket != "" {
-		bucketID, err := uuid.Parse(opts.Bucket)
-		if err != nil {
-			return Options{}, fmt.Errorf("invalid --bucket %q: %w", opts.Bucket, err)
-		}
-		opts.Bucket = bucketID.String()
-	}
-	if opts.Report == "" {
-		opts.Report = filepath.Join(
-			defaultReportDir,
-			"reconcile-"+time.Now().Format(reportTimestampLayout)+".json",
-		)
-	}
 
 	return opts, nil
-}
-
-func (o Options) prefix() string {
-	if o.Bucket == "" {
-		return objectPrefix
-	}
-	return objectPrefix + o.Bucket + "/"
 }
