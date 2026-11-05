@@ -28,80 +28,56 @@ func Run(cfg models.Configuration, opts Options) error {
 
 	store := core.NewStorage(cfg.Storage, 0)
 
-	result := newReport(opts.prefix(), opts)
-
-	if err = scanObjects(db, store, result, opts); err != nil {
+	result, err := scanObjects(db, store, opts)
+	if err != nil {
 		return err
 	}
 	printSummary(result, opts)
 
-	if opts.Apply {
-		deleteOrphans(store, result)
+	if !opts.Apply {
+		fmt.Fprintf(os.Stdout, "Nothing was deleted. Re-run with --apply to delete %d orphaned objects (%s).\n",
+			result.Orphaned.Count, formatSize(result.Orphaned.Size))
+		return nil
 	}
 
-	if err = writeReport(opts.Report, result); err != nil {
-		return err
-	}
-	fmt.Fprintf(os.Stdout, "Report written to %s\n", opts.Report)
-
-	printResult(result, opts)
+	deleteOrphans(store, result.Orphans)
 	return nil
 }
 
-func scanObjects(
-	db *gorm.DB,
-	store storage.IStorage,
-	result *report,
-	opts Options,
-) error {
+func scanObjects(db *gorm.DB, store storage.IStorage, opts Options) (*scanResult, error) {
 	cutoff := time.Now().Add(-opts.Grace)
 
 	resources, err := loadResourceIDs(db)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = store.IterateObjects(result.Prefix, func(object storage.ObjectInfo) error {
-		result.Total.Count++
-		result.Total.Size += object.Size
+	result := &scanResult{}
+	err = store.IterateObjects(opts.prefix(), func(object storage.ObjectInfo) error {
+		result.Total.add(object.Size)
 
 		resourceID, ok := parseResourceID(object.Key)
-		if !ok {
-			result.Unknown.Count++
-			result.Unknown.Size += object.Size
-			result.UnknownKeys = append(result.UnknownKeys, object.Key)
-			return nil
+		switch {
+		case !ok:
+			result.Unknown.add(object.Size)
+		case resources[resourceID]:
+			result.Referenced.add(object.Size)
+		case object.LastModified.After(cutoff):
+			result.TooRecent.add(object.Size)
+		default:
+			result.Orphaned.add(object.Size)
+			result.Orphans = append(result.Orphans, object)
 		}
-
-		if _, referenced := resources[resourceID]; referenced {
-			result.Referenced.Count++
-			result.Referenced.Size += object.Size
-			return nil
-		}
-
-		if object.LastModified.After(cutoff) {
-			result.TooRecent.Count++
-			result.TooRecent.Size += object.Size
-			return nil
-		}
-
-		result.Orphaned.Count++
-		result.Orphaned.Size += object.Size
-		result.OrphanedObjects = append(result.OrphanedObjects, objectRecord{
-			Key:          object.Key,
-			Size:         object.Size,
-			LastModified: object.LastModified,
-		})
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("list storage objects: %w", err)
+		return nil, fmt.Errorf("list storage objects: %w", err)
 	}
 
-	return nil
+	return result, nil
 }
 
-func loadResourceIDs(db *gorm.DB) (map[uuid.UUID]struct{}, error) {
+func loadResourceIDs(db *gorm.DB) (map[uuid.UUID]bool, error) {
 	var fileIDs, folderIDs []uuid.UUID
 
 	if err := db.Unscoped().Model(&models.File{}).Pluck("id", &fileIDs).Error; err != nil {
@@ -111,9 +87,9 @@ func loadResourceIDs(db *gorm.DB) (map[uuid.UUID]struct{}, error) {
 		return nil, fmt.Errorf("load folder IDs: %w", err)
 	}
 
-	resources := make(map[uuid.UUID]struct{}, len(fileIDs)+len(folderIDs))
+	resources := make(map[uuid.UUID]bool, len(fileIDs)+len(folderIDs))
 	for _, id := range append(fileIDs, folderIDs...) {
-		resources[id] = struct{}{}
+		resources[id] = true
 	}
 
 	return resources, nil
@@ -142,16 +118,19 @@ func parseResourceID(key string) (uuid.UUID, bool) {
 	return resourceID, true
 }
 
-func deleteOrphans(store storage.IStorage, result *report) {
-	result.Applied = true
+func deleteOrphans(store storage.IStorage, orphans []storage.ObjectInfo) {
+	var deleted stats
+	failed := 0
 
-	for _, object := range result.OrphanedObjects {
+	for _, object := range orphans {
 		if err := store.RemoveObject(object.Key); err != nil {
-			result.Failed = append(result.Failed, deleteFailure{Key: object.Key, Error: err.Error()})
+			failed++
+			fmt.Fprintf(os.Stderr, "Failed to delete %s: %v\n", object.Key, err)
 			continue
 		}
-
-		result.DeletedCount++
-		result.DeletedSize += object.Size
+		deleted.add(object.Size)
 	}
+
+	fmt.Fprintf(os.Stdout, "Deleted %d orphaned objects (%s), %d failed.\n",
+		deleted.Count, formatSize(deleted.Size), failed)
 }
