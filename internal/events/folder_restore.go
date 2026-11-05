@@ -145,8 +145,13 @@ func (e *FolderRestore) fetchAndValidateFolder(tx *gorm.DB) (*models.Folder, err
 	result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
 		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		zap.L().Info("Folder no longer exists, skipping restore",
+			zap.String("folder_id", e.Payload.FolderID.String()))
+		return nil, nil
+	}
 	if result.Error != nil {
-		zap.L().Error("Folder not found", zap.Error(result.Error))
+		zap.L().Error("Failed to retrieve folder for restore", zap.Error(result.Error))
 		return nil, result.Error
 	}
 
@@ -181,15 +186,25 @@ func (e *FolderRestore) checkFolderNameConflict(tx *gorm.DB, folder *models.Fold
 	return nil
 }
 
-func (e *FolderRestore) processChildFolders(tx *gorm.DB, parentName string) ([]uuid.UUID, error) {
-	var childFolders []models.Folder
-	if err := tx.Unscoped().Where(
-		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status = ? OR status = ?)",
+func (e *FolderRestore) retrieveChildFolders(db *gorm.DB) *gorm.DB {
+	return db.Unscoped().Model(&models.Folder{}).Where(
+		`bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND status IN ?
+		AND NOT EXISTS (
+			SELECT 1 FROM folders f
+			WHERE f.bucket_id = folders.bucket_id
+			AND f.folder_id = folders.folder_id
+			AND f.name = folders.name
+			AND f.deleted_at IS NULL
+		)`,
 		e.Payload.BucketID,
 		e.Payload.FolderID,
-		models.FolderStatusCreated,
-		models.FolderStatusDeleted,
-	).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
+		[]models.FolderStatus{models.FolderStatusCreated, models.FolderStatusDeleted},
+	)
+}
+
+func (e *FolderRestore) processChildFolders(tx *gorm.DB, parentName string) ([]uuid.UUID, error) {
+	var childFolders []models.Folder
+	if err := e.retrieveChildFolders(tx).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
 		zap.L().Error("Failed to find child folders for restore", zap.Error(err))
 		return nil, err
 	}
@@ -292,13 +307,7 @@ func (e *FolderRestore) unmarkChildFilesFromStorage(params *EventParams, childFi
 
 func (e *FolderRestore) checkRemainingItemsToRestore(params *EventParams) error {
 	var remainingFolders int64
-	params.DB.Unscoped().Model(&models.Folder{}).Where(
-		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status = ? OR status = ?)",
-		e.Payload.BucketID,
-		e.Payload.FolderID,
-		models.FolderStatusCreated,
-		models.FolderStatusDeleted,
-	).Count(&remainingFolders)
+	e.retrieveChildFolders(params.DB).Count(&remainingFolders)
 
 	var remainingFiles int64
 	params.DB.Unscoped().Model(&models.File{}).Where(
@@ -343,8 +352,13 @@ func (e *FolderRestore) finalizeFolderRestore(params *EventParams) error {
 		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
 			e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			zap.L().Info("Folder no longer exists, skipping final restore",
+				zap.String("folder_id", e.Payload.FolderID.String()))
+			return nil
+		}
 		if result.Error != nil {
-			zap.L().Error("Folder not found for final restore", zap.Error(result.Error))
+			zap.L().Error("Failed to retrieve folder for final restore", zap.Error(result.Error))
 			return result.Error
 		}
 

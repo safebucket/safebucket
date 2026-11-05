@@ -48,13 +48,6 @@ func Boot(ctx context.Context, cfg models.Configuration, opts BootOptions) *Boot
 	notify := NewNotifier(cfg.Notifier)
 	activityLogger := NewActivityLogger(cfg.Activity)
 
-	var eventsManager *EventsManager
-	var eventRouter *EventRouter
-	if profile.NeedsEvents() {
-		eventsManager = NewEventsManager(cfg.Events, cfg.Storage.Type, store)
-		eventRouter = NewEventRouter(eventsManager)
-	}
-
 	if profile.HTTPServer {
 		CreateAdminUser(db, cfg)
 	}
@@ -67,7 +60,11 @@ func Boot(ctx context.Context, cfg models.Configuration, opts BootOptions) *Boot
 		startCoverageHeartbeat(ctx, workers.WG(), cache, configuration.CoverageHTTPServer, appIdentity)
 	}
 
+	var eventsManager *EventsManager
+	var eventRouter *EventRouter
 	if profile.Workers.AnyEnabled() {
+		eventsManager = NewEventsManager(cfg.Events, cfg.Storage.Type, store)
+		eventRouter = NewEventRouter(eventsManager)
 		StartWorkers(
 			ctx,
 			workers,

@@ -1,11 +1,12 @@
 package core
 
 import (
+	"fmt"
+
 	"github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/events"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"go.uber.org/zap"
 )
 
 type EventRouter struct {
@@ -24,8 +25,7 @@ func (er *EventRouter) Publish(messages ...*message.Message) error {
 		topicKey := er.getTopicKeyForEvent(eventType)
 
 		if topicKey == "" {
-			zap.L().
-				Fatal("Assign a topic to this event in getTopicKeyForEvent", zap.String("eventType", eventType))
+			return fmt.Errorf("%w: %s", events.ErrUnknownEventType, eventType)
 		}
 
 		publisher := er.eventsManager.GetPublisher(topicKey)

@@ -359,6 +359,5 @@ func (s PublicShareService) ConfirmShareVersion(logger *zap.Logger, share models
 }
 
 func (s PublicShareService) CancelShareVersion(logger *zap.Logger, share models.Share, ids uuid.UUIDs) error {
-	_, _, err := s.Versions.Delete(logger, share.BucketID, ids[1], ids[2], &share, nil)
-	return err
+	return s.Versions.Delete(logger, share.BucketID, ids[1], ids[2], &share, nil)
 }

@@ -58,8 +58,13 @@ func (e *FolderPurge) callback(params *EventParams) error {
 	result := params.DB.Unscoped().Where("id = ? AND bucket_id = ?",
 		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
 
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		zap.L().Info("Folder already purged, skipping",
+			zap.String("folder_id", e.Payload.FolderID.String()))
+		return nil
+	}
 	if result.Error != nil {
-		zap.L().Error("Folder not found", zap.Error(result.Error))
+		zap.L().Error("Failed to retrieve folder for purging", zap.Error(result.Error))
 		return result.Error
 	}
 

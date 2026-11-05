@@ -133,16 +133,13 @@ func (m Manager) Delete(
 	bucketID, fileID, versionID uuid.UUID,
 	share *models.Share,
 	onDelete func(tx *gorm.DB, file models.File, version models.FileVersion) error,
-) (models.File, models.FileVersion, error) {
-	var file models.File
-	var version models.FileVersion
+) error {
 	err := m.DB.Transaction(func(tx *gorm.DB) error {
-		var err error
-		file, err = sql.LockFile(tx, bucketID, fileID)
+		file, err := sql.LockFile(tx, bucketID, fileID)
 		if err != nil {
 			return err
 		}
-		version, err = sql.GetFileVersionByID(tx, fileID, versionID)
+		version, err := sql.GetFileVersionByID(tx, fileID, versionID)
 		if err != nil {
 			return err
 		}
@@ -176,12 +173,12 @@ func (m Manager) Delete(
 		return onDelete(tx, file, version)
 	})
 	if err != nil {
-		return models.File{}, models.FileVersion{}, err
+		return err
 	}
 	if err = m.Cleanup(bucketID, fileID, versionID); err != nil {
 		logger.Warn("Version deletion will be retried", zap.Error(err), zap.String("version_id", versionID.String()))
 	}
-	return file, version, nil
+	return nil
 }
 
 func Metadata(file models.File, version models.FileVersion, share *models.Share) map[string]string {

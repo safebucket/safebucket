@@ -152,7 +152,7 @@ func (s BucketFileVersionService) DeleteFileVersion(
 	user models.UserClaims,
 	ids uuid.UUIDs,
 ) error {
-	_, _, err := s.Versions.Delete(logger, ids[0], ids[1], ids[2], nil,
+	return s.Versions.Delete(logger, ids[0], ids[1], ids[2], nil,
 		func(tx *gorm.DB, file models.File, version models.FileVersion) error {
 			if version.Status != models.FileStatusUploaded {
 				return nil
@@ -167,7 +167,6 @@ func (s BucketFileVersionService) DeleteFileVersion(
 				}),
 			})
 		})
-	return err
 }
 
 func (s BucketFileVersionService) DownloadFileVersion(
