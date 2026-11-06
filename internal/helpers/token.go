@@ -96,7 +96,7 @@ func decryptJWE(secret, jweCompact string) (string, error) {
 	return string(plaintext), nil
 }
 
-func signAndEncryptToken(jwtSecret string, claims jwt.Claims) (string, error) {
+func SignAndEncryptToken(jwtSecret string, claims jwt.Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	jws, err := token.SignedString([]byte(jwtSecret))
 	if err != nil {
@@ -168,7 +168,7 @@ func createToken(jwtSecret string, user *models.User, config tokenConfig) (strin
 		claims.ChallengeID = config.challengeID
 	}
 
-	return signAndEncryptToken(jwtSecret, claims)
+	return SignAndEncryptToken(jwtSecret, claims)
 }
 
 func ParseToken(
@@ -207,7 +207,7 @@ func NewShareAccessToken(
 			configuration.ShareTokenExpiry,
 		),
 	}
-	return signAndEncryptToken(jwtSecret, claims)
+	return SignAndEncryptToken(jwtSecret, claims)
 }
 
 func ParseShareToken(

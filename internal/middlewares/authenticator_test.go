@@ -45,8 +45,7 @@ func generateTestToken(secret string, user *models.User, expiresIn time.Duration
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(expiresIn)},
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(secret))
+	return helpers.SignAndEncryptToken(secret, claims)
 }
 
 //nolint:unparam // test helper kept stable for callers; underlying token always uses default expiry.

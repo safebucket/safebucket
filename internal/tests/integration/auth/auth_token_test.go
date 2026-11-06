@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/tests/integration/bootstrap"
 
@@ -256,8 +257,7 @@ func craftTokenWithWrongSecret(t *testing.T, userID uuid.UUID, email string, rol
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString([]byte("wrong-secret-key"))
+	signed, err := helpers.SignAndEncryptToken("wrong-secret-key", claims)
 	require.NoError(t, err)
 	return signed
 }
@@ -276,8 +276,7 @@ func craftExpiredToken(t *testing.T, jwtSecret string, userID uuid.UUID, email s
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString([]byte(jwtSecret))
+	signed, err := helpers.SignAndEncryptToken(jwtSecret, claims)
 	require.NoError(t, err)
 	return signed
 }
@@ -305,8 +304,7 @@ func craftTokenWithAudience(
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString([]byte(jwtSecret))
+	signed, err := helpers.SignAndEncryptToken(jwtSecret, claims)
 	require.NoError(t, err)
 	return signed
 }
