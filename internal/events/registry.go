@@ -13,6 +13,8 @@ var eventRegistry = map[string]reflect.Type{
 	PasswordResetSuccessPayloadName:     reflect.TypeOf(PasswordResetSuccessPayload{}),
 	UserWelcomeName:                     reflect.TypeOf(UserWelcomeEvent{}),
 	UserWelcomePayloadName:              reflect.TypeOf(UserWelcomePayload{}),
+	MFADeviceNotificationName:           reflect.TypeOf(MFADeviceNotification{}),
+	MFADeviceNotificationPayloadName:    reflect.TypeOf(MFADeviceNotificationPayload{}),
 	UserInvitationName:                  reflect.TypeOf(UserInvitation{}),
 	UserInvitationPayloadName:           reflect.TypeOf(UserInvitationPayload{}),
 	BucketPurgeName:                     reflect.TypeOf(BucketPurge{}),

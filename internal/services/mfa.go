@@ -11,12 +11,12 @@ import (
 	"github.com/safebucket/safebucket/internal/cache"
 	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
+	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/mfa"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
-	"github.com/safebucket/safebucket/internal/notifier"
 	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
@@ -34,7 +34,6 @@ type MFAService struct {
 	Cache      cache.ICache
 	AuthConfig models.AuthConfig
 	Providers  configuration.Providers
-	Notifier   notifier.INotifier
 }
 
 func (s MFAService) Routes() chi.Router {
@@ -237,7 +236,8 @@ func (s MFAService) VerifyDevice(
 	var deviceName string
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		if _, err := sql.GetUserByID(tx, userID); err != nil {
+		owner, err := sql.GetUserByID(tx, userID)
+		if err != nil {
 			return err
 		}
 
@@ -335,7 +335,12 @@ func (s MFAService) VerifyDevice(
 			return logErr
 		}
 
-		return nil
+		if claims.AudienceString() == configuration.AudienceMFAReset {
+			return nil
+		}
+
+		notification := events.NewMFADeviceNotification(events.MFADeviceEnrolled, owner.Email, deviceName)
+		return outbox.AddEvents(tx, notification.Payload)
 	})
 
 	if err != nil {
@@ -375,23 +380,6 @@ func (s MFAService) VerifyDevice(
 	logger.Info("MFA device verified and enabled",
 		zap.String("user_id", userID.String()),
 		zap.String("device_id", deviceID.String()))
-
-	go func() {
-		if notifyErr := s.Notifier.NotifyFromTemplate(
-			user.Email,
-			"New MFA Device Enrolled - Safebucket",
-			"mfa_device_enrolled",
-			map[string]string{
-				"DeviceName": deviceName,
-				"WebURL":     s.AuthConfig.WebURL,
-			},
-		); notifyErr != nil {
-			logger.Warn("Failed to send MFA device enrollment notification",
-				zap.Error(notifyErr),
-				zap.String("user_id", userID.String()),
-				zap.String("email", user.Email))
-		}
-	}()
 
 	sid, tokens, err := mfa.GenerateTokens(s.AuthConfig, &user)
 	if err != nil {
@@ -521,9 +509,7 @@ func (s MFAService) RemoveDevice(
 		}
 	}
 
-	var deviceName string
-
-	err = s.DB.Transaction(func(tx *gorm.DB) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
 		var locked models.MFADevice
 		lockResult := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND user_id = ?", deviceID, userID).
@@ -536,7 +522,6 @@ func (s MFAService) RemoveDevice(
 			return apierrors.New(http.StatusBadRequest, apierrors.CodeBadRequest)
 		}
 
-		deviceName = locked.Name
 		wasDefault := locked.IsDefault
 		wasVerified := locked.IsVerified
 
@@ -570,35 +555,18 @@ func (s MFAService) RemoveDevice(
 			return logErr
 		}
 
+		notification := events.NewMFADeviceNotification(events.MFADeviceRemoved, user.Email, locked.Name)
+		if eventErr := outbox.AddEvents(tx, notification.Payload); eventErr != nil {
+			logger.Error("Failed to queue MFA device event", zap.Error(eventErr))
+			return eventErr
+		}
+
 		logger.Info("MFA device removed",
 			zap.String("user_id", userID.String()),
 			zap.String("device_id", deviceID.String()))
 
 		return nil
 	})
-
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		if notifyErr := s.Notifier.NotifyFromTemplate(
-			user.Email,
-			"MFA Device Removed - Safebucket",
-			"mfa_device_removed",
-			map[string]string{
-				"DeviceName": deviceName,
-				"WebURL":     s.AuthConfig.WebURL,
-			},
-		); notifyErr != nil {
-			logger.Warn("Failed to send MFA device removal notification",
-				zap.Error(notifyErr),
-				zap.String("user_id", userID.String()),
-				zap.String("email", user.Email))
-		}
-	}()
-
-	return nil
 }
 
 func (s MFAService) verifyMFAStepUp(logger *zap.Logger, user *models.User, password, code string) error {

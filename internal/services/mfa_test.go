@@ -39,13 +39,6 @@ func (m *MockCache) ZRemRangeByScore(_ string, _ string, _ string) error   { ret
 func (m *MockCache) ScanKeys(_ string, _ int64, _ int64) ([]string, error) { return nil, nil }
 func (m *MockCache) Close()                                                {}
 
-type MockNotifier struct {
-}
-
-func (m *MockNotifier) NotifyFromTemplate(_ string, _ string, _ string, _ any) error {
-	return nil
-}
-
 func expectOutboxInsert(mock sqlmock.Sqlmock) {
 	mock.ExpectQuery(regexp.QuoteMeta(`INSERT INTO "outbox"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(uuid.New()))
@@ -72,7 +65,6 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 			DB:         gormDB,
 			Cache:      mockCache,
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -183,7 +175,6 @@ func TestAddDevice_RestrictedToken_FirstDevice(t *testing.T) {
 				DB:         gormDB,
 				Cache:      &MockCache{},
 				AuthConfig: config,
-				Notifier:   &MockNotifier{},
 			}
 
 			userID := uuid.New()
@@ -260,7 +251,6 @@ func TestAddDevice_RestrictedToken_SecondDevice_ShouldFail(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -321,7 +311,6 @@ func TestAddDevice_RestrictedToken_WithUnverifiedDevices(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -392,7 +381,6 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -440,7 +428,6 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -490,7 +477,6 @@ func TestAddDevice_FullAccessToken_RequiresPassword(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -560,7 +546,6 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -602,7 +587,6 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -650,7 +634,6 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -708,7 +691,6 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -771,7 +753,6 @@ func TestAddDevice_EdgeCases(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 
 		userID := uuid.New()
@@ -828,7 +809,6 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 		return service, mock, uuid.New()
 	}
@@ -909,6 +889,7 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 			WithArgs(deviceID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 		expectOutboxInsert(mock)
+		expectOutboxInsert(mock)
 		mock.ExpectCommit()
 
 		err := service.RemoveDevice(zap.NewNop(), claimsFor(userID), uuid.UUIDs{deviceID},
@@ -930,6 +911,7 @@ func TestRemoveDevice_OIDCStepUp(t *testing.T) {
 		mock.ExpectExec(regexp.QuoteMeta(`DELETE FROM "mfa_devices"`)).
 			WithArgs(deviceID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		expectOutboxInsert(mock)
 		expectOutboxInsert(mock)
 		mock.ExpectCommit()
 
@@ -980,7 +962,6 @@ func TestAddDevice_OIDCStepUp(t *testing.T) {
 			DB:         gormDB,
 			Cache:      &MockCache{},
 			AuthConfig: config,
-			Notifier:   &MockNotifier{},
 		}
 		return service, mock, uuid.New()
 	}

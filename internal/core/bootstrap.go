@@ -482,7 +482,6 @@ func BuildAPIRouter(
 			Cache:      cache,
 			AuthConfig: authConfig,
 			Providers:  providers,
-			Notifier:   notify,
 		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
