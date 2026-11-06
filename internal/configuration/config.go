@@ -3,13 +3,14 @@ package configuration
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/knadh/koanf/parsers/yaml"
-	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/providers/rawbytes"
@@ -17,33 +18,31 @@ import (
 	"go.uber.org/zap"
 )
 
-func parseArrayFields(k *koanf.Koanf) {
-	for _, field := range ArrayConfigFields {
-		if stringVal := k.String(field); stringVal != "" {
-			stringVal = strings.Trim(stringVal, "[]")
-			var items []string
-			if strings.Contains(stringVal, ",") {
-				items = strings.Split(stringVal, ",")
-			} else {
-				items = strings.Fields(stringVal)
-			}
-			for i, item := range items {
-				items[i] = strings.TrimSpace(item)
-			}
-			err := k.Set(field, items)
-			if err != nil {
-				zap.L().
-					Error("Error parsing array field", zap.String("field", field), zap.Error(err))
-			}
-		}
+func splitStringToSliceHook(from, to reflect.Type, data any) (any, error) {
+	if from.Kind() != reflect.String || to != reflect.TypeFor[[]string]() {
+		return data, nil
 	}
+	raw := strings.Trim(strings.TrimSpace(reflect.ValueOf(data).String()), "[]")
+	if raw == "" {
+		return []string{}, nil
+	}
+	var items []string
+	if strings.Contains(raw, ",") {
+		items = strings.Split(raw, ",")
+	} else {
+		items = strings.Fields(raw)
+	}
+	for i, item := range items {
+		items[i] = strings.TrimSpace(item)
+	}
+	return items, nil
 }
 
 func parseAuthProviders(k *koanf.Koanf) {
 	providersStr := k.String("auth.providers.keys")
 	if providersStr != "" {
-		providers := strings.Split(providersStr, ",")
-		for _, provider := range providers {
+		providers := strings.SplitSeq(providersStr, ",")
+		for provider := range providers {
 			providerUpper := strings.ToUpper(provider)
 			typeKey := fmt.Sprintf("AUTH__PROVIDERS__%s__TYPE", providerUpper)
 			providerType := strings.ToUpper(os.Getenv(typeKey))
@@ -83,7 +82,6 @@ func readEnvVars(k *koanf.Koanf) {
 		zap.L().Warn("Error loading environment variables", zap.Error(err))
 	}
 
-	parseArrayFields(k)
 	parseAuthProviders(k)
 }
 
@@ -136,8 +134,8 @@ func loadDefaults(k *koanf.Koanf) {
 		"database.type":                           ProviderPostgres,
 	}
 
-	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
-		zap.L().Fatal("Failed to load default configuration", zap.Error(err))
+	for key, value := range defaults {
+		setIfMissing(k, key, value)
 	}
 }
 
@@ -187,7 +185,6 @@ type LoadOptions struct {
 
 func Load(opts LoadOptions) (models.Configuration, error) {
 	k := koanf.New(".")
-	loadDefaults(k)
 
 	switch {
 	case len(opts.ConfigBytes) > 0:
@@ -213,10 +210,19 @@ func Load(opts LoadOptions) (models.Configuration, error) {
 	}
 	migrateDeprecatedKeys(k)
 	migrateGlobalMFARequired(k)
+	loadDefaults(k)
 	loadConditionalDefaults(k)
 
 	var cfg models.Configuration
-	if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "mapstructure"}); err != nil {
+	decoder := &mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			splitStringToSliceHook,
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.TextUnmarshallerHookFunc(),
+		),
+		WeaklyTypedInput: true,
+	}
+	if err := k.UnmarshalWithConf("", &cfg, koanf.UnmarshalConf{Tag: "mapstructure", DecoderConfig: decoder}); err != nil {
 		return models.Configuration{}, fmt.Errorf("decode config: %w", err)
 	}
 	return cfg, nil

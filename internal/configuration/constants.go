@@ -135,13 +135,6 @@ const (
 const BulkActionsLimit = 1000
 const BatchLimit = 100
 
-var ArrayConfigFields = []string{
-	"app.trusted_proxies",
-	"cors.allowed_origins",
-	"cache.redis.hosts",
-	"cache.valkey.hosts",
-}
-
 var ConfigFileSearchPaths = []string{
 	"./config.yaml",
 	"templates/config.yaml",
