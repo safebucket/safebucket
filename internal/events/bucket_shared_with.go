@@ -1,14 +1,10 @@
 package events
 
 import (
-	"encoding/json"
 	"fmt"
 
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/models"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"go.uber.org/zap"
 )
 
@@ -25,40 +21,24 @@ type BucketSharedWithPayload struct {
 	WebURL string
 }
 
+func (p BucketSharedWithPayload) EventName() string { return p.Type }
+
 type BucketSharedWith struct {
-	Publisher messaging.IPublisher
-	Payload   BucketSharedWithPayload
+	Payload BucketSharedWithPayload
 }
 
 func NewBucketSharedWith(
-	publisher messaging.IPublisher,
 	bucket models.Bucket,
 	from string,
 	to string,
 ) BucketSharedWith {
 	return BucketSharedWith{
-		Publisher: publisher,
 		Payload: BucketSharedWithPayload{
 			Type:   BucketSharedWithName,
 			Bucket: bucket,
 			From:   from,
 			To:     to,
 		},
-	}
-}
-
-func (e *BucketSharedWith) Trigger() {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = e.Publisher.Publish(msg)
-	if err != nil {
-		zap.L().Error("failed to trigger event", zap.Error(err))
 	}
 }
 

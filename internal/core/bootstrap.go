@@ -18,7 +18,6 @@ import (
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/fileversions"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/notifier"
@@ -133,10 +132,8 @@ func StartWorkers(
 	eventParams := &events.EventParams{
 		WebURL:             config.App.WebURL,
 		Notifier:           notify,
-		Publisher:          eventRouter,
 		DB:                 db,
 		Storage:            store,
-		ActivityLogger:     activityLogger,
 		TrashRetentionDays: config.App.TrashRetentionDays,
 		Cache:              cache,
 		Versions:           versions,
@@ -184,7 +181,6 @@ func StartWorkers(
 			func(workerCtx context.Context) {
 				worker := &workers.TrashCleanupWorker{
 					DB:                 db,
-					Publisher:          eventRouter,
 					TrashRetentionDays: config.App.TrashRetentionDays,
 					RunInterval:        time.Duration(config.App.TrashRetentionDays) * 24 * time.Hour / 7,
 				}
@@ -205,7 +201,6 @@ func StartWorkers(
 				Storage:            store,
 				Cache:              cache,
 				Versions:           versions,
-				ActivityLogger:     activityLogger,
 				RunInterval:        15 * time.Minute,
 				RefreshTokenExpiry: config.App.RefreshTokenExpiry,
 			}
@@ -236,9 +231,7 @@ func StartWorkers(
 					workerCtx,
 					eventsManager.parser,
 					db,
-					activityLogger,
 					store,
-					eventRouter,
 					config.App.TrashRetentionDays,
 					versions,
 					bucketMessages,
@@ -430,7 +423,6 @@ func BuildAPIRouter(
 	store storage.IStorage,
 	activityLogger activity.IActivityLogger,
 	notify notifier.INotifier,
-	publisher messaging.IPublisher,
 	providers configuration.Providers,
 ) chi.Router {
 	r := chi.NewRouter()
@@ -479,7 +471,6 @@ func BuildAPIRouter(
 			DB:                 db,
 			Cache:              cache,
 			AuthConfig:         authConfig,
-			Publisher:          publisher,
 			Notifier:           notify,
 			RefreshTokenExpiry: configuration.RefreshTokenExpiry,
 		}
@@ -491,14 +482,12 @@ func BuildAPIRouter(
 			Cache:      cache,
 			AuthConfig: authConfig,
 			Providers:  providers,
-			Publisher:  publisher,
 			Notifier:   notify,
 		}.Routes())
 
 		apiRouter.Mount("/v1/buckets", services.BucketService{
 			DB:                  db,
 			Storage:             store,
-			Publisher:           publisher,
 			ActivityLogger:      activityLogger,
 			Providers:           providers,
 			WebURL:              config.App.WebURL,
@@ -508,12 +497,10 @@ func BuildAPIRouter(
 		}.Routes())
 
 		apiRouter.Mount("/v1/auth", services.AuthService{
-			DB:             db,
-			Cache:          cache,
-			AuthConfig:     authConfig,
-			Providers:      providers,
-			Publisher:      publisher,
-			ActivityLogger: activityLogger,
+			DB:         db,
+			Cache:      cache,
+			AuthConfig: authConfig,
+			Providers:  providers,
 		}.Routes())
 
 		apiRouter.Mount("/v1/invites", services.InviteService{
@@ -521,7 +508,6 @@ func BuildAPIRouter(
 			Cache:      cache,
 			Storage:    store,
 			AuthConfig: authConfig,
-			Publisher:  publisher,
 			Providers:  providers,
 		}.Routes())
 
@@ -535,8 +521,6 @@ func BuildAPIRouter(
 		apiRouter.Mount("/v1/shares", services.PublicShareService{
 			DB:                    db,
 			Storage:               store,
-			ActivityLogger:        activityLogger,
-			Publisher:             publisher,
 			TokenSecret:           authConfig.TokenSecret,
 			CookieSecureForce:     authConfig.CookieSecureForce,
 			AllowRedirectDownload: config.App.AllowRedirectDownload,

@@ -11,7 +11,6 @@ import (
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	"github.com/safebucket/safebucket/internal/mfa"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
@@ -28,12 +27,10 @@ import (
 )
 
 type AuthService struct {
-	DB             *gorm.DB
-	Cache          cache.ICache
-	AuthConfig     models.AuthConfig
-	Providers      configuration.Providers
-	Publisher      messaging.IPublisher
-	ActivityLogger activity.IActivityLogger
+	DB         *gorm.DB
+	Cache      cache.ICache
+	AuthConfig models.AuthConfig
+	Providers  configuration.Providers
 }
 
 func (s AuthService) Routes() chi.Router {

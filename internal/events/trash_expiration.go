@@ -1,17 +1,15 @@
 package events
 
 import (
-	"encoding/json"
 	"path"
 	"strings"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -28,6 +26,8 @@ type TrashExpirationPayload struct {
 	ObjectKey string    `json:"object_key"`
 }
 
+func (p TrashExpirationPayload) EventName() string { return p.Type }
+
 type TrashExpiration struct {
 	Payload TrashExpirationPayload
 }
@@ -39,21 +39,6 @@ func NewTrashExpirationFromBucketEvent(bucketID uuid.UUID, objectKey string) *Tr
 			BucketID:  bucketID,
 			ObjectKey: objectKey,
 		},
-	}
-}
-
-func (e *TrashExpiration) Trigger(publisher message.Publisher) {
-	payload, err := json.Marshal(e.Payload)
-	if err != nil {
-		zap.L().Error("Error marshalling trash expiration event payload", zap.Error(err))
-		return
-	}
-
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("type", e.Payload.Type)
-	err = publisher.Publish("events", msg)
-	if err != nil {
-		zap.L().Error("failed to trigger trash expiration event", zap.Error(err))
 	}
 }
 
@@ -215,7 +200,19 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 				return removeErr
 			}
 		}
-		return tx.Unscoped().Delete(&locked).Error
+		if deleteErr := tx.Unscoped().Delete(&locked).Error; deleteErr != nil {
+			return deleteErr
+		}
+		return outbox.AddActivities(tx, models.Activity{
+			Message: activity.FileDeleted,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				BucketID:   e.Payload.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+			}),
+		})
 	})
 	if err != nil {
 		zap.L().Error("Failed to hard delete file from database",
@@ -223,21 +220,6 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 			zap.Error(err),
 		)
 		return err
-	}
-
-	action := models.Activity{
-		Message: activity.FileDeleted,
-		Object:  file.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionDelete.String(),
-			BucketID:   e.Payload.BucketID.String(),
-			FileID:     file.ID.String(),
-			ObjectType: rbac.ResourceFile.String(),
-		}),
-	}
-
-	if sendErr := params.ActivityLogger.Send(action); sendErr != nil {
-		zap.L().Error("Failed to log trash expiration activity", zap.Error(sendErr))
 	}
 
 	zap.L().Info("Successfully processed trash expiration",

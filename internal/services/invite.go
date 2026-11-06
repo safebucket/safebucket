@@ -14,7 +14,6 @@ import (
 	"github.com/safebucket/safebucket/internal/events"
 	"github.com/safebucket/safebucket/internal/handlers"
 	h "github.com/safebucket/safebucket/internal/helpers"
-	"github.com/safebucket/safebucket/internal/messaging"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
@@ -35,7 +34,6 @@ type InviteService struct {
 	Cache      cache.ICache
 	Storage    storage.IStorage
 	AuthConfig models.AuthConfig
-	Publisher  messaging.IPublisher
 	Providers  configuration.Providers
 }
 
@@ -172,7 +170,8 @@ func (s InviteService) createUserFromInvite(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 		}
 
-		return nil
+		welcomeEvent := events.NewUserWelcome(newUser.Email, s.AuthConfig.WebURL)
+		return outbox.AddEvents(tx, welcomeEvent.Payload)
 	})
 	if err != nil {
 		logger.Error("Failed to commit transaction", zap.Error(err))
@@ -181,13 +180,6 @@ func (s InviteService) createUserFromInvite(
 			apierrors.CodeInternalServerError,
 		)
 	}
-
-	welcomeEvent := events.NewUserWelcome(
-		s.Publisher,
-		newUser.Email,
-		s.AuthConfig.WebURL,
-	)
-	welcomeEvent.Trigger()
 
 	sid := uuid.New().String()
 	if sessionErr := cache.CreateSession(s.Cache, newUser.ID.String(), sid); sessionErr != nil {
@@ -279,9 +271,6 @@ func (s InviteService) CreateInviteChallenge(
 		return nil, apierrors.New(http.StatusNotFound, apierrors.CodeInviteNotFound)
 	}
 
-	s.DB.Where("invite_id = ? AND type = ?", invite.ID, models.ChallengeTypeInvite).
-		Delete(&models.Challenge{})
-
 	secret, err := h.GenerateSecret()
 	if err != nil {
 		logger.Error("Failed to generate secret", zap.Error(err))
@@ -303,22 +292,28 @@ func (s InviteService) CreateInviteChallenge(
 		AttemptsLeft: configuration.SecurityChallengeMaxFailedAttempts,
 	}
 
-	result = s.DB.Create(&challenge)
-	if result.Error != nil {
-		logger.Error("Failed to create challenge", zap.Error(result.Error))
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if delErr := tx.Where("invite_id = ? AND type = ?", invite.ID, models.ChallengeTypeInvite).
+			Delete(&models.Challenge{}).Error; delErr != nil {
+			return delErr
+		}
+		if createErr := tx.Create(&challenge).Error; createErr != nil {
+			return createErr
+		}
+		event := events.NewChallengeUserInvite(
+			secret,
+			invite.Email,
+			invite.User.Email,
+			inviteID.String(),
+			challenge.ID.String(),
+			s.AuthConfig.WebURL,
+		)
+		return outbox.AddEvents(tx, event.Payload)
+	})
+	if err != nil {
+		logger.Error("Failed to create challenge", zap.Error(err))
 		return nil, apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
 	}
-
-	event := events.NewChallengeUserInvite(
-		s.Publisher,
-		secret,
-		invite.Email,
-		invite.User.Email,
-		inviteID.String(),
-		challenge.ID.String(),
-		s.AuthConfig.WebURL,
-	)
-	event.Trigger()
 
 	return nil, nil
 }

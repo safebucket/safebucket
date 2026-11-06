@@ -29,7 +29,3 @@ func (w WorkerConfig) AnyEnabled() bool {
 		w.GarbageCollector != WorkerModeDisabled ||
 		w.Outbox != WorkerModeDisabled
 }
-
-func (p Profile) NeedsEvents() bool {
-	return p.HTTPServer || p.Workers.AnyEnabled()
-}
