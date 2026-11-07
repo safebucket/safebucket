@@ -1,9 +1,8 @@
-# Profile determines which components run
-# Options: default, api, worker
-# Default: default (all components including trash worker if needed)
-profile: default
-
 app:
+  # Profile determines which components run
+  # Options: default, api, worker
+  # Default: default (all components including trash worker if needed)
+  profile: default
   log_level: info
   api_url: http://localhost:8080
   web_url: http://localhost:3000
@@ -20,7 +19,6 @@ app:
     - ::1/128
   static_files:
     enabled: true
-    directory: "web/dist"
   admin_email: admin@safebucket.io
   admin_password: ChangeMePlease
   trash_retention_days: 7
@@ -126,7 +124,7 @@ auth:
 #        client_secret:
 #        issuer:
 #      sharing:
-#        enabled: true
+#        allowed: true
 #        domains: []
 #    myldap:
 #      type: ldap
