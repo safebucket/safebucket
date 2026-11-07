@@ -215,11 +215,30 @@ func TestParseToken(t *testing.T) {
 			IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-2 * time.Hour)},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
 		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
+		expiredToken, err := SignAndEncryptToken(jwtSecret, claims)
 		require.NoError(t, err)
 
-		_, err = ParseToken(jwtSecret, "Bearer "+signedToken, true)
+		_, err = ParseToken(jwtSecret, "Bearer "+expiredToken, true)
+		assert.Error(t, err)
+	})
+
+	t.Run("should reject token signed with another secret", func(t *testing.T) {
+		claims := models.UserClaims{
+			Email:     user.Email,
+			UserID:    user.ID,
+			Role:      user.Role,
+			Provider:  provider,
+			Audience:  jwt.ClaimStrings{"app:*"},
+			Issuer:    configuration.AppName,
+			IssuedAt:  &jwt.NumericDate{Time: time.Now()},
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(1 * time.Hour)},
+		}
+		jws, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("wrong-secret"))
+		require.NoError(t, err)
+		forgedToken, err := encryptJWE(jwtSecret, jws)
+		require.NoError(t, err)
+
+		_, err = ParseToken(jwtSecret, "Bearer "+forgedToken, true)
 		assert.Error(t, err)
 	})
 
@@ -399,11 +418,10 @@ func TestParseRefreshToken(t *testing.T) {
 			IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-11 * time.Hour)},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
 		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
+		expiredToken, err := SignAndEncryptToken(jwtSecret, claims)
 		require.NoError(t, err)
 
-		_, err = ParseRefreshToken(jwtSecret, signedToken)
+		_, err = ParseRefreshToken(jwtSecret, expiredToken)
 		assert.Error(t, err)
 	})
 }
@@ -652,11 +670,10 @@ func TestParseShareToken(t *testing.T) {
 			IssuedAt:  &jwt.NumericDate{Time: time.Now().Add(-2 * time.Hour)},
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(-1 * time.Hour)},
 		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		signedToken, err := token.SignedString([]byte(jwtSecret))
+		expiredToken, err := SignAndEncryptToken(jwtSecret, claims)
 		require.NoError(t, err)
 
-		_, err = ParseShareToken(jwtSecret, signedToken)
+		_, err = ParseShareToken(jwtSecret, expiredToken)
 		assert.Error(t, err)
 	})
 
