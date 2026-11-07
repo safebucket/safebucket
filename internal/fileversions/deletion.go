@@ -9,7 +9,8 @@ import (
 
 func (m Manager) DeleteFiles(files ...models.File) error {
 	var toDelete []models.File
-	if err := m.DB.Unscoped().Where("id IN ? AND status = ? AND deleted_at IS NOT NULL", models.FileIDs(files), models.FileStatusDeleting).
+	if err := m.DB.Unscoped().
+		Where("id IN ? AND status = ? AND deleted_at IS NOT NULL", models.FileIDs(files), models.FileStatusDeleting).
 		Find(&toDelete).Error; err != nil {
 		return err
 	}
