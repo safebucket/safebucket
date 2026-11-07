@@ -102,16 +102,6 @@ func (s BucketFileService) PatchFile(
 	}
 }
 
-func (s BucketFileService) DeleteFile(
-	logger *zap.Logger,
-	user models.UserClaims,
-	ids uuid.UUIDs,
-) error {
-	bucketID, fileID := ids[0], ids[1]
-
-	return s.PurgeFile(logger, user, bucketID, fileID)
-}
-
 func (s BucketFileService) DownloadFile(
 	logger *zap.Logger,
 	user models.UserClaims,
@@ -153,6 +143,10 @@ func (s BucketFileService) RestoreFile(
 
 		if file.Status == models.FileStatusRestoring {
 			return apierrors.New(http.StatusConflict, apierrors.CodeFileRestoreInProgress)
+		}
+
+		if file.Status == models.FileStatusDeleting {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFileNotInTrash)
 		}
 
 		folders, err := s.restoreParentFolders(tx, logger, file.FolderID, file.BucketID)
@@ -225,20 +219,20 @@ func (s BucketFileService) RestoreFile(
 			zap.String("path", objectPath),
 			zap.String("file_id", restoredFile.ID.String()),
 		)
-		// Don't return error - the database is already updated
 	}
 
 	return nil
 }
 
-// PurgeFile permanently deletes a file from trash with atomic status transition.
-func (s BucketFileService) PurgeFile(
+func (s BucketFileService) DeleteFile(
 	logger *zap.Logger,
 	user models.UserClaims,
-	bucketID, fileID uuid.UUID,
+	ids uuid.UUIDs,
 ) error {
-	return s.DB.Transaction(func(tx *gorm.DB) error {
-		var file models.File
+	bucketID, fileID := ids[0], ids[1]
+
+	var file models.File
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ?", fileID, bucketID).
 			First(&file)
@@ -255,18 +249,9 @@ func (s BucketFileService) PurgeFile(
 			return apierrors.New(http.StatusConflict, apierrors.CodeFileNotInTrash)
 		}
 
-		objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
-
-		if err := s.Versions.RemoveFileObjects(tx, file); err != nil {
+		marked, err := sql.MarkFilesDeleting(tx, file)
+		if err != nil || len(marked) == 0 {
 			return err
-		}
-		if err := s.Storage.UnmarkAsTrashed(objectPath, file); err != nil {
-			logger.Warn("Failed to remove trash marker", zap.Error(err))
-		}
-
-		if err := tx.Unscoped().Delete(&file).Error; err != nil {
-			logger.Error("Failed to hard delete file from database", zap.Error(err))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
 		}
 
 		action := models.Activity{
@@ -281,13 +266,27 @@ func (s BucketFileService) PurgeFile(
 			}),
 		}
 
-		if err := outbox.AddActivities(tx, action); err != nil {
+		if err = outbox.AddActivities(tx, action); err != nil {
 			logger.Error("Failed to log purge activity", zap.Error(err))
 			return err
 		}
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
+	if err = s.Storage.UnmarkAsTrashed(objectPath, file); err != nil {
+		logger.Warn("Failed to remove trash marker", zap.Error(err))
+	}
+
+	if err = s.Versions.DeleteFiles(file); err != nil {
+		logger.Warn("File delete will be retried", zap.Error(err), zap.String("file_id", file.ID.String()))
+	}
+
+	return nil
 }
 
 func (s BucketFileService) getDownloadableFile(bucketID, fileID uuid.UUID) (models.File, error) {

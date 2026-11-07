@@ -60,12 +60,12 @@ func (s BucketTrashService) BulkTrash(
 
 		now := time.Now()
 
-		if txErr := sql.MarkFilesDeleting(tx, bucketID, body.FolderIDs, body.FileIDs, user.UserID, now); txErr != nil {
+		if txErr := sql.MarkFilesTrashing(tx, bucketID, body.FolderIDs, body.FileIDs, user.UserID, now); txErr != nil {
 			logger.Error("Failed to mark files for trashing", zap.Error(txErr))
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
-		if txErr := sql.MarkFoldersDeleting(tx, bucketID, body.FolderIDs, user.UserID, now); txErr != nil {
+		if txErr := sql.MarkFoldersTrashing(tx, bucketID, body.FolderIDs, user.UserID, now); txErr != nil {
 			logger.Error("Failed to mark folders for trashing", zap.Error(txErr))
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}

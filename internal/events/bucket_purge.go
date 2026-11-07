@@ -6,6 +6,7 @@ import (
 
 	c "github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -88,29 +89,16 @@ func (e *BucketPurge) deleteFiles(params *EventParams) bool {
 		zap.Int("count", len(files)),
 	)
 
-	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		if err := params.Versions.RemoveFileObjects(tx, files...); err != nil {
-			return err
-		}
-		var fileIDs []uuid.UUID
-		for _, file := range files {
-			fileIDs = append(fileIDs, file.ID)
-		}
+	if err := params.DB.Transaction(func(tx *gorm.DB) error {
+		_, err := sql.MarkFilesDeleting(tx, files...)
+		return err
+	}); err != nil {
+		zap.L().Error("Failed to mark files for deletion", zap.Error(err))
+		return false
+	}
 
-		if err := tx.Unscoped().Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
-			zap.L().Error("Failed to delete files from database", zap.Error(err))
-			return err
-		}
-
-		zap.L().Info("Successfully deleted files from database",
-			zap.Int("count", len(files)),
-		)
-
-		return nil
-	})
-
-	if err != nil {
-		zap.L().Error("Transaction failed for file deletion", zap.Error(err))
+	if err := params.Versions.DeleteFiles(files...); err != nil {
+		zap.L().Error("Failed to delete files", zap.Error(err))
 		return false
 	}
 

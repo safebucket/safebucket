@@ -13,6 +13,7 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/google/uuid"
@@ -22,6 +23,7 @@ import (
 
 const (
 	GCStaleUploadThreshold = 20 * time.Minute
+	GCStalePurgeThreshold  = 10 * time.Minute
 	GCBatchSize            = 100
 )
 
@@ -46,6 +48,7 @@ func (w *GarbageCollectorWorker) Start(ctx context.Context) {
 		{Name: "deleted_versions", Fn: w.cleanupDeletedVersions},
 		{Name: "expired_challenges", Fn: w.cleanupExpiredChallenges},
 		{Name: "expired_files", Fn: w.cleanupExpiredFiles},
+		{Name: "stale_deletions", Fn: w.cleanupStaleDeletions},
 		{Name: "expired_shares", Fn: w.cleanupExpiredShares},
 		{Name: "max_views_shares", Fn: w.cleanupMaxViewsShares},
 		{Name: "expired_sessions", Fn: w.cleanupExpiredSessions},
@@ -141,25 +144,14 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 		return 0, nil
 	}
 
-	fileIDs := make([]uuid.UUID, 0, len(files))
-	for _, file := range files {
-		fileIDs = append(fileIDs, file.ID)
-	}
-
-	var rowsAffected int64
-
 	err := w.DB.Transaction(func(tx *gorm.DB) error {
-		if err := w.Versions.RemoveFileObjects(tx, files...); err != nil {
+		marked, err := sql.MarkFilesDeleting(tx, files...)
+		if err != nil {
 			return err
 		}
-		result := tx.Unscoped().Delete(&models.File{}, fileIDs)
-		if result.Error != nil {
-			return result.Error
-		}
-		rowsAffected = result.RowsAffected
 
-		activities := make([]models.Activity, 0, len(files))
-		for _, file := range files {
+		activities := make([]models.Activity, 0, len(marked))
+		for _, file := range marked {
 			activities = append(activities, models.Activity{
 				Message: activity.FileExpired,
 				Object:  file.ToActivity(),
@@ -178,11 +170,26 @@ func (w *GarbageCollectorWorker) cleanupExpiredFiles(_ context.Context) (int, er
 		return 0, err
 	}
 
-	if rowsAffected > 0 {
-		zap.L().Debug("Deleted expired files", zap.Int64("count", rowsAffected))
+	if err = w.Versions.DeleteFiles(files...); err != nil {
+		return 0, err
 	}
 
-	return int(rowsAffected), nil
+	zap.L().Debug("Deleted expired files", zap.Int("count", len(files)))
+
+	return len(files), nil
+}
+
+func (w *GarbageCollectorWorker) cleanupStaleDeletions(_ context.Context) (int, error) {
+	files, err := sql.FindStaleDeletingFiles(w.DB, time.Now().Add(-GCStalePurgeThreshold), GCBatchSize)
+	if err != nil || len(files) == 0 {
+		return 0, err
+	}
+
+	if err = w.Versions.DeleteFiles(files...); err != nil {
+		return 0, err
+	}
+
+	return len(files), nil
 }
 
 func (w *GarbageCollectorWorker) cleanupExpiredShares(_ context.Context) (int, error) {
