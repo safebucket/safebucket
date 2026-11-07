@@ -156,19 +156,6 @@ func (e *PasswordResetSuccessEvent) callback(params *EventParams) error {
 }
 
 const (
-	MFAResetChallengeName        = "MFAResetChallenge"
-	MFAResetChallengePayloadName = "MFAResetChallengePayload"
-)
-
-type MFAResetChallengePayload struct {
-	Type         string
-	Secret       string
-	To           string
-	WebURL       string
-	ChallengeURL string
-}
-
-const (
 	UserWelcomeName        = "UserWelcome"
 	UserWelcomePayloadName = "UserWelcomePayload"
 )
