@@ -170,6 +170,9 @@ func (s *LokiClient) Search(
 				"version":             result.Stream["version"],
 				"timestamp":           log[0],
 			}
+			if changedFields, ok := result.Stream[models.ActivityChangedFieldsKey]; ok {
+				entry[models.ActivityChangedFieldsKey] = changedFields
+			}
 
 			var logLineData map[string]interface{}
 			if err = json.Unmarshal([]byte(log[1]), &logLineData); err != nil {
@@ -184,6 +187,9 @@ func (s *LokiClient) Search(
 			}
 			if object, ok := logLineData["object"]; ok {
 				entry["object"] = object
+			}
+			if changes, ok := logLineData["changes"]; ok {
+				entry["changes"] = changes
 			}
 
 			activity = append(activity, entry)
@@ -340,7 +346,7 @@ func generateORCriteria(criteria map[string][]string) []string {
 }
 
 func createLokiStream(activity models.Activity) (StreamEntry, error) {
-	labels, metadata := lokiLabels(activity.Filter.Fields.ToMap())
+	labels, metadata := lokiLabels(activity.Fields())
 	labels["service_name"] = configuration.AppName
 
 	logLine := map[string]interface{}{
@@ -349,6 +355,9 @@ func createLokiStream(activity models.Activity) (StreamEntry, error) {
 
 	if isAuthorizedObject(activity.Filter.Fields.ObjectType) {
 		logLine["object"] = activity.Object
+	}
+	if changes := authorizedChanges(activity.Changes); len(changes) > 0 {
+		logLine["changes"] = changes
 	}
 
 	logLineJSON, err := json.Marshal(logLine)

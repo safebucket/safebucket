@@ -116,7 +116,7 @@ func validateProviderListFields(k *koanf.Koanf) error {
 }
 
 func splitEnvList(value string) []string {
-	entries := strings.Split(value, ",")
+	entries := strings.Split(strings.Trim(value, "[]"), ",")
 	for i, entry := range entries {
 		entries[i] = strings.TrimSpace(entry)
 	}

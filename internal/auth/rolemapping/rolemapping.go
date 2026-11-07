@@ -7,86 +7,50 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 )
 
-var errMalformedClaim = errors.New("malformed groups claim")
+var (
+	ErrGroupsClaimMissing = errors.New("groups claim missing")
+	errMalformedClaim     = errors.New("malformed groups claim")
+)
 
-type Mapping struct {
-	groups map[string]struct{}
+type claimsSource interface {
+	Claims(v any) error
 }
 
-func New(adminGroups []string) *Mapping {
-	if len(adminGroups) == 0 {
-		return nil
-	}
-	set := make(map[string]struct{}, len(adminGroups))
-	for _, g := range adminGroups {
-		set[g] = struct{}{}
-	}
-	return &Mapping{groups: set}
-}
-
-func (m *Mapping) IsAdmin(groups []string) bool {
-	for _, g := range groups {
-		if _, ok := m.groups[g]; ok {
-			return true
+// OIDCGroups reads the groups claim from the first source that has it.
+func OIDCGroups(claim string, sources ...claimsSource) ([]string, error) {
+	for _, source := range sources {
+		claims := map[string]json.RawMessage{}
+		if err := source.Claims(&claims); err != nil {
+			return nil, err
+		}
+		if raw, ok := claims[claim]; ok {
+			return readClaim(raw)
 		}
 	}
-	return false
+	return nil, ErrGroupsClaimMissing
 }
 
-func Resolve(current models.Role, inAdminGroup bool) models.Role {
-	switch {
-	case current == models.RoleGuest:
-		return current
-	case inAdminGroup:
-		return models.RoleAdmin
-	case current == models.RoleAdmin:
-		return models.RoleUser
-	default:
+func Resolve(current models.Role, groups []string, adminGroups map[string]struct{}) models.Role {
+	if current == models.RoleGuest {
 		return current
 	}
+	for _, group := range groups {
+		if _, ok := adminGroups[group]; ok {
+			return models.RoleAdmin
+		}
+	}
+	return models.RoleUser
 }
 
 func readClaim(raw json.RawMessage) ([]string, error) {
-	var arr []string
-	if err := json.Unmarshal(raw, &arr); err == nil {
-		return arr, nil
+	var groups []string
+	if err := json.Unmarshal(raw, &groups); err == nil {
+		return groups, nil
 	}
 
-	var scalar string
-	if err := json.Unmarshal(raw, &scalar); err == nil {
-		return []string{scalar}, nil
+	var group string
+	if err := json.Unmarshal(raw, &group); err == nil {
+		return []string{group}, nil
 	}
 	return nil, errMalformedClaim
-}
-
-func mapClaim(claims map[string]json.RawMessage, claim string) ([]string, bool, error) {
-	raw, ok := claims[claim]
-	if !ok {
-		return nil, false, nil
-	}
-	if len(raw) == 0 || string(raw) == "null" {
-		return []string{}, true, nil
-	}
-
-	groups, err := readClaim(raw)
-	if err != nil {
-		return nil, true, err
-	}
-	return groups, true, nil
-}
-
-func OIDCGroups(
-	idToken map[string]json.RawMessage,
-	userInfo map[string]json.RawMessage,
-	claim string,
-) ([]string, bool, error) {
-	if idToken != nil {
-		if groups, found, err := mapClaim(idToken, claim); found || err != nil {
-			return groups, found, err
-		}
-	}
-	if userInfo != nil {
-		return mapClaim(userInfo, claim)
-	}
-	return nil, false, nil
 }

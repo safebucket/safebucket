@@ -6,15 +6,12 @@ import (
 	"slices"
 
 	ldapclient "github.com/safebucket/safebucket/internal/auth/ldap"
-	"github.com/safebucket/safebucket/internal/auth/rolemapping"
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
-
-const DefaultOIDCGroupsClaim = "groups"
 
 type Provider struct {
 	Name           string
@@ -27,7 +24,7 @@ type Provider struct {
 	Order          int
 	MFARequired    bool
 	SharingOptions models.SharingConfiguration
-	RoleMapping    *rolemapping.Mapping
+	AdminGroups    map[string]struct{}
 	GroupsClaim    string
 }
 
@@ -83,7 +80,12 @@ func LoadProviders(
 
 			groupsClaim := providerCfg.OIDC.GroupsClaim
 			if groupsClaim == "" {
-				groupsClaim = DefaultOIDCGroupsClaim
+				groupsClaim = models.DefaultOIDCGroupsClaim
+			}
+
+			adminGroups := make(map[string]struct{}, len(providerCfg.OIDC.AdminGroups))
+			for _, group := range providerCfg.OIDC.AdminGroups {
+				adminGroups[group] = struct{}{}
 			}
 
 			providers[name] = Provider{
@@ -96,7 +98,7 @@ func LoadProviders(
 				Order:          idx,
 				MFARequired:    providerCfg.MFARequired,
 				SharingOptions: providerCfg.SharingConfiguration,
-				RoleMapping:    rolemapping.New(providerCfg.OIDC.AdminGroups),
+				AdminGroups:    adminGroups,
 				GroupsClaim:    groupsClaim,
 			}
 			idx++

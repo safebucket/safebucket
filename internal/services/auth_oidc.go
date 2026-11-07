@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -22,6 +21,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
+	"gorm.io/gorm"
 )
 
 func (s AuthService) OpenIDBegin(providerName string, state string, nonce string) (string, error) {
@@ -106,7 +106,7 @@ func (s AuthService) OpenIDCallback(
 		}
 	}
 
-	if syncErr := s.applyIDPRoleMapping(logger, provider, idToken, userInfo, &searchUser); syncErr != nil {
+	if syncErr := s.syncOIDCRole(logger, provider, idToken, userInfo, &searchUser); syncErr != nil {
 		return models.OIDCCallbackResult{}, syncErr
 	}
 
@@ -178,48 +178,70 @@ func (s AuthService) issueOIDCSession(
 	return models.OIDCCallbackResult{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }
 
-func (s AuthService) applyIDPRoleMapping(
+func (s AuthService) syncOIDCRole(
 	logger *zap.Logger,
 	provider configuration.Provider,
 	idToken *oidc.IDToken,
 	userInfo *oidc.UserInfo,
 	user *models.User,
 ) error {
-	if provider.RoleMapping == nil {
+	if len(provider.AdminGroups) == 0 {
 		return nil
 	}
 
-	idTokenClaims := map[string]json.RawMessage{}
-	if claimsErr := idToken.Claims(&idTokenClaims); claimsErr != nil {
-		logger.Error("Failed to decode ID token claims",
-			zap.String("provider", user.ProviderKey),
-			zap.String("user_id", user.ID.String()),
-			zap.Error(claimsErr))
-		idTokenClaims = nil
-	}
-
-	userInfoClaims := map[string]json.RawMessage{}
-	if claimsErr := userInfo.Claims(&userInfoClaims); claimsErr != nil {
-		logger.Error("Failed to decode UserInfo claims",
-			zap.String("provider", user.ProviderKey),
-			zap.String("user_id", user.ID.String()),
-			zap.Error(claimsErr))
-		userInfoClaims = nil
-	}
-
-	groups, found, err := rolemapping.OIDCGroups(idTokenClaims, userInfoClaims, provider.GroupsClaim)
+	groups, err := rolemapping.OIDCGroups(provider.GroupsClaim, idToken, userInfo)
 	if err != nil {
-		logger.Error("Failed to decode groups claim",
+		logger.Warn("Could not read IdP groups, treating user as in no group",
 			zap.String("provider", user.ProviderKey),
 			zap.String("user_id", user.ID.String()),
 			zap.String("claim", provider.GroupsClaim),
 			zap.Error(err))
-	} else if !found {
-		logger.Warn("Groups claim missing from IdP response",
-			zap.String("provider", user.ProviderKey),
-			zap.String("user_id", user.ID.String()),
-			zap.String("claim", provider.GroupsClaim))
 	}
 
-	return s.syncIDPRole(logger, user, provider, groups)
+	previousRole := user.Role
+	newRole := rolemapping.Resolve(previousRole, groups, provider.AdminGroups)
+	if newRole == previousRole {
+		return nil
+	}
+
+	if previousRole == models.RoleAdmin {
+		if revokeErr := cache.RevokeAllSessions(s.Cache, user.ID.String()); revokeErr != nil {
+			logger.Error("Failed to revoke sessions of demoted admin", zap.Error(revokeErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+	}
+
+	action := models.Activity{
+		Message: activity.UserUpdated,
+		Object:  user.ToActivity(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:       activity.UserUpdated,
+			UserID:       user.ID.String(),
+			ObjectType:   rbac.ResourceUser.String(),
+			ProviderType: string(provider.Type),
+			ProviderName: provider.Name,
+		}),
+		Changes: map[string]models.ActivityChange{
+			"role": {From: string(previousRole), To: string(newRole)},
+		},
+	}
+	txErr := s.DB.Transaction(func(tx *gorm.DB) error {
+		if updateErr := tx.Model(&models.User{ID: user.ID}).Update("role", newRole).Error; updateErr != nil {
+			return updateErr
+		}
+		return outbox.AddActivities(tx, action)
+	})
+	if txErr != nil {
+		logger.Error("Failed to apply IdP mapped role", zap.Error(txErr))
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+	}
+	user.Role = newRole
+
+	logger.Info("Role changed from IdP group mapping",
+		zap.String("user_id", user.ID.String()),
+		zap.String("provider", user.ProviderKey),
+		zap.String("previous_role", string(previousRole)),
+		zap.String("role", string(newRole)))
+
+	return nil
 }
