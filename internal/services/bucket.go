@@ -330,18 +330,22 @@ func (s BucketService) DeleteBucket(
 func (s BucketService) GetActivity(
 	logger *zap.Logger,
 	user models.UserClaims,
-	ids uuid.UUIDs,
+	_ uuid.UUIDs,
 	query models.ActivityQueryParams,
-) (models.Page[map[string]interface{}], error) {
-	buckets := s.GetBucketList(logger, user, ids)
+) (models.Page[map[string]any], error) {
+	memberships, err := rbac.GetUserBuckets(s.DB, user.UserID)
+	if err != nil {
+		logger.Error("Error retrieving user buckets", zap.Error(err))
+		return models.Page[map[string]any]{}, err
+	}
 
-	var bucketIDs []string
-	for _, bucket := range buckets {
-		bucketIDs = append(bucketIDs, bucket.ID.String())
+	bucketIDs := make([]string, 0, len(memberships))
+	for _, membership := range memberships {
+		bucketIDs = append(bucketIDs, membership.BucketID.String())
 	}
 
 	if len(bucketIDs) == 0 {
-		return models.Page[map[string]interface{}]{Data: []map[string]interface{}{}}, nil
+		return models.Page[map[string]any]{Data: []map[string]any{}}, nil
 	}
 
 	searchCriteria := map[string][]string{
