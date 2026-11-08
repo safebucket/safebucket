@@ -1,7 +1,6 @@
 package events
 
 import (
-	"errors"
 	"path"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -50,145 +49,115 @@ func NewFolderPurge(
 }
 
 func (e *FolderPurge) callback(params *EventParams) error {
-	zap.L().Info("Starting folder purge (permanent deletion)",
-		zap.String("bucket_id", e.Payload.BucketID.String()),
-		zap.String("folder_id", e.Payload.FolderID.String()),
-	)
-
-	var folder models.Folder
-	result := params.DB.Unscoped().Where("id = ? AND bucket_id = ?",
-		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		zap.L().Info("Folder already purged, skipping",
-			zap.String("folder_id", e.Payload.FolderID.String()))
-		return nil
-	}
-	if result.Error != nil {
-		zap.L().Error("Failed to retrieve folder for purging", zap.Error(result.Error))
-		return result.Error
+	folder, found, err := e.load(params)
+	if err != nil || !found {
+		return err
 	}
 
-	if !folder.DeletedAt.Valid {
-		zap.L().Warn("Folder not soft-deleted, cannot purge")
-		return errors.New("folder not in trash")
-	}
-
-	var childFiles []models.File
-	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		var childFolders []models.Folder
-		if err := tx.Unscoped().Where(
-			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
-			e.Payload.BucketID,
-			e.Payload.FolderID,
-		).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
-			zap.L().Error("Failed to find child folders for purging", zap.Error(err))
-			return err
-		}
-
-		if len(childFolders) > 0 {
-			zap.L().Info("Purging child folders",
-				zap.String("folder", folder.Name),
-				zap.Int("child_count", len(childFolders)))
-
-			var folderIDs []uuid.UUID
-			for _, child := range childFolders {
-				folderIDs = append(folderIDs, child.ID)
-			}
-
-			if err := tx.Unscoped().Where("id IN ?", folderIDs).Delete(&models.Folder{}).Error; err != nil {
-				zap.L().Error("Failed to hard delete child folders", zap.Error(err))
-				return err
-			}
-		}
-
-		if err := tx.Unscoped().Where(
-			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
-			e.Payload.BucketID,
-			e.Payload.FolderID,
-		).Limit(c.BulkActionsLimit).Find(&childFiles).Error; err != nil {
-			zap.L().Error("Failed to find child files for purging", zap.Error(err))
-			return err
-		}
-
-		if len(childFiles) > 0 {
-			zap.L().Info("Purging child files",
-				zap.String("folder", folder.Name),
-				zap.Int("child_count", len(childFiles)))
-
-			if _, err := sql.MarkFilesDeleting(tx, childFiles...); err != nil {
-				zap.L().Error("Failed to mark child files for deletion", zap.Error(err))
-				return err
-			}
-		}
-
-		return nil
-	})
+	more, err := e.deleteBatch(params)
 	if err != nil {
 		return err
 	}
 
-	if err = params.Versions.DeleteFiles(childFiles...); err != nil {
-		zap.L().Error("Failed to delete child files", zap.Error(err))
+	if more {
+		return outbox.AddEvents(params.DB, e.Payload)
+	}
+
+	return e.finish(params, folder)
+}
+
+func (e *FolderPurge) load(params *EventParams) (models.Folder, bool, error) {
+	var folder models.Folder
+	result := params.DB.Unscoped().Where("id = ? AND bucket_id = ?",
+		e.Payload.FolderID, e.Payload.BucketID).Find(&folder)
+	if result.Error != nil {
+		zap.L().Error("Failed to retrieve folder for deleting", zap.Error(result.Error))
+		return folder, false, result.Error
+	}
+	if result.RowsAffected == 0 {
+		zap.L().Info("Folder already purged, skipping",
+			zap.String("folder_id", e.Payload.FolderID.String()))
+		return folder, false, nil
+	}
+	if !folder.DeletedAt.Valid {
+		zap.L().Warn("Folder not in trash, skipping delete",
+			zap.String("folder_id", e.Payload.FolderID.String()))
+		return folder, false, nil
+	}
+	return folder, true, nil
+}
+
+func (e *FolderPurge) deleteBatch(params *EventParams) (bool, error) {
+	files, err := sql.FindTrashedFilesInTree(params.DB, e.Payload.BucketID, e.Payload.FolderID, c.BulkActionsLimit)
+	if err != nil {
+		zap.L().Error("Failed to find files to delete", zap.Error(err))
+		return false, err
+	}
+	if len(files) > 0 {
+		return true, e.deleteFiles(params, files)
+	}
+
+	deleted, err := sql.DeleteTrashedFoldersInTree(params.DB, e.Payload.BucketID, e.Payload.FolderID, c.BulkActionsLimit)
+	if err != nil {
+		zap.L().Error("Failed to delete subfolders", zap.Error(err))
+		return false, err
+	}
+	return deleted > 0, nil
+}
+
+func (e *FolderPurge) deleteFiles(params *EventParams, files []models.File) error {
+	_, err := sql.MarkFilesDeleting(params.DB, files...)
+	if err != nil {
+		zap.L().Error("Failed to mark files for deletion", zap.Error(err))
 		return err
 	}
 
-	var remainingFolders int64
-	params.DB.Unscoped().Model(&models.Folder{}).Where(
-		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
-		e.Payload.BucketID,
-		e.Payload.FolderID,
-	).Count(&remainingFolders)
-
-	var remainingFiles int64
-	params.DB.Unscoped().Model(&models.File{}).Where(
-		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
-		e.Payload.BucketID,
-		e.Payload.FolderID,
-	).Count(&remainingFiles)
-
-	if remainingFolders > 0 || remainingFiles > 0 {
-		zap.L().Info("More items to purge, requeuing event",
-			zap.Int64("remaining_folders", remainingFolders),
-			zap.Int64("remaining_files", remainingFiles))
-		return errors.New("remaining items to purge")
+	if err := params.Versions.DeleteFiles(files...); err != nil {
+		zap.L().Error("Failed to delete files", zap.Error(err))
+		return err
 	}
+	return nil
+}
 
-	objectPath := path.Join("buckets", e.Payload.BucketID.String(), e.Payload.FolderID.String())
-	folderModel := models.Folder{ID: e.Payload.FolderID, BucketID: e.Payload.BucketID}
-	if err = params.Storage.UnmarkAsTrashed(objectPath, folderModel); err != nil {
-		zap.L().Warn("Failed to delete folder marker from storage",
-			zap.Error(err),
-			zap.String("folder_id", e.Payload.FolderID.String()))
-	}
-
-	action := models.Activity{
-		Message: activity.FolderDeleted,
-		Object:  folder.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     rbac.ActionDelete.String(),
-			BucketID:   e.Payload.BucketID.String(),
-			FolderID:   e.Payload.FolderID.String(),
-			ObjectType: rbac.ResourceFolder.String(),
-			UserID:     e.Payload.UserID.String(),
-		}),
-	}
-
-	err = params.DB.Transaction(func(tx *gorm.DB) error {
-		if deleteErr := tx.Unscoped().Delete(&folder).Error; deleteErr != nil {
-			return deleteErr
+func (e *FolderPurge) finish(params *EventParams, folder models.Folder) error {
+	var deleted bool
+	err := params.DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Unscoped().Where("deleted_at IS NOT NULL").Delete(&folder)
+		if result.Error != nil || result.RowsAffected == 0 {
+			return result.Error
 		}
-		return outbox.AddActivities(tx, action)
+
+		deleted = true
+		return outbox.AddActivities(tx, models.Activity{
+			Message: activity.FolderDeleted,
+			Object:  folder.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				BucketID:   e.Payload.BucketID.String(),
+				FolderID:   e.Payload.FolderID.String(),
+				ObjectType: rbac.ResourceFolder.String(),
+				UserID:     e.Payload.UserID.String(),
+			}),
+		})
 	})
 	if err != nil {
 		zap.L().Error("Failed to hard delete folder from database", zap.Error(err))
 		return err
 	}
+	if !deleted {
+		return nil
+	}
 
-	zap.L().Info("Folder purge complete",
+	objectPath := path.Join("buckets", e.Payload.BucketID.String(), e.Payload.FolderID.String())
+	if err = params.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
+		zap.L().Warn("Failed to delete folder marker from storage",
+			zap.Error(err),
+			zap.String("folder_id", e.Payload.FolderID.String()))
+	}
+
+	zap.L().Info("Folder delete complete",
 		zap.String("bucket_id", e.Payload.BucketID.String()),
 		zap.String("folder_id", e.Payload.FolderID.String()),
 	)
-
 	return nil
 }

@@ -1,16 +1,15 @@
 package events
 
 import (
-	"errors"
 	"path"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
 const (
@@ -44,132 +43,116 @@ func NewBucketPurge(
 }
 
 func (e *BucketPurge) callback(params *EventParams) error {
-	zap.L().Info("Starting bucket purge (permanent deletion)",
+	found, err := e.load(params)
+	if err != nil || !found {
+		return err
+	}
+
+	more, err := e.deleteBatch(params)
+	if err != nil {
+		return err
+	}
+	if more {
+		return outbox.AddEvents(params.DB, e.Payload)
+	}
+
+	zap.L().Info("Bucket deletion complete",
 		zap.String("bucket_id", e.Payload.BucketID.String()),
 	)
-
-	if !e.deleteFiles(params) {
-		return errors.New("remaining files to delete")
-	}
-
-	if !e.deleteFolders(params) {
-		return errors.New("remaining folders to delete")
-	}
-
-	if !e.cleanupOrphanedStorage(params) {
-		return errors.New("remaining storage objects")
-	}
-
-	zap.L().Info("Bucket purge complete",
-		zap.String("bucket_id", e.Payload.BucketID.String()),
-	)
-
 	return nil
 }
 
-func (e *BucketPurge) deleteFiles(params *EventParams) bool {
+func (e *BucketPurge) load(params *EventParams) (bool, error) {
+	var bucket models.Bucket
+	result := params.DB.Unscoped().Where("id = ?", e.Payload.BucketID).Find(&bucket)
+	if result.Error != nil {
+		zap.L().Error("Failed to retrieve bucket for deleting", zap.Error(result.Error))
+		return false, result.Error
+	}
+	if result.RowsAffected == 0 || !bucket.DeletedAt.Valid {
+		zap.L().Warn("Bucket not deleted, skipping deletion",
+			zap.String("bucket_id", e.Payload.BucketID.String()))
+		return false, nil
+	}
+	return true, nil
+}
+
+func (e *BucketPurge) deleteBatch(params *EventParams) (bool, error) {
+	if more, err := e.deleteFiles(params); err != nil || more {
+		return more, err
+	}
+	if more, err := e.deleteFolders(params); err != nil || more {
+		return more, err
+	}
+	return e.deleteObjects(params)
+}
+
+func (e *BucketPurge) deleteFiles(params *EventParams) (bool, error) {
 	var files []models.File
 	result := params.DB.Unscoped().
 		Where("bucket_id = ?", e.Payload.BucketID).
-		Order("created_at ASC").
 		Limit(c.BulkActionsLimit).
 		Find(&files)
 
 	if result.Error != nil {
 		zap.L().Error("Failed to query files", zap.Error(result.Error))
-		return false
+		return false, result.Error
 	}
 
 	if len(files) == 0 {
-		zap.L().Info("No files to delete")
-		return true
+		return false, nil
 	}
 
-	zap.L().Info("Processing files for deletion",
-		zap.Int("count", len(files)),
-	)
-
-	if err := params.DB.Transaction(func(tx *gorm.DB) error {
-		_, err := sql.MarkFilesDeleting(tx, files...)
-		return err
-	}); err != nil {
+	_, err := sql.MarkFilesDeleting(params.DB, files...)
+	if err != nil {
 		zap.L().Error("Failed to mark files for deletion", zap.Error(err))
-		return false
+		return false, err
 	}
 
 	if err := params.Versions.DeleteFiles(files...); err != nil {
 		zap.L().Error("Failed to delete files", zap.Error(err))
-		return false
+		return false, err
 	}
-
-	var remainingCount int64
-	params.DB.Unscoped().Model(&models.File{}).
-		Where("bucket_id = ?", e.Payload.BucketID).
-		Count(&remainingCount)
-
-	if remainingCount > 0 {
-		zap.L().Info("More files to delete, requeuing",
-			zap.Int64("remaining", remainingCount),
-		)
-		return false
-	}
-
-	return true
+	return true, nil
 }
 
-func (e *BucketPurge) deleteFolders(params *EventParams) bool {
+func (e *BucketPurge) deleteFolders(params *EventParams) (bool, error) {
 	var ids []uuid.UUID
-	if err := params.DB.Unscoped().Model(&models.Folder{}).
+	result := params.DB.Unscoped().Model(&models.Folder{}).
 		Where("bucket_id = ?", e.Payload.BucketID).
 		Limit(c.BulkActionsLimit).
-		Pluck("id", &ids).Error; err != nil {
-		zap.L().Error("Failed to query folders", zap.Error(err))
-		return false
+		Pluck("id", &ids)
+
+	if result.Error != nil {
+		zap.L().Error("Failed to query folders", zap.Error(result.Error))
+		return false, result.Error
 	}
 
 	if len(ids) == 0 {
-		return true
+		return false, nil
 	}
 
 	if err := params.DB.Unscoped().Where("id IN ?", ids).Delete(&models.Folder{}).Error; err != nil {
 		zap.L().Error("Failed to delete folders", zap.Error(err))
-		return false
+		return false, err
 	}
-
-	return len(ids) < c.BulkActionsLimit
+	return true, nil
 }
 
-func (e *BucketPurge) cleanupOrphanedStorage(params *EventParams) bool {
+func (e *BucketPurge) deleteObjects(params *EventParams) (bool, error) {
 	bucketPrefix := path.Join("buckets", e.Payload.BucketID.String())
-
 	objects, err := params.Storage.ListObjects(bucketPrefix, c.BulkActionsLimit)
 	if err != nil {
 		zap.L().Error("Failed to list storage objects for cleanup", zap.Error(err))
-		return false
+		return false, err
 	}
-
 	if len(objects) == 0 {
-		zap.L().Info("No orphaned storage objects found")
-		return true
+		return false, nil
 	}
-
-	zap.L().Info("Cleaning up orphaned storage objects",
-		zap.Int("count", len(objects)),
-	)
 
 	if err = params.Storage.RemoveObjects(objects); err != nil {
 		zap.L().Error("Failed to delete orphaned storage objects", zap.Error(err))
-		return false
+		return false, err
 	}
-
-	zap.L().Info("Successfully cleaned up orphaned storage objects",
-		zap.Int("count", len(objects)),
-	)
-
-	if len(objects) == c.BulkActionsLimit {
-		zap.L().Info("More orphaned objects may exist, requeuing")
-		return false
-	}
-
-	return true
+	return true, nil
 }
