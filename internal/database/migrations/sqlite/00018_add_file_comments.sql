@@ -5,17 +5,16 @@ CREATE TABLE file_comments
     (
         id TEXT PRIMARY KEY,
         file_id TEXT NOT NULL,
-        author_id TEXT,
+        user_id TEXT,
         body TEXT NOT NULL,
         version INTEGER NOT NULL,
-        edited_at DATETIME,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
         CONSTRAINT fk_file_comments_file_id
             FOREIGN KEY (file_id) REFERENCES files (id) ON UPDATE CASCADE ON DELETE CASCADE,
-        CONSTRAINT fk_file_comments_author_id
-            FOREIGN KEY (author_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
+        CONSTRAINT fk_file_comments_user_id
+            FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
     );
 
 CREATE INDEX idx_file_comments_file_id ON file_comments (file_id, created_at);
