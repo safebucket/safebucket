@@ -30,13 +30,13 @@ type FileCommentCreateResponse struct {
 }
 
 type FileCommentResponse struct {
-	ID           uuid.UUID  `json:"id"`
-	Author       *UserInfo  `json:"author,omitempty"`
-	AuthorActive bool       `json:"author_active"`
-	Body         string     `json:"body"`
-	Version      int        `json:"version"`
-	EditedAt     *time.Time `json:"edited_at,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
+	ID         uuid.UUID `json:"id"`
+	User       *UserInfo `json:"user,omitempty"`
+	UserActive bool      `json:"user_active"`
+	Body       string    `json:"body"`
+	Version    int       `json:"version"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 type FileConversationResponse struct {
