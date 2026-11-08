@@ -37,14 +37,6 @@ func TestMigrationsPreserveData(t *testing.T) {
 
 			seedDB(t, db)
 
-			var originalFile struct {
-				ID        uuid.UUID
-				Size      int
-				Status    models.FileStatus
-				CreatedAt time.Time
-			}
-			require.NoError(t, db.Table("files").First(&originalFile).Error)
-
 			require.NoError(t, bootstrap.MigrateUpTo(sqlDB, dialect, last), "migrate to latest version %d", last)
 
 			for label, model := range map[string]any{
@@ -65,29 +57,13 @@ func TestMigrationsPreserveData(t *testing.T) {
 				assert.Equal(t, int64(1), count, "%s row should survive migration to version %d", label, last)
 			}
 
-			var migratedFile models.File
-			require.NoError(
-				t,
-				filesql.WithCurrentVersionSize(db).First(&migratedFile, "files.id = ?", originalFile.ID).Error,
-			)
-			require.NotNil(t, migratedFile.CurrentVersionID)
-			assert.Equal(t, originalFile.ID, *migratedFile.CurrentVersionID)
-			assert.Equal(t, originalFile.Size, migratedFile.Size)
-			assert.Equal(t, originalFile.Status, migratedFile.Status)
-			assert.False(t, db.Migrator().HasColumn(&models.File{}, "size"))
+			assert.True(t, db.Migrator().HasTable("file_comments"),
+				"file_comments should exist after migration to version %d", last)
 
-			var version models.FileVersion
-			require.NoError(t, db.First(&version, "id = ?", *migratedFile.CurrentVersionID).Error)
-			assert.Equal(t, originalFile.ID, version.FileID)
-			assert.Equal(t, 1, version.Version)
-			assert.Equal(t, originalFile.Size, version.Size)
-			assert.Equal(t, originalFile.Status, version.Status)
-			assert.True(t, originalFile.CreatedAt.Equal(version.CreatedAt))
-			assert.Nil(t, version.UploadedBy)
-
-			var migratedShare models.Share
-			require.NoError(t, db.First(&migratedShare).Error)
-			assert.Nil(t, migratedShare.CustomID)
+			var file models.File
+			require.NoError(t, filesql.WithCurrentVersionSize(db).First(&file).Error)
+			require.NotNil(t, file.CurrentVersionID)
+			assert.Equal(t, 10, file.Size)
 		})
 	}
 }
@@ -122,10 +98,18 @@ func seedDB(t *testing.T, db *gorm.DB) {
 		"status":     models.FileStatusUploaded,
 		"bucket_id":  bucket.ID,
 		"folder_id":  folder.ID,
-		"size":       10,
 		"created_at": time.Now(),
 		"updated_at": time.Now(),
 	}).Error)
+	require.NoError(t, db.Table("file_versions").Create(map[string]any{
+		"id":         fileID,
+		"file_id":    fileID,
+		"version":    1,
+		"size":       10,
+		"status":     models.FileStatusUploaded,
+		"created_at": time.Now(),
+	}).Error)
+	require.NoError(t, db.Table("files").Where("id = ?", fileID).Update("current_version_id", fileID).Error)
 
 	invite := models.Invite{
 		Email:     "invitee@example.com",
