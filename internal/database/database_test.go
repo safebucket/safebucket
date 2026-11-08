@@ -36,6 +36,7 @@ func TestSQLite_Migrations(t *testing.T) {
 
 	tables := []string{
 		"users", "buckets", "memberships", "folders", "files", "file_versions", "invites", "challenges", "mfa_devices",
+		"file_comments",
 	}
 	for _, table := range tables {
 		var count int
