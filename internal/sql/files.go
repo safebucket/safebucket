@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func WithCurrentVersionSize(db *gorm.DB) *gorm.DB {
@@ -49,4 +50,29 @@ func GetSharedFilesByHour(db *gorm.DB, days int) []models.TimeSeriesPoint {
 		Scan(&result)
 
 	return result
+}
+
+func MarkFilesDeleting(tx *gorm.DB, files ...models.File) ([]models.File, error) {
+	now := time.Now()
+
+	var marked []models.File
+	err := tx.Unscoped().Model(&marked).Clauses(clause.Returning{}).
+		Where("id IN ? AND (status IS NULL OR status != ? OR deleted_at IS NULL)",
+			models.FileIDs(files), models.FileStatusDeleting).
+		Updates(map[string]any{
+			"status":     models.FileStatusDeleting,
+			"deleted_at": now,
+			"updated_at": now,
+		}).Error
+
+	return marked, err
+}
+
+func FindStaleDeletingFiles(db *gorm.DB, before time.Time, limit int) ([]models.File, error) {
+	var files []models.File
+	err := db.Unscoped().
+		Where("status = ? AND deleted_at IS NOT NULL AND updated_at < ?", models.FileStatusDeleting, before).
+		Limit(limit).
+		Find(&files).Error
+	return files, err
 }

@@ -20,6 +20,8 @@ import (
 type gcStubStorage struct {
 	listObjectPartsFn func(path, uploadID string) ([]storage.PartInfo, error)
 	abortedUploadIDs  []string
+	removeObjectsErr  error
+	removedKeys       []string
 }
 
 func (s *gcStubStorage) PresignedGetObject(string, storage.GetObjectOptions) (string, error) {
@@ -51,12 +53,18 @@ func (s *gcStubStorage) AbortMultipartUpload(_, uploadID string) error {
 func (s *gcStubStorage) StatObject(string) (map[string]string, error) { return nil, nil }
 func (s *gcStubStorage) ListObjects(string, int32) ([]string, error)  { return nil, nil }
 func (s *gcStubStorage) RemoveObject(string) error                    { return nil }
-func (s *gcStubStorage) RemoveObjects([]string) error                 { return nil }
-func (s *gcStubStorage) EnsureTrashLifecyclePolicy(int) error         { return nil }
-func (s *gcStubStorage) MarkAsTrashed(string, any) error              { return nil }
-func (s *gcStubStorage) UnmarkAsTrashed(string, any) error            { return nil }
-func (s *gcStubStorage) IsTrashMarkerPath(string) (bool, string)      { return false, "" }
-func (s *gcStubStorage) GetBucketName() string                        { return "" }
+func (s *gcStubStorage) RemoveObjects(keys []string) error {
+	if s.removeObjectsErr != nil {
+		return s.removeObjectsErr
+	}
+	s.removedKeys = append(s.removedKeys, keys...)
+	return nil
+}
+func (s *gcStubStorage) EnsureTrashLifecyclePolicy(int) error    { return nil }
+func (s *gcStubStorage) MarkAsTrashed(string, any) error         { return nil }
+func (s *gcStubStorage) UnmarkAsTrashed(string, any) error       { return nil }
+func (s *gcStubStorage) IsTrashMarkerPath(string) (bool, string) { return false, "" }
+func (s *gcStubStorage) GetBucketName() string                   { return "" }
 
 func setupGCTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
@@ -114,7 +122,7 @@ func countFiles(t *testing.T, db *gorm.DB, fileID uuid.UUID) int64 {
 	t.Helper()
 
 	var count int64
-	require.NoError(t, db.Model(&models.File{}).Where("id = ?", fileID).Count(&count).Error)
+	require.NoError(t, db.Unscoped().Model(&models.File{}).Where("id = ?", fileID).Count(&count).Error)
 	return count
 }
 
@@ -217,5 +225,83 @@ func TestCleanupStaleUploads(t *testing.T) {
 		assert.Equal(t, 0, expireStaleUploads(t, worker))
 		assert.Equal(t, int64(1), countFiles(t, db, file.ID))
 		assert.Empty(t, store.abortedUploadIDs)
+	})
+}
+
+func createExpiredFile(t *testing.T, db *gorm.DB, bucketID uuid.UUID) models.File {
+	t.Helper()
+
+	expiresAt := time.Now().Add(-time.Hour)
+	file := models.File{
+		Name:      "file-" + uuid.NewString(),
+		Status:    models.FileStatusUploaded,
+		BucketID:  bucketID,
+		ExpiresAt: &expiresAt,
+	}
+	require.NoError(t, db.Create(&file).Error)
+	require.NoError(t, db.Create(&models.FileVersion{ID: file.ID, FileID: file.ID, Version: 1,
+		Size: 1024, Status: models.FileStatusUploaded}).Error)
+
+	return file
+}
+
+func countActivities(t *testing.T, db *gorm.DB) int64 {
+	t.Helper()
+
+	var count int64
+	require.NoError(t, db.Model(&models.Outbox{}).Where("type = ?", models.OutboxTypeActivity).Count(&count).Error)
+	return count
+}
+
+func TestCleanupExpiredFiles(t *testing.T) {
+	t.Run("expired file objects and rows are removed", func(t *testing.T) {
+		db := setupGCTestDB(t)
+		bucket := gcTestBucket(t, db)
+		file := createExpiredFile(t, db, bucket.ID)
+
+		store := &gcStubStorage{}
+		worker := newGCWorker(db, store)
+		setUploadID(t, worker, file.ID, "upload-4")
+		count, err := worker.cleanupExpiredFiles(t.Context())
+		require.NoError(t, err)
+
+		assert.Equal(t, 1, count)
+		assert.Equal(t, []string{"upload-4"}, store.abortedUploadIDs)
+		assert.Equal(t, int64(0), countFiles(t, db, file.ID))
+		assert.Equal(t, []string{storage.VersionObjectKey(bucket.ID, file.ID)}, store.removedKeys)
+		assert.Equal(t, int64(1), countActivities(t, db))
+	})
+
+	t.Run("storage failure keeps the file flagged until a later run deletes it", func(t *testing.T) {
+		db := setupGCTestDB(t)
+		bucket := gcTestBucket(t, db)
+		file := createExpiredFile(t, db, bucket.ID)
+
+		store := &gcStubStorage{removeObjectsErr: assert.AnError}
+		worker := newGCWorker(db, store)
+		for range 2 {
+			_, err := worker.cleanupExpiredFiles(t.Context())
+			require.ErrorIs(t, err, assert.AnError)
+		}
+
+		var flagged models.File
+		require.NoError(t, db.Unscoped().First(&flagged, "id = ?", file.ID).Error)
+		assert.Equal(t, models.FileStatusDeleting, flagged.Status)
+		assert.True(t, flagged.DeletedAt.Valid)
+		assert.Equal(t, int64(1), countActivities(t, db))
+
+		count, err := worker.cleanupStaleDeletions(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, 0, count)
+
+		store.removeObjectsErr = nil
+		require.NoError(t, db.Model(&models.File{}).Unscoped().Where("id = ?", file.ID).
+			UpdateColumn("updated_at", time.Now().Add(-GCStalePurgeThreshold-time.Minute)).Error)
+
+		count, err = worker.cleanupStaleDeletions(t.Context())
+		require.NoError(t, err)
+		assert.Equal(t, 1, count)
+		assert.Equal(t, int64(0), countFiles(t, db, file.ID))
+		assert.Equal(t, []string{storage.VersionObjectKey(bucket.ID, file.ID)}, store.removedKeys)
 	})
 }

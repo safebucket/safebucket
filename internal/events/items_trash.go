@@ -128,7 +128,7 @@ func (e *ItemsTrash) addTrashMarker(params *EventParams, files []models.File, fo
 
 func (e *ItemsTrash) deleteItems(tx *gorm.DB, files []models.File, folders []models.Folder) error {
 	if len(files) > 0 {
-		ids := fileIDs(files)
+		ids := models.FileIDs(files)
 		if err := tx.Model(&models.File{}).Where("id IN ?", ids).
 			Update("status", models.FileStatusDeleted).Error; err != nil {
 			return err
@@ -189,14 +189,6 @@ func folderTrashedActivity(folder models.Folder, userID uuid.UUID) models.Activi
 			UserID:     userID.String(),
 		}),
 	}
-}
-
-func fileIDs(files []models.File) []uuid.UUID {
-	ids := make([]uuid.UUID, 0, len(files))
-	for _, file := range files {
-		ids = append(ids, file.ID)
-	}
-	return ids
 }
 
 func folderIDs(folders []models.Folder) []uuid.UUID {

@@ -26,7 +26,7 @@ func GetBucketByID(db *gorm.DB, bucketID uuid.UUID) (models.Bucket, error) {
 	return bucket, nil
 }
 
-func MarkFilesDeleting(
+func MarkFilesTrashing(
 	tx *gorm.DB,
 	bucketID uuid.UUID,
 	folderIDs, fileIDs uuid.UUIDs,
@@ -63,7 +63,7 @@ func MarkFilesDeleting(
 	).Error
 }
 
-func MarkFoldersDeleting(
+func MarkFoldersTrashing(
 	tx *gorm.DB,
 	bucketID uuid.UUID,
 	folderIDs uuid.UUIDs,

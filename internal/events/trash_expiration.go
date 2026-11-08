@@ -195,13 +195,9 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		if !locked.DeletedAt.Valid {
 			return nil
 		}
-		if params.Storage != nil {
-			if removeErr := params.Versions.RemoveFileObjects(tx, locked); removeErr != nil {
-				return removeErr
-			}
-		}
-		if deleteErr := tx.Unscoped().Delete(&locked).Error; deleteErr != nil {
-			return deleteErr
+		marked, markErr := sql.MarkFilesDeleting(tx, locked)
+		if markErr != nil || len(marked) == 0 {
+			return markErr
 		}
 		return outbox.AddActivities(tx, models.Activity{
 			Message: activity.FileDeleted,
@@ -215,7 +211,15 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		})
 	})
 	if err != nil {
-		zap.L().Error("Failed to hard delete file from database",
+		zap.L().Error("Failed to mark file for deletion",
+			zap.String("file_id", file.ID.String()),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	if err = params.Versions.DeleteFiles(*file); err != nil {
+		zap.L().Error("Failed to delete expired file",
 			zap.String("file_id", file.ID.String()),
 			zap.Error(err),
 		)

@@ -94,42 +94,6 @@ func (m Manager) ExpirePending(bucketID uuid.UUID, version models.FileVersion, t
 	return expired, err
 }
 
-func (m Manager) RemoveFileObjects(tx *gorm.DB, files ...models.File) error {
-	var keys []string
-	for _, file := range files {
-		versions, err := m.prepareRemoval(tx, file)
-		if err != nil {
-			return err
-		}
-		for _, version := range versions {
-			keys = append(keys, storage.VersionObjectKey(file.BucketID, version.ID))
-		}
-	}
-	if len(keys) == 0 {
-		return nil
-	}
-	return m.Storage.RemoveObjects(keys)
-}
-
-func (m Manager) prepareRemoval(tx *gorm.DB, file models.File) ([]models.FileVersion, error) {
-	if _, err := sql.LockFile(tx, file.BucketID, file.ID); err != nil {
-		return nil, err
-	}
-	var versions []models.FileVersion
-	if err := tx.Where("file_id = ?", file.ID).Find(&versions).Error; err != nil {
-		return nil, err
-	}
-	if len(versions) == 0 {
-		versions = append(versions, models.FileVersion{ID: file.ID, Version: 1})
-	}
-	for _, version := range versions {
-		if err := m.abortUpload(file, version); err != nil {
-			return nil, err
-		}
-	}
-	return versions, nil
-}
-
 func (m Manager) abortUpload(file models.File, version models.FileVersion) error {
 	multipart, isMultipart, err := cache.GetMultipartState(m.Cache, version.ID.String())
 	if err != nil || !isMultipart {

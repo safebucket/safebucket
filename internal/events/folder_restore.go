@@ -347,6 +347,7 @@ func (e *FolderRestore) checkChildFoldersStillRestoring(params *EventParams) err
 
 func (e *FolderRestore) finalizeFolderRestore(params *EventParams) error {
 	var folder models.Folder
+	var restored bool
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
@@ -393,24 +394,24 @@ func (e *FolderRestore) finalizeFolderRestore(params *EventParams) error {
 			return err
 		}
 
-		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.ID.String())
-		if err := params.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
-			zap.L().Warn("Failed to unmark folder as trashed",
-				zap.Error(err),
-				zap.String("path", objectPath),
-				zap.String("folder_id", e.Payload.FolderID.String()))
-		}
-
+		restored = true
 		return nil
 	})
 	if err != nil {
 		return err
 	}
 
-	zap.L().Debug("Folder restore complete",
-		zap.String("bucket_id", e.Payload.BucketID.String()),
-		zap.String("folder_id", e.Payload.FolderID.String()),
-	)
+	if !restored {
+		return nil
+	}
+
+	objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.ID.String())
+	if err = params.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
+		zap.L().Warn("Failed to unmark folder as trashed",
+			zap.Error(err),
+			zap.String("path", objectPath),
+			zap.String("folder_id", e.Payload.FolderID.String()))
+	}
 
 	return nil
 }

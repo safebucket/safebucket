@@ -9,6 +9,7 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -73,6 +74,7 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return errors.New("folder not in trash")
 	}
 
+	var childFiles []models.File
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
 		var childFolders []models.Folder
 		if err := tx.Unscoped().Where(
@@ -100,7 +102,6 @@ func (e *FolderPurge) callback(params *EventParams) error {
 			}
 		}
 
-		var childFiles []models.File
 		if err := tx.Unscoped().Where(
 			"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL",
 			e.Payload.BucketID,
@@ -115,16 +116,8 @@ func (e *FolderPurge) callback(params *EventParams) error {
 				zap.String("folder", folder.Name),
 				zap.Int("child_count", len(childFiles)))
 
-			if err := params.Versions.RemoveFileObjects(tx, childFiles...); err != nil {
-				return err
-			}
-			var fileIDs []uuid.UUID
-			for _, file := range childFiles {
-				fileIDs = append(fileIDs, file.ID)
-			}
-
-			if err := tx.Unscoped().Where("id IN ?", fileIDs).Delete(&models.File{}).Error; err != nil {
-				zap.L().Error("Failed to hard delete child files", zap.Error(err))
+			if _, err := sql.MarkFilesDeleting(tx, childFiles...); err != nil {
+				zap.L().Error("Failed to mark child files for deletion", zap.Error(err))
 				return err
 			}
 		}
@@ -132,6 +125,11 @@ func (e *FolderPurge) callback(params *EventParams) error {
 		return nil
 	})
 	if err != nil {
+		return err
+	}
+
+	if err = params.Versions.DeleteFiles(childFiles...); err != nil {
+		zap.L().Error("Failed to delete child files", zap.Error(err))
 		return err
 	}
 

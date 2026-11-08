@@ -112,3 +112,11 @@ type FileDownloadQuery struct {
 type FilePatchBody struct {
 	Status string `json:"status" validate:"required,oneof=uploaded"`
 }
+
+func FileIDs(files []File) []uuid.UUID {
+	ids := make([]uuid.UUID, 0, len(files))
+	for _, file := range files {
+		ids = append(ids, file.ID)
+	}
+	return ids
+}
