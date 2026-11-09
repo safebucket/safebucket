@@ -174,10 +174,14 @@ func (s BucketFileService) RestoreFile(
 			return apierrors.New(http.StatusConflict, apierrors.CodeFileNameConflict)
 		}
 
-		updates := map[string]interface{}{
+		status := models.FileStatusUploaded
+		if file.CurrentVersionID == nil {
+			status = models.FileStatusUploading
+		}
+		updates := map[string]any{
 			"deleted_at": nil,
 			"deleted_by": nil,
-			"status":     models.FileStatusUploaded,
+			"status":     status,
 		}
 
 		if updateErr := tx.Unscoped().Model(&file).Updates(updates).Error; updateErr != nil {

@@ -15,6 +15,7 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/go-chi/chi/v5"
@@ -61,33 +62,6 @@ func (s BucketFolderService) CreateFolder(
 ) (models.Folder, error) {
 	bucketID := ids[0]
 
-	var bucket models.Bucket
-	result := s.DB.Where("id = ?", bucketID).Find(&bucket)
-	if result.RowsAffected == 0 {
-		return models.Folder{}, apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
-	}
-
-	if body.FolderID != nil {
-		var parentFolder models.Folder
-		result = s.DB.Where("id = ? AND bucket_id = ? AND status = ?",
-			body.FolderID, bucketID, models.FolderStatusCreated).Find(&parentFolder)
-		if result.RowsAffected == 0 {
-			return models.Folder{}, apierrors.New(http.StatusNotFound, apierrors.CodeParentFolderNotFound)
-		}
-	}
-
-	var existingFolder models.Folder
-	query := s.DB.Where("bucket_id = ? AND name = ?", bucketID, body.Name)
-	if body.FolderID != nil {
-		query = query.Where("folder_id = ?", body.FolderID)
-	} else {
-		query = query.Where("folder_id IS NULL")
-	}
-	result = query.Find(&existingFolder)
-	if result.RowsAffected > 0 {
-		return models.Folder{}, apierrors.New(http.StatusConflict, apierrors.CodeFolderAlreadyExists)
-	}
-
 	folder := models.Folder{
 		Name:     body.Name,
 		Status:   models.FolderStatusCreated,
@@ -96,6 +70,37 @@ func (s BucketFolderService) CreateFolder(
 	}
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if lockErr := sql.LockBucketFileNames(tx, bucketID); lockErr != nil {
+			return lockErr
+		}
+
+		if body.FolderID != nil {
+			var parentFolder models.Folder
+			result := tx.Where("id = ? AND bucket_id = ? AND status = ?",
+				body.FolderID, bucketID, models.FolderStatusCreated).Find(&parentFolder)
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return apierrors.New(http.StatusNotFound, apierrors.CodeParentFolderNotFound)
+			}
+		}
+
+		var existingFolder models.Folder
+		query := tx.Where("bucket_id = ? AND name = ?", bucketID, body.Name)
+		if body.FolderID != nil {
+			query = query.Where("folder_id = ?", body.FolderID)
+		} else {
+			query = query.Where("folder_id IS NULL")
+		}
+		result := query.Find(&existingFolder)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected > 0 {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderAlreadyExists)
+		}
+
 		if createErr := tx.Create(&folder).Error; createErr != nil {
 			logger.Error("Failed to create folder", zap.Error(createErr))
 			return createErr
@@ -121,6 +126,9 @@ func (s BucketFolderService) CreateFolder(
 		return nil
 	})
 	if err != nil {
+		if apiErr, ok := errors.AsType[*apierrors.APIError](err); ok {
+			return models.Folder{}, apiErr
+		}
 		return models.Folder{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
 	}
 
