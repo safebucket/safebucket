@@ -3,6 +3,7 @@ package configuration
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	ldapclient "github.com/safebucket/safebucket/internal/auth/ldap"
 	"github.com/safebucket/safebucket/internal/models"
@@ -23,6 +24,8 @@ type Provider struct {
 	Order          int
 	MFARequired    bool
 	SharingOptions models.SharingConfiguration
+	AdminGroups    map[string]struct{}
+	GroupsClaim    string
 }
 
 type Providers map[string]Provider
@@ -56,6 +59,14 @@ func LoadProviders(
 			idx++
 
 		case models.OIDCProviderType:
+			scopes := providerCfg.OIDC.Scopes
+			if len(scopes) == 0 {
+				scopes = models.DefaultOIDCScopes
+			}
+			if !slices.Contains(scopes, oidc.ScopeOpenID) {
+				zap.L().Fatal("OIDC provider scopes must include openid", zap.String("name", name))
+			}
+
 			provider, err := oidc.NewProvider(ctx, providerCfg.OIDC.Issuer)
 			if err != nil {
 				zap.L().Fatal(
@@ -72,7 +83,17 @@ func LoadProviders(
 				ClientSecret: providerCfg.OIDC.ClientSecret,
 				Endpoint:     provider.Endpoint(),
 				RedirectURL:  fmt.Sprintf("%s/api/v1/auth/providers/%s/callback", apiURL, name),
-				Scopes:       []string{oidc.ScopeOpenID, "profile", "email"},
+				Scopes:       scopes,
+			}
+
+			groupsClaim := providerCfg.OIDC.GroupsClaim
+			if groupsClaim == "" {
+				groupsClaim = models.DefaultOIDCGroupsClaim
+			}
+
+			adminGroups := make(map[string]struct{}, len(providerCfg.OIDC.AdminGroups))
+			for _, group := range providerCfg.OIDC.AdminGroups {
+				adminGroups[group] = struct{}{}
 			}
 
 			providers[name] = Provider{
@@ -85,6 +106,8 @@ func LoadProviders(
 				Order:          idx,
 				MFARequired:    providerCfg.MFARequired,
 				SharingOptions: providerCfg.SharingConfiguration,
+				AdminGroups:    adminGroups,
+				GroupsClaim:    groupsClaim,
 			}
 			idx++
 

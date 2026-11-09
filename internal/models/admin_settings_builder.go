@@ -211,6 +211,18 @@ func buildAuthSettings(auth AuthConfiguration) AuthSettings {
 		switch provider.Type {
 		case OIDCProviderType:
 			settings.Issuer = provider.OIDC.Issuer
+			if len(provider.OIDC.AdminGroups) > 0 {
+				settings.AdminGroups = provider.OIDC.AdminGroups
+				if provider.OIDC.GroupsClaim == "" {
+					settings.GroupsClaim = DefaultOIDCGroupsClaim
+				} else {
+					settings.GroupsClaim = provider.OIDC.GroupsClaim
+				}
+			}
+			settings.Scopes = provider.OIDC.Scopes
+			if len(settings.Scopes) == 0 {
+				settings.Scopes = DefaultOIDCScopes
+			}
 		case LDAPProviderType:
 			if provider.LDAP != nil {
 				settings.URL = provider.LDAP.URL

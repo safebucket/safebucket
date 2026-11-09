@@ -3,9 +3,12 @@ package services
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/safebucket/safebucket/internal/activity"
+	"github.com/safebucket/safebucket/internal/auth/rolemapping"
 	"github.com/safebucket/safebucket/internal/cache"
+	"github.com/safebucket/safebucket/internal/configuration"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	h "github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/mfa"
@@ -18,6 +21,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
+	"gorm.io/gorm"
 )
 
 func (s AuthService) OpenIDBegin(providerName string, state string, nonce string) (string, error) {
@@ -66,7 +70,13 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	if !h.IsDomainAllowed(userInfo.Email, provider.Domains) {
-		logger.Debug("Domain not allowed")
+		if strings.TrimSpace(userInfo.Email) == "" {
+			logger.Warn("OIDC user has no email, login rejected",
+				zap.String("provider", providerKey),
+				zap.String("subject", userInfo.Subject))
+		} else {
+			logger.Debug("Domain not allowed")
+		}
 		return models.OIDCCallbackResult{}, apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
@@ -94,6 +104,10 @@ func (s AuthService) OpenIDCallback(
 				apierrors.CodeInternalServerError,
 			)
 		}
+	}
+
+	if syncErr := s.syncOIDCRole(logger, provider, idToken, userInfo, &searchUser); syncErr != nil {
+		return models.OIDCCallbackResult{}, syncErr
 	}
 
 	verifiedCount, countErr := sql.CountVerifiedMFADevices(s.DB, searchUser.ID)
@@ -162,4 +176,72 @@ func (s AuthService) issueOIDCSession(
 	}
 
 	return models.OIDCCallbackResult{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+}
+
+func (s AuthService) syncOIDCRole(
+	logger *zap.Logger,
+	provider configuration.Provider,
+	idToken *oidc.IDToken,
+	userInfo *oidc.UserInfo,
+	user *models.User,
+) error {
+	if len(provider.AdminGroups) == 0 {
+		return nil
+	}
+
+	groups, err := rolemapping.OIDCGroups(provider.GroupsClaim, idToken, userInfo)
+	if err != nil {
+		logger.Warn("Could not read IdP groups, treating user as in no group",
+			zap.String("provider", user.ProviderKey),
+			zap.String("user_id", user.ID.String()),
+			zap.String("claim", provider.GroupsClaim),
+			zap.Error(err))
+	}
+
+	previousRole := user.Role
+	newRole := rolemapping.Resolve(previousRole, groups, provider.AdminGroups)
+	if newRole == previousRole {
+		return nil
+	}
+
+	if previousRole == models.RoleAdmin {
+		if revokeErr := cache.RevokeAllSessions(s.Cache, user.ID.String()); revokeErr != nil {
+			logger.Error("Failed to revoke sessions of demoted admin", zap.Error(revokeErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+		}
+	}
+
+	action := models.Activity{
+		Message: activity.UserUpdated,
+		Object:  user.ToActivity(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:       activity.UserUpdated,
+			UserID:       user.ID.String(),
+			ObjectType:   rbac.ResourceUser.String(),
+			ProviderType: string(provider.Type),
+			ProviderName: provider.Name,
+		}),
+		Changes: map[string]models.ActivityChange{
+			"role": {From: string(previousRole), To: string(newRole)},
+		},
+	}
+	txErr := s.DB.Transaction(func(tx *gorm.DB) error {
+		if updateErr := tx.Model(&models.User{ID: user.ID}).Update("role", newRole).Error; updateErr != nil {
+			return updateErr
+		}
+		return outbox.AddActivities(tx, action)
+	})
+	if txErr != nil {
+		logger.Error("Failed to apply IdP mapped role", zap.Error(txErr))
+		return apierrors.New(http.StatusInternalServerError, apierrors.CodeInternalServerError)
+	}
+	user.Role = newRole
+
+	logger.Info("Role changed from IdP group mapping",
+		zap.String("user_id", user.ID.String()),
+		zap.String("provider", user.ProviderKey),
+		zap.String("previous_role", string(previousRole)),
+		zap.String("role", string(newRole)))
+
+	return nil
 }

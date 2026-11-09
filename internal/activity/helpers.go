@@ -3,6 +3,7 @@ package activity
 import (
 	"encoding/json"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -49,6 +50,18 @@ func isAuthorizedObject(objectType string) bool {
 		}
 	}
 	return false
+}
+
+var authorizedChangeFields = []string{"role"}
+
+func authorizedChanges(changes map[string]models.ActivityChange) map[string]models.ActivityChange {
+	authorized := make(map[string]models.ActivityChange, len(changes))
+	for field, change := range changes {
+		if slices.Contains(authorizedChangeFields, field) {
+			authorized[field] = change
+		}
+	}
+	return authorized
 }
 
 func enrichLogWithMetadata(log map[string]interface{}) map[string]interface{} {

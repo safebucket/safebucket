@@ -129,10 +129,17 @@ type LDAPAttributeMap struct {
 	Email string `mapstructure:"email"`
 }
 
+const DefaultOIDCGroupsClaim = "groups"
+
+var DefaultOIDCScopes = []string{"openid", "profile", "email"}
+
 type OIDCConfiguration struct {
-	ClientID     string `mapstructure:"client_id"     validate:"required_if=Type oidc"`
-	ClientSecret string `mapstructure:"client_secret" validate:"required_if=Type oidc"`
-	Issuer       string `mapstructure:"issuer"        validate:"required_if=Type oidc"`
+	ClientID     string   `mapstructure:"client_id"     validate:"required_if=Type oidc"`
+	ClientSecret string   `mapstructure:"client_secret" validate:"required_if=Type oidc"`
+	Issuer       string   `mapstructure:"issuer"        validate:"required_if=Type oidc"`
+	Scopes       []string `mapstructure:"scopes"        validate:"omitempty,dive,required"`
+	GroupsClaim  string   `mapstructure:"groups_claim"`
+	AdminGroups  []string `mapstructure:"admin_groups"  validate:"omitempty,min=1,dive,required"`
 }
 
 type SharingConfiguration struct {

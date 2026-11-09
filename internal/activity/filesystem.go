@@ -228,7 +228,7 @@ func buildActivityDocument(activity models.Activity) (string, map[string]any, er
 		return "", nil, fmt.Errorf("failed to parse timestamp: %w", err)
 	}
 
-	fieldsMap := activity.Filter.Fields.ToMap()
+	fieldsMap := activity.Fields()
 	doc := make(map[string]interface{}, len(fieldsMap)+3)
 	for k, v := range fieldsMap {
 		doc[k] = v
@@ -242,6 +242,14 @@ func buildActivityDocument(activity models.Activity) (string, map[string]any, er
 			return "", nil, fmt.Errorf("failed to marshal object: %w", marshalErr)
 		}
 		doc["object"] = string(b)
+	}
+
+	if changes := authorizedChanges(activity.Changes); len(changes) > 0 {
+		b, marshalErr := json.Marshal(changes)
+		if marshalErr != nil {
+			return "", nil, fmt.Errorf("failed to marshal changes: %w", marshalErr)
+		}
+		doc["changes"] = string(b)
 	}
 
 	docID := activity.ID.String()
@@ -285,10 +293,12 @@ func (c *FilesystemClient) Search(
 			entry["timestamp"] = strconv.FormatInt(t.UnixNano(), 10)
 		}
 
-		if objectStr, _ := hit.Fields["object"].(string); objectStr != "" {
-			var objectMap map[string]any
-			if json.Unmarshal([]byte(objectStr), &objectMap) == nil {
-				entry["object"] = objectMap
+		for _, field := range []string{"object", "changes"} {
+			if raw, _ := hit.Fields[field].(string); raw != "" {
+				var parsed map[string]any
+				if json.Unmarshal([]byte(raw), &parsed) == nil {
+					entry[field] = parsed
+				}
 			}
 		}
 
