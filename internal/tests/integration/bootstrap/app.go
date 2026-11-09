@@ -39,7 +39,7 @@ type OIDCSetup struct {
 	Users       []DexUser
 	MFARequired bool
 	AdminGroups []string
-	ExtraScopes []string
+	Scopes      []string
 }
 
 type LDAPSetup struct {
@@ -178,7 +178,7 @@ func bootTestApp(t *testing.T, cfg models.Configuration, oidc *OIDCSetup, ldap *
 				ClientID:     dex.ClientID,
 				ClientSecret: dex.ClientSecret,
 				Issuer:       dex.Issuer,
-				ExtraScopes:  oidc.ExtraScopes,
+				Scopes:       oidc.Scopes,
 				AdminGroups:  oidc.AdminGroups,
 			},
 		}

@@ -126,7 +126,7 @@ auth:
 #        client_id:
 #        client_secret:
 #        issuer:
-#        extra_scopes: [groups]     # Additional OAuth2 scopes (e.g. groups)
+#        scopes: [openid, profile, email, groups]  # OAuth2 scopes, must include openid (default: [openid, profile, email])
 #        groups_claim: groups       # Claim to read groups from (default: groups)
 #        admin_groups: [safebucket-admins]  # Groups granting the admin role, synced at each login
 #      sharing:

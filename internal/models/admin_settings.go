@@ -112,7 +112,7 @@ type AuthProviderSettings struct {
 	Issuer          string   `json:"issuer,omitempty"`
 	AdminGroups     []string `json:"admin_groups,omitempty"`
 	GroupsClaim     string   `json:"groups_claim,omitempty"`
-	ExtraScopes     []string `json:"extra_scopes,omitempty"`
+	Scopes          []string `json:"scopes,omitempty"`
 	URL             string   `json:"url,omitempty"`
 	BaseDN          string   `json:"base_dn,omitempty"`
 	UserFilter      string   `json:"user_filter,omitempty"`

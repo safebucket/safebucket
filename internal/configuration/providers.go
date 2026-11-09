@@ -59,6 +59,14 @@ func LoadProviders(
 			idx++
 
 		case models.OIDCProviderType:
+			scopes := providerCfg.OIDC.Scopes
+			if len(scopes) == 0 {
+				scopes = models.DefaultOIDCScopes
+			}
+			if !slices.Contains(scopes, oidc.ScopeOpenID) {
+				zap.L().Fatal("OIDC provider scopes must include openid", zap.String("name", name))
+			}
+
 			provider, err := oidc.NewProvider(ctx, providerCfg.OIDC.Issuer)
 			if err != nil {
 				zap.L().Fatal(
@@ -75,7 +83,7 @@ func LoadProviders(
 				ClientSecret: providerCfg.OIDC.ClientSecret,
 				Endpoint:     provider.Endpoint(),
 				RedirectURL:  fmt.Sprintf("%s/api/v1/auth/providers/%s/callback", apiURL, name),
-				Scopes:       dedupeScopes(providerCfg.OIDC.ExtraScopes),
+				Scopes:       scopes,
 			}
 
 			groupsClaim := providerCfg.OIDC.GroupsClaim
@@ -156,14 +164,4 @@ func LoadProviders(
 		}
 	}
 	return providers
-}
-
-func dedupeScopes(extraScopes []string) []string {
-	scopes := []string{oidc.ScopeOpenID, "profile", "email"}
-	for _, extra := range extraScopes {
-		if !slices.Contains(scopes, extra) {
-			scopes = append(scopes, extra)
-		}
-	}
-	return scopes
 }
