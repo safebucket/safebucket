@@ -82,6 +82,9 @@ export interface IAdminAuthProviderSettings {
   mfa_required: boolean;
   sharing_allowed: boolean;
   issuer?: string;
+  admin_groups?: Array<string>;
+  groups_claim?: string;
+  extra_scopes?: Array<string>;
   url?: string;
   base_dn?: string;
   user_filter?: string;

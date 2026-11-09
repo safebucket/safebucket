@@ -34,6 +34,21 @@ export function AuthProviderBlock({
           <CopyableValue value={provider.issuer} />
         </SettingRow>
       )}
+      {provider.admin_groups && (
+        <SettingRow label={t("admin.settings.fields.admin_groups")}>
+          <ListValue values={provider.admin_groups} />
+        </SettingRow>
+      )}
+      {provider.groups_claim && (
+        <SettingRow label={t("admin.settings.fields.groups_claim")}>
+          <TextValue value={provider.groups_claim} />
+        </SettingRow>
+      )}
+      {provider.extra_scopes && (
+        <SettingRow label={t("admin.settings.fields.extra_scopes")}>
+          <ListValue values={provider.extra_scopes} />
+        </SettingRow>
+      )}
       {provider.url && (
         <SettingRow label={t("admin.settings.fields.url")}>
           <CopyableValue value={provider.url} />
