@@ -1,7 +1,6 @@
 export enum FolderStatus {
   created = "created",
   deleted = "deleted",
-  restoring = "restoring",
 }
 
 export interface IFolder {

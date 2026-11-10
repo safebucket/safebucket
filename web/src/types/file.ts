@@ -5,7 +5,6 @@ export enum FileStatus {
   uploaded = "uploaded",
   deleting = "deleting",
   deleted = "deleted",
-  restoring = "restoring",
 }
 
 export interface IFile {

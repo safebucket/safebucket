@@ -2,13 +2,17 @@ package events
 
 import (
 	"errors"
+	"net/http"
 	"path"
+	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	c "github.com/safebucket/safebucket/internal/configuration"
+	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -21,10 +25,11 @@ const (
 )
 
 type FolderRestorePayload struct {
-	Type     string
-	BucketID uuid.UUID
-	FolderID uuid.UUID
-	UserID   uuid.UUID
+	Type       string
+	BucketID   uuid.UUID
+	FolderID   uuid.UUID
+	UserID     uuid.UUID
+	RestoredAt time.Time
 }
 
 func (p FolderRestorePayload) EventName() string { return p.Type }
@@ -37,94 +42,123 @@ func NewFolderRestore(
 	bucketID uuid.UUID,
 	folderID uuid.UUID,
 	userID uuid.UUID,
+	restoredAt time.Time,
 ) FolderRestore {
 	return FolderRestore{
 		Payload: FolderRestorePayload{
-			Type:     FolderRestoreName,
-			BucketID: bucketID,
-			FolderID: folderID,
-			UserID:   userID,
+			Type:       FolderRestoreName,
+			BucketID:   bucketID,
+			FolderID:   folderID,
+			UserID:     userID,
+			RestoredAt: restoredAt,
 		},
 	}
 }
 
-var errFolderNameConflict = errors.New("folder name conflict")
-
-type restoreState struct {
-	folderName string
-	childFiles []models.File
-}
-
 func (e *FolderRestore) callback(params *EventParams) error {
-	zap.L().Info("Starting folder restore",
-		zap.String("bucket_id", e.Payload.BucketID.String()),
-		zap.String("folder_id", e.Payload.FolderID.String()),
-	)
-
-	state, err := e.processChildrenInTransaction(params)
-	if errors.Is(err, errFolderNameConflict) {
-		return params.DB.Unscoped().Model(&models.Folder{}).
-			Where("id = ?", e.Payload.FolderID).
-			Update("status", models.FolderStatusDeleted).Error
-	}
-	if err != nil {
-		return err
-	}
-
-	e.unmarkChildFilesFromStorage(params, state.childFiles)
-
-	if err = e.checkRemainingItemsToRestore(params); err != nil {
-		return err
-	}
-
-	if err = e.checkChildFoldersStillRestoring(params); err != nil {
-		return err
-	}
-
-	return e.finalizeFolderRestore(params)
-}
-
-func (e *FolderRestore) processChildrenInTransaction(params *EventParams) (*restoreState, error) {
-	state := &restoreState{}
+	var folders []models.Folder
+	var files []models.File
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		folder, txErr := e.fetchAndValidateFolder(tx)
-		if txErr != nil {
-			return txErr
-		}
-		if folder == nil {
-			return nil
-		}
-		state.folderName = folder.Name
-
-		if txErr = e.checkFolderNameConflict(tx, folder); txErr != nil {
-			return txErr
+		live, err := e.lockFolder(tx)
+		if err != nil || !live {
+			return err
 		}
 
-		childFolderIDs, txErr := e.processChildFolders(tx, folder.Name)
-		if txErr != nil {
-			return txErr
-		}
-		if txErr = e.queueChildFolderRestores(tx, childFolderIDs); txErr != nil {
-			return txErr
+		folders, err = sql.RestoreChildFolders(
+			tx,
+			e.Payload.BucketID,
+			e.Payload.FolderID,
+			e.Payload.RestoredAt,
+			c.BulkActionsLimit,
+		)
+		if err != nil {
+			return err
 		}
 
-		childFiles, txErr := e.processChildFiles(tx, folder.Name)
-		if txErr != nil {
-			return txErr
+		remaining := c.BulkActionsLimit - len(folders)
+		if remaining > 0 {
+			files, err = sql.RestoreChildFiles(
+				tx, e.Payload.BucketID,
+				e.Payload.FolderID,
+				e.Payload.RestoredAt,
+				remaining,
+			)
+			if err != nil {
+				return err
+			}
 		}
-		state.childFiles = childFiles
 
-		return e.logFileRestoredActivities(tx, childFiles)
+		if err = outbox.AddActivities(tx, e.restoredActivities(folders, files)...); err != nil {
+			return err
+		}
+
+		payloads := make([]FolderRestorePayload, 0, len(folders)+1)
+		for _, folder := range folders {
+			payloads = append(payloads,
+				NewFolderRestore(e.Payload.BucketID, folder.ID, e.Payload.UserID, e.Payload.RestoredAt).Payload)
+		}
+
+		if len(folders)+len(files) > 0 {
+			payloads = append(payloads, e.Payload)
+		}
+		return outbox.AddEvents(tx, payloads...)
 	})
+	if err != nil {
+		zap.L().Error("Failed to restore folder content",
+			zap.String("folder_id", e.Payload.FolderID.String()), zap.Error(err))
+		return err
+	}
 
-	return state, err
+	e.unmarkTrashed(params, folders, files)
+	return nil
 }
 
-func (e *FolderRestore) logFileRestoredActivities(tx *gorm.DB, files []models.File) error {
-	activities := make([]models.Activity, 0, len(files))
+func (e *FolderRestore) lockFolder(tx *gorm.DB) (bool, error) {
+	if err := sql.LockBucketFileNames(tx, e.Payload.BucketID); err != nil {
+		apiErr, ok := errors.AsType[*apierrors.APIError](err)
+
+		if ok && apiErr.Status == http.StatusNotFound {
+			zap.L().Info("Bucket deleted, skipping folder restore",
+				zap.String("bucket_id", e.Payload.BucketID.String()))
+			return false, nil
+		}
+		return false, err
+	}
+
+	result := tx.Where("id = ? AND bucket_id = ? AND status = ?",
+		e.Payload.FolderID, e.Payload.BucketID, models.FolderStatusCreated).Find(&models.Folder{})
+
+	if result.Error != nil {
+		return false, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		zap.L().Info("Folder doesn't exist, stopping restore",
+			zap.String("folder_id", e.Payload.FolderID.String()))
+		return false, nil
+	}
+	return true, nil
+}
+
+func (e *FolderRestore) restoredActivities(folders []models.Folder, files []models.File) []models.Activity {
+	activities := make([]models.Activity, 0, len(folders)+len(files))
+	for _, folder := range folders {
+		activities = append(activities, models.Activity{
+			Message: activity.FolderRestored,
+			Object:  folder.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionRestore.String(),
+				BucketID:   folder.BucketID.String(),
+				FolderID:   folder.ID.String(),
+				ObjectType: rbac.ResourceFolder.String(),
+				UserID:     e.Payload.UserID.String(),
+			}),
+		})
+	}
+
 	for _, file := range files {
-		restore := models.Activity{
+		activities = append(activities, models.Activity{
 			Message: activity.FileRestored,
 			Object:  file.ToActivity(),
 			Filter: activity.NewLogFilter(models.ActivityFields{
@@ -134,284 +168,26 @@ func (e *FolderRestore) logFileRestoredActivities(tx *gorm.DB, files []models.Fi
 				ObjectType: rbac.ResourceFile.String(),
 				UserID:     e.Payload.UserID.String(),
 			}),
+		})
+	}
+
+	return activities
+}
+
+func (e *FolderRestore) unmarkTrashed(params *EventParams, folders []models.Folder, files []models.File) {
+	for _, folder := range folders {
+		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.ID.String())
+		if err := params.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
+			zap.L().Warn("Failed to unmark folder as trashed",
+				zap.Error(err), zap.String("folder_id", folder.ID.String()))
 		}
-		activities = append(activities, restore)
-	}
-	return outbox.AddActivities(tx, activities...)
-}
-
-func (e *FolderRestore) fetchAndValidateFolder(tx *gorm.DB) (*models.Folder, error) {
-	var folder models.Folder
-	result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
-		e.Payload.FolderID, e.Payload.BucketID).First(&folder)
-
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		zap.L().Info("Folder no longer exists, skipping restore",
-			zap.String("folder_id", e.Payload.FolderID.String()))
-		return nil, nil
-	}
-	if result.Error != nil {
-		zap.L().Error("Failed to retrieve folder for restore", zap.Error(result.Error))
-		return nil, result.Error
 	}
 
-	if folder.Status != models.FolderStatusRestoring {
-		zap.L().Warn("Folder not in restoring status, skipping",
-			zap.String("current_status", string(folder.Status)))
-		return nil, nil
-	}
-
-	return &folder, nil
-}
-
-func (e *FolderRestore) checkFolderNameConflict(tx *gorm.DB, folder *models.Folder) error {
-	var existingFolder models.Folder
-	query := tx.Where(
-		"bucket_id = ? AND name = ? AND id != ?",
-		e.Payload.BucketID,
-		folder.Name,
-		folder.ID,
-	)
-	if folder.FolderID != nil {
-		query = query.Where("folder_id = ?", folder.FolderID)
-	} else {
-		query = query.Where("folder_id IS NULL")
-	}
-
-	if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
-		zap.L().Error("Folder name conflict detected", zap.String("folder_name", folder.Name))
-		return errFolderNameConflict
-	}
-
-	return nil
-}
-
-func (e *FolderRestore) retrieveChildFolders(db *gorm.DB) *gorm.DB {
-	return db.Unscoped().Model(&models.Folder{}).Where(
-		`bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND status IN ?
-		AND NOT EXISTS (
-			SELECT 1 FROM folders f
-			WHERE f.bucket_id = folders.bucket_id
-			AND f.folder_id = folders.folder_id
-			AND f.name = folders.name
-			AND f.deleted_at IS NULL
-		)`,
-		e.Payload.BucketID,
-		e.Payload.FolderID,
-		[]models.FolderStatus{models.FolderStatusCreated, models.FolderStatusDeleted},
-	)
-}
-
-func (e *FolderRestore) processChildFolders(tx *gorm.DB, parentName string) ([]uuid.UUID, error) {
-	var childFolders []models.Folder
-	if err := e.retrieveChildFolders(tx).Limit(c.BulkActionsLimit).Find(&childFolders).Error; err != nil {
-		zap.L().Error("Failed to find child folders for restore", zap.Error(err))
-		return nil, err
-	}
-
-	if len(childFolders) == 0 {
-		zap.L().Info("No child folders found to restore",
-			zap.String("parent_folder", parentName),
-			zap.String("parent_id", e.Payload.FolderID.String()))
-		return nil, nil
-	}
-
-	zap.L().Info("Setting child folders to restoring status",
-		zap.String("parent_folder", parentName),
-		zap.String("parent_id", e.Payload.FolderID.String()),
-		zap.Int("count", len(childFolders)))
-
-	var folderIDs []uuid.UUID
-	for _, child := range childFolders {
-		zap.L().Debug("Child folder details",
-			zap.String("child_id", child.ID.String()),
-			zap.String("child_name", child.Name),
-			zap.String("status", string(child.Status)))
-		folderIDs = append(folderIDs, child.ID)
-	}
-
-	if err := tx.Unscoped().Model(&models.Folder{}).
-		Where("id IN ?", folderIDs).
-		Update("status", models.FolderStatusRestoring).Error; err != nil {
-		zap.L().Error("Failed to set child folders to restoring status", zap.Error(err))
-		return nil, err
-	}
-
-	return folderIDs, nil
-}
-
-func (e *FolderRestore) processChildFiles(tx *gorm.DB, parentName string) ([]models.File, error) {
-	var childFiles []models.File
-	if err := tx.Unscoped().Where(
-		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status = ?)",
-		e.Payload.BucketID,
-		e.Payload.FolderID,
-		models.FileStatusDeleted,
-	).Limit(c.BulkActionsLimit).Find(&childFiles).Error; err != nil {
-		zap.L().Error("Failed to find child files for restore", zap.Error(err))
-		return nil, err
-	}
-
-	if len(childFiles) == 0 {
-		return nil, nil
-	}
-
-	zap.L().Info("Restoring child files",
-		zap.String("folder", parentName),
-		zap.Int("child_count", len(childFiles)))
-
-	var fileIDs []uuid.UUID
-	for _, child := range childFiles {
-		fileIDs = append(fileIDs, child.ID)
-	}
-
-	if err := tx.Unscoped().Model(&models.File{}).
-		Where("id IN ?", fileIDs).
-		Update("status", models.FileStatusRestoring).Error; err != nil {
-		zap.L().Error("Failed to set child files to restoring status", zap.Error(err))
-		return nil, err
-	}
-
-	if err := tx.Unscoped().Model(&models.File{}).
-		Where("id IN ?", fileIDs).
-		Updates(map[string]interface{}{
-			"deleted_at": nil,
-			"deleted_by": nil,
-			"status":     models.FileStatusUploaded,
-		}).Error; err != nil {
-		zap.L().Error("Failed to restore child files", zap.Error(err))
-		return nil, err
-	}
-
-	return childFiles, nil
-}
-
-func (e *FolderRestore) queueChildFolderRestores(tx *gorm.DB, childFolderIDs []uuid.UUID) error {
-	payloads := make([]FolderRestorePayload, 0, len(childFolderIDs))
-	for _, childID := range childFolderIDs {
-		payloads = append(payloads, NewFolderRestore(e.Payload.BucketID, childID, e.Payload.UserID).Payload)
-	}
-	return outbox.AddEvents(tx, payloads...)
-}
-
-func (e *FolderRestore) unmarkChildFilesFromStorage(params *EventParams, childFiles []models.File) {
-	for _, child := range childFiles {
-		filePath := path.Join("buckets", e.Payload.BucketID.String(), child.ID.String())
-		if err := params.Storage.UnmarkAsTrashed(filePath, child); err != nil {
+	for _, file := range files {
+		objectPath := path.Join("buckets", e.Payload.BucketID.String(), file.ID.String())
+		if err := params.Storage.UnmarkAsTrashed(objectPath, file); err != nil {
 			zap.L().Warn("Failed to unmark file as trashed",
-				zap.Error(err),
-				zap.String("file_id", child.ID.String()))
+				zap.Error(err), zap.String("file_id", file.ID.String()))
 		}
 	}
-}
-
-func (e *FolderRestore) checkRemainingItemsToRestore(params *EventParams) error {
-	var remainingFolders int64
-	e.retrieveChildFolders(params.DB).Count(&remainingFolders)
-
-	var remainingFiles int64
-	params.DB.Unscoped().Model(&models.File{}).Where(
-		"bucket_id = ? AND folder_id = ? AND deleted_at IS NOT NULL AND (status IS NULL OR status = ?)",
-		e.Payload.BucketID,
-		e.Payload.FolderID,
-		models.FileStatusDeleted,
-	).Count(&remainingFiles)
-
-	if remainingFolders > 0 || remainingFiles > 0 {
-		zap.L().Info("More items to restore, requeuing event",
-			zap.Int64("remaining_folders", remainingFolders),
-			zap.Int64("remaining_files", remainingFiles))
-		return errors.New("remaining items to restore")
-	}
-
-	return nil
-}
-
-func (e *FolderRestore) checkChildFoldersStillRestoring(params *EventParams) error {
-	var restoringFolders int64
-	params.DB.Unscoped().Model(&models.Folder{}).Where(
-		"bucket_id = ? AND folder_id = ? AND status = ?",
-		e.Payload.BucketID,
-		e.Payload.FolderID,
-		models.FolderStatusRestoring,
-	).Count(&restoringFolders)
-
-	if restoringFolders > 0 {
-		zap.L().Info("Child folders still restoring, requeuing event",
-			zap.Int64("restoring_folders", restoringFolders))
-		return errors.New("child folders still restoring")
-	}
-
-	return nil
-}
-
-func (e *FolderRestore) finalizeFolderRestore(params *EventParams) error {
-	var folder models.Folder
-	var restored bool
-
-	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Unscoped().Where("id = ? AND bucket_id = ?",
-			e.Payload.FolderID, e.Payload.BucketID).First(&folder)
-
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			zap.L().Info("Folder no longer exists, skipping final restore",
-				zap.String("folder_id", e.Payload.FolderID.String()))
-			return nil
-		}
-		if result.Error != nil {
-			zap.L().Error("Failed to retrieve folder for final restore", zap.Error(result.Error))
-			return result.Error
-		}
-
-		if folder.Status != models.FolderStatusRestoring {
-			zap.L().Warn("Folder not in restoring status during final restore, skipping",
-				zap.String("current_status", string(folder.Status)))
-			return nil
-		}
-
-		if err := tx.Unscoped().Model(&folder).Updates(map[string]interface{}{
-			"status":     models.FolderStatusCreated,
-			"deleted_at": nil,
-			"deleted_by": nil,
-		}).Error; err != nil {
-			zap.L().Error("Failed to restore folder status", zap.Error(err))
-			return err
-		}
-
-		restore := models.Activity{
-			Message: activity.FolderRestored,
-			Object:  folder.ToActivity(),
-			Filter: activity.NewLogFilter(models.ActivityFields{
-				Action:     rbac.ActionRestore.String(),
-				BucketID:   e.Payload.BucketID.String(),
-				FolderID:   e.Payload.FolderID.String(),
-				ObjectType: rbac.ResourceFolder.String(),
-				UserID:     e.Payload.UserID.String(),
-			}),
-		}
-
-		if err := outbox.AddActivities(tx, restore); err != nil {
-			return err
-		}
-
-		restored = true
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	if !restored {
-		return nil
-	}
-
-	objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.ID.String())
-	if err = params.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
-		zap.L().Warn("Failed to unmark folder as trashed",
-			zap.Error(err),
-			zap.String("path", objectPath),
-			zap.String("folder_id", e.Payload.FolderID.String()))
-	}
-
-	return nil
 }

@@ -554,7 +554,6 @@
       "deleted_by": "Deleted By",
       "status": "Status",
       "trashed": "In Trash",
-      "restoring": "Restoring",
       "restore": "Restore",
       "delete_permanently": "Delete Permanently",
       "empty": "Trash is empty",

@@ -1,9 +1,4 @@
-import {
-  EllipsisVertical,
-  LoaderCircle,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
+import { EllipsisVertical, RotateCcw, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
@@ -25,8 +20,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDate, formatFileSize } from "@/lib/utils";
-import { FileStatus } from "@/types/file.ts";
-import { FolderStatus } from "@/types/folder.ts";
 
 interface ISelectedItem {
   id: string;
@@ -63,10 +56,6 @@ const buildFolderPath = (
 
 const itemSize = (item: TrashedItem): number =>
   item.itemType === "folder" || !("size" in item) ? 0 : item.size;
-
-const isRestoring = (item: TrashedItem): boolean =>
-  item.status === FileStatus.restoring ||
-  item.status === FolderStatus.restoring;
 
 export const TrashTab: FC<ITrashTabProps> = ({
   items,
@@ -153,18 +142,12 @@ export const TrashTab: FC<ITrashTabProps> = ({
         id: "status",
         header: t("bucket.trash_view.status"),
         responsive: "sm",
-        cell: (item) =>
-          isRestoring(item) ? (
-            <Badge className="rounded-full border-info-subtle bg-info-subtle text-info-subtle-foreground">
-              <LoaderCircle className="h-3 w-3 animate-spin" />
-              {t("bucket.trash_view.restoring")}
-            </Badge>
-          ) : (
-            <Badge className="rounded-full border-warning-subtle bg-warning-subtle text-warning-subtle-foreground">
-              <Trash2 className="h-3 w-3" />
-              {t("bucket.trash_view.trashed")}
-            </Badge>
-          ),
+        cell: () => (
+          <Badge className="rounded-full border-warning-subtle bg-warning-subtle text-warning-subtle-foreground">
+            <Trash2 className="h-3 w-3" />
+            {t("bucket.trash_view.trashed")}
+          </Badge>
+        ),
       },
       {
         id: "actions",
@@ -172,7 +155,7 @@ export const TrashTab: FC<ITrashTabProps> = ({
         headerClassName: "w-13",
         cellClassName: "text-right",
         cell: (item) =>
-          isContributor && !isRestoring(item) ? (
+          isContributor ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7">

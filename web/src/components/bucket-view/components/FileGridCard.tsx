@@ -72,13 +72,6 @@ export const FileGridCard: FC<IFileGridCardProps> = ({
             {t("bucket.trash_view.trashed")}
           </Badge>
         );
-      case FileStatus.restoring:
-        return (
-          <Badge className="gap-1 border-info-subtle bg-info-subtle text-info-subtle-foreground">
-            <LoaderCircle className="h-3 w-3 animate-spin" />
-            {t("bucket.trash_view.restoring")}
-          </Badge>
-        );
       default:
         return null;
     }
