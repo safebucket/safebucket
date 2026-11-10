@@ -97,7 +97,12 @@ func (e *FolderPurge) deleteBatch(params *EventParams) (bool, error) {
 		return true, e.deleteFiles(params, files)
 	}
 
-	deleted, err := sql.DeleteTrashedFoldersInTree(params.DB, e.Payload.BucketID, e.Payload.FolderID, c.BulkActionsLimit)
+	deleted, err := sql.DeleteTrashedFoldersInTree(
+		params.DB,
+		e.Payload.BucketID,
+		e.Payload.FolderID,
+		c.BulkActionsLimit,
+	)
 	if err != nil {
 		zap.L().Error("Failed to delete subfolders", zap.Error(err))
 		return false, err
@@ -112,7 +117,7 @@ func (e *FolderPurge) deleteFiles(params *EventParams, files []models.File) erro
 		return err
 	}
 
-	if err := params.Versions.DeleteFiles(files...); err != nil {
+	if err = params.Versions.DeleteFiles(files...); err != nil {
 		zap.L().Error("Failed to delete files", zap.Error(err))
 		return err
 	}

@@ -109,7 +109,7 @@ func (e *BucketPurge) deleteFiles(params *EventParams) (bool, error) {
 		return false, err
 	}
 
-	if err := params.Versions.DeleteFiles(files...); err != nil {
+	if err = params.Versions.DeleteFiles(files...); err != nil {
 		zap.L().Error("Failed to delete files", zap.Error(err))
 		return false, err
 	}
