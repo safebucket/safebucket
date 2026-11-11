@@ -237,6 +237,10 @@ func (s BucketFolderService) DeleteFolder(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
 		}
 
+		if folder.Status == models.FolderStatusRestoring {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+		}
+
 		if !folder.DeletedAt.Valid {
 			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNotInTrash)
 		}
@@ -307,12 +311,25 @@ func (s BucketFolderService) RestoreFolder(
 			return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 		}
 
+		if lockedFolder.Status == models.FolderStatusRestoring {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+		}
+
 		if !lockedFolder.DeletedAt.Valid {
 			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNotInTrash)
 		}
 
 		if lockedFolder.Status != models.FolderStatusDeleted {
 			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidStatus)
+		}
+
+		trashing, err := sql.TreeHasDeletingItems(tx, lockedFolder.ID)
+		if err != nil {
+			logger.Error("Failed to check folder tree status", zap.Error(err))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
+		}
+		if trashing {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderTrashInProgress)
 		}
 
 		retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
@@ -342,13 +359,12 @@ func (s BucketFolderService) RestoreFolder(
 			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNameConflict)
 		}
 
-		restoredAt := time.Now()
 		if updateErr := tx.Unscoped().Model(&lockedFolder).Updates(map[string]any{
-			"status":     models.FolderStatusCreated,
+			"status":     models.FolderStatusRestoring,
 			"deleted_at": nil,
 			"deleted_by": nil,
 		}).Error; updateErr != nil {
-			logger.Error("Failed to restore folder", zap.Error(updateErr))
+			logger.Error("Failed to set folder to restoring status", zap.Error(updateErr))
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
@@ -370,7 +386,7 @@ func (s BucketFolderService) RestoreFolder(
 			return activityErr
 		}
 
-		event := events.NewFolderRestore(restoredFolder.BucketID, restoredFolder.ID, user.UserID, restoredAt)
+		event := events.NewFolderRestore(restoredFolder.BucketID, restoredFolder.ID, user.UserID)
 		if eventErr := outbox.AddEvents(tx, event.Payload); eventErr != nil {
 			logger.Error("Failed to queue folder restore", zap.Error(eventErr))
 			return eventErr

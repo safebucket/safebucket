@@ -10,41 +10,47 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func RestoreChildFolders(
+func RestoreTreeFolders(
 	tx *gorm.DB,
-	bucketID, parentID uuid.UUID,
+	bucketID, rootID uuid.UUID,
 	before time.Time,
 	limit int,
 ) ([]models.Folder, error) {
-	var candidates []models.Folder
+	var folders []models.Folder
 	err := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("bucket_id = ? AND folder_id = ? AND status = ? AND deleted_at < ?",
-			bucketID, parentID, models.FolderStatusDeleted, before).
+		Where("bucket_id = ? AND status = ? AND deleted_at < ?",
+			bucketID, models.FolderStatusDeleted, before).
+		Where(`folder_id IN (
+			WITH RECURSIVE live_tree (id) AS (
+				SELECT id FROM folders WHERE id = ?
+				UNION
+				SELECT child.id
+				FROM folders AS child
+				JOIN live_tree AS parent ON child.folder_id = parent.id
+				WHERE child.deleted_at IS NULL AND child.status = ?
+			)
+			SELECT id FROM live_tree
+		)`, rootID, models.FolderStatusCreated).
 		Where(`NOT EXISTS (
 			SELECT 1 FROM folders AS f
 			WHERE f.bucket_id = folders.bucket_id AND f.folder_id = folders.folder_id
-			  AND f.name = folders.name AND f.deleted_at IS NULL
-		)`).
+			  AND f.name = folders.name
+			  AND (f.deleted_at IS NULL OR (f.status = ? AND f.deleted_at < ? AND f.deleted_at > folders.deleted_at))
+		)`, models.FolderStatusDeleted, before).
 		Order("deleted_at DESC").
 		Limit(limit).
-		Find(&candidates).Error
-
+		Find(&folders).Error
 	if err != nil {
 		return nil, err
 	}
 
-	restored := make([]models.Folder, 0, len(candidates))
-	ids := make([]uuid.UUID, 0, len(candidates))
-	seen := make(map[string]bool, len(candidates))
-	for _, folder := range candidates {
-		if !seen[folder.Name] {
-			seen[folder.Name] = true
-			restored = append(restored, folder)
-			ids = append(ids, folder.ID)
-		}
-	}
-	if len(ids) == 0 {
+	if len(folders) == 0 {
 		return nil, nil
+	}
+
+	ids := make([]uuid.UUID, 0, len(folders))
+	for _, folder := range folders {
+		ids = append(ids, folder.ID)
 	}
 
 	err = tx.Unscoped().Model(&models.Folder{}).Where("id IN ?", ids).
@@ -54,40 +60,45 @@ func RestoreChildFolders(
 			"deleted_by": nil,
 			"updated_at": time.Now(),
 		}).Error
-	return restored, err
+	return folders, err
 }
 
-func RestoreChildFiles(
+func RestoreTreeFiles(
 	tx *gorm.DB,
-	bucketID, parentID uuid.UUID,
+	bucketID, rootID uuid.UUID,
 	before time.Time,
 	limit int,
 ) ([]models.File, error) {
-	var candidates []models.File
+	var files []models.File
 	err := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("bucket_id = ? AND folder_id = ? AND (status IS NULL OR status = ?) AND deleted_at < ?",
-			bucketID, parentID, models.FileStatusDeleted, before).
+		Where("bucket_id = ? AND (status IS NULL OR status = ?) AND deleted_at < ?",
+			bucketID, models.FileStatusDeleted, before).
+		Where(`folder_id IN (
+			WITH RECURSIVE live_tree (id) AS (
+				SELECT id FROM folders WHERE id = ?
+				UNION
+				SELECT child.id
+				FROM folders AS child
+				JOIN live_tree AS parent ON child.folder_id = parent.id
+				WHERE child.deleted_at IS NULL AND child.status = ?
+			)
+			SELECT id FROM live_tree
+		)`, rootID, models.FolderStatusCreated).
 		Where(`NOT EXISTS (
 			SELECT 1 FROM files AS f
 			WHERE f.bucket_id = files.bucket_id AND f.folder_id = files.folder_id
-			  AND f.name = files.name AND f.deleted_at IS NULL
-		)`).
+			  AND f.name = files.name
+			  AND (f.deleted_at IS NULL OR ((f.status IS NULL OR f.status = ?) AND f.deleted_at < ? AND f.deleted_at > files.deleted_at))
+		)`, models.FileStatusDeleted, before).
 		Order("deleted_at DESC").
 		Limit(limit).
-		Find(&candidates).Error
+		Find(&files).Error
 	if err != nil {
 		return nil, err
 	}
 
-	restored := make([]models.File, 0, len(candidates))
 	var uploadedIDs, uploadingIDs []uuid.UUID
-	seen := make(map[string]bool, len(candidates))
-	for _, file := range candidates {
-		if seen[file.Name] {
-			continue
-		}
-		seen[file.Name] = true
-		restored = append(restored, file)
+	for _, file := range files {
 		if file.CurrentVersionID == nil {
 			uploadingIDs = append(uploadingIDs, file.ID)
 		} else {
@@ -101,7 +112,7 @@ func RestoreChildFiles(
 	if err = restoreFiles(tx, uploadingIDs, models.FileStatusUploading); err != nil {
 		return nil, err
 	}
-	return restored, nil
+	return files, nil
 }
 
 func restoreFiles(tx *gorm.DB, ids []uuid.UUID, status models.FileStatus) error {
@@ -118,4 +129,21 @@ func restoreFiles(tx *gorm.DB, ids []uuid.UUID, status models.FileStatus) error 
 			"deleted_by": nil,
 			"updated_at": time.Now(),
 		}).Error
+}
+
+func TreeHasDeletingItems(tx *gorm.DB, rootID uuid.UUID) (bool, error) {
+	var found bool
+	err := tx.Raw(`
+		WITH RECURSIVE folder_tree (id) AS (
+			SELECT id FROM folders WHERE id = ?
+			UNION
+			SELECT child.id
+			FROM folders AS child
+			JOIN folder_tree AS parent ON child.folder_id = parent.id
+		)
+		SELECT EXISTS (SELECT 1 FROM folders WHERE folder_id IN (SELECT id FROM folder_tree) AND status = ?)
+		    OR EXISTS (SELECT 1 FROM files WHERE folder_id IN (SELECT id FROM folder_tree) AND status = ?)`,
+		rootID, models.FolderStatusDeleting, models.FileStatusDeleting,
+	).Scan(&found).Error
+	return found, err
 }

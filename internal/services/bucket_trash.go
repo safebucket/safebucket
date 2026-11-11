@@ -126,6 +126,9 @@ func (s BucketTrashService) validateTrashItems(
 			return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 		}
 		for _, folder := range folders {
+			if folder.Status == models.FolderStatusRestoring {
+				return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+			}
 			if folder.DeletedAt.Valid {
 				return apierrors.New(http.StatusConflict, apierrors.CodeItemAlreadyTrashed)
 			}
@@ -164,7 +167,8 @@ func (s BucketTrashService) GetBucketTrash(
 	trashedFolders := make([]models.Folder, 0)
 	for _, folder := range allFolders {
 		foldersByID[folder.ID] = folder
-		if folder.DeletedAt.Valid && folder.Status == models.FolderStatusDeleted {
+		isTrashed := folder.DeletedAt.Valid && folder.Status == models.FolderStatusDeleted
+		if isTrashed || folder.Status == models.FolderStatusRestoring {
 			trashedFolders = append(trashedFolders, folder)
 		}
 	}

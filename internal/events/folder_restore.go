@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"path"
-	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	c "github.com/safebucket/safebucket/internal/configuration"
@@ -25,11 +24,10 @@ const (
 )
 
 type FolderRestorePayload struct {
-	Type       string
-	BucketID   uuid.UUID
-	FolderID   uuid.UUID
-	UserID     uuid.UUID
-	RestoredAt time.Time
+	Type     string
+	BucketID uuid.UUID
+	FolderID uuid.UUID
+	UserID   uuid.UUID
 }
 
 func (p FolderRestorePayload) EventName() string { return p.Type }
@@ -42,15 +40,13 @@ func NewFolderRestore(
 	bucketID uuid.UUID,
 	folderID uuid.UUID,
 	userID uuid.UUID,
-	restoredAt time.Time,
 ) FolderRestore {
 	return FolderRestore{
 		Payload: FolderRestorePayload{
-			Type:       FolderRestoreName,
-			BucketID:   bucketID,
-			FolderID:   folderID,
-			UserID:     userID,
-			RestoredAt: restoredAt,
+			Type:     FolderRestoreName,
+			BucketID: bucketID,
+			FolderID: folderID,
+			UserID:   userID,
 		},
 	}
 }
@@ -60,49 +56,32 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	var files []models.File
 
 	err := params.DB.Transaction(func(tx *gorm.DB) error {
-		live, err := e.lockFolder(tx)
-		if err != nil || !live {
+		root, found, err := e.lockRoot(tx)
+		if err != nil || !found {
 			return err
 		}
 
-		folders, err = sql.RestoreChildFolders(
-			tx,
-			e.Payload.BucketID,
-			e.Payload.FolderID,
-			e.Payload.RestoredAt,
-			c.BulkActionsLimit,
-		)
+		folders, err = sql.RestoreTreeFolders(tx, root.BucketID, root.ID, root.UpdatedAt, c.BulkActionsLimit)
 		if err != nil {
 			return err
 		}
 
 		remaining := c.BulkActionsLimit - len(folders)
 		if remaining > 0 {
-			files, err = sql.RestoreChildFiles(
-				tx, e.Payload.BucketID,
-				e.Payload.FolderID,
-				e.Payload.RestoredAt,
-				remaining,
-			)
+			files, err = sql.RestoreTreeFiles(tx, root.BucketID, root.ID, root.UpdatedAt, remaining)
 			if err != nil {
 				return err
 			}
 		}
 
+		if len(folders)+len(files) == 0 {
+			return e.finish(tx, root)
+		}
+
 		if err = outbox.AddActivities(tx, e.restoredActivities(folders, files)...); err != nil {
 			return err
 		}
-
-		payloads := make([]FolderRestorePayload, 0, len(folders)+1)
-		for _, folder := range folders {
-			payloads = append(payloads,
-				NewFolderRestore(e.Payload.BucketID, folder.ID, e.Payload.UserID, e.Payload.RestoredAt).Payload)
-		}
-
-		if len(folders)+len(files) > 0 {
-			payloads = append(payloads, e.Payload)
-		}
-		return outbox.AddEvents(tx, payloads...)
+		return outbox.AddEvents(tx, e.Payload)
 	})
 	if err != nil {
 		zap.L().Error("Failed to restore folder content",
@@ -114,31 +93,44 @@ func (e *FolderRestore) callback(params *EventParams) error {
 	return nil
 }
 
-func (e *FolderRestore) lockFolder(tx *gorm.DB) (bool, error) {
+func (e *FolderRestore) lockRoot(tx *gorm.DB) (models.Folder, bool, error) {
+	var root models.Folder
 	if err := sql.LockBucketFileNames(tx, e.Payload.BucketID); err != nil {
 		apiErr, ok := errors.AsType[*apierrors.APIError](err)
 
 		if ok && apiErr.Status == http.StatusNotFound {
 			zap.L().Info("Bucket deleted, skipping folder restore",
 				zap.String("bucket_id", e.Payload.BucketID.String()))
-			return false, nil
+			return root, false, nil
 		}
-		return false, err
+		return root, false, err
 	}
 
-	result := tx.Where("id = ? AND bucket_id = ? AND status = ?",
-		e.Payload.FolderID, e.Payload.BucketID, models.FolderStatusCreated).Find(&models.Folder{})
+	result := tx.Unscoped().Where("id = ? AND bucket_id = ? AND status = ?",
+		e.Payload.FolderID, e.Payload.BucketID, models.FolderStatusRestoring).Find(&root)
 
 	if result.Error != nil {
-		return false, result.Error
+		return root, false, result.Error
 	}
 
 	if result.RowsAffected == 0 {
-		zap.L().Info("Folder doesn't exist, stopping restore",
+		zap.L().Info("Folder is not being restored, stopping restore",
 			zap.String("folder_id", e.Payload.FolderID.String()))
-		return false, nil
+		return root, false, nil
 	}
-	return true, nil
+	return root, true, nil
+}
+
+func (e *FolderRestore) finish(tx *gorm.DB, root models.Folder) error {
+	err := tx.Unscoped().Model(&root).Updates(map[string]any{
+		"status":     models.FolderStatusCreated,
+		"deleted_at": nil,
+		"deleted_by": nil,
+	}).Error
+	if err == nil {
+		zap.L().Info("Folder restore complete", zap.String("folder_id", root.ID.String()))
+	}
+	return err
 }
 
 func (e *FolderRestore) restoredActivities(folders []models.Folder, files []models.File) []models.Activity {

@@ -10,9 +10,10 @@ import (
 type FolderStatus string
 
 const (
-	FolderStatusCreated  FolderStatus = "created"
-	FolderStatusDeleting FolderStatus = "deleting"
-	FolderStatusDeleted  FolderStatus = "deleted"
+	FolderStatusCreated   FolderStatus = "created"
+	FolderStatusDeleting  FolderStatus = "deleting"
+	FolderStatusDeleted   FolderStatus = "deleted"
+	FolderStatusRestoring FolderStatus = "restoring"
 )
 
 type Folder struct {

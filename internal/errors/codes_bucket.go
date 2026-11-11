@@ -31,6 +31,8 @@ const (
 	CodeFolderNotFound           = "FOLDER_NOT_FOUND"
 	CodeFolderAlreadyExists      = "FOLDER_ALREADY_EXISTS"
 	CodeFolderNotInTrash         = "FOLDER_NOT_IN_TRASH"
+	CodeFolderRestoreInProgress  = "FOLDER_RESTORE_IN_PROGRESS"
+	CodeFolderTrashInProgress    = "FOLDER_TRASH_IN_PROGRESS"
 	CodeFolderNameConflict       = "FOLDER_NAME_CONFLICT"
 	CodeParentFolderNameConflict = "PARENT_FOLDER_NAME_CONFLICT"
 	CodeParentFolderNotFound     = "PARENT_FOLDER_NOT_FOUND"
