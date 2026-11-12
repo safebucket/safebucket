@@ -114,12 +114,7 @@ func ReserveFileVersion(tx *gorm.DB, bucketID uuid.UUID, body models.FileUploadB
 	if pending > 0 {
 		return file, models.FileVersion{}, apierrors.New(http.StatusConflict, apierrors.CodeFileUploadInProgress)
 	}
-	var nextVersion int
-	if err := tx.Model(&models.FileVersion{}).Where("file_id = ?", file.ID).
-		Select("COALESCE(MAX(version), 0) + 1").Scan(&nextVersion).Error; err != nil {
-		return file, models.FileVersion{}, err
-	}
-	version := models.FileVersion{ID: uuid.New(), FileID: file.ID, Version: nextVersion,
+	version := models.FileVersion{ID: uuid.New(), FileID: file.ID,
 		Size: body.Size, Status: models.FileStatusUploading, UploadedBy: userID}
 	if newFile {
 		version.ID = file.ID
@@ -139,14 +134,23 @@ func ReserveFileVersion(tx *gorm.DB, bucketID uuid.UUID, body models.FileUploadB
 	return file, version, err
 }
 
-func PromoteFileVersion(tx *gorm.DB, file models.File, version models.FileVersion, limit int) error {
-	if err := tx.Model(&version).Update("status", models.FileStatusUploaded).Error; err != nil {
-		return err
+func PromoteFileVersion(
+	tx *gorm.DB,
+	file models.File,
+	version models.FileVersion,
+	limit int,
+) (models.FileVersion, error) {
+	version.Version = file.LastVersion + 1
+	version.Status = models.FileStatusUploaded
+	if err := tx.Model(&models.FileVersion{ID: version.ID}).Updates(map[string]interface{}{
+		"status": version.Status, "version": version.Version,
+	}).Error; err != nil {
+		return version, err
 	}
 	if err := tx.Model(&file).Updates(map[string]interface{}{
-		"status": models.FileStatusUploaded, "current_version_id": version.ID,
+		"status": models.FileStatusUploaded, "current_version_id": version.ID, "last_version": version.Version,
 	}).Error; err != nil {
-		return err
+		return version, err
 	}
 	var old []uuid.UUID
 	if err := tx.Model(&models.FileVersion{}).
@@ -155,12 +159,13 @@ func PromoteFileVersion(tx *gorm.DB, file models.File, version models.FileVersio
 		Offset(limit-1).
 		Pluck("id", &old).
 		Error; err != nil {
-		return err
+		return version, err
 	}
 	if len(old) == 0 {
-		return nil
+		return version, nil
 	}
-	return tx.Model(&models.FileVersion{}).Where("id IN ?", old).Update("status", models.FileStatusDeleting).Error
+	return version, tx.Model(&models.FileVersion{}).Where("id IN ?", old).
+		Update("status", models.FileStatusDeleting).Error
 }
 
 func validateUploadFolder(tx *gorm.DB, bucketID uuid.UUID, folderID *uuid.UUID) error {

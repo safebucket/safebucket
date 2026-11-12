@@ -112,7 +112,7 @@ func createGCTestFile(t *testing.T, db *gorm.DB, bucketID uuid.UUID, createdAt t
 	}
 	require.NoError(t, db.Create(&file).Error)
 	require.NoError(t, db.Model(&file).UpdateColumn("created_at", createdAt).Error)
-	require.NoError(t, db.Create(&models.FileVersion{ID: file.ID, FileID: file.ID, Version: 1,
+	require.NoError(t, db.Create(&models.FileVersion{ID: file.ID, FileID: file.ID,
 		Size: 1024, Status: models.FileStatusUploading, CreatedAt: createdAt}).Error)
 
 	return file

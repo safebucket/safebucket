@@ -8,7 +8,7 @@ CREATE TABLE file_versions
     (
         id TEXT PRIMARY KEY,
         file_id TEXT NOT NULL,
-        version INTEGER NOT NULL,
+        version INTEGER NOT NULL DEFAULT 0,
         size INTEGER NOT NULL DEFAULT 0,
         status TEXT NOT NULL,
         uploaded_by TEXT,
@@ -23,11 +23,11 @@ CREATE TABLE file_versions
     );
 
 CREATE INDEX idx_file_versions_file_id ON file_versions (file_id);
-CREATE UNIQUE INDEX idx_file_versions_file_version ON file_versions (file_id, version);
+CREATE UNIQUE INDEX idx_file_versions_file_version ON file_versions (file_id, version) WHERE version > 0;
 CREATE UNIQUE INDEX idx_file_versions_pending ON file_versions (file_id) WHERE status = 'uploading';
 
 INSERT INTO file_versions (id, file_id, version, size, status, uploaded_by, created_at)
-SELECT id, id, 1, COALESCE(size, 0),
+SELECT id, id, CASE WHEN status = 'uploading' THEN 0 ELSE 1 END, COALESCE(size, 0),
     CASE WHEN status IN ('deleted', 'deleting', 'restoring') THEN 'uploaded' ELSE status END,
     NULL, created_at
 FROM files;
@@ -41,6 +41,7 @@ CREATE TABLE files_new
         bucket_id TEXT NOT NULL,
         folder_id TEXT,
         current_version_id TEXT,
+        last_version INTEGER NOT NULL DEFAULT 0,
         deleted_by TEXT,
         expires_at DATETIME,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -56,10 +57,11 @@ CREATE TABLE files_new
             FOREIGN KEY (deleted_by) REFERENCES users (id) ON UPDATE CASCADE ON DELETE SET NULL
     );
 
-INSERT INTO files_new (id, name, extension, status, bucket_id, folder_id, current_version_id,
+INSERT INTO files_new (id, name, extension, status, bucket_id, folder_id, current_version_id, last_version,
     deleted_by, expires_at, created_at, updated_at, deleted_at)
 SELECT id, name, extension, status, bucket_id, folder_id,
     CASE WHEN status = 'uploading' THEN NULL ELSE id END,
+    CASE WHEN status = 'uploading' THEN 0 ELSE 1 END,
     deleted_by, expires_at, created_at, updated_at, deleted_at
 FROM files;
 
