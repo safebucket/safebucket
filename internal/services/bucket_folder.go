@@ -237,12 +237,12 @@ func (s BucketFolderService) DeleteFolder(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
 		}
 
-		if !folder.DeletedAt.Valid {
-			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNotInTrash)
-		}
-
 		if folder.Status == models.FolderStatusRestoring {
 			return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+		}
+
+		if !folder.DeletedAt.Valid {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNotInTrash)
 		}
 
 		if folder.Status != models.FolderStatusDeleted {
@@ -298,6 +298,10 @@ func (s BucketFolderService) RestoreFolder(
 	var restoredFolder models.Folder
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if lockErr := sql.LockBucketFileNames(tx, folder.BucketID); lockErr != nil {
+			return lockErr
+		}
+
 		var lockedFolder models.Folder
 		result := tx.Unscoped().Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ? AND bucket_id = ?", folder.ID, folder.BucketID).
@@ -307,12 +311,25 @@ func (s BucketFolderService) RestoreFolder(
 			return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 		}
 
+		if lockedFolder.Status == models.FolderStatusRestoring {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+		}
+
 		if !lockedFolder.DeletedAt.Valid {
 			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNotInTrash)
 		}
 
-		if lockedFolder.Status == models.FolderStatusRestoring {
-			return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+		if lockedFolder.Status != models.FolderStatusDeleted {
+			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidStatus)
+		}
+
+		trashing, err := sql.TreeHasDeletingItems(tx, lockedFolder.ID)
+		if err != nil {
+			logger.Error("Failed to check folder tree status", zap.Error(err))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
+		}
+		if trashing {
+			return apierrors.New(http.StatusConflict, apierrors.CodeFolderTrashInProgress)
 		}
 
 		retentionPeriod := time.Duration(s.TrashRetentionDays) * 24 * time.Hour
@@ -342,15 +359,32 @@ func (s BucketFolderService) RestoreFolder(
 			return apierrors.New(http.StatusConflict, apierrors.CodeFolderNameConflict)
 		}
 
-		if updateErr := tx.Unscoped().
-			Model(&lockedFolder).
-			Update("status", models.FolderStatusRestoring).
-			Error; updateErr != nil {
+		if updateErr := tx.Unscoped().Model(&lockedFolder).Updates(map[string]any{
+			"status":     models.FolderStatusRestoring,
+			"deleted_at": nil,
+			"deleted_by": nil,
+		}).Error; updateErr != nil {
 			logger.Error("Failed to set folder to restoring status", zap.Error(updateErr))
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
 		restoredFolder = lockedFolder
+
+		restore := models.Activity{
+			Message: activity.FolderRestored,
+			Object:  restoredFolder.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionRestore.String(),
+				BucketID:   restoredFolder.BucketID.String(),
+				FolderID:   restoredFolder.ID.String(),
+				ObjectType: rbac.ResourceFolder.String(),
+				UserID:     user.UserID.String(),
+			}),
+		}
+		if activityErr := outbox.AddActivities(tx, restore); activityErr != nil {
+			logger.Error("Failed to log folder restore activity", zap.Error(activityErr))
+			return activityErr
+		}
 
 		event := events.NewFolderRestore(restoredFolder.BucketID, restoredFolder.ID, user.UserID)
 		if eventErr := outbox.AddEvents(tx, event.Payload); eventErr != nil {
@@ -377,27 +411,4 @@ func (s BucketFolderService) RestoreFolder(
 		zap.String("folder_id", restoredFolder.ID.String()))
 
 	return nil
-}
-
-func (s BucketFolderService) ListTrashedFolders(
-	logger *zap.Logger,
-	_ models.UserClaims,
-	ids uuid.UUIDs,
-) []models.Folder {
-	var folders []models.Folder
-	result := s.DB.Unscoped().
-		Where(
-			"bucket_id = ? AND deleted_at IS NOT NULL AND status != ?",
-			ids[0],
-			models.FolderStatusRestoring,
-		).
-		Order("deleted_at DESC").
-		Find(&folders)
-
-	if result.Error != nil {
-		logger.Error("Failed to list trashed folders", zap.Error(result.Error))
-		return []models.Folder{}
-	}
-
-	return folders
 }

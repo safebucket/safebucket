@@ -25,7 +25,7 @@ func TestBuildFolderPath(t *testing.T) {
 	assert.Equal(t, "/", buildFolderPath(new(uuid.UUID), foldersByID))
 }
 
-func TestPurgeFolderRejectsRestoringFolder(t *testing.T) {
+func TestPurgeFolderRejectsDeletingFolder(t *testing.T) {
 	db := setupUserServiceTestDB(t)
 	user := models.User{
 		Email:        "folder-purge@example.com",
@@ -39,8 +39,8 @@ func TestPurgeFolderRejectsRestoringFolder(t *testing.T) {
 	require.NoError(t, db.Create(&bucket).Error)
 
 	folder := models.Folder{
-		Name:     "restoring",
-		Status:   models.FolderStatusRestoring,
+		Name:     "deleting",
+		Status:   models.FolderStatusDeleting,
 		BucketID: bucket.ID,
 	}
 	require.NoError(t, db.Create(&folder).Error)
@@ -55,10 +55,10 @@ func TestPurgeFolderRejectsRestoringFolder(t *testing.T) {
 
 	var apiErr *apierrors.APIError
 	require.ErrorAs(t, err, &apiErr)
-	assert.Equal(t, apierrors.CodeFolderRestoreInProgress, apiErr.Code)
+	assert.Equal(t, apierrors.CodeInvalidStatus, apiErr.Code)
 
 	var persisted models.Folder
 	require.NoError(t, db.Unscoped().First(&persisted, "id = ?", folder.ID).Error)
 	assert.True(t, persisted.DeletedAt.Valid)
-	assert.Equal(t, models.FolderStatusRestoring, persisted.Status)
+	assert.Equal(t, models.FolderStatusDeleting, persisted.Status)
 }
