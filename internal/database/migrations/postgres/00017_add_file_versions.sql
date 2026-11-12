@@ -6,7 +6,7 @@ CREATE TABLE file_versions
         id uuid
             PRIMARY KEY DEFAULT gen_random_uuid(),
         file_id uuid NOT NULL,
-        version INTEGER NOT NULL,
+        version INTEGER NOT NULL DEFAULT 0,
         size BIGINT NOT NULL DEFAULT 0,
         status file_status NOT NULL,
         uploaded_by uuid,
@@ -23,19 +23,21 @@ CREATE TABLE file_versions
     );
 
 CREATE INDEX idx_file_versions_file_id ON file_versions (file_id);
-CREATE UNIQUE INDEX idx_file_versions_file_version ON file_versions (file_id, version);
+CREATE UNIQUE INDEX idx_file_versions_file_version ON file_versions (file_id, version) WHERE version > 0;
 CREATE UNIQUE INDEX idx_file_versions_pending ON file_versions (file_id) WHERE status = 'uploading';
 
 ALTER TABLE files ADD COLUMN current_version_id uuid;
+ALTER TABLE files ADD COLUMN last_version INTEGER NOT NULL DEFAULT 0;
 
 INSERT INTO file_versions (id, file_id, version, size, status, uploaded_by, created_at)
-SELECT id, id, 1, COALESCE(size, 0),
+SELECT id, id, CASE WHEN status = 'uploading' THEN 0 ELSE 1 END, COALESCE(size, 0),
     CASE WHEN status IN ('deleted', 'deleting', 'restoring') THEN 'uploaded' ELSE status END,
     NULL, created_at
 FROM files;
 
 UPDATE files SET
-    current_version_id = CASE WHEN status = 'uploading' THEN NULL ELSE id END;
+    current_version_id = CASE WHEN status = 'uploading' THEN NULL ELSE id END,
+    last_version = CASE WHEN status = 'uploading' THEN 0 ELSE 1 END;
 
 ALTER TABLE files
     ADD CONSTRAINT fk_files_current_version_id
@@ -58,5 +60,6 @@ ALTER TABLE files ADD CONSTRAINT chk_files_size_positive CHECK (size IS NULL OR 
 
 DROP TABLE IF EXISTS file_versions;
 ALTER TABLE files DROP COLUMN IF EXISTS current_version_id;
+ALTER TABLE files DROP COLUMN IF EXISTS last_version;
 
 -- +goose StatementEnd

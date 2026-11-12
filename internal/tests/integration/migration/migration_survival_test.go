@@ -74,6 +74,7 @@ func TestMigrationsPreserveData(t *testing.T) {
 			assert.Equal(t, originalFile.ID, *migratedFile.CurrentVersionID)
 			assert.Equal(t, originalFile.Size, migratedFile.Size)
 			assert.Equal(t, originalFile.Status, migratedFile.Status)
+			assert.Equal(t, 1, migratedFile.LastVersion)
 			assert.False(t, db.Migrator().HasColumn(&models.File{}, "size"))
 
 			var version models.FileVersion

@@ -28,6 +28,7 @@ type File struct {
 	ParentFolder     *Folder        `gorm:"foreignKey:FolderID"   json:"parent_folder,omitempty"`
 	Size             int            `gorm:"->"                    json:"size"`
 	CurrentVersionID *uuid.UUID     `gorm:"default:null"          json:"current_version_id,omitempty"`
+	LastVersion      int            `                             json:"-"`
 	DeletedBy        *uuid.UUID     `gorm:"default:null"          json:"deleted_by,omitempty"`
 	ExpiresAt        *time.Time     `gorm:"default:null"          json:"expires_at"`
 	OriginalPath     string         `gorm:"-"                     json:"original_path,omitempty"`
