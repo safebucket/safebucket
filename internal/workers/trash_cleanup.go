@@ -2,25 +2,22 @@ package workers
 
 import (
 	"context"
-	"path"
 	"time"
 
-	"github.com/safebucket/safebucket/internal/events"
+	"github.com/safebucket/safebucket/internal/activity"
+	c "github.com/safebucket/safebucket/internal/configuration"
+	"github.com/safebucket/safebucket/internal/fileversions"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/outbox"
+	"github.com/safebucket/safebucket/internal/rbac"
+	"github.com/safebucket/safebucket/internal/sql"
 
-	"github.com/google/uuid"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
-)
-
-const (
-	FileBatchSize   = 100
-	FolderBatchSize = 50
 )
 
 type TrashCleanupWorker struct {
 	DB                 *gorm.DB
+	Versions           fileversions.Manager
 	TrashRetentionDays int
 	RunInterval        time.Duration
 }
@@ -33,91 +30,85 @@ func (w *TrashCleanupWorker) Start(ctx context.Context) {
 }
 
 func (w *TrashCleanupWorker) cleanupExpiredFiles(ctx context.Context) (int, error) {
-	expirationTime := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
+	expiredBefore := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
+	total := 0
 
-	select {
-	case <-ctx.Done():
-		return 0, nil
-	default:
+	for ctx.Err() == nil {
+		var files []models.File
+		err := w.DB.Transaction(func(tx *gorm.DB) error {
+			var err error
+			files, err = sql.MarkExpiredFilesDeleting(tx, expiredBefore, c.BatchLimit)
+			if err != nil || len(files) == 0 {
+				return err
+			}
+			return outbox.AddActivities(tx, fileDeletedActivities(files)...)
+		})
+		if err != nil || len(files) == 0 {
+			return total, err
+		}
+
+		if err = w.Versions.DeleteFiles(files...); err != nil {
+			return total, err
+		}
+
+		total += len(files)
 	}
+	return total, nil
+}
 
-	var files []models.File
-	result := w.DB.Unscoped().
-		Where("deleted_at IS NOT NULL AND deleted_at < ? AND folder_id IS NULL", expirationTime).
-		Limit(FileBatchSize).
-		Find(&files)
+func (w *TrashCleanupWorker) cleanupExpiredFolders(ctx context.Context) (int, error) {
+	expiredBefore := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
+	total := 0
 
-	if result.Error != nil {
-		return 0, result.Error
+	for ctx.Err() == nil {
+		var folders []models.Folder
+		err := w.DB.Transaction(func(tx *gorm.DB) error {
+			var err error
+			folders, err = sql.DeleteExpiredEmptyFolders(tx, expiredBefore, c.BatchLimit)
+			if err != nil || len(folders) == 0 {
+				return err
+			}
+			return outbox.AddActivities(tx, folderDeletedActivities(folders)...)
+		})
+		if err != nil || len(folders) == 0 {
+			return total, err
+		}
+
+		total += len(folders)
 	}
+	return total, nil
+}
 
-	if len(files) == 0 {
-		return 0, nil
-	}
-
-	zap.L().Debug("Processing expired files batch", zap.Int("count", len(files)))
-
-	payloads := make([]events.TrashExpirationPayload, 0, len(files))
+func fileDeletedActivities(files []models.File) []models.Activity {
+	activities := make([]models.Activity, 0, len(files))
 	for _, file := range files {
-		markerPath := path.Join("trash", file.BucketID.String(), "files", file.ID.String())
-		payloads = append(payloads, events.NewTrashExpirationFromBucketEvent(file.BucketID, markerPath).Payload)
+		activities = append(activities, models.Activity{
+			Message: activity.FileDeleted,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+			}),
+		})
 	}
-
-	if err := outbox.AddEvents(w.DB, payloads...); err != nil {
-		return 0, err
-	}
-
-	return len(payloads), nil
+	return activities
 }
 
-func (w *TrashCleanupWorker) cleanupExpiredFolders(_ context.Context) (int, error) {
-	expirationTime := time.Now().AddDate(0, 0, -w.TrashRetentionDays)
-
-	// Query root-level trashed folders (no parent)
-	// FolderPurge events will handle children recursively
-	var folders []models.Folder
-	result := w.DB.Unscoped().
-		Where("deleted_at IS NOT NULL AND deleted_at < ? AND folder_id IS NULL", expirationTime).
-		Limit(FolderBatchSize).
-		Find(&folders)
-
-	if result.Error != nil {
-		return 0, result.Error
-	}
-
-	if len(folders) == 0 {
-		return 0, nil
-	}
-
-	zap.L().Debug("Processing expired folders", zap.Int("count", len(folders)))
-
-	if err := w.queueFolderPurges(folders); err != nil {
-		return 0, err
-	}
-
-	return len(folders), w.cleanupOrphanedFolders(expirationTime)
-}
-
-func (w *TrashCleanupWorker) cleanupOrphanedFolders(expirationTime time.Time) error {
-	var folders []models.Folder
-	// Find trashed folders with a folder_id that no longer exists
-	result := w.DB.Unscoped().
-		Where(`deleted_at IS NOT NULL AND deleted_at < ? AND folder_id IS NOT NULL
-			   AND folder_id NOT IN (SELECT id FROM folders WHERE deleted_at IS NULL)`, expirationTime).
-		Limit(FolderBatchSize).
-		Find(&folders)
-
-	if result.Error != nil {
-		return result.Error
-	}
-
-	return w.queueFolderPurges(folders)
-}
-
-func (w *TrashCleanupWorker) queueFolderPurges(folders []models.Folder) error {
-	payloads := make([]events.FolderPurgePayload, 0, len(folders))
+func folderDeletedActivities(folders []models.Folder) []models.Activity {
+	activities := make([]models.Activity, 0, len(folders))
 	for _, folder := range folders {
-		payloads = append(payloads, events.NewFolderPurge(folder.BucketID, folder.ID, uuid.Nil).Payload)
+		activities = append(activities, models.Activity{
+			Message: activity.FolderDeleted,
+			Object:  folder.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				BucketID:   folder.BucketID.String(),
+				FolderID:   folder.ID.String(),
+				ObjectType: rbac.ResourceFolder.String(),
+			}),
+		})
 	}
-	return outbox.AddEvents(w.DB, payloads...)
+	return activities
 }
