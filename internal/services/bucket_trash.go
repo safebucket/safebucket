@@ -60,6 +60,15 @@ func (s BucketTrashService) BulkTrash(
 		if txErr := s.validateTrashItems(tx, bucketID, body); txErr != nil {
 			return txErr
 		}
+		if len(body.FolderIDs) > 0 {
+			restoring, txErr := sql.TreeHasRestoringFolders(tx, body.FolderIDs)
+			if txErr != nil {
+				return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
+			}
+			if restoring {
+				return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+			}
+		}
 
 		now := time.Now()
 

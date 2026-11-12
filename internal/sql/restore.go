@@ -147,3 +147,19 @@ func TreeHasDeletingItems(tx *gorm.DB, rootID uuid.UUID) (bool, error) {
 	).Scan(&found).Error
 	return found, err
 }
+
+func TreeHasRestoringFolders(tx *gorm.DB, rootIDs uuid.UUIDs) (bool, error) {
+	var found bool
+	err := tx.Raw(`
+		WITH RECURSIVE folder_tree (id) AS (
+			SELECT id FROM folders WHERE id IN ?
+			UNION
+			SELECT child.id
+			FROM folders AS child
+			JOIN folder_tree AS parent ON child.folder_id = parent.id
+		)
+		SELECT EXISTS (SELECT 1 FROM folders WHERE id IN (SELECT id FROM folder_tree) AND status = ?)`,
+		rootIDs, models.FolderStatusRestoring,
+	).Scan(&found).Error
+	return found, err
+}
