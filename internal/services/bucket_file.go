@@ -116,7 +116,6 @@ func (s BucketFileService) DownloadFile(
 	return s.downloadVersion(logger, user, file, file.ContentVersionID(), 0, query.Context)
 }
 
-// RestoreFile recovers a file from trash with atomic status transition.
 func (s BucketFileService) RestoreFile(
 	logger *zap.Logger,
 	user models.UserClaims,
@@ -141,15 +140,11 @@ func (s BucketFileService) RestoreFile(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
 		}
 
-		if file.Status == models.FileStatusRestoring {
-			return apierrors.New(http.StatusConflict, apierrors.CodeFileRestoreInProgress)
-		}
-
 		if file.Status == models.FileStatusDeleting {
 			return apierrors.New(http.StatusConflict, apierrors.CodeFileNotInTrash)
 		}
 
-		folders, err := s.restoreParentFolders(tx, logger, file.FolderID, file.BucketID)
+		folders, err := h.RestoreParentFolders(tx, logger, file.FolderID, file.BucketID)
 		if err != nil {
 			return err
 		}
@@ -384,15 +379,6 @@ func (s BucketFileService) downloadVersion(
 		ID:  file.ID.String(),
 		URL: url,
 	}, nil
-}
-
-func (s BucketFileService) restoreParentFolders(
-	tx *gorm.DB,
-	logger *zap.Logger,
-	folderID *uuid.UUID,
-	bucketID uuid.UUID,
-) ([]models.Folder, error) {
-	return h.RestoreParentFolders(tx, logger, folderID, bucketID)
 }
 
 // unmarkRestoredFolders removes trash markers for restored folders.

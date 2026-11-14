@@ -14,7 +14,6 @@ const (
 	FileStatusUploaded  FileStatus = "uploaded"
 	FileStatusDeleting  FileStatus = "deleting"
 	FileStatusDeleted   FileStatus = "deleted"
-	FileStatusRestoring FileStatus = "restoring"
 )
 
 type File struct {

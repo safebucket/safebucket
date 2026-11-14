@@ -60,6 +60,15 @@ func (s BucketTrashService) BulkTrash(
 		if txErr := s.validateTrashItems(tx, bucketID, body); txErr != nil {
 			return txErr
 		}
+		if len(body.FolderIDs) > 0 {
+			restoring, txErr := sql.TreeHasRestoringFolders(tx, body.FolderIDs)
+			if txErr != nil {
+				return apierrors.New(http.StatusInternalServerError, apierrors.CodeFetchFailed)
+			}
+			if restoring {
+				return apierrors.New(http.StatusConflict, apierrors.CodeFolderRestoreInProgress)
+			}
+		}
 
 		now := time.Now()
 
@@ -167,18 +176,18 @@ func (s BucketTrashService) GetBucketTrash(
 	trashedFolders := make([]models.Folder, 0)
 	for _, folder := range allFolders {
 		foldersByID[folder.ID] = folder
-		if folder.DeletedAt.Valid &&
-			(folder.Status == models.FolderStatusDeleted || folder.Status == models.FolderStatusRestoring) {
+		isTrashed := folder.DeletedAt.Valid && folder.Status == models.FolderStatusDeleted
+		if isTrashed || folder.Status == models.FolderStatusRestoring {
 			trashedFolders = append(trashedFolders, folder)
 		}
 	}
 
 	files := make([]models.File, 0)
 	if err = sql.WithCurrentVersionSize(s.DB.Unscoped()).Where(
-		"files.bucket_id = ? AND files.deleted_at IS NOT NULL AND files.status IN ? "+
+		"files.bucket_id = ? AND files.deleted_at IS NOT NULL AND files.status = ? "+
 			"AND (files.expires_at IS NULL OR files.expires_at > ?)",
 		bucketID,
-		[]models.FileStatus{models.FileStatusDeleted, models.FileStatusRestoring},
+		models.FileStatusDeleted,
 		now,
 	).Find(&files).Error; err != nil {
 		logger.Error("Failed to list trashed files", zap.Error(err))

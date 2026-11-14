@@ -454,6 +454,8 @@ linters:
     presets:
       - std-error-handling
       - common-false-positives
+    paths:
+      - web/node_modules
     # Excluding configuration per-path, per-linter, per-text and per-source.
     rules:
       - source: 'TODO'

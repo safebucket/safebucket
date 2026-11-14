@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"net/http"
+	"slices"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/models"
@@ -32,6 +33,10 @@ func RestoreParentFolders(
 			break
 		}
 
+		if folder.Status == models.FolderStatusDeleting {
+			return nil, apierrors.New(http.StatusConflict, apierrors.CodeInvalidStatus)
+		}
+
 		if folder.DeletedAt.Valid {
 			trashedFolderIDs = append(trashedFolderIDs, folder.ID)
 		}
@@ -58,13 +63,13 @@ func RestoreParentFolders(
 
 	var restoredFolders []models.Folder
 
-	for i := len(trashedFolderIDs) - 1; i >= 0; i-- {
-		folder, exists := folderMap[trashedFolderIDs[i]]
+	for _, trashedFolderID := range slices.Backward(trashedFolderIDs) {
+		folder, exists := folderMap[trashedFolderID]
 		if !exists {
 			continue
 		}
 
-		if folder.Status == models.FolderStatusRestoring || !folder.DeletedAt.Valid {
+		if !folder.DeletedAt.Valid {
 			continue
 		}
 

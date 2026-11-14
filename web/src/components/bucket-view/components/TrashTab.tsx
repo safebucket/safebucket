@@ -25,7 +25,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDate, formatFileSize } from "@/lib/utils";
-import { FileStatus } from "@/types/file.ts";
 import { FolderStatus } from "@/types/folder.ts";
 
 interface ISelectedItem {
@@ -65,7 +64,6 @@ const itemSize = (item: TrashedItem): number =>
   item.itemType === "folder" || !("size" in item) ? 0 : item.size;
 
 const isRestoring = (item: TrashedItem): boolean =>
-  item.status === FileStatus.restoring ||
   item.status === FolderStatus.restoring;
 
 export const TrashTab: FC<ITrashTabProps> = ({
