@@ -16,3 +16,31 @@ type FileComment struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type FileCommentCreateBody struct {
+	Body string `json:"body" validate:"required,max=2000"`
+}
+
+type FileCommentUpdateBody struct {
+	Body string `json:"body" validate:"required,max=2000"`
+}
+
+type FileCommentCreateResponse struct {
+	ID uuid.UUID `json:"id"`
+}
+
+type FileCommentResponse struct {
+	ID         uuid.UUID `json:"id"`
+	User       *UserInfo `json:"user,omitempty"`
+	UserActive bool      `json:"user_active"`
+	Body       string    `json:"body"`
+	Version    int       `json:"version"`
+	CanEdit    bool      `json:"can_edit"`
+	CanDelete  bool      `json:"can_delete"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type FileConversationResponse struct {
+	Messages []FileCommentResponse `json:"messages"`
+}
