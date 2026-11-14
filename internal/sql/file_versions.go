@@ -142,7 +142,7 @@ func PromoteFileVersion(
 ) (models.FileVersion, error) {
 	version.Version = file.LastVersion + 1
 	version.Status = models.FileStatusUploaded
-	if err := tx.Model(&models.FileVersion{ID: version.ID}).Updates(map[string]interface{}{
+	if err := tx.Model(&version).Updates(map[string]interface{}{
 		"status": version.Status, "version": version.Version,
 	}).Error; err != nil {
 		return version, err
