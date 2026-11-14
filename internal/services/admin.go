@@ -123,7 +123,6 @@ func (s AdminService) GetSettings(
 
 	_, deletionQueued := s.Config.Events.Queues[configuration.EventsObjectDeletion]
 	_, bucketQueued := s.Config.Events.Queues[configuration.EventsBucketEvents]
-	confirmsUploads := configuration.RequiresUploadConfirmation(s.Config.Storage.Type, s.Config.Events.Type)
 
 	status := func(name string, applicable bool) models.CoverageStatus {
 		if !applicable {
@@ -144,7 +143,7 @@ func (s AdminService) GetSettings(
 		HTTPServer:       status(configuration.CoverageHTTPServer, true),
 		ObjectDeletion:   status(configuration.WorkerObjectDeletion, deletionQueued),
 		BucketEvents:     status(configuration.WorkerBucketEvents, bucketQueued),
-		TrashCleanup:     status(configuration.WorkerTrashCleanup, confirmsUploads),
+		TrashCleanup:     status(configuration.WorkerTrashCleanup, true),
 		GarbageCollector: status(configuration.WorkerGarbageCollector, true),
 	}
 

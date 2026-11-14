@@ -176,17 +176,16 @@ func StartWorkers(
 		zap.L().Info("Started notifications worker")
 	}
 
-	if configuration.RequiresUploadConfirmation(config.Storage.Type, config.Events.Type) {
-		startWorker(ctx, handle.wg, profile.Workers.TrashCleanup, configuration.WorkerTrashCleanup, cache, appIdentity,
-			func(workerCtx context.Context) {
-				worker := &workers.TrashCleanupWorker{
-					DB:                 db,
-					TrashRetentionDays: config.App.TrashRetentionDays,
-					RunInterval:        time.Duration(config.App.TrashRetentionDays) * 24 * time.Hour / 7,
-				}
-				worker.Start(workerCtx)
-			})
-	}
+	startWorker(ctx, handle.wg, profile.Workers.TrashCleanup, configuration.WorkerTrashCleanup, cache, appIdentity,
+		func(workerCtx context.Context) {
+			worker := &workers.TrashCleanupWorker{
+				DB:                 db,
+				Versions:           versions,
+				TrashRetentionDays: config.App.TrashRetentionDays,
+				RunInterval:        15 * time.Minute,
+			}
+			worker.Start(workerCtx)
+		})
 
 	startWorker(
 		ctx,
