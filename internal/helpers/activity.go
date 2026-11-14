@@ -69,6 +69,7 @@ func SearchActivityPage(
 	activityLogger activity.IActivityLogger,
 	criteria map[string][]string,
 	params models.ActivityQueryParams,
+	fullUser bool,
 ) (models.Page[map[string]interface{}], error) {
 	empty := models.Page[map[string]interface{}]{Data: []map[string]interface{}{}}
 
@@ -102,7 +103,7 @@ func SearchActivityPage(
 	}
 
 	return models.Page[map[string]interface{}]{
-		Data:       activity.EnrichActivity(db, data),
+		Data:       activity.EnrichActivity(db, data, fullUser),
 		NextCursor: nextCursor,
 	}, nil
 }

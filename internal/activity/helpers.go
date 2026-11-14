@@ -3,7 +3,6 @@ package activity
 import (
 	"encoding/json"
 	"reflect"
-	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -50,18 +49,6 @@ func isAuthorizedObject(objectType string) bool {
 		}
 	}
 	return false
-}
-
-var authorizedChangeFields = []string{"role"}
-
-func authorizedChanges(changes map[string]models.ActivityChange) map[string]models.ActivityChange {
-	authorized := make(map[string]models.ActivityChange, len(changes))
-	for field, change := range changes {
-		if slices.Contains(authorizedChangeFields, field) {
-			authorized[field] = change
-		}
-	}
-	return authorized
 }
 
 func enrichLogWithMetadata(log map[string]interface{}) map[string]interface{} {
@@ -123,6 +110,7 @@ func enrichLogWithDatabase(
 	db *gorm.DB,
 	log map[string]interface{},
 	cache map[uuid.UUID]interface{},
+	fullUser bool,
 ) map[string]interface{} {
 	newLog := log
 
@@ -151,6 +139,10 @@ func enrichLogWithDatabase(
 				cache[id] = object
 			}
 
+			if user, isUser := object.(*models.User); isUser && !fullUser {
+				object = user.ToActivity()
+			}
+
 			newLog[enrichedField.Name] = object
 			delete(newLog, fieldName)
 		}
@@ -165,13 +157,14 @@ func enrichLogWithDatabase(
 // 2. Use cached DB result (if already queried)
 // 3. Query DB and cache the result
 // It does not mutate the original `activity` slice.
-func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string]interface{} {
+// When fullUser is false, users are reduced to models.UserInfo.
+func EnrichActivity(db *gorm.DB, activity []map[string]interface{}, fullUser bool) []map[string]interface{} {
 	enrichedActivity := make([]map[string]interface{}, 0, len(activity))
 	cache := make(map[uuid.UUID]interface{})
 
 	for _, log := range activity {
 		enrichedLog := enrichLogWithMetadata(log)
-		enrichedLog = enrichLogWithDatabase(db, enrichedLog, cache)
+		enrichedLog = enrichLogWithDatabase(db, enrichedLog, cache, fullUser)
 		enrichedActivity = append(enrichedActivity, enrichedLog)
 	}
 

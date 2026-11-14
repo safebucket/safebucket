@@ -244,8 +244,8 @@ func buildActivityDocument(activity models.Activity) (string, map[string]any, er
 		doc["object"] = string(b)
 	}
 
-	if changes := authorizedChanges(activity.Changes); len(changes) > 0 {
-		b, marshalErr := json.Marshal(changes)
+	if len(activity.Changes) > 0 {
+		b, marshalErr := json.Marshal(activity.Changes)
 		if marshalErr != nil {
 			return "", nil, fmt.Errorf("failed to marshal changes: %w", marshalErr)
 		}

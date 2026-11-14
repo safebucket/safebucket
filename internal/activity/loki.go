@@ -356,8 +356,8 @@ func createLokiStream(activity models.Activity) (StreamEntry, error) {
 	if isAuthorizedObject(activity.Filter.Fields.ObjectType) {
 		logLine["object"] = activity.Object
 	}
-	if changes := authorizedChanges(activity.Changes); len(changes) > 0 {
-		logLine["changes"] = changes
+	if len(activity.Changes) > 0 {
+		logLine["changes"] = activity.Changes
 	}
 
 	logLineJSON, err := json.Marshal(logLine)
