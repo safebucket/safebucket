@@ -369,7 +369,6 @@ func (s BucketService) GetActivity(
 		s.DB, logger, s.ActivityLogger,
 		searchCriteria,
 		query,
-		false,
 	)
 }
 
@@ -398,6 +397,5 @@ func (s BucketService) GetBucketActivity(
 		s.DB, logger, s.ActivityLogger,
 		searchCriteria,
 		query,
-		false,
 	)
 }

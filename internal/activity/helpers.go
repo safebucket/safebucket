@@ -110,7 +110,6 @@ func enrichLogWithDatabase(
 	db *gorm.DB,
 	log map[string]interface{},
 	cache map[uuid.UUID]interface{},
-	fullUser bool,
 ) map[string]interface{} {
 	newLog := log
 
@@ -136,11 +135,10 @@ func enrichLogWithDatabase(
 			} else {
 				object = reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
 				db.Unscoped().Where("id = ?", id).Find(object)
+				if user, isUser := object.(*models.User); isUser {
+					object = user.ToActivity()
+				}
 				cache[id] = object
-			}
-
-			if user, isUser := object.(*models.User); isUser && !fullUser {
-				object = user.ToActivity()
 			}
 
 			newLog[enrichedField.Name] = object
@@ -157,14 +155,13 @@ func enrichLogWithDatabase(
 // 2. Use cached DB result (if already queried)
 // 3. Query DB and cache the result
 // It does not mutate the original `activity` slice.
-// When fullUser is false, users are reduced to models.UserInfo.
-func EnrichActivity(db *gorm.DB, activity []map[string]interface{}, fullUser bool) []map[string]interface{} {
+func EnrichActivity(db *gorm.DB, activity []map[string]interface{}) []map[string]interface{} {
 	enrichedActivity := make([]map[string]interface{}, 0, len(activity))
 	cache := make(map[uuid.UUID]interface{})
 
 	for _, log := range activity {
 		enrichedLog := enrichLogWithMetadata(log)
-		enrichedLog = enrichLogWithDatabase(db, enrichedLog, cache, fullUser)
+		enrichedLog = enrichLogWithDatabase(db, enrichedLog, cache)
 		enrichedActivity = append(enrichedActivity, enrichedLog)
 	}
 

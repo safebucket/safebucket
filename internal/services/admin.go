@@ -106,7 +106,6 @@ func (s AdminService) GetActivity(
 		s.DB, logger, s.ActivityLogger,
 		searchCriteria,
 		query.ActivityQueryParams,
-		true,
 	)
 }
 
