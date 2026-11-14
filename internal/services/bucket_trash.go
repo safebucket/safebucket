@@ -54,6 +54,9 @@ func (s BucketTrashService) BulkTrash(
 	}
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if txErr := sql.LockBucketFileNames(tx, bucketID); txErr != nil {
+			return txErr
+		}
 		if txErr := s.validateTrashItems(tx, bucketID, body); txErr != nil {
 			return txErr
 		}

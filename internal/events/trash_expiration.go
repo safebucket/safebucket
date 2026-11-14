@@ -3,6 +3,7 @@ package events
 import (
 	"path"
 	"strings"
+	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/models"
@@ -136,6 +137,13 @@ func (e *TrashExpiration) findTrashedFile(params *EventParams, pathInfo parsedPa
 		return nil, nil
 	}
 
+	if !trashExpired(params, file.DeletedAt) {
+		zap.L().Info("File trashed within retention period, skipping expiration",
+			zap.String("file_id", fileID.String()),
+		)
+		return nil, nil
+	}
+
 	return file, nil
 }
 
@@ -192,7 +200,7 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 		if lockErr != nil {
 			return lockErr
 		}
-		if !locked.DeletedAt.Valid {
+		if !locked.DeletedAt.Valid || !trashExpired(params, locked.DeletedAt) {
 			return nil
 		}
 		marked, markErr := sql.MarkFilesDeleting(tx, locked)
@@ -232,4 +240,9 @@ func (e *TrashExpiration) callback(params *EventParams) error {
 	)
 
 	return nil
+}
+
+func trashExpired(params *EventParams, deletedAt gorm.DeletedAt) bool {
+	retention := time.Duration(params.TrashRetentionDays) * 24 * time.Hour
+	return time.Since(deletedAt.Time) >= retention
 }
