@@ -33,7 +33,7 @@ func (p *AWSEventParser) GetBucketEventType(msg *message.Message) string {
 
 	if strings.HasPrefix(eventName, "ObjectRemoved:") ||
 		strings.HasPrefix(eventName, "LifecycleExpiration:") {
-		return BucketEventTypeDeletion
+		return BucketEventTypeIgnore
 	}
 
 	zap.L().Warn("Unrecognized S3 event type",
@@ -88,47 +88,4 @@ func (p *AWSEventParser) ParseBucketUploadEvents(msg *message.Message) []BucketU
 	}
 
 	return uploadEvents
-}
-
-func (p *AWSEventParser) ParseBucketDeletionEvents(
-	msg *message.Message,
-	expectedBucketName string,
-) []BucketDeletionEvent {
-	var event AWSEvent
-	if err := json.Unmarshal(msg.Payload, &event); err != nil {
-		zap.L().Error("deletion event is unprocessable", zap.Error(err))
-		return nil
-	}
-
-	var deletionEvents []BucketDeletionEvent
-	for _, record := range event.Records {
-		if record.S3.Bucket.Name != expectedBucketName {
-			zap.L().Debug("ignoring event from different bucket",
-				zap.String("event_bucket", record.S3.Bucket.Name),
-				zap.String("expected_bucket", expectedBucketName))
-			continue
-		}
-
-		objectKey := record.S3.Object.Key
-		bucketID := ExtractBucketID(objectKey)
-		if bucketID == "" {
-			zap.L().Warn("unable to extract bucket ID from object key",
-				zap.String("object_key", objectKey),
-				zap.String("event_name", record.EventName))
-			continue
-		}
-
-		deletionEvents = append(deletionEvents, BucketDeletionEvent{
-			BucketID:  bucketID,
-			ObjectKey: objectKey,
-			EventName: record.EventName,
-		})
-
-		zap.L().Debug("parsed deletion event",
-			zap.String("event_name", record.EventName),
-			zap.String("bucket_id", bucketID),
-			zap.String("object_key", objectKey))
-	}
-
-	return deletionEvents
 }

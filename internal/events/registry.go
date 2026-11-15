@@ -19,8 +19,6 @@ var eventRegistry = map[string]reflect.Type{
 	UserInvitationPayloadName:           reflect.TypeOf(UserInvitationPayload{}),
 	BucketPurgeName:                     reflect.TypeOf(BucketPurge{}),
 	BucketPurgePayloadName:              reflect.TypeOf(BucketPurgePayload{}),
-	TrashExpirationName:                 reflect.TypeOf(TrashExpiration{}),
-	TrashExpirationPayloadName:          reflect.TypeOf(TrashExpirationPayload{}),
 	FolderRestoreName:                   reflect.TypeOf(FolderRestore{}),
 	FolderRestorePayloadName:            reflect.TypeOf(FolderRestorePayload{}),
 	ItemsTrashName:                      reflect.TypeOf(ItemsTrash{}),

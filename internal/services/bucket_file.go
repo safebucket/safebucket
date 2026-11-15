@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"net/http"
-	"path"
 	"strconv"
 	"time"
 
@@ -121,10 +120,7 @@ func (s BucketFileService) RestoreFile(
 	user models.UserClaims,
 	file models.File,
 ) error {
-	var restoredFolders []models.Folder
-	var restoredFile models.File
-
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
 		if err := sql.LockBucketFileNames(tx, file.BucketID); err != nil {
 			return err
 		}
@@ -144,11 +140,9 @@ func (s BucketFileService) RestoreFile(
 			return apierrors.New(http.StatusConflict, apierrors.CodeFileNotInTrash)
 		}
 
-		folders, err := h.RestoreParentFolders(tx, logger, file.FolderID, file.BucketID)
-		if err != nil {
+		if err := h.RestoreParentFolders(tx, logger, file.FolderID, file.BucketID); err != nil {
 			return err
 		}
-		restoredFolders = folders
 
 		var existingFile models.File
 		query := tx.Where(
@@ -184,8 +178,6 @@ func (s BucketFileService) RestoreFile(
 			return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 		}
 
-		restoredFile = file
-
 		action := models.Activity{
 			Message: activity.FileRestored,
 			Object:  file.ToActivity(),
@@ -203,24 +195,6 @@ func (s BucketFileService) RestoreFile(
 		}
 		return nil
 	})
-
-	if err != nil {
-		return err
-	}
-
-	s.unmarkRestoredFolders(logger, restoredFolders)
-
-	objectPath := path.Join("buckets", restoredFile.BucketID.String(), restoredFile.ID.String())
-	if storageErr := s.Storage.UnmarkAsTrashed(objectPath, restoredFile); storageErr != nil {
-		logger.Warn(
-			"Failed to unmark file as trashed (file already restored in DB)",
-			zap.Error(storageErr),
-			zap.String("path", objectPath),
-			zap.String("file_id", restoredFile.ID.String()),
-		)
-	}
-
-	return nil
 }
 
 func (s BucketFileService) DeleteFile(
@@ -274,11 +248,6 @@ func (s BucketFileService) DeleteFile(
 	})
 	if err != nil {
 		return err
-	}
-
-	objectPath := path.Join("buckets", file.BucketID.String(), file.ID.String())
-	if err = s.Storage.UnmarkAsTrashed(objectPath, file); err != nil {
-		logger.Warn("Failed to remove trash marker", zap.Error(err))
 	}
 
 	if err = s.Versions.DeleteFiles(file); err != nil {
@@ -379,18 +348,4 @@ func (s BucketFileService) downloadVersion(
 		ID:  file.ID.String(),
 		URL: url,
 	}, nil
-}
-
-// unmarkRestoredFolders removes trash markers for restored folders.
-// This must be called AFTER the transaction commits to avoid race conditions.
-func (s BucketFileService) unmarkRestoredFolders(logger *zap.Logger, folders []models.Folder) {
-	for _, folder := range folders {
-		objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
-		if err := s.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
-			logger.Warn("Failed to unmark parent folder as trashed",
-				zap.Error(err),
-				zap.String("folder_id", folder.ID.String()))
-			// Continue - folders exist only in DB
-		}
-	}
 }

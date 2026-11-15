@@ -23,13 +23,12 @@ import (
 var ErrUnknownEventType = errors.New("event type has no topic")
 
 type EventParams struct {
-	WebURL             string
-	Notifier           notifier.INotifier
-	DB                 *gorm.DB
-	Storage            storage.IStorage
-	TrashRetentionDays int
-	Cache              cache.ICache
-	Versions           fileversions.Manager
+	WebURL   string
+	Notifier notifier.INotifier
+	DB       *gorm.DB
+	Storage  storage.IStorage
+	Cache    cache.ICache
+	Versions fileversions.Manager
 }
 
 type Event interface {
@@ -160,44 +159,9 @@ func handleUploadEvents(parser eventparser.IBucketEventParser, msg *message.Mess
 	return nil
 }
 
-func handleDeletionEvents(
-	parser eventparser.IBucketEventParser,
-	msg *message.Message,
-	db *gorm.DB,
-	storage storage.IStorage,
-	trashRetentionDays int,
-	versions fileversions.Manager,
-) {
-	deletionEvents := parser.ParseBucketDeletionEvents(msg, storage.GetBucketName())
-
-	for _, event := range deletionEvents {
-		bucketUUID, err := uuid.Parse(event.BucketID)
-		if err != nil {
-			zap.L().
-				Error("bucket id should be a valid UUID", zap.String("bucketId", event.BucketID))
-			continue
-		}
-		trashEvent := NewTrashExpirationFromBucketEvent(bucketUUID, event.ObjectKey)
-
-		params := &EventParams{
-			DB:                 db,
-			Storage:            storage,
-			TrashRetentionDays: trashRetentionDays,
-			Versions:           versions,
-		}
-
-		if err = trashEvent.callback(params); err != nil {
-			zap.L().Error("Failed to process trash expiration", zap.Error(err))
-		}
-	}
-}
-
 func HandleBucketEvents(
 	ctx context.Context,
 	parser eventparser.IBucketEventParser,
-	db *gorm.DB,
-	storage storage.IStorage,
-	trashRetentionDays int,
 	versions fileversions.Manager,
 	messages <-chan *message.Message,
 ) {
@@ -221,9 +185,6 @@ func HandleBucketEvents(
 					msg.Nack()
 					continue
 				}
-
-			case eventparser.BucketEventTypeDeletion:
-				handleDeletionEvents(parser, msg, db, storage, trashRetentionDays, versions)
 
 			case eventparser.BucketEventTypeIgnore:
 				zap.L().Debug("ignoring event", zap.String("raw_payload", string(msg.Payload)))

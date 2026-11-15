@@ -1,8 +1,6 @@
 package events
 
 import (
-	"path"
-
 	"github.com/safebucket/safebucket/internal/activity"
 	c "github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/models"
@@ -151,13 +149,6 @@ func (e *FolderPurge) finish(params *EventParams, folder models.Folder) error {
 	}
 	if !deleted {
 		return nil
-	}
-
-	objectPath := path.Join("buckets", e.Payload.BucketID.String(), e.Payload.FolderID.String())
-	if err = params.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
-		zap.L().Warn("Failed to delete folder marker from storage",
-			zap.Error(err),
-			zap.String("folder_id", e.Payload.FolderID.String()))
 	}
 
 	zap.L().Info("Folder delete complete",

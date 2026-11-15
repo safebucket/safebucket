@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"net/http"
-	"path"
 	"time"
 
 	"github.com/safebucket/safebucket/internal/activity"
@@ -16,7 +15,6 @@ import (
 	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
-	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -27,7 +25,6 @@ import (
 
 type BucketFolderService struct {
 	DB                 *gorm.DB
-	Storage            storage.IStorage
 	TrashRetentionDays int
 }
 
@@ -269,32 +266,11 @@ func (s BucketFolderService) DeleteFolder(
 	return nil
 }
 
-func (s BucketFolderService) restoreParentFolders(
-	tx *gorm.DB,
-	logger *zap.Logger,
-	folderID *uuid.UUID,
-	bucketID uuid.UUID,
-) ([]models.Folder, error) {
-	return h.RestoreParentFolders(tx, logger, folderID, bucketID)
-}
-
-func (s BucketFolderService) unmarkRestoredFolders(logger *zap.Logger, folders []models.Folder) {
-	for _, folder := range folders {
-		objectPath := path.Join("buckets", folder.BucketID.String(), folder.ID.String())
-		if err := s.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
-			logger.Warn("Failed to unmark parent folder as trashed",
-				zap.Error(err),
-				zap.String("folder_id", folder.ID.String()))
-		}
-	}
-}
-
 func (s BucketFolderService) RestoreFolder(
 	logger *zap.Logger,
 	user models.UserClaims,
 	folder models.Folder,
 ) error {
-	var restoredParentFolders []models.Folder
 	var restoredFolder models.Folder
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
@@ -337,11 +313,9 @@ func (s BucketFolderService) RestoreFolder(
 			return apierrors.New(http.StatusGone, apierrors.CodeFolderTrashExpired)
 		}
 
-		parentFolders, err := s.restoreParentFolders(tx, logger, lockedFolder.FolderID, lockedFolder.BucketID)
-		if err != nil {
+		if err = h.RestoreParentFolders(tx, logger, lockedFolder.FolderID, lockedFolder.BucketID); err != nil {
 			return err
 		}
-		restoredParentFolders = parentFolders
 
 		var existingFolder models.Folder
 		query := tx.Where(
@@ -397,13 +371,6 @@ func (s BucketFolderService) RestoreFolder(
 
 	if err != nil {
 		return err
-	}
-
-	s.unmarkRestoredFolders(logger, restoredParentFolders)
-
-	objectPath := path.Join("buckets", restoredFolder.BucketID.String(), restoredFolder.ID.String())
-	if storageErr := s.Storage.UnmarkAsTrashed(objectPath, restoredFolder); storageErr != nil {
-		logger.Warn("Failed to remove trash marker for folder", zap.Error(storageErr))
 	}
 
 	logger.Info("Folder restore initiated (async)",

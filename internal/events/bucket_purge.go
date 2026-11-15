@@ -142,7 +142,6 @@ func (e *BucketPurge) deleteFolders(params *EventParams) (bool, error) {
 func (e *BucketPurge) deleteObjects(params *EventParams) (bool, error) {
 	prefixes := []string{
 		path.Join("buckets", e.Payload.BucketID.String()),
-		path.Join("trash", e.Payload.BucketID.String()),
 	}
 	for _, prefix := range prefixes {
 		objects, err := params.Storage.ListObjects(prefix, c.BulkActionsLimit)

@@ -60,8 +60,7 @@ func (er *EventRouter) getTopicKeyForEvent(eventType string) string {
 	case events.BucketPurgeName,
 		events.ItemsTrashName,
 		events.FolderPurgeName,
-		events.FolderRestoreName,
-		events.TrashExpirationName:
+		events.FolderRestoreName:
 		return configuration.EventsObjectDeletion
 	default:
 		return ""

@@ -44,7 +44,7 @@ func Boot(ctx context.Context, cfg models.Configuration, opts BootOptions) *Boot
 	}
 
 	cache := NewCache(cfg.Cache)
-	store := NewStorage(cfg.Storage, cfg.App.TrashRetentionDays)
+	store := NewStorage(cfg.Storage)
 	notify := NewNotifier(cfg.Notifier)
 	activityLogger := NewActivityLogger(cfg.Activity)
 

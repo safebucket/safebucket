@@ -9,9 +9,6 @@ import (
 
 const (
 	bucketsPrefix = "buckets/"
-	trashPrefix   = "trash/"
-	folderPath    = "folders"
-	filePath      = "files"
 
 	respContentDisposition = "response-content-disposition"
 	respContentType        = "response-content-type"
@@ -56,9 +53,6 @@ type IStorage interface {
 	ListObjects(prefix string, maxKeys int32) ([]string, error)
 	RemoveObject(path string) error
 	RemoveObjects(paths []string) error
-	EnsureTrashLifecyclePolicy(retentionDays int) error
-	MarkAsTrashed(objectPath string, model interface{}) error
-	UnmarkAsTrashed(objectPath string, model interface{}) error
-	IsTrashMarkerPath(path string) (isMarker bool, originalPath string)
+	EnsureMultipartCleanupPolicy() error
 	GetBucketName() string
 }

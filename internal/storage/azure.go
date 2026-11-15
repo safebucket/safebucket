@@ -1,13 +1,10 @@
 package storage
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
-	"path"
 	"sort"
 	"strings"
 	"time"
@@ -16,9 +13,7 @@ import (
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/streaming"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
@@ -27,24 +22,19 @@ import (
 	"go.uber.org/zap"
 )
 
-const azureTrashLifecycleRuleName = "safebucket-trash-retention"
-
 const azureUploadTokenPrefix = "azure:"
 
 type AzureStorage struct {
-	containerName  string
-	accountName    string
-	subscriptionID string
-	resourceGroup  string
-	endpoint       string
-	container      *container.Client
-	cred           *blob.SharedKeyCredential
-	signer         *azureSharedKeySigner
-	armCred        azcore.TokenCredential
+	containerName string
+	accountName   string
+	endpoint      string
+	container     *container.Client
+	cred          *blob.SharedKeyCredential
+	signer        *azureSharedKeySigner
 }
 
 func NewAzureStorage(config *models.AzureConfiguration) IStorage {
-	accountKey, armCred := resolveAzureCredentials(config)
+	accountKey := resolveAzureCredentials(config)
 
 	endpoint := config.Endpoint
 	if endpoint == "" {
@@ -73,15 +63,12 @@ func NewAzureStorage(config *models.AzureConfiguration) IStorage {
 	}
 
 	return &AzureStorage{
-		containerName:  config.ContainerName,
-		accountName:    config.AccountName,
-		subscriptionID: config.SubscriptionID,
-		resourceGroup:  config.ResourceGroup,
-		endpoint:       endpoint,
-		container:      containerClient,
-		cred:           cred,
-		signer:         signer,
-		armCred:        armCred,
+		containerName: config.ContainerName,
+		accountName:   config.AccountName,
+		endpoint:      endpoint,
+		container:     containerClient,
+		cred:          cred,
+		signer:        signer,
 	}
 }
 
@@ -347,142 +334,6 @@ func (a *AzureStorage) RemoveObjects(paths []string) error {
 	return nil
 }
 
-func (a *AzureStorage) IsTrashMarkerPath(markerPath string) (bool, string) {
-	if !strings.HasPrefix(markerPath, trashPrefix) {
-		return false, ""
-	}
-
-	remainder := strings.TrimPrefix(markerPath, trashPrefix)
-	parts := strings.SplitN(remainder, "/", 3)
-	if len(parts) < 3 {
-		return false, ""
-	}
-
-	bucketID, resourceType, resourceID := parts[0], parts[1], parts[2]
-	if resourceType != folderPath && resourceType != filePath {
-		return false, ""
-	}
-
-	return true, bucketsPrefix + bucketID + "/" + resourceID
-}
-
-func (a *AzureStorage) getTrashMarkerPath(objectPath string, model interface{}) string {
-	remainder := strings.TrimPrefix(objectPath, bucketsPrefix)
-
-	var resourceType string
-	switch model.(type) {
-	case models.Folder:
-		resourceType = folderPath
-	case models.File:
-		resourceType = filePath
-	default:
-		return ""
-	}
-
-	parts := strings.SplitN(remainder, "/", 2)
-	if len(parts) < 2 {
-		return ""
-	}
-
-	return path.Join(trashPrefix, parts[0], resourceType, parts[1])
-}
-
-func (a *AzureStorage) MarkAsTrashed(objectPath string, object interface{}) error {
-	markerPath := a.getTrashMarkerPath(objectPath, object)
-	ctx := context.Background()
-
-	if _, ok := object.(models.File); ok {
-		if _, err := a.blobClient(fileContentPath(objectPath, object)).GetProperties(ctx, nil); err != nil {
-			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
-		}
-	}
-
-	_, err := a.blockBlobClient(markerPath).Upload(ctx, streaming.NopCloser(bytes.NewReader(nil)), nil)
-	if err != nil {
-		return fmt.Errorf("failed to create marker: %w", err)
-	}
+func (a *AzureStorage) EnsureMultipartCleanupPolicy() error {
 	return nil
-}
-
-func (a *AzureStorage) UnmarkAsTrashed(objectPath string, object interface{}) error {
-	markerPath := a.getTrashMarkerPath(objectPath, object)
-
-	if _, err := a.blobClient(markerPath).Delete(context.Background(), nil); err != nil {
-		return fmt.Errorf("failed to remove marker: %w", err)
-	}
-	return nil
-}
-
-func (a *AzureStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
-	client, err := armstorage.NewManagementPoliciesClient(a.subscriptionID, a.armCred, nil)
-	if err != nil {
-		return fmt.Errorf("create Azure management policies client: %w", err)
-	}
-
-	ctx := context.Background()
-
-	var rules []*armstorage.ManagementPolicyRule
-	existing, err := client.Get(ctx, a.resourceGroup, a.accountName, armstorage.ManagementPolicyNameDefault, nil)
-	if err != nil {
-		var respErr *azcore.ResponseError
-		if !errors.As(err, &respErr) || respErr.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("get existing Azure management policy: %w", err)
-		}
-	} else if existing.Properties != nil && existing.Properties.Policy != nil {
-		rules = existing.Properties.Policy.Rules
-	}
-
-	rules = upsertAzureTrashRule(rules, retentionDays, a.containerName)
-
-	_, err = client.CreateOrUpdate(ctx, a.resourceGroup, a.accountName, armstorage.ManagementPolicyNameDefault,
-		armstorage.ManagementPolicy{
-			Properties: &armstorage.ManagementPolicyProperties{
-				Policy: &armstorage.ManagementPolicySchema{Rules: rules},
-			},
-		}, nil)
-	if err != nil {
-		zap.L().Error("Failed to set Azure blob lifecycle policy",
-			zap.String("container", a.containerName),
-			zap.Int("trashRetentionDays", retentionDays),
-			zap.Error(err))
-		return err
-	}
-
-	zap.L().Info("Azure blob lifecycle policy configured",
-		zap.String("container", a.containerName),
-		zap.Int("trashRetentionDays", retentionDays))
-
-	return nil
-}
-
-func upsertAzureTrashRule(
-	rules []*armstorage.ManagementPolicyRule, retentionDays int, containerName string,
-) []*armstorage.ManagementPolicyRule {
-	trashRule := &armstorage.ManagementPolicyRule{
-		Enabled: to.Ptr(true),
-		Name:    to.Ptr(azureTrashLifecycleRuleName),
-		Type:    to.Ptr(armstorage.RuleTypeLifecycle),
-		Definition: &armstorage.ManagementPolicyDefinition{
-			Filters: &armstorage.ManagementPolicyFilter{
-				BlobTypes:   []*string{to.Ptr("blockBlob")},
-				PrefixMatch: []*string{to.Ptr(containerName + "/" + trashPrefix)},
-			},
-			Actions: &armstorage.ManagementPolicyAction{
-				BaseBlob: &armstorage.ManagementPolicyBaseBlob{
-					Delete: &armstorage.DateAfterModification{
-						DaysAfterModificationGreaterThan: to.Ptr(float32(retentionDays)),
-					},
-				},
-			},
-		},
-	}
-
-	for i, rule := range rules {
-		if rule.Name != nil && *rule.Name == azureTrashLifecycleRuleName {
-			rules[i] = trashRule
-			return rules
-		}
-	}
-
-	return append(rules, trashRule)
 }

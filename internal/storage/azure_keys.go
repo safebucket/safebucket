@@ -11,13 +11,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func resolveAzureCredentials(config *models.AzureConfiguration) (string, azcore.TokenCredential) {
+func resolveAzureCredentials(config *models.AzureConfiguration) string {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		zap.L().Fatal("Failed to create Azure default credential", zap.Error(err))
 	}
 
-	return listAzurePrimaryAccountKey(config, cred), cred
+	return listAzurePrimaryAccountKey(config, cred)
 }
 
 func listAzurePrimaryAccountKey(config *models.AzureConfiguration, cred azcore.TokenCredential) string {

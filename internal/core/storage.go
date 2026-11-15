@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func NewStorage(config models.StorageConfiguration, trashRetentionDays int) storage.IStorage {
+func NewStorage(config models.StorageConfiguration) storage.IStorage {
 	var store storage.IStorage
 
 	switch config.Type {
@@ -28,14 +28,10 @@ func NewStorage(config models.StorageConfiguration, trashRetentionDays int) stor
 		return nil
 	}
 
-	if store != nil && trashRetentionDays > 0 {
-		err := store.EnsureTrashLifecyclePolicy(trashRetentionDays)
-		if err != nil {
-			zap.L().Fatal("Failed to configure trash lifecycle policy",
-				zap.String("provider", config.Type),
-				zap.Int("retentionDays", trashRetentionDays),
-				zap.Error(err))
-		}
+	if err := store.EnsureMultipartCleanupPolicy(); err != nil {
+		zap.L().Fatal("Failed to configure multipart cleanup policy",
+			zap.String("provider", config.Type),
+			zap.Error(err))
 	}
 
 	return store

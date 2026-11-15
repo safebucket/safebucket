@@ -25,7 +25,7 @@ resource "aws_sqs_queue" "notifications" {
   })
 }
 
-# SQS Queue for object deletion events (trash expiration, folder restore)
+# SQS Queue for object deletion events (trash, purge, restore)
 resource "aws_sqs_queue" "object_deletion" {
   name                       = var.object_deletion_queue_name
   message_retention_seconds = 1209600 # 14 days

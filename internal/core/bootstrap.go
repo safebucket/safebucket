@@ -130,13 +130,12 @@ func StartWorkers(
 ) {
 	versions := fileversions.Manager{DB: db, Storage: store, Cache: cache, MaxVersions: config.App.MaxFileVersions}
 	eventParams := &events.EventParams{
-		WebURL:             config.App.WebURL,
-		Notifier:           notify,
-		DB:                 db,
-		Storage:            store,
-		TrashRetentionDays: config.App.TrashRetentionDays,
-		Cache:              cache,
-		Versions:           versions,
+		WebURL:   config.App.WebURL,
+		Notifier: notify,
+		DB:       db,
+		Storage:  store,
+		Cache:    cache,
+		Versions: versions,
 	}
 
 	startWorker(ctx, handle.wg, profile.Workers.Outbox, configuration.WorkerOutboxEvents, cache, appIdentity,
@@ -229,9 +228,6 @@ func StartWorkers(
 				events.HandleBucketEvents(
 					workerCtx,
 					eventsManager.parser,
-					db,
-					store,
-					config.App.TrashRetentionDays,
 					versions,
 					bucketMessages,
 				)

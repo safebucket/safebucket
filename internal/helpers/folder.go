@@ -18,9 +18,9 @@ func RestoreParentFolders(
 	logger *zap.Logger,
 	folderID *uuid.UUID,
 	bucketID uuid.UUID,
-) ([]models.Folder, error) {
+) error {
 	if folderID == nil {
-		return nil, nil
+		return nil
 	}
 
 	var trashedFolderIDs []uuid.UUID
@@ -34,7 +34,7 @@ func RestoreParentFolders(
 		}
 
 		if folder.Status == models.FolderStatusDeleting {
-			return nil, apierrors.New(http.StatusConflict, apierrors.CodeInvalidStatus)
+			return apierrors.New(http.StatusConflict, apierrors.CodeInvalidStatus)
 		}
 
 		if folder.DeletedAt.Valid {
@@ -45,7 +45,7 @@ func RestoreParentFolders(
 	}
 
 	if len(trashedFolderIDs) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	var trashedFolders []models.Folder
@@ -53,15 +53,13 @@ func RestoreParentFolders(
 		Where("id IN ?", trashedFolderIDs).
 		Find(&trashedFolders)
 	if result.Error != nil {
-		return nil, result.Error
+		return result.Error
 	}
 
 	folderMap := make(map[uuid.UUID]models.Folder)
 	for _, f := range trashedFolders {
 		folderMap[f.ID] = f
 	}
-
-	var restoredFolders []models.Folder
 
 	for _, trashedFolderID := range slices.Backward(trashedFolderIDs) {
 		folder, exists := folderMap[trashedFolderID]
@@ -84,7 +82,7 @@ func RestoreParentFolders(
 			query = query.Where("folder_id IS NULL")
 		}
 		if query.Find(&existingFolder); existingFolder.ID != uuid.Nil {
-			return nil, apierrors.New(http.StatusConflict, apierrors.CodeParentFolderNameConflict)
+			return apierrors.New(http.StatusConflict, apierrors.CodeParentFolderNameConflict)
 		}
 
 		updates := map[string]interface{}{
@@ -96,15 +94,13 @@ func RestoreParentFolders(
 			logger.Error("Failed to restore parent folder",
 				zap.Error(err),
 				zap.String("folder_id", folder.ID.String()))
-			return nil, err
+			return err
 		}
-
-		restoredFolders = append(restoredFolders, folder)
 
 		logger.Info("Restored parent folder",
 			zap.String("folder_name", folder.Name),
 			zap.String("folder_id", folder.ID.String()))
 	}
 
-	return restoredFolders, nil
+	return nil
 }

@@ -1,12 +1,8 @@
 package storage
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"net/url"
-	"path"
-	"strings"
 	"time"
 
 	c "github.com/safebucket/safebucket/internal/configuration"
@@ -14,7 +10,6 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/minio/minio-go/v7/pkg/lifecycle"
 	"go.uber.org/zap"
 )
 
@@ -227,207 +222,11 @@ func (s RustFSStorage) RemoveObjects(paths []string) error {
 	return nil
 }
 
-// IsTrashMarkerPath checks if a deletion event is for a trash marker.
-// Patterns:
-//   - trash/{bucket-id}/files/{file-id} -> buckets/{bucket-id}/{file-id}
-//   - trash/{bucket-id}/folders/{folder-id} -> buckets/{bucket-id}/{folder-id}
-func (s RustFSStorage) IsTrashMarkerPath(path string) (bool, string) {
-	if !strings.HasPrefix(path, trashPrefix) {
-		return false, ""
-	}
-
-	remainder := strings.TrimPrefix(path, trashPrefix)
-	parts := strings.SplitN(remainder, "/", 3)
-
-	if len(parts) < 3 {
-		return false, ""
-	}
-
-	bucketID := parts[0]
-	resourceType := parts[1]
-	resourceID := parts[2]
-
-	if resourceType != folderPath && resourceType != filePath {
-		return false, ""
-	}
-
-	originalPath := bucketsPrefix + bucketID + "/" + resourceID
-	return true, originalPath
-}
-
-// getTrashMarkerPath converts buckets/{bucket-id}/{id} to trash/{bucket-id}/files|folders/{id}.
-func (s RustFSStorage) getTrashMarkerPath(objectPath string, model interface{}) string {
-	remainder := strings.TrimPrefix(objectPath, bucketsPrefix)
-
-	var resourceType string
-	switch model.(type) {
-	case models.Folder:
-		resourceType = folderPath
-	case models.File:
-		resourceType = filePath
-	default:
-		return ""
-	}
-
-	parts := strings.SplitN(remainder, "/", 2)
-	if len(parts) < 2 {
-		return ""
-	}
-
-	bucketID := parts[0]
-	resourceID := parts[1]
-
-	return path.Join(trashPrefix, bucketID, resourceType, resourceID)
-}
-
-func (s RustFSStorage) MarkAsTrashed(objectPath string, object interface{}) error {
-	ctx := context.Background()
-	markerPath := s.getTrashMarkerPath(objectPath, object)
-
-	if _, ok := object.(models.File); ok {
-		_, err := s.storage.StatObject(
-			ctx,
-			s.BucketName,
-			fileContentPath(objectPath, object),
-			minio.StatObjectOptions{},
-		)
-		if err != nil {
-			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
-		}
-	}
-
-	reader := bytes.NewReader([]byte{})
-	_, err := s.storage.PutObject(ctx, s.BucketName, markerPath, reader, 0, minio.PutObjectOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create marker: %w", err)
-	}
-	return nil
-}
-
-func (s RustFSStorage) UnmarkAsTrashed(objectPath string, object interface{}) error {
-	ctx := context.Background()
-	markerPath := s.getTrashMarkerPath(objectPath, object)
-	err := s.storage.RemoveObject(ctx, s.BucketName, markerPath, minio.RemoveObjectOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to remove marker: %w", err)
-	}
-	return nil
-}
-
-// processExistingLifecycleRules processes existing lifecycle rules and returns the updated configuration.
-func (s RustFSStorage) processExistingLifecycleRules(
-	existingConfig *lifecycle.Configuration,
-	err error,
-	trashRuleID, multipartRuleID string,
-	retentionDays int,
-) *lifecycle.Configuration {
-	if err != nil || existingConfig == nil || existingConfig.Empty() {
-		return lifecycle.NewConfiguration()
-	}
-
-	config := existingConfig
-	var newRules []lifecycle.Rule
-	trashRuleFound := false
-	multipartRuleFound := false
-
-	for _, rule := range config.Rules {
-		switch rule.ID {
-		case trashRuleID:
-			trashRuleFound = true
-			if !rule.Expiration.IsDaysNull() &&
-				int(rule.Expiration.Days) == retentionDays &&
-				rule.RuleFilter.Prefix == "trash/" {
-				zap.L().Debug("Trash lifecycle policy already up-to-date",
-					zap.String("bucket", s.BucketName),
-					zap.Int("retentionDays", retentionDays))
-				newRules = append(newRules, rule)
-			}
-
-		case multipartRuleID:
-			multipartRuleFound = true
-			if rule.AbortIncompleteMultipartUpload.DaysAfterInitiation == 1 {
-				zap.L().Debug("Multipart upload cleanup policy already up-to-date",
-					zap.String("bucket", s.BucketName))
-				newRules = append(newRules, rule)
-			}
-
-		default:
-			newRules = append(newRules, rule)
-		}
-	}
-
-	if trashRuleFound || multipartRuleFound {
-		config.Rules = newRules
-	}
-
-	return config
-}
-
-// EnsureTrashLifecyclePolicy configures lifecycle policies for the bucket, merging with existing rules.
-// It adds or updates the trash expiration rule (prefix: trash/) with the specified retention period.
-//
-// NOTE: AbortIncompleteMultipartUpload is not supported by MinIO.
-// MinIO does not fully support the AbortIncompleteMultipartUpload lifecycle action.
+// EnsureMultipartCleanupPolicy is a no-op: MinIO and RustFS do not fully support
+// the AbortIncompleteMultipartUpload lifecycle action.
 // References:
 // - https://github.com/minio/minio/issues/16120
 // - https://github.com/minio/minio/issues/19115
-func (s RustFSStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
-	const trashRuleID = "safebucket-trash-retention"
-	const multipartRuleID = "safebucket-abort-incomplete-multipart"
-
-	if retentionDays < 0 {
-		return fmt.Errorf("retentionDays %d cannot be negative", retentionDays)
-	}
-	if retentionDays > 2147483647 { // math.MaxInt32
-		return fmt.Errorf("retentionDays %d exceeds maximum allowed value (2147483647)", retentionDays)
-	}
-
-	ctx := context.Background()
-
-	existingConfig, err := s.storage.GetBucketLifecycle(ctx, s.BucketName)
-
-	config := s.processExistingLifecycleRules(
-		existingConfig,
-		err,
-		trashRuleID,
-		multipartRuleID,
-		retentionDays,
-	)
-
-	trashRuleExists := false
-	for _, rule := range config.Rules {
-		if rule.ID == trashRuleID {
-			trashRuleExists = true
-			break
-		}
-	}
-
-	if !trashRuleExists {
-		trashRule := lifecycle.Rule{
-			ID:     trashRuleID,
-			Status: "Enabled",
-			RuleFilter: lifecycle.Filter{
-				Prefix: "trash/",
-			},
-			Expiration: lifecycle.Expiration{
-				Days: lifecycle.ExpirationDays(retentionDays),
-			},
-		}
-		config.Rules = append(config.Rules, trashRule)
-	}
-
-	err = s.storage.SetBucketLifecycle(ctx, s.BucketName, config)
-	if err != nil {
-		zap.L().Error("Failed to set lifecycle policies",
-			zap.String("bucket", s.BucketName),
-			zap.Int("trashRetentionDays", retentionDays),
-			zap.Error(err))
-		return err
-	}
-
-	zap.L().Info("Lifecycle policies configured",
-		zap.String("bucket", s.BucketName),
-		zap.Int("trashRetentionDays", retentionDays),
-		zap.Int("multipartCleanupDays", 1))
+func (s RustFSStorage) EnsureMultipartCleanupPolicy() error {
 	return nil
 }
