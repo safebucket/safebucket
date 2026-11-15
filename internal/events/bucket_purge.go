@@ -140,26 +140,22 @@ func (e *BucketPurge) deleteFolders(params *EventParams) (bool, error) {
 }
 
 func (e *BucketPurge) deleteObjects(params *EventParams) (bool, error) {
-	prefixes := []string{
-		path.Join("buckets", e.Payload.BucketID.String()),
-	}
-	for _, prefix := range prefixes {
-		objects, err := params.Storage.ListObjects(prefix, c.BulkActionsLimit)
-		if err != nil {
-			zap.L().Error("Failed to list storage objects for cleanup",
-				zap.Error(err), zap.String("prefix", prefix))
-			return false, err
-		}
-		if len(objects) == 0 {
-			continue
-		}
+	prefix := path.Join("buckets", e.Payload.BucketID.String())
 
-		if err = params.Storage.RemoveObjects(objects); err != nil {
-			zap.L().Error("Failed to delete storage objects",
-				zap.Error(err), zap.String("prefix", prefix))
-			return false, err
-		}
-		return true, nil
+	objects, err := params.Storage.ListObjects(prefix, c.BulkActionsLimit)
+	if err != nil {
+		zap.L().Error("Failed to list storage objects for cleanup",
+			zap.Error(err), zap.String("prefix", prefix))
+		return false, err
 	}
-	return false, nil
+	if len(objects) == 0 {
+		return false, nil
+	}
+
+	if err = params.Storage.RemoveObjects(objects); err != nil {
+		zap.L().Error("Failed to delete storage objects",
+			zap.Error(err), zap.String("prefix", prefix))
+		return false, err
+	}
+	return true, nil
 }
