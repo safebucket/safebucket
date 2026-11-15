@@ -1,7 +1,10 @@
 package models
 
 import (
+	"maps"
 	"reflect"
+	"slices"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -10,11 +13,27 @@ type IActivityLoggable interface {
 	ToActivity() interface{}
 }
 
+const ActivityChangedFieldsKey = "changed_fields"
+
 type Activity struct {
 	ID      uuid.UUID `json:"-"`
 	Message string
 	Filter  LogFilter
 	Object  interface{}
+	Changes map[string]ActivityChange
+}
+
+type ActivityChange struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+func (a Activity) Fields() map[string]string {
+	fields := a.Filter.Fields.ToMap()
+	if len(a.Changes) > 0 {
+		fields[ActivityChangedFieldsKey] = strings.Join(slices.Sorted(maps.Keys(a.Changes)), ",")
+	}
+	return fields
 }
 
 type LogFilter struct {

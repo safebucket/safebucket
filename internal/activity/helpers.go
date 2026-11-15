@@ -135,6 +135,9 @@ func enrichLogWithDatabase(
 			} else {
 				object = reflect.New(reflect.TypeOf(enrichedField.Object)).Interface()
 				db.Unscoped().Where("id = ?", id).Find(object)
+				if user, isUser := object.(*models.User); isUser {
+					object = user.ToActivity()
+				}
 				cache[id] = object
 			}
 

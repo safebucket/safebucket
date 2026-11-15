@@ -36,6 +36,7 @@ type DexUser struct {
 	Email    string
 	Password string
 	Username string
+	Groups   []string
 }
 
 type DexInstance struct {
@@ -153,13 +154,22 @@ staticPasswords:
     hash: {{ .Hash }}
     username: {{ .Username }}
     userID: {{ .UserID }}
+    {{- if .Groups }}
+    groups:
+      {{- range .Groups }}
+      - {{ . }}
+      {{- end }}
+    {{- end }}
 {{- end }}
 `
 
 func renderDexConfig(t *testing.T, in dexConfigInput) string {
 	t.Helper()
 
-	type staticPassword struct{ Email, Hash, Username, UserID string }
+	type staticPassword struct {
+		Email, Hash, Username, UserID string
+		Groups                        []string
+	}
 	passwords := make([]staticPassword, 0, len(in.Users))
 	for _, u := range in.Users {
 		hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), dexBcryptCost)
@@ -168,7 +178,13 @@ func renderDexConfig(t *testing.T, in dexConfigInput) string {
 		if username == "" {
 			username = u.Email
 		}
-		passwords = append(passwords, staticPassword{u.Email, string(hash), username, uuid.NewString()})
+		passwords = append(passwords, staticPassword{
+			Email:    u.Email,
+			Hash:     string(hash),
+			Username: username,
+			UserID:   uuid.NewString(),
+			Groups:   u.Groups,
+		})
 	}
 
 	var buf bytes.Buffer
