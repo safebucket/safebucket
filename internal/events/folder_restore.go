@@ -3,7 +3,6 @@ package events
 import (
 	"errors"
 	"net/http"
-	"path"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	c "github.com/safebucket/safebucket/internal/configuration"
@@ -89,7 +88,6 @@ func (e *FolderRestore) callback(params *EventParams) error {
 		return err
 	}
 
-	e.unmarkTrashed(params, folders, files)
 	return nil
 }
 
@@ -164,22 +162,4 @@ func (e *FolderRestore) restoredActivities(folders []models.Folder, files []mode
 	}
 
 	return activities
-}
-
-func (e *FolderRestore) unmarkTrashed(params *EventParams, folders []models.Folder, files []models.File) {
-	for _, folder := range folders {
-		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.ID.String())
-		if err := params.Storage.UnmarkAsTrashed(objectPath, folder); err != nil {
-			zap.L().Warn("Failed to unmark folder as trashed",
-				zap.Error(err), zap.String("folder_id", folder.ID.String()))
-		}
-	}
-
-	for _, file := range files {
-		objectPath := path.Join("buckets", e.Payload.BucketID.String(), file.ID.String())
-		if err := params.Storage.UnmarkAsTrashed(objectPath, file); err != nil {
-			zap.L().Warn("Failed to unmark file as trashed",
-				zap.Error(err), zap.String("file_id", file.ID.String()))
-		}
-	}
 }

@@ -82,7 +82,6 @@ func (s BucketService) Routes() chi.Router {
 
 		r.Mount("/folders", BucketFolderService{
 			DB:                 s.DB,
-			Storage:            s.Storage,
 			TrashRetentionDays: s.TrashRetentionDays,
 		}.Routes())
 

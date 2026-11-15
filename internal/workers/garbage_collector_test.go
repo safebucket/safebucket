@@ -60,11 +60,8 @@ func (s *gcStubStorage) RemoveObjects(keys []string) error {
 	s.removedKeys = append(s.removedKeys, keys...)
 	return nil
 }
-func (s *gcStubStorage) EnsureTrashLifecyclePolicy(int) error    { return nil }
-func (s *gcStubStorage) MarkAsTrashed(string, any) error         { return nil }
-func (s *gcStubStorage) UnmarkAsTrashed(string, any) error       { return nil }
-func (s *gcStubStorage) IsTrashMarkerPath(string) (bool, string) { return false, "" }
-func (s *gcStubStorage) GetBucketName() string                   { return "" }
+func (s *gcStubStorage) EnsureMultipartCleanupPolicy() error { return nil }
+func (s *gcStubStorage) GetBucketName() string               { return "" }
 
 func setupGCTestDB(t *testing.T) *gorm.DB {
 	t.Helper()

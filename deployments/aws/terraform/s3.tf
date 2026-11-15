@@ -49,7 +49,7 @@ resource "aws_s3_bucket_notification" "storage" {
 
   queue {
     queue_arn = aws_sqs_queue.s3_events.arn
-    events    = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
+    events    = ["s3:ObjectCreated:*"]
     id        = "safebucket-s3-events"
   }
 

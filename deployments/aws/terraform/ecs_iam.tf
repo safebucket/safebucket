@@ -111,7 +111,7 @@ resource "aws_iam_policy" "safebucket_task_policy" {
           # List operations
           "s3:ListBucket",
 
-          # Lifecycle operations (CRITICAL - required for trash retention)
+          # Lifecycle operations (required for the incomplete multipart upload cleanup rule)
           # Both old and new API actions are included for compatibility
           "s3:GetBucketLifecycleConfiguration",
           "s3:PutBucketLifecycleConfiguration",

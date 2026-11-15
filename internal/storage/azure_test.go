@@ -3,38 +3,9 @@ package storage
 import (
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestUpsertAzureTrashRulePrefixIncludesContainer(t *testing.T) {
-	t.Run("appends a container-qualified rule", func(t *testing.T) {
-		rules := upsertAzureTrashRule(nil, 30, "safebucket")
-
-		require.Len(t, rules, 1)
-		filter := rules[0].Definition.Filters
-		require.Len(t, filter.PrefixMatch, 1)
-		assert.Equal(t, "safebucket/trash/", *filter.PrefixMatch[0])
-		assert.Equal(t, azureTrashLifecycleRuleName, *rules[0].Name)
-		require.Len(t, filter.BlobTypes, 1)
-		assert.Equal(t, "blockBlob", *filter.BlobTypes[0])
-	})
-
-	t.Run("replaces the existing trash rule in place and keeps others", func(t *testing.T) {
-		existing := []*armstorage.ManagementPolicyRule{
-			{Name: to.Ptr("other-rule")},
-			{Name: to.Ptr(azureTrashLifecycleRuleName)},
-		}
-
-		rules := upsertAzureTrashRule(existing, 15, "my-container")
-
-		require.Len(t, rules, 2)
-		assert.Equal(t, "other-rule", *rules[0].Name)
-		assert.Equal(t, "my-container/trash/", *rules[1].Definition.Filters.PrefixMatch[0])
-	})
-}
 
 func TestAzureCommitMetadata(t *testing.T) {
 	objectPath := bucketsPrefix + "bucket-uuid/file-uuid"

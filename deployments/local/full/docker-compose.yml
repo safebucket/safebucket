@@ -144,7 +144,7 @@ services:
         aws s3api put-bucket-cors --bucket $${BUCKET_NAME} --endpoint-url $${ENDPOINT_URL} --cors-configuration '{"CORSRules":[{"AllowedHeaders":["*"],"AllowedMethods":["GET","PUT","POST","DELETE","HEAD"],"AllowedOrigins":["*"],"ExposeHeaders":["ETag"]}]}'
 
         echo "Adding bucket notification events for NATS target..."
-        aws s3api put-bucket-notification-configuration --bucket $${BUCKET_NAME} --endpoint-url $${ENDPOINT_URL} --notification-configuration '{"QueueConfigurations":[{"QueueArn":"arn:rustfs:sqs:us-east-1:primary:nats","Events":["s3:ObjectCreated:*","s3:ObjectRemoved:*","s3:ObjectAccessed:*","s3:LifecycleExpiration:*"]}]}'
+        aws s3api put-bucket-notification-configuration --bucket $${BUCKET_NAME} --endpoint-url $${ENDPOINT_URL} --notification-configuration '{"QueueConfigurations":[{"QueueArn":"arn:rustfs:sqs:us-east-1:primary:nats","Events":["s3:ObjectCreated:*","s3:ObjectAccessed:*"]}]}'
 
         echo "Buckets configured successfully."
     depends_on:

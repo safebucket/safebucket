@@ -50,7 +50,7 @@ resource "aws_iam_role_policy" "safebucket_app" {
           # List operations
           "s3:ListBucket",
 
-          # Lifecycle operations (CRITICAL - required for trash retention)
+          # Lifecycle operations (required for the incomplete multipart upload cleanup rule)
           "s3:GetBucketLifecycleConfiguration",
           "s3:PutBucketLifecycleConfiguration"
         ]

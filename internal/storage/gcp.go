@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -411,184 +410,34 @@ func (g GCPStorage) ListObjects(prefix string, _ int32) ([]string, error) {
 	return objects, nil
 }
 
-// IsTrashMarkerPath checks if a deletion event is for a trash marker.
-// Patterns:
-//   - trash/{bucket-id}/files/{file-id} -> buckets/{bucket-id}/{file-id}
-//   - trash/{bucket-id}/folders/{folder-id} -> buckets/{bucket-id}/{folder-id}
-func (g GCPStorage) IsTrashMarkerPath(path string) (bool, string) {
-	if !strings.HasPrefix(path, trashPrefix) {
-		return false, ""
-	}
-
-	remainder := strings.TrimPrefix(path, trashPrefix)
-	parts := strings.SplitN(remainder, "/", 3)
-
-	if len(parts) < 3 {
-		return false, ""
-	}
-
-	bucketID := parts[0]
-	resourceType := parts[1] // "files" or "folders"
-	resourceID := parts[2]
-
-	if resourceType != "files" && resourceType != "folders" {
-		return false, ""
-	}
-
-	originalPath := bucketsPrefix + bucketID + "/" + resourceID
-	return true, originalPath
-}
-
-// getTrashMarkerPath converts buckets/{bucket-id}/{id} to trash/{bucket-id}/files|folders/{id}.
-func (g GCPStorage) getTrashMarkerPath(objectPath string, model interface{}) string {
-	remainder := strings.TrimPrefix(objectPath, bucketsPrefix)
-
-	var resourceType string
-	switch model.(type) {
-	case models.Folder:
-		resourceType = folderPath
-	case models.File:
-		resourceType = filePath
-	default:
-		return ""
-	}
-
-	parts := strings.SplitN(remainder, "/", 2)
-	if len(parts) < 2 {
-		return ""
-	}
-
-	bucketID := parts[0]
-	resourceID := parts[1]
-
-	return path.Join(trashPrefix, bucketID, resourceType, resourceID)
-}
-
-func (g GCPStorage) MarkAsTrashed(objectPath string, object interface{}) error {
-	ctx := context.Background()
-	markerPath := g.getTrashMarkerPath(objectPath, object)
-
-	if _, ok := object.(models.File); ok {
-		obj := g.storage.Bucket(g.BucketName).Object(fileContentPath(objectPath, object))
-		if _, err := obj.Attrs(ctx); err != nil {
-			return fmt.Errorf("object does not exist and can't be trashed: %w", err)
-		}
-	}
-
-	markerObj := g.storage.Bucket(g.BucketName).Object(markerPath)
-	writer := markerObj.NewWriter(ctx)
-
-	if _, err := writer.Write([]byte{}); err != nil {
-		return fmt.Errorf("failed to create marker: %w", err)
-	}
-
-	if err := writer.Close(); err != nil {
-		return fmt.Errorf("failed to create marker: %w", err)
-	}
-
-	return nil
-}
-
-func (g GCPStorage) UnmarkAsTrashed(objectPath string, object interface{}) error {
-	ctx := context.Background()
-	markerPath := g.getTrashMarkerPath(objectPath, object)
-
-	markerObj := g.storage.Bucket(g.BucketName).Object(markerPath)
-	if err := markerObj.Delete(ctx); err != nil {
-		return fmt.Errorf("failed to remove marker: %w", err)
-	}
-
-	return nil
-}
-
-func (g GCPStorage) EnsureTrashLifecyclePolicy(retentionDays int) error {
+func (g GCPStorage) EnsureMultipartCleanupPolicy() error {
 	ctx := context.Background()
 	bucket := g.storage.Bucket(g.BucketName)
 
 	attrs, err := bucket.Attrs(ctx)
 	if err != nil {
-		zap.L().Error("Failed to get bucket attributes",
-			zap.String("bucket", g.BucketName),
-			zap.Error(err))
+		zap.L().Error("Failed to get bucket attributes", zap.String("bucket", g.BucketName), zap.Error(err))
 		return err
 	}
 
-	const trashRuleActionType = gcs.DeleteAction
-	const multipartRuleActionType = gcs.AbortIncompleteMPUAction
-	var existingTrashRuleIndex = -1
-	var existingMultipartRuleIndex = -1
-
-	if attrs.Lifecycle.Rules != nil {
-		for i, rule := range attrs.Lifecycle.Rules {
-			if rule.Action.Type == trashRuleActionType &&
-				rule.Condition.MatchesPrefix != nil &&
-				len(rule.Condition.MatchesPrefix) > 0 &&
-				rule.Condition.MatchesPrefix[0] == trashPrefix {
-				existingTrashRuleIndex = i
-
-				if rule.Condition.AgeInDays == int64(retentionDays) {
-					zap.L().Debug("Trash lifecycle policy already up-to-date",
-						zap.String("bucket", g.BucketName),
-						zap.Int("retentionDays", retentionDays))
-				}
-			}
-
-			if rule.Action.Type == multipartRuleActionType &&
-				rule.Condition.AgeInDays == 1 {
-				existingMultipartRuleIndex = i
-				zap.L().Debug("Multipart upload cleanup policy already up-to-date",
-					zap.String("bucket", g.BucketName))
-			}
+	var rules []gcs.LifecycleRule
+	for _, rule := range attrs.Lifecycle.Rules {
+		if rule.Action.Type != gcs.AbortIncompleteMPUAction || rule.Condition.AgeInDays != 1 {
+			rules = append(rules, rule)
 		}
 	}
+	rules = append(rules, gcs.LifecycleRule{
+		Action:    gcs.LifecycleAction{Type: gcs.AbortIncompleteMPUAction},
+		Condition: gcs.LifecycleCondition{AgeInDays: 1},
+	})
 
-	trashRule := gcs.LifecycleRule{
-		Action: gcs.LifecycleAction{
-			Type: trashRuleActionType,
-		},
-		Condition: gcs.LifecycleCondition{
-			AgeInDays:     int64(retentionDays),
-			MatchesPrefix: []string{trashPrefix},
-		},
-	}
-
-	multipartRule := gcs.LifecycleRule{
-		Action: gcs.LifecycleAction{
-			Type: multipartRuleActionType,
-		},
-		Condition: gcs.LifecycleCondition{
-			AgeInDays: 1,
-		},
-	}
-
-	var newRules []gcs.LifecycleRule
-	if attrs.Lifecycle.Rules != nil {
-		for i, rule := range attrs.Lifecycle.Rules {
-			if i != existingTrashRuleIndex && i != existingMultipartRuleIndex {
-				newRules = append(newRules, rule)
-			}
-		}
-	}
-	newRules = append(newRules, trashRule, multipartRule)
-
-	updateAttrs := gcs.BucketAttrsToUpdate{
-		Lifecycle: &gcs.Lifecycle{
-			Rules: newRules,
-		},
-	}
-
-	if _, err = bucket.Update(ctx, updateAttrs); err != nil {
-		zap.L().Error("Failed to update lifecycle policies",
-			zap.String("bucket", g.BucketName),
-			zap.Int("trashRetentionDays", retentionDays),
-			zap.Error(err))
+	if _, err = bucket.Update(ctx, gcs.BucketAttrsToUpdate{Lifecycle: &gcs.Lifecycle{Rules: rules}}); err != nil {
+		zap.L().Error("Failed to update lifecycle policies", zap.String("bucket", g.BucketName), zap.Error(err))
 		return err
 	}
 
 	zap.L().Info("Lifecycle policies configured",
 		zap.String("bucket", g.BucketName),
-		zap.Int("trashRetentionDays", retentionDays),
 		zap.Int("multipartCleanupDays", 1))
-
 	return nil
 }

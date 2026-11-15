@@ -1,8 +1,6 @@
 package events
 
 import (
-	"path"
-
 	"github.com/safebucket/safebucket/internal/activity"
 	c "github.com/safebucket/safebucket/internal/configuration"
 	"github.com/safebucket/safebucket/internal/models"
@@ -59,9 +57,6 @@ func (e *ItemsTrash) callback(params *EventParams) error {
 		if err := e.logActivities(tx, files, folders); err != nil {
 			return err
 		}
-		if err := e.addTrashMarker(params, files, folders); err != nil {
-			return err
-		}
 		if len(files)+len(folders) < c.BatchLimit {
 			return nil
 		}
@@ -106,24 +101,6 @@ func (e *ItemsTrash) lockDeletingItems(tx *gorm.DB, files *[]models.File, folder
 			e.Payload.BucketID, models.FolderStatusDeleting, e.Payload.UserID).
 		Limit(remainingSlots)
 	return query.Find(folders).Error
-}
-
-func (e *ItemsTrash) addTrashMarker(params *EventParams, files []models.File, folders []models.Folder) error {
-	for _, file := range files {
-		objectPath := path.Join("buckets", e.Payload.BucketID.String(), file.ID.String())
-		if err := params.Storage.MarkAsTrashed(objectPath, file); err != nil {
-			return err
-		}
-	}
-
-	for _, folder := range folders {
-		objectPath := path.Join("buckets", e.Payload.BucketID.String(), folder.ID.String())
-		if err := params.Storage.MarkAsTrashed(objectPath, folder); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (e *ItemsTrash) deleteItems(tx *gorm.DB, files []models.File, folders []models.Folder) error {

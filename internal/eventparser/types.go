@@ -8,12 +8,6 @@ type BucketUploadEvent struct {
 	ShareID   string `json:"share_id"`
 }
 
-type BucketDeletionEvent struct {
-	BucketID  string `json:"bucket_id"`
-	ObjectKey string `json:"object_key"`
-	EventName string `json:"event_name"`
-}
-
 type RustFSEvent struct {
 	EventName string              `json:"EventName"`
 	Key       string              `json:"Key"`
