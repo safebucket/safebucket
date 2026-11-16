@@ -64,6 +64,7 @@ func TestMigrationsPreserveData(t *testing.T) {
 			require.NoError(t, filesql.WithCurrentVersionSize(db).First(&file).Error)
 			require.NotNil(t, file.CurrentVersionID)
 			assert.Equal(t, 10, file.Size)
+			assert.Equal(t, 1, file.LastVersion)
 		})
 	}
 }
@@ -93,13 +94,14 @@ func seedDB(t *testing.T, db *gorm.DB) {
 
 	fileID := uuid.New()
 	require.NoError(t, db.Table("files").Create(map[string]any{
-		"id":         fileID,
-		"name":       "file.txt",
-		"status":     models.FileStatusUploaded,
-		"bucket_id":  bucket.ID,
-		"folder_id":  folder.ID,
-		"created_at": time.Now(),
-		"updated_at": time.Now(),
+		"id":           fileID,
+		"name":         "file.txt",
+		"status":       models.FileStatusUploaded,
+		"bucket_id":    bucket.ID,
+		"folder_id":    folder.ID,
+		"last_version": 1,
+		"created_at":   time.Now(),
+		"updated_at":   time.Now(),
 	}).Error)
 	require.NoError(t, db.Table("file_versions").Create(map[string]any{
 		"id":         fileID,
