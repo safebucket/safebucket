@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"unicode"
 
 	"github.com/safebucket/safebucket/internal/activity"
 	"github.com/safebucket/safebucket/internal/cache"
@@ -83,7 +82,10 @@ func (s AuthService) OpenIDCallback(
 		)
 	}
 
-	firstName, lastName := oidcNames(userInfo)
+	firstName, lastName, ok := oidcNames(userInfo)
+	if !ok {
+		logger.Warn("Failed to retrieve OIDC name claims")
+	}
 	if !found {
 		searchUser = models.User{
 			FirstName:    firstName,
@@ -100,7 +102,7 @@ func (s AuthService) OpenIDCallback(
 				apierrors.CodeInternalServerError,
 			)
 		}
-	} else if namesChanged(&searchUser, firstName, lastName) {
+	} else if ok && (searchUser.FirstName != firstName || searchUser.LastName != lastName) {
 		names := models.User{FirstName: firstName, LastName: lastName}
 		if updateErr := s.DB.Model(&searchUser).Updates(names).Error; updateErr != nil {
 			logger.Warn("Failed to set OIDC user names",
@@ -128,55 +130,22 @@ func (s AuthService) OpenIDCallback(
 	return s.issueOIDCSession(logger, &searchUser, providerKey)
 }
 
-func oidcNames(userInfo *oidc.UserInfo) (string, string) {
+func oidcNames(userInfo *oidc.UserInfo) (string, string, bool) {
 	var claims struct {
 		Name       string `json:"name"`
 		GivenName  string `json:"given_name"`
 		FamilyName string `json:"family_name"`
 	}
 	if err := userInfo.Claims(&claims); err != nil {
-		return "", ""
+		return "", "", false
 	}
 
-	given := sanitizeName(claims.GivenName)
-	family := sanitizeName(claims.FamilyName)
-	full := sanitizeName(claims.Name)
-
-	if family != "" {
-		return given, family
+	given := strings.TrimSpace(claims.GivenName)
+	family := strings.TrimSpace(claims.FamilyName)
+	if given != "" || family != "" {
+		return given, family, true
 	}
-	if given != "" && given != full {
-		return given, ""
-	}
-
-	lastSpace := strings.LastIndex(full, " ")
-	if lastSpace < 0 {
-		return full, ""
-	}
-	return full[:lastSpace], full[lastSpace+1:]
-}
-
-func namesChanged(user *models.User, firstName string, lastName string) bool {
-	firstChanged := firstName != "" && firstName != user.FirstName
-	lastChanged := lastName != "" && lastName != user.LastName
-	return firstChanged || lastChanged
-}
-
-func sanitizeName(name string) string {
-	const maxNameLength = 100
-
-	cleaned := strings.Map(func(r rune) rune {
-		if r == '<' || r == '>' || (!unicode.IsPrint(r) && !unicode.IsSpace(r)) {
-			return -1
-		}
-		return r
-	}, name)
-
-	normalized := []rune(strings.Join(strings.Fields(cleaned), " "))
-	if len(normalized) > maxNameLength {
-		normalized = normalized[:maxNameLength]
-	}
-	return strings.TrimSpace(string(normalized))
+	return strings.TrimSpace(claims.Name), "", true
 }
 
 func (s AuthService) issueOIDCSession(
