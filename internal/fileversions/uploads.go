@@ -111,7 +111,7 @@ func (m Manager) Complete(logger *zap.Logger, bucketID, fileID, versionID uuid.U
 		if err = m.finishStorage(logger, file, version, multipart, share); err != nil {
 			return err
 		}
-		if err = sql.PromoteFileVersion(tx, file, version, m.MaxVersions); err != nil {
+		if version, err = sql.PromoteFileVersion(tx, file, version, m.MaxVersions); err != nil {
 			return err
 		}
 		completed = Completion{File: file, Version: version, Changed: true}
