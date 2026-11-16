@@ -90,8 +90,15 @@ func (s AuthService) OpenIDCallback(
 			apierrors.CodeInternalServerError,
 		)
 	}
+
+	firstName, lastName, ok := oidcNames(userInfo)
+	if !ok {
+		logger.Warn("Failed to retrieve OIDC name claims")
+	}
 	if !found {
 		searchUser = models.User{
+			FirstName:    firstName,
+			LastName:     lastName,
 			Email:        userInfo.Email,
 			ProviderType: models.OIDCProviderType,
 			ProviderKey:  providerKey,
@@ -103,6 +110,12 @@ func (s AuthService) OpenIDCallback(
 				http.StatusInternalServerError,
 				apierrors.CodeInternalServerError,
 			)
+		}
+	} else if ok && (searchUser.FirstName != firstName || searchUser.LastName != lastName) {
+		names := models.User{FirstName: firstName, LastName: lastName}
+		if updateErr := s.DB.Model(&searchUser).Updates(names).Error; updateErr != nil {
+			logger.Warn("Failed to set OIDC user names",
+				zap.String("user_id", searchUser.ID.String()), zap.Error(updateErr))
 		}
 	}
 
@@ -128,6 +141,24 @@ func (s AuthService) OpenIDCallback(
 	}
 
 	return s.issueOIDCSession(logger, &searchUser, providerKey)
+}
+
+func oidcNames(userInfo *oidc.UserInfo) (string, string, bool) {
+	var claims struct {
+		Name       string `json:"name"`
+		GivenName  string `json:"given_name"`
+		FamilyName string `json:"family_name"`
+	}
+	if err := userInfo.Claims(&claims); err != nil {
+		return "", "", false
+	}
+
+	given := strings.TrimSpace(claims.GivenName)
+	family := strings.TrimSpace(claims.FamilyName)
+	if given != "" || family != "" {
+		return given, family, true
+	}
+	return strings.TrimSpace(claims.Name), "", true
 }
 
 func (s AuthService) issueOIDCSession(
