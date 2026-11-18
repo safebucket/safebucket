@@ -45,6 +45,7 @@ type FileVersion struct {
 	UploadedBy   *uuid.UUID `gorm:"default:null"          json:"uploaded_by,omitempty"`
 	Uploader     *User      `gorm:"foreignKey:UploadedBy" json:"-"`
 	CleanupAfter *time.Time `gorm:"default:null"          json:"-"`
+	UploadID     string     `gorm:"not null;default:''"   json:"-"`
 	CreatedAt    time.Time  `                             json:"created_at"`
 }
 

@@ -95,7 +95,6 @@ func presignS3Upload(
 	return PresignedUpload{
 		Response: models.FileUploadResponse{Method: c.UploadMethodPut, Parts: parts},
 		UploadID: uploadID,
-		PartSize: partSize,
 	}, nil
 }
 

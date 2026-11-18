@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -9,49 +8,6 @@ import (
 
 	"github.com/safebucket/safebucket/internal/configuration"
 )
-
-type MultipartState struct {
-	UploadID string `json:"upload_id"`
-	PartSize int64  `json:"part_size"`
-}
-
-func setJSON[T any](c ICache, key string, value T, ttl time.Duration) error {
-	payload, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-	_, err = c.SetNX(key, string(payload), ttl)
-	return err
-}
-
-func getJSON[T any](c ICache, key string) (T, bool, error) {
-	var value T
-	val, err := c.Get(key)
-	if err != nil {
-		if errors.Is(err, ErrKeyNotFound) {
-			return value, false, nil
-		}
-		return value, false, err
-	}
-	if err = json.Unmarshal([]byte(val), &value); err != nil {
-		return value, false, err
-	}
-	return value, true, nil
-}
-
-func SetMultipartState(c ICache, versionID string, state MultipartState) error {
-	key := fmt.Sprintf(configuration.CacheMultipartStateKey, versionID)
-	return setJSON(c, key, state, configuration.CacheMultipartStateExpiry)
-}
-
-func GetMultipartState(c ICache, versionID string) (MultipartState, bool, error) {
-	key := fmt.Sprintf(configuration.CacheMultipartStateKey, versionID)
-	return getJSON[MultipartState](c, key)
-}
-
-func DeleteMultipartState(c ICache, versionID string) error {
-	return c.Del(fmt.Sprintf(configuration.CacheMultipartStateKey, versionID))
-}
 
 func GetMFAAttempts(c ICache, userID string) (int, error) {
 	key := fmt.Sprintf(configuration.CacheMFAAttemptsKey, userID)

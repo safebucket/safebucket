@@ -140,7 +140,6 @@ func (a *AzureStorage) presignMultipart(objectPath string, size int) PresignedUp
 	return PresignedUpload{
 		Response: models.FileUploadResponse{Method: c.UploadMethodPut, Parts: parts},
 		UploadID: azureNewUploadToken(),
-		PartSize: partSize,
 	}
 }
 

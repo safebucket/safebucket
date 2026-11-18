@@ -41,7 +41,6 @@ const (
 	CacheMFAAttemptsKey          = "mfa:attempts:%s"
 	CacheTOTPUsedKey             = "totp:used:%s:%s"
 	CacheUserSessionsKey         = "user:sessions:%s"
-	CacheMultipartStateKey       = "multipart:state:%s"
 )
 
 const (
@@ -58,8 +57,6 @@ const (
 	OutboxPollInterval = 500 * time.Millisecond
 	OutboxBatchSize    = 100
 )
-
-const CacheMultipartStateExpiry = 2 * time.Hour
 
 const (
 	EventsNotifications  = "notifications"

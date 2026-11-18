@@ -128,7 +128,7 @@ func StartWorkers(
 	cache c.ICache,
 	appIdentity string,
 ) {
-	versions := fileversions.Manager{DB: db, Storage: store, Cache: cache, MaxVersions: config.App.MaxFileVersions}
+	versions := fileversions.Manager{DB: db, Storage: store, MaxVersions: config.App.MaxFileVersions}
 	eventParams := &events.EventParams{
 		WebURL:   config.App.WebURL,
 		Notifier: notify,
@@ -448,7 +448,7 @@ func BuildAPIRouter(
 	}))
 
 	authConfig := config.App.GetAuthConfig()
-	versions := fileversions.Manager{DB: db, Storage: store, Cache: cache, MaxVersions: config.App.MaxFileVersions}
+	versions := fileversions.Manager{DB: db, Storage: store, MaxVersions: config.App.MaxFileVersions}
 
 	r.Route("/api", func(apiRouter chi.Router) {
 		apiRouter.Use(m.CSRFGuard(config.App.AllowedOrigins))

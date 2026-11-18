@@ -76,3 +76,15 @@ func FindStaleDeletingFiles(db *gorm.DB, before time.Time, limit int) ([]models.
 		Find(&files).Error
 	return files, err
 }
+
+func FindPurgeableFiles(db *gorm.DB, files []models.File) ([]models.File, error) {
+	var found []models.File
+	err := db.Unscoped().Where("id IN ? AND status = ? AND deleted_at IS NOT NULL",
+		models.FileIDs(files), models.FileStatusDeleting).Find(&found).Error
+	return found, err
+}
+
+func DeletePurgeableFiles(db *gorm.DB, files []models.File) error {
+	return db.Unscoped().Where("id IN ? AND status = ? AND deleted_at IS NOT NULL",
+		models.FileIDs(files), models.FileStatusDeleting).Delete(&models.File{}).Error
+}

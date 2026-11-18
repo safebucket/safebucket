@@ -11,6 +11,7 @@ CREATE TABLE file_versions
         status file_status NOT NULL,
         uploaded_by uuid,
         cleanup_after TIMESTAMP,
+        upload_id TEXT NOT NULL DEFAULT '',
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
         CONSTRAINT fk_file_versions_file_id

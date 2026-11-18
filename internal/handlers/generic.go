@@ -51,8 +51,7 @@ func recordError(span trace.Span, err error, status int) {
 }
 
 func resolveError(err error) (int, string) {
-	var apiErr *apierrors.APIError
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[*apierrors.APIError](err); ok {
 		return apiErr.Status, apiErr.Code
 	}
 	return http.StatusInternalServerError, apierrors.CodeInternalServerError

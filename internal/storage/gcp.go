@@ -146,7 +146,6 @@ func (g GCPStorage) PresignUpload(
 	return PresignedUpload{
 		Response: models.FileUploadResponse{Method: c.UploadMethodPut, Parts: parts},
 		UploadID: uploadID,
-		PartSize: partSize,
 	}, nil
 }
 

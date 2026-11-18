@@ -29,7 +29,6 @@ type PartInfo struct {
 type PresignedUpload struct {
 	Response models.FileUploadResponse
 	UploadID string
-	PartSize int64
 }
 
 func attachmentDisposition(filename string) string {
