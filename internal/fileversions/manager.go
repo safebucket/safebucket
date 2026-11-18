@@ -1,6 +1,10 @@
 package fileversions
 
 import (
+	"net/http"
+
+	apierrors "github.com/safebucket/safebucket/internal/errors"
+	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/storage"
 
@@ -44,4 +48,17 @@ func (m Manager) abortUpload(file models.File, version models.FileVersion) error
 
 func isCurrent(file models.File, versionID uuid.UUID) bool {
 	return file.CurrentVersionID != nil && *file.CurrentVersionID == versionID
+}
+
+func checkShareUpload(db *gorm.DB, share *models.Share, file models.File) error {
+	if share == nil {
+		return nil
+	}
+	if !share.AllowUpload {
+		return apierrors.New(http.StatusForbidden, apierrors.CodeShareUploadNotAllowed)
+	}
+	if !helpers.IsFileInShare(db, *share, file.ID, file) {
+		return apierrors.New(http.StatusForbidden, apierrors.CodeShareFileNotInShare)
+	}
+	return nil
 }

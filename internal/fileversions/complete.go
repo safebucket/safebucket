@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
-	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
@@ -23,9 +22,11 @@ func (m Manager) Complete(logger *zap.Logger, bucketID, fileID, versionID uuid.U
 	if err != nil {
 		return Completion{}, err
 	}
+
 	if err = checkShareUpload(m.DB, share, file); err != nil {
 		return Completion{}, err
 	}
+
 	version, err := completableVersion(m.DB, file, versionID)
 	if err != nil || version.Status == models.FileStatusUploaded {
 		return Completion{}, err
@@ -145,19 +146,6 @@ func (m Manager) finishStorage(
 			zap.String("version_id", version.ID.String()),
 		)
 		return apierrors.New(http.StatusInternalServerError, apierrors.CodeMultipartCompleteFailed)
-	}
-	return nil
-}
-
-func checkShareUpload(db *gorm.DB, share *models.Share, file models.File) error {
-	if share == nil {
-		return nil
-	}
-	if !share.AllowUpload {
-		return apierrors.New(http.StatusForbidden, apierrors.CodeShareUploadNotAllowed)
-	}
-	if !helpers.IsFileInShare(db, *share, file.ID, file) {
-		return apierrors.New(http.StatusForbidden, apierrors.CodeShareFileNotInShare)
 	}
 	return nil
 }

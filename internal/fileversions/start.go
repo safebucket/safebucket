@@ -63,8 +63,8 @@ func reserve(tx *gorm.DB, bucketID uuid.UUID, body models.FileUploadBody,
 	if err != nil {
 		return models.File{}, models.FileVersion{}, err
 	}
-	if share != nil && !helpers.IsFileInShare(tx, *share, file.ID, file) {
-		return file, models.FileVersion{}, apierrors.New(http.StatusForbidden, apierrors.CodeShareFileNotInShare)
+	if err = checkShareUpload(tx, share, file); err != nil {
+		return file, models.FileVersion{}, err
 	}
 
 	var pending int64
