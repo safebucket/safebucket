@@ -129,7 +129,7 @@ func newGCWorker(db *gorm.DB, store storage.IStorage) *GarbageCollectorWorker {
 		DB:       db,
 		Storage:  store,
 		Cache:    memoryCache,
-		Versions: fileversions.Manager{DB: db, Storage: store, Cache: memoryCache},
+		Versions: fileversions.Manager{DB: db, Storage: store},
 	}
 }
 
@@ -144,9 +144,8 @@ func expireStaleUploads(t *testing.T, worker *GarbageCollectorWorker) int {
 
 func setUploadID(t *testing.T, worker *GarbageCollectorWorker, versionID uuid.UUID, uploadID string) {
 	t.Helper()
-	require.NoError(t, cache.SetMultipartState(worker.Cache, versionID.String(), cache.MultipartState{
-		UploadID: uploadID, PartSize: 32 * 1024 * 1024,
-	}))
+	require.NoError(t, worker.DB.Model(&models.FileVersion{}).Where("id = ?", versionID).
+		Update("upload_id", uploadID).Error)
 }
 
 func TestCleanupStaleUploads(t *testing.T) {

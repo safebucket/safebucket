@@ -282,11 +282,13 @@ func (s BucketService) DeleteBucket(
 	ids uuid.UUIDs,
 ) error {
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		bucket := models.Bucket{}
-		result := tx.Where("id = ?", ids[0]).First(&bucket)
+		if err := sql.LockBucketFileNames(tx, ids[0]); err != nil {
+			return err
+		}
 
-		if result.RowsAffected == 0 {
-			return apierrors.New(http.StatusNotFound, apierrors.CodeBucketNotFound)
+		bucket := models.Bucket{}
+		if err := tx.Where("id = ?", ids[0]).First(&bucket).Error; err != nil {
+			return err
 		}
 
 		if _, err := gorm.G[models.Bucket](tx).Where("id = ?", bucket.ID).Delete(context.Background()); err != nil {
@@ -320,7 +322,7 @@ func (s BucketService) DeleteBucket(
 	})
 	if err != nil {
 		logger.Error("Failed to delete bucket", zap.Error(err))
-		return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
+		return apierrors.OrNew(err, http.StatusInternalServerError, apierrors.CodeDeleteFailed)
 	}
 
 	return nil

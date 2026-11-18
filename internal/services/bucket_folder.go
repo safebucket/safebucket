@@ -123,10 +123,7 @@ func (s BucketFolderService) CreateFolder(
 		return nil
 	})
 	if err != nil {
-		if apiErr, ok := errors.AsType[*apierrors.APIError](err); ok {
-			return models.Folder{}, apiErr
-		}
-		return models.Folder{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
+		return models.Folder{}, apierrors.OrNew(err, http.StatusInternalServerError, apierrors.CodeCreateFailed)
 	}
 
 	return folder, nil

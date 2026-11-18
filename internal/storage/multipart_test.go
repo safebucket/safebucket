@@ -41,16 +41,16 @@ func (s *stubStorage) GetBucketName() string                        { return "" 
 func TestFinalizeMultipartUpload(t *testing.T) {
 	const mib = int64(1 << 20)
 	const testUploadID = "upload-1"
-	const testPartSize = int64(1 << 25) // 32 MiB
+	partSize := c.MultipartPartSize
 
 	t.Run("missing part", func(t *testing.T) {
 		store := &stubStorage{
 			listObjectPartsFn: func(string, string) ([]PartInfo, error) {
-				return []PartInfo{{PartNumber: 1, Size: 32 * mib}}, nil
+				return []PartInfo{{PartNumber: 1, Size: partSize}}, nil
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib+1, nil)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, partSize+1, nil)
 		assert.ErrorIs(t, err, ErrMultipartPartMismatch)
 	})
 
@@ -58,13 +58,13 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 		store := &stubStorage{
 			listObjectPartsFn: func(string, string) ([]PartInfo, error) {
 				return []PartInfo{
-					{PartNumber: 1, Size: 31 * mib},
-					{PartNumber: 2, Size: 32 * mib},
+					{PartNumber: 1, Size: partSize - mib},
+					{PartNumber: 2, Size: partSize},
 				}, nil
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 64*mib, nil)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, 2*partSize, nil)
 		assert.ErrorIs(t, err, ErrMultipartPartMismatch)
 	})
 
@@ -72,13 +72,13 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 		store := &stubStorage{
 			listObjectPartsFn: func(string, string) ([]PartInfo, error) {
 				return []PartInfo{
-					{PartNumber: 1, Size: 32 * mib},
+					{PartNumber: 1, Size: partSize},
 					{PartNumber: 2, Size: 2}, // expected remainder is 1 byte
 				}, nil
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib+1, nil)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, partSize+1, nil)
 		assert.ErrorIs(t, err, ErrMultipartPartMismatch)
 	})
 
@@ -89,7 +89,7 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib, nil)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, partSize, nil)
 		require.Error(t, err)
 		assert.NotErrorIs(t, err, ErrMultipartPartMismatch)
 	})
@@ -97,14 +97,14 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 	t.Run("complete storage error", func(t *testing.T) {
 		store := &stubStorage{
 			listObjectPartsFn: func(string, string) ([]PartInfo, error) {
-				return []PartInfo{{PartNumber: 1, Size: 32 * mib}}, nil
+				return []PartInfo{{PartNumber: 1, Size: partSize}}, nil
 			},
 			completeMultipartFn: func(string, string, []PartInfo) error {
 				return assert.AnError
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib, nil)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, partSize, nil)
 		require.Error(t, err)
 		assert.NotErrorIs(t, err, ErrMultipartPartMismatch)
 	})
@@ -114,7 +114,7 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 		store := &stubStorage{
 			listObjectPartsFn: func(string, string) ([]PartInfo, error) {
 				return []PartInfo{
-					{PartNumber: 1, Size: 32 * mib},
+					{PartNumber: 1, Size: partSize},
 					{PartNumber: 2, Size: 1},
 				}, nil
 			},
@@ -126,7 +126,7 @@ func TestFinalizeMultipartUpload(t *testing.T) {
 			},
 		}
 
-		err := FinalizeMultipartUpload(store, "path", testUploadID, testPartSize, 32*mib+1, nil)
+		err := FinalizeMultipartUpload(store, "path", testUploadID, partSize+1, nil)
 		require.NoError(t, err)
 		assert.True(t, completed)
 	})
