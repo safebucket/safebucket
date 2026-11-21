@@ -3,6 +3,7 @@ package services
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
@@ -25,136 +26,106 @@ func (s BucketFileCommentService) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Use(m.AuthorizeGroup(s.DB, models.GroupViewer, 0))
 
-	r.Get("/", handlers.GetOneHandler(s.GetConversation))
-	r.With(m.Validate[models.FileCommentCreateBody]).
+	r.Get("/", handlers.GetListHandler(s.GetComments))
+	r.With(m.Validate[models.FileCommentBody]).
 		Post("/", handlers.CreateHandler(s.CreateComment))
 
-	r.With(m.Validate[models.FileCommentUpdateBody]).
+	r.With(m.Validate[models.FileCommentBody]).
 		Patch("/{id2}", handlers.BodyHandler(s.UpdateComment))
 	r.Delete("/{id2}", handlers.DeleteHandler(s.DeleteComment))
 
 	return r
 }
 
-func (s BucketFileCommentService) GetConversation(
+func (s BucketFileCommentService) GetComments(
 	logger *zap.Logger,
-	user models.UserClaims,
+	_ models.UserClaims,
 	ids uuid.UUIDs,
-) (models.FileConversationResponse, error) {
-	bucketID, fileID := ids[0], ids[1]
-	file, err := sql.GetFileByID(s.DB, bucketID, fileID)
+) []models.FileCommentResponse {
+	file, err := s.getFile(ids[0], ids[1])
 	if err != nil {
-		return models.FileConversationResponse{}, err
-	}
-	if err = sql.CheckFileCommentable(file); err != nil {
-		return models.FileConversationResponse{}, err
+		logger.Warn("Failed to load file for comment listing", zap.Error(err))
+		return []models.FileCommentResponse{}
 	}
 
-	group, err := s.viewerGroup(user, bucketID)
-	if err != nil {
-		return models.FileConversationResponse{}, err
-	}
-
-	members, err := sql.ListActiveMemberIDs(s.DB, bucketID)
-	if err != nil {
-		logger.Error("Failed to list active bucket members", zap.Error(err))
-		return models.FileConversationResponse{}, apierrors.New(
-			http.StatusInternalServerError,
-			apierrors.CodeFetchFailed,
-		)
-	}
-
-	comments, err := sql.ListFileComments(s.DB, fileID)
+	comments, err := sql.ListFileComments(s.DB, file.ID)
 	if err != nil {
 		logger.Error("Failed to list file comments", zap.Error(err))
-		return models.FileConversationResponse{}, apierrors.New(
-			http.StatusInternalServerError,
-			apierrors.CodeFetchFailed,
-		)
+		return []models.FileCommentResponse{}
 	}
 
-	messages := make([]models.FileCommentResponse, 0, len(comments))
+	response := make([]models.FileCommentResponse, 0, len(comments))
 	for _, comment := range comments {
-		mine := comment.UserID != nil && *comment.UserID == user.UserID
-		message := models.FileCommentResponse{
-			ID:        comment.ID,
-			Body:      comment.Body,
-			Version:   comment.Version,
-			CanEdit:   mine,
-			CanDelete: mine || group == models.GroupOwner,
-			CreatedAt: comment.CreatedAt,
-			UpdatedAt: comment.UpdatedAt,
-		}
+		var author *models.UserInfo
 		if comment.User != nil {
 			info := comment.User.ToActivity()
-			message.User = &info
-			message.UserActive = members[comment.User.ID]
+			author = &info
 		}
-		messages = append(messages, message)
+		response = append(response, models.FileCommentResponse{
+			ID:        comment.ID,
+			User:      author,
+			Body:      comment.Body,
+			Version:   comment.Version,
+			CreatedAt: comment.CreatedAt,
+			UpdatedAt: comment.UpdatedAt,
+		})
 	}
 
-	return models.FileConversationResponse{Messages: messages}, nil
+	return response
 }
 
 func (s BucketFileCommentService) CreateComment(
 	logger *zap.Logger,
 	user models.UserClaims,
 	ids uuid.UUIDs,
-	body models.FileCommentCreateBody,
-) (models.FileCommentCreateResponse, error) {
-	text, err := s.cleanBody(body.Body)
+	body models.FileCommentBody,
+) (models.FileCommentResponse, error) {
+	file, err := s.getFile(ids[0], ids[1])
 	if err != nil {
-		return models.FileCommentCreateResponse{}, err
+		return models.FileCommentResponse{}, err
+	}
+	if file.CurrentVersionID == nil {
+		return models.FileCommentResponse{}, apierrors.New(http.StatusConflict, apierrors.CodeFileUploadInProgress)
 	}
 
-	var comment models.FileComment
-	err = s.DB.Transaction(func(tx *gorm.DB) error {
-		file, txErr := sql.LockFile(tx, ids[0], ids[1])
-		if txErr != nil {
-			return txErr
-		}
-		if txErr = sql.CheckFileCommentable(file); txErr != nil {
-			return txErr
-		}
-		if file.CurrentVersionID == nil {
-			return apierrors.New(http.StatusConflict, apierrors.CodeFileUploadInProgress)
-		}
-
-		version, txErr := sql.GetFileVersionByID(tx, file.ID, *file.CurrentVersionID)
-		if txErr != nil {
-			return txErr
-		}
-
-		comment = models.FileComment{
-			FileID:  file.ID,
-			UserID:  &user.UserID,
-			Body:    text,
-			Version: version.Version,
-		}
-		if txErr = tx.Omit("User").Create(&comment).Error; txErr != nil {
-			logger.Error("Failed to create comment", zap.Error(txErr))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
-		}
-		return nil
-	})
+	version, err := sql.GetFileVersionByID(s.DB, file.ID, *file.CurrentVersionID)
 	if err != nil {
-		return models.FileCommentCreateResponse{}, err
+		return models.FileCommentResponse{}, err
 	}
 
-	return models.FileCommentCreateResponse{ID: comment.ID}, nil
+	author, err := sql.GetUserByID(s.DB, user.UserID)
+	if err != nil {
+		return models.FileCommentResponse{}, err
+	}
+
+	comment := models.FileComment{
+		FileID:  file.ID,
+		UserID:  &user.UserID,
+		Body:    strings.TrimSpace(body.Body),
+		Version: version.Version,
+	}
+	if err = s.DB.Omit("User").Create(&comment).Error; err != nil {
+		logger.Error("Failed to create comment", zap.Error(err))
+		return models.FileCommentResponse{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
+	}
+
+	info := author.ToActivity()
+	return models.FileCommentResponse{
+		ID:        comment.ID,
+		User:      &info,
+		Body:      comment.Body,
+		Version:   comment.Version,
+		CreatedAt: comment.CreatedAt,
+		UpdatedAt: comment.UpdatedAt,
+	}, nil
 }
 
 func (s BucketFileCommentService) UpdateComment(
 	logger *zap.Logger,
 	user models.UserClaims,
 	ids uuid.UUIDs,
-	body models.FileCommentUpdateBody,
+	body models.FileCommentBody,
 ) error {
-	text, err := s.cleanBody(body.Body)
-	if err != nil {
-		return err
-	}
-
 	comment, err := s.getComment(ids)
 	if err != nil {
 		return err
@@ -162,6 +133,8 @@ func (s BucketFileCommentService) UpdateComment(
 	if comment.UserID == nil || *comment.UserID != user.UserID {
 		return apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
+
+	text := strings.TrimSpace(body.Body)
 	if comment.Body == text {
 		return nil
 	}
@@ -188,13 +161,16 @@ func (s BucketFileCommentService) DeleteComment(
 		return err
 	}
 
-	group, err := s.viewerGroup(user, ids[0])
-	if err != nil {
-		return err
-	}
 	mine := comment.UserID != nil && *comment.UserID == user.UserID
-	if !mine && group != models.GroupOwner {
-		return apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
+	if !mine && user.Role != models.RoleAdmin {
+		owner, accessErr := rbac.HasBucketAccess(s.DB, user.UserID, ids[0], models.GroupOwner)
+		if accessErr != nil {
+			logger.Error("Failed to check bucket access", zap.Error(accessErr))
+			return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
+		}
+		if !owner {
+			return apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
+		}
 	}
 
 	if err = s.DB.Where("id = ?", comment.ID).Delete(&models.FileComment{}).Error; err != nil {
@@ -205,42 +181,23 @@ func (s BucketFileCommentService) DeleteComment(
 	return nil
 }
 
-// viewerGroup returns the caller's group in the bucket. Admins are treated as owners.
-func (s BucketFileCommentService) viewerGroup(user models.UserClaims, bucketID uuid.UUID) (models.Group, error) {
-	if user.Role == models.RoleAdmin {
-		return models.GroupOwner, nil
-	}
-
-	membership, err := rbac.GetUserMembership(s.DB, user.UserID, bucketID)
+func (s BucketFileCommentService) getFile(bucketID, fileID uuid.UUID) (models.File, error) {
+	file, err := sql.GetFileByID(s.DB.Unscoped(), bucketID, fileID)
 	if err != nil {
-		return "", err
+		return models.File{}, err
 	}
-	if membership == nil {
-		return "", apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
+	if file.ExpiresAt != nil && !file.ExpiresAt.After(time.Now()) {
+		return models.File{}, apierrors.New(http.StatusForbidden, apierrors.CodeFileExpired)
 	}
 
-	return membership.Group, nil
+	return file, nil
 }
 
 func (s BucketFileCommentService) getComment(ids uuid.UUIDs) (models.FileComment, error) {
-	file, err := sql.GetFileByID(s.DB, ids[0], ids[1])
+	file, err := s.getFile(ids[0], ids[1])
 	if err != nil {
 		return models.FileComment{}, err
 	}
-	if err = sql.CheckFileCommentable(file); err != nil {
-		return models.FileComment{}, err
-	}
 
-	return sql.GetFileComment(s.DB, ids[1], ids[2])
-}
-
-func (s BucketFileCommentService) cleanBody(raw string) (string, error) {
-	text := strings.TrimSpace(raw)
-	if text == "" {
-		return "", apierrors.New(http.StatusBadRequest, apierrors.CodeFieldRequired)
-	}
-	if strings.ContainsRune(text, 0) {
-		return "", apierrors.New(http.StatusBadRequest, apierrors.CodeInvalidValue)
-	}
-	return text, nil
+	return sql.GetFileComment(s.DB, file.ID, ids[2])
 }

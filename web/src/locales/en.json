@@ -72,7 +72,8 @@
     "FILE_VERSION_NOT_RESTORABLE": "This version cannot be restored. Refresh the version history.",
     "FILE_VERSION_NOT_DELETABLE": "This version cannot be deleted. Refresh the version history.",
     "COMMENT_NOT_FOUND": "This message no longer exists.",
-    "FILE_NOT_FOUND": "This file is no longer available."
+    "FILE_NOT_FOUND": "This file is no longer available.",
+    "FILE_EXPIRED": "This file has expired."
   },
   "toast": {
     "download_started": "Download started for file {{filename}}",

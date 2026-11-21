@@ -72,7 +72,8 @@
     "FILE_VERSION_NOT_RESTORABLE": "Diese Version kann nicht wiederhergestellt werden. Aktualisieren Sie den Versionsverlauf.",
     "FILE_VERSION_NOT_DELETABLE": "Diese Version kann nicht gelöscht werden. Aktualisieren Sie den Versionsverlauf.",
     "COMMENT_NOT_FOUND": "Diese Nachricht existiert nicht mehr.",
-    "FILE_NOT_FOUND": "Diese Datei ist nicht mehr verfügbar."
+    "FILE_NOT_FOUND": "Diese Datei ist nicht mehr verfügbar.",
+    "FILE_EXPIRED": "Diese Datei ist abgelaufen."
   },
   "toast": {
     "download_started": "Starte Download von {{filename}}",

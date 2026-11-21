@@ -72,6 +72,11 @@ func validateShareID(value string) bool {
 	return allowedShareID.MatchString(value)
 }
 
+func validateCommentBody(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	return strings.TrimSpace(value) != "" && !strings.ContainsRune(value, 0)
+}
+
 func validationErrorCode(fe validator.FieldError) string {
 	switch fe.Tag() {
 	case "required", "required_if", "required_with":
@@ -117,6 +122,7 @@ func Validate[T any](next http.Handler) http.Handler {
 		_ = validate.RegisterValidation("maxuploadsize", validateMaxUploadSize)
 		_ = validate.RegisterValidation("futuredate", validateFutureDate)
 		_ = validate.RegisterValidation("sharecustomid", validateShareCustomID)
+		_ = validate.RegisterValidation("commentbody", validateCommentBody)
 
 		err = validate.Struct(data)
 		if err != nil {
