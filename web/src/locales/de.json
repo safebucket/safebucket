@@ -1137,5 +1137,19 @@
     "delete_description": "Diese Version von {{filename}} endgültig löschen. Dies kann nicht rückgängig gemacht werden.",
     "restored": "Version wiederhergestellt.",
     "deleted": "Version gelöscht."
+  },
+  "file_comments": {
+    "title": "Kommentare",
+    "see_comments": "Kommentare anzeigen",
+    "open_preview": "Vorschau öffnen",
+    "count_one": "{{count}} Kommentar",
+    "count_other": "{{count}} Kommentare",
+    "empty": "Noch keine Kommentare",
+    "placeholder": "Kommentar schreiben",
+    "submit": "Kommentieren",
+    "options": "Kommentaroptionen",
+    "delete_title": "Diesen Kommentar löschen?",
+    "delete_description": "Dies kann nicht rückgängig gemacht werden.",
+    "deleted_user": "Gelöschter Benutzer"
   }
 }

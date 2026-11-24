@@ -1137,5 +1137,19 @@
     "delete_description": "Permanently delete this version of {{filename}}. This cannot be undone.",
     "restored": "Version restored.",
     "deleted": "Version deleted."
+  },
+  "file_comments": {
+    "title": "Comments",
+    "see_comments": "See comments",
+    "open_preview": "Open preview",
+    "count_one": "{{count}} comment",
+    "count_other": "{{count}} comments",
+    "empty": "No comments yet",
+    "placeholder": "Leave a comment",
+    "submit": "Comment",
+    "options": "Comment options",
+    "delete_title": "Delete this comment?",
+    "delete_description": "This cannot be undone.",
+    "deleted_user": "Deleted user"
   }
 }

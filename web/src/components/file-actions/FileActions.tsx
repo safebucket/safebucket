@@ -1,6 +1,13 @@
 import { useTranslation } from "react-i18next";
 
-import { Download, Eye, History, Share2, Trash2 } from "lucide-react";
+import {
+  Download,
+  Eye,
+  History,
+  MessageSquare,
+  Share2,
+  Trash2,
+} from "lucide-react";
 import { useParams } from "@tanstack/react-router";
 import type { FC, ReactNode } from "react";
 
@@ -12,6 +19,7 @@ import { useOpenBucketItem } from "@/components/bucket-view/hooks/useOpenBucketI
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { useConfig } from "@/hooks/useConfig";
 import { FileVersionsDialog } from "@/components/file-actions/components/FileVersionsDialog";
+import { FileCommentsDrawer } from "@/components/file-comments/FileCommentsDrawer";
 import { useFileActions } from "@/components/file-actions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
@@ -53,6 +61,7 @@ export const FileActions: FC<IFileActionsProps> = ({
   const deleteFileDialog = useDialog();
   const shareDialog = useDialog();
   const versionsDialog = useDialog();
+  const commentsDrawer = useDialog();
 
   const Menu = type === "context" ? ContextMenu : DropdownMenu;
   const MenuTrigger =
@@ -96,6 +105,12 @@ export const FileActions: FC<IFileActionsProps> = ({
               {t("file_versions.title")}
             </MenuItem>
           )}
+          {isFile(file) && file.status === FileStatus.uploaded && (
+            <MenuItem onClick={commentsDrawer.trigger}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              {t("file_comments.see_comments")}
+            </MenuItem>
+          )}
           {isOwner && canShare && (
             <MenuItem onClick={shareDialog.trigger}>
               <Share2 className="mr-2 h-4 w-4" />
@@ -122,6 +137,13 @@ export const FileActions: FC<IFileActionsProps> = ({
           bucketId={bucketId}
           file={file}
           canManage={isContributor}
+        />
+      )}
+      {isFile(file) && commentsDrawer.props.open && (
+        <FileCommentsDrawer
+          {...commentsDrawer.props}
+          bucketId={bucketId}
+          file={file}
         />
       )}
       {isOwner && (

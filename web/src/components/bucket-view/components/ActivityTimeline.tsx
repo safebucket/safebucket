@@ -2,7 +2,7 @@ import { Link2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FC } from "react";
 import type { IActivity } from "@/types/activity.ts";
-import { getUserDisplayName } from "@/types/user.ts";
+import { getUserDisplayName, getUserInitials } from "@/types/user.ts";
 import {
   formatMessage,
   getActivityMapping,
@@ -53,7 +53,7 @@ export const ActivityTimeline: FC<IActivityTimelineProps> = ({
               <Avatar className="size-8">
                 <AvatarFallback>
                   {item.user ? (
-                    item.user.email.charAt(0).toUpperCase()
+                    getUserInitials(item.user)
                   ) : (
                     <Link2 className="h-4 w-4" />
                   )}

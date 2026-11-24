@@ -24,7 +24,7 @@ export const PDFPreview = ({ url }: IPDFPreviewProps) => {
   const [numPages, setNumPages] = useState<number>();
 
   return (
-    <div className="flex h-[70vh] w-full flex-col">
+    <div className="flex h-full w-full flex-col">
       <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-4">
         <Document
           file={url}
