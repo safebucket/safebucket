@@ -70,7 +70,10 @@
     "FILE_VERSION_NOT_FOUND": "Cette version n’existe plus. Actualisez l’historique des versions.",
     "FILE_VERSION_IS_CURRENT": "La version actuelle ne peut pas être supprimée.",
     "FILE_VERSION_NOT_RESTORABLE": "Cette version ne peut pas être restaurée. Actualisez l’historique des versions.",
-    "FILE_VERSION_NOT_DELETABLE": "Cette version ne peut pas être supprimée. Actualisez l’historique des versions."
+    "FILE_VERSION_NOT_DELETABLE": "Cette version ne peut pas être supprimée. Actualisez l’historique des versions.",
+    "COMMENT_NOT_FOUND": "Ce message n'existe plus.",
+    "FILE_NOT_FOUND": "Ce fichier n'est plus disponible.",
+    "FILE_EXPIRED": "Ce fichier a expiré."
   },
   "toast": {
     "download_started": "Téléchargement démarré pour le fichier {{filename}}",

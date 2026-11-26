@@ -16,3 +16,16 @@ type FileComment struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type FileCommentBody struct {
+	Body string `json:"body" validate:"required,max=2000,commentbody"`
+}
+
+type FileCommentResponse struct {
+	ID        uuid.UUID `json:"id"`
+	User      *UserInfo `json:"user,omitempty"`
+	Body      string    `json:"body"`
+	Version   int       `json:"version"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
