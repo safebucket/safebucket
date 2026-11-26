@@ -2,7 +2,6 @@ package services
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
@@ -101,7 +100,7 @@ func (s BucketFileCommentService) CreateComment(
 	comment := models.FileComment{
 		FileID:  file.ID,
 		UserID:  &user.UserID,
-		Body:    strings.TrimSpace(body.Body),
+		Body:    body.Body,
 		Version: version.Version,
 	}
 	if err = s.DB.Omit("User").Create(&comment).Error; err != nil {
@@ -134,18 +133,9 @@ func (s BucketFileCommentService) UpdateComment(
 		return apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
-	text := strings.TrimSpace(body.Body)
-	if comment.Body == text {
-		return nil
-	}
-
-	result := s.DB.Model(&models.FileComment{}).Where("id = ?", comment.ID).Update("body", text)
-	if result.Error != nil {
-		logger.Error("Failed to update comment", zap.Error(result.Error))
+	if err = s.DB.Model(&comment).Update("body", body.Body).Error; err != nil {
+		logger.Error("Failed to update comment", zap.Error(err))
 		return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
-	}
-	if result.RowsAffected == 0 {
-		return apierrors.New(http.StatusNotFound, apierrors.CodeCommentNotFound)
 	}
 
 	return nil
