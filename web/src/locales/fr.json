@@ -1145,5 +1145,19 @@
     "delete_description": "Supprimer définitivement cette version de {{filename}}. Cette action est irréversible.",
     "restored": "Version restaurée.",
     "deleted": "Version supprimée."
+  },
+  "file_comments": {
+    "title": "Commentaires",
+    "see_comments": "Voir les commentaires",
+    "open_preview": "Ouvrir l'aperçu",
+    "count_one": "{{count}} commentaire",
+    "count_other": "{{count}} commentaires",
+    "empty": "Aucun commentaire",
+    "placeholder": "Laisser un commentaire",
+    "submit": "Commenter",
+    "options": "Options du commentaire",
+    "delete_title": "Supprimer ce commentaire ?",
+    "delete_description": "Cette action est irréversible.",
+    "deleted_user": "Utilisateur supprimé"
   }
 }
