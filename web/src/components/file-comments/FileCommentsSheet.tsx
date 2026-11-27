@@ -8,35 +8,37 @@ import { useOpenBucketItem } from "@/components/bucket-view/hooks/useOpenBucketI
 import { FileCommentsPanel } from "@/components/file-comments/FileCommentsPanel";
 import { Button } from "@/components/ui/button";
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { formatFileSize } from "@/lib/utils";
 import { fileCommentsQueryOptions } from "@/queries/file-comments";
 
-interface IFileCommentsDrawerProps {
+interface IFileCommentsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bucketId: string;
   file: IFile;
 }
 
-export const FileCommentsDrawer: FC<IFileCommentsDrawerProps> = ({
+export const FileCommentsSheet: FC<IFileCommentsSheetProps> = ({
   open,
   onOpenChange,
   bucketId,
   file,
-}: IFileCommentsDrawerProps) => {
+}: IFileCommentsSheetProps) => {
   const { t } = useTranslation();
   const openItem = useOpenBucketItem();
-  const comments = useQuery(fileCommentsQueryOptions(bucketId, file.id));
-  const direction = window.matchMedia("(min-width: 768px)").matches
-    ? "right"
-    : "bottom";
+  const isMobile = useIsMobile();
+  const comments = useQuery({
+    ...fileCommentsQueryOptions(bucketId, file.id),
+    enabled: open,
+  });
 
   const openPreview = () => {
     onOpenChange(false);
@@ -44,21 +46,25 @@ export const FileCommentsDrawer: FC<IFileCommentsDrawerProps> = ({
   };
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} direction={direction}>
-      <DrawerContent className="p-2 data-[vaul-drawer-direction=bottom]:h-[85dvh] data-[vaul-drawer-direction=bottom]:max-h-[85dvh] data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:sm:max-w-md">
-        <DrawerHeader className="gap-3 border-b p-4 text-left md:gap-3">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side={isMobile ? "bottom" : "right"}
+        showCloseButton={false}
+        className="gap-0 data-[side=bottom]:h-[85dvh] data-[side=right]:w-full data-[side=right]:sm:max-w-md"
+      >
+        <SheetHeader className="gap-3 border-b p-4">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <DrawerTitle className="truncate" title={file.name}>
+              <SheetTitle className="truncate" title={file.name}>
                 {file.name}
-              </DrawerTitle>
-              <DrawerDescription>
+              </SheetTitle>
+              <SheetDescription>
                 {formatFileSize(file.size)}
                 {comments.isSuccess &&
                   ` · ${t("file_comments.count", { count: comments.data.length })}`}
-              </DrawerDescription>
+              </SheetDescription>
             </div>
-            <DrawerClose asChild>
+            <SheetClose asChild>
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -67,15 +73,15 @@ export const FileCommentsDrawer: FC<IFileCommentsDrawerProps> = ({
               >
                 <XIcon />
               </Button>
-            </DrawerClose>
+            </SheetClose>
           </div>
           <Button variant="outline" onClick={openPreview}>
             <Maximize2 />
             {t("file_comments.open_preview")}
           </Button>
-        </DrawerHeader>
+        </SheetHeader>
         <FileCommentsPanel bucketId={bucketId} fileId={file.id} />
-      </DrawerContent>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
   );
 };

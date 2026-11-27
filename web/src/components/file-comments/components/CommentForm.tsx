@@ -51,6 +51,7 @@ export const CommentForm: FC<ICommentFormProps> = ({
       <Textarea
         value={value}
         placeholder={placeholder}
+        maxLength={2000}
         className="max-h-40"
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={handleKeyDown}

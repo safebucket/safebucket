@@ -19,7 +19,7 @@ import { useOpenBucketItem } from "@/components/bucket-view/hooks/useOpenBucketI
 import { useBucketPermissions } from "@/hooks/usePermissions";
 import { useConfig } from "@/hooks/useConfig";
 import { FileVersionsDialog } from "@/components/file-actions/components/FileVersionsDialog";
-import { FileCommentsDrawer } from "@/components/file-comments/FileCommentsDrawer";
+import { FileCommentsSheet } from "@/components/file-comments/FileCommentsSheet";
 import { useFileActions } from "@/components/file-actions/hooks/useFileActions";
 import { CustomAlertDialog } from "@/components/dialogs/components/CustomAlertDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
@@ -61,7 +61,7 @@ export const FileActions: FC<IFileActionsProps> = ({
   const deleteFileDialog = useDialog();
   const shareDialog = useDialog();
   const versionsDialog = useDialog();
-  const commentsDrawer = useDialog();
+  const commentsSheet = useDialog();
 
   const Menu = type === "context" ? ContextMenu : DropdownMenu;
   const MenuTrigger =
@@ -106,7 +106,7 @@ export const FileActions: FC<IFileActionsProps> = ({
             </MenuItem>
           )}
           {isFile(file) && file.status === FileStatus.uploaded && (
-            <MenuItem onClick={commentsDrawer.trigger}>
+            <MenuItem onClick={commentsSheet.trigger}>
               <MessageSquare className="mr-2 h-4 w-4" />
               {t("file_comments.see_comments")}
             </MenuItem>
@@ -139,9 +139,9 @@ export const FileActions: FC<IFileActionsProps> = ({
           canManage={isContributor}
         />
       )}
-      {isFile(file) && commentsDrawer.props.open && (
-        <FileCommentsDrawer
-          {...commentsDrawer.props}
+      {isFile(file) && file.status === FileStatus.uploaded && (
+        <FileCommentsSheet
+          {...commentsSheet.props}
           bucketId={bucketId}
           file={file}
         />
