@@ -111,8 +111,18 @@ func (s BucketFileCommentService) CreateComment(
 			return createErr
 		}
 
-		entry := s.commentActivity(activity.FileCommentCreated, rbac.ActionCreate, file, comment.ID, user.UserID)
-		if logErr := outbox.AddActivities(tx, entry); logErr != nil {
+		if logErr := outbox.AddActivities(tx, models.Activity{
+			Message: activity.FileCommentCreated,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionCreate.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				CommentID:  comment.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     user.UserID.String(),
+			}),
+		}); logErr != nil {
 			logger.Error("Failed to log comment creation activity", zap.Error(logErr))
 			return logErr
 		}
@@ -148,14 +158,28 @@ func (s BucketFileCommentService) UpdateComment(
 		return apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
+	previousBody := comment.Body
 	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		if updateErr := tx.Model(&comment).Update("body", body.Body).Error; updateErr != nil {
 			logger.Error("Failed to update comment", zap.Error(updateErr))
 			return updateErr
 		}
 
-		entry := s.commentActivity(activity.FileCommentUpdated, rbac.ActionUpdate, file, comment.ID, user.UserID)
-		if logErr := outbox.AddActivities(tx, entry); logErr != nil {
+		if logErr := outbox.AddActivities(tx, models.Activity{
+			Message: activity.FileCommentUpdated,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionUpdate.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				CommentID:  comment.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     user.UserID.String(),
+			}),
+			Changes: map[string]models.ActivityChange{
+				"body": {From: previousBody, To: body.Body},
+			},
+		}); logErr != nil {
 			logger.Error("Failed to log comment update activity", zap.Error(logErr))
 			return logErr
 		}
@@ -197,8 +221,21 @@ func (s BucketFileCommentService) DeleteComment(
 			return deleteErr
 		}
 
-		entry := s.commentActivity(activity.FileCommentDeleted, rbac.ActionDelete, file, comment.ID, user.UserID)
-		if logErr := outbox.AddActivities(tx, entry); logErr != nil {
+		if logErr := outbox.AddActivities(tx, models.Activity{
+			Message: activity.FileCommentDeleted,
+			Object:  file.ToActivity(),
+			Filter: activity.NewLogFilter(models.ActivityFields{
+				Action:     rbac.ActionDelete.String(),
+				BucketID:   file.BucketID.String(),
+				FileID:     file.ID.String(),
+				CommentID:  comment.ID.String(),
+				ObjectType: rbac.ResourceFile.String(),
+				UserID:     user.UserID.String(),
+			}),
+			Changes: map[string]models.ActivityChange{
+				"body": {From: comment.Body},
+			},
+		}); logErr != nil {
 			logger.Error("Failed to log comment deletion activity", zap.Error(logErr))
 			return logErr
 		}
@@ -236,24 +273,4 @@ func (s BucketFileCommentService) getComment(ids uuid.UUIDs) (models.File, model
 	}
 
 	return file, comment, nil
-}
-
-func (s BucketFileCommentService) commentActivity(
-	message string,
-	action rbac.Action,
-	file models.File,
-	commentID, userID uuid.UUID,
-) models.Activity {
-	return models.Activity{
-		Message: message,
-		Object:  file.ToActivity(),
-		Filter: activity.NewLogFilter(models.ActivityFields{
-			Action:     action.String(),
-			ObjectType: rbac.ResourceFile.String(),
-			UserID:     userID.String(),
-			BucketID:   file.BucketID.String(),
-			FileID:     file.ID.String(),
-			CommentID:  commentID.String(),
-		}),
-	}
 }
