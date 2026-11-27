@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import type { HTMLAttributes, Ref } from "react";
+import type { ComponentProps } from "react";
 import type {
   IDataTableColumn,
   IDataTableSelection,
@@ -16,7 +16,7 @@ export const DATA_TABLE_RESPONSIVE_HIDDEN = {
   xl: "hidden xl:table-cell",
 } as const;
 
-export interface IDataTableRowProps<TData> {
+export interface IDataTableRowProps<TData> extends ComponentProps<"tr"> {
   rowId: string;
   row: TData;
   columns: Array<IDataTableColumn<TData>>;
@@ -26,11 +26,6 @@ export interface IDataTableRowProps<TData> {
   interactive: boolean;
   onRowClick?: (row: TData) => void;
   onRowDoubleClick?: (row: TData) => void;
-  trRef?: Ref<HTMLTableRowElement>;
-  trProps?: HTMLAttributes<HTMLTableRowElement> & {
-    draggable?: boolean;
-    style?: HTMLAttributes<HTMLTableRowElement>["style"];
-  };
 }
 
 export function DataTableRow<TData>({
@@ -43,23 +38,22 @@ export function DataTableRow<TData>({
   interactive,
   onRowClick,
   onRowDoubleClick,
-  trRef,
-  trProps,
+  className,
+  ...trProps
 }: IDataTableRowProps<TData>) {
   const { t } = useTranslation();
 
   return (
     <tr
-      ref={trRef}
+      {...trProps}
       onClick={onRowClick ? () => onRowClick(row) : undefined}
       onDoubleClick={onRowDoubleClick ? () => onRowDoubleClick(row) : undefined}
-      {...trProps}
       className={cn(
         "border-border hover:bg-muted/50 border-t transition-colors",
         interactive && "cursor-pointer",
         isActive && "bg-accent/60",
         isSelected && "bg-primary/5",
-        trProps?.className,
+        className,
       )}
     >
       {selection ? (

@@ -288,7 +288,7 @@
     "pdf_page": "Page {{current}} of {{total}}",
     "download": "Download",
     "new_folder": "New folder",
-    "move_to_trash": "Move to Trash",
+    "move_to_trash": "Move to trash",
     "new_folder_dialog": {
       "title": "New folder",
       "name_label": "Name",
@@ -296,10 +296,11 @@
     },
     "delete_dialog": {
       "title": "Move {{fileName}} to trash?",
-      "description": "This file will be moved to trash and can be restored within {{retentionDays}} days. After {{retentionDays}} days, it will be permanently deleted.",
-      "confirm": "Move to Trash"
+      "description": "You can restore it from the trash for {{retentionDays}} days. After that, it is deleted permanently.",
+      "confirm": "Move to trash"
     },
-    "share": "Share"
+    "share": "Share",
+    "menu_label": "Actions"
   },
   "quick_share": {
     "title": "Quick Share",
@@ -531,7 +532,7 @@
       "confirm_title_one": "Move {{count}} item to trash?",
       "confirm_title_other": "Move {{count}} items to trash?",
       "confirm_description": "The selected items will be moved to trash. Folders will include all their contents. You can restore them from the trash afterwards.",
-      "confirm": "Move to Trash",
+      "confirm": "Move to trash",
       "cancel": "Cancel",
       "success_one": "{{count}} item moved to trash.",
       "success_other": "{{count}} items moved to trash."
