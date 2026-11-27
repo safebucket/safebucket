@@ -17,7 +17,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDate } from "@/lib/utils";
+import { formatAbsoluteTimestamp } from "@/components/time-display/helpers/format";
+import { useTimeDisplay } from "@/components/time-display/hooks/useTimeDisplay";
 
 interface ICommentItemProps {
   comment: IFileComment;
@@ -36,7 +37,8 @@ export const CommentItem: FC<ICommentItemProps> = ({
   onUpdate,
   onDelete,
 }: ICommentItemProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { mode } = useTimeDisplay();
   const [isEditing, setIsEditing] = useState(false);
   const deleteDialog = useDialog();
   const authorName = comment.user
@@ -56,7 +58,7 @@ export const CommentItem: FC<ICommentItemProps> = ({
           <span className="truncate text-sm font-medium">{authorName}</span>
           <time
             dateTime={comment.created_at}
-            title={formatDate(comment.created_at)}
+            title={formatAbsoluteTimestamp(createdAtNano, mode, i18n.language)}
             className="shrink-0 text-xs text-muted-foreground"
           >
             {timeAgo(createdAtNano, t)}

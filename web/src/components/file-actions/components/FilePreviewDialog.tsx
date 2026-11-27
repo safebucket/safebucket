@@ -65,7 +65,10 @@ export const FilePreviewDialog: FC<IFilePreviewDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="flex h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl"
+        className={cn(
+          "flex flex-col gap-0 overflow-hidden p-0",
+          comments ? "h-[90dvh] sm:max-w-6xl" : "h-[75dvh] sm:max-w-4xl",
+        )}
       >
         <div className="flex items-center gap-2 border-b px-6 py-4">
           <DialogHeader className="min-w-0 flex-1 gap-0.5">
