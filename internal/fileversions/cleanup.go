@@ -8,6 +8,7 @@ import (
 	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -50,7 +51,8 @@ func (m Manager) ExpirePending(bucketID uuid.UUID, version models.FileVersion, t
 	if version.UploadID != "" {
 		parts, err := m.Storage.ListObjectParts(storage.VersionObjectKey(bucketID, version.ID), version.UploadID)
 		if err != nil {
-			return false, err
+			zap.L().Warn("Failed to list upload parts, expiring version anyway",
+				zap.String("version_id", version.ID.String()), zap.Error(err))
 		}
 		for _, part := range parts {
 			if part.LastModified.After(threshold) {
