@@ -296,10 +296,11 @@
     },
     "delete_dialog": {
       "title": "{{fileName}} in den Papierkorb bewegen?",
-      "description": "Diese Datei landet im Papierkorb und kann dort noch für {{retentionDays}} Tage wiederhergestellt werden. Danach wird sie permanent gelöscht.",
+      "description": "Sie können es {{retentionDays}} Tage lang aus dem Papierkorb wiederherstellen. Danach wird es endgültig gelöscht.",
       "confirm": "In den Papierkorb"
     },
-    "share": "Teilen"
+    "share": "Teilen",
+    "menu_label": "Aktionen"
   },
   "quick_share": {
     "title": "Schnellteilen",
