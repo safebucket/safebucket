@@ -19,3 +19,10 @@ export function getUserDisplayName(
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
   return name || user.email;
 }
+
+export function getUserInitials(user: IUserDisplayInfo): string {
+  const initials = [user.first_name, user.last_name]
+    .map((name) => name?.charAt(0).toUpperCase() ?? "")
+    .join("");
+  return initials || user.email.charAt(0).toUpperCase();
+}

@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import type { FC } from "react";
 
 import type { IPublicShareResponse } from "@/types/share.ts";
-import { getUserDisplayName } from "@/types/user.ts";
+import { getUserDisplayName, getUserInitials } from "@/types/user.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar.tsx";
 import { formatFileSize } from "@/lib/utils.ts";
@@ -39,11 +39,7 @@ export const ShareHeader: FC<IShareHeaderProps> = ({
     shareContent.shared_by,
     t("share_consumer.user"),
   );
-  const sharedByInitials =
-    [shareContent.shared_by.first_name, shareContent.shared_by.last_name]
-      .filter(Boolean)
-      .map((name) => name.charAt(0).toUpperCase())
-      .join("") || shareContent.shared_by.email.charAt(0).toUpperCase();
+  const sharedByInitials = getUserInitials(shareContent.shared_by);
   const expiryText = shareContent.expires_at
     ? t("share_consumer.expires", {
         date: new Date(shareContent.expires_at).toLocaleDateString(),
