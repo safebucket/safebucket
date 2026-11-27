@@ -143,15 +143,14 @@ func handleUploadEvents(parser eventparser.IBucketEventParser, msg *message.Mess
 			zap.L(), bucketID, fileID, versionID, nil, true, RecordFileVersionUploaded(shareID),
 		)
 		if err != nil {
-			var apiErr *apierrors.APIError
-			if errors.As(err, &apiErr) && apiErr.Status < 500 {
+			if apiErr, ok := errors.AsType[*apierrors.APIError](err); ok && apiErr.Status < 500 {
 				zap.L().
 					Warn("Upload notification rejected", zap.Error(err), zap.String("version_id", versionID.String()))
 				continue
 			}
 			return err
 		}
-		if !completed.Changed && event.VersionID == "" {
+		if completed.Version.ID == uuid.Nil && event.VersionID == "" {
 			zap.L().Warn("Upload notification without version metadata made no change",
 				zap.String("file_id", fileID.String()), zap.String("bucket_id", bucketID.String()))
 		}

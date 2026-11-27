@@ -5,7 +5,6 @@ import (
 	"time"
 
 	apierrors "github.com/safebucket/safebucket/internal/errors"
-	"github.com/safebucket/safebucket/internal/helpers"
 	"github.com/safebucket/safebucket/internal/models"
 
 	"github.com/google/uuid"
@@ -42,12 +41,24 @@ func LockFile(tx *gorm.DB, bucketID, fileID uuid.UUID) (models.File, error) {
 	if result.Error != nil {
 		return models.File{}, result.Error
 	}
+
 	if result.RowsAffected == 0 {
 		return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
 	}
+	return GetUnscopedFile(tx, bucketID, fileID)
+}
+
+func GetUnscopedFile(db *gorm.DB, bucketID, fileID uuid.UUID) (models.File, error) {
 	var file models.File
-	err := tx.Unscoped().Where("id = ?", fileID).Find(&file).Error
-	return file, err
+	result := db.Unscoped().Where("id = ? AND bucket_id = ?", fileID, bucketID).Find(&file)
+	if result.Error != nil {
+		return models.File{}, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return models.File{}, apierrors.New(http.StatusNotFound, apierrors.CodeFileNotFound)
+	}
+	return file, nil
 }
 
 func CheckFileUploadable(file models.File) error {
@@ -56,130 +67,6 @@ func CheckFileUploadable(file models.File) error {
 	}
 	if file.ExpiresAt != nil && !file.ExpiresAt.After(time.Now()) {
 		return apierrors.New(http.StatusForbidden, apierrors.CodeFileExpired)
-	}
-	return nil
-}
-
-func ReserveFileVersion(tx *gorm.DB, bucketID uuid.UUID, body models.FileUploadBody,
-	userID *uuid.UUID, share *models.Share,
-) (models.File, models.FileVersion, error) {
-	if err := LockBucketFileNames(tx, bucketID); err != nil {
-		return models.File{}, models.FileVersion{}, err
-	}
-	if err := validateUploadFolder(tx, bucketID, body.FolderID); err != nil {
-		return models.File{}, models.FileVersion{}, err
-	}
-	var file models.File
-	query := tx.Where("bucket_id = ? AND name = ?", bucketID, body.Name)
-	if body.FolderID == nil {
-		query = query.Where("folder_id IS NULL")
-	} else {
-		query = query.Where("folder_id = ?", body.FolderID)
-	}
-	result := query.Find(&file)
-	if result.Error != nil {
-		return file, models.FileVersion{}, result.Error
-	}
-	newFile := result.RowsAffected == 0
-	if newFile {
-		file = models.File{ID: uuid.New(), BucketID: bucketID, FolderID: body.FolderID, Name: body.Name,
-			Extension: helpers.ExtensionFromName(body.Name), Status: models.FileStatusUploading,
-			ExpiresAt: body.ExpiresAt}
-		if err := tx.Create(&file).Error; err != nil {
-			return file, models.FileVersion{}, err
-		}
-		if share != nil && share.Type == models.ShareTypeFiles {
-			if err := tx.Create(&models.ShareFile{ShareID: share.ID, FileID: file.ID}).Error; err != nil {
-				return file, models.FileVersion{}, err
-			}
-		}
-	} else {
-		var err error
-		file, err = LockFile(tx, bucketID, file.ID)
-		if err != nil {
-			return file, models.FileVersion{}, err
-		}
-		if err = CheckFileUploadable(file); err != nil {
-			return file, models.FileVersion{}, err
-		}
-	}
-	if share != nil && !helpers.IsFileInShare(tx, *share, file.ID, file) {
-		return file, models.FileVersion{}, apierrors.New(http.StatusForbidden, apierrors.CodeShareFileNotInShare)
-	}
-	var pending int64
-	if err := tx.Model(&models.FileVersion{}).Where("file_id = ? AND status = ?", file.ID, models.FileStatusUploading).
-		Count(&pending).Error; err != nil {
-		return file, models.FileVersion{}, err
-	}
-	if pending > 0 {
-		return file, models.FileVersion{}, apierrors.New(http.StatusConflict, apierrors.CodeFileUploadInProgress)
-	}
-	version := models.FileVersion{ID: uuid.New(), FileID: file.ID,
-		Size: body.Size, Status: models.FileStatusUploading, UploadedBy: userID}
-	if newFile {
-		version.ID = file.ID
-	}
-	if share != nil {
-		result = tx.Model(&models.Share{}).
-			Where("id = ? AND allow_upload = ? AND (max_uploads IS NULL OR current_uploads < max_uploads)", share.ID, true).
-			UpdateColumn("current_uploads", gorm.Expr("current_uploads + 1"))
-		if result.Error != nil {
-			return file, version, result.Error
-		}
-		if result.RowsAffected == 0 {
-			return file, version, apierrors.New(http.StatusForbidden, apierrors.CodeShareMaxUploadsReached)
-		}
-	}
-	err := tx.Create(&version).Error
-	return file, version, err
-}
-
-func PromoteFileVersion(
-	tx *gorm.DB,
-	file models.File,
-	version models.FileVersion,
-	limit int,
-) (models.FileVersion, error) {
-	version.Version = file.LastVersion + 1
-	version.Status = models.FileStatusUploaded
-	if err := tx.Model(&version).Updates(map[string]interface{}{
-		"status": version.Status, "version": version.Version,
-	}).Error; err != nil {
-		return version, err
-	}
-	if err := tx.Model(&file).Updates(map[string]interface{}{
-		"status": models.FileStatusUploaded, "current_version_id": version.ID, "last_version": version.Version,
-	}).Error; err != nil {
-		return version, err
-	}
-	var old []uuid.UUID
-	if err := tx.Model(&models.FileVersion{}).
-		Where("file_id = ? AND status = ? AND id != ?", file.ID, models.FileStatusUploaded, version.ID).
-		Order("version DESC").
-		Offset(limit-1).
-		Pluck("id", &old).
-		Error; err != nil {
-		return version, err
-	}
-	if len(old) == 0 {
-		return version, nil
-	}
-	return version, tx.Model(&models.FileVersion{}).Where("id IN ?", old).
-		Update("status", models.FileStatusDeleting).Error
-}
-
-func validateUploadFolder(tx *gorm.DB, bucketID uuid.UUID, folderID *uuid.UUID) error {
-	if folderID == nil {
-		return nil
-	}
-	var folder models.Folder
-	result := tx.Where("id = ? AND bucket_id = ? AND status = ?", folderID, bucketID, models.FolderStatusCreated).
-		Find(&folder)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return apierrors.New(http.StatusNotFound, apierrors.CodeFolderNotFound)
 	}
 	return nil
 }

@@ -376,8 +376,7 @@ func (s InviteService) ValidateInviteChallenge(
 		)
 		if err != nil || !match {
 			attemptErr := s.handleInviteChallengeFailedAttempt(logger, tx, &challenge, inviteID)
-			var responseErr *apierrors.APIError
-			if errors.As(attemptErr, &responseErr) {
+			if responseErr, ok := errors.AsType[*apierrors.APIError](attemptErr); ok {
 				validationErr = responseErr
 				return nil
 			}

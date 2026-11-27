@@ -47,7 +47,7 @@ func ExpectedPartSize(size, partSize int64, partNumber, partCount int) int64 {
 func FinalizeMultipartUpload(
 	store IStorage,
 	objectPath, uploadID string,
-	partSize, fileSize int64,
+	fileSize int64,
 	metadata map[string]string,
 ) error {
 	parts, err := store.ListObjectParts(objectPath, uploadID)
@@ -55,7 +55,7 @@ func FinalizeMultipartUpload(
 		return fmt.Errorf("list uploaded parts: %w", err)
 	}
 
-	partCount := GetPartsCount(fileSize, partSize)
+	partSize, partCount := ComputeMultipartLayout(fileSize)
 	if len(parts) != partCount {
 		return ErrMultipartPartMismatch
 	}

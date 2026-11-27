@@ -13,6 +13,7 @@ CREATE TABLE file_versions
         status TEXT NOT NULL,
         uploaded_by TEXT,
         cleanup_after DATETIME,
+        upload_id TEXT NOT NULL DEFAULT '',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT fk_file_versions_file_id
             FOREIGN KEY (file_id) REFERENCES files (id) ON UPDATE CASCADE ON DELETE CASCADE,

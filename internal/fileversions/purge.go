@@ -11,17 +11,12 @@ func (m Manager) DeleteFiles(files ...models.File) error {
 	var toDelete []models.File
 	if err := m.DB.Unscoped().
 		Where("id IN ? AND status = ? AND deleted_at IS NOT NULL", models.FileIDs(files), models.FileStatusDeleting).
-		Find(&toDelete).Error; err != nil {
+		Find(&toDelete).Error; err != nil || len(toDelete) == 0 {
 		return err
-	}
-
-	if len(toDelete) == 0 {
-		return nil
 	}
 	if err := m.removeObjects(toDelete); err != nil {
 		return err
 	}
-
 	return m.DB.Unscoped().
 		Where("id IN ? AND status = ? AND deleted_at IS NOT NULL", models.FileIDs(toDelete), models.FileStatusDeleting).
 		Delete(&models.File{}).Error
