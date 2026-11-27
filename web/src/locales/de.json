@@ -410,7 +410,10 @@
       "file_version_created": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' hochgeladen.",
       "file_version_restored": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' wiederhergestellt.",
       "file_version_deleted": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' aus Bucket '%%BUCKET_NAME%%' endgültig gelöscht.",
-      "file_version_downloaded": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' aus Bucket '%%BUCKET_NAME%%' heruntergeladen."
+      "file_version_downloaded": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' aus Bucket '%%BUCKET_NAME%%' heruntergeladen.",
+      "file_comment_created": "Hat die Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' kommentiert.",
+      "file_comment_updated": "Hat einen Kommentar zur Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' bearbeitet.",
+      "file_comment_deleted": "Hat einen Kommentar zur Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' gelöscht."
     },
     "time": {
       "second": "Sekunde",

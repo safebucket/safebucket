@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/safebucket/safebucket/internal/activity"
 	apierrors "github.com/safebucket/safebucket/internal/errors"
 	"github.com/safebucket/safebucket/internal/handlers"
 	m "github.com/safebucket/safebucket/internal/middlewares"
 	"github.com/safebucket/safebucket/internal/models"
+	"github.com/safebucket/safebucket/internal/outbox"
 	"github.com/safebucket/safebucket/internal/rbac"
 	"github.com/safebucket/safebucket/internal/sql"
 
@@ -103,8 +105,21 @@ func (s BucketFileCommentService) CreateComment(
 		Body:    body.Body,
 		Version: version.Version,
 	}
-	if err = s.DB.Omit("User").Create(&comment).Error; err != nil {
-		logger.Error("Failed to create comment", zap.Error(err))
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if createErr := tx.Omit("User").Create(&comment).Error; createErr != nil {
+			logger.Error("Failed to create comment", zap.Error(createErr))
+			return createErr
+		}
+
+		entry := s.commentActivity(activity.FileCommentCreated, rbac.ActionCreate, file, comment.ID, user.UserID)
+		if logErr := outbox.AddActivities(tx, entry); logErr != nil {
+			logger.Error("Failed to log comment creation activity", zap.Error(logErr))
+			return logErr
+		}
+
+		return nil
+	})
+	if err != nil {
 		return models.FileCommentResponse{}, apierrors.New(http.StatusInternalServerError, apierrors.CodeCreateFailed)
 	}
 
@@ -125,7 +140,7 @@ func (s BucketFileCommentService) UpdateComment(
 	ids uuid.UUIDs,
 	body models.FileCommentBody,
 ) error {
-	comment, err := s.getComment(ids)
+	file, comment, err := s.getComment(ids)
 	if err != nil {
 		return err
 	}
@@ -133,8 +148,21 @@ func (s BucketFileCommentService) UpdateComment(
 		return apierrors.New(http.StatusForbidden, apierrors.CodeForbidden)
 	}
 
-	if err = s.DB.Model(&comment).Update("body", body.Body).Error; err != nil {
-		logger.Error("Failed to update comment", zap.Error(err))
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if updateErr := tx.Model(&comment).Update("body", body.Body).Error; updateErr != nil {
+			logger.Error("Failed to update comment", zap.Error(updateErr))
+			return updateErr
+		}
+
+		entry := s.commentActivity(activity.FileCommentUpdated, rbac.ActionUpdate, file, comment.ID, user.UserID)
+		if logErr := outbox.AddActivities(tx, entry); logErr != nil {
+			logger.Error("Failed to log comment update activity", zap.Error(logErr))
+			return logErr
+		}
+
+		return nil
+	})
+	if err != nil {
 		return apierrors.New(http.StatusInternalServerError, apierrors.CodeUpdateFailed)
 	}
 
@@ -146,7 +174,7 @@ func (s BucketFileCommentService) DeleteComment(
 	user models.UserClaims,
 	ids uuid.UUIDs,
 ) error {
-	comment, err := s.getComment(ids)
+	file, comment, err := s.getComment(ids)
 	if err != nil {
 		return err
 	}
@@ -163,8 +191,21 @@ func (s BucketFileCommentService) DeleteComment(
 		}
 	}
 
-	if err = s.DB.Where("id = ?", comment.ID).Delete(&models.FileComment{}).Error; err != nil {
-		logger.Error("Failed to delete comment", zap.Error(err))
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if deleteErr := tx.Where("id = ?", comment.ID).Delete(&models.FileComment{}).Error; deleteErr != nil {
+			logger.Error("Failed to delete comment", zap.Error(deleteErr))
+			return deleteErr
+		}
+
+		entry := s.commentActivity(activity.FileCommentDeleted, rbac.ActionDelete, file, comment.ID, user.UserID)
+		if logErr := outbox.AddActivities(tx, entry); logErr != nil {
+			logger.Error("Failed to log comment deletion activity", zap.Error(logErr))
+			return logErr
+		}
+
+		return nil
+	})
+	if err != nil {
 		return apierrors.New(http.StatusInternalServerError, apierrors.CodeDeleteFailed)
 	}
 
@@ -183,11 +224,36 @@ func (s BucketFileCommentService) getFile(bucketID, fileID uuid.UUID) (models.Fi
 	return file, nil
 }
 
-func (s BucketFileCommentService) getComment(ids uuid.UUIDs) (models.FileComment, error) {
+func (s BucketFileCommentService) getComment(ids uuid.UUIDs) (models.File, models.FileComment, error) {
 	file, err := s.getFile(ids[0], ids[1])
 	if err != nil {
-		return models.FileComment{}, err
+		return models.File{}, models.FileComment{}, err
 	}
 
-	return sql.GetFileComment(s.DB, file.ID, ids[2])
+	comment, err := sql.GetFileComment(s.DB, file.ID, ids[2])
+	if err != nil {
+		return models.File{}, models.FileComment{}, err
+	}
+
+	return file, comment, nil
+}
+
+func (s BucketFileCommentService) commentActivity(
+	message string,
+	action rbac.Action,
+	file models.File,
+	commentID, userID uuid.UUID,
+) models.Activity {
+	return models.Activity{
+		Message: message,
+		Object:  file.ToActivity(),
+		Filter: activity.NewLogFilter(models.ActivityFields{
+			Action:     action.String(),
+			ObjectType: rbac.ResourceFile.String(),
+			UserID:     userID.String(),
+			BucketID:   file.BucketID.String(),
+			FileID:     file.ID.String(),
+			CommentID:  commentID.String(),
+		}),
+	}
 }

@@ -60,6 +60,7 @@ type ActivityFields struct {
 	AttemptsLeft      string `json:"attempts_left"       bleve:"keyword"`
 	SessionID         string `json:"session_id"          bleve:"keyword"`
 	Version           string `json:"version"             bleve:"keyword"`
+	CommentID         string `json:"comment_id"          bleve:"keyword"`
 }
 
 // ToMap converts non-empty fields to a map keyed by their json tag.

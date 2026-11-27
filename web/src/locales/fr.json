@@ -410,7 +410,10 @@
       "file_version_created": "A importé la version %%VERSION%% du fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_version_restored": "A restauré la version %%VERSION%% du fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_version_deleted": "A supprimé définitivement la version %%VERSION%% du fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
-      "file_version_downloaded": "A téléchargé la version %%VERSION%% du fichier '%%FILE_NAME%%' depuis le bucket '%%BUCKET_NAME%%'."
+      "file_version_downloaded": "A téléchargé la version %%VERSION%% du fichier '%%FILE_NAME%%' depuis le bucket '%%BUCKET_NAME%%'.",
+      "file_comment_created": "A commenté le fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "file_comment_updated": "A modifié un commentaire sur le fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "file_comment_deleted": "A supprimé un commentaire sur le fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'."
     },
     "time": {
       "second": "seconde",
