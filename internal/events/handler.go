@@ -150,7 +150,7 @@ func handleUploadEvents(parser eventparser.IBucketEventParser, msg *message.Mess
 			}
 			return err
 		}
-		if !completed.Changed && event.VersionID == "" {
+		if completed.Version.ID == uuid.Nil && event.VersionID == "" {
 			zap.L().Warn("Upload notification without version metadata made no change",
 				zap.String("file_id", fileID.String()), zap.String("bucket_id", bucketID.String()))
 		}

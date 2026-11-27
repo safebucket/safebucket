@@ -2,21 +2,24 @@ package fileversions
 
 import (
 	"github.com/safebucket/safebucket/internal/models"
-	"github.com/safebucket/safebucket/internal/sql"
 	"github.com/safebucket/safebucket/internal/storage"
 
 	"github.com/google/uuid"
 )
 
 func (m Manager) DeleteFiles(files ...models.File) error {
-	toDelete, err := sql.FindPurgeableFiles(m.DB, files)
-	if err != nil || len(toDelete) == 0 {
+	var toDelete []models.File
+	if err := m.DB.Unscoped().
+		Where("id IN ? AND status = ? AND deleted_at IS NOT NULL", models.FileIDs(files), models.FileStatusDeleting).
+		Find(&toDelete).Error; err != nil || len(toDelete) == 0 {
 		return err
 	}
-	if err = m.removeObjects(toDelete); err != nil {
+	if err := m.removeObjects(toDelete); err != nil {
 		return err
 	}
-	return sql.DeletePurgeableFiles(m.DB, toDelete)
+	return m.DB.Unscoped().
+		Where("id IN ? AND status = ? AND deleted_at IS NOT NULL", models.FileIDs(toDelete), models.FileStatusDeleting).
+		Delete(&models.File{}).Error
 }
 
 func (m Manager) removeObjects(files []models.File) error {

@@ -21,7 +21,6 @@ type Manager struct {
 type Completion struct {
 	File    models.File
 	Version models.FileVersion
-	Changed bool
 }
 
 func Metadata(file models.File, version models.FileVersion, share *models.Share) map[string]string {
