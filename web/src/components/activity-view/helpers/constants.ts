@@ -11,6 +11,9 @@ import {
   FolderPlus,
   Link2,
   Link2Off,
+  MessageSquareDiff,
+  MessageSquarePlus,
+  MessageSquareX,
   RotateCcw,
   Share2,
   Smartphone,
@@ -74,6 +77,21 @@ export const messageMap = {
   FILE_VERSION_DELETED: {
     messageKey: "activity.messages.file_version_deleted",
     icon: FileMinus,
+    ...destructive,
+  },
+  FILE_COMMENT_CREATED: {
+    messageKey: "activity.messages.file_comment_created",
+    icon: MessageSquarePlus,
+    ...success,
+  },
+  FILE_COMMENT_UPDATED: {
+    messageKey: "activity.messages.file_comment_updated",
+    icon: MessageSquareDiff,
+    ...info,
+  },
+  FILE_COMMENT_DELETED: {
+    messageKey: "activity.messages.file_comment_deleted",
+    icon: MessageSquareX,
     ...destructive,
   },
   FILE_DOWNLOADED: {

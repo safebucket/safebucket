@@ -411,7 +411,10 @@
       "file_version_created": "Uploaded version %%VERSION%% of file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
       "file_version_restored": "Restored version %%VERSION%% of file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
       "file_version_deleted": "Permanently deleted version %%VERSION%% of file '%%FILE_NAME%%' from bucket '%%BUCKET_NAME%%'.",
-      "file_version_downloaded": "Downloaded version %%VERSION%% of file '%%FILE_NAME%%' from bucket '%%BUCKET_NAME%%'."
+      "file_version_downloaded": "Downloaded version %%VERSION%% of file '%%FILE_NAME%%' from bucket '%%BUCKET_NAME%%'.",
+      "file_comment_created": "Commented on file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
+      "file_comment_updated": "Edited a comment on file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
+      "file_comment_deleted": "Deleted a comment on file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'."
     },
     "time": {
       "second": "second",
