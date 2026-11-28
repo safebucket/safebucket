@@ -1,7 +1,7 @@
 import { Link2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { IActivity } from "@/types/activity.ts";
-import { getUserDisplayName } from "@/types/user.ts";
+import { getUserDisplayName, getUserInitials } from "@/types/user.ts";
 
 import { cn } from "@/lib/utils.ts";
 import { useTimeDisplay } from "@/components/time-display/hooks/useTimeDisplay";
@@ -41,7 +41,7 @@ export function ActivityItem({ item }: ActivityItemProps) {
           <AvatarImage src="/placeholder.svg" />
           <AvatarFallback>
             {item.user ? (
-              item.user.email.charAt(0).toUpperCase()
+              getUserInitials(item.user)
             ) : (
               <Link2 className="h-4 w-4" />
             )}

@@ -70,7 +70,10 @@
     "FILE_VERSION_NOT_FOUND": "Diese Version existiert nicht mehr. Aktualisieren Sie den Versionsverlauf.",
     "FILE_VERSION_IS_CURRENT": "Die aktuelle Version kann nicht gelöscht werden.",
     "FILE_VERSION_NOT_RESTORABLE": "Diese Version kann nicht wiederhergestellt werden. Aktualisieren Sie den Versionsverlauf.",
-    "FILE_VERSION_NOT_DELETABLE": "Diese Version kann nicht gelöscht werden. Aktualisieren Sie den Versionsverlauf."
+    "FILE_VERSION_NOT_DELETABLE": "Diese Version kann nicht gelöscht werden. Aktualisieren Sie den Versionsverlauf.",
+    "COMMENT_NOT_FOUND": "Dieser Kommentar existiert nicht mehr.",
+    "FILE_NOT_FOUND": "Diese Datei ist nicht mehr verfügbar.",
+    "FILE_EXPIRED": "Diese Datei ist abgelaufen."
   },
   "toast": {
     "download_started": "Starte Download von {{filename}}",
@@ -408,7 +411,10 @@
       "file_version_created": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' hochgeladen.",
       "file_version_restored": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' wiederhergestellt.",
       "file_version_deleted": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' aus Bucket '%%BUCKET_NAME%%' endgültig gelöscht.",
-      "file_version_downloaded": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' aus Bucket '%%BUCKET_NAME%%' heruntergeladen."
+      "file_version_downloaded": "Hat Version %%VERSION%% der Datei '%%FILE_NAME%%' aus Bucket '%%BUCKET_NAME%%' heruntergeladen.",
+      "file_comment_created": "Hat die Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' kommentiert.",
+      "file_comment_updated": "Hat einen Kommentar zur Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' bearbeitet.",
+      "file_comment_deleted": "Hat einen Kommentar zur Datei '%%FILE_NAME%%' in Bucket '%%BUCKET_NAME%%' gelöscht."
     },
     "time": {
       "second": "Sekunde",
@@ -1135,5 +1141,19 @@
     "delete_description": "Diese Version von {{filename}} endgültig löschen. Dies kann nicht rückgängig gemacht werden.",
     "restored": "Version wiederhergestellt.",
     "deleted": "Version gelöscht."
+  },
+  "file_comments": {
+    "title": "Kommentare",
+    "see_comments": "Kommentare anzeigen",
+    "open_preview": "Vorschau öffnen",
+    "count_one": "{{count}} Kommentar",
+    "count_other": "{{count}} Kommentare",
+    "empty": "Noch keine Kommentare",
+    "placeholder": "Kommentar schreiben",
+    "submit": "Kommentieren",
+    "options": "Kommentaroptionen",
+    "delete_title": "Diesen Kommentar löschen?",
+    "delete_description": "Dies kann nicht rückgängig gemacht werden.",
+    "deleted_user": "Gelöschter Benutzer"
   }
 }

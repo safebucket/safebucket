@@ -70,7 +70,10 @@
     "FILE_VERSION_NOT_FOUND": "Cette version n’existe plus. Actualisez l’historique des versions.",
     "FILE_VERSION_IS_CURRENT": "La version actuelle ne peut pas être supprimée.",
     "FILE_VERSION_NOT_RESTORABLE": "Cette version ne peut pas être restaurée. Actualisez l’historique des versions.",
-    "FILE_VERSION_NOT_DELETABLE": "Cette version ne peut pas être supprimée. Actualisez l’historique des versions."
+    "FILE_VERSION_NOT_DELETABLE": "Cette version ne peut pas être supprimée. Actualisez l’historique des versions.",
+    "COMMENT_NOT_FOUND": "Ce commentaire n'existe plus.",
+    "FILE_NOT_FOUND": "Ce fichier n'est plus disponible.",
+    "FILE_EXPIRED": "Ce fichier a expiré."
   },
   "toast": {
     "download_started": "Téléchargement démarré pour le fichier {{filename}}",
@@ -408,7 +411,10 @@
       "file_version_created": "A importé la version %%VERSION%% du fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_version_restored": "A restauré la version %%VERSION%% du fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
       "file_version_deleted": "A supprimé définitivement la version %%VERSION%% du fichier '%%FILE_NAME%%' du bucket '%%BUCKET_NAME%%'.",
-      "file_version_downloaded": "A téléchargé la version %%VERSION%% du fichier '%%FILE_NAME%%' depuis le bucket '%%BUCKET_NAME%%'."
+      "file_version_downloaded": "A téléchargé la version %%VERSION%% du fichier '%%FILE_NAME%%' depuis le bucket '%%BUCKET_NAME%%'.",
+      "file_comment_created": "A commenté le fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "file_comment_updated": "A modifié un commentaire sur le fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'.",
+      "file_comment_deleted": "A supprimé un commentaire sur le fichier '%%FILE_NAME%%' dans le bucket '%%BUCKET_NAME%%'."
     },
     "time": {
       "second": "seconde",
@@ -1142,5 +1148,19 @@
     "delete_description": "Supprimer définitivement cette version de {{filename}}. Cette action est irréversible.",
     "restored": "Version restaurée.",
     "deleted": "Version supprimée."
+  },
+  "file_comments": {
+    "title": "Commentaires",
+    "see_comments": "Voir les commentaires",
+    "open_preview": "Ouvrir l'aperçu",
+    "count_one": "{{count}} commentaire",
+    "count_other": "{{count}} commentaires",
+    "empty": "Aucun commentaire",
+    "placeholder": "Laisser un commentaire",
+    "submit": "Commenter",
+    "options": "Options du commentaire",
+    "delete_title": "Supprimer ce commentaire ?",
+    "delete_description": "Cette action est irréversible.",
+    "deleted_user": "Utilisateur supprimé"
   }
 }

@@ -53,6 +53,7 @@ func (s BucketFileService) Routes() chi.Router {
 			Get("/url", handlers.GetOneWithQueryHandler(s.DownloadFile))
 
 		r.Mount("/versions", BucketFileVersionService{s}.Routes())
+		r.Mount("/comments", BucketFileCommentService{DB: s.DB}.Routes())
 	})
 
 	return r

@@ -70,7 +70,10 @@
     "FILE_VERSION_NOT_FOUND": "This version no longer exists. Refresh the version history.",
     "FILE_VERSION_IS_CURRENT": "The current version cannot be deleted.",
     "FILE_VERSION_NOT_RESTORABLE": "This version cannot be restored. Refresh the version history.",
-    "FILE_VERSION_NOT_DELETABLE": "This version cannot be deleted. Refresh the version history."
+    "FILE_VERSION_NOT_DELETABLE": "This version cannot be deleted. Refresh the version history.",
+    "COMMENT_NOT_FOUND": "This comment no longer exists.",
+    "FILE_NOT_FOUND": "This file is no longer available.",
+    "FILE_EXPIRED": "This file has expired."
   },
   "toast": {
     "download_started": "Download started for file {{filename}}",
@@ -408,7 +411,10 @@
       "file_version_created": "Uploaded version %%VERSION%% of file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
       "file_version_restored": "Restored version %%VERSION%% of file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
       "file_version_deleted": "Permanently deleted version %%VERSION%% of file '%%FILE_NAME%%' from bucket '%%BUCKET_NAME%%'.",
-      "file_version_downloaded": "Downloaded version %%VERSION%% of file '%%FILE_NAME%%' from bucket '%%BUCKET_NAME%%'."
+      "file_version_downloaded": "Downloaded version %%VERSION%% of file '%%FILE_NAME%%' from bucket '%%BUCKET_NAME%%'.",
+      "file_comment_created": "Commented on file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
+      "file_comment_updated": "Edited a comment on file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'.",
+      "file_comment_deleted": "Deleted a comment on file '%%FILE_NAME%%' in bucket '%%BUCKET_NAME%%'."
     },
     "time": {
       "second": "second",
@@ -1135,5 +1141,19 @@
     "delete_description": "Permanently delete this version of {{filename}}. This cannot be undone.",
     "restored": "Version restored.",
     "deleted": "Version deleted."
+  },
+  "file_comments": {
+    "title": "Comments",
+    "see_comments": "See comments",
+    "open_preview": "Open preview",
+    "count_one": "{{count}} comment",
+    "count_other": "{{count}} comments",
+    "empty": "No comments yet",
+    "placeholder": "Leave a comment",
+    "submit": "Comment",
+    "options": "Comment options",
+    "delete_title": "Delete this comment?",
+    "delete_description": "This cannot be undone.",
+    "deleted_user": "Deleted user"
   }
 }

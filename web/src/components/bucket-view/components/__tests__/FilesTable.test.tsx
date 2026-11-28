@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { DndContext } from "@dnd-kit/core";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FilesTable } from "../FilesTable";
 import type { IFile } from "@/types/file.ts";
 import { FileStatus } from "@/types/file.ts";
@@ -33,6 +34,10 @@ vi.mock("@/components/file-actions/hooks/useFileActions", () => ({
   useFileActions: () => ({ downloadFile: vi.fn(), deleteFile: vi.fn() }),
 }));
 
+vi.mock("@/hooks/use-mobile", () => ({
+  useIsMobile: () => false,
+}));
+
 vi.stubGlobal(
   "ResizeObserver",
   class {
@@ -55,17 +60,19 @@ const FILE: IFile = {
 
 const renderComponent = () =>
   render(
-    <DndContext>
-      <FilesTable
-        items={[FILE]}
-        selected={null}
-        setSelected={vi.fn()}
-        rowSelection={{}}
-        setRowSelection={vi.fn()}
-        enabled
-        selectedIds={[]}
-      />
-    </DndContext>,
+    <QueryClientProvider client={new QueryClient()}>
+      <DndContext>
+        <FilesTable
+          items={[FILE]}
+          selected={null}
+          setSelected={vi.fn()}
+          rowSelection={{}}
+          setRowSelection={vi.fn()}
+          enabled
+          selectedIds={[]}
+        />
+      </DndContext>
+    </QueryClientProvider>,
   );
 
 const getRow = () => screen.getByText(FILE.name).closest("tr") as HTMLElement;

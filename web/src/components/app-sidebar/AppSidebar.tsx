@@ -11,7 +11,7 @@ import { BUCKET_DESCRIPTION_MAX_LENGTH } from "@/components/bucket-view/helpers/
 import { FormDialog } from "@/components/dialogs/components/FormDialog";
 import { useDialog } from "@/components/dialogs/hooks/useDialog";
 import { useCurrentUser } from "@/queries/user";
-import { getUserDisplayName } from "@/types/user.ts";
+import { getUserDisplayName, getUserInitials } from "@/types/user.ts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -202,7 +202,7 @@ export const AppSidebar: FC = () => {
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage src={nav.user.avatar} alt="Image" />
                     <AvatarFallback className="rounded-lg">
-                      {user?.email.charAt(0)}
+                      {user && getUserInitials(user)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
@@ -225,7 +225,7 @@ export const AppSidebar: FC = () => {
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage src={nav.user.avatar} alt="Image" />
                       <AvatarFallback className="rounded-lg">
-                        {user?.email.charAt(0)}
+                        {user && getUserInitials(user)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
