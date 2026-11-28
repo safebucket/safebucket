@@ -233,70 +233,74 @@ func (s MFAService) VerifyDevice(
 	deviceID := ids[0]
 
 	var user models.User
-	var deviceName string
 
-	err := s.DB.Transaction(func(tx *gorm.DB) error {
+	var device models.MFADevice
+	result := s.DB.Where("id = ? AND user_id = ?", deviceID, userID).Find(&device)
+	if result.Error != nil {
+		return handlers.AuthFlowResult{}, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusNotFound, apierrors.CodeMFADeviceNotFound)
+	}
+
+	if device.IsVerified {
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusConflict, apierrors.CodeMFADeviceAlreadyVerified)
+	}
+
+	secret, err := h.DecryptSecret(device.EncryptedSecret, []byte(s.AuthConfig.MFAEncryptionKey))
+	if err != nil {
+		logger.Error("Failed to decrypt TOTP secret", zap.Error(err))
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeMFAVerificationFailed,
+		)
+	}
+
+	attempts, err := cache.GetMFAAttempts(s.Cache, userID.String())
+	if err != nil {
+		logger.Error("Rate limit check failed - denying request", zap.Error(err))
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusServiceUnavailable, apierrors.CodeServiceUnavailable)
+	}
+	if attempts >= configuration.MFAMaxAttempts {
+		logger.Warn("MFA device verification rate limited",
+			zap.String("user_id", userID.String()),
+			zap.String("device_id", deviceID.String()))
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusTooManyRequests, apierrors.CodeMFARateLimited)
+	}
+
+	if !h.ValidateTOTPCode(secret, body.Code) {
+		if incErr := cache.IncrementMFAAttempts(s.Cache, userID.String()); incErr != nil {
+			logger.Error("Failed to increment MFA attempts", zap.Error(incErr))
+		}
+
+		logger.Warn("MFA device verification failed - invalid code",
+			zap.String("user_id", userID.String()),
+			zap.String("device_id", deviceID.String()))
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidMFACode)
+	}
+
+	if err = cache.ResetMFAAttempts(s.Cache, userID.String()); err != nil {
+		logger.Error("Failed to reset MFA attempts", zap.Error(err))
+	}
+
+	unused, err := cache.MarkTOTPCodeUsed(s.Cache, deviceID.String(), body.Code)
+	if err != nil {
+		logger.Error("Failed to mark TOTP code as used", zap.Error(err))
+		return handlers.AuthFlowResult{}, apierrors.New(
+			http.StatusInternalServerError,
+			apierrors.CodeMFAVerificationFailed,
+		)
+	}
+	if !unused {
+		logger.Warn("TOTP code replay attempt detected",
+			zap.String("device_id", deviceID.String()))
+		return handlers.AuthFlowResult{}, apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidMFACode)
+	}
+
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
 		owner, err := sql.GetUserByID(tx, userID)
 		if err != nil {
 			return err
-		}
-
-		var device models.MFADevice
-		result := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ? AND user_id = ?", deviceID, userID).
-			First(&device)
-		if result.RowsAffected == 0 {
-			return apierrors.New(http.StatusNotFound, apierrors.CodeMFADeviceNotFound)
-		}
-
-		if device.IsVerified {
-			return apierrors.New(http.StatusConflict, apierrors.CodeMFADeviceAlreadyVerified)
-		}
-
-		deviceName = device.Name
-
-		secret, err := h.DecryptSecret(device.EncryptedSecret, []byte(s.AuthConfig.MFAEncryptionKey))
-		if err != nil {
-			logger.Error("Failed to decrypt TOTP secret", zap.Error(err))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeMFAVerificationFailed)
-		}
-
-		attempts, err := cache.GetMFAAttempts(s.Cache, userID.String())
-		if err != nil {
-			logger.Error("Rate limit check failed - denying request", zap.Error(err))
-			return apierrors.New(http.StatusServiceUnavailable, apierrors.CodeServiceUnavailable)
-		}
-		if attempts >= configuration.MFAMaxAttempts {
-			logger.Warn("MFA device verification rate limited",
-				zap.String("user_id", userID.String()),
-				zap.String("device_id", deviceID.String()))
-			return apierrors.New(http.StatusTooManyRequests, apierrors.CodeMFARateLimited)
-		}
-
-		if !h.ValidateTOTPCode(secret, body.Code) {
-			if incErr := cache.IncrementMFAAttempts(s.Cache, userID.String()); incErr != nil {
-				logger.Error("Failed to increment MFA attempts", zap.Error(incErr))
-			}
-
-			logger.Warn("MFA device verification failed - invalid code",
-				zap.String("user_id", userID.String()),
-				zap.String("device_id", deviceID.String()))
-			return apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidMFACode)
-		}
-
-		if err = cache.ResetMFAAttempts(s.Cache, userID.String()); err != nil {
-			logger.Error("Failed to reset MFA attempts", zap.Error(err))
-		}
-
-		unused, err := cache.MarkTOTPCodeUsed(s.Cache, deviceID.String(), body.Code)
-		if err != nil {
-			logger.Error("Failed to mark TOTP code as used", zap.Error(err))
-			return apierrors.New(http.StatusInternalServerError, apierrors.CodeMFAVerificationFailed)
-		}
-		if !unused {
-			logger.Warn("TOTP code replay attempt detected",
-				zap.String("device_id", deviceID.String()))
-			return apierrors.New(http.StatusUnauthorized, apierrors.CodeInvalidMFACode)
 		}
 
 		var existingDefaultCount int64
@@ -308,20 +312,26 @@ func (s MFAService) VerifyDevice(
 		shouldBeDefault := existingDefaultCount == 0
 
 		now := time.Now()
-		if err = tx.Model(&device).Updates(map[string]any{
-			"is_verified":  true,
-			"is_default":   shouldBeDefault,
-			"verified_at":  now,
-			"last_used_at": now,
-		}).Error; err != nil {
-			return err
+		verified := tx.Model(&models.MFADevice{}).
+			Where("id = ? AND user_id = ? AND is_verified = ?", deviceID, userID, false).
+			Updates(map[string]any{
+				"is_verified":  true,
+				"is_default":   shouldBeDefault,
+				"verified_at":  now,
+				"last_used_at": now,
+			})
+		if verified.Error != nil {
+			return verified.Error
+		}
+		if verified.RowsAffected == 0 {
+			return apierrors.New(http.StatusConflict, apierrors.CodeMFADeviceAlreadyVerified)
 		}
 
 		action := models.Activity{
 			Message: activity.MFADeviceVerified,
 			Object: models.MFADeviceActivity{
 				ID:   deviceID,
-				Name: deviceName,
+				Name: device.Name,
 			},
 			Filter: activity.NewLogFilter(models.ActivityFields{
 				Action:     activity.MFADeviceVerified,
@@ -339,7 +349,7 @@ func (s MFAService) VerifyDevice(
 			return nil
 		}
 
-		notification := events.NewMFADeviceNotification(events.MFADeviceEnrolled, owner.Email, deviceName)
+		notification := events.NewMFADeviceNotification(events.MFADeviceEnrolled, owner.Email, device.Name)
 		return outbox.AddEvents(tx, notification.Payload)
 	})
 

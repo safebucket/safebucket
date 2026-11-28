@@ -78,6 +78,12 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 			ChallengeID:      &challengeID,
 		}
 
+		encryptedSecret, _ := helpers.EncryptSecret("JBSWY3DPEHPK3PXP", []byte(config.MFAEncryptionKey))
+		deviceRow := sqlmock.NewRows([]string{"id", "user_id", "encrypted_secret", "is_verified", "name"}).
+			AddRow(deviceID.String(), userID.String(), encryptedSecret, false, "My Device")
+		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
+			WillReturnRows(deviceRow)
+
 		mock.ExpectBegin()
 
 		userRow := sqlmock.NewRows([]string{"id", "email", "provider_type", "hashed_password"}).
@@ -85,12 +91,6 @@ func TestVerifyDevice_Security_PrivilegeEscalation(t *testing.T) {
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users"`)).
 			WithArgs(userID, 1).
 			WillReturnRows(userRow)
-
-		encryptedSecret, _ := helpers.EncryptSecret("JBSWY3DPEHPK3PXP", []byte(config.MFAEncryptionKey))
-		deviceRow := sqlmock.NewRows([]string{"id", "user_id", "encrypted_secret", "is_verified", "name"}).
-			AddRow(deviceID.String(), userID.String(), encryptedSecret, false, "My Device")
-		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "mfa_devices"`)).
-			WillReturnRows(deviceRow)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "mfa_devices" WHERE user_id = $1 AND is_verified = $2 AND is_default = $3 AND id != $4`)).
 			WithArgs(userID, true, true, deviceID).

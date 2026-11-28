@@ -18,40 +18,58 @@ func (m Manager) Complete(logger *zap.Logger, bucketID, fileID, versionID uuid.U
 	share *models.Share, notification bool,
 	onComplete func(tx *gorm.DB, completed Completion) error,
 ) (Completion, error) {
+	file, err := sql.GetUnscopedFile(m.DB, bucketID, fileID)
+	if err != nil {
+		return Completion{}, err
+	}
+
+	version, err := completableVersion(m.DB, file, share, versionID)
+	if err != nil || version.Status == models.FileStatusUploaded {
+		return Completion{}, err
+	}
+
+	// Multipart completion must be validated through the API.
+	if notification && version.UploadID != "" {
+		return Completion{}, nil
+	}
+
+	if err = m.finishStorage(logger, file, version, share); err != nil {
+		return Completion{}, err
+	}
+
 	var completed Completion
-	err := m.DB.Transaction(func(tx *gorm.DB) error {
-		file, err := sql.LockFile(tx, bucketID, fileID)
-		if err != nil {
-			return err
+	err = m.DB.Transaction(func(tx *gorm.DB) error {
+		lockedFile, lockErr := sql.LockFile(tx, bucketID, fileID)
+		if lockErr != nil {
+			return lockErr
 		}
 
-		if err = checkShareUpload(tx, share, file); err != nil {
-			return err
+		pending, versionErr := completableVersion(tx, lockedFile, share, versionID)
+		if versionErr != nil || pending.Status == models.FileStatusUploaded {
+			return versionErr
 		}
 
-		version, err := completableVersion(tx, file, versionID)
-		if err != nil || version.Status == models.FileStatusUploaded {
-			return err
+		promoted, promoteErr := m.promote(tx, lockedFile, pending)
+		if promoteErr != nil {
+			return promoteErr
 		}
 
-		// Multipart completion must be validated through the API.
-		if notification && version.UploadID != "" {
-			return nil
-		}
-
-		if err = m.finishStorage(logger, file, version, share); err != nil {
-			return err
-		}
-		if version, err = m.promote(tx, file, version); err != nil {
-			return err
-		}
-		completed = Completion{File: file, Version: version}
+		completed = Completion{File: lockedFile, Version: promoted}
 		return onComplete(tx, completed)
 	})
+
 	return completed, err
 }
 
-func completableVersion(db *gorm.DB, file models.File, versionID uuid.UUID) (models.FileVersion, error) {
+func completableVersion(
+	db *gorm.DB,
+	file models.File,
+	share *models.Share,
+	versionID uuid.UUID,
+) (models.FileVersion, error) {
+	if err := checkShareUpload(db, share, file); err != nil {
+		return models.FileVersion{}, err
+	}
 	if err := sql.CheckFileUploadable(file); err != nil {
 		return models.FileVersion{}, err
 	}
@@ -124,6 +142,12 @@ func (m Manager) finishStorage(
 		int64(version.Size),
 		Metadata(file, version, share),
 	)
+	if err != nil {
+		if _, statErr := m.Storage.StatObject(key); statErr == nil {
+			return nil
+		}
+	}
+
 	if errors.Is(err, storage.ErrMultipartPartMismatch) {
 		return apierrors.New(http.StatusBadRequest, apierrors.CodeMultipartSizeMismatch)
 	}
