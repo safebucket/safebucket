@@ -3,6 +3,7 @@ package configuration
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/safebucket/safebucket/internal/models"
@@ -18,23 +19,31 @@ import (
 )
 
 func parseArrayFields(k *koanf.Koanf) {
-	for _, field := range ArrayConfigFields {
-		if stringVal := k.String(field); stringVal != "" {
-			stringVal = strings.Trim(stringVal, "[]")
-			var items []string
-			if strings.Contains(stringVal, ",") {
-				items = strings.Split(stringVal, ",")
-			} else {
-				items = strings.Fields(stringVal)
-			}
-			for i, item := range items {
-				items[i] = strings.TrimSpace(item)
-			}
-			err := k.Set(field, items)
-			if err != nil {
-				zap.L().
-					Error("Error parsing array field", zap.String("field", field), zap.Error(err))
-			}
+	fields := slices.Clone(ArrayConfigFields)
+	for _, provider := range k.MapKeys("auth.providers") {
+		for _, field := range ProviderArrayConfigFields {
+			fields = append(fields, "auth.providers."+provider+"."+field)
+		}
+	}
+
+	for _, field := range fields {
+		stringVal, ok := k.Get(field).(string)
+		if !ok || stringVal == "" {
+			continue
+		}
+		stringVal = strings.Trim(stringVal, "[]")
+		var items []string
+		if strings.Contains(stringVal, ",") || strings.HasSuffix(field, ".oidc.admin_groups") {
+			items = strings.Split(stringVal, ",")
+		} else {
+			items = strings.Fields(stringVal)
+		}
+		for i, item := range items {
+			items[i] = strings.TrimSpace(item)
+		}
+		if err := k.Set(field, items); err != nil {
+			zap.L().
+				Error("Error parsing array field", zap.String("field", field), zap.Error(err))
 		}
 	}
 }

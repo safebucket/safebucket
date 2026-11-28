@@ -134,9 +134,16 @@ const BatchLimit = 100
 
 var ArrayConfigFields = []string{
 	"app.trusted_proxies",
-	"cors.allowed_origins",
+	"app.allowed_origins",
 	"cache.redis.hosts",
 	"cache.valkey.hosts",
+}
+
+var ProviderArrayConfigFields = []string{
+	"domains",
+	"sharing.domains",
+	"oidc.scopes",
+	"oidc.admin_groups",
 }
 
 var ConfigFileSearchPaths = []string{
